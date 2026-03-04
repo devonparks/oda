@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODA Lemonade Day</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#FFF8E1;font-family:'Quicksand',sans-serif;min-height:100vh}
+.wrap{max-width:640px;margin:0 auto;padding:20px 16px}
+.hdr{text-align:center;margin-bottom:24px}
+.hdr .emoji{font-size:64px;margin-bottom:8px}
+.hdr h1{font-family:'Fredoka',sans-serif;font-size:36px;font-weight:700;background:linear-gradient(135deg,#F59E0B,#EF4444,#F59E0B);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr p{font-size:15px;color:#92400E;font-weight:600;margin-top:4px}
+.card{background:#fff;border-radius:24px;padding:28px 24px;box-shadow:0 8px 32px rgba(245,158,11,.1),0 2px 8px rgba(0,0,0,.04);margin-bottom:20px}
+.card-title{font-family:'Fredoka',sans-serif;font-size:24px;font-weight:700;color:#92400E;margin-bottom:12px;text-align:center}
+.video-wrap{position:relative;width:100%;padding-bottom:56.25%;border-radius:16px;overflow:hidden;margin-bottom:16px;background:#000}
+.video-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none}
+.story-box{background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-radius:16px;padding:20px;margin-bottom:16px;border:2px solid rgba(245,158,11,.15)}
+.story-box p{font-size:16px;color:#78350F;line-height:1.7;font-weight:500}
+.story-box strong{color:#92400E}
+.stat-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:16px 0}
+.stat{text-align:center;background:linear-gradient(135deg,#FFF7ED,#FFEDD5);border-radius:14px;padding:14px 8px;border:2px solid rgba(245,158,11,.1)}
+.stat .num{font-family:'Fredoka',sans-serif;font-size:24px;font-weight:700;color:#EA580C}
+.stat .label{font-size:11px;color:#9A3412;font-weight:600;margin-top:2px}
+.mission{background:linear-gradient(135deg,#DC2626,#EF4444);border-radius:20px;padding:24px;text-align:center;margin-bottom:16px}
+.mission h2{font-family:'Fredoka',sans-serif;font-size:22px;color:#fff;margin-bottom:8px}
+.mission p{font-size:16px;color:#FEE2E2;font-weight:600;line-height:1.6}
+.mission .big{font-family:'Fredoka',sans-serif;font-size:28px;color:#FDE68A;font-weight:700;display:block;margin-top:8px}
+.rules{background:#FFF7ED;border-radius:16px;padding:20px;margin-bottom:16px;border:2px solid rgba(245,158,11,.1)}
+.rules h3{font-family:'Fredoka',sans-serif;font-size:18px;color:#92400E;margin-bottom:12px}
+.rule{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}
+.rule:last-child{margin-bottom:0}
+.rule .ico{font-size:22px;flex-shrink:0}
+.rule .txt{font-size:15px;color:#78350F;font-weight:500;line-height:1.5}
+.groups{margin:16px 0}
+.group-card{background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-radius:16px;padding:20px;margin-bottom:12px;border:2px solid rgba(245,158,11,.15)}
+.group-card h3{font-family:'Fredoka',sans-serif;font-size:20px;color:#92400E;margin-bottom:4px}
+.group-card .sub{font-size:14px;color:#B45309;font-weight:600;margin-bottom:10px}
+.roles{display:flex;flex-wrap:wrap;gap:8px}
+.role{background:#fff;border-radius:10px;padding:6px 12px;font-size:13px;font-weight:600;color:#92400E;border:1px solid rgba(245,158,11,.2)}
+.signup-section{text-align:center;margin-top:16px}
+.signup-section h2{font-family:'Fredoka',sans-serif;font-size:24px;color:#92400E;margin-bottom:12px}
+.signup-section p{font-size:15px;color:#B45309;font-weight:500;margin-bottom:16px}
+.name-input{width:100%;padding:14px;border-radius:14px;border:3px solid #FDE68A;font-family:'Quicksand',sans-serif;font-size:20px;color:#92400E;outline:none;background:#FFFBEB;text-align:center;font-weight:600;transition:border-color .2s;margin-bottom:12px}
+.name-input:focus{border-color:#F59E0B}
+.name-input::placeholder{color:#D4A84A}
+.btn{font-family:'Fredoka',sans-serif;font-weight:600;border:none;cursor:pointer;letter-spacing:.5px;transition:all .15s;display:inline-block;text-align:center;padding:16px 36px;font-size:20px;border-radius:18px;color:#fff}
+.btn:active{transform:translateY(4px)!important}
+.btn:disabled{background:#ccc!important;cursor:not-allowed;box-shadow:none!important}
+.btn-orange{background:#F59E0B;box-shadow:0 6px 0 rgba(217,119,6,.6),0 8px 20px rgba(245,158,11,.2)}
+.btn-red{background:#EF4444;box-shadow:0 6px 0 rgba(220,38,38,.5)}
+.btn-green{background:#10B981;box-shadow:0 6px 0 rgba(16,185,129,.5)}
+.signed-list{background:#FFFBEB;border-radius:14px;padding:16px;margin-top:16px;display:none}
+.signed-list h3{font-family:'Fredoka',sans-serif;font-size:16px;color:#92400E;margin-bottom:8px}
+.signed-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #FDE68A}
+.signed-item:last-child{border-bottom:none}
+.signed-name{font-family:'Fredoka',sans-serif;font-size:16px;color:#78350F;font-weight:600}
+.signed-remove{background:none;border:none;color:#EF4444;font-size:18px;cursor:pointer;padding:4px 8px}
+.copy-btn{margin-top:12px;padding:10px 20px;font-size:14px;border-radius:12px}
+.copy-msg{display:none;margin-top:8px;padding:8px;background:#D1FAE5;color:#065F46;border-radius:10px;font-weight:600;font-size:14px}
+.footer{text-align:center;padding:20px 0;font-size:12px;color:#D4A84A}
+.back-link{display:inline-block;margin-bottom:16px;font-family:'Fredoka',sans-serif;font-size:14px;color:#F59E0B;text-decoration:none;font-weight:600}
+.back-link:hover{color:#D97706}
+.confetti-piece{position:fixed;top:-20px;z-index:9999;pointer-events:none;animation:confettiFall 3s ease-in forwards}
+@keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back-link" href="index.html">&#x2190; Back to ODA Hub</a>
+<div class="hdr">
+<div class="emoji">&#x1F34B;</div>
+<h1>ODA Lemonade Day!</h1>
+<p>Southeast is about to RUN this &#x1F525;</p>
+</div>
+
+<div class="card">
+<div class="card-title">&#x1F3AC; Watch This First</div>
+<div class="video-wrap">
+<iframe src="https://www.youtube.com/embed/HRKU5Hccrdo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</div>
+<div class="story-box">
+<p><strong>Mikaila Ulmer</strong> started selling lemonade at age 4 from her front yard. She went on Shark Tank at age 9 and got <strong>$60,000</strong> from Daymond John. Today she's 20 years old, her lemonade is in <strong>2,500+ stores</strong> including Whole Foods and Target, and she's met President Obama. It all started with one idea and the courage to try.</p>
+</div>
+<div class="stat-row">
+<div class="stat"><div class="num">4</div><div class="label">Age She Started</div></div>
+<div class="stat"><div class="num">$60K</div><div class="label">Shark Tank Deal</div></div>
+<div class="stat"><div class="num">2500+</div><div class="label">Stores Today</div></div>
+</div>
+</div>
+
+<div class="mission">
+<h2>&#x1F3C6; OUR MISSION</h2>
+<p>All ODA schools are competing. Each school runs their own companies and sells at the event.</p>
+<span class="big">Southeast is going to make the MOST money.</span>
+</div>
+
+<div class="card">
+<div class="card-title">&#x1F3E2; How It Works</div>
+<div class="rules">
+<h3>The Setup</h3>
+<div class="rule"><span class="ico">&#x1F46B;</span><span class="txt">You'll be split into <strong>company groups</strong> — each group runs their OWN business</span></div>
+<div class="rule"><span class="ico">&#x1F454;</span><span class="txt">Every person gets a <strong>real role</strong> — CEO, CFO, Marketing Director, Sales Lead</span></div>
+<div class="rule"><span class="ico">&#x1F3A8;</span><span class="txt">Your group will <strong>make products</strong> to sell — toys, art, STEM kits, and more</span></div>
+<div class="rule"><span class="ico">&#x1F4B0;</span><span class="txt">On sell day, you run your booth and <strong>make real money</strong></span></div>
+<div class="rule"><span class="ico">&#x1F6AB;</span><span class="txt"><strong>No food allowed</strong> — but that's fine because we're going to make stuff way cooler than food</span></div>
+</div>
+
+<div class="rules" style="background:#FDF4FF;border-color:rgba(168,85,247,.15)">
+<h3 style="color:#6B21A8">&#x1F4BC; Real Business Roles</h3>
+<div class="roles">
+<div class="role">&#x1F451; CEO - The Boss</div>
+<div class="role">&#x1F4B5; CFO - Money Manager</div>
+<div class="role">&#x1F4E3; Marketing Director</div>
+<div class="role">&#x1F6D2; Sales Lead</div>
+<div class="role">&#x1F3A8; Product Designer</div>
+<div class="role">&#x1F4E6; Operations Manager</div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<div class="signup-section">
+<h2>&#x270D;&#xFE0F; Sign Me Up!</h2>
+<p>Ready to be an entrepreneur? Put your name in!</p>
+<input type="text" class="name-input" id="nameInput" placeholder="Type your name...">
+<button class="btn btn-orange" id="signupBtn" disabled onclick="signUp()">I'M IN! &#x1F525;</button>
+
+<div class="signed-list" id="signedList">
+<h3>&#x1F4CB; Signed Up (<span id="signedCount">0</span>)</h3>
+<div id="signedNames"></div>
+<button class="btn copy-btn btn-green" onclick="copyList()">&#x1F4CB; Copy List</button>
+<div class="copy-msg" id="copyMsg">&#x2705; Copied! Paste into your doc</div>
+</div>
+</div>
+</div>
+
+<div class="footer">Built with &#x2764;&#xFE0F; for ODA Southeast &#x1F34B;</div>
+</div>
+
+<script>
+var names=[];
+var SK="oda-lemonade-signups";
+
+function init(){
+try{names=JSON.parse(localStorage.getItem(SK)||"[]")}catch(e){names=[]}
+renderList();
+document.getElementById("nameInput").addEventListener("input",function(){
+document.getElementById("signupBtn").disabled=!this.value.trim();
+});
+document.getElementById("nameInput").addEventListener("keydown",function(e){
+if(e.key==="Enter"&&this.value.trim())signUp();
+});
+}
+
+function signUp(){
+var input=document.getElementById("nameInput");
+var name=input.value.trim();
+if(!name)return;
+var exists=false;
+for(var i=0;i<names.length;i++){if(names[i].toLowerCase()===name.toLowerCase()){exists=true;break}}
+if(exists){input.value="";input.placeholder="Already signed up!";setTimeout(function(){input.placeholder="Type your name..."},2000);return}
+names.push(name);
+try{localStorage.setItem(SK,JSON.stringify(names))}catch(e){}
+input.value="";
+document.getElementById("signupBtn").disabled=true;
+renderList();
+fireConfetti();
+}
+
+function renderList(){
+var list=document.getElementById("signedList");
+var container=document.getElementById("signedNames");
+var count=document.getElementById("signedCount");
+if(names.length===0){list.style.display="none";return}
+list.style.display="block";
+count.textContent=names.length;
+var html="";
+for(var i=0;i<names.length;i++){
+html+='<div class="signed-item"><span class="signed-name">'+(i+1)+'. '+esc(names[i])+'</span><button class="signed-remove" onclick="removeName('+i+')">&times;</button></div>';
+}
+container.innerHTML=html;
+}
+
+function removeName(idx){
+names.splice(idx,1);
+try{localStorage.setItem(SK,JSON.stringify(names))}catch(e){}
+renderList();
+}
+
+function copyList(){
+var t="ODA LEMONADE DAY - SOUTHEAST SIGN-UPS\n";
+t+="================================\n";
+for(var i=0;i<names.length;i++){t+=(i+1)+". "+names[i]+"\n"}
+t+="================================\n";
+t+="Total: "+names.length+" students\n";
+try{
+var ta=document.createElement("textarea");
+ta.value=t;document.body.appendChild(ta);ta.select();
+document.execCommand("copy");document.body.removeChild(ta);
+var m=document.getElementById("copyMsg");
+m.style.display="block";
+setTimeout(function(){m.style.display="none"},3000);
+}catch(e){alert("Couldn't copy")}
+}
+
+function esc(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML}
+
+function fireConfetti(){
+var co=["#F59E0B","#EF4444","#10B981","#3B82F6","#8B5CF6","#EC4899","#FFD700"];
+for(var i=0;i<40;i++){
+var p=document.createElement("div");
+p.className="confetti-piece";
+var sz=6+Math.random()*10;
+p.style.width=sz+"px";
+p.style.height=sz*(Math.random()>.5?1:.6)+"px";
+p.style.left=Math.random()*100+"%";
+p.style.backgroundColor=co[i%co.length];
+p.style.borderRadius=Math.random()>.5?"50%":"2px";
+p.style.animationDuration=(2+Math.random()*3)+"s";
+p.style.animationDelay=(Math.random()*1.5)+"s";
+document.body.appendChild(p);
+(function(el){setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},5000)})(p);
+}
+}
+
+init();
+</script>
+</body>
+</html>
