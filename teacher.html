@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODA Hub - Teacher Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#8892a8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+.app{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:16px}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 0;margin-bottom:20px;border-bottom:1px solid var(--border)}
+.topbar h1{font-size:22px;font-weight:800;letter-spacing:-1px}
+.topbar h1 span{color:var(--accent)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.teacher-badge{font-size:13px;color:var(--text2);font-weight:500;background:var(--surface);padding:6px 14px;border-radius:8px;border:1px solid var(--border)}
+.btn{padding:8px 18px;border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .2s}
+.btn:active{transform:scale(.97)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-outline{background:none;border:1px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--text2);color:var(--text)}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:8px}
+.btn-red{background:rgba(239,71,111,.15);color:var(--accent3);border:1px solid rgba(239,71,111,.2)}
+.tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--surface);border-radius:14px;padding:4px;border:1px solid var(--border)}
+.tab{flex:1;padding:12px 8px;text-align:center;border-radius:10px;cursor:pointer;font-weight:700;font-size:14px;color:var(--text2);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.tab:hover{color:var(--text)}
+.tab.active{background:var(--accent);color:var(--bg)}
+.tab .tab-emoji{font-size:18px}
+@media(max-width:600px){.tab{font-size:12px;padding:10px 4px}.tab .tab-label{display:none}}
+.section{display:none;animation:fadeUp .25s ease}
+.section.show{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+@media(max-width:600px){.stats{grid-template-columns:1fr 1fr}}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center}
+.stat .num{font-size:28px;font-weight:800;color:var(--accent);font-family:'Space Mono',monospace}
+.stat .label{font-size:11px;color:var(--text2);margin-top:2px;font-weight:600}
+.welcome-msg{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px}
+.welcome-msg h2{font-size:20px;font-weight:800;margin-bottom:4px}
+.welcome-msg p{font-size:14px;color:var(--text2);line-height:1.5}
+.quick-links{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:500px){.quick-links{grid-template-columns:1fr}}
+.quick-card{background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:20px;cursor:pointer;transition:all .25s;text-decoration:none;display:block;color:var(--text)}
+.quick-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 8px 24px rgba(6,214,160,.1)}
+.quick-emoji{font-size:36px;margin-bottom:8px;display:block}
+.quick-title{font-size:17px;font-weight:800;margin-bottom:4px}
+.quick-desc{font-size:12px;color:var(--text2);line-height:1.4}
+.quick-badge{display:inline-block;margin-top:8px;padding:3px 10px;border-radius:6px;font-size:10px;font-weight:700}
+.badge-ready{background:rgba(6,214,160,.1);color:var(--accent);border:1px solid rgba(6,214,160,.2)}
+.badge-soon{background:rgba(255,209,102,.1);color:var(--gold);border:1px solid rgba(255,209,102,.2)}
+.tools-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:500px){.tools-grid{grid-template-columns:1fr}}
+.tool-card{background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:24px;transition:all .25s}
+.tool-card:hover{border-color:var(--accent2);transform:translateY(-3px)}
+.tool-emoji{font-size:42px;margin-bottom:10px;display:block}
+.tool-title{font-size:18px;font-weight:800;margin-bottom:4px}
+.tool-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:14px}
+.tool-btn{padding:8px 16px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:'Outfit',sans-serif;transition:all .2s;text-decoration:none;display:inline-block;color:var(--bg)}
+.tool-btn.open{background:var(--accent)}
+.add-form{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.add-form input{flex:1;min-width:100px;padding:12px 14px;background:var(--bg);border:2px solid var(--border);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:15px;outline:none}
+.add-form input:focus{border-color:var(--accent)}
+.add-form input::placeholder{color:#3a4560}
+.student-list{display:flex;flex-direction:column;gap:6px}
+.student-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;transition:all .2s;flex-wrap:wrap;gap:8px}
+.student-row:hover{border-color:var(--accent)}
+.student-info{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.student-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--bg);flex-shrink:0}
+.student-name{font-weight:700;font-size:15px}
+.student-meta{font-size:11px;color:var(--text2)}
+.student-code{font-family:'Space Mono',monospace;font-size:12px;color:var(--gold);background:rgba(255,209,102,.08);padding:3px 8px;border-radius:6px}
+.student-actions{display:flex;gap:6px;align-items:center}
+.student-status{font-size:10px;font-weight:700;padding:4px 8px;border-radius:6px;white-space:nowrap}
+.status-idle{background:rgba(136,146,168,.1);color:var(--text2)}
+.status-working{background:rgba(17,138,178,.15);color:var(--accent2)}
+.status-done{background:rgba(6,214,160,.15);color:var(--accent)}
+.status-playing{background:rgba(255,209,102,.15);color:var(--gold)}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text2)}
+.empty-state .emoji{font-size:44px;margin-bottom:10px;display:block}
+.modal-overlay{position:fixed;inset:0;background:rgba(10,14,26,.88);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;max-width:480px;width:92%;max-height:85vh;overflow-y:auto}
+.modal h2{font-size:20px;font-weight:800;margin-bottom:4px}
+.modal p{font-size:13px;color:var(--text2);margin-bottom:16px}
+.modal-close{float:right;background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer}
+.assign-option{padding:12px 14px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;cursor:pointer;transition:all .2s;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.assign-option:hover{border-color:var(--accent2)}
+.assign-option.sel{border-color:var(--accent);background:rgba(6,214,160,.05)}
+.assign-emoji{font-size:24px}
+.assign-name{font-weight:700;font-size:14px}
+.assign-desc{font-size:11px;color:var(--text2)}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="app">
+<div class="topbar">
+<h1>&#x1F3AE; <span>ODA Hub</span></h1>
+<div class="topbar-right">
+<span class="teacher-badge" id="teacherNameDisplay">Loading...</span>
+<button class="btn btn-outline btn-sm" onclick="logout()">Sign Out</button>
+</div>
+</div>
+<div class="tabs">
+<div class="tab active" onclick="switchTab('home')"><span class="tab-emoji">&#x1F3E0;</span><span class="tab-label">Home</span></div>
+<div class="tab" onclick="switchTab('tools')"><span class="tab-emoji">&#x1F6E0;&#xFE0F;</span><span class="tab-label">Tools</span></div>
+<div class="tab" onclick="switchTab('roster')"><span class="tab-emoji">&#x1F465;</span><span class="tab-label">Roster</span></div>
+<div class="tab" onclick="switchTab('arcade')"><span class="tab-emoji">&#x1F3AE;</span><span class="tab-label">Arcade</span></div>
+</div>
+
+<div class="section show" id="sec-home">
+<div class="welcome-msg"><h2>&#x1F44B; Welcome back, <span id="welcomeName">Teacher</span>!</h2><p>Here's what's happening with your students today.</p></div>
+<div class="stats">
+<div class="stat"><div class="num" id="statStudents">0</div><div class="label">Students</div></div>
+<div class="stat"><div class="num" id="statAssigned">0</div><div class="label">Assigned</div></div>
+<div class="stat"><div class="num" id="statCompleted">0</div><div class="label">Completed</div></div>
+<div class="stat"><div class="num" id="statPlaying">0</div><div class="label">Arcade</div></div>
+</div>
+<div style="font-size:16px;font-weight:700;margin-bottom:12px">&#x26A1; Quick Actions</div>
+<div class="quick-links">
+<div class="quick-card" onclick="switchTab('roster')"><span class="quick-emoji">&#x1F465;</span><div class="quick-title">Manage Roster</div><div class="quick-desc">Add students, assign work, check progress</div></div>
+<a class="quick-card" href="elevator.html"><span class="quick-emoji">&#x1F3A4;</span><div class="quick-title">Elevator Pitches</div><div class="quick-desc">Pull a kid out and build their pitch</div><span class="quick-badge badge-ready">&#x2728; Ready</span></a>
+<a class="quick-card" href="lemonade.html"><span class="quick-emoji">&#x1F34B;</span><div class="quick-title">Lemonade Day</div><div class="quick-desc">Sign ups, Mikaila video, get kids hyped</div><span class="quick-badge badge-ready">&#x2728; Ready</span></a>
+<a class="quick-card" href="pitch.html"><span class="quick-emoji">&#x1F4A1;</span><div class="quick-title">Pitch Challenge</div><div class="quick-desc">Full business pitch builder</div><span class="quick-badge badge-ready">&#x2728; Ready</span></a>
+</div>
+</div>
+
+<div class="section" id="sec-tools">
+<div style="font-size:18px;font-weight:800;margin-bottom:16px">&#x1F6E0;&#xFE0F; Teacher Tools</div>
+<div class="tools-grid">
+<div class="tool-card"><span class="tool-emoji">&#x1F3A4;</span><div class="tool-title">Elevator Pitch</div><div class="tool-desc">10-question interview that auto-generates a pitch. 3 styles. Perfect for 1-on-1.</div><div><a class="tool-btn open" href="elevator.html">Open Tool</a></div></div>
+<div class="tool-card"><span class="tool-emoji">&#x1F4A1;</span><div class="tool-title">Pitch Challenge</div><div class="tool-desc">Full business pitch builder — problem, skills, idea, customers, advantages.</div><div><a class="tool-btn open" href="pitch.html">Open Tool</a></div></div>
+<div class="tool-card"><span class="tool-emoji">&#x1F34B;</span><div class="tool-title">Lemonade Day</div><div class="tool-desc">Mikaila Ulmer video, the mission, sign-up sheet.</div><div><a class="tool-btn open" href="lemonade.html">Open Tool</a></div></div>
+<div class="tool-card"><span class="tool-emoji">&#x1F916;</span><div class="tool-title">Robot Lab</div><div class="tool-desc">Interactive robot design studio. Brain, body, hand, voice, color, powers.</div><div><a class="tool-btn open" href="robot.html">Open Tool</a></div></div>
+<div class="tool-card"><span class="tool-emoji">&#x1F41D;</span><div class="tool-title">Spelling Bee</div><div class="tool-desc">Cleveland-themed spelling challenge. 5 difficulty levels.</div><div><a class="tool-btn open" href="spelling.html">Open Tool</a></div></div>
+<div class="tool-card" style="border-style:dashed;opacity:.5"><span class="tool-emoji">&#x2795;</span><div class="tool-title">More Coming</div><div class="tool-desc">Cavs Night, custom activities, your own tools.</div></div>
+</div>
+</div>
+
+<div class="section" id="sec-roster">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><div style="font-size:18px;font-weight:800">&#x1F465; Your Roster</div><div style="font-size:13px;color:var(--text2)" id="rosterCount"></div></div>
+<div class="add-form"><input type="text" id="addName" placeholder="Student name"><input type="text" id="addGrade" placeholder="Grade" style="max-width:80px"><button class="btn btn-accent" onclick="addStudent()">+ Add</button></div>
+<div class="student-list" id="studentList"><div class="empty-state"><span class="emoji">&#x23F3;</span><p>Loading...</p></div></div>
+</div>
+
+<div class="section" id="sec-arcade">
+<div style="font-size:18px;font-weight:800;margin-bottom:6px">&#x1F3AE; Arcade Manager</div>
+<div style="font-size:14px;color:var(--text2);margin-bottom:16px">Games your students play after completing assignments.</div>
+<div class="tools-grid">
+<div class="tool-card"><span class="tool-emoji">&#x1F426;</span><div class="tool-title">Flappy ODA</div><div class="tool-desc">Tap to fly through pipes. High scores saved.</div><div><a class="tool-btn open" href="arcade/flappy.html">Play Test</a></div></div>
+<div class="tool-card" style="opacity:.5"><span class="tool-emoji">&#x1F3C3;</span><div class="tool-title">Speed Runner</div><div class="tool-desc">Coming soon</div><span class="quick-badge badge-soon" style="margin-top:8px">Building</span></div>
+<div class="tool-card" style="opacity:.5"><span class="tool-emoji">&#x1F9E9;</span><div class="tool-title">Maze Master</div><div class="tool-desc">Coming soon</div><span class="quick-badge badge-soon" style="margin-top:8px">Building</span></div>
+<div class="tool-card" style="opacity:.5"><span class="tool-emoji">&#x1F3CE;&#xFE0F;</span><div class="tool-title">ODA Racer</div><div class="tool-desc">Multiplayer racing — the final boss.</div><span class="quick-badge badge-soon" style="margin-top:8px">Building</span></div>
+</div>
+</div>
+</div>
+
+<div class="modal-overlay" id="assignModal">
+<div class="modal">
+<button class="modal-close" onclick="closeModal()">&times;</button>
+<h2>&#x1F4DD; Assign Work</h2>
+<p>Choose an assignment for <strong id="assignStudentName"></strong></p>
+<div id="assignOptions">
+<div class="assign-option" onclick="pickAssign(this,'spelling-k2')"><span class="assign-emoji">&#x1F4D6;</span><div><div class="assign-name">Spelling K-2</div><div class="assign-desc">10 beginner words</div></div></div>
+<div class="assign-option" onclick="pickAssign(this,'spelling-34')"><span class="assign-emoji">&#x1F4D6;</span><div><div class="assign-name">Spelling 3-4</div><div class="assign-desc">10 intermediate words</div></div></div>
+<div class="assign-option" onclick="pickAssign(this,'spelling-58')"><span class="assign-emoji">&#x1F4D6;</span><div><div class="assign-name">Spelling 5-8</div><div class="assign-desc">10 advanced words</div></div></div>
+<div class="assign-option" onclick="pickAssign(this,'vocab-k2')"><span class="assign-emoji">&#x1F4AC;</span><div><div class="assign-name">Vocab K-2</div><div class="assign-desc">Match words to meanings</div></div></div>
+<div class="assign-option" onclick="pickAssign(this,'vocab-34')"><span class="assign-emoji">&#x1F4AC;</span><div><div class="assign-name">Vocab 3-4</div><div class="assign-desc">Match words to meanings</div></div></div>
+<div class="assign-option" onclick="pickAssign(this,'vocab-58')"><span class="assign-emoji">&#x1F4AC;</span><div><div class="assign-name">Vocab 5-8</div><div class="assign-desc">Match words to meanings</div></div></div>
+<div class="assign-option" onclick="pickAssign(this,'free-play')"><span class="assign-emoji">&#x1F3AE;</span><div><div class="assign-name">Free Play</div><div class="assign-desc">Unlock arcade — no assignment</div></div></div>
+</div>
+<button class="btn btn-accent" style="width:100%;margin-top:14px;padding:14px;font-size:16px" onclick="confirmAssignment()">Send Assignment &#x1F680;</button>
+</div>
+</div>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import{getAuth,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+import{getFirestore,doc,setDoc,getDoc,getDocs,deleteDoc,collection,query,where,addDoc,updateDoc}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+const cfg={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
+const app=initializeApp(cfg);const auth=getAuth(app);const db=getFirestore(app);
+window.fbAuth=auth;window.fbDb=db;window.fbSignOut=signOut;window.fbDoc=doc;window.fbSetDoc=setDoc;window.fbGetDoc=getDoc;window.fbGetDocs=getDocs;window.fbDeleteDoc=deleteDoc;window.fbCollection=collection;window.fbQuery=query;window.fbWhere=where;window.fbAddDoc=addDoc;window.fbUpdateDoc=updateDoc;
+onAuthStateChanged(auth,async function(user){
+if(!user){window.location.href='index.html';return}
+window.currentTeacher=user;
+try{var tDoc=await getDoc(doc(db,'teachers',user.uid));if(tDoc.exists()){var td=tDoc.data();window.teacherData=td;document.getElementById('teacherNameDisplay').textContent=td.name||user.email;document.getElementById('welcomeName').textContent=(td.name||user.email).split(' ')[0]}else{await setDoc(doc(db,'teachers',user.uid),{name:user.displayName||user.email,email:user.email,school:'',createdAt:new Date().toISOString()});document.getElementById('teacherNameDisplay').textContent=user.displayName||user.email;document.getElementById('welcomeName').textContent=(user.displayName||'Teacher').split(' ')[0]}}catch(e){console.error(e);document.getElementById('teacherNameDisplay').textContent=user.email}
+loadStudents();
+});
+</script>
+<script>
+var students=[],currentAssignId=null,selectedAssign=null;
+function switchTab(id){var tabs=document.querySelectorAll('.tab'),secs=document.querySelectorAll('.section');for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');secs[i].classList.remove('show')}document.getElementById('sec-'+id).classList.add('show');var m={home:0,tools:1,roster:2,arcade:3};if(m[id]!==undefined)tabs[m[id]].classList.add('active')}window.switchTab=switchTab;
+async function loadStudents(){try{var q=window.fbQuery(window.fbCollection(window.fbDb,'students'),window.fbWhere('teacherId','==',window.currentTeacher.uid));var snap=await window.fbGetDocs(q);students=[];snap.forEach(function(d){students.push({id:d.id,...d.data()})});renderStudents();updateStats()}catch(e){console.error(e);document.getElementById('studentList').innerHTML='<div class="empty-state"><span class="emoji">&#x26A0;&#xFE0F;</span><p>Error loading. Refresh.</p></div>'}}
+function updateStats(){document.getElementById('statStudents').textContent=students.length;var a=0,c=0,p=0;students.forEach(function(s){if(s.currentAssignment&&s.currentAssignment!=='none'){if(s.assignmentStatus==='completed'){c++;if(s.arcadeUnlocked)p++}else a++}});document.getElementById('statAssigned').textContent=a;document.getElementById('statCompleted').textContent=c;document.getElementById('statPlaying').textContent=p}
+function renderStudents(){var el=document.getElementById('studentList');document.getElementById('rosterCount').textContent=students.length+' student'+(students.length!==1?'s':'');if(!students.length){el.innerHTML='<div class="empty-state"><span class="emoji">&#x1F393;</span><p>No students yet. Add your first one!</p></div>';return}students.sort(function(a,b){return(a.name||'').localeCompare(b.name||'')});var h='';for(var i=0;i<students.length;i++){var s=students[i],init=(s.name||'?').charAt(0).toUpperCase(),st='idle',stxt='No task';if(s.currentAssignment==='free-play'){st='playing';stxt='Free Play'}else if(s.currentAssignment&&s.currentAssignment!=='none'){if(s.assignmentStatus==='completed'){st=s.arcadeUnlocked?'playing':'done';stxt=s.arcadeUnlocked?'Arcade':'Done'}else{st='working';stxt='Working'}}h+='<div class="student-row"><div class="student-info"><div class="student-avatar">'+init+'</div><div><div class="student-name">'+esc(s.name)+'</div><div class="student-meta">Grade '+esc(s.grade||'?')+'</div></div></div><div class="student-actions"><span class="student-code">'+esc(s.code)+'</span><span class="student-status status-'+st+'">'+stxt+'</span><button class="btn btn-accent btn-sm" onclick="openAssign(\''+s.id+'\',\''+esc(s.name)+'\')">Assign</button><button class="btn btn-red btn-sm" onclick="removeStudent(\''+s.id+'\')">&times;</button></div></div>'}el.innerHTML=h}
+async function addStudent(){var n=document.getElementById('addName').value.trim(),g=document.getElementById('addGrade').value.trim();if(!n)return;var code=String(Math.floor(1000+Math.random()*9000));try{await window.fbAddDoc(window.fbCollection(window.fbDb,'students'),{name:n,nameLower:n.toLowerCase(),grade:g,code:code,parentCode:String(Math.floor(1000+Math.random()*9000)),teacherId:window.currentTeacher.uid,school:window.teacherData?window.teacherData.school:'',currentAssignment:'none',assignmentStatus:'none',arcadeUnlocked:false,gamesPlayed:{},createdAt:new Date().toISOString()});document.getElementById('addName').value='';document.getElementById('addGrade').value='';loadStudents()}catch(e){console.error(e);alert('Error: '+e.message)}}window.addStudent=addStudent;
+async function removeStudent(id){if(!confirm('Remove this student?'))return;try{await window.fbDeleteDoc(window.fbDoc(window.fbDb,'students',id));loadStudents()}catch(e){console.error(e)}}window.removeStudent=removeStudent;
+function openAssign(id,name){currentAssignId=id;selectedAssign=null;document.getElementById('assignStudentName').textContent=name;var o=document.querySelectorAll('.assign-option');for(var i=0;i<o.length;i++)o[i].classList.remove('sel');document.getElementById('assignModal').classList.add('show')}window.openAssign=openAssign;
+function closeModal(){document.getElementById('assignModal').classList.remove('show')}window.closeModal=closeModal;
+function pickAssign(el,type){selectedAssign=type;var o=document.querySelectorAll('.assign-option');for(var i=0;i<o.length;i++)o[i].classList.remove('sel');el.classList.add('sel')}window.pickAssign=pickAssign;
+async function confirmAssignment(){if(!selectedAssign||!currentAssignId)return;try{await window.fbUpdateDoc(window.fbDoc(window.fbDb,'students',currentAssignId),{currentAssignment:selectedAssign,assignmentStatus:selectedAssign==='free-play'?'completed':'pending',arcadeUnlocked:selectedAssign==='free-play',assignedAt:new Date().toISOString()});closeModal();loadStudents()}catch(e){console.error(e);alert('Error: '+e.message)}}window.confirmAssignment=confirmAssignment;
+function logout(){window.fbSignOut(window.fbAuth).then(function(){window.location.href='index.html'})}window.logout=logout;
+function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+document.addEventListener('keydown',function(e){if(e.key==='Enter'&&(document.activeElement.id==='addName'||document.activeElement.id==='addGrade'))addStudent()});
+</script>
+</body>
+</html>
