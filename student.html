@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODA Hub - Student</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#8892a8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+.app{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:20px 16px}
+
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.greeting{font-size:28px;font-weight:800;letter-spacing:-1px}
+.greeting span{color:var(--accent)}
+.btn{padding:8px 16px;border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .2s}
+.btn-outline{background:none;border:1px solid var(--border);color:var(--text2)}
+
+/* Assignment Card */
+.work-card{background:var(--surface);border:2px solid var(--border);border-radius:24px;padding:32px;margin-bottom:24px;text-align:center;transition:all .3s}
+.work-card.has-work{border-color:var(--accent2);box-shadow:0 0 30px rgba(17,138,178,.1)}
+.work-card.completed{border-color:var(--accent);box-shadow:0 0 30px rgba(6,214,160,.15)}
+.work-emoji{font-size:64px;margin-bottom:12px;display:block}
+.work-title{font-size:24px;font-weight:800;margin-bottom:6px}
+.work-desc{font-size:15px;color:var(--text2);margin-bottom:20px}
+
+/* Quiz area */
+.quiz-area{text-align:left;margin-top:20px}
+.quiz-word{font-size:28px;font-weight:800;text-align:center;margin-bottom:16px;color:var(--gold);font-family:'Space Mono',monospace;letter-spacing:2px}
+.quiz-input{width:100%;padding:16px;background:var(--bg);border:2px solid var(--border);border-radius:14px;color:var(--text);font-family:'Outfit',sans-serif;font-size:20px;font-weight:600;text-align:center;outline:none;margin-bottom:12px}
+.quiz-input:focus{border-color:var(--accent)}
+.quiz-progress{display:flex;justify-content:space-between;font-size:13px;color:var(--text2);margin-bottom:12px;font-family:'Space Mono',monospace}
+.quiz-feedback{text-align:center;font-size:18px;font-weight:700;min-height:28px;margin-bottom:12px}
+.quiz-btn{width:100%;padding:14px;border:none;border-radius:14px;background:var(--accent2);color:#fff;font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;cursor:pointer;transition:all .2s}
+.quiz-btn:active{transform:scale(.97)}
+
+/* Vocab quiz */
+.vocab-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.vocab-opt{padding:14px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;cursor:pointer;font-size:15px;font-weight:600;text-align:center;transition:all .2s}
+.vocab-opt:hover{border-color:var(--accent2)}
+.vocab-opt.correct{border-color:var(--accent);background:rgba(6,214,160,.1);color:var(--accent)}
+.vocab-opt.wrong{border-color:var(--accent3);background:rgba(239,71,111,.1);color:var(--accent3)}
+
+/* Arcade */
+.arcade-section{margin-bottom:24px}
+.arcade-header{font-size:22px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.arcade-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:500px){.arcade-grid{grid-template-columns:1fr}}
+.game-card{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:24px;text-align:center;transition:all .3s;position:relative;overflow:hidden}
+.game-card.locked{opacity:.4;pointer-events:none}
+.game-card.locked::after{content:'\1F512';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:40px}
+.game-card:not(.locked){cursor:pointer}
+.game-card:not(.locked):hover{border-color:var(--gold);transform:translateY(-4px);box-shadow:0 8px 30px rgba(255,209,102,.1)}
+.game-emoji{font-size:48px;margin-bottom:10px;display:block}
+.game-title{font-size:18px;font-weight:700;margin-bottom:4px}
+.game-desc{font-size:12px;color:var(--text2)}
+.game-score{font-family:'Space Mono',monospace;font-size:13px;color:var(--gold);margin-top:8px}
+
+/* Unlock animation */
+.unlock-banner{display:none;background:linear-gradient(135deg,var(--accent),#04b890);border-radius:20px;padding:24px;text-align:center;margin-bottom:24px;animation:pulse 2s ease-in-out infinite}
+.unlock-banner.show{display:block}
+.unlock-banner h2{font-size:28px;font-weight:900;color:var(--bg);margin-bottom:4px}
+.unlock-banner p{font-size:16px;color:rgba(10,14,26,.7);font-weight:600}
+@keyframes pulse{0%,100%{box-shadow:0 0 20px rgba(6,214,160,.3)}50%{box-shadow:0 0 40px rgba(6,214,160,.5)}}
+
+.confetti-piece{position:fixed;top:-20px;z-index:9999;pointer-events:none;animation:confettiFall 3s ease-in forwards}
+@keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="app">
+<div class="topbar">
+<div class="greeting">Hey, <span id="studentNameDisplay">Student</span>! &#x1F44B;</div>
+<button class="btn btn-outline" onclick="studentLogout()">&#x2190; Exit</button>
+</div>
+
+<!-- UNLOCK BANNER -->
+<div class="unlock-banner" id="unlockBanner">
+<h2>&#x1F3AE; ARCADE UNLOCKED!</h2>
+<p>Great work! Go play some games!</p>
+</div>
+
+<!-- WORK CARD -->
+<div class="work-card" id="workCard">
+<span class="work-emoji" id="workEmoji">&#x2705;</span>
+<div class="work-title" id="workTitle">No Assignment</div>
+<div class="work-desc" id="workDesc">Your teacher hasn't sent you anything yet. Hang tight!</div>
+<div id="quizContainer"></div>
+</div>
+
+<!-- ARCADE -->
+<div class="arcade-section">
+<div class="arcade-header">&#x1F3AE; My Arcade</div>
+<div class="arcade-grid" id="arcadeGrid"></div>
+</div>
+</div>
+
+<!-- FIREBASE -->
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import{getFirestore,doc,getDoc,updateDoc,onSnapshot}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+const firebaseConfig={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+
+window.fbDb=db;window.fbDoc=doc;window.fbGetDoc=getDoc;window.fbUpdateDoc=updateDoc;
+
+// Get student from session
+var studentId=sessionStorage.getItem('studentId');
+var studentName=sessionStorage.getItem('studentName');
+if(!studentId){window.location.href='index.html';}
+else{
+document.getElementById('studentNameDisplay').textContent=studentName||'Student';
+// Real-time listener for assignments
+onSnapshot(doc(db,'students',studentId),function(snap){
+if(snap.exists()){
+window.studentData=snap.data();
+window.studentData.id=studentId;
+renderDashboard();
+}
+});
+}
+</script>
+
+<script>
+var GAMES=[
+{id:'flappy',emoji:'\u{1F426}',title:'Flappy ODA',desc:'Tap to fly through the pipes!',file:'arcade/flappy.html'},
+{id:'runner',emoji:'\u{1F3C3}',title:'Speed Runner',desc:'Coming soon!',file:null},
+{id:'maze',emoji:'\u{1F9E9}',title:'Maze Master',desc:'Coming soon!',file:null},
+{id:'racer',emoji:'\u{1F3CE}\uFE0F',title:'ODA Racer',desc:'Multiplayer racing — coming soon!',file:null}
+];
+
+var WORD_BANKS={
+'spelling-k2':['cat','dog','run','big','the','and','see','play','jump','like'],
+'spelling-34':['because','friend','school','before','believe','different','together','favorite','important','beautiful'],
+'spelling-58':['necessary','rhythm','definitely','occurrence','accommodate','conscience','perseverance','entrepreneur','miscellaneous','surveillance'],
+'vocab-k2':[{w:'Happy',d:'Feeling good and joyful',wrong:['Feeling sad','Feeling tired','Feeling hungry']},{w:'Brave',d:'Not afraid to do hard things',wrong:['Very small','Very loud','Very fast']},{w:'Enormous',d:'Really really big',wrong:['Really tiny','Really fast','Really old']},{w:'Gentle',d:'Soft and careful',wrong:['Loud and rough','Fast and wild','Dark and cold']},{w:'Curious',d:'Wanting to know more',wrong:['Wanting to sleep','Wanting to eat','Wanting to run']}],
+'vocab-34':[{w:'Abundant',d:'More than enough of something',wrong:['Not enough','Exactly right','None at all']},{w:'Cautious',d:'Being very careful',wrong:['Being very fast','Being very loud','Being very silly']},{w:'Diligent',d:'Working hard and not giving up',wrong:['Being lazy','Being quiet','Being funny']},{w:'Elaborate',d:'Very detailed and complex',wrong:['Very simple','Very small','Very old']},{w:'Fragile',d:'Easy to break',wrong:['Very strong','Very heavy','Very big']}],
+'vocab-58':[{w:'Ambiguous',d:'Having more than one meaning',wrong:['Very clear','Very loud','Very bright']},{w:'Benevolent',d:'Kind and generous',wrong:['Mean and cruel','Shy and quiet','Fast and loud']},{w:'Pragmatic',d:'Dealing with things in a practical way',wrong:['Dealing with dreams','Dealing with jokes','Dealing with colors']},{w:'Resilient',d:'Able to recover from difficulties',wrong:['Unable to move','Unable to speak','Unable to see']},{w:'Unanimous',d:'Everyone agrees completely',wrong:['Nobody agrees','Only one agrees','Half agree']}]
+};
+
+var quizState={words:[],current:0,correct:0,type:''};
+
+function renderDashboard(){
+var sd=window.studentData;
+if(!sd)return;
+var wc=document.getElementById('workCard');
+var unlocked=sd.arcadeUnlocked||false;
+
+if(!sd.currentAssignment||sd.currentAssignment==='none'){
+document.getElementById('workEmoji').textContent='\u{2705}';
+document.getElementById('workTitle').textContent='No Assignment';
+document.getElementById('workDesc').textContent="Your teacher hasn't sent you anything yet. Hang tight!";
+document.getElementById('quizContainer').innerHTML='';
+wc.className='work-card';
+}else if(sd.assignmentStatus==='completed'){
+document.getElementById('workEmoji').textContent='\u{1F389}';
+document.getElementById('workTitle').textContent='All Done!';
+document.getElementById('workDesc').textContent='Great job! Your arcade is unlocked!';
+document.getElementById('quizContainer').innerHTML='';
+wc.className='work-card completed';
+unlocked=true;
+}else if(sd.currentAssignment==='free-play'){
+document.getElementById('workEmoji').textContent='\u{1F3AE}';
+document.getElementById('workTitle').textContent='Free Play!';
+document.getElementById('workDesc').textContent='Your teacher gave you free time. Go play!';
+document.getElementById('quizContainer').innerHTML='';
+wc.className='work-card completed';
+unlocked=true;
+}else{
+wc.className='work-card has-work';
+startQuiz(sd.currentAssignment);
+}
+
+document.getElementById('unlockBanner').className='unlock-banner'+(unlocked?' show':'');
+renderArcade(unlocked);
+}
+
+function startQuiz(type){
+if(quizState.type===type&&quizState.current>0)return; // don't restart mid-quiz
+var words=WORD_BANKS[type];
+if(!words){return}
+quizState={words:words.slice(),current:0,correct:0,type:type};
+if(type.startsWith('spelling'))renderSpellingQuiz();
+else renderVocabQuiz();
+}
+
+function renderSpellingQuiz(){
+var q=quizState;
+if(q.current>=q.words.length){finishQuiz();return}
+var word=q.words[q.current];
+document.getElementById('workEmoji').textContent='\u{1F4DD}';
+document.getElementById('workTitle').textContent='Spelling Quiz';
+document.getElementById('workDesc').textContent='Listen to the word and type it correctly!';
+var html='<div class="quiz-area">';
+html+='<div class="quiz-progress"><span>'+(q.current+1)+' of '+q.words.length+'</span><span>'+q.correct+' correct</span></div>';
+html+='<div class="quiz-word" id="quizWord">'+esc(word)+'</div>';
+html+='<input type="text" class="quiz-input" id="quizInput" placeholder="Type the word..." autocomplete="off" spellcheck="false">';
+html+='<div class="quiz-feedback" id="quizFeedback"></div>';
+html+='<button class="quiz-btn" onclick="checkSpelling()">Check &#x2714;&#xFE0F;</button>';
+html+='</div>';
+document.getElementById('quizContainer').innerHTML=html;
+// Hide word after 3 seconds
+setTimeout(function(){
+var el=document.getElementById('quizWord');
+if(el)el.textContent='_ _ _ _ _';
+var inp=document.getElementById('quizInput');
+if(inp)inp.focus();
+},3000);
+}
+
+function checkSpelling(){
+var input=document.getElementById('quizInput').value.trim().toLowerCase();
+var word=quizState.words[quizState.current].toLowerCase();
+var fb=document.getElementById('quizFeedback');
+if(input===word){
+quizState.correct++;
+fb.innerHTML='<span style="color:var(--accent)">\u{2705} Correct!</span>';
+}else{
+fb.innerHTML='<span style="color:var(--accent3)">\u{274C} It was: '+esc(quizState.words[quizState.current])+'</span>';
+}
+quizState.current++;
+setTimeout(function(){
+if(quizState.type.startsWith('spelling'))renderSpellingQuiz();
+},1500);
+}
+window.checkSpelling=checkSpelling;
+
+function renderVocabQuiz(){
+var q=quizState;
+if(q.current>=q.words.length){finishQuiz();return}
+var item=q.words[q.current];
+document.getElementById('workEmoji').textContent='\u{1F4AC}';
+document.getElementById('workTitle').textContent='Vocabulary Quiz';
+document.getElementById('workDesc').textContent='Pick the right definition!';
+var opts=[item.d].concat(item.wrong);
+// Shuffle
+for(var i=opts.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=opts[i];opts[i]=opts[j];opts[j]=t}
+var html='<div class="quiz-area">';
+html+='<div class="quiz-progress"><span>'+(q.current+1)+' of '+q.words.length+'</span><span>'+q.correct+' correct</span></div>';
+html+='<div class="quiz-word">'+esc(item.w)+'</div>';
+html+='<div class="vocab-options">';
+for(var i=0;i<opts.length;i++){
+html+='<div class="vocab-opt" onclick="checkVocab(this,\''+esc(opts[i]).replace(/'/g,"\\'")+'\',\''+esc(item.d).replace(/'/g,"\\'")+'\')">'+esc(opts[i])+'</div>';
+}
+html+='</div>';
+html+='<div class="quiz-feedback" id="quizFeedback"></div>';
+html+='</div>';
+document.getElementById('quizContainer').innerHTML=html;
+}
+
+function checkVocab(el,picked,correct){
+var fb=document.getElementById('quizFeedback');
+var opts=document.querySelectorAll('.vocab-opt');
+for(var i=0;i<opts.length;i++)opts[i].style.pointerEvents='none';
+if(picked===correct){
+el.classList.add('correct');
+quizState.correct++;
+fb.innerHTML='<span style="color:var(--accent)">\u{2705} Correct!</span>';
+}else{
+el.classList.add('wrong');
+for(var i=0;i<opts.length;i++){
+if(opts[i].textContent===correct)opts[i].classList.add('correct');
+}
+fb.innerHTML='<span style="color:var(--accent3)">\u{274C} Not quite!</span>';
+}
+quizState.current++;
+setTimeout(function(){renderVocabQuiz()},1500);
+}
+window.checkVocab=checkVocab;
+
+async function finishQuiz(){
+var pct=Math.round(quizState.correct/quizState.words.length*100);
+var passed=pct>=60;
+document.getElementById('workEmoji').textContent=passed?'\u{1F389}':'\u{1F914}';
+document.getElementById('workTitle').textContent=passed?'Amazing Job!':'Try Again!';
+document.getElementById('workDesc').textContent='You got '+quizState.correct+'/'+quizState.words.length+' ('+pct+'%)' + (passed?' Arcade unlocked!':' You need 60% to unlock games.');
+document.getElementById('quizContainer').innerHTML=passed?'':'<button class="quiz-btn" style="margin-top:16px" onclick="retryQuiz()">Try Again \u{1F504}</button>';
+
+if(passed){
+try{
+await window.fbUpdateDoc(window.fbDoc(window.fbDb,'students',window.studentData.id),{
+assignmentStatus:'completed',
+arcadeUnlocked:true,
+lastScore:pct
+});
+fireConfetti();
+}catch(e){console.error(e)}
+}
+}
+
+function retryQuiz(){
+quizState.current=0;quizState.correct=0;
+if(quizState.type.startsWith('spelling'))renderSpellingQuiz();
+else renderVocabQuiz();
+}
+window.retryQuiz=retryQuiz;
+
+function renderArcade(unlocked){
+var html='';
+for(var i=0;i<GAMES.length;i++){
+var g=GAMES[i];
+var locked=!unlocked||!g.file;
+html+='<div class="game-card'+(locked?' locked':'')+'"'+(locked?'':' onclick="playGame(\''+g.file+'\')"')+'>';
+html+='<span class="game-emoji">'+g.emoji+'</span>';
+html+='<div class="game-title">'+g.title+'</div>';
+html+='<div class="game-desc">'+g.desc+'</div>';
+html+='</div>';
+}
+document.getElementById('arcadeGrid').innerHTML=html;
+}
+
+function playGame(file){window.location.href=file}
+window.playGame=playGame;
+
+function studentLogout(){
+sessionStorage.clear();
+window.location.href='index.html';
+}
+window.studentLogout=studentLogout;
+
+function fireConfetti(){
+var co=["#06d6a0","#118ab2","#ffd166","#ef476f","#a855f7","#06b6d4"];
+for(var i=0;i<60;i++){var p=document.createElement('div');p.className='confetti-piece';var sz=6+Math.random()*10;p.style.width=sz+'px';p.style.height=sz*(Math.random()>.5?1:.6)+'px';p.style.left=Math.random()*100+'%';p.style.backgroundColor=co[i%co.length];p.style.borderRadius=Math.random()>.5?'50%':'2px';p.style.animationDuration=(2+Math.random()*3)+'s';p.style.animationDelay=(Math.random()*2)+'s';document.body.appendChild(p);(function(el){setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},5000)})(p)}
+}
+
+function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+document.addEventListener('keydown',function(e){if(e.key==='Enter'&&document.activeElement.id==='quizInput')checkSpelling()});
+</script>
+</body>
+</html>

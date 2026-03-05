@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>ODA Hub</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#8892a8;--glow:0 0 30px rgba(6,214,160,.15)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* Animated grid bg */
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+
+/* Floating orbs */
+.orbs{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(100px);opacity:.12;animation:orbDrift 25s ease-in-out infinite}
+.orb:nth-child(1){width:500px;height:500px;background:var(--accent);top:-150px;left:-100px}
+.orb:nth-child(2){width:400px;height:400px;background:var(--accent3);bottom:-100px;right:-80px;animation-delay:-8s}
+.orb:nth-child(3){width:350px;height:350px;background:var(--accent2);top:40%;left:60%;animation-delay:-16s}
+@keyframes orbDrift{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(50px,-70px) scale(1.1)}66%{transform:translate(-40px,50px) scale(.9)}}
+
+.app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+
+/* Logo */
+.logo{text-align:center;margin-bottom:40px;animation:fadeUp .6s ease}
+.logo-icon{font-size:56px;margin-bottom:8px;filter:drop-shadow(0 0 20px rgba(6,214,160,.3))}
+.logo h1{font-size:48px;font-weight:900;letter-spacing:-2px;background:linear-gradient(135deg,var(--accent),var(--accent2),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1}
+.logo p{font-family:'Space Mono',monospace;font-size:12px;color:var(--text2);letter-spacing:3px;text-transform:uppercase;margin-top:6px}
+
+/* Door cards */
+.doors{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:780px;width:100%;animation:fadeUp .6s ease .1s both}
+@media(max-width:700px){.doors{grid-template-columns:1fr;max-width:380px}}
+
+.door{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:36px 24px;text-align:center;cursor:pointer;transition:all .3s cubic-bezier(.34,1.56,.64,1);position:relative;overflow:hidden}
+.door::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,.02));opacity:0;transition:opacity .3s}
+.door:hover{transform:translateY(-8px);border-color:var(--accent);box-shadow:var(--glow)}
+.door:hover::before{opacity:1}
+.door:active{transform:translateY(-2px) scale(.98)}
+.door-emoji{font-size:52px;margin-bottom:16px;display:block;transition:transform .3s}
+.door:hover .door-emoji{transform:scale(1.15)}
+.door-title{font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px;letter-spacing:-.5px}
+.door-desc{font-size:13px;color:var(--text2);line-height:1.5;font-weight:400}
+.door.student:hover{border-color:var(--accent);box-shadow:0 0 30px rgba(6,214,160,.2)}
+.door.teacher:hover{border-color:var(--accent2);box-shadow:0 0 30px rgba(17,138,178,.2)}
+.door.parent:hover{border-color:var(--gold);box-shadow:0 0 30px rgba(255,209,102,.2)}
+
+/* Login panels */
+.login-panel{display:none;max-width:420px;width:100%;animation:fadeUp .3s ease}
+.login-panel.show{display:block}
+.panel-card{background:var(--surface);border:2px solid var(--border);border-radius:24px;padding:36px 32px;position:relative}
+.panel-back{position:absolute;top:16px;left:16px;background:none;border:1px solid var(--border);border-radius:10px;padding:6px 14px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.panel-back:hover{border-color:var(--text2);color:var(--text)}
+.panel-header{text-align:center;margin-bottom:28px;padding-top:20px}
+.panel-header .emoji{font-size:48px;margin-bottom:8px;display:block}
+.panel-header h2{font-size:26px;font-weight:800;letter-spacing:-.5px}
+.panel-header p{font-size:14px;color:var(--text2);margin-top:4px}
+
+.field{margin-bottom:18px}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;font-family:'Space Mono',monospace}
+.field input{width:100%;padding:14px 16px;background:var(--bg);border:2px solid var(--border);border-radius:12px;color:var(--text);font-family:'Outfit',sans-serif;font-size:18px;font-weight:600;outline:none;transition:border-color .2s}
+.field input:focus{border-color:var(--accent)}
+.field input::placeholder{color:#4a5568;font-weight:400}
+.field input.code-input{font-family:'Space Mono',monospace;font-size:28px;letter-spacing:8px;text-align:center}
+
+.submit-btn{width:100%;padding:16px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:8px;letter-spacing:.5px}
+.submit-btn:active{transform:translateY(2px)}
+.submit-btn:disabled{opacity:.4;cursor:not-allowed}
+.submit-btn.green{background:linear-gradient(135deg,var(--accent),#04b890);color:var(--bg);box-shadow:0 4px 20px rgba(6,214,160,.25)}
+.submit-btn.blue{background:linear-gradient(135deg,var(--accent2),#0d7ea0);color:#fff;box-shadow:0 4px 20px rgba(17,138,178,.25)}
+.submit-btn.gold{background:linear-gradient(135deg,var(--gold),#f0b830);color:var(--bg);box-shadow:0 4px 20px rgba(255,209,102,.25)}
+
+.divider{text-align:center;margin:20px 0;font-size:12px;color:var(--text2);font-family:'Space Mono',monospace;letter-spacing:2px}
+
+.google-btn{width:100%;padding:14px;border:2px solid var(--border);border-radius:14px;background:var(--surface2);color:var(--text);font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px}
+.google-btn:hover{border-color:var(--text2);background:var(--border)}
+.google-btn svg{width:20px;height:20px}
+
+.error-msg{background:rgba(239,71,111,.1);border:1px solid rgba(239,71,111,.3);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--accent3);font-weight:600;margin-top:12px;display:none;text-align:center}
+.error-msg.show{display:block}
+
+.success-msg{background:rgba(6,214,160,.1);border:1px solid rgba(6,214,160,.3);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--accent);font-weight:600;margin-top:12px;display:none;text-align:center}
+.success-msg.show{display:block}
+
+/* Loading */
+.spinner{display:inline-block;width:20px;height:20px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.footer{margin-top:40px;text-align:center;font-size:12px;color:#3a4560;font-family:'Space Mono',monospace;letter-spacing:1px}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="orbs"><div class="orb"></div><div class="orb"></div><div class="orb"></div></div>
+
+<div class="app">
+<div class="logo">
+<div class="logo-icon">&#x1F3AE;</div>
+<h1>ODA Hub</h1>
+<p>Open Doors Academy &bull; Learn &bull; Play &bull; Win</p>
+</div>
+
+<!-- DOOR SELECT -->
+<div class="doors" id="doors">
+<div class="door student" onclick="showPanel('student')">
+<span class="door-emoji">&#x1F393;</span>
+<div class="door-title">Student</div>
+<div class="door-desc">Enter your name and code to start learning</div>
+</div>
+<div class="door teacher" onclick="showPanel('teacher')">
+<span class="door-emoji">&#x1F4CB;</span>
+<div class="door-title">Teacher</div>
+<div class="door-desc">Manage your roster and send assignments</div>
+</div>
+<div class="door parent" onclick="showPanel('parent')">
+<span class="door-emoji">&#x1F46A;</span>
+<div class="door-title">Parent</div>
+<div class="door-desc">Check your child's progress and scores</div>
+</div>
+</div>
+
+<!-- STUDENT LOGIN -->
+<div class="login-panel" id="panel-student">
+<div class="panel-card">
+<button class="panel-back" onclick="showDoors()">&#x2190; Back</button>
+<div class="panel-header">
+<span class="emoji">&#x1F393;</span>
+<h2>Student Login</h2>
+<p>Type your name and secret code</p>
+</div>
+<div class="field">
+<label>Your Name</label>
+<input type="text" id="studentName" placeholder="First name" autocomplete="off" spellcheck="false">
+</div>
+<div class="field">
+<label>Your Code</label>
+<input type="text" id="studentCode" class="code-input" placeholder="0000" maxlength="4" autocomplete="off" inputmode="numeric">
+</div>
+<button class="submit-btn green" id="studentSubmit" onclick="studentLogin()">Let's Go! &#x1F680;</button>
+<div class="error-msg" id="studentError"></div>
+</div>
+</div>
+
+<!-- TEACHER LOGIN -->
+<div class="login-panel" id="panel-teacher">
+<div class="panel-card">
+<button class="panel-back" onclick="showDoors()">&#x2190; Back</button>
+<div class="panel-header">
+<span class="emoji">&#x1F4CB;</span>
+<h2>Teacher Login</h2>
+<p>Sign in to manage your classroom</p>
+</div>
+<div class="field">
+<label>Email</label>
+<input type="email" id="teacherEmail" placeholder="you@odacle.org">
+</div>
+<div class="field">
+<label>Password</label>
+<input type="password" id="teacherPass" placeholder="Your password">
+</div>
+<button class="submit-btn blue" id="teacherSubmit" onclick="teacherLogin()">Sign In</button>
+<div class="divider">or</div>
+<button class="google-btn" onclick="googleLogin()">
+<svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+Sign in with Google
+</button>
+<div class="divider" style="margin-top:16px">new teacher?</div>
+<button class="submit-btn blue" style="opacity:.7" onclick="showPanel('teacher-signup')">Create Account</button>
+<div class="error-msg" id="teacherError"></div>
+</div>
+</div>
+
+<!-- TEACHER SIGNUP -->
+<div class="login-panel" id="panel-teacher-signup">
+<div class="panel-card">
+<button class="panel-back" onclick="showPanel('teacher')">&#x2190; Back</button>
+<div class="panel-header">
+<span class="emoji">&#x2728;</span>
+<h2>Create Teacher Account</h2>
+<p>Set up your classroom in 30 seconds</p>
+</div>
+<div class="field">
+<label>Your Name</label>
+<input type="text" id="signupName" placeholder="Devon Parks">
+</div>
+<div class="field">
+<label>Email</label>
+<input type="email" id="signupEmail" placeholder="you@odacle.org">
+</div>
+<div class="field">
+<label>School</label>
+<input type="text" id="signupSchool" placeholder="Southeast">
+</div>
+<div class="field">
+<label>Password</label>
+<input type="password" id="signupPass" placeholder="At least 6 characters">
+</div>
+<button class="submit-btn blue" onclick="teacherSignup()">Create Account &#x1F680;</button>
+<div class="error-msg" id="signupError"></div>
+<div class="success-msg" id="signupSuccess"></div>
+</div>
+</div>
+
+<!-- PARENT LOGIN -->
+<div class="login-panel" id="panel-parent">
+<div class="panel-card">
+<button class="panel-back" onclick="showDoors()">&#x2190; Back</button>
+<div class="panel-header">
+<span class="emoji">&#x1F46A;</span>
+<h2>Parent Portal</h2>
+<p>See how your child is doing</p>
+</div>
+<div class="field">
+<label>Child's Name</label>
+<input type="text" id="parentChildName" placeholder="First name">
+</div>
+<div class="field">
+<label>Parent Code</label>
+<input type="text" id="parentCode" class="code-input" placeholder="0000" maxlength="4" autocomplete="off" inputmode="numeric">
+</div>
+<button class="submit-btn gold" onclick="parentLogin()">View Progress</button>
+<div class="error-msg" id="parentError"></div>
+</div>
+</div>
+
+<div class="footer">ODA Hub v1.0 &bull; Built by Mr. Devon</div>
+</div>
+
+<!-- FIREBASE -->
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import{getAuth,signInWithEmailAndPassword,createUserWithEmailAndPassword,signInWithPopup,GoogleAuthProvider,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+import{getFirestore,doc,setDoc,getDoc,getDocs,collection,query,where}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+const firebaseConfig={
+apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",
+authDomain:"oda-hub-d4bef.firebaseapp.com",
+projectId:"oda-hub-d4bef",
+storageBucket:"oda-hub-d4bef.firebasestorage.app",
+messagingSenderId:"632797371461",
+appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"
+};
+
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+const googleProvider=new GoogleAuthProvider();
+
+// Make functions available globally
+window.firebaseAuth=auth;
+window.firebaseDb=db;
+window.googleProvider=googleProvider;
+
+// Auth imports for global use
+window.signInWithEmailAndPassword=signInWithEmailAndPassword;
+window.createUserWithEmailAndPassword=createUserWithEmailAndPassword;
+window.signInWithPopup=signInWithPopup;
+window.fbDoc=doc;
+window.fbSetDoc=setDoc;
+window.fbGetDoc=getDoc;
+window.fbGetDocs=getDocs;
+window.fbCollection=collection;
+window.fbQuery=query;
+window.fbWhere=where;
+
+// Check if already logged in
+onAuthStateChanged(auth,function(user){
+if(user){
+// Teacher is logged in, redirect
+window.location.href="teacher.html";
+}
+});
+
+window.firebaseReady=true;
+</script>
+
+<script>
+function showDoors(){
+document.getElementById('doors').style.display='';
+var panels=document.querySelectorAll('.login-panel');
+for(var i=0;i<panels.length;i++)panels[i].classList.remove('show');
+}
+
+function showPanel(id){
+document.getElementById('doors').style.display='none';
+var panels=document.querySelectorAll('.login-panel');
+for(var i=0;i<panels.length;i++)panels[i].classList.remove('show');
+var p=document.getElementById('panel-'+id);
+if(p)p.classList.add('show');
+}
+
+function showError(id,msg){
+var el=document.getElementById(id);
+el.textContent=msg;el.classList.add('show');
+setTimeout(function(){el.classList.remove('show')},4000);
+}
+
+function showSuccess(id,msg){
+var el=document.getElementById(id);
+el.textContent=msg;el.classList.add('show');
+}
+
+// STUDENT LOGIN
+window.studentLogin=async function(){
+var name=document.getElementById('studentName').value.trim();
+var code=document.getElementById('studentCode').value.trim();
+if(!name||!code){showError('studentError','Enter your name and code!');return}
+
+var btn=document.getElementById('studentSubmit');
+btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+
+try{
+var q=window.fbQuery(
+window.fbCollection(window.firebaseDb,'students'),
+window.fbWhere('nameLower','==',name.toLowerCase()),
+window.fbWhere('code','==',code)
+);
+var snap=await window.fbGetDocs(q);
+if(snap.empty){
+btn.textContent="Let's Go! \u{1F680}";btn.disabled=false;
+showError('studentError','Name or code not found. Ask your teacher!');
+return;
+}
+var studentData=snap.docs[0].data();
+var studentId=snap.docs[0].id;
+sessionStorage.setItem('studentId',studentId);
+sessionStorage.setItem('studentName',studentData.name);
+sessionStorage.setItem('studentSchool',studentData.school||'');
+window.location.href='student.html';
+}catch(e){
+btn.textContent="Let's Go! \u{1F680}";btn.disabled=false;
+showError('studentError','Something went wrong. Try again!');
+console.error(e);
+}
+};
+
+// TEACHER LOGIN
+window.teacherLogin=async function(){
+var email=document.getElementById('teacherEmail').value.trim();
+var pass=document.getElementById('teacherPass').value;
+if(!email||!pass){showError('teacherError','Enter email and password!');return}
+
+var btn=document.getElementById('teacherSubmit');
+btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+
+try{
+await window.signInWithEmailAndPassword(window.firebaseAuth,email,pass);
+window.location.href='teacher.html';
+}catch(e){
+btn.textContent='Sign In';btn.disabled=false;
+var msg=e.code==='auth/invalid-credential'?'Wrong email or password':'Error: '+e.message;
+showError('teacherError',msg);
+}
+};
+
+// GOOGLE LOGIN
+window.googleLogin=async function(){
+try{
+await window.signInWithPopup(window.firebaseAuth,window.googleProvider);
+window.location.href='teacher.html';
+}catch(e){
+showError('teacherError','Google sign-in failed: '+e.message);
+}
+};
+
+// TEACHER SIGNUP
+window.teacherSignup=async function(){
+var name=document.getElementById('signupName').value.trim();
+var email=document.getElementById('signupEmail').value.trim();
+var school=document.getElementById('signupSchool').value.trim();
+var pass=document.getElementById('signupPass').value;
+
+if(!name||!email||!pass){showError('signupError','Fill in all fields!');return}
+if(pass.length<6){showError('signupError','Password needs at least 6 characters');return}
+
+try{
+var cred=await window.createUserWithEmailAndPassword(window.firebaseAuth,email,pass);
+await window.fbSetDoc(window.fbDoc(window.firebaseDb,'teachers',cred.user.uid),{
+name:name,
+email:email,
+school:school,
+createdAt:new Date().toISOString()
+});
+window.location.href='teacher.html';
+}catch(e){
+var msg=e.code==='auth/email-already-in-use'?'Email already has an account':'Error: '+e.message;
+showError('signupError',msg);
+}
+};
+
+// PARENT LOGIN
+window.parentLogin=async function(){
+var name=document.getElementById('parentChildName').value.trim();
+var code=document.getElementById('parentCode').value.trim();
+if(!name||!code){showError('parentError','Enter your child\'s name and code!');return}
+
+try{
+var q=window.fbQuery(
+window.fbCollection(window.firebaseDb,'students'),
+window.fbWhere('nameLower','==',name.toLowerCase()),
+window.fbWhere('parentCode','==',code)
+);
+var snap=await window.fbGetDocs(q);
+if(snap.empty){
+showError('parentError','Not found. Check with your child\'s teacher.');
+return;
+}
+sessionStorage.setItem('parentStudentId',snap.docs[0].id);
+sessionStorage.setItem('parentStudentName',snap.docs[0].data().name);
+window.location.href='parent.html';
+}catch(e){
+showError('parentError','Something went wrong.');
+}
+};
+
+// Enter key support
+document.addEventListener('keydown',function(e){
+if(e.key!=='Enter')return;
+var active=document.activeElement;
+if(!active)return;
+if(active.id==='studentCode'||active.id==='studentName')window.studentLogin();
+else if(active.id==='teacherEmail'||active.id==='teacherPass')window.teacherLogin();
+else if(active.id==='signupPass'||active.id==='signupEmail'||active.id==='signupName'||active.id==='signupSchool')window.teacherSignup();
+else if(active.id==='parentCode'||active.id==='parentChildName')window.parentLogin();
+});
+</script>
+</body>
+</html>
