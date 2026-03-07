@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODA Spelling Bee</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#8892a8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+.app{position:relative;z-index:1;max-width:640px;margin:0 auto;padding:16px}
+.back{display:inline-block;margin-bottom:12px;color:var(--text2);text-decoration:none;font-size:13px;font-weight:600}
+.back:hover{color:var(--text)}
+.header{text-align:center;margin-bottom:20px}
+.header .emoji{font-size:48px;margin-bottom:6px;display:block}
+.header h1{font-size:28px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,var(--gold),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header p{font-size:13px;color:var(--text2);margin-top:2px}
+
+/* Tabs */
+.mode-tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface);border-radius:12px;padding:4px;border:1px solid var(--border)}
+.mode-tab{flex:1;padding:10px;text-align:center;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;color:var(--text2);transition:all .2s}
+.mode-tab:hover{color:var(--text)}
+.mode-tab.active{background:var(--accent);color:var(--bg)}
+
+.section{display:none;animation:fadeUp .2s ease}
+.section.show{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* Common */
+.btn{padding:10px 20px;border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .15s}
+.btn:active{transform:scale(.97)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-blue{background:var(--accent2);color:#fff}
+.btn-gold{background:var(--gold);color:var(--bg)}
+.btn-outline{background:none;border:1px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--text2);color:var(--text)}
+.btn-sm{padding:6px 14px;font-size:12px;border-radius:8px}
+.btn-wide{width:100%;padding:14px;font-size:16px;border-radius:14px}
+.btn-red{background:rgba(239,71,111,.15);color:var(--accent3)}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:12px}
+
+/* Grade selector */
+.grade-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+@media(max-width:400px){.grade-grid{grid-template-columns:repeat(2,1fr)}}
+.grade-btn{padding:14px 8px;background:var(--surface);border:2px solid var(--border);border-radius:12px;cursor:pointer;text-align:center;transition:all .2s;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;color:var(--text)}
+.grade-btn:hover{border-color:var(--accent2);transform:translateY(-2px)}
+.grade-btn.active{border-color:var(--accent);background:rgba(6,214,160,.06);box-shadow:0 0 15px rgba(6,214,160,.1)}
+.grade-btn .grade-label{font-size:11px;color:var(--text2);font-weight:500;margin-top:2px}
+
+/* Practice */
+.practice-card{background:var(--surface);border:2px solid var(--accent2);border-radius:20px;padding:28px;text-align:center;margin-bottom:16px}
+.practice-word{font-family:'Space Mono',monospace;font-size:36px;font-weight:700;color:var(--gold);letter-spacing:3px;margin-bottom:6px;min-height:50px;transition:all .3s}
+.practice-word.hidden{color:transparent;text-shadow:0 0 20px var(--gold);user-select:none}
+.practice-hint{font-size:13px;color:var(--text2);margin-bottom:16px;min-height:20px}
+.practice-input{width:100%;padding:16px;background:var(--bg);border:2px solid var(--border);border-radius:14px;color:var(--text);font-family:'Space Mono',monospace;font-size:22px;font-weight:600;text-align:center;letter-spacing:2px;outline:none;margin-bottom:10px}
+.practice-input:focus{border-color:var(--accent)}
+.practice-input::placeholder{color:#3a4560;font-size:16px;letter-spacing:0}
+.practice-progress{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:10px;font-family:'Space Mono',monospace}
+.practice-feedback{font-size:18px;font-weight:700;min-height:28px;margin-bottom:10px}
+.practice-dots{display:flex;gap:4px;justify-content:center;margin-bottom:12px;flex-wrap:wrap}
+.p-dot{width:10px;height:10px;border-radius:50%;background:var(--border);transition:all .2s}
+.p-dot.correct{background:var(--accent)}
+.p-dot.wrong{background:var(--accent3)}
+.p-dot.current{background:var(--gold);box-shadow:0 0 8px var(--gold)}
+
+/* Study mode */
+.study-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.study-word{font-family:'Space Mono',monospace;font-size:18px;font-weight:700}
+.study-num{font-size:12px;color:var(--text2);font-family:'Space Mono',monospace}
+.speak-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer;transition:all .15s}
+.speak-btn:hover{border-color:var(--accent)}
+
+/* Edit mode */
+.edit-area{width:100%;min-height:300px;padding:14px;background:var(--bg);border:2px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Mono',monospace;font-size:14px;line-height:1.8;outline:none;resize:vertical}
+.edit-area:focus{border-color:var(--accent)}
+.edit-help{font-size:12px;color:var(--text2);margin-top:6px;line-height:1.5}
+
+/* Results */
+.result-card{background:var(--surface);border:2px solid var(--accent);border-radius:20px;padding:28px;text-align:center}
+.result-emoji{font-size:56px;margin-bottom:8px;display:block}
+.result-score{font-family:'Space Mono',monospace;font-size:48px;font-weight:700;color:var(--accent)}
+.result-label{font-size:14px;color:var(--text2);margin-bottom:16px}
+.result-words{text-align:left;margin-top:16px}
+.rw{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:14px}
+.rw:last-child{border-bottom:none}
+.rw-correct{color:var(--accent)}
+.rw-wrong{color:var(--accent3)}
+.rw-answer{font-family:'Space Mono',monospace;font-size:12px;color:var(--text2)}
+
+.confetti-piece{position:fixed;top:-20px;z-index:9999;pointer-events:none;animation:confettiFall 3s ease-in forwards}
+@keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="app">
+<a class="back" href="index.html">&#x2190; Back to ODA Hub</a>
+<div class="header">
+<span class="emoji">&#x1F41D;</span>
+<h1>ODA Spelling Bee</h1>
+<p>Pick your grade, study the words, then test yourself!</p>
+</div>
+
+<div class="mode-tabs">
+<div class="mode-tab active" onclick="switchMode('practice')">&#x1F3AF; Practice</div>
+<div class="mode-tab" onclick="switchMode('study')">&#x1F4D6; Study</div>
+<div class="mode-tab" onclick="switchMode('edit')">&#x270F;&#xFE0F; Edit Words</div>
+</div>
+
+<div style="font-size:14px;font-weight:700;margin-bottom:8px">Pick a Grade:</div>
+<div class="grade-grid" id="gradeGrid"></div>
+
+<!-- PRACTICE -->
+<div class="section show" id="sec-practice">
+<div id="practiceArea"></div>
+</div>
+
+<!-- STUDY -->
+<div class="section" id="sec-study">
+<div id="studyArea"></div>
+</div>
+
+<!-- EDIT -->
+<div class="section" id="sec-edit">
+<div class="card">
+<div style="font-size:16px;font-weight:800;margin-bottom:4px">&#x270F;&#xFE0F; Edit Word List</div>
+<div style="font-size:12px;color:var(--text2);margin-bottom:12px">One word per line. Changes save automatically.</div>
+<textarea class="edit-area" id="editArea" oninput="saveCustomWords()"></textarea>
+<div class="edit-help">Editing words for: <strong id="editGradeLabel">—</strong><br>Put one word per line. Hit enter after each word.</div>
+<div style="display:flex;gap:8px;margin-top:12px">
+<button class="btn btn-outline btn-sm" onclick="resetWords()">Reset to Default</button>
+<button class="btn btn-accent btn-sm" onclick="saveCustomWords()">&#x2714;&#xFE0F; Save</button>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+var DEFAULT_WORDS = {
+'K': ['cat','dog','run','big','the','and','see','red','mom','dad','sun','cup','hat','bed','fun','top','sit','hop','map','pen'],
+'1st': ['play','jump','like','come','went','that','this','have','good','help','look','make','said','want','from','give','been','done','some','just'],
+'2nd': ['about','again','every','found','house','learn','night','plant','still','water','story','world','write','under','after','never','today','happy','table','green'],
+'3rd': ['because','friend','school','before','listen','answer','people','change','around','should','family','really','animal','enough','hungry','follow','minute','ocean','travel','wonder'],
+'4th': ['believe','different','together','favorite','important','beautiful','remember','calendar','continue','discover','exercise','possible','probably','sentence','surprise','thousand','vacation','question','practice','complete'],
+'5th': ['necessary','accomplish','adventure','brilliant','challenge','dangerous','education','excellent','fortunate','generally','knowledge','literature','paragraph','recognize','signature','temporary','volunteer','wonderful','yesterday','attention'],
+'6th': ['accommodate','appreciate','categories','communicate','demonstrate','environment','experience','immediately','independent','intelligent','magnificent','observation','participate','performance','recommend','responsible','significant','temperature','understand','vegetable'],
+'7th': ['acknowledge','circumstances','consequently','determination','embarrassment','extraordinary','fundamental','inappropriate','investigation','miscellaneous','nevertheless','opportunities','pharmaceutical','pronunciation','questionnaire','rehabilitation','sophisticated','technological','unfortunately','vulnerability'],
+'8th': ['abbreviation','bibliography','characteristic','conscientious','deterioration','entrepreneur','exaggeration','hypothetical','inconvenience','knowledgeable','Mediterranean','neighbourhood','onomatopoeia','perseverance','reconnaissance','simultaneously','surveillance','unprecedented','meteorological','archaeological']
+};
+
+var GRADES = ['K','1st','2nd','3rd','4th','5th','6th','7th','8th'];
+var currentGrade = '3rd';
+var currentMode = 'practice';
+var quizState = null;
+
+function init() {
+    renderGrades();
+    renderPractice();
+    renderStudy();
+    renderEdit();
+    loadWordsFromFirebase();
+}
+
+function loadWordsFromFirebase(){
+try{
+import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js').then(function(appMod){
+import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js').then(function(fsMod){
+var cfg={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
+var app;try{app=appMod.getApp()}catch(e){app=appMod.initializeApp(cfg)}
+var db=fsMod.getFirestore(app);
+var changed=false;
+GRADES.forEach(function(grade){
+fsMod.getDoc(fsMod.doc(db,'spellingWords',grade)).then(function(snap){
+if(snap.exists()&&snap.data().words){
+try{localStorage.setItem('oda-spelling-'+grade,JSON.stringify(snap.data().words));changed=true}catch(e){}
+// Re-render if current grade got updated
+if(grade===currentGrade){renderGrades();renderStudy();renderEdit();renderPractice()}
+}
+});
+});
+console.log('Spelling words loaded from Firebase');
+});});
+}catch(e){console.log('Firebase spelling load skipped:',e)}
+}
+
+function getWords(grade) {
+    var custom = null;
+    try { custom = JSON.parse(localStorage.getItem('oda-spelling-' + grade)); } catch(e) {}
+    return custom || DEFAULT_WORDS[grade] || [];
+}
+
+function switchMode(mode) {
+    currentMode = mode;
+    var tabs = document.querySelectorAll('.mode-tab');
+    var secs = document.querySelectorAll('.section');
+    for (var i = 0; i < tabs.length; i++) { tabs[i].classList.remove('active'); secs[i].classList.remove('show'); }
+    var map = {practice:0, study:1, edit:2};
+    tabs[map[mode]].classList.add('active');
+    secs[map[mode]].classList.add('show');
+    if (mode === 'study') renderStudy();
+    if (mode === 'edit') renderEdit();
+    if (mode === 'practice') renderPractice();
+}
+
+function renderGrades() {
+    var h = '';
+    GRADES.forEach(function(g) {
+        h += '<div class="grade-btn' + (g === currentGrade ? ' active' : '') + '" onclick="pickGrade(\'' + g + '\')">';
+        h += '<div>' + g + (g === 'K' ? '' : ' Grade') + '</div>';
+        h += '<div class="grade-label">' + getWords(g).length + ' words</div></div>';
+    });
+    document.getElementById('gradeGrid').innerHTML = h;
+}
+
+function pickGrade(g) {
+    currentGrade = g;
+    quizState = null;
+    renderGrades();
+    if (currentMode === 'practice') renderPractice();
+    if (currentMode === 'study') renderStudy();
+    if (currentMode === 'edit') renderEdit();
+}
+
+// ===== PRACTICE =====
+function renderPractice() {
+    var words = getWords(currentGrade);
+    if (!words.length) {
+        document.getElementById('practiceArea').innerHTML = '<div class="card" style="text-align:center"><p>No words for this grade. Go to Edit to add some!</p></div>';
+        return;
+    }
+    if (quizState && quizState.grade === currentGrade && quizState.finished) {
+        showResults();
+        return;
+    }
+    if (!quizState || quizState.grade !== currentGrade) {
+        var shuffled = words.slice();
+        for (var i = shuffled.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = t; }
+        quizState = { grade: currentGrade, words: shuffled.slice(0, 20), current: 0, correct: 0, results: [], showingWord: true, finished: false };
+    }
+    showQuizQuestion();
+}
+
+function showQuizQuestion() {
+    var q = quizState;
+    if (q.current >= q.words.length) { q.finished = true; showResults(); return; }
+    var word = q.words[q.current];
+    var dots = '';
+    for (var i = 0; i < q.words.length; i++) {
+        var cls = 'p-dot';
+        if (i < q.results.length) cls += q.results[i] ? ' correct' : ' wrong';
+        else if (i === q.current) cls += ' current';
+        dots += '<div class="' + cls + '"></div>';
+    }
+    var h = '<div class="practice-card">';
+    h += '<div class="practice-progress"><span>Word ' + (q.current + 1) + ' of ' + q.words.length + '</span><span>' + q.correct + ' correct</span></div>';
+    h += '<div class="practice-dots">' + dots + '</div>';
+    h += '<div class="practice-word' + (q.showingWord ? '' : ' hidden') + '" id="quizWord">' + esc(word) + '</div>';
+    h += '<div class="practice-hint" id="quizHint">' + (q.showingWord ? 'Look at the word carefully...' : 'Now spell it!') + '</div>';
+    if (q.showingWord) {
+        h += '<button class="btn btn-gold btn-wide" onclick="hideWord()">I\'m Ready! &#x1F4AA;</button>';
+        if ('speechSynthesis' in window) {
+            h += '<button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="speakWord(\'' + esc(word).replace(/'/g, "\\'") + '\')">&#x1F50A; Hear It</button>';
+        }
+    } else {
+        h += '<input type="text" class="practice-input" id="quizInput" placeholder="Type the word..." autocomplete="off" spellcheck="false">';
+        h += '<div class="practice-feedback" id="quizFb"></div>';
+        h += '<button class="btn btn-blue btn-wide" onclick="checkAnswer()">Check &#x2714;&#xFE0F;</button>';
+    }
+    h += '</div>';
+    document.getElementById('practiceArea').innerHTML = h;
+    if (!q.showingWord) {
+        var inp = document.getElementById('quizInput');
+        if (inp) inp.focus();
+    }
+}
+
+function hideWord() {
+    quizState.showingWord = false;
+    showQuizQuestion();
+}
+
+function checkAnswer() {
+    var inp = document.getElementById('quizInput');
+    if (!inp) return;
+    var answer = inp.value.trim().toLowerCase();
+    var word = quizState.words[quizState.current].toLowerCase();
+    var correct = answer === word;
+    if (correct) quizState.correct++;
+    quizState.results.push(correct);
+    var fb = document.getElementById('quizFb');
+    if (correct) {
+        fb.innerHTML = '<span style="color:var(--accent)">&#x2705; Correct!</span>';
+    } else {
+        fb.innerHTML = '<span style="color:var(--accent3)">&#x274C; It was: <strong>' + esc(quizState.words[quizState.current]) + '</strong></span>';
+    }
+    quizState.current++;
+    quizState.showingWord = true;
+    setTimeout(function() {
+        if (quizState.current >= quizState.words.length) {
+            quizState.finished = true;
+            showResults();
+        } else {
+            showQuizQuestion();
+        }
+    }, 1400);
+}
+
+function showResults() {
+    var q = quizState;
+    var pct = Math.round(q.correct / q.words.length * 100);
+    var emoji = pct >= 90 ? '\u{1F3C6}' : pct >= 70 ? '\u{1F389}' : pct >= 50 ? '\u{1F44D}' : '\u{1F4AA}';
+    var h = '<div class="result-card">';
+    h += '<span class="result-emoji">' + emoji + '</span>';
+    h += '<div class="result-score">' + pct + '%</div>';
+    h += '<div class="result-label">' + q.correct + ' out of ' + q.words.length + ' correct \u2022 ' + q.grade + (q.grade === 'K' ? '' : ' Grade') + '</div>';
+    h += '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:16px">';
+    h += '<button class="btn btn-accent" onclick="retryQuiz()">&#x1F504; Try Again</button>';
+    h += '<button class="btn btn-gold" onclick="switchMode(\'study\')">&#x1F4D6; Study Words</button>';
+    h += '</div>';
+    h += '<div class="result-words">';
+    for (var i = 0; i < q.words.length; i++) {
+        var ok = q.results[i];
+        h += '<div class="rw"><span class="' + (ok ? 'rw-correct' : 'rw-wrong') + '">' + (ok ? '\u2705' : '\u274C') + ' ' + esc(q.words[i]) + '</span></div>';
+    }
+    h += '</div></div>';
+    document.getElementById('practiceArea').innerHTML = h;
+    if (pct >= 70) fireConfetti();
+    saveResultToFirebase(pct);
+}
+
+function retryQuiz() {
+    quizState = null;
+    renderPractice();
+}
+
+// ===== STUDY =====
+function renderStudy() {
+    var words = getWords(currentGrade);
+    if (!words.length) {
+        document.getElementById('studyArea').innerHTML = '<div class="card" style="text-align:center"><p>No words. Go to Edit to add some!</p></div>';
+        return;
+    }
+    var h = '<div class="card"><div style="font-size:16px;font-weight:800;margin-bottom:12px">' + currentGrade + (currentGrade === 'K' ? '' : ' Grade') + ' Words (' + words.length + ')</div>';
+    if ('speechSynthesis' in window) {
+        h += '<button class="btn btn-blue btn-sm" style="margin-bottom:12px" onclick="speakAll()">&#x1F50A; Read All Words</button> ';
+    }
+    h += '<button class="btn btn-accent btn-sm" style="margin-bottom:12px" onclick="switchMode(\'practice\')">&#x1F3AF; Start Practice</button>';
+    for (var i = 0; i < words.length; i++) {
+        h += '<div class="study-card"><div><span class="study-num">' + (i + 1) + '.</span> <span class="study-word">' + esc(words[i]) + '</span></div>';
+        if ('speechSynthesis' in window) {
+            h += '<button class="speak-btn" onclick="speakWord(\'' + esc(words[i]).replace(/'/g, "\\'") + '\')">&#x1F50A;</button>';
+        }
+        h += '</div>';
+    }
+    h += '</div>';
+    document.getElementById('studyArea').innerHTML = h;
+}
+
+function speakWord(word) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(word);
+    u.rate = 0.8;
+    speechSynthesis.speak(u);
+}
+
+function speakAll() {
+    var words = getWords(currentGrade);
+    if (!words.length) return;
+    speechSynthesis.cancel();
+    var i = 0;
+    function next() {
+        if (i >= words.length) return;
+        var u = new SpeechSynthesisUtterance(words[i]);
+        u.rate = 0.7;
+        u.onend = function() { i++; setTimeout(next, 600); };
+        speechSynthesis.speak(u);
+    }
+    next();
+}
+
+// ===== EDIT =====
+function renderEdit() {
+    var words = getWords(currentGrade);
+    document.getElementById('editArea').value = words.join('\n');
+    document.getElementById('editGradeLabel').textContent = currentGrade + (currentGrade === 'K' ? '' : ' Grade');
+}
+
+function saveCustomWords() {
+    var text = document.getElementById('editArea').value;
+    var words = text.split('\n').map(function(w) { return w.trim(); }).filter(function(w) { return w.length > 0; });
+    try { localStorage.setItem('oda-spelling-' + currentGrade, JSON.stringify(words)); } catch(e) {}
+    renderGrades();
+    // Save to Firebase if teacher is logged in
+    saveWordsToFirebase(currentGrade, words);
+}
+
+function resetWords() {
+    if (!confirm('Reset ' + currentGrade + ' words to default?')) return;
+    try { localStorage.removeItem('oda-spelling-' + currentGrade); } catch(e) {}
+    renderGrades();
+    renderEdit();
+}
+
+// ===== FIREBASE =====
+function saveResultToFirebase(pct) {
+    var studentId = sessionStorage.getItem('studentId');
+    if (!studentId) return;
+    try {
+        import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js').then(function(appMod) {
+            import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js').then(function(fsMod) {
+                var cfg = {apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
+                var app; try { app = appMod.getApp(); } catch(e) { app = appMod.initializeApp(cfg); }
+                var db = fsMod.getFirestore(app);
+                fsMod.addDoc(fsMod.collection(db, 'spellingResults'), {
+                    studentId: studentId,
+                    studentName: sessionStorage.getItem('studentName') || '',
+                    grade: currentGrade,
+                    score: pct,
+                    correct: quizState.correct,
+                    total: quizState.words.length,
+                    words: quizState.words,
+                    results: quizState.results,
+                    savedAt: new Date().toISOString()
+                });
+                console.log('Spelling result saved to Firebase');
+            });
+        });
+    } catch(e) { console.log('Firebase save skipped:', e); }
+}
+
+function saveWordsToFirebase(grade, words) {
+    try {
+        import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js').then(function(appMod) {
+            import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js').then(function(fsMod) {
+                var cfg = {apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
+                var app; try { app = appMod.getApp(); } catch(e) { app = appMod.initializeApp(cfg); }
+                var db = fsMod.getFirestore(app);
+                fsMod.setDoc(fsMod.doc(db, 'spellingWords', grade), {
+                    grade: grade,
+                    words: words,
+                    updatedAt: new Date().toISOString()
+                });
+            });
+        });
+    } catch(e) {}
+}
+
+// ===== UTILS =====
+function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function fireConfetti() {
+    var co = ["#06d6a0","#118ab2","#ffd166","#ef476f","#a855f7"];
+    for (var i = 0; i < 50; i++) {
+        var p = document.createElement('div'); p.className = 'confetti-piece';
+        var sz = 6 + Math.random() * 10;
+        p.style.width = sz + 'px'; p.style.height = sz * (Math.random() > .5 ? 1 : .6) + 'px';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.backgroundColor = co[i % co.length];
+        p.style.borderRadius = Math.random() > .5 ? '50%' : '2px';
+        p.style.animationDuration = (2 + Math.random() * 3) + 's';
+        p.style.animationDelay = (Math.random() * 2) + 's';
+        document.body.appendChild(p);
+        (function(el) { setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 5000); })(p);
+    }
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && document.activeElement && document.activeElement.id === 'quizInput') checkAnswer();
+});
+
+init();
+</script>
+</body>
+</html>
