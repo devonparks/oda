@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODA Hub - Student</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#8892a8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+.app{position:relative;z-index:1;max-width:600px;margin:0 auto;padding:16px}
+
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.greeting{font-size:24px;font-weight:800;letter-spacing:-.5px}
+.greeting span{color:var(--accent)}
+.btn{padding:8px 16px;border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .15s}
+.btn:active{transform:scale(.97)}
+.btn-outline{background:none;border:1px solid var(--border);color:var(--text2)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-blue{background:var(--accent2);color:#fff}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface);border-radius:12px;padding:4px;border:1px solid var(--border)}
+.tab{flex:1;padding:10px;text-align:center;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;color:var(--text2);transition:all .2s;position:relative}
+.tab:hover{color:var(--text)}
+.tab.active{background:var(--accent);color:var(--bg)}
+.tab-badge{position:absolute;top:4px;right:8px;background:var(--accent3);color:#fff;font-size:10px;font-weight:800;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.tab-badge.zero{display:none}
+
+.section{display:none;animation:fadeUp .2s ease}
+.section.show{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* Unlock banner */
+.unlock{display:none;background:linear-gradient(135deg,var(--accent),#04b890);border-radius:16px;padding:20px;text-align:center;margin-bottom:16px;animation:pulse 2s ease-in-out infinite}
+.unlock.show{display:block}
+.unlock h2{font-size:24px;font-weight:900;color:var(--bg)}
+.unlock p{font-size:14px;color:rgba(10,14,26,.6);font-weight:600}
+@keyframes pulse{0%,100%{box-shadow:0 0 15px rgba(6,214,160,.2)}50%{box-shadow:0 0 30px rgba(6,214,160,.4)}}
+
+/* Assignment cards */
+.a-card{background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:20px;margin-bottom:10px;transition:all .2s}
+.a-card.pending{border-color:var(--accent2)}
+.a-card.completed{border-color:var(--accent);opacity:.7}
+.a-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.a-title{font-size:18px;font-weight:800;display:flex;align-items:center;gap:8px}
+.a-status{font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px}
+.status-pending{background:rgba(17,138,178,.12);color:var(--accent2)}
+.status-done{background:rgba(6,214,160,.12);color:var(--accent)}
+.status-overdue{background:rgba(239,71,111,.12);color:var(--accent3)}
+.a-meta{font-size:12px;color:var(--text2);margin-bottom:12px}
+.a-actions{display:flex;gap:8px}
+.a-btn{padding:10px 20px;border:none;border-radius:12px;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;text-decoration:none;display:inline-block}
+.a-btn:active{transform:scale(.97)}
+.a-btn.start{background:var(--accent);color:var(--bg)}
+.a-btn.done-btn{background:var(--gold);color:var(--bg)}
+
+/* Quiz area */
+.quiz-area{margin-top:16px}
+.quiz-word{font-size:28px;font-weight:800;text-align:center;margin-bottom:14px;color:var(--gold);font-family:'Space Mono',monospace;letter-spacing:2px}
+.quiz-input{width:100%;padding:14px;background:var(--bg);border:2px solid var(--border);border-radius:12px;color:var(--text);font-family:'Outfit',sans-serif;font-size:18px;font-weight:600;text-align:center;outline:none;margin-bottom:10px}
+.quiz-input:focus{border-color:var(--accent)}
+.quiz-progress{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:10px;font-family:'Space Mono',monospace}
+.quiz-feedback{text-align:center;font-size:16px;font-weight:700;min-height:24px;margin-bottom:10px}
+.quiz-btn{width:100%;padding:12px;border:none;border-radius:12px;background:var(--accent2);color:#fff;font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;cursor:pointer}
+.quiz-btn:active{transform:scale(.98)}
+.vocab-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.vocab-opt{padding:12px;background:var(--surface2);border:2px solid var(--border);border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;text-align:center;transition:all .15s}
+.vocab-opt:hover{border-color:var(--accent2)}
+.vocab-opt.correct{border-color:var(--accent);background:rgba(6,214,160,.1);color:var(--accent)}
+.vocab-opt.wrong{border-color:var(--accent3);background:rgba(239,71,111,.1);color:var(--accent3)}
+
+/* Arcade */
+.game-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:450px){.game-grid{grid-template-columns:1fr}}
+.game-card{background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:20px;text-align:center;transition:all .2s;position:relative}
+.game-card.locked{opacity:.3;pointer-events:none}
+.game-card.locked::after{content:'\u{1F512}';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px}
+.game-card:not(.locked){cursor:pointer}
+.game-card:not(.locked):hover{border-color:var(--gold);transform:translateY(-3px)}
+.game-emoji{font-size:40px;margin-bottom:8px;display:block}
+.game-title{font-size:16px;font-weight:700;margin-bottom:3px}
+.game-desc{font-size:11px;color:var(--text2)}
+
+.empty-state{text-align:center;padding:32px 16px;color:var(--text2)}
+.empty-state .emoji{font-size:40px;margin-bottom:8px;display:block}
+
+.confetti-piece{position:fixed;top:-20px;z-index:9999;pointer-events:none;animation:confettiFall 3s ease-in forwards}
+@keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="app">
+<div class="topbar">
+<div class="greeting">Hey, <span id="studentNameEl">Student</span>! &#x1F44B;</div>
+<button class="btn btn-outline" onclick="studentLogout()">&#x2190; Exit</button>
+</div>
+
+<div class="unlock" id="unlockBanner">
+<h2>&#x1F3AE; ARCADE UNLOCKED!</h2>
+<p>All work done — go play!</p>
+</div>
+
+<div class="tabs">
+<div class="tab active" onclick="switchTab('work')">&#x1F4DD; <span>My Work</span><span class="tab-badge zero" id="workBadge">0</span></div>
+<div class="tab" onclick="switchTab('arcade')">&#x1F3AE; <span>Arcade</span></div>
+</div>
+
+<!-- MY WORK -->
+<div class="section show" id="sec-work">
+<div id="assignmentList"></div>
+</div>
+
+<!-- ARCADE -->
+<div class="section" id="sec-arcade">
+<div class="game-grid" id="gameGrid"></div>
+</div>
+</div>
+
+<!-- FIREBASE -->
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import{getFirestore,doc,getDoc,getDocs,updateDoc,collection,query,where,onSnapshot}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+const cfg={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
+const app=initializeApp(cfg);const db=getFirestore(app);
+
+window.fbDb=db;window.fbDoc=doc;window.fbGetDoc=getDoc;window.fbGetDocs=getDocs;window.fbUpdateDoc=updateDoc;
+window.fbCollection=collection;window.fbQuery=query;window.fbWhere=where;
+
+var studentId=sessionStorage.getItem('studentId');
+var studentName=sessionStorage.getItem('studentName');
+if(!studentId){window.location.href='index.html'}
+else{
+document.getElementById('studentNameEl').textContent=studentName||'Student';
+window.studentId=studentId;
+// Listen for student record (teacher arcade toggle)
+onSnapshot(doc(db,'students',studentId),function(snap){
+if(snap.exists()){window.studentRecord=snap.data()}
+renderDashboard();
+});
+// Real-time listener for assignments
+var q=query(collection(db,'assignments'),where('studentId','==',studentId));
+onSnapshot(q,function(snap){
+window.myAssignments=[];
+snap.forEach(function(d){window.myAssignments.push({id:d.id,...d.data()})});
+renderDashboard();
+});
+}
+</script>
+
+<script>
+var GAMES=[
+{id:'flappy',emoji:'\u{1F426}',title:'Flappy ODA',desc:'Tap to fly!',file:'arcade/flappy.html'},
+{id:'runner',emoji:'\u{1F3C3}',title:'Lane Runner',desc:'Dodge and collect!',file:'arcade/runner.html'},
+{id:'2048',emoji:'\u{1F9E9}',title:'2048',desc:'Merge tiles!',file:'arcade/2048.html'},
+];
+
+var WORD_BANKS={
+'spelling-k2':['cat','dog','run','big','the','and','see','play','jump','like'],
+'spelling-34':['because','friend','school','before','believe','different','together','favorite','important','beautiful'],
+'spelling-58':['necessary','rhythm','definitely','occurrence','accommodate','conscience','perseverance','entrepreneur','miscellaneous','surveillance'],
+'vocab-k2':[{w:'Happy',d:'Feeling good and joyful',wrong:['Feeling sad','Feeling tired','Feeling hungry']},{w:'Brave',d:'Not afraid to do hard things',wrong:['Very small','Very loud','Very fast']},{w:'Enormous',d:'Really really big',wrong:['Really tiny','Really fast','Really old']},{w:'Gentle',d:'Soft and careful',wrong:['Loud and rough','Fast and wild','Dark and cold']},{w:'Curious',d:'Wanting to know more',wrong:['Wanting to sleep','Wanting to eat','Wanting to run']}],
+'vocab-34':[{w:'Abundant',d:'More than enough of something',wrong:['Not enough','Exactly right','None at all']},{w:'Cautious',d:'Being very careful',wrong:['Being very fast','Being very loud','Being very silly']},{w:'Diligent',d:'Working hard and not giving up',wrong:['Being lazy','Being quiet','Being funny']},{w:'Elaborate',d:'Very detailed and complex',wrong:['Very simple','Very small','Very old']},{w:'Fragile',d:'Easy to break',wrong:['Very strong','Very heavy','Very big']}],
+'vocab-58':[{w:'Ambiguous',d:'Having more than one meaning',wrong:['Very clear','Very loud','Very bright']},{w:'Benevolent',d:'Kind and generous',wrong:['Mean and cruel','Shy and quiet','Fast and loud']},{w:'Pragmatic',d:'Dealing with things in a practical way',wrong:['Dealing with dreams','Dealing with jokes','Dealing with colors']},{w:'Resilient',d:'Able to recover from difficulties',wrong:['Unable to move','Unable to speak','Unable to see']},{w:'Unanimous',d:'Everyone agrees completely',wrong:['Nobody agrees','Only one agrees','Half agree']}]
+};
+
+var activeQuiz=null; // {assignId, words, current, correct, type}
+
+function switchTab(id){
+var tabs=document.querySelectorAll('.tab');
+var secs=document.querySelectorAll('.section');
+for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');secs[i].classList.remove('show')}
+document.getElementById('sec-'+id).classList.add('show');
+var m={work:0,arcade:1};
+if(m[id]!==undefined)tabs[m[id]].classList.add('active');
+}
+
+function renderDashboard(){
+var assigns=window.myAssignments||[];
+var pending=assigns.filter(function(a){return a.status==='pending'});
+var completed=assigns.filter(function(a){return a.status==='completed'});
+var arcadeUnlocked=pending.length===0||(window.studentRecord&&window.studentRecord.arcadeUnlocked);
+
+// Badge
+var badge=document.getElementById('workBadge');
+badge.textContent=pending.length;
+badge.className='tab-badge'+(pending.length===0?' zero':'');
+
+// Unlock banner
+document.getElementById('unlockBanner').className='unlock'+(arcadeUnlocked&&assigns.length>0?' show':'');
+
+// Render assignments
+var el=document.getElementById('assignmentList');
+if(!assigns.length){
+el.innerHTML='<div class="empty-state"><span class="emoji">&#x1F4ED;</span><p>No assignments yet! Your teacher will send you some soon.</p></div>';
+}else{
+var h='';
+// Pending first
+pending.forEach(function(a){
+var today=new Date().toISOString().split('T')[0];
+var overdue=a.dueDate&&a.dueDate<today;
+h+='<div class="a-card pending" id="card-'+a.id+'">';
+h+='<div class="a-header"><div class="a-title">'+getEmoji(a.type)+' '+esc(a.title||a.type)+'</div>';
+h+='<span class="a-status '+(overdue?'status-overdue':'status-pending')+'">'+(overdue?'\u{26A0}\uFE0F Overdue':'Pending')+'</span></div>';
+if(a.dueDate)h+='<div class="a-meta">Due: '+a.dueDate+'</div>';
+h+='<div class="a-actions" id="actions-'+a.id+'">';
+h+=getActionButtons(a);
+h+='</div></div>';
+});
+// Completed
+if(completed.length){
+h+='<div style="font-size:14px;font-weight:700;color:var(--text2);margin:16px 0 8px;display:flex;align-items:center;gap:6px">&#x2705; Completed ('+completed.length+')</div>';
+completed.sort(function(a,b){return(b.completedAt||'').localeCompare(a.completedAt||'')});
+completed.forEach(function(a){
+h+='<div class="a-card completed">';
+h+='<div class="a-header"><div class="a-title">'+getEmoji(a.type)+' '+esc(a.title||a.type)+'</div>';
+h+='<span class="a-status status-done">\u2705 Done</span></div>';
+var when=a.completedAt?new Date(a.completedAt).toLocaleDateString():'';
+var sc=a.score?' \u2022 Score: '+a.score+'%':'';
+h+='<div class="a-meta">'+when+sc+'</div>';
+h+='</div>';
+});
+}
+el.innerHTML=h;
+}
+
+// Arcade
+renderArcade(arcadeUnlocked);
+}
+
+function getEmoji(type){
+var map={'spelling-k2':'\u{1F4D6}','spelling-34':'\u{1F4D6}','spelling-58':'\u{1F4D6}','vocab-k2':'\u{1F4AC}','vocab-34':'\u{1F4AC}','vocab-58':'\u{1F4AC}','pitch-challenge':'\u{1F4A1}','elevator-pitch':'\u{1F3A4}','free-play':'\u{1F3AE}'};
+return map[type]||'\u{1F4CB}';
+}
+
+function getActionButtons(a){
+if(a.type==='pitch-challenge'||a.type==='elevator-pitch'){
+var link=a.type==='pitch-challenge'?'pitch.html':'elevator.html';
+return '<a class="a-btn start" href="'+link+'" target="_blank">Start Pitch \u{1F680}</a><button class="a-btn done-btn" onclick="completePitch(\''+a.id+'\')">I\'m Done \u{2705}</button>';
+}
+if(a.type.startsWith('spelling')||a.type.startsWith('vocab')){
+return '<button class="a-btn start" onclick="startQuiz(\''+a.id+'\',\''+a.type+'\')">Start Quiz \u{1F680}</button>';
+}
+return '';
+}
+
+// ===== QUIZ SYSTEM =====
+function startQuiz(assignId,type){
+var words=WORD_BANKS[type];
+if(!words)return;
+activeQuiz={assignId:assignId,words:words.slice(),current:0,correct:0,type:type};
+if(type.startsWith('spelling'))renderSpelling();
+else renderVocab();
+}
+window.startQuiz=startQuiz;
+
+function renderSpelling(){
+var q=activeQuiz;
+if(q.current>=q.words.length){finishQuiz();return}
+var word=q.words[q.current];
+var el=document.getElementById('actions-'+q.assignId);
+var h='<div class="quiz-area">';
+h+='<div class="quiz-progress"><span>'+(q.current+1)+'/'+q.words.length+'</span><span>'+q.correct+' correct</span></div>';
+h+='<div class="quiz-word" id="qWord">'+esc(word)+'</div>';
+h+='<input type="text" class="quiz-input" id="qInput" placeholder="Type the word..." autocomplete="off" spellcheck="false">';
+h+='<div class="quiz-feedback" id="qFb"></div>';
+h+='<button class="quiz-btn" onclick="checkSpelling()">Check \u{2714}\uFE0F</button>';
+h+='</div>';
+el.innerHTML=h;
+setTimeout(function(){var w=document.getElementById('qWord');if(w)w.textContent='\u{2022} \u{2022} \u{2022} \u{2022}';var inp=document.getElementById('qInput');if(inp)inp.focus()},2500);
+}
+
+function checkSpelling(){
+var inp=document.getElementById('qInput').value.trim().toLowerCase();
+var word=activeQuiz.words[activeQuiz.current].toLowerCase();
+var fb=document.getElementById('qFb');
+if(inp===word){activeQuiz.correct++;fb.innerHTML='<span style="color:var(--accent)">\u{2705} Correct!</span>'}
+else fb.innerHTML='<span style="color:var(--accent3)">\u{274C} It was: '+esc(activeQuiz.words[activeQuiz.current])+'</span>';
+activeQuiz.current++;
+setTimeout(renderSpelling,1200);
+}
+window.checkSpelling=checkSpelling;
+
+function renderVocab(){
+var q=activeQuiz;
+if(q.current>=q.words.length){finishQuiz();return}
+var item=q.words[q.current];
+var opts=[item.d].concat(item.wrong);
+for(var i=opts.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=opts[i];opts[i]=opts[j];opts[j]=t}
+var el=document.getElementById('actions-'+q.assignId);
+var h='<div class="quiz-area">';
+h+='<div class="quiz-progress"><span>'+(q.current+1)+'/'+q.words.length+'</span><span>'+q.correct+' correct</span></div>';
+h+='<div class="quiz-word">'+esc(item.w)+'</div>';
+h+='<div class="vocab-opts">';
+for(var i=0;i<opts.length;i++){
+h+='<div class="vocab-opt" onclick="checkVocab(this,\''+esc(opts[i]).replace(/'/g,"\\'")+'\',\''+esc(item.d).replace(/'/g,"\\'")+'\')">'+esc(opts[i])+'</div>';
+}
+h+='</div><div class="quiz-feedback" id="qFb"></div></div>';
+el.innerHTML=h;
+}
+
+function checkVocab(el,picked,correct){
+var fb=document.getElementById('qFb');
+var opts=document.querySelectorAll('.vocab-opt');
+for(var i=0;i<opts.length;i++)opts[i].style.pointerEvents='none';
+if(picked===correct){el.classList.add('correct');activeQuiz.correct++;fb.innerHTML='<span style="color:var(--accent)">\u{2705} Correct!</span>'}
+else{el.classList.add('wrong');for(var i=0;i<opts.length;i++){if(opts[i].textContent===correct)opts[i].classList.add('correct')}fb.innerHTML='<span style="color:var(--accent3)">\u{274C} Not quite!</span>'}
+activeQuiz.current++;
+setTimeout(renderVocab,1200);
+}
+window.checkVocab=checkVocab;
+
+async function finishQuiz(){
+var pct=Math.round(activeQuiz.correct/activeQuiz.words.length*100);
+var passed=pct>=60;
+var el=document.getElementById('actions-'+activeQuiz.assignId);
+el.innerHTML='<div style="text-align:center;padding:16px"><div style="font-size:36px;margin-bottom:8px">'+(passed?'\u{1F389}':'\u{1F914}')+'</div><div style="font-size:20px;font-weight:800">'+(passed?'Great Job!':'Try Again!')+'</div><div style="font-size:14px;color:var(--text2);margin:4px 0 12px">'+activeQuiz.correct+'/'+activeQuiz.words.length+' ('+pct+'%)'+(passed?'':' — need 60%')+'</div>'+(passed?'':'<button class="a-btn start" onclick="startQuiz(\''+activeQuiz.assignId+'\',\''+activeQuiz.type+'\')">Retry \u{1F504}</button>')+'</div>';
+if(passed){
+try{
+await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',activeQuiz.assignId),{status:'completed',completedAt:new Date().toISOString(),score:pct});
+fireConfetti();
+}catch(e){console.error(e)}
+}
+activeQuiz=null;
+}
+
+async function completePitch(assignId){
+try{
+await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',assignId),{status:'completed',completedAt:new Date().toISOString(),score:100});
+fireConfetti();
+}catch(e){console.error(e)}
+}
+window.completePitch=completePitch;
+
+function renderArcade(unlocked){
+var h='';
+GAMES.forEach(function(g){
+var locked=!unlocked;
+h+='<div class="game-card'+(locked?' locked':'')+'"'+(locked?'':' onclick="window.location.href=\''+g.file+'\'"')+'>';
+h+='<span class="game-emoji">'+g.emoji+'</span>';
+h+='<div class="game-title">'+g.title+'</div>';
+h+='<div class="game-desc">'+g.desc+'</div></div>';
+});
+document.getElementById('gameGrid').innerHTML=h;
+}
+
+function studentLogout(){sessionStorage.clear();window.location.href='index.html'}
+window.studentLogout=studentLogout;
+
+function fireConfetti(){var co=["#06d6a0","#118ab2","#ffd166","#ef476f","#a855f7"];for(var i=0;i<50;i++){var p=document.createElement('div');p.className='confetti-piece';var sz=6+Math.random()*10;p.style.width=sz+'px';p.style.height=sz*(Math.random()>.5?1:.6)+'px';p.style.left=Math.random()*100+'%';p.style.backgroundColor=co[i%co.length];p.style.borderRadius=Math.random()>.5?'50%':'2px';p.style.animationDuration=(2+Math.random()*3)+'s';p.style.animationDelay=(Math.random()*2)+'s';document.body.appendChild(p);(function(el){setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},5000)})(p)}}
+
+function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+document.addEventListener('keydown',function(e){if(e.key==='Enter'&&document.activeElement&&document.activeElement.id==='qInput')checkSpelling()});
+</script>
+</body>
+</html>
