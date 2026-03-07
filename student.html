@@ -101,6 +101,20 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 
 .confetti-piece{position:fixed;top:-20px;z-index:9999;pointer-events:none;animation:confettiFall 3s ease-in forwards}
 @keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+
+/* AI Encouragement Banner */
+.encourage-banner{background:linear-gradient(135deg,var(--surface),var(--surface2));border:1px solid var(--border);border-radius:16px;padding:16px 20px;margin-bottom:16px;display:none;animation:fadeUp .3s ease}
+.encourage-banner.show{display:block}
+.encourage-text{font-size:14px;font-weight:600;line-height:1.5;color:var(--text)}
+.encourage-label{font-size:10px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+
+/* AI Study Buddy */
+.study-buddy-btn{margin-top:8px;padding:8px 14px;border:1px solid var(--accent2);border-radius:10px;background:rgba(17,138,178,.08);color:var(--accent2);font-family:'Outfit',sans-serif;font-weight:700;font-size:12px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.study-buddy-btn:hover{background:rgba(17,138,178,.15)}
+.study-buddy-btn:active{transform:scale(.97)}
+.study-buddy-btn.loading{opacity:.6;pointer-events:none}
+.study-buddy-result{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:8px;font-size:13px;line-height:1.6;display:none;white-space:pre-wrap}
+.study-buddy-result.show{display:block}
 </style>
 </head>
 <body>
@@ -123,6 +137,10 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 
 <!-- MY WORK -->
 <div class="section show" id="sec-work">
+<div class="encourage-banner" id="encourageBanner">
+<div class="encourage-label">&#x1F916; AI Study Buddy says...</div>
+<div class="encourage-text" id="encourageText"></div>
+</div>
 <div id="assignmentList"></div>
 </div>
 
@@ -251,6 +269,8 @@ var meta=a.gradedAt?'Graded: '+new Date(a.gradedAt).toLocaleDateString():'';
 h+='<div class="a-meta">'+meta+'</div>';
 if(a.score!==null&&a.score!==undefined)h+='<div style="margin:6px 0"><span class="a-score">'+a.score+'%</span></div>';
 if(a.feedback)h+='<div class="a-feedback"><div class="a-feedback-label">Feedback</div>'+esc(a.feedback)+'</div>';
+h+='<button class="study-buddy-btn" onclick="event.stopPropagation();aiStudyBuddy(\''+a.id+'\',this)">&#x1F916; AI Study Buddy</button>';
+h+='<div class="study-buddy-result" id="buddy-'+a.id+'"></div>';
 h+='</div>';
 });
 }
@@ -479,6 +499,67 @@ function fireConfetti(){var co=["#06d6a0","#118ab2","#ffd166","#ef476f","#a855f7
 
 function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 document.addEventListener('keydown',function(e){if(e.key==='Enter'&&document.activeElement&&document.activeElement.id==='qInput')checkSpelling()});
+
+// ===== AI STUDY BUDDY (8e) =====
+async function aiStudyBuddy(assignId,btn){
+var a=(window.myAssignments||[]).find(function(x){return x.id===assignId});
+if(!a)return;
+var result=document.getElementById('buddy-'+assignId);
+if(!result)return;
+
+// Toggle off if already showing
+if(result.classList.contains('show')){result.classList.remove('show');return}
+
+btn.classList.add('loading');btn.textContent='Thinking...';
+result.classList.add('show');result.textContent='Loading...';
+
+var prompt='You are a friendly AI study buddy for a K-12 student named '+(window.studentName||'Student')+'. They just completed an assignment: "'+
+(a.title||a.type)+'". Their score was: '+(a.score!==null?a.score+'%':'not scored')+'. Teacher feedback: "'+(a.feedback||'None')+'". '+
+'In a friendly, encouraging way, explain what they did well and what they could improve. Use simple language appropriate for a young student. '+
+'Give 1-2 specific tips they can use next time. Keep it to 3-4 sentences. Be warm and supportive.';
+
+try{
+var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
+});
+var data=await resp.json();
+var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'I had trouble thinking! Try again.';
+result.textContent=text;
+}catch(e){console.error(e);result.textContent='Oops! Something went wrong. Try again later.'}
+btn.classList.remove('loading');btn.innerHTML='&#x1F916; AI Study Buddy';
+}
+window.aiStudyBuddy=aiStudyBuddy;
+
+// ===== AI ENCOURAGEMENT BANNER (8f) =====
+var encourageShown=sessionStorage.getItem('encourageShown');
+function generateEncouragement(){
+if(encourageShown)return;
+// Wait for assignments to load
+var assigns=window.myAssignments;
+if(!assigns||!assigns.length){setTimeout(generateEncouragement,1500);return}
+
+var completed=assigns.filter(function(a){return a.status==='completed'||a.status==='graded'}).length;
+var pending=assigns.filter(function(a){return a.status==='pending'}).length;
+var scores=assigns.filter(function(a){return a.score!==null&&a.score!==undefined}).map(function(a){return a.score});
+var avg=scores.length?Math.round(scores.reduce(function(s,v){return s+v},0)/scores.length):'N/A';
+
+var prompt='You are a fun, encouraging AI buddy for a K-12 afterschool student named '+(window.studentName||'Student')+'. '+
+'They have completed '+completed+' assignment(s) with '+pending+' still pending. Average score: '+avg+'. '+
+'Write a SHORT (1-2 sentences) motivational message to start their session. Be upbeat, use age-appropriate language, and reference their progress. '+
+'Do NOT use emojis. Keep it under 30 words.';
+
+fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
+}).then(function(r){return r.json()}).then(function(data){
+var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'';
+if(text){
+document.getElementById('encourageText').textContent=text;
+document.getElementById('encourageBanner').classList.add('show');
+sessionStorage.setItem('encourageShown','1');
+}
+}).catch(function(e){console.error('Encouragement error:',e)});
+}
+setTimeout(generateEncouragement,2000);
 </script>
 </body>
 </html>

@@ -4,24 +4,337 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ODA Hub - Parent Portal</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#8892a8}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0e1a;color:#f0f4ff;font-family:'Outfit',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}
-.card{background:#111827;border:1px solid #2a3450;border-radius:24px;padding:48px;text-align:center;max-width:460px}
-.emoji{font-size:64px;margin-bottom:16px}
-h1{font-size:28px;font-weight:800;margin-bottom:8px}
-p{color:#8892a8;font-size:16px;line-height:1.6;margin-bottom:24px}
-a{display:inline-block;padding:12px 28px;background:#ffd166;color:#0a0e1a;border-radius:12px;text-decoration:none;font-weight:700;font-size:16px}
-a:hover{opacity:.9}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(255,209,102,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,209,102,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+.app{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:16px}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 0;margin-bottom:16px;border-bottom:1px solid var(--border)}
+.topbar h1{font-size:22px;font-weight:800;letter-spacing:-1px}
+.topbar h1 span{color:var(--gold)}
+.btn{padding:8px 18px;border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .15s}
+.btn:active{transform:scale(.97)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-gold{background:var(--gold);color:var(--bg)}
+.btn-blue{background:var(--accent2);color:#fff}
+.btn-outline{background:none;border:1px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--text2);color:var(--text)}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:8px}
+.btn-wide{width:100%;padding:14px;font-size:16px;border-radius:14px}
+.btn.loading{opacity:.6;pointer-events:none}
+.btn.loading::after{content:'';display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;margin-left:6px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface);border-radius:14px;padding:4px;border:1px solid var(--border)}
+.tab{flex:1;padding:10px 6px;text-align:center;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px;color:var(--text2);transition:all .2s}
+.tab:hover{color:var(--text)}
+.tab.active{background:var(--gold);color:var(--bg)}
+.section{display:none;animation:fadeUp .2s ease}
+.section.show{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:14px}
+.card-title{font-size:16px;font-weight:800;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+@media(max-width:500px){.stats{grid-template-columns:1fr 1fr}}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+.stat .num{font-size:26px;font-weight:800;color:var(--gold);font-family:'Space Mono',monospace}
+.stat .label{font-size:10px;color:var(--text2);margin-top:2px;font-weight:600;letter-spacing:.5px}
+.a-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px}
+.a-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.a-title{font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px}
+.a-meta{font-size:11px;color:var(--text2);display:flex;gap:12px;flex-wrap:wrap;margin-top:4px}
+.a-status{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;white-space:nowrap}
+.st-pending{background:rgba(17,138,178,.12);color:var(--accent2)}
+.st-submitted{background:rgba(255,209,102,.12);color:var(--gold)}
+.st-graded{background:rgba(6,214,160,.12);color:var(--accent)}
+.st-completed{background:rgba(6,214,160,.12);color:var(--accent)}
+.st-returned{background:rgba(239,71,111,.12);color:var(--accent3)}
+.a-score{font-family:'Space Mono',monospace;font-size:12px;color:var(--gold);font-weight:700}
+.a-feedback{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:8px;font-size:13px;line-height:1.5}
+.a-feedback-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.group-header{font-size:14px;font-weight:700;color:var(--text2);margin:16px 0 8px;display:flex;align-items:center;gap:6px}
+.work-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px}
+.work-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.work-type{font-size:12px;font-weight:700;padding:3px 10px;border-radius:6px}
+.wt-pitch{background:rgba(17,138,178,.12);color:var(--accent2)}
+.wt-elevator{background:rgba(255,209,102,.12);color:var(--gold)}
+.wt-robot{background:rgba(6,214,160,.12);color:var(--accent)}
+.wt-spelling{background:rgba(239,71,111,.12);color:var(--accent3)}
+.work-date{font-size:10px;color:var(--text2)}
+.work-body{font-size:13px;line-height:1.6;color:var(--text)}
+.work-body .wl{margin-bottom:6px}
+.work-body .wl-label{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.work-body .wl-value{font-weight:600}
+.work-body .pitch-text{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:13px;line-height:1.7;margin-top:8px;max-height:200px;overflow-y:auto;color:var(--text);font-style:italic}
+.spelling-scores{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.spell-score{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;font-family:'Space Mono',monospace}
+.spell-good{background:rgba(6,214,160,.1);color:var(--accent)}
+.spell-ok{background:rgba(255,209,102,.1);color:var(--gold)}
+.spell-low{background:rgba(239,71,111,.1);color:var(--accent3)}
+.ai-result{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:10px;font-size:13px;line-height:1.6;max-height:300px;overflow-y:auto;white-space:pre-wrap}
+.empty-state{text-align:center;padding:32px 16px;color:var(--text2)}
+.empty-state .emoji{font-size:40px;margin-bottom:8px;display:block}
 </style>
 </head>
 <body>
-<div class="card">
-<div class="emoji">&#x1F6A7;</div>
-<h1>Coming Soon!</h1>
-<p>The Parent Portal is being built. Soon you'll be able to see your child's progress, scores, and what games they're playing.</p>
-<a href="index.html">&#x2190; Back to ODA Hub</a>
+<div class="grid-bg"></div>
+<div class="app">
+
+<div class="topbar">
+<h1>&#x1F46A; <span>Parent Portal</span></h1>
+<div style="display:flex;align-items:center;gap:10px">
+<span style="font-size:13px;color:var(--text2);font-weight:500" id="parentChildLabel">Loading...</span>
+<button class="btn btn-outline btn-sm" onclick="parentLogout()">&#x2190; Exit</button>
 </div>
+</div>
+
+<div class="tabs">
+<div class="tab active" onclick="switchTab('overview')">&#x1F4CA; Overview</div>
+<div class="tab" onclick="switchTab('assignments')">&#x1F4CB; Assignments</div>
+<div class="tab" onclick="switchTab('work')">&#x1F4DD; Work</div>
+</div>
+
+<!-- OVERVIEW -->
+<div class="section show" id="sec-overview">
+<div class="card">
+<div style="font-size:18px;font-weight:800;margin-bottom:2px">&#x1F44B; Welcome!</div>
+<div style="font-size:13px;color:var(--text2)">Here's how <strong id="overviewName">your child</strong> is doing.</div>
+</div>
+<div class="stats">
+<div class="stat"><div class="num" id="pStatTotal">0</div><div class="label">Total</div></div>
+<div class="stat"><div class="num" id="pStatCompleted">0</div><div class="label">Completed</div></div>
+<div class="stat"><div class="num" id="pStatAvg">--</div><div class="label">Avg Score</div></div>
+<div class="stat"><div class="num" id="pStatPending">0</div><div class="label">Pending</div></div>
+</div>
+<div class="card">
+<div class="card-title"><span>&#x1F916; AI Insights</span></div>
+<button class="btn btn-gold btn-wide" onclick="aiProgressReport()" id="aiReportBtn">Generate AI Progress Report</button>
+<div class="ai-result" id="aiReportResult" style="display:none"></div>
+</div>
+</div>
+
+<!-- ASSIGNMENTS -->
+<div class="section" id="sec-assignments">
+<div style="font-size:16px;font-weight:800;margin-bottom:14px">&#x1F4CB; Assignments</div>
+<div id="parentAssignmentsList"><div class="empty-state"><span class="emoji">&#x23F3;</span><p>Loading assignments...</p></div></div>
+</div>
+
+<!-- WORK -->
+<div class="section" id="sec-work">
+<div style="font-size:16px;font-weight:800;margin-bottom:14px">&#x1F4DD; Student Work</div>
+<div id="parentWorkList"><div class="empty-state"><span class="emoji">&#x23F3;</span><p>Loading work...</p></div></div>
+</div>
+
+</div>
+
+<!-- FIREBASE -->
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import{getFirestore,doc,getDoc,getDocs,collection,query,where,onSnapshot}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+const cfg={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
+const app=initializeApp(cfg);const db=getFirestore(app);
+
+window.fbDb=db;window.fbDoc=doc;window.fbGetDoc=getDoc;window.fbGetDocs=getDocs;
+window.fbCollection=collection;window.fbQuery=query;window.fbWhere=where;
+
+var studentId=sessionStorage.getItem('parentStudentId');
+var studentName=sessionStorage.getItem('parentStudentName');
+if(!studentId){window.location.href='index.html'}
+else{
+document.getElementById('parentChildLabel').textContent=studentName||'Student';
+document.getElementById('overviewName').textContent=studentName||'your child';
+window.parentStudentId=studentId;
+window.parentStudentName=studentName;
+// Real-time assignments listener
+var q=query(collection(db,'assignments'),where('studentId','==',studentId));
+onSnapshot(q,function(snap){
+window.parentAssignments=[];
+snap.forEach(function(d){window.parentAssignments.push({id:d.id,...d.data()})});
+renderOverview();
+renderAssignments();
+});
+// Load student work
+loadStudentWork();
+}
+</script>
+
+<script>
+function switchTab(id){
+var tabs=document.querySelectorAll('.tab');
+var secs=document.querySelectorAll('.section');
+for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');secs[i].classList.remove('show')}
+document.getElementById('sec-'+id).classList.add('show');
+var m={overview:0,assignments:1,work:2};
+if(m[id]!==undefined)tabs[m[id]].classList.add('active');
+}
+
+function renderOverview(){
+var assigns=window.parentAssignments||[];
+var total=assigns.length;
+var completed=assigns.filter(function(a){return a.status==='completed'||a.status==='graded'}).length;
+var pending=assigns.filter(function(a){return a.status==='pending'||a.status==='returned'}).length;
+var scores=assigns.filter(function(a){return a.score!==null&&a.score!==undefined}).map(function(a){return a.score});
+var avg=scores.length?Math.round(scores.reduce(function(s,v){return s+v},0)/scores.length):'--';
+document.getElementById('pStatTotal').textContent=total;
+document.getElementById('pStatCompleted').textContent=completed;
+document.getElementById('pStatAvg').textContent=avg+(typeof avg==='number'?'%':'');
+document.getElementById('pStatPending').textContent=pending;
+}
+
+function renderAssignments(){
+var assigns=window.parentAssignments||[];
+var el=document.getElementById('parentAssignmentsList');
+if(!assigns.length){el.innerHTML='<div class="empty-state"><span class="emoji">&#x1F4ED;</span><p>No assignments yet.</p></div>';return}
+var pending=assigns.filter(function(a){return a.status==='pending'||a.status==='returned'});
+var submitted=assigns.filter(function(a){return a.status==='submitted'});
+var graded=assigns.filter(function(a){return a.status==='graded'});
+var completed=assigns.filter(function(a){return a.status==='completed'});
+var h='';
+if(pending.length){
+h+='<div class="group-header">&#x23F3; Pending ('+pending.length+')</div>';
+pending.forEach(function(a){h+=renderAssignCard(a)});
+}
+if(submitted.length){
+h+='<div class="group-header">&#x1F4E4; Submitted ('+submitted.length+')</div>';
+submitted.forEach(function(a){h+=renderAssignCard(a)});
+}
+if(graded.length){
+h+='<div class="group-header">&#x1F4DD; Graded ('+graded.length+')</div>';
+graded.forEach(function(a){h+=renderAssignCard(a)});
+}
+if(completed.length){
+h+='<div class="group-header">&#x2705; Completed ('+completed.length+')</div>';
+completed.sort(function(a,b){return(b.completedAt||'').localeCompare(a.completedAt||'')});
+completed.forEach(function(a){h+=renderAssignCard(a)});
+}
+el.innerHTML=h;
+}
+
+function renderAssignCard(a){
+var statusMap={pending:'st-pending',submitted:'st-submitted',graded:'st-graded',completed:'st-completed',returned:'st-returned'};
+var labelMap={pending:'Pending',submitted:'Submitted',graded:'Graded',completed:'Completed',returned:'Returned'};
+var emojiMap={'spelling-k2':'&#x1F4D6;','spelling-34':'&#x1F4D6;','spelling-58':'&#x1F4D6;','vocab-k2':'&#x1F4AC;','vocab-34':'&#x1F4AC;','vocab-58':'&#x1F4AC;','pitch-challenge':'&#x1F4A1;','elevator-pitch':'&#x1F3A4;','robot-lab':'&#x1F916;',tool:'&#x1F6E0;&#xFE0F;',worksheet:'&#x1F4C4;',link:'&#x1F517;',custom:'&#x270F;&#xFE0F;'};
+var emoji=emojiMap[a.toolType]||emojiMap[a.type]||'&#x1F4CB;';
+var h='<div class="a-card">';
+h+='<div class="a-header"><div class="a-title">'+emoji+' '+esc(a.title||a.type)+'</div>';
+h+='<span class="a-status '+(statusMap[a.status]||'st-pending')+'">'+(labelMap[a.status]||a.status)+'</span></div>';
+h+='<div class="a-meta">';
+if(a.dueDate)h+='<span>Due: '+a.dueDate+'</span>';
+if(a.assignedAt)h+='<span>Assigned: '+new Date(a.assignedAt).toLocaleDateString()+'</span>';
+if(a.score!==null&&a.score!==undefined)h+='<span class="a-score">Score: '+a.score+'%</span>';
+h+='</div>';
+if(a.feedback){h+='<div class="a-feedback"><div class="a-feedback-label">Teacher Feedback</div>'+esc(a.feedback)+'</div>'}
+h+='</div>';
+return h;
+}
+
+async function loadStudentWork(){
+var el=document.getElementById('parentWorkList');
+var sid=window.parentStudentId;
+if(!sid)return;
+el.innerHTML='<div style="text-align:center;padding:12px;color:var(--text2);font-size:13px">Loading student work...</div>';
+var h='';
+try{
+// Elevator Pitch
+var epDoc=await window.fbGetDoc(window.fbDoc(window.fbDb,'elevatorPitches',sid));
+if(epDoc.exists()){
+var ep=epDoc.data();
+h+='<div class="work-card"><div class="work-header"><span class="work-type wt-elevator">&#x1F3A4; Elevator Pitch</span><span class="work-date">'+(ep.savedAt?new Date(ep.savedAt).toLocaleDateString():'')+'</span></div>';
+h+='<div class="work-body">';
+if(ep.answers){
+if(ep.answers.name)h+='<div class="wl"><span class="wl-label">Name:</span> <span class="wl-value">'+esc(ep.answers.name)+'</span></div>';
+if(ep.answers.dream)h+='<div class="wl"><span class="wl-label">Dream Job:</span> <span class="wl-value">'+esc(ep.answers.dream)+'</span></div>';
+if(ep.answers.why)h+='<div class="wl"><span class="wl-label">Why:</span> <span class="wl-value">'+esc(ep.answers.why)+'</span></div>';
+if(ep.answers.hobby)h+='<div class="wl"><span class="wl-label">Hobbies:</span> <span class="wl-value">'+esc(ep.answers.hobby)+'</span></div>';
+if(ep.answers.fact)h+='<div class="wl"><span class="wl-label">Fun Fact:</span> <span class="wl-value">'+esc(ep.answers.fact)+'</span></div>';
+}
+if(ep.pitch)h+='<div class="pitch-text">'+esc(ep.pitch)+'</div>';
+h+='</div></div>';
+}
+// Pitch Challenge
+var pcDoc=await window.fbGetDoc(window.fbDoc(window.fbDb,'pitchChallenges',sid));
+if(pcDoc.exists()){
+var pc=pcDoc.data();
+h+='<div class="work-card"><div class="work-header"><span class="work-type wt-pitch">&#x1F4A1; Pitch Challenge</span><span class="work-date">'+(pc.savedAt?new Date(pc.savedAt).toLocaleDateString():'')+'</span></div>';
+h+='<div class="work-body">';
+if(pc.studentName)h+='<div class="wl"><span class="wl-label">Student:</span> <span class="wl-value">'+esc(pc.studentName)+'</span></div>';
+if(pc.businessName)h+='<div class="wl"><span class="wl-label">Business:</span> <span class="wl-value">'+esc(pc.businessName)+(pc.businessDesc?' — '+esc(pc.businessDesc):'')+'</span></div>';
+if(pc.problem)h+='<div class="wl"><span class="wl-label">Problem:</span> <span class="wl-value">'+esc(pc.problem)+'</span></div>';
+if(pc.customers&&pc.customers.length)h+='<div class="wl"><span class="wl-label">Customers:</span> <span class="wl-value">'+esc(pc.customers.join(', '))+'</span></div>';
+if(pc.advantages&&pc.advantages.length)h+='<div class="wl"><span class="wl-label">Advantages:</span> <span class="wl-value">'+esc(pc.advantages.join(' \u2022 '))+'</span></div>';
+if(pc.hook)h+='<div class="pitch-text">'+esc(pc.hook)+'</div>';
+h+='</div></div>';
+}
+// Robot Design
+var rdDoc=await window.fbGetDoc(window.fbDoc(window.fbDb,'robotDesigns',sid));
+if(rdDoc.exists()){
+var rd=rdDoc.data();
+h+='<div class="work-card"><div class="work-header"><span class="work-type wt-robot">&#x1F916; Robot Design</span><span class="work-date">'+(rd.savedAt?new Date(rd.savedAt).toLocaleDateString():'')+'</span></div>';
+h+='<div class="work-body">';
+if(rd.robotName)h+='<div class="wl"><span class="wl-label">Robot Name:</span> <span class="wl-value" style="color:var(--accent);font-size:16px">'+esc(rd.robotName)+'</span></div>';
+if(rd.brain)h+='<div class="wl"><span class="wl-label">Brain:</span> <span class="wl-value">'+esc(rd.brain)+'</span></div>';
+if(rd.body)h+='<div class="wl"><span class="wl-label">Body:</span> <span class="wl-value">'+esc(rd.body)+'</span></div>';
+if(rd.hand)h+='<div class="wl"><span class="wl-label">Hand:</span> <span class="wl-value">'+esc(rd.hand)+'</span></div>';
+if(rd.voice)h+='<div class="wl"><span class="wl-label">Voice:</span> <span class="wl-value">'+esc(rd.voice)+'</span></div>';
+if(rd.color)h+='<div class="wl"><span class="wl-label">Color:</span> <span class="wl-value">'+esc(rd.color)+'</span></div>';
+if(rd.powers&&rd.powers.length)h+='<div class="wl"><span class="wl-label">Powers:</span> <span class="wl-value">'+esc(rd.powers.join(', '))+'</span></div>';
+h+='</div></div>';
+}
+// Spelling Results
+var srQ=window.fbQuery(window.fbCollection(window.fbDb,'spellingResults'),window.fbWhere('studentId','==',sid));
+var srSnap=await window.fbGetDocs(srQ);
+if(!srSnap.empty){
+var results=[];srSnap.forEach(function(d){results.push(d.data())});
+results.sort(function(a,b){return(b.savedAt||'').localeCompare(a.savedAt||'')});
+h+='<div class="work-card"><div class="work-header"><span class="work-type wt-spelling">&#x1F41D; Spelling Bee</span><span class="work-date">'+results.length+' attempt'+(results.length!==1?'s':'')+'</span></div>';
+h+='<div class="work-body"><div class="spelling-scores">';
+results.forEach(function(r){
+var cls=r.score>=80?'spell-good':r.score>=60?'spell-ok':'spell-low';
+h+='<span class="spell-score '+cls+'">'+(r.grade||'?')+': '+r.score+'%</span>';
+});
+h+='</div></div></div>';
+}
+if(!h)h='<div class="empty-state"><span class="emoji">&#x1F4AD;</span><p>No saved work yet.</p></div>';
+el.innerHTML=h;
+}catch(e){
+console.error('Error loading student work:',e);
+el.innerHTML='<div class="empty-state"><span class="emoji">&#x26A0;&#xFE0F;</span><p>Error loading work.</p></div>';
+}
+}
+window.loadStudentWork=loadStudentWork;
+
+// AI Progress Report
+async function aiProgressReport(){
+var btn=document.getElementById('aiReportBtn');
+var result=document.getElementById('aiReportResult');
+btn.classList.add('loading');btn.textContent='Generating report...';
+var assigns=window.parentAssignments||[];
+var total=assigns.length;
+var completed=assigns.filter(function(a){return a.status==='completed'||a.status==='graded'}).length;
+var scores=assigns.filter(function(a){return a.score!==null&&a.score!==undefined}).map(function(a){return a.score});
+var avg=scores.length?Math.round(scores.reduce(function(s,v){return s+v},0)/scores.length):'N/A';
+var pending=assigns.filter(function(a){return a.status==='pending'||a.status==='returned'}).length;
+var types={};assigns.forEach(function(a){var t=a.toolType||a.type;types[t]=(types[t]||0)+1});
+var typeSummary=Object.keys(types).map(function(k){return k+': '+types[k]}).join(', ')||'none yet';
+var prompt='You are a friendly education assistant writing a progress report for a parent about their child named '+(window.parentStudentName||'the student')+'. Here is their data: Total assignments: '+total+', Completed: '+completed+', Pending: '+pending+', Average score: '+avg+', Assignment types: '+typeSummary+'. Write a warm, encouraging 3-4 paragraph progress report for the parent. Highlight strengths, mention areas for improvement gently, and give 2-3 specific suggestions for how the parent can support learning at home. Keep it positive and supportive.';
+try{
+var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
+});
+var data=await resp.json();
+var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'Unable to generate report.';
+result.textContent=text;result.style.display='block';
+}catch(e){console.error(e);result.textContent='Error generating report. Please try again.';result.style.display='block'}
+btn.classList.remove('loading');btn.textContent='Generate AI Progress Report';
+}
+window.aiProgressReport=aiProgressReport;
+
+function parentLogout(){sessionStorage.removeItem('parentStudentId');sessionStorage.removeItem('parentStudentName');window.location.href='index.html'}
+window.parentLogout=parentLogout;
+
+function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+</script>
 </body>
 </html>

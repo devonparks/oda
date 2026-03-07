@@ -215,6 +215,64 @@ select.settings-input{cursor:pointer}
 .tmpl-bar{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
 .tmpl-chip{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s}
 .tmpl-chip:hover{border-color:var(--accent2)}
+
+/* Loading overlay */
+.loading-overlay{position:fixed;inset:0;background:rgba(10,14,26,.92);z-index:200;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;backdrop-filter:blur(4px)}
+.loading-overlay.show{display:flex}
+.loading-spinner{width:40px;height:40px;border:4px solid rgba(6,214,160,.2);border-top-color:var(--accent);border-radius:50%;animation:lspin .6s linear infinite}
+@keyframes lspin{to{transform:rotate(360deg)}}
+.loading-text{font-size:14px;color:var(--text2);font-weight:600}
+
+/* Toast */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 20px;font-size:13px;font-weight:600;transform:translateX(120%);opacity:0;transition:all .3s ease;pointer-events:none}
+.toast.show{transform:translateX(0);opacity:1}
+.toast.success{border-color:var(--accent);color:var(--accent)}
+.toast.error{border-color:var(--accent3);color:var(--accent3)}
+.toast.info{border-color:var(--accent2);color:var(--accent2)}
+
+/* Btn loading */
+.btn.loading{opacity:.6;pointer-events:none;position:relative}
+.btn.loading::after{content:'';display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:lspin .6s linear infinite;margin-left:6px;vertical-align:middle}
+
+/* Analytics */
+.analytics-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-top:14px}
+.analytics-title{font-size:16px;font-weight:800;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.analytics-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:600px){.analytics-stats{grid-template-columns:1fr 1fr}}
+.analytics-stat{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+.analytics-stat .an-num{font-size:22px;font-weight:800;color:var(--accent2);font-family:'Space Mono',monospace}
+.analytics-stat .an-label{font-size:10px;color:var(--text2);margin-top:2px;font-weight:600}
+.bar-chart{display:flex;align-items:flex-end;gap:8px;height:120px;padding:10px 0;margin-bottom:14px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar-fill{width:100%;border-radius:6px 6px 0 0;min-height:4px;transition:height .5s ease}
+.bar-label{font-size:9px;color:var(--text2);font-weight:600;text-align:center}
+.bar-val{font-size:10px;font-weight:700;font-family:'Space Mono',monospace}
+.leaderboard{max-height:200px;overflow-y:auto}
+.lb-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--border)}
+.lb-row:last-child{border-bottom:none}
+.lb-rank{font-size:14px;font-weight:800;color:var(--gold);font-family:'Space Mono',monospace;min-width:24px}
+.lb-name{font-size:13px;font-weight:600;flex:1}
+.lb-count{font-size:12px;font-family:'Space Mono',monospace;color:var(--accent)}
+
+/* Search */
+.search-input{width:100%;padding:10px 14px 10px 36px;background:var(--bg);border:2px solid var(--border);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:13px;outline:none;margin-bottom:12px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%238892a8' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:10px center;background-size:16px}
+.search-input:focus{border-color:var(--accent)}
+
+/* Bulk actions */
+.bulk-bar{display:none;background:var(--surface);border:2px solid var(--accent2);border-radius:14px;padding:12px 16px;margin-bottom:14px;align-items:center;gap:10px;flex-wrap:wrap}
+.bulk-bar.show{display:flex}
+.bulk-count{font-size:13px;font-weight:700;color:var(--accent2);min-width:80px}
+.bulk-bar .btn{font-size:11px;padding:6px 12px}
+.assign-card .bulk-check{margin-right:8px;accent-color:var(--accent);width:16px;height:16px;cursor:pointer;flex-shrink:0}
+
+/* Notification badge */
+.notif-badge{background:var(--accent3);color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;margin-left:4px}
+.notif-badge.zero{display:none}
+
+/* AI panels */
+.ai-result{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:10px;font-size:13px;line-height:1.6;max-height:300px;overflow-y:auto;white-space:pre-wrap}
+.ai-btn{display:inline-flex;align-items:center;gap:6px}
 </style>
 </head>
 <body>
@@ -233,7 +291,7 @@ select.settings-input{cursor:pointer}
 <div class="tab active" onclick="switchTab('home')"><span>&#x1F3E0;</span><span class="tab-label">Home</span></div>
 <div class="tab" onclick="switchTab('tools')"><span>&#x1F6E0;&#xFE0F;</span><span class="tab-label">Tools</span></div>
 <div class="tab" onclick="switchTab('roster')"><span>&#x1F465;</span><span class="tab-label">Roster</span></div>
-<div class="tab" onclick="switchTab('assignments')"><span>&#x1F4CB;</span><span class="tab-label">Assign</span></div>
+<div class="tab" onclick="switchTab('assignments')"><span>&#x1F4CB;</span><span class="tab-label">Assign</span><span class="notif-badge zero" id="assignNotifBadge">0</span></div>
 <div class="tab" onclick="switchTab('arcade')"><span>&#x1F3AE;</span><span class="tab-label">Arcade</span></div>
 <div class="tab" onclick="switchTab('settings')"><span>&#x2699;&#xFE0F;</span><span class="tab-label">Settings</span></div>
 </div>
@@ -260,6 +318,27 @@ select.settings-input{cursor:pointer}
 <a class="quick-card" href="elevator.html" target="_blank"><span class="quick-emoji">&#x1F3A4;</span><div class="quick-title">Elevator Pitch</div><div class="quick-desc">Quick 1-on-1 pitch builder</div></a>
 <a class="quick-card" href="lemonade.html" target="_blank"><span class="quick-emoji">&#x1F34B;</span><div class="quick-title">Lemonade Day</div><div class="quick-desc">Sign ups and hype</div></a>
 <a class="quick-card" href="pitch.html" target="_blank"><span class="quick-emoji">&#x1F4A1;</span><div class="quick-title">Pitch Challenge</div><div class="quick-desc">Full business pitch</div></a>
+</div>
+
+<!-- Analytics Dashboard -->
+<div class="analytics-card" id="analyticsCard">
+<div class="analytics-title">
+<span>&#x1F4CA; This Week's Analytics</span>
+<div style="display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn btn-blue btn-sm ai-btn" onclick="aiClassSummary()">&#x1F916; AI Class Summary</button>
+<button class="btn btn-outline btn-sm ai-btn" onclick="openAiDiff()">&#x1F916; AI Differentiation</button>
+</div>
+</div>
+<div class="analytics-stats">
+<div class="analytics-stat"><div class="an-num" id="anCompleted">0</div><div class="an-label">Completed This Week</div></div>
+<div class="analytics-stat"><div class="an-num" id="anAvgScore">--</div><div class="an-label">Avg Score</div></div>
+<div class="analytics-stat"><div class="an-num" id="anCompRate">0%</div><div class="an-label">Completion Rate</div></div>
+<div class="analytics-stat"><div class="an-num" id="anTopTool">--</div><div class="an-label">Top Tool</div></div>
+</div>
+<div id="anBarChart" class="bar-chart"></div>
+<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px">&#x1F3C6; Leaderboard (Top 10)</div>
+<div class="leaderboard" id="anLeaderboard"></div>
+<div class="ai-result" id="aiClassSummaryResult" style="display:none"></div>
 </div>
 </div>
 
@@ -290,6 +369,7 @@ select.settings-input{cursor:pointer}
 <input type="text" id="addGrade" placeholder="Grade" style="max-width:70px">
 <button class="btn btn-accent" onclick="addStudent()">+ Add</button>
 </div>
+<input type="text" class="search-input" id="rosterSearch" placeholder="Search students..." oninput="filterRoster()">
 <div class="student-list" id="studentList"><div class="empty-state"><span class="emoji">&#x23F3;</span><p>Loading...</p></div></div>
 </div>
 
@@ -329,11 +409,20 @@ select.settings-input{cursor:pointer}
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
 <div style="font-size:16px;font-weight:800">&#x1F4CB; Assignments</div>
 <button class="btn btn-accent" onclick="openCreateAssignment()">+ Create Assignment</button>
+<button class="btn btn-blue btn-sm" onclick="openAiGen()" style="margin-left:8px">&#x1F916; AI Generate</button>
 </div>
 <div class="filter-bar">
 <select id="filterClass" onchange="filterAssignments()"><option value="">All Classes</option></select>
 <select id="filterStatus" onchange="filterAssignments()"><option value="">All Status</option><option value="pending">Pending</option><option value="submitted">Needs Review</option><option value="graded">Graded</option><option value="completed">Completed</option><option value="returned">Returned</option></select>
 <select id="filterType" onchange="filterAssignments()"><option value="">All Types</option><option value="tool">Tool</option><option value="worksheet">Worksheet</option><option value="link">Link</option><option value="custom">Custom</option></select>
+</div>
+<input type="text" class="search-input" id="assignSearch" placeholder="Search by title or student name..." oninput="filterAssignments()">
+<div class="bulk-bar" id="bulkBar">
+<span class="bulk-count" id="bulkCount">0 selected</span>
+<button class="btn btn-outline btn-sm" onclick="bulkSelectAll()">Select All</button>
+<button class="btn btn-accent btn-sm" onclick="bulkComplete()">Complete Selected</button>
+<button class="btn btn-gold btn-sm" onclick="bulkGrade()">Bulk Grade</button>
+<button class="btn btn-red btn-sm" onclick="bulkDelete()">Delete Selected</button>
 </div>
 <div id="assignmentsList"><div class="empty-state"><span class="emoji">&#x1F4CB;</span><p>No assignments yet. Create one to get started!</p></div></div>
 </div>
@@ -497,18 +586,55 @@ select.settings-input{cursor:pointer}
 </div>
 </div>
 
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loadingOverlay">
+<div class="loading-spinner"></div>
+<div class="loading-text" id="loadingText">Loading...</div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- AI GENERATOR MODAL -->
+<div class="modal-bg" id="aiGenModal">
+<div class="modal create-modal">
+<button class="modal-close" onclick="closeAiGen()">&times;</button>
+<h2>&#x1F916; AI Assignment Generator</h2>
+<p>Describe a topic and AI will create an assignment for you</p>
+<div class="fg"><label>Topic or Theme</label><input type="text" id="aiGenTopic" placeholder="e.g. Financial literacy for 5th graders"></div>
+<div class="fg"><label>Grade Level</label>
+<select id="aiGenGrade"><option value="K-2">K-2</option><option value="3-4">3-4</option><option value="5-8" selected>5-8</option></select></div>
+<button class="btn btn-accent btn-wide" onclick="generateAiAssignment()" id="aiGenBtn">Generate Assignment &#x1F680;</button>
+<div class="ai-result" id="aiGenResult" style="display:none"></div>
+<div id="aiGenActions" style="display:none;margin-top:10px;display:none">
+<button class="btn btn-accent" onclick="useAiAssignment()">Use This Assignment &#x2705;</button>
+</div>
+</div>
+</div>
+
+<!-- AI DIFFERENTIATION MODAL -->
+<div class="modal-bg" id="aiDiffModal">
+<div class="modal create-modal">
+<button class="modal-close" onclick="closeAiDiff()">&times;</button>
+<h2>&#x1F916; AI Differentiation Suggestions</h2>
+<p>Analyzes student performance to suggest grouping and differentiation</p>
+<button class="btn btn-accent btn-wide" onclick="runAiDifferentiation()" id="aiDiffBtn">Analyze Students &#x1F52C;</button>
+<div class="ai-result" id="aiDiffResult" style="display:none"></div>
+</div>
+</div>
+
 <!-- FIREBASE -->
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
 import{getAuth,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
-import{getFirestore,doc,setDoc,getDoc,getDocs,deleteDoc,collection,query,where,addDoc,updateDoc,orderBy,Timestamp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+import{getFirestore,doc,setDoc,getDoc,getDocs,deleteDoc,collection,query,where,addDoc,updateDoc,orderBy,Timestamp,onSnapshot}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 
 const cfg={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
 const app=initializeApp(cfg);const auth=getAuth(app);const db=getFirestore(app);
 
 window.fbAuth=auth;window.fbDb=db;window.fbSignOut=signOut;
 window.fbDoc=doc;window.fbSetDoc=setDoc;window.fbGetDoc=getDoc;window.fbGetDocs=getDocs;window.fbDeleteDoc=deleteDoc;
-window.fbCollection=collection;window.fbQuery=query;window.fbWhere=where;window.fbAddDoc=addDoc;window.fbUpdateDoc=updateDoc;window.fbOrderBy=orderBy;window.fbTimestamp=Timestamp;
+window.fbCollection=collection;window.fbQuery=query;window.fbWhere=where;window.fbAddDoc=addDoc;window.fbUpdateDoc=updateDoc;window.fbOrderBy=orderBy;window.fbTimestamp=Timestamp;window.fbOnSnapshot=onSnapshot;
 
 onAuthStateChanged(auth,async function(user){
 if(!user){window.location.href='index.html';return}
@@ -538,6 +664,7 @@ document.getElementById('pinToggle').style.borderColor=window.teacherData.requir
 }catch(e){console.error(e)}
 loadClasses();
 loadStudents();
+setupAssignmentListener();
 setTimeout(populateSettings,100);
 });
 </script>
@@ -737,17 +864,37 @@ var q=window.fbQuery(window.fbCollection(window.fbDb,'students'),window.fbWhere(
 var snap=await window.fbGetDocs(q);
 students=[];snap.forEach(function(d){students.push({id:d.id,...d.data()})});
 
-// Load all assignments for this teacher's students
+// If no real-time listener yet, do a one-time load of assignments
+if(!window._assignListenerActive){
 var aq=window.fbQuery(window.fbCollection(window.fbDb,'assignments'),window.fbWhere('teacherId','==',window.currentTeacher.uid));
 var asnap=await window.fbGetDocs(aq);
 allAssignments=[];asnap.forEach(function(d){allAssignments.push({id:d.id,...d.data()})});
+}
 
 renderStudentList();
 updateStats();
+updateAnalytics();
+updateNotifBadge();
 renderAssignmentsList();
 populateClassFilters();
 }catch(e){console.error(e);document.getElementById('studentList').innerHTML='<div class="empty-state"><span class="emoji">&#x26A0;&#xFE0F;</span><p>Error loading.</p></div>'}
 }
+
+// Real-time assignment listener
+function setupAssignmentListener(){
+if(!window.currentTeacher)return;
+var aq=window.fbQuery(window.fbCollection(window.fbDb,'assignments'),window.fbWhere('teacherId','==',window.currentTeacher.uid));
+window.fbOnSnapshot(aq,function(snap){
+allAssignments=[];snap.forEach(function(d){allAssignments.push({id:d.id,...d.data()})});
+window._assignListenerActive=true;
+updateStats();
+updateAnalytics();
+updateNotifBadge();
+renderAssignmentsList();
+if(selectedStudent)renderProfileAssignments();
+});
+}
+window.setupAssignmentListener=setupAssignmentListener;
 
 function updateStats(){
 document.getElementById('statStudents').textContent=students.length;
@@ -1010,47 +1157,13 @@ hel.innerHTML=h;
 }
 }
 
-// ===== ASSIGN MODAL =====
+// ===== ASSIGN MODAL (routes to new create modal) =====
 function openAssignModal(){
 if(!selectedStudent)return;
-selectedOpt=null;
-document.getElementById('assignForName').textContent=selectedStudent.name;
-document.getElementById('dueDate').value='';
-var opts=document.querySelectorAll('.assign-opt');for(var i=0;i<opts.length;i++)opts[i].classList.remove('sel');
-document.getElementById('assignModal').classList.add('show');
+openCreateAssignment(selectedStudent.id);
 }
 function closeAssignModal(){document.getElementById('assignModal').classList.remove('show')}
 window.openAssignModal=openAssignModal;window.closeAssignModal=closeAssignModal;
-
-function pickOpt(el,type){
-selectedOpt=type;
-var opts=document.querySelectorAll('.assign-opt');for(var i=0;i<opts.length;i++)opts[i].classList.remove('sel');
-el.classList.add('sel');
-}
-window.pickOpt=pickOpt;
-
-async function sendAssignment(){
-if(!selectedOpt||!selectedStudent)return;
-var due=document.getElementById('dueDate').value||null;
-var t=ASSIGN_TYPES[selectedOpt]||{title:selectedOpt};
-try{
-await window.fbAddDoc(window.fbCollection(window.fbDb,'assignments'),{
-studentId:selectedStudent.id,
-teacherId:window.currentTeacher.uid,
-type:selectedOpt,
-title:t.title,
-status:selectedOpt==='free-play'?'completed':'pending',
-assignedAt:new Date().toISOString(),
-dueDate:due,
-completedAt:selectedOpt==='free-play'?new Date().toISOString():null,
-score:null
-});
-closeAssignModal();
-await loadStudents();
-renderProfileAssignments();
-}catch(e){console.error(e);alert('Error: '+e.message)}
-}
-window.sendAssignment=sendAssignment;
 
 async function toggleArcade(){
 if(!selectedStudent)return;
@@ -1085,7 +1198,7 @@ window.deleteAssignment=deleteAssignment;
 var createType='tool';
 var templates=[];
 
-function openCreateAssignment(){
+function openCreateAssignment(preSelectStudentId){
 createType='tool';
 var tabs=document.querySelectorAll('.type-tab');
 tabs.forEach(function(t,i){t.classList.toggle('active',i===0)});
@@ -1107,6 +1220,12 @@ document.getElementById('createDueDate').value='';
 document.getElementById('saveAsTemplate').checked=false;
 populateClassFilters();
 renderStudentPicker();
+if(preSelectStudentId){
+setTimeout(function(){
+var checks=document.querySelectorAll('.sp-check');
+checks.forEach(function(c){c.checked=(c.value===preSelectStudentId)});
+},50);
+}
 loadTemplates();
 document.getElementById('createAssignModal').classList.add('show');
 }
@@ -1236,6 +1355,7 @@ linkUrl:assignData.linkUrl,createdAt:new Date().toISOString()
 }
 
 var td=window.teacherData||{};
+showLoading('Creating '+studentIds.length+' assignment(s)...');
 try{
 for(var i=0;i<studentIds.length;i++){
 var sid=studentIds[i];
@@ -1252,11 +1372,13 @@ grade:student?student.grade:'',
 fileData:assignData.fileData,linkUrl:assignData.linkUrl,studentResponse:null,templateId:null
 });
 }
+hideLoading();
 closeCreateAssignment();
+showToast(studentIds.length+' assignment(s) created','success');
 await loadStudents();
 renderAssignmentsList();
 if(selectedStudent)renderProfileAssignments();
-}catch(e){console.error(e);alert('Error creating assignments: '+e.message)}
+}catch(e){hideLoading();console.error(e);alert('Error creating assignments: '+e.message)}
 }
 window.submitCreateAssignment=submitCreateAssignment;
 
@@ -1270,9 +1392,11 @@ var list=allAssignments.slice();
 var classFilter=document.getElementById('filterClass');
 var statusFilter=document.getElementById('filterStatus');
 var typeFilter=document.getElementById('filterType');
+var searchInput=document.getElementById('assignSearch');
 var cf=classFilter?classFilter.value:'';
 var sf=statusFilter?statusFilter.value:'';
 var tf=typeFilter?typeFilter.value:'';
+var search=searchInput?(searchInput.value||'').toLowerCase():'';
 
 if(cf){
 var classStudentIds=students.filter(function(s){return s.className===cf}).map(function(s){return s.id});
@@ -1283,11 +1407,20 @@ if(tf){
 if(tf==='tool')list=list.filter(function(a){return a.type==='tool'||ASSIGN_TYPES[a.type]});
 else list=list.filter(function(a){return a.type===tf});
 }
+if(search){
+list=list.filter(function(a){
+var student=students.find(function(s){return s.id===a.studentId});
+var studentName=student?(student.name||'').toLowerCase():'';
+var title=(a.title||a.type||'').toLowerCase();
+return title.indexOf(search)>=0||studentName.indexOf(search)>=0;
+});
+}
 
 list.sort(function(a,b){return(b.assignedAt||'').localeCompare(a.assignedAt||'')});
 
 if(!list.length){
 el.innerHTML='<div class="empty-state"><span class="emoji">&#x1F4CB;</span><p>No assignments match your filters.</p></div>';
+document.getElementById('bulkBar').classList.remove('show');
 return;
 }
 
@@ -1302,16 +1435,20 @@ var isNeedsReview=a.status==='submitted';
 var today=new Date().toISOString().split('T')[0];
 var overdue=a.status==='pending'&&a.dueDate&&a.dueDate<today;
 
-h+='<div class="assign-card'+(isNeedsReview?' needs-review':'')+'" onclick="openGradePanel(\''+a.id+'\')">';
+h+='<div class="assign-card'+(isNeedsReview?' needs-review':'')+'" style="display:flex;align-items:flex-start;gap:8px">';
+h+='<input type="checkbox" class="bulk-check" value="'+a.id+'" onclick="event.stopPropagation();updateBulkBar()">';
+h+='<div style="flex:1;cursor:pointer" onclick="openGradePanel(\''+a.id+'\')">';
 h+='<div class="ac-header"><div class="ac-title">'+typeEmoji+' '+esc(a.title||a.type)+'</div>';
 h+='<span class="ac-status '+statusClass+'">'+statusLabel+'</span></div>';
 h+='<div class="ac-meta">';
 h+='<span>&#x1F464; '+esc(studentName)+'</span>';
 if(a.dueDate)h+='<span'+(overdue?' style="color:var(--accent3)"':'')+'>Due: '+a.dueDate+(overdue?' \u26A0\uFE0F':'')+'</span>';
 if(a.score!==null&&a.score!==undefined)h+='<span class="ac-score">'+a.score+'%</span>';
-h+='</div></div>';
+h+='</div></div></div>';
 });
 el.innerHTML=h;
+// Reset bulk bar
+document.getElementById('bulkBar').classList.remove('show');
 }
 
 function getAssignEmoji(a){
@@ -1379,7 +1516,7 @@ h+='<div><div style="font-size:11px;font-weight:700;color:var(--text2);margin-bo
 h+='<input type="number" class="score-input" id="gradeScore" min="0" max="100" value="'+(a.aiSuggestedScore||'')+'"></div>';
 h+='<button class="btn btn-blue btn-sm" onclick="aiSuggestGrade()" id="aiGradeBtn">&#x1F916; AI Suggest</button>';
 h+='</div>';
-h+='<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:4px">Feedback</div>';
+h+='<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:4px">Feedback <button class="btn btn-outline btn-sm" onclick="aiWriteFeedback()" id="aiFeedbackBtn" style="margin-left:8px;font-size:10px">&#x1F916; AI Write Feedback</button></div>';
 h+='<textarea style="width:100%;padding:10px;background:var(--bg);border:2px solid var(--border);border-radius:10px;color:var(--text);font-family:Outfit,sans-serif;font-size:13px;outline:none;resize:vertical;min-height:60px" id="gradeFeedback">'+(a.aiSuggestedFeedback||a.feedback||'')+'</textarea></div>';
 h+='<div style="display:flex;gap:8px">';
 h+='<button class="btn btn-accent" onclick="gradeAssignment()">&#x2705; Grade</button>';
@@ -1409,10 +1546,11 @@ if(isNaN(score)||score<0||score>100){alert('Enter a valid score (0-100)');return
 try{
 await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',gradingAssignment.id),{status:'graded',score:score,feedback:feedback,gradedAt:new Date().toISOString()});
 closeGradePanel();
+showToast('Assignment graded: '+score+'%','success');
 await loadStudents();
 renderAssignmentsList();
 if(selectedStudent)renderProfileAssignments();
-}catch(e){console.error(e);alert('Error: '+e.message)}
+}catch(e){console.error(e);showToast('Error grading','error')}
 }
 window.gradeAssignment=gradeAssignment;
 
@@ -1468,7 +1606,7 @@ method:'POST',headers:{'Content-Type':'application/json'},
 body:JSON.stringify({prompt:prompt})
 });
 var data=await resp.json();
-var text=data.response||data.text||data.result||'';
+var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'';
 var match=text.match(/\{[\s\S]*\}/);
 if(match){
 var parsed=JSON.parse(match[0]);
@@ -1531,6 +1669,347 @@ if(document.activeElement.id==='addName'||document.activeElement.id==='addGrade'
 if(document.activeElement.id==='className')createClass();
 }
 });
+
+// ===== LOADING & TOAST HELPERS =====
+function showLoading(msg){
+document.getElementById('loadingText').textContent=msg||'Loading...';
+document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading(){document.getElementById('loadingOverlay').classList.remove('show')}
+window.showLoading=showLoading;window.hideLoading=hideLoading;
+
+function showToast(msg,type){
+type=type||'info';
+var container=document.getElementById('toastContainer');
+var t=document.createElement('div');
+t.className='toast '+type;
+t.textContent=msg;
+container.appendChild(t);
+setTimeout(function(){t.classList.add('show')},10);
+setTimeout(function(){t.classList.remove('show');setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t)},300)},3000);
+}
+window.showToast=showToast;
+
+function btnLoading(btn,loading,originalText){
+if(loading){btn._origText=btn.textContent;btn.classList.add('loading');btn.textContent=originalText||'Working...'}
+else{btn.classList.remove('loading');btn.textContent=btn._origText||originalText||'Done'}
+}
+window.btnLoading=btnLoading;
+
+// ===== NOTIFICATION BADGE =====
+function updateNotifBadge(){
+var review=allAssignments.filter(function(a){return a.status==='submitted'}).length;
+var badge=document.getElementById('assignNotifBadge');
+if(badge){badge.textContent=review;badge.className='notif-badge'+(review===0?' zero':'')}
+}
+window.updateNotifBadge=updateNotifBadge;
+
+// ===== SEARCH: ROSTER =====
+function filterRoster(){
+var term=(document.getElementById('rosterSearch').value||'').toLowerCase();
+var rows=document.querySelectorAll('#studentList .s-row');
+rows.forEach(function(r){
+var name=(r.querySelector('.s-name')||{}).textContent||'';
+r.style.display=name.toLowerCase().indexOf(term)>=0?'':'none';
+});
+}
+window.filterRoster=filterRoster;
+
+// ===== ANALYTICS DASHBOARD =====
+function updateAnalytics(){
+var now=new Date();
+var weekAgo=new Date(now.getTime()-7*24*60*60*1000);
+var weekStr=weekAgo.toISOString();
+
+// Completed this week
+var completedThisWeek=allAssignments.filter(function(a){
+return(a.status==='completed'||a.status==='graded')&&(a.completedAt||a.gradedAt||'')>=weekStr;
+});
+document.getElementById('anCompleted').textContent=completedThisWeek.length;
+
+// Avg score
+var scores=allAssignments.filter(function(a){return a.score!==null&&a.score!==undefined}).map(function(a){return a.score});
+var avg=scores.length?Math.round(scores.reduce(function(s,v){return s+v},0)/scores.length):'--';
+document.getElementById('anAvgScore').textContent=avg+(typeof avg==='number'?'%':'');
+
+// Completion rate
+var total=allAssignments.length;
+var done=allAssignments.filter(function(a){return a.status==='completed'||a.status==='graded'}).length;
+var rate=total?Math.round(done/total*100):0;
+document.getElementById('anCompRate').textContent=rate+'%';
+
+// Top tool
+var toolCounts={};
+allAssignments.forEach(function(a){var t=a.toolType||a.type;toolCounts[t]=(toolCounts[t]||0)+1});
+var topTool='--';var topCount=0;
+Object.keys(toolCounts).forEach(function(k){if(toolCounts[k]>topCount){topCount=toolCounts[k];topTool=k}});
+var toolNames={'spelling-k2':'Spell K2','spelling-34':'Spell 3-4','spelling-58':'Spell 5-8','vocab-k2':'Vocab K2','vocab-34':'Vocab 3-4','vocab-58':'Vocab 5-8','pitch-challenge':'Pitch','elevator-pitch':'Elevator','robot-lab':'Robot',tool:'Tool',worksheet:'Worksheet',link:'Link',custom:'Custom'};
+document.getElementById('anTopTool').textContent=toolNames[topTool]||topTool;
+
+// Bar chart
+var barData={};
+allAssignments.forEach(function(a){
+var t=a.toolType||a.type;
+var label=toolNames[t]||t;
+barData[label]=(barData[label]||0)+1;
+});
+var barKeys=Object.keys(barData);
+var maxVal=Math.max.apply(null,barKeys.map(function(k){return barData[k]}));
+var colors=['var(--accent)','var(--accent2)','var(--gold)','var(--accent3)','#a855f7','#06d6a0','#118ab2','#ffd166'];
+var bh='';
+barKeys.forEach(function(k,i){
+var pct=maxVal>0?Math.round(barData[k]/maxVal*100):0;
+bh+='<div class="bar-col"><div class="bar-val">'+barData[k]+'</div>';
+bh+='<div class="bar-fill" style="height:'+pct+'%;background:'+colors[i%colors.length]+'"></div>';
+bh+='<div class="bar-label">'+k+'</div></div>';
+});
+document.getElementById('anBarChart').innerHTML=bh||'<div style="text-align:center;width:100%;color:var(--text2);font-size:12px">No data yet</div>';
+
+// Leaderboard
+var studentCounts={};
+allAssignments.forEach(function(a){
+if(a.status==='completed'||a.status==='graded'){
+var s=students.find(function(st){return st.id===a.studentId});
+var name=s?s.name:'Unknown';
+studentCounts[name]=(studentCounts[name]||0)+1;
+}
+});
+var lb=Object.keys(studentCounts).map(function(k){return{name:k,count:studentCounts[k]}});
+lb.sort(function(a,b){return b.count-a.count});
+lb=lb.slice(0,10);
+var lh='';
+lb.forEach(function(item,i){
+var medal=i===0?'\u{1F947}':i===1?'\u{1F948}':i===2?'\u{1F949}':'';
+lh+='<div class="lb-row"><span class="lb-rank">'+(medal||(i+1))+'</span><span class="lb-name">'+esc(item.name)+'</span><span class="lb-count">'+item.count+'</span></div>';
+});
+document.getElementById('anLeaderboard').innerHTML=lh||'<div style="text-align:center;padding:12px;color:var(--text2);font-size:12px">No completions yet</div>';
+}
+window.updateAnalytics=updateAnalytics;
+
+// ===== BULK ACTIONS =====
+var bulkSelected=[];
+
+function updateBulkBar(){
+var checks=document.querySelectorAll('.bulk-check:checked');
+bulkSelected=[];
+checks.forEach(function(c){bulkSelected.push(c.value)});
+var bar=document.getElementById('bulkBar');
+if(bulkSelected.length>0){
+bar.classList.add('show');
+document.getElementById('bulkCount').textContent=bulkSelected.length+' selected';
+}else{
+bar.classList.remove('show');
+}
+}
+window.updateBulkBar=updateBulkBar;
+
+function bulkSelectAll(){
+var checks=document.querySelectorAll('.bulk-check');
+checks.forEach(function(c){c.checked=true});
+updateBulkBar();
+}
+window.bulkSelectAll=bulkSelectAll;
+
+async function bulkComplete(){
+if(!bulkSelected.length)return;
+if(!confirm('Mark '+bulkSelected.length+' assignment(s) as complete?'))return;
+showLoading('Completing assignments...');
+try{
+for(var i=0;i<bulkSelected.length;i++){
+await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',bulkSelected[i]),{status:'completed',completedAt:new Date().toISOString()});
+}
+showToast(bulkSelected.length+' assignments completed','success');
+}catch(e){console.error(e);showToast('Error completing assignments','error')}
+hideLoading();
+}
+window.bulkComplete=bulkComplete;
+
+async function bulkGrade(){
+if(!bulkSelected.length)return;
+var score=prompt('Enter score (0-100) for all selected assignments:');
+if(score===null)return;
+score=parseInt(score);
+if(isNaN(score)||score<0||score>100){alert('Enter a valid score (0-100)');return}
+showLoading('Grading assignments...');
+try{
+for(var i=0;i<bulkSelected.length;i++){
+await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',bulkSelected[i]),{status:'graded',score:score,gradedAt:new Date().toISOString()});
+}
+showToast(bulkSelected.length+' assignments graded at '+score+'%','success');
+}catch(e){console.error(e);showToast('Error grading','error')}
+hideLoading();
+}
+window.bulkGrade=bulkGrade;
+
+async function bulkDelete(){
+if(!bulkSelected.length)return;
+if(!confirm('Delete '+bulkSelected.length+' assignment(s)? This cannot be undone.'))return;
+showLoading('Deleting assignments...');
+try{
+for(var i=0;i<bulkSelected.length;i++){
+await window.fbDeleteDoc(window.fbDoc(window.fbDb,'assignments',bulkSelected[i]));
+}
+showToast(bulkSelected.length+' assignments deleted','success');
+}catch(e){console.error(e);showToast('Error deleting','error')}
+hideLoading();
+}
+window.bulkDelete=bulkDelete;
+
+// ===== AI: CLASS SUMMARY (8b) =====
+async function aiClassSummary(){
+var result=document.getElementById('aiClassSummaryResult');
+result.style.display='block';result.textContent='Generating class summary...';
+
+var total=allAssignments.length;
+var done=allAssignments.filter(function(a){return a.status==='completed'||a.status==='graded'}).length;
+var pending=allAssignments.filter(function(a){return a.status==='pending'}).length;
+var submitted=allAssignments.filter(function(a){return a.status==='submitted'}).length;
+var scores=allAssignments.filter(function(a){return a.score!==null&&a.score!==undefined}).map(function(a){return a.score});
+var avg=scores.length?Math.round(scores.reduce(function(s,v){return s+v},0)/scores.length):'N/A';
+
+// Per-student summary
+var perStudent={};
+students.forEach(function(s){perStudent[s.name]={completed:0,pending:0,avgScore:null,scores:[]}});
+allAssignments.forEach(function(a){
+var s=students.find(function(st){return st.id===a.studentId});
+if(!s)return;
+if(a.status==='completed'||a.status==='graded')perStudent[s.name].completed++;
+else if(a.status==='pending'||a.status==='returned')perStudent[s.name].pending++;
+if(a.score!==null&&a.score!==undefined)perStudent[s.name].scores.push(a.score);
+});
+var studentSummary=Object.keys(perStudent).map(function(name){
+var d=perStudent[name];
+var avg2=d.scores.length?Math.round(d.scores.reduce(function(s,v){return s+v},0)/d.scores.length):'N/A';
+return name+': '+d.completed+' done, '+d.pending+' pending, avg: '+avg2;
+}).join('; ');
+
+var prompt='You are a helpful education assistant for an afterschool program. Write a weekly class summary for the teacher. Class data: '+students.length+' students, '+total+' total assignments, '+done+' completed, '+pending+' pending, '+submitted+' needs review, class avg score: '+avg+'. Per-student breakdown: '+studentSummary+'. Write a friendly 3-4 paragraph narrative summary highlighting class achievements, students who are excelling, students who may need extra support, and 2-3 actionable recommendations for next week. Keep it encouraging and professional.';
+
+try{
+var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
+});
+var data=await resp.json();
+var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'Unable to generate summary.';
+result.textContent=text;
+}catch(e){console.error(e);result.textContent='Error generating summary. Please try again.'}
+}
+window.aiClassSummary=aiClassSummary;
+
+// ===== AI: ASSIGNMENT GENERATOR (8a) =====
+function openAiGen(){document.getElementById('aiGenModal').classList.add('show');document.getElementById('aiGenTopic').value='';document.getElementById('aiGenResult').style.display='none';document.getElementById('aiGenActions').style.display='none'}
+function closeAiGen(){document.getElementById('aiGenModal').classList.remove('show')}
+window.openAiGen=openAiGen;window.closeAiGen=closeAiGen;
+
+var lastAiAssignment=null;
+
+async function generateAiAssignment(){
+var topic=document.getElementById('aiGenTopic').value.trim();
+if(!topic){alert('Enter a topic');return}
+var grade=document.getElementById('aiGenGrade').value;
+var btn=document.getElementById('aiGenBtn');
+var result=document.getElementById('aiGenResult');
+btnLoading(btn,true,'Generating...');
+result.style.display='block';result.textContent='AI is creating your assignment...';
+document.getElementById('aiGenActions').style.display='none';
+
+var prompt='You are an education assistant for a K-12 afterschool program. Create an assignment for grade level '+grade+' on this topic: "'+topic+'". Respond with ONLY a JSON object: {"title": "assignment title", "instructions": "detailed instructions for the student (2-4 sentences)", "gradingType": "teacher" or "completion"}. Make it engaging, age-appropriate, and educational.';
+
+try{
+var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
+});
+var data=await resp.json();
+var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'';
+var match=text.match(/\{[\s\S]*\}/);
+if(match){
+lastAiAssignment=JSON.parse(match[0]);
+result.textContent='Title: '+lastAiAssignment.title+'\n\nInstructions: '+lastAiAssignment.instructions+'\n\nGrading: '+(lastAiAssignment.gradingType||'teacher');
+document.getElementById('aiGenActions').style.display='block';
+}else{result.textContent='AI response:\n\n'+text;lastAiAssignment=null}
+}catch(e){console.error(e);result.textContent='Error: '+e.message;lastAiAssignment=null}
+btnLoading(btn,false,'Generate Assignment \u{1F680}');
+}
+window.generateAiAssignment=generateAiAssignment;
+
+function useAiAssignment(){
+if(!lastAiAssignment)return;
+closeAiGen();
+openCreateAssignment();
+setTimeout(function(){
+switchCreateTab('custom');
+document.getElementById('createCustomTitle').value=lastAiAssignment.title||'';
+document.getElementById('createCustomInstructions').value=lastAiAssignment.instructions||'';
+document.getElementById('createCustomGrading').value=lastAiAssignment.gradingType||'teacher';
+},100);
+}
+window.useAiAssignment=useAiAssignment;
+
+// ===== AI: DIFFERENTIATION (8c) =====
+function openAiDiff(){document.getElementById('aiDiffModal').classList.add('show');document.getElementById('aiDiffResult').style.display='none'}
+function closeAiDiff(){document.getElementById('aiDiffModal').classList.remove('show')}
+window.openAiDiff=openAiDiff;window.closeAiDiff=closeAiDiff;
+
+async function runAiDifferentiation(){
+var btn=document.getElementById('aiDiffBtn');
+var result=document.getElementById('aiDiffResult');
+btnLoading(btn,true,'Analyzing...');
+result.style.display='block';result.textContent='Analyzing student performance...';
+
+// Build per-student data
+var perStudent=[];
+students.forEach(function(s){
+var sAssigns=allAssignments.filter(function(a){return a.studentId===s.id});
+var scores=sAssigns.filter(function(a){return a.score!==null&&a.score!==undefined}).map(function(a){return a.score});
+var avg=scores.length?Math.round(scores.reduce(function(sum,v){return sum+v},0)/scores.length):'N/A';
+var completed=sAssigns.filter(function(a){return a.status==='completed'||a.status==='graded'}).length;
+perStudent.push(s.name+' (grade '+s.grade+', avg: '+avg+', completed: '+completed+'/'+sAssigns.length+')');
+});
+
+var prompt='You are an education consultant for a K-12 afterschool program. Analyze these students and suggest differentiation groupings (K-2 level, 3-4 level, 5-8 level) for each student based on their performance. Also suggest specific activities or supports for each group. Students: '+perStudent.join('; ')+'. Format your response clearly with group headers and student names under each group, followed by recommendations for each group.';
+
+try{
+var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
+});
+var data=await resp.json();
+var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'Unable to generate analysis.';
+result.textContent=text;
+}catch(e){console.error(e);result.textContent='Error: '+e.message}
+btnLoading(btn,false,'Analyze Students \u{1F52C}');
+}
+window.runAiDifferentiation=runAiDifferentiation;
+
+// ===== AI: FEEDBACK WRITER (8d) =====
+async function aiWriteFeedback(){
+if(!gradingAssignment)return;
+var a=gradingAssignment;
+var student=students.find(function(s){return s.id===a.studentId});
+var studentName=student?student.name:'the student';
+
+// Get student history
+var history=allAssignments.filter(function(x){return x.studentId===a.studentId&&(x.status==='completed'||x.status==='graded')});
+var historyStr=history.map(function(x){return(x.title||x.type)+': '+(x.score!==null?x.score+'%':'done')}).join(', ')||'no prior work';
+
+var btn=document.getElementById('aiFeedbackBtn');
+if(btn)btnLoading(btn,true,'Writing...');
+
+var prompt='You are a supportive afterschool program teacher writing personalized feedback for a K-12 student named '+studentName+'. Assignment: "'+
+(a.title||'')+'" with instructions: "'+(a.instructions||'None')+'". Student response: "'+
+(a.studentResponse||'No text response')+'". Student history: '+historyStr+'. Write 2-3 sentences of warm, specific, actionable feedback. Be encouraging but honest. Reference specific things the student did well and one area to improve.';
+
+try{
+var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
+});
+var data=await resp.json();
+var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'';
+var fb=document.getElementById('gradeFeedback');
+if(fb)fb.value=text;
+}catch(e){console.error(e);showToast('Error generating feedback','error')}
+if(btn)btnLoading(btn,false,'\u{1F916} AI Write Feedback');
+}
+window.aiWriteFeedback=aiWriteFeedback;
 </script>
 </body>
 </html>
