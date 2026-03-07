@@ -84,6 +84,18 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 .game-title{font-size:16px;font-weight:700;margin-bottom:3px}
 .game-desc{font-size:11px;color:var(--text2)}
 
+.status-submitted{background:rgba(255,209,102,.12);color:var(--gold)}
+.status-graded{background:rgba(6,214,160,.12);color:var(--accent)}
+.status-returned{background:rgba(239,71,111,.12);color:var(--accent3)}
+.a-response{width:100%;padding:12px;background:var(--bg);border:2px solid var(--border);border-radius:12px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;outline:none;resize:vertical;min-height:80px;margin-bottom:10px}
+.a-response:focus{border-color:var(--accent)}
+.a-feedback{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;font-size:13px;line-height:1.5}
+.a-feedback-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.a-file-preview{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;text-align:center}
+.a-file-preview img{max-width:100%;border-radius:8px}
+.a-score{display:inline-flex;align-items:center;gap:4px;font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:var(--gold);background:rgba(255,209,102,.08);padding:4px 10px;border-radius:6px}
+.a-instructions{font-size:13px;line-height:1.6;margin-bottom:10px;padding:10px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)}
+
 .empty-state{text-align:center;padding:32px 16px;color:var(--text2)}
 .empty-state .emoji{font-size:40px;margin-bottom:8px;display:block}
 
@@ -181,9 +193,11 @@ if(m[id]!==undefined)tabs[m[id]].classList.add('active');
 
 function renderDashboard(){
 var assigns=window.myAssignments||[];
-var pending=assigns.filter(function(a){return a.status==='pending'});
+var pending=assigns.filter(function(a){return a.status==='pending'||a.status==='returned'});
+var submitted=assigns.filter(function(a){return a.status==='submitted'});
+var graded=assigns.filter(function(a){return a.status==='graded'});
 var completed=assigns.filter(function(a){return a.status==='completed'});
-var arcadeUnlocked=pending.length===0||(window.studentRecord&&window.studentRecord.arcadeUnlocked);
+var arcadeUnlocked=pending.length===0&&submitted.length===0||(window.studentRecord&&window.studentRecord.arcadeUnlocked);
 
 // Badge
 var badge=document.getElementById('workBadge');
@@ -199,28 +213,57 @@ if(!assigns.length){
 el.innerHTML='<div class="empty-state"><span class="emoji">&#x1F4ED;</span><p>No assignments yet! Your teacher will send you some soon.</p></div>';
 }else{
 var h='';
-// Pending first
+// Pending/returned first
 pending.forEach(function(a){
 var today=new Date().toISOString().split('T')[0];
-var overdue=a.dueDate&&a.dueDate<today;
+var overdue=a.status==='pending'&&a.dueDate&&a.dueDate<today;
+var isReturned=a.status==='returned';
 h+='<div class="a-card pending" id="card-'+a.id+'">';
-h+='<div class="a-header"><div class="a-title">'+getEmoji(a.type)+' '+esc(a.title||a.type)+'</div>';
-h+='<span class="a-status '+(overdue?'status-overdue':'status-pending')+'">'+(overdue?'\u{26A0}\uFE0F Overdue':'Pending')+'</span></div>';
+h+='<div class="a-header"><div class="a-title">'+getEmoji(a)+' '+esc(a.title||a.type)+'</div>';
+h+='<span class="a-status '+(isReturned?'status-returned':overdue?'status-overdue':'status-pending')+'">'+(isReturned?'\u{1F504} Returned':overdue?'\u{26A0}\uFE0F Overdue':'Pending')+'</span></div>';
 if(a.dueDate)h+='<div class="a-meta">Due: '+a.dueDate+'</div>';
+if(isReturned&&a.feedback){
+h+='<div class="a-feedback"><div class="a-feedback-label">Teacher Feedback</div>'+esc(a.feedback)+'</div>';
+}
 h+='<div class="a-actions" id="actions-'+a.id+'">';
 h+=getActionButtons(a);
 h+='</div></div>';
 });
+// Submitted
+if(submitted.length){
+h+='<div style="font-size:14px;font-weight:700;color:var(--text2);margin:16px 0 8px;display:flex;align-items:center;gap:6px">&#x1F4E4; Submitted ('+submitted.length+')</div>';
+submitted.forEach(function(a){
+h+='<div class="a-card" style="border-color:var(--gold);opacity:.8">';
+h+='<div class="a-header"><div class="a-title">'+getEmoji(a)+' '+esc(a.title||a.type)+'</div>';
+h+='<span class="a-status status-submitted">Submitted</span></div>';
+h+='<div class="a-meta">Waiting for teacher to review</div>';
+h+='</div>';
+});
+}
+// Graded
+if(graded.length){
+h+='<div style="font-size:14px;font-weight:700;color:var(--text2);margin:16px 0 8px;display:flex;align-items:center;gap:6px">&#x1F4DD; Graded ('+graded.length+')</div>';
+graded.forEach(function(a){
+h+='<div class="a-card" style="border-color:var(--gold);opacity:.85">';
+h+='<div class="a-header"><div class="a-title">'+getEmoji(a)+' '+esc(a.title||a.type)+'</div>';
+h+='<span class="a-status status-graded">Graded</span></div>';
+var meta=a.gradedAt?'Graded: '+new Date(a.gradedAt).toLocaleDateString():'';
+h+='<div class="a-meta">'+meta+'</div>';
+if(a.score!==null&&a.score!==undefined)h+='<div style="margin:6px 0"><span class="a-score">'+a.score+'%</span></div>';
+if(a.feedback)h+='<div class="a-feedback"><div class="a-feedback-label">Feedback</div>'+esc(a.feedback)+'</div>';
+h+='</div>';
+});
+}
 // Completed
 if(completed.length){
 h+='<div style="font-size:14px;font-weight:700;color:var(--text2);margin:16px 0 8px;display:flex;align-items:center;gap:6px">&#x2705; Completed ('+completed.length+')</div>';
 completed.sort(function(a,b){return(b.completedAt||'').localeCompare(a.completedAt||'')});
 completed.forEach(function(a){
 h+='<div class="a-card completed">';
-h+='<div class="a-header"><div class="a-title">'+getEmoji(a.type)+' '+esc(a.title||a.type)+'</div>';
+h+='<div class="a-header"><div class="a-title">'+getEmoji(a)+' '+esc(a.title||a.type)+'</div>';
 h+='<span class="a-status status-done">\u2705 Done</span></div>';
 var when=a.completedAt?new Date(a.completedAt).toLocaleDateString():'';
-var sc=a.score?' \u2022 Score: '+a.score+'%':'';
+var sc=(a.score!==null&&a.score!==undefined)?' \u2022 Score: '+a.score+'%':'';
 h+='<div class="a-meta">'+when+sc+'</div>';
 h+='</div>';
 });
@@ -232,19 +275,78 @@ el.innerHTML=h;
 renderArcade(arcadeUnlocked);
 }
 
-function getEmoji(type){
-var map={'spelling-k2':'\u{1F4D6}','spelling-34':'\u{1F4D6}','spelling-58':'\u{1F4D6}','vocab-k2':'\u{1F4AC}','vocab-34':'\u{1F4AC}','vocab-58':'\u{1F4AC}','pitch-challenge':'\u{1F4A1}','elevator-pitch':'\u{1F3A4}','free-play':'\u{1F3AE}'};
-return map[type]||'\u{1F4CB}';
+function getEmoji(a){
+var toolId=a.toolType||a.type;
+var map={'spelling-k2':'\u{1F4D6}','spelling-34':'\u{1F4D6}','spelling-58':'\u{1F4D6}','vocab-k2':'\u{1F4AC}','vocab-34':'\u{1F4AC}','vocab-58':'\u{1F4AC}','pitch-challenge':'\u{1F4A1}','elevator-pitch':'\u{1F3A4}','robot-lab':'\u{1F916}','free-play':'\u{1F3AE}'};
+if(map[toolId])return map[toolId];
+var tmap={tool:'\u{1F6E0}\uFE0F',worksheet:'\u{1F4C4}',link:'\u{1F517}',custom:'\u270F\uFE0F'};
+return tmap[a.type]||'\u{1F4CB}';
 }
 
 function getActionButtons(a){
-if(a.type==='pitch-challenge'||a.type==='elevator-pitch'){
-var link=a.type==='pitch-challenge'?'pitch.html':'elevator.html';
+var toolId=a.toolType||a.type;
+
+// Tool assignments — pitch/elevator
+if(toolId==='pitch-challenge'||toolId==='elevator-pitch'){
+var link=toolId==='pitch-challenge'?'pitch.html':'elevator.html';
 return '<a class="a-btn start" href="'+link+'" target="_blank">Start Pitch \u{1F680}</a><button class="a-btn done-btn" onclick="completePitch(\''+a.id+'\')">I\'m Done \u{2705}</button>';
 }
-if(a.type.startsWith('spelling')||a.type.startsWith('vocab')){
-return '<button class="a-btn start" onclick="startQuiz(\''+a.id+'\',\''+a.type+'\')">Start Quiz \u{1F680}</button>';
+// Tool assignments — robot lab
+if(toolId==='robot-lab'){
+return '<a class="a-btn start" href="robot.html" target="_blank">Open Robot Lab \u{1F680}</a><button class="a-btn done-btn" onclick="completePitch(\''+a.id+'\')">I\'m Done \u{2705}</button>';
 }
+// Tool assignments — spelling/vocab quizzes
+if(toolId&&(toolId.startsWith('spelling')||toolId.startsWith('vocab'))){
+return '<button class="a-btn start" onclick="startQuiz(\''+a.id+'\',\''+toolId+'\')">Start Quiz \u{1F680}</button>';
+}
+
+// Worksheet assignments
+if(a.type==='worksheet'){
+var bh='';
+if(a.instructions)bh+='<div class="a-instructions">'+esc(a.instructions)+'</div>';
+if(a.fileData){
+if(a.fileData.startsWith('data:image')){
+bh+='<div class="a-file-preview"><img src="'+a.fileData+'" alt="Worksheet"></div>';
+}else{
+bh+='<div style="margin-bottom:10px"><a href="'+a.fileData+'" target="_blank" class="a-btn start">View File \u{1F4C4}</a></div>';
+}
+}
+if(a.gradingType==='teacher'){
+bh+='<textarea class="a-response" id="resp-'+a.id+'" placeholder="Type your response here...">'+(a.studentResponse||'')+'</textarea>';
+bh+='<button class="a-btn start" onclick="submitWork(\''+a.id+'\')">Submit \u{1F4E4}</button>';
+}else{
+bh+='<button class="a-btn done-btn" onclick="markDone(\''+a.id+'\')">Mark Done \u{2705}</button>';
+}
+return bh;
+}
+
+// Link assignments
+if(a.type==='link'){
+var lh='';
+if(a.instructions)lh+='<div class="a-instructions">'+esc(a.instructions)+'</div>';
+lh+='<a class="a-btn start" href="'+esc(a.linkUrl)+'" target="_blank" style="margin-right:8px">Open Link \u{1F517}</a>';
+lh+='<button class="a-btn done-btn" onclick="markDone(\''+a.id+'\')">Mark Done \u{2705}</button>';
+return lh;
+}
+
+// Custom instructions
+if(a.type==='custom'){
+var ch='';
+if(a.instructions)ch+='<div class="a-instructions">'+esc(a.instructions)+'</div>';
+if(a.gradingType==='teacher'){
+ch+='<textarea class="a-response" id="resp-'+a.id+'" placeholder="Type your response here...">'+(a.studentResponse||'')+'</textarea>';
+ch+='<button class="a-btn start" onclick="submitWork(\''+a.id+'\')">Submit \u{1F4E4}</button>';
+}else{
+ch+='<button class="a-btn done-btn" onclick="markDone(\''+a.id+'\')">Mark Done \u{2705}</button>';
+}
+return ch;
+}
+
+// Fallback for old-format tool assignments
+if(a.type==='tool'){
+return '<button class="a-btn done-btn" onclick="markDone(\''+a.id+'\')">Mark Done \u{2705}</button>';
+}
+
 return '';
 }
 
@@ -327,6 +429,28 @@ fireConfetti();
 }
 activeQuiz=null;
 }
+
+async function submitWork(assignId){
+var resp=document.getElementById('resp-'+assignId);
+if(!resp||!resp.value.trim()){alert('Please type your response before submitting');return}
+try{
+await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',assignId),{
+studentResponse:resp.value.trim(),status:'submitted',submittedAt:new Date().toISOString()
+});
+fireConfetti();
+}catch(e){console.error(e);alert('Error submitting')}
+}
+window.submitWork=submitWork;
+
+async function markDone(assignId){
+try{
+await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',assignId),{
+status:'completed',completedAt:new Date().toISOString()
+});
+fireConfetti();
+}catch(e){console.error(e);alert('Error')}
+}
+window.markDone=markDone;
 
 async function completePitch(assignId){
 try{
