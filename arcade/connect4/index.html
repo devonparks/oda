@@ -21,21 +21,31 @@ body{background:#0a0e1a;color:#f0f4ff;font-family:'Outfit',sans-serif;min-height
 .btn:active{transform:scale(.96)}
 .btn-accent{background:#06d6a0;color:#0a0e1a}
 .btn-blue{background:#118ab2;color:#fff}
+.btn-red{background:#ef476f;color:#fff}
+.btn-gold{background:#ffd166;color:#0a0e1a}
 .btn-outline{background:none;border:2px solid #2a3450;color:#8892a8}
 .btn-outline:hover{border-color:#06d6a0;color:#f0f4ff}
 .btn-small{padding:10px 20px;font-size:14px;min-width:auto}
+
+.section-divider{display:flex;align-items:center;gap:12px;width:260px;margin:8px 0}
+.section-divider::before,.section-divider::after{content:'';flex:1;height:1px;background:#2a3450}
+.section-divider span{color:#8892a8;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:2px}
 
 .code-input{background:#111827;border:2px solid #2a3450;border-radius:12px;padding:14px 20px;color:#f0f4ff;font-family:'Outfit',sans-serif;font-size:24px;font-weight:800;text-align:center;width:180px;letter-spacing:8px;outline:none;transition:border-color .2s}
 .code-input:focus{border-color:#06d6a0}
 .code-input::placeholder{color:#2a3450;letter-spacing:4px}
 
 .room-code-display{font-size:48px;font-weight:900;color:#ffd166;letter-spacing:12px;margin:16px 0}
-.waiting-text{color:#8892a8;font-size:14px;animation:pulse 2s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.waiting-text{color:#8892a8;font-size:14px;animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
 
 .join-row{display:flex;gap:12px;align-items:center;justify-content:center}
 
 .error-text{color:#ef476f;font-size:13px;margin-top:8px;min-height:20px}
+
+/* Difficulty picker */
+.diff-buttons{display:flex;flex-direction:column;gap:10px;align-items:center;margin-top:8px}
+.diff-label{color:#8892a8;font-size:12px;font-weight:600;margin-top:4px}
 
 /* Game */
 .game{text-align:center;animation:fadeUp .3s ease}
@@ -51,10 +61,6 @@ body{background:#0a0e1a;color:#f0f4ff;font-family:'Outfit',sans-serif;min-height
 .cell.p2{background:#ffd166;border-color:#ffd166;box-shadow:inset 0 -4px 8px rgba(0,0,0,.2),0 0 12px rgba(255,209,102,.3)}
 .cell.win-cell{animation:winPulse 0.6s ease-in-out infinite alternate}
 @keyframes winPulse{from{transform:scale(1);filter:brightness(1)}to{transform:scale(1.1);filter:brightness(1.3)}}
-
-.col-hover{position:absolute;top:-40px;width:52px;height:36px;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .15s}
-.col-hover.show{opacity:1}
-.col-hover-piece{width:36px;height:36px;border-radius:50%;opacity:.5}
 
 .drop-anim{animation:dropIn .35s cubic-bezier(.4,0,.2,1)}
 @keyframes dropIn{from{transform:translateY(-300px);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -86,18 +92,37 @@ body{background:#0a0e1a;color:#f0f4ff;font-family:'Outfit',sans-serif;min-height
 <body>
 <a class="back-btn" href="../../student.html">&larr; Back to Hub</a>
 
-<!-- LOBBY: Create or Join -->
+<!-- LOBBY: Mode selection -->
 <div class="screen active" id="lobbyScreen">
 <div class="lobby">
   <h1>Connect <span>4</span></h1>
-  <p>Challenge a friend in real-time!</p>
+  <p>Play vs AI or challenge a friend!</p>
   <div class="lobby-buttons">
-    <button class="btn btn-accent" onclick="createGame()">Create Game</button>
+    <button class="btn btn-accent" onclick="showAiPicker()">VS Computer</button>
+    <div class="section-divider"><span>or</span></div>
+    <button class="btn btn-blue" onclick="createGame()">Create Room</button>
     <div class="join-row">
       <input class="code-input" id="codeInput" type="text" maxlength="4" placeholder="CODE" inputmode="numeric">
       <button class="btn btn-blue btn-small" onclick="joinGame()">Join</button>
     </div>
     <div class="error-text" id="lobbyError"></div>
+  </div>
+</div>
+</div>
+
+<!-- AI DIFFICULTY PICKER -->
+<div class="screen" id="aiPickerScreen">
+<div class="lobby">
+  <h1>Pick <span>Difficulty</span></h1>
+  <p>How tough do you want the AI?</p>
+  <div class="diff-buttons">
+    <button class="btn btn-accent" onclick="startAiGame('easy')">Easy</button>
+    <div class="diff-label">Random moves, great for learning</div>
+    <button class="btn btn-gold" onclick="startAiGame('medium')">Medium</button>
+    <div class="diff-label">Thinks a few moves ahead</div>
+    <button class="btn btn-red" onclick="startAiGame('hard')">Hard</button>
+    <div class="diff-label">Good luck beating this one</div>
+    <button class="btn btn-outline btn-small" onclick="showScreen('lobbyScreen')" style="margin-top:12px">Back</button>
   </div>
 </div>
 </div>
@@ -117,8 +142,8 @@ body{background:#0a0e1a;color:#f0f4ff;font-family:'Outfit',sans-serif;min-height
 <div class="screen" id="gameScreen">
 <div class="game">
   <div class="players-bar">
-    <div class="player-label"><span class="player-dot p1"></span> <span id="p1Label">Player 1</span></div>
-    <div class="player-label"><span class="player-dot p2"></span> <span id="p2Label">Player 2</span></div>
+    <div class="player-label"><span class="player-dot p1"></span> <span id="p1Label">You (Red)</span></div>
+    <div class="player-label"><span class="player-dot p2"></span> <span id="p2Label">Opponent (Yellow)</span></div>
   </div>
   <div class="turn-indicator" id="turnIndicator"></div>
   <div class="board-wrapper">
@@ -149,19 +174,210 @@ const db=getFirestore(app);
 
 const ROWS=6,COLS=7;
 let roomCode=null,myPlayer=0,unsub=null;
+let aiMode=false,aiDifficulty='medium',aiBoard=null,aiTurn=1,aiWinner=null,aiThinking=false;
 const studentId=sessionStorage.getItem('studentId')||'anon_'+Math.random().toString(36).slice(2,8);
 
 function emptyBoard(){return Array.from({length:COLS},()=>Array(ROWS).fill(0))}
+function cloneBoard(b){return b.map(c=>[...c])}
 
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
+window.showScreen=showScreen;
 
 function genCode(){return String(Math.floor(1000+Math.random()*9000))}
 
-// CREATE GAME
+// ===== AI DIFFICULTY PICKER =====
+window.showAiPicker=function(){showScreen('aiPickerScreen')};
+
+// ===== AI GAME =====
+window.startAiGame=function(diff){
+  aiMode=true;
+  aiDifficulty=diff;
+  aiBoard=emptyBoard();
+  aiTurn=1;
+  aiWinner=null;
+  aiThinking=false;
+  myPlayer=1;
+  coinsAwarded=false;
+  lastBoard=null;
+  document.getElementById('p1Label').textContent='You (Red)';
+  document.getElementById('p2Label').textContent='AI (Yellow)';
+  showScreen('gameScreen');
+  renderBoard(aiBoard,aiTurn,null);
+  updateTurnIndicator(aiTurn);
+};
+
+function aiDropLocal(col){
+  if(aiWinner!==null)return;
+  let row=-1;
+  for(let r=ROWS-1;r>=0;r--){
+    if(aiBoard[col][r]===0){row=r;break}
+  }
+  if(row===-1)return;
+  aiBoard[col][row]=aiTurn;
+
+  if(checkWin(aiBoard,aiTurn)){
+    aiWinner=aiTurn;
+    renderBoard(aiBoard,aiTurn,aiWinner);
+    showResult({winner:aiWinner===1?1:2,isAi:true});
+    return;
+  }
+  if(aiBoard.every(c=>c.every(v=>v!==0))){
+    aiWinner=0;
+    renderBoard(aiBoard,aiTurn,0);
+    showResult({winner:0,isAi:true});
+    return;
+  }
+
+  aiTurn=aiTurn===1?2:1;
+  renderBoard(aiBoard,aiTurn,null);
+  updateTurnIndicator(aiTurn);
+
+  // AI's turn
+  if(aiTurn===2&&aiWinner===null){
+    aiThinking=true;
+    renderBoard(aiBoard,aiTurn,null); // re-render to disable clicks
+    setTimeout(()=>{
+      const aiCol=getAiMove(aiBoard,aiDifficulty);
+      aiThinking=false;
+      aiDropLocal(aiCol);
+    },400+Math.random()*300);
+  }
+}
+
+function getAiMove(board,difficulty){
+  const valid=[];
+  for(let c=0;c<COLS;c++){
+    if(board[c][0]===0)valid.push(c);
+  }
+  if(valid.length===0)return 0;
+
+  if(difficulty==='easy'){
+    // 70% random, 30% block/win
+    if(Math.random()<0.7)return valid[Math.floor(Math.random()*valid.length)];
+    return bestMoveMinmax(board,2,1);
+  }
+  if(difficulty==='medium'){
+    return bestMoveMinmax(board,2,4);
+  }
+  // hard
+  return bestMoveMinmax(board,2,7);
+}
+
+function bestMoveMinmax(board,player,depth){
+  const valid=[];
+  for(let c=0;c<COLS;c++){
+    if(board[c][0]===0)valid.push(c);
+  }
+  if(valid.length===0)return 0;
+
+  // Check for immediate win
+  for(const c of valid){
+    const b=cloneBoard(board);
+    const r=dropInBoard(b,c,player);
+    if(r!==-1&&checkWin(b,player))return c;
+  }
+  // Check for immediate block
+  const opp=player===1?2:1;
+  for(const c of valid){
+    const b=cloneBoard(board);
+    const r=dropInBoard(b,c,opp);
+    if(r!==-1&&checkWin(b,opp))return c;
+  }
+
+  if(depth<=1)return valid[Math.floor(Math.random()*valid.length)];
+
+  let bestScore=-Infinity,bestCol=valid[Math.floor(Math.random()*valid.length)];
+  for(const c of valid){
+    const b=cloneBoard(board);
+    dropInBoard(b,c,player);
+    const score=minimax(b,depth-1,false,player,-Infinity,Infinity);
+    if(score>bestScore){bestScore=score;bestCol=c}
+  }
+  return bestCol;
+}
+
+function dropInBoard(board,col,player){
+  for(let r=ROWS-1;r>=0;r--){
+    if(board[col][r]===0){board[col][r]=player;return r}
+  }
+  return -1;
+}
+
+function minimax(board,depth,isMax,aiPlayer,alpha,beta){
+  const opp=aiPlayer===1?2:1;
+  if(checkWin(board,aiPlayer))return 10000+depth;
+  if(checkWin(board,opp))return -10000-depth;
+  if(board.every(c=>c.every(v=>v!==0)))return 0;
+  if(depth===0)return evaluateBoard(board,aiPlayer);
+
+  const valid=[];
+  for(let c=0;c<COLS;c++){if(board[c][0]===0)valid.push(c)}
+  // Prefer center columns
+  valid.sort((a,b)=>Math.abs(a-3)-Math.abs(b-3));
+
+  if(isMax){
+    let best=-Infinity;
+    for(const c of valid){
+      const b=cloneBoard(board);
+      dropInBoard(b,c,aiPlayer);
+      const score=minimax(b,depth-1,false,aiPlayer,alpha,beta);
+      best=Math.max(best,score);
+      alpha=Math.max(alpha,best);
+      if(beta<=alpha)break;
+    }
+    return best;
+  }else{
+    let best=Infinity;
+    for(const c of valid){
+      const b=cloneBoard(board);
+      dropInBoard(b,c,opp);
+      const score=minimax(b,depth-1,true,aiPlayer,alpha,beta);
+      best=Math.min(best,score);
+      beta=Math.min(beta,best);
+      if(beta<=alpha)break;
+    }
+    return best;
+  }
+}
+
+function evaluateBoard(board,player){
+  const opp=player===1?2:1;
+  let score=0;
+  // Score all windows of 4
+  const dirs=[[1,0],[0,1],[1,1],[1,-1]];
+  for(let c=0;c<COLS;c++){
+    for(let r=0;r<ROWS;r++){
+      for(const[dc,dr]of dirs){
+        const window=[];
+        for(let i=0;i<4;i++){
+          const nc=c+dc*i,nr=r+dr*i;
+          if(nc<0||nc>=COLS||nr<0||nr>=ROWS){window.length=0;break}
+          window.push(board[nc][nr]);
+        }
+        if(window.length===4){
+          const mine=window.filter(v=>v===player).length;
+          const theirs=window.filter(v=>v===opp).length;
+          const empty=window.filter(v=>v===0).length;
+          if(mine===3&&empty===1)score+=50;
+          else if(mine===2&&empty===2)score+=10;
+          if(theirs===3&&empty===1)score-=80;
+        }
+      }
+    }
+  }
+  // Center column preference
+  for(let r=0;r<ROWS;r++){
+    if(board[3][r]===player)score+=6;
+  }
+  return score;
+}
+
+// ===== MULTIPLAYER =====
 window.createGame=async function(){
+  aiMode=false;coinsAwarded=false;lastBoard=null;
   roomCode=genCode();
   const ref=doc(db,'connect4games',roomCode);
   const snap=await getDoc(ref);
@@ -175,8 +391,8 @@ window.createGame=async function(){
   listenToGame();
 };
 
-// JOIN GAME
 window.joinGame=async function(){
+  aiMode=false;coinsAwarded=false;lastBoard=null;
   const code=document.getElementById('codeInput').value.trim();
   if(code.length!==4){showError('Enter a 4-digit code');return}
   const ref=doc(db,'connect4games',code);
@@ -191,7 +407,6 @@ window.joinGame=async function(){
   listenToGame();
 };
 
-// CANCEL
 window.cancelGame=async function(){
   if(roomCode){
     try{await deleteDoc(doc(db,'connect4games',roomCode))}catch(e){}
@@ -201,10 +416,9 @@ window.cancelGame=async function(){
   showScreen('lobbyScreen');
 };
 
-// PLAY AGAIN
 window.playAgain=function(){
   if(unsub)unsub();
-  roomCode=null;myPlayer=0;
+  roomCode=null;myPlayer=0;coinsAwarded=false;lastBoard=null;
   showScreen('lobbyScreen');
 };
 
@@ -214,8 +428,9 @@ function showError(msg){
   setTimeout(()=>{el.textContent=''},3000);
 }
 
-// LISTEN TO GAME STATE
 function listenToGame(){
+  document.getElementById('p1Label').textContent='You (Red)';
+  document.getElementById('p2Label').textContent='Opponent (Yellow)';
   const ref=doc(db,'connect4games',roomCode);
   unsub=onSnapshot(ref,snap=>{
     if(!snap.exists()){
@@ -224,18 +439,12 @@ function listenToGame(){
       return;
     }
     const data=snap.data();
-
-    if(data.status==='waiting'){
-      // Still waiting
-      return;
-    }
-
+    if(data.status==='waiting')return;
     if(data.status==='playing'){
       showScreen('gameScreen');
       renderBoard(data.board,data.turn,data.winner);
       updateTurnIndicator(data.turn);
     }
-
     if(data.status==='finished'){
       renderBoard(data.board,data.turn,data.winner);
       showResult(data);
@@ -243,12 +452,12 @@ function listenToGame(){
   });
 }
 
-// RENDER BOARD
+// ===== SHARED RENDERING =====
 let lastBoard=null;
 function renderBoard(board,turn,winner){
   const el=document.getElementById('board');
   const winCells=winner?getWinCells(board,winner):[];
-  const isMyTurn=turn===myPlayer&&!winner;
+  const isMyTurn=aiMode?(turn===1&&!winner&&!aiThinking):(turn===myPlayer&&!winner);
   const prevBoard=lastBoard;
   lastBoard=board.map(c=>[...c]);
 
@@ -262,18 +471,18 @@ function renderBoard(board,turn,winner){
       if(val===2)cell.classList.add('p2');
       if(!isMyTurn||val!==0)cell.classList.add('disabled');
 
-      // Animate newly placed pieces
       if(val!==0&&prevBoard&&prevBoard[c][r]===0){
         cell.classList.add('drop-anim');
       }
-
-      // Highlight winning cells
       if(winCells.some(w=>w[0]===c&&w[1]===r)){
         cell.classList.add('win-cell');
       }
 
       if(isMyTurn&&val===0){
-        cell.addEventListener('click',()=>dropPiece(c));
+        const col=c;
+        cell.addEventListener('click',()=>{
+          if(aiMode){aiDropLocal(col)}else{dropPiece(col)}
+        });
       }
       el.appendChild(cell);
     }
@@ -282,6 +491,15 @@ function renderBoard(board,turn,winner){
 
 function updateTurnIndicator(turn){
   const el=document.getElementById('turnIndicator');
+  if(aiMode){
+    if(aiWinner!==null)return;
+    if(aiThinking){
+      el.innerHTML='<span style="color:#ffd166">AI is thinking...</span>';
+    }else{
+      el.innerHTML='<span style="color:#06d6a0">Your turn!</span>';
+    }
+    return;
+  }
   if(turn===myPlayer){
     el.innerHTML='<span style="color:#06d6a0">Your turn!</span>';
   }else{
@@ -289,7 +507,7 @@ function updateTurnIndicator(turn){
   }
 }
 
-// DROP PIECE
+// ===== MULTIPLAYER DROP =====
 async function dropPiece(col){
   const ref=doc(db,'connect4games',roomCode);
   const snap=await getDoc(ref);
@@ -298,32 +516,24 @@ async function dropPiece(col){
   if(data.turn!==myPlayer||data.status!=='playing')return;
 
   const board=data.board;
-  // Find lowest empty row in column
   let row=-1;
   for(let r=ROWS-1;r>=0;r--){
     if(board[col][r]===0){row=r;break}
   }
-  if(row===-1)return; // Column full
+  if(row===-1)return;
 
   board[col][row]=myPlayer;
 
-  // Check win
   const won=checkWin(board,myPlayer);
-  // Check draw
   const draw=!won&&board.every(c=>c.every(v=>v!==0));
 
   const update={board:board,turn:myPlayer===1?2:1};
-  if(won){
-    update.status='finished';
-    update.winner=myPlayer;
-  }else if(draw){
-    update.status='finished';
-    update.winner=0; // draw
-  }
+  if(won){update.status='finished';update.winner=myPlayer}
+  else if(draw){update.status='finished';update.winner=0}
   await updateDoc(ref,update);
 }
 
-// CHECK WIN
+// ===== WIN DETECTION =====
 function checkWin(board,player){
   const dirs=[[1,0],[0,1],[1,1],[1,-1]];
   for(let c=0;c<COLS;c++){
@@ -343,7 +553,6 @@ function checkWin(board,player){
   return false;
 }
 
-// GET WINNING CELLS for highlight
 function getWinCells(board,winner){
   if(!winner||winner===0)return[];
   const dirs=[[1,0],[0,1],[1,1],[1,-1]];
@@ -364,7 +573,7 @@ function getWinCells(board,winner){
   return[];
 }
 
-// SHOW RESULT
+// ===== RESULTS & COINS =====
 let coinsAwarded=false;
 function showResult(data){
   showScreen('resultScreen');
@@ -376,14 +585,26 @@ function showResult(data){
     titleEl.textContent='It\'s a Draw!';
     titleEl.style.color='#8892a8';
     coins=5;
-  }else if(data.winner===myPlayer){
-    titleEl.textContent='You Win!';
-    titleEl.style.color='#06d6a0';
-    coins=20;
+  }else if(aiMode){
+    if(data.winner===1){
+      titleEl.textContent='You Win!';
+      titleEl.style.color='#06d6a0';
+      coins=aiDifficulty==='hard'?30:aiDifficulty==='medium'?20:10;
+    }else{
+      titleEl.textContent='AI Wins!';
+      titleEl.style.color='#ef476f';
+      coins=3;
+    }
   }else{
-    titleEl.textContent='You Lose!';
-    titleEl.style.color='#ef476f';
-    coins=5;
+    if(data.winner===myPlayer){
+      titleEl.textContent='You Win!';
+      titleEl.style.color='#06d6a0';
+      coins=20;
+    }else{
+      titleEl.textContent='You Lose!';
+      titleEl.style.color='#ef476f';
+      coins=5;
+    }
   }
   coinsEl.textContent='\u{1FA99} +'+coins+' Coins';
 
@@ -399,14 +620,6 @@ async function awardCoins(coins){
     await updateDoc(doc(db,'students',studentId),{coins:increment(coins)});
   }catch(e){console.warn('Coin award failed:',e)}
 }
-
-// Reset coinsAwarded when returning to lobby
-const origPlayAgain=window.playAgain;
-window.playAgain=function(){coinsAwarded=false;origPlayAgain()};
-
-// Player labels
-document.getElementById('p1Label').textContent='Player 1 (Red)';
-document.getElementById('p2Label').textContent='Player 2 (Yellow)';
 </script>
 </body>
 </html>
