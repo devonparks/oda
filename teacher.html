@@ -48,7 +48,8 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 
 /* Stats */
 .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
-@media(max-width:600px){.stats{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.stats{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:400px){.stats{grid-template-columns:1fr 1fr}}
 .stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
 .stat .num{font-size:26px;font-weight:800;color:var(--accent);font-family:'Space Mono',monospace}
 .stat .label{font-size:10px;color:var(--text2);margin-top:2px;font-weight:600;letter-spacing:.5px}
@@ -746,19 +747,7 @@ renderStudentList();
 }
 window.deleteClass=deleteClass;
 
-async function togglePin(){
-var current=window.teacherData.requirePin||false;
-var newVal=!current;
-try{
-await window.fbUpdateDoc(window.fbDoc(window.fbDb,'teachers',window.currentTeacher.uid),{requirePin:newVal});
-window.teacherData.requirePin=newVal;
-var btn=document.getElementById('pinToggle');
-btn.textContent=newVal?'ON':'OFF';
-btn.style.background=newVal?'var(--accent)':'';
-btn.style.color=newVal?'var(--bg)':'';
-btn.style.borderColor=newVal?'var(--accent)':'';
-}catch(e){console.error(e)}
-}
+async function togglePin(){toggleClassPin()}
 window.togglePin=togglePin;
 
 // Settings population

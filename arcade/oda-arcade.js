@@ -2,7 +2,7 @@
 (function(){
   // Add back button
   var btn=document.createElement('a');
-  btn.href='../student.html';
+  btn.href='../../student.html';
   btn.className='oda-back';
   btn.innerHTML='\u2190 Back to Hub';
   btn.style.cssText='position:fixed;top:16px;left:16px;background:rgba(17,24,39,.9);border:1px solid #2a3450;border-radius:10px;padding:8px 16px;color:#8892a8;font-family:Outfit,sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:9999;text-decoration:none;transition:all .2s';
