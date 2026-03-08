@@ -383,9 +383,10 @@ select.settings-input{cursor:pointer}
 <div class="profile-detail" id="profileDetail">Grade ? • Code: 0000</div>
 </div>
 </div>
-<div style="display:flex;gap:8px;margin-bottom:16px">
+<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
 <button class="btn btn-accent" onclick="openAssignModal()">+ Assign Work</button>
 <button class="btn btn-gold" id="arcadeToggleBtn" onclick="toggleArcade()">&#x1F3AE; Unlock Arcade</button>
+<button class="btn btn-red" onclick="deleteStudent()">&#x1F5D1; Delete Student</button>
 </div>
 <div style="padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
 <div><div style="font-size:12px;font-weight:700">&#x1F512; PIN for this student</div><div style="font-size:11px;color:var(--text2)" id="studentPinDisplay">PIN: ----</div></div>
@@ -430,12 +431,17 @@ select.settings-input{cursor:pointer}
 <!-- ===== ARCADE ===== -->
 <div class="section" id="sec-arcade">
 <div style="font-size:16px;font-weight:800;margin-bottom:6px">&#x1F3AE; Arcade Manager</div>
-<div style="font-size:13px;color:var(--text2);margin-bottom:14px">Games students unlock after completing assignments.</div>
+<div style="font-size:13px;color:var(--text2);margin-bottom:14px">9 games available for students in the Arcade tab.</div>
 <div class="tools-grid">
-<div class="tool-card"><span class="tool-emoji">&#x1F426;</span><div class="tool-title">Flappy ODA</div><div class="tool-desc">Tap to fly. High scores.</div><a class="tool-btn" href="arcade/flappy.html" target="_blank">Test</a></div>
-<div class="tool-card"><span class="tool-emoji">&#x1F3C3;</span><div class="tool-title">Lane Runner</div><div class="tool-desc">Subway Surfers style.</div><a class="tool-btn" href="arcade/runner.html" target="_blank">Test</a></div>
-<div class="tool-card" style="opacity:.4"><span class="tool-emoji">&#x1F9E9;</span><div class="tool-title">2048</div><div class="tool-desc">Coming soon.</div></div>
-<div class="tool-card" style="opacity:.4"><span class="tool-emoji">&#x1F3CE;&#xFE0F;</span><div class="tool-title">ODA Racer</div><div class="tool-desc">Multiplayer — the final boss.</div></div>
+<div class="tool-card"><span class="tool-emoji">&#x1F40D;</span><div class="tool-title">Snake</div><div class="tool-desc">Eat & grow!</div><a class="tool-btn" href="arcade/snake/index.html" target="_blank">Test</a></div>
+<div class="tool-card"><span class="tool-emoji">&#x1F3D7;</span><div class="tool-title">Tower Blocks</div><div class="tool-desc">Stack blocks high!</div><a class="tool-btn" href="arcade/towerblocks/index.html" target="_blank">Test</a></div>
+<div class="tool-card"><span class="tool-emoji">&#x1F9F1;</span><div class="tool-title">Block Fall</div><div class="tool-desc">Classic Tetris puzzle.</div><a class="tool-btn" href="arcade/blockfall/index.html" target="_blank">Test</a></div>
+<div class="tool-card"><span class="tool-emoji">&#x1F0CF;</span><div class="tool-title">Flip Card</div><div class="tool-desc">Memory matching.</div><a class="tool-btn" href="arcade/flipcard/index.html" target="_blank">Test</a></div>
+<div class="tool-card"><span class="tool-emoji">&#x1F4A3;</span><div class="tool-title">Minesweeper</div><div class="tool-desc">Find the bombs!</div><a class="tool-btn" href="arcade/minesweeper/index.html" target="_blank">Test</a></div>
+<div class="tool-card"><span class="tool-emoji">&#x1F534;</span><div class="tool-title">Connect 4</div><div class="tool-desc">Drop 4 in a row.</div><a class="tool-btn" href="arcade/connect4/index.html" target="_blank">Test</a></div>
+<div class="tool-card"><span class="tool-emoji">&#x2B22;</span><div class="tool-title">Hextris</div><div class="tool-desc">Hexagon Tetris!</div><a class="tool-btn" href="arcade/hextris/index.html" target="_blank">Test</a></div>
+<div class="tool-card"><span class="tool-emoji">&#x1F522;</span><div class="tool-title">2048</div><div class="tool-desc">Slide & merge tiles.</div><a class="tool-btn" href="arcade/2048/index.html" target="_blank">Test</a></div>
+<div class="tool-card"><span class="tool-emoji">&#x1F47E;</span><div class="tool-title">Pac-Man</div><div class="tool-desc">Classic arcade!</div><a class="tool-btn" href="arcade/pacman/index.html" target="_blank">Test</a></div>
 </div>
 </div>
 
@@ -992,6 +998,25 @@ document.getElementById('rosterView').style.display='';
 selectedStudent=null;
 }
 window.closeProfile=closeProfile;
+
+async function deleteStudent(){
+if(!selectedStudent)return;
+if(!confirm('Delete "'+selectedStudent.name+'"? This will also delete all their assignments. This cannot be undone.'))return;
+try{
+// Delete all assignments for this student
+var aq=window.fbQuery(window.fbCollection(window.fbDb,'assignments'),window.fbWhere('studentId','==',selectedStudent.id));
+var asnap=await window.fbGetDocs(aq);
+var deletes=[];
+asnap.forEach(function(d){deletes.push(window.fbDeleteDoc(window.fbDoc(window.fbDb,'assignments',d.id)))});
+await Promise.all(deletes);
+// Delete the student record
+await window.fbDeleteDoc(window.fbDoc(window.fbDb,'students',selectedStudent.id));
+closeProfile();
+await loadStudents();
+showToast('"'+selectedStudent.name+'" deleted','success');
+}catch(e){console.error(e);alert('Error deleting student: '+e.message)}
+}
+window.deleteStudent=deleteStudent;
 
 async function loadStudentWork(){
 if(!selectedStudent)return;
