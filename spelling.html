@@ -97,7 +97,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 <body>
 <div class="grid-bg"></div>
 <div class="app">
-<a class="back" href="student.html">&#x2190; Back to Dashboard</a>
+<a class="back" href="index.html">&#x2190; Back to ODA Hub</a>
 <div class="header">
 <span class="emoji">&#x1F41D;</span>
 <h1>ODA Spelling Bee</h1>
@@ -139,7 +139,6 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 </div>
 
 <script>
-if(!sessionStorage.getItem('studentId')){window.location.href='index.html'}
 var DEFAULT_WORDS = {
 'K': ['cat','dog','run','big','the','and','see','red','mom','dad','sun','cup','hat','bed','fun','top','sit','hop','map','pen'],
 '1st': ['play','jump','like','come','went','that','this','have','good','help','look','make','said','want','from','give','been','done','some','just'],
@@ -162,29 +161,6 @@ function init() {
     renderPractice();
     renderStudy();
     renderEdit();
-    loadWordsFromFirebase();
-}
-
-function loadWordsFromFirebase(){
-try{
-import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js').then(function(appMod){
-import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js').then(function(fsMod){
-var cfg={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
-var app;try{app=appMod.getApp()}catch(e){app=appMod.initializeApp(cfg)}
-var db=fsMod.getFirestore(app);
-var changed=false;
-GRADES.forEach(function(grade){
-fsMod.getDoc(fsMod.doc(db,'spellingWords',grade)).then(function(snap){
-if(snap.exists()&&snap.data().words){
-try{localStorage.setItem('oda-spelling-'+grade,JSON.stringify(snap.data().words));changed=true}catch(e){}
-// Re-render if current grade got updated
-if(grade===currentGrade){renderGrades();renderStudy();renderEdit();renderPractice()}
-}
-});
-});
-console.log('Spelling words loaded from Firebase');
-});});
-}catch(e){console.log('Firebase spelling load skipped:',e)}
 }
 
 function getWords(grade) {

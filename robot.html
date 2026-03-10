@@ -180,7 +180,6 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 </div>
 </div>
 <script>
-if(!sessionStorage.getItem('studentId')){window.location.href='index.html'}
 let engineerName = '';
 
 // Name entry overlay
@@ -221,35 +220,6 @@ function enterLab() {
     ov.style.transition = 'opacity .3s';
     ov.style.opacity = '0';
     setTimeout(function() { ov.remove(); }, 300);
-    loadRobotFromFirebase();
-}
-
-function loadRobotFromFirebase(){
-var studentId=sessionStorage.getItem('studentId');
-if(!studentId)return;
-try{
-import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js').then(function(appMod){
-import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js').then(function(fsMod){
-var cfg={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
-var app;try{app=appMod.getApp()}catch(e){app=appMod.initializeApp(cfg)}
-var db=fsMod.getFirestore(app);
-fsMod.getDoc(fsMod.doc(db,'robotDesigns',studentId)).then(function(snap){
-if(snap.exists()){
-var fb=snap.data();
-// Map names back to indices
-if(fb.brain){for(var i=0;i<BRAIN.length;i++)if(BRAIN[i].name===fb.brain){sel.brain=i;break}}
-if(fb.body){for(var i=0;i<BODY.length;i++)if(BODY[i].name===fb.body){sel.body=i;break}}
-if(fb.hand){for(var i=0;i<HAND.length;i++)if(HAND[i].name===fb.hand){sel.hand=i;break}}
-if(fb.voice){for(var i=0;i<VOICE.length;i++)if(VOICE[i].name===fb.voice){sel.voice=i;break}}
-if(fb.color){for(var i=0;i<COLORS.length;i++)if(COLORS[i].name===fb.color){sel.color=i;break}}
-if(fb.powers)sel.powers=fb.powers;
-if(fb.robotName)sel.name=fb.robotName;
-rStep();uLS();
-console.log('Robot design loaded from Firebase');
-}
-});
-});});
-}catch(e){console.log('Firebase robot load skipped:',e)}
 }
 
 // Firebase save function — saves robot design to student account if logged in

@@ -94,7 +94,7 @@ textarea.q-input{resize:none;min-height:100px;font-size:17px;line-height:1.5}
 <body>
 <div class="grid-bg"></div>
 <div class="app">
-<a class="back" href="student.html">&#x2190; Back to Dashboard</a>
+<a class="back" href="index.html">&#x2190; Back to ODA Hub</a>
 <div class="header">
 <span class="emoji">&#x1F3A4;</span>
 <h1>Elevator Pitch Builder</h1>
@@ -110,7 +110,6 @@ textarea.q-input{resize:none;min-height:100px;font-size:17px;line-height:1.5}
 </div>
 
 <script>
-if(!sessionStorage.getItem('studentId')){window.location.href='index.html'}
 var QUESTIONS=[
 {id:'name',emoji:'\u{1F44B}',label:"What's your name?",hint:'First and last name!',type:'text',placeholder:'Type your full name...'},
 {id:'age',emoji:'\u{1F382}',label:'How old are you?',hint:'',type:'text',placeholder:'Your age...'},
@@ -133,41 +132,7 @@ var timerRunning=false;
 
 function init(){
 loadSaved();
-loadFromFirebase();
 showStart();
-}
-
-function loadFromFirebase(){
-var studentId=sessionStorage.getItem('studentId');
-if(!studentId)return;
-try{
-import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js').then(function(appMod){
-import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js').then(function(fsMod){
-var cfg={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
-var app;try{app=appMod.getApp()}catch(e){app=appMod.initializeApp(cfg)}
-var db=fsMod.getFirestore(app);
-fsMod.getDoc(fsMod.doc(db,'elevatorPitches',studentId)).then(function(snap){
-if(snap.exists()){
-var data=snap.data();
-if(data.answers&&data.answers.name){
-// Merge into local saved list so it shows up
-var list=getSaved();
-var found=false;
-for(var i=0;i<list.length;i++){
-if(list[i].answers.name&&list[i].answers.name.toLowerCase()===data.answers.name.toLowerCase()){
-list[i]={answers:data.answers,pitch:data.pitch||'',savedAt:data.savedAt||''};
-found=true;break;
-}
-}
-if(!found)list.unshift({answers:data.answers,pitch:data.pitch||'',savedAt:data.savedAt||''});
-try{localStorage.setItem(savedKey,JSON.stringify(list))}catch(e){}
-showStart(); // re-render with firebase data
-console.log('Elevator pitch loaded from Firebase');
-}
-}
-});
-});});
-}catch(e){console.log('Firebase load skipped:',e)}
 }
 
 function showStart(){

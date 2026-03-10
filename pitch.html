@@ -190,14 +190,13 @@ textarea.fun-input::placeholder{color:#B8AED0}
 </div>
 
 <script>
-if(!sessionStorage.getItem('studentId')){window.location.href='index.html'}
 var SI=[{l:"Start",e:"\u{1F680}"},{l:"Problem",e:"\u{1F50D}"},{l:"Skills",e:"\u2B50"},{l:"Big Idea",e:"\u{1F4A1}"},{l:"Customer",e:"\u{1F465}"},{l:"Special",e:"\u{1F3C6}"},{l:"My Pitch",e:"\u{1F3A4}"},{l:"Practice",e:"\u{1F3AC}"},{l:"Done!",e:"\u{1F389}"}];
 var PR=[["\u{1F3EB}","Something at school that bugs me"],["\u{1F3E0}","Something at home that's hard"],["\u{1F333}","Something in my neighborhood"],["\u{1F467}","Something that bugs other kids"],["\u{1F436}","Something about animals"],["\u{1F30D}","Something about the planet"]];
 var SK=[["\u{1F3A8}","Drawing & Art"],["\u{1F9EE}","Math & Numbers"],["\u{1F4D6}","Reading & Writing"],["\u{1F5E3}\uFE0F","Talking to People"],["\u{1F527}","Building & Fixing"],["\u{1F4BB}","Computers & Tech"],["\u{1F373}","Cooking & Baking"],["\u{1F3B5}","Music & Dancing"],["\u26BD","Sports & Games"],["\u{1F91D}","Helping Others"],["\u{1F9F9}","Organizing & Cleaning"],["\u{1F9EA}","Science & Experiments"]];
 var CU=[["\u{1F476}","Little Kids"],["\u{1F9D2}","Kids My Age"],["\u{1F466}","Older Kids"],["\u{1F468}\u200D\u{1F469}\u200D\u{1F467}","Families"],["\u{1F469}","Moms & Dads"],["\u{1F474}","Grandparents"],["\u{1F469}\u200D\u{1F3EB}","Teachers"],["\u{1F3D8}\uFE0F","My Neighbors"],["\u{1F43E}","Pet Owners"],["\u{1F30E}","Everyone!"]];
 var cs=0,d={name:"",pCat:"",prob:"",skills:[],cSkill:"",bName:"",bDesc:"",custs:[],a1:"",a2:"",a3:"",hook:"",cta:""},tI=null,tS=0,tR=false,STK="oda-pitch-students";
 
-function init(){buildBG();buildC("problemChips",PR,"p");buildC("skillChips",SK,"s");buildC("customerChips",CU,"c");loadSaved();loadPitchFromFirebase();
+function init(){buildBG();buildC("problemChips",PR,"p");buildC("skillChips",SK,"s");buildC("customerChips",CU,"c");loadSaved();
 document.getElementById("inputName").addEventListener("input",function(){d.name=this.value;document.getElementById("btnStart").disabled=!this.value.trim()});
 document.getElementById("inputProblem").addEventListener("input",function(){d.prob=this.value;document.getElementById("btnProblem").disabled=!this.value.trim()});
 document.getElementById("inputCustomSkill").addEventListener("input",function(){d.cSkill=this.value;chkS()});
@@ -283,34 +282,6 @@ rChips("p",[d.pCat]);rChips("s",d.skills);rChips("c",d.custs);cs=s.completedStep
 function rChips(t,vals){var ch=document.querySelectorAll('[data-t="'+t+'"]');for(var i=0;i<ch.length;i++){var v=ch[i].getAttribute("data-v");if(vals.indexOf(v)>=0)ch[i].classList.add("on");else ch[i].classList.remove("on")}}
 function delSt(idx){try{var l=JSON.parse(localStorage.getItem(STK)||"[]");l.splice(idx,1);localStorage.setItem(STK,JSON.stringify(l));loadSaved()}catch(x){}}
 function clearSaved(){try{localStorage.removeItem(STK)}catch(x){}loadSaved()}
-
-function loadPitchFromFirebase(){
-var studentId=sessionStorage.getItem('studentId');
-if(!studentId)return;
-try{
-import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js').then(function(appMod){
-import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js').then(function(fsMod){
-var cfg={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
-var app;try{app=appMod.getApp()}catch(e){app=appMod.initializeApp(cfg)}
-var db=fsMod.getFirestore(app);
-fsMod.getDoc(fsMod.doc(db,'pitchChallenges',studentId)).then(function(snap){
-if(snap.exists()){
-var fb=snap.data();
-if(fb.studentName){
-var entry={name:fb.studentName,pCat:fb.problemCategory||'',prob:fb.problem||'',skills:fb.skills||[],cSkill:fb.customSkill||'',bName:fb.businessName||'',bDesc:fb.businessDesc||'',custs:fb.customers||[],a1:(fb.advantages&&fb.advantages[0])||'',a2:(fb.advantages&&fb.advantages[1])||'',a3:(fb.advantages&&fb.advantages[2])||'',hook:fb.hook||'',cta:fb.callToAction||'',completedStep:fb.completedStep||0,savedAt:fb.savedAt||''};
-var list=[];try{list=JSON.parse(localStorage.getItem(STK)||'[]')}catch(e){}
-var found=false;
-for(var i=0;i<list.length;i++){if(list[i].name&&list[i].name.toLowerCase()===entry.name.toLowerCase()){list[i]=entry;found=true;break}}
-if(!found)list.unshift(entry);
-try{localStorage.setItem(STK,JSON.stringify(list))}catch(e){}
-loadSaved();
-console.log('Pitch loaded from Firebase');
-}
-}
-});
-});});
-}catch(e){console.log('Firebase pitch load skipped:',e)}
-}
 
 function copySummary(){var as=d.skills.slice();if(d.cSkill.trim())as.push(d.cSkill.trim());var av=[d.a1,d.a2,d.a3].filter(function(a){return a});var t="=== "+d.name+"'s Pitch Challenge ===\n\n";t+="PROBLEM: "+d.prob+"\n";t+="SKILLS: "+as.join(", ")+"\n";t+="BUSINESS: "+d.bName+" - "+d.bDesc+"\n";t+="CUSTOMERS: "+d.custs.join(", ")+"\n";t+="ADVANTAGES: "+av.join(" | ")+"\n\n";t+="--- FULL PITCH ---\n";t+=d.hook+"\n";t+="My business is called "+d.bName+". "+d.bDesc+"\n";if(d.a1)t+="Here's why you should choose us: "+d.a1+"\n";if(d.a2)t+=d.a2+"\n";if(d.a3)t+="And "+d.a3+"\n";if(d.cta)t+=d.cta+"\n";t+="\n---\n\n";try{var ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);var m=document.getElementById("copyMsg");m.style.display="block";setTimeout(function(){m.style.display="none"},3000)}catch(x){alert("Couldn't copy - try selecting the pitch text and copying manually")}}
 
