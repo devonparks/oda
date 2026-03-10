@@ -291,8 +291,9 @@ results.sort(function(a,b){return(b.savedAt||'').localeCompare(a.savedAt||'')});
 h+='<div class="work-card"><div class="work-header"><span class="work-type wt-spelling">&#x1F41D; Spelling Bee</span><span class="work-date">'+results.length+' attempt'+(results.length!==1?'s':'')+'</span></div>';
 h+='<div class="work-body"><div class="spelling-scores">';
 results.forEach(function(r){
-var cls=r.score>=80?'spell-good':r.score>=60?'spell-ok':'spell-low';
-h+='<span class="spell-score '+cls+'">'+(r.grade||'?')+': '+r.score+'%</span>';
+var sc=r.score!==null&&r.score!==undefined?r.score:'?';
+var cls=sc>=80?'spell-good':sc>=60?'spell-ok':'spell-low';
+h+='<span class="spell-score '+cls+'">'+(r.grade||'?')+': '+sc+'%</span>';
 });
 h+='</div></div></div>';
 }
@@ -323,6 +324,7 @@ try{
 var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
 method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
 });
+if(!resp.ok)throw new Error('Server error ('+resp.status+')');
 var data=await resp.json();
 var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'Unable to generate report.';
 result.textContent=text;result.style.display='block';

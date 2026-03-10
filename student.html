@@ -141,7 +141,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 <div class="encourage-label">&#x1F916; AI Study Buddy says...</div>
 <div class="encourage-text" id="encourageText"></div>
 </div>
-<div id="assignmentList"></div>
+<div id="assignmentList"><div class="empty-state"><span class="emoji">&#x23F3;</span><p>Loading your assignments...</p></div></div>
 </div>
 
 <!-- ARCADE -->
@@ -488,7 +488,7 @@ window.completePitch=completePitch;
 function renderArcade(){
 var h='';
 GAMES.forEach(function(g){
-h+='<div class="game-card" onclick="window.location.href=\''+g.file+'\'">';
+h+='<div class="game-card" onclick="window.open(\''+g.file+'\',\'_blank\')">';
 h+='<span class="game-emoji">'+g.emoji+'</span>';
 h+='<div class="game-title">'+g.title+'</div>';
 h+='<div class="game-desc">'+g.desc+'</div></div>';
@@ -501,7 +501,7 @@ window.studentLogout=studentLogout;
 
 function fireConfetti(){var co=["#06d6a0","#118ab2","#ffd166","#ef476f","#a855f7"];for(var i=0;i<50;i++){var p=document.createElement('div');p.className='confetti-piece';var sz=6+Math.random()*10;p.style.width=sz+'px';p.style.height=sz*(Math.random()>.5?1:.6)+'px';p.style.left=Math.random()*100+'%';p.style.backgroundColor=co[i%co.length];p.style.borderRadius=Math.random()>.5?'50%':'2px';p.style.animationDuration=(2+Math.random()*3)+'s';p.style.animationDelay=(Math.random()*2)+'s';document.body.appendChild(p);(function(el){setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},5000)})(p)}}
 
-function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function esc(s){if(s===null||s===undefined)return'';var d=document.createElement('div');d.textContent=String(s);return d.innerHTML}
 document.addEventListener('keydown',function(e){if(e.key==='Enter'&&document.activeElement&&document.activeElement.id==='qInput')checkSpelling()});
 
 // ===== AI STUDY BUDDY (8e) =====
@@ -526,6 +526,7 @@ try{
 var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
 method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
 });
+if(!resp.ok)throw new Error('Server error');
 var data=await resp.json();
 var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'I had trouble thinking! Try again.';
 result.textContent=text;
@@ -554,7 +555,7 @@ var prompt='You are a fun, encouraging AI buddy for a K-12 afterschool student n
 
 fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
 method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
-}).then(function(r){return r.json()}).then(function(data){
+}).then(function(r){if(!r.ok)throw new Error('Server error');return r.json()}).then(function(data){
 var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'';
 if(text){
 document.getElementById('encourageText').textContent=text;
