@@ -377,18 +377,23 @@ function evaluateBoard(board,player){
 
 // ===== MULTIPLAYER =====
 window.createGame=async function(){
-  aiMode=false;coinsAwarded=false;lastBoard=null;
-  roomCode=genCode();
-  const ref=doc(db,'connect4games',roomCode);
-  const snap=await getDoc(ref);
-  if(snap.exists()){roomCode=genCode()}
-  await setDoc(doc(db,'connect4games',roomCode),{
-    board:emptyBoard(),turn:1,player1:studentId,player2:null,status:'waiting',winner:null
-  });
-  document.getElementById('roomCodeDisplay').textContent=roomCode;
-  myPlayer=1;
-  showScreen('waitingScreen');
-  listenToGame();
+  try{
+    aiMode=false;coinsAwarded=false;lastBoard=null;
+    roomCode=genCode();
+    let ref=doc(db,'connect4games',roomCode);
+    let snap=await getDoc(ref);
+    if(snap.exists()){roomCode=genCode();ref=doc(db,'connect4games',roomCode)}
+    await setDoc(ref,{
+      board:JSON.stringify(emptyBoard()),turn:1,player1:studentId,player2:null,status:'waiting',winner:null
+    });
+    document.getElementById('roomCodeDisplay').textContent=roomCode;
+    myPlayer=1;
+    showScreen('waitingScreen');
+    listenToGame();
+  }catch(e){
+    console.error('createGame error:',e);
+    showError('Failed to create game. Try again.');
+  }
 };
 
 window.joinGame=async function(){
@@ -440,13 +445,14 @@ function listenToGame(){
     }
     const data=snap.data();
     if(data.status==='waiting')return;
+    const board=typeof data.board==='string'?JSON.parse(data.board):data.board;
     if(data.status==='playing'){
       showScreen('gameScreen');
-      renderBoard(data.board,data.turn,data.winner);
+      renderBoard(board,data.turn,data.winner);
       updateTurnIndicator(data.turn);
     }
     if(data.status==='finished'){
-      renderBoard(data.board,data.turn,data.winner);
+      renderBoard(board,data.turn,data.winner);
       showResult(data);
     }
   });
@@ -515,7 +521,7 @@ async function dropPiece(col){
   const data=snap.data();
   if(data.turn!==myPlayer||data.status!=='playing')return;
 
-  const board=data.board;
+  const board=typeof data.board==='string'?JSON.parse(data.board):data.board;
   let row=-1;
   for(let r=ROWS-1;r>=0;r--){
     if(board[col][r]===0){row=r;break}
@@ -527,7 +533,7 @@ async function dropPiece(col){
   const won=checkWin(board,myPlayer);
   const draw=!won&&board.every(c=>c.every(v=>v!==0));
 
-  const update={board:board,turn:myPlayer===1?2:1};
+  const update={board:JSON.stringify(board),turn:myPlayer===1?2:1};
   if(won){update.status='finished';update.winner=myPlayer}
   else if(draw){update.status='finished';update.winner=0}
   await updateDoc(ref,update);
