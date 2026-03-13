@@ -146,7 +146,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 <div id="stuStep1">
 <div class="field">
 <label>Class Code</label>
-<input type="text" id="classCodeInput" class="code-input" placeholder="000000" maxlength="10" autocomplete="off" style="text-transform:uppercase">
+<input type="text" id="classCodeInput" class="code-input" placeholder="000000" maxlength="6" autocomplete="off" inputmode="numeric" pattern="[0-9]*">
 </div>
 <button class="submit-btn green" id="codeSubmit" onclick="checkClassCode()">Enter &#x2192;</button>
 </div>
@@ -165,15 +165,6 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 <label>Find your name</label>
 </div>
 <div id="nameButtons" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;margin-bottom:16px"></div>
-</div>
-
-<!-- Step 4: Optional PIN -->
-<div id="stuStep4" style="display:none">
-<div class="field">
-<label>Enter your PIN</label>
-<input type="text" id="pinInput" class="code-input" placeholder="0000" maxlength="4" autocomplete="off" inputmode="numeric">
-</div>
-<button class="submit-btn green" onclick="checkPin()">Let's Go! &#x1F680;</button>
 </div>
 
 <div class="error-msg" id="studentError"></div>
@@ -380,10 +371,17 @@ window.fbCollection=collection;
 window.fbQuery=query;
 window.fbWhere=where;
 
-// Check if already logged in
-onAuthStateChanged(auth,function(user){
+// Check if already logged in; auto-generate classCode if missing
+onAuthStateChanged(auth,async function(user){
 if(user){
-// Teacher is logged in, redirect
+try{
+const teacherRef=doc(db,'teachers',user.uid);
+const teacherSnap=await getDoc(teacherRef);
+if(teacherSnap.exists()&&!teacherSnap.data().classCode){
+const code=String(Math.floor(100000+Math.random()*900000));
+await setDoc(teacherRef,{classCode:code},{merge:true});
+}
+}catch(e){console.error('classCode auto-gen:',e)}
 window.location.href="teacher.html";
 }
 });
@@ -417,8 +415,11 @@ var el=document.getElementById(id);
 el.textContent=msg;el.classList.add('show');
 }
 
-// STUDENT LOGIN - Multi-step flow
-var stuStep=1,stuStudents=[],stuTeacherData=null,stuSelectedStudent=null,stuRequirePin=false;
+// HTML-escape helper
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+// STUDENT LOGIN - Class code → Grade → Name → Done
+var stuStep=1,stuStudents=[],stuTeacherData=null;
 
 function studentBack(){
 if(stuStep<=1){showDoors();return}
@@ -431,8 +432,7 @@ function showStuStep(){
 document.getElementById('stuStep1').style.display=stuStep===1?'':'none';
 document.getElementById('stuStep2').style.display=stuStep===2?'':'none';
 document.getElementById('stuStep3').style.display=stuStep===3?'':'none';
-document.getElementById('stuStep4').style.display=stuStep===4?'':'none';
-var titles={1:['&#x1F393;','Student Login','Enter your class code from your teacher'],2:['&#x1F4DA;','Pick Your Grade','What grade are you in?'],3:['&#x1F44B;','Find Your Name','Tap your name below'],4:['&#x1F512;','Enter PIN','Type your secret PIN']};
+var titles={1:['&#x1F393;','Student Login','Enter your class code from your teacher'],2:['&#x1F4DA;','Pick Your Grade','What grade are you in?'],3:['&#x1F44B;','Find Your Name','Tap your name below']};
 var t=titles[stuStep];
 document.getElementById('stuEmoji').innerHTML=t[0];
 document.getElementById('stuTitle').textContent=t[1];
@@ -440,8 +440,8 @@ document.getElementById('stuDesc').textContent=t[2];
 }
 
 window.checkClassCode=async function(){
-var code=document.getElementById('classCodeInput').value.trim().toUpperCase();
-if(!code){showError('studentError','Enter the class code!');return}
+var code=document.getElementById('classCodeInput').value.trim();
+if(!/^\d{6}$/.test(code)){showError('studentError','Enter a 6-digit class code!');return}
 var btn=document.getElementById('codeSubmit');
 btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
 try{
@@ -449,7 +449,6 @@ var q=window.fbQuery(window.fbCollection(window.firebaseDb,'teachers'),window.fb
 var snap=await window.fbGetDocs(q);
 if(snap.empty){btn.textContent='Enter \u2192';btn.disabled=false;showError('studentError','Class code not found. Ask your teacher!');return}
 stuTeacherData={id:snap.docs[0].id,...snap.docs[0].data()};
-stuRequirePin=stuTeacherData.requirePin||false;
 var sq=window.fbQuery(window.fbCollection(window.firebaseDb,'students'),window.fbWhere('teacherId','==',stuTeacherData.id));
 var sSnap=await window.fbGetDocs(sq);
 stuStudents=[];sSnap.forEach(function(d){stuStudents.push({id:d.id,...d.data()})});
@@ -482,30 +481,12 @@ stuStep=3;showStuStep();
 };
 
 window.pickStudent=function(id){
-stuSelectedStudent=stuStudents.find(function(s){return s.id===id});
-if(!stuSelectedStudent)return;
-var needPin=stuRequirePin||stuSelectedStudent.pinEnabled;
-if(needPin){
-stuStep=4;showStuStep();
-setTimeout(function(){var inp=document.getElementById('pinInput');if(inp)inp.focus()},100);
-}else{
-finishStudentLogin();
-}
-};
-
-window.checkPin=function(){
-var pin=document.getElementById('pinInput').value.trim();
-if(!pin){showError('studentError','Enter your PIN!');return}
-if(pin!==stuSelectedStudent.code){showError('studentError','Wrong PIN! Try again.');return}
-finishStudentLogin();
-};
-
-function finishStudentLogin(){
-sessionStorage.setItem('studentId',stuSelectedStudent.id);
-sessionStorage.setItem('studentName',stuSelectedStudent.name);
-sessionStorage.setItem('studentSchool',stuSelectedStudent.school||'');
+var student=stuStudents.find(function(s){return s.id===id});
+if(!student)return;
+sessionStorage.setItem('studentId',student.id);
+sessionStorage.setItem('studentName',student.name);
 window.location.href='student.html';
-}
+};
 
 // TEACHER LOGIN
 window.teacherLogin=async function(){
@@ -571,8 +552,6 @@ program:program,
 gradeLevels:grades,
 classCode:classCode,
 classes:['All Students'],
-requirePin:false,
-pinMode:'class',
 createdAt:new Date().toISOString()
 });
 window.location.href='teacher.html';
@@ -615,7 +594,6 @@ if(e.key!=='Enter')return;
 var active=document.activeElement;
 if(!active)return;
 if(active.id==='classCodeInput')window.checkClassCode();
-else if(active.id==='pinInput')window.checkPin();
 else if(active.id==='teacherEmail'||active.id==='teacherPass')window.teacherLogin();
 else if(active.id==='signupPass'||active.id==='signupEmail'||active.id==='signupName'||active.id==='signupSchool'||active.id==='signupGrades'||active.id==='signupClassCode')window.teacherSignup();
 else if(active.id==='parentCode'||active.id==='parentChildName')window.parentLogin();
