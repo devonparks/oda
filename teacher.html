@@ -304,7 +304,7 @@ select.settings-input{cursor:pointer}
 <div style="font-size:13px;color:var(--text2)">Here's your class at a glance.</div>
 <div style="display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px">
 <div style="flex:1"><div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase">Class Code</div><div style="font-family:'Space Mono',monospace;font-size:28px;font-weight:700;color:var(--gold);letter-spacing:4px" id="classCodeDisplay">------</div><div style="font-size:10px;color:var(--text2)">Students enter this to sign in</div></div>
-<div style="text-align:right"><div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:4px">Require PIN</div><button class="btn btn-outline btn-sm" id="pinToggle" onclick="togglePin()" style="min-width:50px">OFF</button></div>
+<div style="text-align:right"><button class="btn btn-outline btn-sm" onclick="regenerateClassCode()" style="min-width:50px">New Code</button></div>
 </div>
 </div>
 <div class="stats">
@@ -462,27 +462,14 @@ select.settings-input{cursor:pointer}
 </div>
 
 <div class="card">
-<div class="card-title">&#x1F511; Class Code &amp; Security</div>
+<div class="card-title">&#x1F511; Class Code</div>
 <div class="prop-group">
-<div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">Class Code</div>
+<div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">Your Class Code</div>
 <div style="display:flex;gap:8px;align-items:center">
-<input class="settings-input" id="setClassCode" placeholder="e.g. MR.D" maxlength="10" style="text-transform:uppercase;flex:1;margin:0">
-<button class="btn btn-blue btn-sm" onclick="saveClassCode()">Update</button>
+<div style="font-family:'Space Mono',monospace;font-size:24px;font-weight:700;color:var(--gold);letter-spacing:4px;flex:1" id="settingsClassCode">------</div>
+<button class="btn btn-blue btn-sm" onclick="regenerateClassCode()">Regenerate</button>
 </div>
-<div style="font-size:11px;color:var(--text2);margin-top:4px">Students enter this to find your class. Must be unique.</div>
-</div>
-<div class="prop-group" style="margin-top:12px">
-<div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px">PIN Settings</div>
-<div style="display:flex;flex-direction:column;gap:8px">
-<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px">
-<div><div style="font-size:13px;font-weight:700">Require PIN for whole class</div><div style="font-size:11px;color:var(--text2)">All students must enter a PIN after selecting their name</div></div>
-<button class="btn btn-outline btn-sm" id="pinClassToggle" onclick="toggleClassPin()">OFF</button>
-</div>
-<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px">
-<div><div style="font-size:13px;font-weight:700">Let students set their own PIN</div><div style="font-size:11px;color:var(--text2)">Students can choose to enable a PIN on their account</div></div>
-<button class="btn btn-outline btn-sm" id="pinStudentChoice" onclick="toggleStudentPinChoice()">OFF</button>
-</div>
-</div>
+<div style="font-size:11px;color:var(--text2);margin-top:4px">Auto-generated 6-digit code. Students enter this to find your class.</div>
 </div>
 <div id="codeSaveMsg" style="font-size:12px;color:var(--accent);margin-top:6px;display:none">&#x2705; Updated!</div>
 </div>
@@ -649,7 +636,7 @@ try{
 var tDoc=await getDoc(doc(db,'teachers',user.uid));
 if(tDoc.exists()){window.teacherData=tDoc.data()}
 else{
-var td={name:user.displayName||user.email,email:user.email,school:'',classes:['All Students'],classCode:String(Math.floor(100000+Math.random()*900000)),requirePin:false,createdAt:new Date().toISOString()};
+var td={name:user.displayName||user.email,email:user.email,school:'',classes:['All Students'],classCode:String(Math.floor(100000+Math.random()*900000)),createdAt:new Date().toISOString()};
 await setDoc(doc(db,'teachers',user.uid),td);
 window.teacherData=td;
 }
@@ -659,14 +646,9 @@ document.getElementById('welcomeName').textContent=n.split(' ')[0];
 // Ensure classCode exists for existing teachers
 if(!window.teacherData.classCode){
 window.teacherData.classCode=String(Math.floor(100000+Math.random()*900000));
-window.teacherData.requirePin=window.teacherData.requirePin||false;
-await updateDoc(doc(db,'teachers',user.uid),{classCode:window.teacherData.classCode,requirePin:false});
+await updateDoc(doc(db,'teachers',user.uid),{classCode:window.teacherData.classCode});
 }
 document.getElementById('classCodeDisplay').textContent=window.teacherData.classCode;
-document.getElementById('pinToggle').textContent=window.teacherData.requirePin?'ON':'OFF';
-document.getElementById('pinToggle').style.background=window.teacherData.requirePin?'var(--accent)':'';
-document.getElementById('pinToggle').style.color=window.teacherData.requirePin?'var(--bg)':'';
-document.getElementById('pinToggle').style.borderColor=window.teacherData.requirePin?'var(--accent)':'';
 }catch(e){console.error(e)}
 loadClasses();
 loadStudents();
@@ -746,9 +728,6 @@ renderStudentList();
 }
 window.deleteClass=deleteClass;
 
-async function togglePin(){toggleClassPin()}
-window.togglePin=togglePin;
-
 // Settings population
 function populateSettings(){
 if(!window.teacherData)return;
@@ -759,9 +738,7 @@ document.getElementById('setSchool').value=td.school||'';
 document.getElementById('setGrades').value=td.gradeLevels||'';
 document.getElementById('setTeam').value=td.team||'';
 document.getElementById('setProgram').value=td.program||'';
-document.getElementById('setClassCode').value=td.classCode||'';
-updateToggleBtn('pinClassToggle',td.requirePin);
-updateToggleBtn('pinStudentChoice',td.allowStudentPin);
+document.getElementById('settingsClassCode').textContent=td.classCode||'------';
 }
 
 function updateToggleBtn(id,on){
@@ -796,45 +773,17 @@ var msg=document.getElementById('profileSaveMsg');msg.style.display='block';setT
 }
 window.saveProfile=saveProfile;
 
-async function saveClassCode(){
-var code=document.getElementById('setClassCode').value.trim().toUpperCase().replace(/[^A-Z0-9.]/g,'');
-if(!code){alert('Enter a class code');return}
-// Check if taken
+async function regenerateClassCode(){
+var code=String(Math.floor(100000+Math.random()*900000));
 try{
-var q=window.fbQuery(window.fbCollection(window.fbDb,'teachers'),window.fbWhere('classCode','==',code));
-var snap=await window.fbGetDocs(q);
-var taken=false;
-snap.forEach(function(d){if(d.id!==window.currentTeacher.uid)taken=true});
-if(taken){alert('That code is already taken!');return}
 await window.fbUpdateDoc(window.fbDoc(window.fbDb,'teachers',window.currentTeacher.uid),{classCode:code});
 window.teacherData.classCode=code;
 document.getElementById('classCodeDisplay').textContent=code;
-document.getElementById('setClassCode').value=code;
+document.getElementById('settingsClassCode').textContent=code;
 var msg=document.getElementById('codeSaveMsg');msg.style.display='block';setTimeout(function(){msg.style.display='none'},2000);
 }catch(e){console.error(e);alert('Error: '+e.message)}
 }
-window.saveClassCode=saveClassCode;
-
-async function toggleClassPin(){
-var on=!(window.teacherData.requirePin);
-try{
-await window.fbUpdateDoc(window.fbDoc(window.fbDb,'teachers',window.currentTeacher.uid),{requirePin:on});
-window.teacherData.requirePin=on;
-updateToggleBtn('pinClassToggle',on);
-updateToggleBtn('pinToggle',on);
-}catch(e){console.error(e)}
-}
-window.toggleClassPin=toggleClassPin;
-
-async function toggleStudentPinChoice(){
-var on=!(window.teacherData.allowStudentPin);
-try{
-await window.fbUpdateDoc(window.fbDoc(window.fbDb,'teachers',window.currentTeacher.uid),{allowStudentPin:on});
-window.teacherData.allowStudentPin=on;
-updateToggleBtn('pinStudentChoice',on);
-}catch(e){console.error(e)}
-}
-window.toggleStudentPinChoice=toggleStudentPinChoice;
+window.regenerateClassCode=regenerateClassCode;
 
 async function createClass(){
 var name=document.getElementById('className').value.trim();
