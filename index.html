@@ -118,7 +118,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 <div class="door student" onclick="showPanel('student')">
 <span class="door-emoji">&#x1F393;</span>
 <div class="door-title">Student</div>
-<div class="door-desc">Enter your name and code to start learning</div>
+<div class="door-desc">Enter your class code to start learning</div>
 </div>
 <div class="door teacher" onclick="showPanel('teacher')">
 <span class="door-emoji">&#x1F4CB;</span>
@@ -293,11 +293,6 @@ Sign in with Google
 <option value="Post Secondary Support">Post Secondary Support</option>
 <option value="Statewide Training">Statewide Training + Mentorship</option>
 </select>
-</div>
-<div class="field">
-<label>Choose Your Class Code</label>
-<input type="text" id="signupClassCode" maxlength="10" placeholder="e.g. MR.D or PARKS123" style="text-transform:uppercase" autocomplete="off">
-<div style="font-size:11px;color:var(--text2);margin-top:4px">Students will type this to find your class. Letters and numbers only.</div>
 </div>
 <div class="field">
 <label>Password</label>
@@ -526,19 +521,11 @@ var school=document.getElementById('signupSchool').value;
 var grades=document.getElementById('signupGrades').value.trim();
 var team=document.getElementById('signupTeam').value;
 var program=document.getElementById('signupProgram').value;
-var classCode=document.getElementById('signupClassCode').value.trim().toUpperCase().replace(/[^A-Z0-9.]/g,'');
+var classCode=String(Math.floor(100000+Math.random()*900000));
 var pass=document.getElementById('signupPass').value;
 
 if(!name||!email||!pass){showError('signupError','Fill in name, email and password!');return}
 if(pass.length<6){showError('signupError','Password needs at least 6 characters');return}
-if(!classCode){classCode=String(Math.floor(100000+Math.random()*900000))}
-
-// Check if class code is already taken
-try{
-var codeQ=window.fbQuery(window.fbCollection(window.firebaseDb,'teachers'),window.fbWhere('classCode','==',classCode));
-var codeSnap=await window.fbGetDocs(codeQ);
-if(!codeSnap.empty){showError('signupError','That class code is taken! Try another one.');return}
-}catch(e){}
 
 try{
 var cred=await window.createUserWithEmailAndPassword(window.firebaseAuth,email,pass);
@@ -595,7 +582,7 @@ var active=document.activeElement;
 if(!active)return;
 if(active.id==='classCodeInput')window.checkClassCode();
 else if(active.id==='teacherEmail'||active.id==='teacherPass')window.teacherLogin();
-else if(active.id==='signupPass'||active.id==='signupEmail'||active.id==='signupName'||active.id==='signupSchool'||active.id==='signupGrades'||active.id==='signupClassCode')window.teacherSignup();
+else if(active.id==='signupPass'||active.id==='signupEmail'||active.id==='signupName'||active.id==='signupSchool'||active.id==='signupGrades')window.teacherSignup();
 else if(active.id==='parentCode'||active.id==='parentChildName')window.parentLogin();
 });
 </script>
