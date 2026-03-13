@@ -75,10 +75,6 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 .tool-btn:active{transform:scale(.96)}
 
 /* Roster */
-.add-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.add-row input,.add-row select{flex:1;min-width:80px;padding:10px 12px;background:var(--bg);border:2px solid var(--border);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;outline:none}
-.add-row input:focus,.add-row select:focus{border-color:var(--accent)}
-.add-row input::placeholder{color:#3a4560}
 
 .class-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
 .class-tab{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--border);color:var(--text2);background:none;font-family:'Outfit',sans-serif;transition:all .15s}
@@ -365,12 +361,10 @@ select.settings-input{cursor:pointer}
 <button class="btn btn-outline btn-sm" onclick="openClassModal()">+ New Class</button>
 </div>
 <div class="class-tabs" id="classTabs"></div>
-<div class="add-row">
-<input type="text" id="addName" placeholder="Student name">
-<input type="text" id="addGrade" placeholder="Grade" style="max-width:70px">
-<button class="btn btn-accent" onclick="addStudent()">+ Add</button>
+<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+<input type="text" class="search-input" id="rosterSearch" placeholder="Search students..." oninput="filterRoster()" style="margin-bottom:0;flex:1">
+<button class="btn btn-accent" onclick="openAddStudentModal()">+ Add Student</button>
 </div>
-<input type="text" class="search-input" id="rosterSearch" placeholder="Search students..." oninput="filterRoster()">
 <div class="student-list" id="studentList"><div class="empty-state"><span class="emoji">&#x23F3;</span><p>Loading...</p></div></div>
 </div>
 
@@ -508,6 +502,22 @@ select.settings-input{cursor:pointer}
 <p>Create a class group to organize your roster</p>
 <input type="text" class="class-input" id="className" placeholder="e.g. K-2 Afternoon, 5th Grade">
 <button class="btn btn-accent btn-wide" onclick="createClass()">Create Class</button>
+</div>
+</div>
+
+<!-- ADD STUDENT MODAL -->
+<div class="modal-bg" id="addStudentModal">
+<div class="modal">
+<button class="modal-close" onclick="closeAddStudentModal()">&times;</button>
+<h2>&#x1F393; Add Student</h2>
+<p>Add a new student to your roster</p>
+<div class="fg"><label>Student Name</label>
+<input type="text" id="addStudentName" placeholder="Full name"></div>
+<div class="fg"><label>Grade</label>
+<input type="text" id="addStudentGrade" placeholder="e.g. 3rd, K, 5th"></div>
+<div class="fg"><label>Class</label>
+<select id="addStudentClass" style="width:100%;padding:10px 12px;background:var(--bg);border:2px solid var(--border);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;cursor:pointer"></select></div>
+<button class="btn btn-accent btn-wide" onclick="addStudent()">Add Student</button>
 </div>
 </div>
 
@@ -713,6 +723,26 @@ function openClassModal(){document.getElementById('classModal').classList.add('s
 function closeClassModal(){document.getElementById('classModal').classList.remove('show');document.getElementById('className').value=''}
 window.openClassModal=openClassModal;window.closeClassModal=closeClassModal;
 
+function openAddStudentModal(){
+var sel=document.getElementById('addStudentClass');
+var classes=window.teacherData&&window.teacherData.classes?window.teacherData.classes:[];
+var h='<option value="">(Unassigned)</option>';
+for(var i=0;i<classes.length;i++){
+if(classes[i]==='All Students')continue;
+var isSelected=currentClass!=='All Students'&&classes[i]===currentClass;
+h+='<option value="'+esc(classes[i])+'"'+(isSelected?' selected':'')+'>'+esc(classes[i])+'</option>';
+}
+sel.innerHTML=h;
+document.getElementById('addStudentModal').classList.add('show');
+document.getElementById('addStudentName').focus();
+}
+function closeAddStudentModal(){
+document.getElementById('addStudentModal').classList.remove('show');
+document.getElementById('addStudentName').value='';
+document.getElementById('addStudentGrade').value='';
+}
+window.openAddStudentModal=openAddStudentModal;window.closeAddStudentModal=closeAddStudentModal;
+
 async function deleteClass(name){
 if(!confirm('Delete class "'+name+'"? Students in this class won\'t be deleted.'))return;
 var classes=window.teacherData.classes||[];
@@ -885,8 +915,9 @@ el.innerHTML=h;
 }
 
 async function addStudent(){
-var name=document.getElementById('addName').value.trim();
-var grade=document.getElementById('addGrade').value.trim();
+var name=document.getElementById('addStudentName').value.trim();
+var grade=document.getElementById('addStudentGrade').value.trim();
+var className=document.getElementById('addStudentClass').value;
 if(!name)return;
 var code=String(Math.floor(1000+Math.random()*9000));
 try{
@@ -895,10 +926,10 @@ name:name,nameLower:name.toLowerCase(),grade:grade,code:code,
 parentCode:String(Math.floor(1000+Math.random()*9000)),
 teacherId:window.currentTeacher.uid,
 school:window.teacherData?window.teacherData.school:'',
-className:currentClass==='All Students'?'':currentClass,
+className:className,
 createdAt:new Date().toISOString()
 });
-document.getElementById('addName').value='';document.getElementById('addGrade').value='';
+closeAddStudentModal();
 loadStudents();
 }catch(e){console.error(e);alert('Error: '+e.message)}
 }
@@ -1628,11 +1659,11 @@ window.logout=logout;
 function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 document.addEventListener('keydown',function(e){
 if(e.key==='Escape'){
-var modals=[['assignModal',closeAssignModal],['classModal',closeClassModal],['createAssignModal',closeCreateAssignment],['gradePanel',closeGradePanel],['aiGenModal',closeAiGen],['aiDiffModal',closeAiDiff]];
+var modals=[['assignModal',closeAssignModal],['classModal',closeClassModal],['addStudentModal',closeAddStudentModal],['createAssignModal',closeCreateAssignment],['gradePanel',closeGradePanel],['aiGenModal',closeAiGen],['aiDiffModal',closeAiDiff]];
 for(var i=0;i<modals.length;i++){if(document.getElementById(modals[i][0]).classList.contains('show')){modals[i][1]();return}}
 }
 if(e.key==='Enter'){
-if(document.activeElement.id==='addName'||document.activeElement.id==='addGrade')addStudent();
+if(document.activeElement.id==='addStudentName'||document.activeElement.id==='addStudentGrade')addStudent();
 if(document.activeElement.id==='className')createClass();
 }
 });
