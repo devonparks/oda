@@ -834,9 +834,9 @@ hideAgeModal();
 ageMode=mode;
 currentProjectId=Date.now();
 // Reset all data
-d={name:'',pCat:'',prob:'',skills:[],cSkill:'',bName:'',bDesc:'',custs:[],a1:'',a2:'',a3:'',hook:'',cta:''};
+d={name:'',pCat:'',prob:'',skills:[],cSkill:'',bName:'',bDesc:'',custs:[],cCust:'',a1:'',a2:'',a3:'',hook:'',cta:''};
 pitchText='';aiCoachResult='';polishedResult='';recordedBlob=null;recordedChunks=[];
-var ids=['inputName','inputProblem','inputCustomSkill','inputBizName','inputBizDesc','inputAdv1','inputAdv2','inputAdv3','inputHook','inputCTA'];
+var ids=['inputName','inputProblem','inputCustomSkill','inputBizName','inputBizDesc','inputAdv1','inputAdv2','inputAdv3','inputHook','inputCTA','inputCustomCustomer'];
 for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el)el.value=''}
 var chips=document.querySelectorAll('.chip');for(var i=0;i<chips.length;i++)chips[i].classList.remove('on');
 document.getElementById('btnStart').disabled=true;
@@ -1687,8 +1687,9 @@ backLink.href='student.html';
 if(dashBack)dashBack.href='student.html';
 }
 
-// Show teacher mode button if teacher
-if(sessionStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'){
+// Show teacher mode button if teacher (but not if student is active)
+var isStudentSession=!!sessionStorage.getItem('studentId');
+if(!isStudentSession&&(sessionStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher')){
 document.getElementById('teacherModeBtn').style.display='inline-flex';
 }
 
