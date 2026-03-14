@@ -345,7 +345,7 @@ select.settings-input{cursor:pointer}
 <div style="font-size:13px;color:var(--text2)">Here's your class at a glance.</div>
 <div style="display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px">
 <div style="flex:1"><div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase">Class Code</div><div style="font-family:'Space Mono',monospace;font-size:28px;font-weight:700;color:var(--gold);letter-spacing:4px" id="classCodeDisplay">------</div><div style="font-size:10px;color:var(--text2)">Students enter this to sign in</div></div>
-<div style="text-align:right"><button class="btn btn-outline btn-sm" onclick="regenerateClassCode()" style="min-width:50px">New Code</button></div>
+<div style="text-align:right;display:flex;gap:6px"><button class="btn btn-outline btn-sm" onclick="copyClassCode()">Copy</button><button class="btn btn-outline btn-sm" onclick="regenerateClassCode()">New Code</button></div>
 </div>
 </div>
 <div class="stats">
@@ -492,6 +492,7 @@ select.settings-input{cursor:pointer}
 <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">Your Class Code</div>
 <div style="display:flex;gap:8px;align-items:center">
 <div style="font-family:'Space Mono',monospace;font-size:24px;font-weight:700;color:var(--gold);letter-spacing:4px;flex:1" id="settingsClassCode">------</div>
+<button class="btn btn-outline btn-sm" onclick="copyClassCode()">Copy</button>
 <button class="btn btn-blue btn-sm" onclick="regenerateClassCode()">Regenerate</button>
 </div>
 <div style="font-size:11px;color:var(--text2);margin-top:4px">Auto-generated 6-digit code. Students enter this to find your class.</div>
@@ -844,6 +845,15 @@ var msg=document.getElementById('codeSaveMsg');msg.style.display='block';setTime
 }catch(e){console.error(e);alert('Error: '+e.message)}
 }
 window.regenerateClassCode=regenerateClassCode;
+
+function copyClassCode(){
+var code=window.teacherData&&window.teacherData.classCode?window.teacherData.classCode:'';
+if(!code)return;
+navigator.clipboard.writeText(code).then(function(){showToast('Class code copied!','success')}).catch(function(){
+var ta=document.createElement('textarea');ta.value=code;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('Class code copied!','success');
+});
+}
+window.copyClassCode=copyClassCode;
 
 async function createClass(){
 var name=document.getElementById('className').value.trim();
