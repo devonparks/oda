@@ -329,6 +329,25 @@ textarea.fun-input::placeholder{color:#3a4560}
 .teacher-notes li{font-size:13px;color:var(--text2);line-height:1.6;margin:3px 0}
 .teacher-notes .tn-say{color:var(--accent);font-weight:600;font-style:italic}
 
+/* Gallery cards */
+.gallery-card{background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:18px;transition:all .2s}
+.gallery-card:hover{border-color:var(--accent2);transform:translateY(-2px)}
+.gallery-card .gc-name{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:var(--text);margin-bottom:2px}
+.gallery-card .gc-biz{font-size:15px;color:var(--accent);font-weight:600;margin-bottom:8px}
+.gallery-card .gc-pitch{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:10px;max-height:80px;overflow:hidden;text-overflow:ellipsis}
+.gallery-card .gc-meta{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text2)}
+.gallery-card .gc-likes{cursor:pointer;padding:4px 10px;border-radius:8px;background:rgba(239,71,111,.1);color:var(--accent3);font-weight:700;border:none;font-size:12px;font-family:'Outfit',sans-serif}
+.gallery-card .gc-likes:hover{background:rgba(239,71,111,.2)}
+
+/* Export modal */
+.export-modal-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);z-index:10000;display:none;justify-content:center;align-items:center}
+.export-modal-bg.show{display:flex}
+.export-modal{background:var(--surface);border-radius:20px;padding:28px;max-width:380px;width:90%;text-align:center}
+.export-modal h3{font-family:'Fredoka',sans-serif;font-size:20px;margin-bottom:8px}
+.export-modal p{font-size:13px;color:var(--text2);margin-bottom:16px}
+.export-progress{width:100%;height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin:12px 0}
+.export-progress-fill{height:100%;background:var(--accent);border-radius:4px;width:0%;transition:width .3s}
+
 .hidden{display:none!important}
 </style>
 </head>
@@ -345,6 +364,7 @@ textarea.fun-input::placeholder{color:#3a4560}
 </div>
 <div class="dash-top-btns">
 <button class="dash-create-btn" onclick="showAgeModal()">&#x2795; New Pitch</button>
+<button class="dash-create-btn" onclick="switchView('gallery')" style="background:var(--accent2)">&#x1F30D; Community Gallery</button>
 <button class="dash-teacher-btn" id="teacherModeBtn" onclick="toggleTeacherMode()" style="display:none">&#x1F469;&#x200D;&#x1F3EB; Teacher Mode</button>
 </div>
 </div>
@@ -542,6 +562,41 @@ textarea.fun-input::placeholder{color:#3a4560}
 </div>
 </div><!-- end view-wizard -->
 
+<!-- ===== COMMUNITY GALLERY VIEW ===== -->
+<div class="view" id="view-gallery">
+<div class="dash-wrap">
+<div class="dash-top">
+<div>
+<h1>&#x1F30D; Community Gallery</h1>
+<div class="dash-sub">See what other students pitched! Get inspired!</div>
+</div>
+<div class="dash-top-btns">
+<button class="dash-create-btn" onclick="switchView('home')">&#x2190; Back to My Pitches</button>
+<button class="dash-create-btn" onclick="sharePitch()" style="background:var(--gold);color:#1a1e2e" id="shareBtn">&#x1F4E4; Share My Pitch</button>
+</div>
+</div>
+<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+<button class="filter-chip active" onclick="filterGallery('all',this)">All</button>
+<button class="filter-chip" onclick="filterGallery('trending',this)">&#x1F525; Trending</button>
+<button class="filter-chip" onclick="filterGallery('newest',this)">&#x1F195; Newest</button>
+</div>
+<div class="pitch-grid" id="galleryGrid">
+<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:40px"><span style="font-size:48px">&#x1F30D;</span><p style="color:var(--text2);font-size:15px;margin-top:12px">No pitches shared yet! Be the first to share yours!</p></div>
+</div>
+</div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="export-modal-bg" id="exportModalBg">
+<div class="export-modal">
+<h3 id="exportTitle">&#x1F3AC; Exporting Video</h3>
+<p id="exportMsg">Converting to MP4... This may take a moment.</p>
+<div class="export-progress"><div class="export-progress-fill" id="exportProgressFill"></div></div>
+<p style="font-size:11px;color:var(--text2)" id="exportStatus">Loading converter...</p>
+<button class="btn btn-small btn-gray" onclick="cancelExport()" id="exportCancelBtn" style="margin-top:10px">Cancel</button>
+</div>
+</div>
+
 <!-- PITCH EXPAND MODAL -->
 <div class="pitch-expand-bg" id="pitchExpandBg">
 <div class="pitch-expand-top">
@@ -597,6 +652,14 @@ textarea.fun-input::placeholder{color:#3a4560}
 <button class="filter-chip" onclick="setFilter('vivid',this)">&#x1F308; Vivid</button>
 <button class="filter-chip" onclick="setFilter('dramatic',this)">&#x1F525; Drama</button>
 </div>
+<div class="studio-bar" id="studioFxBar">
+<span class="studio-bar-label">&#x2728; FX</span>
+<button class="filter-chip" id="fxBgBtn" onclick="toggleBgRemoval(this)">&#x1F5BC;&#xFE0F; Remove BG</button>
+<button class="filter-chip" id="fxBlurBtn" onclick="toggleBgBlur(this)">&#x1F32B;&#xFE0F; Blur BG</button>
+<button class="filter-chip" id="fxFaceBtn" onclick="cycleFaceFilter()">&#x1F92A; Face Filter</button>
+<span id="fxFaceLabel" style="font-size:11px;color:var(--text2);display:none">Off</span>
+</div>
+<canvas id="recCanvas" style="display:none"></canvas>
 <div class="rec-cam-controls" id="recCamControls">
 <button class="btn-record" id="recStartBtn" onclick="startCountdown()" style="font-size:18px;padding:16px 32px">&#x1F534; Record</button>
 <button class="btn btn-small btn-gray" onclick="closeRecordModal()">Cancel</button>
@@ -765,10 +828,12 @@ renderDashboard();
 }
 
 function switchView(view){
-document.getElementById('view-home').classList.remove('active');
-document.getElementById('view-wizard').classList.remove('active');
-document.getElementById('view-'+view).classList.add('active');
+var views=['home','wizard','gallery'];
+views.forEach(function(v){var el=document.getElementById('view-'+v);if(el)el.classList.remove('active')});
+var target=document.getElementById('view-'+view);
+if(target)target.classList.add('active');
 window.scrollTo(0,0);
+if(view==='gallery')loadGallery();
 }
 
 function backToDash(){
@@ -983,6 +1048,375 @@ if(video)video.style.filter=FILTERS[name]||'none';
 var chips=document.querySelectorAll('.filter-chip');
 for(var i=0;i<chips.length;i++)chips[i].classList.remove('active');
 if(btn)btn.classList.add('active');
+}
+
+// ===== CANVAS PIPELINE (Bake filters into recording) =====
+var canvasStream=null,canvasCtx=null,canvasEl=null,canvasAnimId=null;
+var bgRemovalActive=false,bgBlurActive=false;
+var selfieSegmenter=null,segResults=null;
+var faceFilterIdx=0;
+var FACE_FILTERS=['Off','Sunglasses','Crown','Stars'];
+var faceDetector=null,faceResults=null;
+
+function startCanvasPipeline(){
+canvasEl=document.getElementById('recCanvas');
+var video=document.getElementById('recCamVideo');
+canvasEl.width=video.videoWidth||640;
+canvasEl.height=video.videoHeight||480;
+canvasCtx=canvasEl.getContext('2d');
+canvasEl.style.display='none';
+drawCanvasFrame();
+canvasStream=canvasEl.captureStream(30);
+// Mix canvas video with original audio
+if(cameraStream){
+var audioTracks=cameraStream.getAudioTracks();
+audioTracks.forEach(function(t){canvasStream.addTrack(t)});
+}
+}
+
+function drawCanvasFrame(){
+if(!canvasEl||!canvasCtx)return;
+var video=document.getElementById('recCamVideo');
+if(!video||video.readyState<2){canvasAnimId=requestAnimationFrame(drawCanvasFrame);return}
+
+// Draw background removal / blur if active
+if((bgRemovalActive||bgBlurActive)&&segResults){
+var mask=segResults;
+// Step 1: Draw background (blurred or solid)
+canvasCtx.save();
+if(bgRemovalActive){
+canvasCtx.fillStyle='#1a1e2e';
+canvasCtx.fillRect(0,0,canvasEl.width,canvasEl.height);
+}else{
+canvasCtx.filter='blur(12px)';
+canvasCtx.drawImage(video,0,0,canvasEl.width,canvasEl.height);
+canvasCtx.filter='none';
+}
+canvasCtx.restore();
+// Step 2: Cut out person on temp canvas using mask
+var tmpCanvas=document.createElement('canvas');
+tmpCanvas.width=canvasEl.width;tmpCanvas.height=canvasEl.height;
+var tmpCtx=tmpCanvas.getContext('2d');
+tmpCtx.drawImage(video,0,0,canvasEl.width,canvasEl.height);
+tmpCtx.globalCompositeOperation='destination-in';
+tmpCtx.drawImage(mask,0,0,canvasEl.width,canvasEl.height);
+// Step 3: Draw masked person on top of background
+canvasCtx.drawImage(tmpCanvas,0,0);
+}else{
+// Apply CSS filter to canvas
+canvasCtx.filter=FILTERS[activeFilter]||'none';
+canvasCtx.drawImage(video,0,0,canvasEl.width,canvasEl.height);
+canvasCtx.filter='none';
+}
+
+// Draw face filter overlays
+if(faceFilterIdx>0&&faceResults&&faceResults.length>0){
+drawFaceOverlays(canvasCtx,faceResults);
+}
+
+canvasAnimId=requestAnimationFrame(drawCanvasFrame);
+}
+
+function stopCanvasPipeline(){
+if(canvasAnimId){cancelAnimationFrame(canvasAnimId);canvasAnimId=null}
+canvasStream=null;
+}
+
+// ===== BACKGROUND REMOVAL (MediaPipe) =====
+var mpLoaded=false;
+async function loadMediaPipe(){
+if(mpLoaded)return;
+try{
+var script=document.createElement('script');
+script.src='https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js';
+document.head.appendChild(script);
+await new Promise(function(r){script.onload=r});
+mpLoaded=true;
+}catch(e){console.warn('MediaPipe load failed:',e)}
+}
+
+async function initSegmenter(){
+if(!mpLoaded)await loadMediaPipe();
+if(!window.SelfieSegmentation)return;
+selfieSegmenter=new SelfieSegmentation({locateFile:function(file){return 'https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/'+file}});
+selfieSegmenter.setOptions({modelSelection:1,selfieMode:true});
+selfieSegmenter.onResults(function(results){
+segResults=results.segmentationMask;
+});
+// Run segmentation loop
+runSegmentation();
+}
+
+async function runSegmentation(){
+if(!selfieSegmenter||(!bgRemovalActive&&!bgBlurActive))return;
+var video=document.getElementById('recCamVideo');
+if(video&&video.readyState>=2){
+await selfieSegmenter.send({image:video});
+}
+if(bgRemovalActive||bgBlurActive)setTimeout(runSegmentation,100);
+}
+
+function toggleBgRemoval(btn){
+bgRemovalActive=!bgRemovalActive;
+if(bgBlurActive){bgBlurActive=false;document.getElementById('fxBlurBtn').classList.remove('active')}
+btn.classList.toggle('active');
+if(bgRemovalActive){
+initSegmenter();
+if(!canvasAnimId)startCanvasPipeline();
+}else{segResults=null}
+}
+
+function toggleBgBlur(btn){
+bgBlurActive=!bgBlurActive;
+if(bgRemovalActive){bgRemovalActive=false;document.getElementById('fxBgBtn').classList.remove('active')}
+btn.classList.toggle('active');
+if(bgBlurActive){
+initSegmenter();
+if(!canvasAnimId)startCanvasPipeline();
+}else{segResults=null}
+}
+
+// ===== AR FACE FILTERS (face-api.js) =====
+var faceApiLoaded=false;
+async function loadFaceApi(){
+if(faceApiLoaded)return;
+try{
+var script=document.createElement('script');
+script.src='https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js';
+document.head.appendChild(script);
+await new Promise(function(r){script.onload=r});
+await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights');
+await faceapi.nets.faceLandmark68TinyNet.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights');
+faceApiLoaded=true;
+}catch(e){console.warn('face-api load failed:',e)}
+}
+
+async function runFaceDetection(){
+if(!faceApiLoaded||faceFilterIdx===0)return;
+var video=document.getElementById('recCamVideo');
+if(video&&video.readyState>=2){
+var detections=await faceapi.detectAllFaces(video,new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks(true);
+faceResults=detections;
+}
+if(faceFilterIdx>0)setTimeout(runFaceDetection,150);
+}
+
+function cycleFaceFilter(){
+faceFilterIdx=(faceFilterIdx+1)%FACE_FILTERS.length;
+var label=document.getElementById('fxFaceLabel');
+label.textContent=FACE_FILTERS[faceFilterIdx];
+label.style.display=faceFilterIdx>0?'inline':'none';
+document.getElementById('fxFaceBtn').classList.toggle('active',faceFilterIdx>0);
+if(faceFilterIdx>0){
+loadFaceApi().then(function(){runFaceDetection()});
+if(!canvasAnimId)startCanvasPipeline();
+}else{faceResults=null}
+}
+
+function drawFaceOverlays(ctx,detections){
+detections.forEach(function(det){
+var lm=det.landmarks;
+var pts=lm.positions;
+if(!pts||pts.length<68)return;
+var leftEye=lm.getLeftEye();
+var rightEye=lm.getRightEye();
+var nose=lm.getNose();
+// Get face bounds
+var eyeL={x:leftEye.reduce(function(s,p){return s+p.x},0)/leftEye.length,y:leftEye.reduce(function(s,p){return s+p.y},0)/leftEye.length};
+var eyeR={x:rightEye.reduce(function(s,p){return s+p.x},0)/rightEye.length,y:rightEye.reduce(function(s,p){return s+p.y},0)/rightEye.length};
+var eyeDist=Math.sqrt(Math.pow(eyeR.x-eyeL.x,2)+Math.pow(eyeR.y-eyeL.y,2));
+var midX=(eyeL.x+eyeR.x)/2;
+var midY=(eyeL.y+eyeR.y)/2;
+
+if(faceFilterIdx===1){
+// Sunglasses
+ctx.save();
+ctx.font=Math.round(eyeDist*1.1)+'px Arial';
+ctx.textAlign='center';
+ctx.fillText('\u{1F576}\uFE0F',midX,midY+eyeDist*0.2);
+ctx.restore();
+}else if(faceFilterIdx===2){
+// Crown
+ctx.save();
+ctx.font=Math.round(eyeDist*1.2)+'px Arial';
+ctx.textAlign='center';
+ctx.fillText('\u{1F451}',midX,midY-eyeDist*0.8);
+ctx.restore();
+}else if(faceFilterIdx===3){
+// Stars around face
+ctx.save();
+ctx.font=Math.round(eyeDist*0.5)+'px Arial';
+ctx.fillText('\u2B50',eyeL.x-eyeDist*0.5,eyeL.y-eyeDist*0.3);
+ctx.fillText('\u2728',eyeR.x+eyeDist*0.3,eyeR.y-eyeDist*0.5);
+ctx.fillText('\u{1F31F}',midX,midY-eyeDist*1.2);
+ctx.fillText('\u2728',eyeL.x-eyeDist*0.3,midY+eyeDist*0.8);
+ctx.fillText('\u2B50',eyeR.x+eyeDist*0.5,midY+eyeDist*0.6);
+ctx.restore();
+}
+});
+}
+
+// ===== MP4 EXPORT (ffmpeg.wasm) =====
+var ffmpegInstance=null,ffmpegLoading=false;
+
+function downloadVideo(){
+if(!recordedBlob){alert('No video recorded yet');return}
+// Show format choice
+var choice=confirm('Download as MP4? (Click Cancel for WebM)');
+if(choice){exportMP4()}
+else{downloadWebM()}
+}
+
+function downloadWebM(){
+var url=URL.createObjectURL(recordedBlob);
+var a=document.createElement('a');
+a.href=url;
+a.download=(d.name||'pitch')+'-pitch-'+(d.bName||'video').replace(/[^a-zA-Z0-9]/g,'-')+'.webm';
+document.body.appendChild(a);a.click();document.body.removeChild(a);
+setTimeout(function(){URL.revokeObjectURL(url)},5000);
+}
+
+async function exportMP4(){
+if(!recordedBlob){return}
+var modal=document.getElementById('exportModalBg');
+modal.classList.add('show');
+document.getElementById('exportProgressFill').style.width='10%';
+document.getElementById('exportStatus').textContent='Loading MP4 converter (first time may take a moment)...';
+try{
+if(!ffmpegInstance){
+var script=document.createElement('script');
+script.src='https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.min.js';
+document.head.appendChild(script);
+await new Promise(function(r){script.onload=r});
+var utilScript=document.createElement('script');
+utilScript.src='https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/util.min.js';
+document.head.appendChild(utilScript);
+await new Promise(function(r){utilScript.onload=r});
+ffmpegInstance=new FFmpeg.FFmpeg();
+ffmpegInstance.on('progress',function(p){
+var pct=Math.round((p.progress||0)*100);
+document.getElementById('exportProgressFill').style.width=Math.max(20,Math.min(90,pct))+'%';
+document.getElementById('exportStatus').textContent='Converting... '+pct+'%';
+});
+await ffmpegInstance.load({coreURL:'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js'});
+}
+document.getElementById('exportProgressFill').style.width='20%';
+document.getElementById('exportStatus').textContent='Converting to MP4...';
+var data=new Uint8Array(await recordedBlob.arrayBuffer());
+await ffmpegInstance.writeFile('input.webm',data);
+await ffmpegInstance.exec(['-i','input.webm','-c:v','libx264','-preset','fast','-crf','28','-c:a','aac','-movflags','+faststart','output.mp4']);
+var outData=await ffmpegInstance.readFile('output.mp4');
+var mp4Blob=new Blob([outData.buffer],{type:'video/mp4'});
+document.getElementById('exportProgressFill').style.width='100%';
+document.getElementById('exportStatus').textContent='Done! Downloading...';
+var url=URL.createObjectURL(mp4Blob);
+var a=document.createElement('a');
+a.href=url;
+a.download=(d.name||'pitch')+'-pitch-'+(d.bName||'video').replace(/[^a-zA-Z0-9]/g,'-')+'.mp4';
+document.body.appendChild(a);a.click();document.body.removeChild(a);
+setTimeout(function(){URL.revokeObjectURL(url);modal.classList.remove('show')},1500);
+}catch(e){
+console.error('MP4 export failed:',e);
+document.getElementById('exportStatus').textContent='MP4 export failed. Downloading as WebM instead...';
+setTimeout(function(){downloadWebM();modal.classList.remove('show')},1500);
+}
+}
+
+function cancelExport(){document.getElementById('exportModalBg').classList.remove('show')}
+
+// ===== COMMUNITY GALLERY (Firebase) =====
+var galleryPitches=[];
+var galleryFilter='all';
+
+async function loadGallery(){
+try{
+var appMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js');
+var fsMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js');
+var cfg={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
+var app;try{app=appMod.getApp()}catch(e){app=appMod.initializeApp(cfg)}
+var db=fsMod.getFirestore(app);
+var q=fsMod.query(fsMod.collection(db,'pitchGallery'),fsMod.orderBy('sharedAt','desc'),fsMod.limit(50));
+var snap=await fsMod.getDocs(q);
+galleryPitches=[];
+snap.forEach(function(doc){galleryPitches.push(Object.assign({id:doc.id},doc.data()))});
+renderGallery();
+}catch(e){console.warn('Gallery load failed:',e);renderGallery()}
+}
+
+function renderGallery(){
+var grid=document.getElementById('galleryGrid');
+var list=galleryPitches.slice();
+if(galleryFilter==='trending')list.sort(function(a,b){return(b.likes||0)-(a.likes||0)});
+if(list.length===0){
+grid.innerHTML='<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:40px"><span style="font-size:48px">\u{1F30D}</span><p style="color:var(--text2);font-size:15px;margin-top:12px">No pitches shared yet! Be the first to share yours!</p></div>';
+return;
+}
+var h='';
+list.forEach(function(p){
+var date=p.sharedAt?new Date(p.sharedAt).toLocaleDateString():'';
+var pitch=(p.pitchText||'').substring(0,150);
+h+='<div class="gallery-card">';
+h+='<div class="gc-name">'+esc(p.studentName||'Anonymous')+'</div>';
+h+='<div class="gc-biz">'+esc(p.businessName||'Untitled Business')+'</div>';
+h+='<div class="gc-pitch">'+esc(pitch)+(pitch.length>=150?'...':'')+'</div>';
+h+='<div class="gc-meta"><span>'+date+'</span>';
+h+='<button class="gc-likes" onclick="likeGalleryPitch(\''+p.id+'\')">&#x2764;&#xFE0F; '+(p.likes||0)+'</button>';
+h+='</div></div>';
+});
+grid.innerHTML=h;
+}
+
+function filterGallery(type,btn){
+galleryFilter=type;
+var chips=btn.parentElement.querySelectorAll('.filter-chip');
+for(var i=0;i<chips.length;i++)chips[i].classList.remove('active');
+btn.classList.add('active');
+renderGallery();
+}
+
+async function sharePitch(){
+var projects=getProjects();
+var completed=projects.filter(function(p){return p.completedStep>=7});
+if(completed.length===0){alert('Complete a pitch first before sharing!');return}
+// If multiple, use latest completed
+var p=completed[completed.length-1];
+var dd=p.data||{};
+if(!dd.bName){alert('Your pitch needs a business name to share!');return}
+if(!confirm('Share "'+dd.bName+'" to the Community Gallery? Other students will be able to see your pitch.'))return;
+try{
+var appMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js');
+var fsMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js');
+var cfg={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
+var app;try{app=appMod.getApp()}catch(e){app=appMod.initializeApp(cfg)}
+var db=fsMod.getFirestore(app);
+await fsMod.addDoc(fsMod.collection(db,'pitchGallery'),{
+studentName:p.name||'Anonymous',
+businessName:dd.bName,
+businessDesc:dd.bDesc||'',
+problem:dd.prob||'',
+pitchText:p.pitchText||'',
+likes:0,
+sharedAt:new Date().toISOString(),
+ageMode:p.ageMode||'boss'
+});
+alert('Your pitch has been shared to the Gallery!');
+loadGallery();
+}catch(e){alert('Could not share pitch. Please try again.');console.error(e)}
+}
+
+async function likeGalleryPitch(id){
+try{
+var appMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js');
+var fsMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js');
+var cfg={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
+var app;try{app=appMod.getApp()}catch(e){app=appMod.initializeApp(cfg)}
+var db=fsMod.getFirestore(app);
+var ref=fsMod.doc(db,'pitchGallery',id);
+await fsMod.updateDoc(ref,{likes:fsMod.increment(1)});
+// Update locally
+galleryPitches.forEach(function(p){if(p.id===id)p.likes=(p.likes||0)+1});
+renderGallery();
+}catch(e){console.warn('Like failed:',e)}
 }
 
 // ===== ORIGINAL STEP DATA =====
@@ -1367,6 +1801,17 @@ document.getElementById('recCamIndicator').style.display='none';
 document.getElementById('recCamTimer').style.display='none';
 document.getElementById('recCountdownOverlay').style.display='none';
 document.getElementById('recModalTimer').style.display='none';
+// Reset FX state
+bgRemovalActive=false;bgBlurActive=false;faceFilterIdx=0;segResults=null;faceResults=null;
+var fxBg=document.getElementById('fxBgBtn');if(fxBg)fxBg.classList.remove('active');
+var fxBl=document.getElementById('fxBlurBtn');if(fxBl)fxBl.classList.remove('active');
+var fxFa=document.getElementById('fxFaceBtn');if(fxFa)fxFa.classList.remove('active');
+var fxLbl=document.getElementById('fxFaceLabel');if(fxLbl){fxLbl.textContent='Off';fxLbl.style.display='none'}
+stopCanvasPipeline();
+// Reset filter to none
+activeFilter='none';
+var filterChips=document.querySelectorAll('#studioFilterBar .filter-chip');
+for(var i=0;i<filterChips.length;i++){filterChips[i].classList.remove('active');if(i===0)filterChips[i].classList.add('active')}
 // Reset scroll speed and layout
 scrollSpeedIdx=2;
 document.getElementById('scrollSpeedLabel').textContent='1x';
@@ -1387,10 +1832,13 @@ closeRecordModal();
 
 function closeRecordModal(){
 stopScrolling();
+stopCanvasPipeline();
 if(mediaRecorder&&mediaRecorder.state!=='inactive'){try{mediaRecorder.stop()}catch(e){}}
 if(cameraStream){cameraStream.getTracks().forEach(function(t){t.stop()});cameraStream=null}
 clearInterval(recTimerInterval);
 document.getElementById('recModalBg').classList.remove('show');
+// Reset video filter
+var v=document.getElementById('recCamVideo');if(v)v.style.filter='none';
 }
 
 function startCountdown(){
@@ -1425,9 +1873,13 @@ function startModalRecording(){
 if(!cameraStream)return;
 recordedChunks=[];
 recSeconds=0;
+// Use canvas pipeline if any FX are active (filter, BG removal, face filter)
+var useCanvas=activeFilter!=='none'||bgRemovalActive||bgBlurActive||faceFilterIdx>0;
+if(useCanvas&&!canvasAnimId)startCanvasPipeline();
+var recStream=useCanvas&&canvasStream?canvasStream:cameraStream;
 var options={mimeType:'video/webm;codecs=vp8,opus'};
-try{mediaRecorder=new MediaRecorder(cameraStream,options)}catch(e){
-try{mediaRecorder=new MediaRecorder(cameraStream)}catch(e2){alert('Recording not supported');return}
+try{mediaRecorder=new MediaRecorder(recStream,options)}catch(e){
+try{mediaRecorder=new MediaRecorder(recStream)}catch(e2){alert('Recording not supported');return}
 }
 mediaRecorder.ondataavailable=function(e){if(e.data.size>0)recordedChunks.push(e.data)};
 mediaRecorder.onstop=function(){
@@ -1480,9 +1932,12 @@ document.getElementById('recCamFeed').style.display='flex';
 document.getElementById('recCamTimer').style.display='none';
 document.getElementById('recCamTimer').style.color='var(--gold)';
 document.getElementById('recTpBody').scrollTop=0;
+stopCanvasPipeline();
 try{
 cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},audio:true});
 document.getElementById('recCamVideo').srcObject=cameraStream;
+// Reapply filter to video element
+var v=document.getElementById('recCamVideo');if(v)v.style.filter=FILTERS[activeFilter]||'none';
 document.getElementById('recCamControls').innerHTML='<button class="btn-record" onclick="startCountdown()" style="font-size:18px;padding:16px 32px">\u{1F534} Record</button><button class="btn btn-small btn-gray" onclick="closeRecordModal()">Cancel</button>';
 }catch(e){alert('Could not access camera.');closeRecordModal()}
 }
@@ -1490,16 +1945,6 @@ document.getElementById('recCamControls').innerHTML='<button class="btn-record" 
 function keepRecording(){
 closeRecordModal();
 document.getElementById('recSavedMsg').innerHTML='<div style="color:var(--accent);font-weight:700;font-size:16px;padding:12px;text-align:center;background:rgba(6,214,160,.1);border-radius:12px;margin-bottom:12px">\u2705 Video saved! It will be submitted with your pitch.<br><button onclick="downloadVideo()" style="margin-top:8px;background:var(--accent2);color:#fff;border:none;padding:8px 16px;border-radius:10px;font-family:Fredoka,sans-serif;font-weight:600;font-size:14px;cursor:pointer">\u2B07\uFE0F Download Video</button></div>';
-}
-
-function downloadVideo(){
-if(!recordedBlob){alert('No video recorded yet');return}
-var url=URL.createObjectURL(recordedBlob);
-var a=document.createElement('a');
-a.href=url;
-a.download=(d.name||'pitch')+'-pitch-'+(d.bName||'video').replace(/[^a-zA-Z0-9]/g,'-')+'.webm';
-document.body.appendChild(a);a.click();document.body.removeChild(a);
-setTimeout(function(){URL.revokeObjectURL(url)},5000);
 }
 
 // Teleprompter auto-scroll
