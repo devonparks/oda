@@ -793,7 +793,7 @@ if(!exists){
 local.push({
 id:projId,name:fp.name||'',ageMode:fp.ageMode||'boss',studentId:fp.studentId,
 data:fp.data||{},pitchText:fp.pitchText||'',completedStep:fp.completedStep||0,
-hasRecording:fp.hasRecording||false,status:fp.status||'draft',
+hasRecording:fp.hasRecording||false,videoUrl:fp.videoUrl||null,status:fp.status||'draft',
 createdAt:fp.updatedAt||new Date().toISOString(),updatedAt:fp.updatedAt||new Date().toISOString()
 });
 merged=true;
@@ -806,6 +806,7 @@ localProj.data=fp.data||localProj.data;
 localProj.pitchText=fp.pitchText||localProj.pitchText;
 localProj.completedStep=fp.completedStep||localProj.completedStep;
 localProj.status=fp.status||localProj.status;
+if(fp.videoUrl)localProj.videoUrl=fp.videoUrl;
 localProj.updatedAt=fp.updatedAt;
 merged=true;
 }
@@ -977,6 +978,7 @@ studentId:sessionStorage.getItem('studentId')||null,
 data:{pCat:d.pCat,prob:d.prob,skills:d.skills,cSkill:d.cSkill,bName:d.bName,bDesc:d.bDesc,custs:d.custs,a1:d.a1,a2:d.a2,a3:d.a3,hook:d.hook,cta:d.cta},
 pitchText:pitchText||document.getElementById('pitchEditArea').value||'',
 completedStep:cs,hasRecording:!!recordedBlob,
+videoUrl:idx>=0?(all[idx].videoUrl||null):null,
 status:cs>=8?'completed':'draft',
 createdAt:idx>=0?(all[idx].createdAt||new Date().toISOString()):new Date().toISOString(),
 updatedAt:new Date().toISOString()
@@ -1125,10 +1127,12 @@ presentSlides=[
 if(p.pitchText){
 presentSlides.splice(5,0,{emoji:'\u{1F3AC}',title:'The Full Pitch',subtitle:'',content:'<div style="font-size:18px;text-align:left;line-height:2">'+esc(p.pitchText).replace(/\n/g,'<br>')+'</div>'});
 }
-// Add video slide if recorded
-if(recordedBlob){
-var vidUrl=URL.createObjectURL(recordedBlob);
-presentSlides.splice(presentSlides.length-1,0,{emoji:'\u{1F4F9}',title:'Video Recording',subtitle:'Watch the pitch!',content:'<video src="'+vidUrl+'" controls playsinline style="max-width:100%;max-height:450px;border-radius:14px;background:#000"></video>'});
+// Add video slide if recorded or has saved video URL
+var vidUrl=null;
+if(recordedBlob){vidUrl=URL.createObjectURL(recordedBlob)}
+else if(p.videoUrl){vidUrl=p.videoUrl}
+if(vidUrl){
+presentSlides.splice(presentSlides.length-1,0,{emoji:'\u{1F4F9}',title:'My Pitch Video',subtitle:'Watch it!',content:'<div style="position:relative;display:inline-block;cursor:pointer" id="vidSlideWrap"><video id="presentVideo" src="'+esc(vidUrl)+'" playsinline style="max-width:100%;max-height:420px;border-radius:16px;background:#000;display:block"></video><div id="vidPlayBtn" onclick="var v=document.getElementById(\'presentVideo\');v.play();this.style.display=\'none\';v.setAttribute(\'controls\',\'\')" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80px;height:80px;background:rgba(0,0,0,.55);border-radius:50%;display:flex;align-items:center;justify-content:center;transition:transform .2s"><div style="width:0;height:0;border-style:solid;border-width:18px 0 18px 32px;border-color:transparent transparent transparent #fff;margin-left:6px"></div></div></div>'});
 }
 presentIdx=0;
 renderSlide();
@@ -1489,7 +1493,7 @@ if(resp.pitchText){
 presentSlides.push({emoji:'\u{1F3AC}',title:'The Full Pitch',subtitle:'',content:'<div style="font-size:18px;text-align:left;line-height:2">'+esc(resp.pitchText).replace(/\n/g,'<br>')+'</div>'});
 }
 if(resp.videoUrl){
-presentSlides.push({emoji:'\u{1F4F9}',title:'Video Recording',subtitle:'Watch the pitch!',content:'<video src="'+esc(resp.videoUrl)+'" controls playsinline style="max-width:100%;max-height:450px;border-radius:14px;background:#000"></video>'});
+presentSlides.push({emoji:'\u{1F4F9}',title:'My Pitch Video',subtitle:'Watch it!',content:'<div style="position:relative;display:inline-block;cursor:pointer"><video id="presentVideo" src="'+esc(resp.videoUrl)+'" playsinline style="max-width:100%;max-height:420px;border-radius:16px;background:#000;display:block"></video><div id="vidPlayBtn" onclick="var v=document.getElementById(\'presentVideo\');v.play();this.style.display=\'none\';v.setAttribute(\'controls\',\'\')" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80px;height:80px;background:rgba(0,0,0,.55);border-radius:50%;display:flex;align-items:center;justify-content:center;transition:transform .2s"><div style="width:0;height:0;border-style:solid;border-width:18px 0 18px 32px;border-color:transparent transparent transparent #fff;margin-left:6px"></div></div></div>'});
 }
 presentSlides.push({emoji:'\u{1F4E3}',title:'Get Started!',subtitle:resp.callToAction||'',content:'<strong>Thank you!</strong>'});
 presentIdx=0;renderSlide();renderDots();
@@ -2026,6 +2030,30 @@ document.getElementById('recCamControls').innerHTML='<button class="btn-record" 
 function keepRecording(){
 closeRecordModal();
 document.getElementById('recSavedMsg').innerHTML='<div style="color:var(--accent);font-weight:700;font-size:16px;padding:12px;text-align:center;background:rgba(6,214,160,.1);border-radius:12px;margin-bottom:12px">\u2705 Video saved! It will be submitted with your pitch.<br><button onclick="downloadVideo()" style="margin-top:8px;background:var(--accent2);color:#fff;border:none;padding:8px 16px;border-radius:10px;font-family:Fredoka,sans-serif;font-weight:600;font-size:14px;cursor:pointer">\u2B07\uFE0F Download Video</button></div>';
+uploadVideoInBackground();
+}
+
+async function uploadVideoInBackground(){
+if(!recordedBlob||!currentProjectId)return;
+var sid=sessionStorage.getItem('studentId');
+if(!sid)return;
+try{
+var appMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js');
+var storageMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-storage.js');
+var app;try{app=appMod.getApp()}catch(e){app=appMod.initializeApp(ODA_FB_CFG)}
+var storage=storageMod.getStorage(app);
+var path='pitch-videos/'+sid+'_'+currentProjectId+'_'+Date.now()+'.webm';
+var sRef=storageMod.ref(storage,path);
+await storageMod.uploadBytes(sRef,recordedBlob);
+var url=await storageMod.getDownloadURL(sRef);
+var all=getAllProjects();
+var proj=all.find(function(p){return p.id===currentProjectId});
+if(proj){proj.videoUrl=url;saveProjects(all)}
+var fsMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js');
+var db=fsMod.getFirestore(app);
+fsMod.setDoc(fsMod.doc(db,'pitchProjects',sid+'_'+currentProjectId),{videoUrl:url},{merge:true});
+showToast('Video uploaded \u2601\uFE0F','success');
+}catch(e){console.warn('Background video upload failed:',e.message)}
 }
 
 // Teleprompter auto-scroll
