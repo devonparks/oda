@@ -1588,22 +1588,22 @@ try{pitchParsed=JSON.parse(a.studentResponse)}catch(e){}
 if(pitchParsed&&pitchParsed.businessName){
 h+='<div class="grade-work">';
 h+='<div style="font-family:Fredoka,sans-serif;font-weight:700;font-size:18px;margin-bottom:14px;color:var(--accent)">\u{1F3A4} '+esc(pitchParsed.businessName)+'</div>';
-h+='<div class="gw-value"><div class="gw-label">Problem</div>'+esc(pitchParsed.problem||'')+'</div>';
-h+='<div class="gw-value"><div class="gw-label">Business Description</div>'+esc(pitchParsed.businessDesc||'')+'</div>';
+h+='<div class="gw-value"><div class="gw-label">Problem</div>'+esc(stripMd(pitchParsed.problem||''))+'</div>';
+h+='<div class="gw-value"><div class="gw-label">Business Description</div>'+esc(stripMd(pitchParsed.businessDesc||''))+'</div>';
 if(pitchParsed.skills&&pitchParsed.skills.length)h+='<div class="gw-value"><div class="gw-label">Skills</div>'+esc(pitchParsed.skills.join(', '))+'</div>';
 if(pitchParsed.customers&&pitchParsed.customers.length)h+='<div class="gw-value"><div class="gw-label">Customers</div>'+esc(pitchParsed.customers.join(', '))+'</div>';
-if(pitchParsed.advantages&&pitchParsed.advantages.length)h+='<div class="gw-value"><div class="gw-label">Advantages</div>'+esc(pitchParsed.advantages.join(' \u2022 '))+'</div>';
+if(pitchParsed.advantages&&pitchParsed.advantages.length)h+='<div class="gw-value"><div class="gw-label">Advantages</div>'+esc(stripMd(pitchParsed.advantages.join(' \u2022 ')))+'</div>';
 
 h+='<div class="gw-section"><div class="gw-label">Full Pitch</div><div class="gw-pitch">';
-if(pitchParsed.hook)h+=esc(pitchParsed.hook)+'<br><br>';
-h+='My business is called <strong>'+esc(pitchParsed.businessName)+'</strong>. '+esc(pitchParsed.businessDesc||'')+'<br><br>';
-if(pitchParsed.advantages){pitchParsed.advantages.forEach(function(av){h+='\u{1F3C6} '+esc(av)+'<br>'})}
-if(pitchParsed.callToAction)h+='<br><strong>'+esc(pitchParsed.callToAction)+'</strong>';
+if(pitchParsed.hook)h+=esc(stripMd(pitchParsed.hook))+'<br><br>';
+h+='My business is called <strong>'+esc(pitchParsed.businessName)+'</strong>. '+esc(stripMd(pitchParsed.businessDesc||''))+'<br><br>';
+if(pitchParsed.advantages){pitchParsed.advantages.forEach(function(av){h+='\u{1F3C6} '+esc(stripMd(av))+'<br>'})}
+if(pitchParsed.callToAction)h+='<br><strong>'+esc(stripMd(pitchParsed.callToAction))+'</strong>';
 h+='</div></div>';
 
 if(pitchParsed.videoUrl)h+='<div class="gw-section"><div class="gw-label">\u{1F3AC} Video Recording</div><div style="margin-top:8px"><video controls playsinline style="width:100%;max-height:360px;border-radius:10px;background:#000" src="'+esc(pitchParsed.videoUrl)+'"></video></div></div>';
-if(pitchParsed.aiCoachFeedback)h+='<div class="gw-section"><div class="gw-label">\u{1F9E0} AI Coach Feedback</div><div style="margin-top:6px;padding:12px;background:rgba(17,138,178,.08);border-radius:10px;font-size:14px;line-height:1.7">'+esc(pitchParsed.aiCoachFeedback)+'</div></div>';
-if(pitchParsed.polishedPitch)h+='<div class="gw-section"><div class="gw-label">\u2728 AI-Polished Pitch</div><div style="margin-top:6px;padding:12px;background:rgba(6,214,160,.08);border-radius:10px;font-size:14px;font-style:italic;line-height:1.7">'+esc(pitchParsed.polishedPitch)+'</div></div>';
+if(pitchParsed.aiCoachFeedback)h+='<div class="gw-section"><div class="gw-label">\u{1F9E0} AI Coach Feedback</div><div style="margin-top:6px;padding:12px;background:rgba(17,138,178,.08);border-radius:10px;font-size:14px;line-height:1.7">'+esc(stripMd(pitchParsed.aiCoachFeedback))+'</div></div>';
+if(pitchParsed.polishedPitch)h+='<div class="gw-section"><div class="gw-label">\u2728 AI-Polished Pitch</div><div style="margin-top:6px;padding:12px;background:rgba(6,214,160,.08);border-radius:10px;font-size:14px;font-style:italic;line-height:1.7">'+esc(stripMd(pitchParsed.polishedPitch))+'</div></div>';
 if(pitchParsed.score)h+='<div class="gw-section"><div class="gw-label">\u2B50 Scorecard</div><div style="font-size:18px;font-weight:700;color:var(--gold);margin-top:4px">'+(pitchParsed.score.total||0)+'/'+(pitchParsed.score.max||6)+' Stars</div></div>';
 h+='</div>';
 }else if(pitchParsed&&pitchParsed.answers){
@@ -1640,8 +1640,8 @@ if(a.linkUrl){
 h+='<div style="margin-bottom:18px"><a href="'+esc(a.linkUrl)+'" target="_blank" class="btn btn-blue btn-sm">Open Link &#x1F517;</a></div>';
 }
 
-// Grading section
-if(a.gradingType==='teacher'&&(a.status==='submitted'||a.status==='pending'||a.status==='returned')){
+// Grading section — show for any submitted/pending/returned work
+if(a.status==='submitted'||a.status==='pending'||a.status==='returned'){
 h+='<div class="grade-actions">';
 h+='<div class="ga-title">Grade This Assignment</div>';
 h+='<div class="grade-score-row">';
@@ -1844,6 +1844,7 @@ function logout(){window.fbSignOut(window.fbAuth).then(function(){window.locatio
 window.logout=logout;
 
 function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function stripMd(t){if(!t)return'';return t.replace(/^#{1,6}\s+/gm,'').replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1').replace(/__(.+?)__/g,'$1').replace(/_(.+?)_/g,'$1').replace(/^[-*]\s+/gm,'').replace(/^---+$/gm,'').replace(/`(.+?)`/g,'$1').replace(/^\s*\n/gm,'\n').trim()}
 document.addEventListener('keydown',function(e){
 if(e.key==='Escape'){
 var modals=[['assignModal',closeAssignModal],['classModal',closeClassModal],['addStudentModal',closeAddStudentModal],['createAssignModal',closeCreateAssignment],['gradePanel',closeGradePanel],['aiGenModal',closeAiGen],['aiDiffModal',closeAiDiff]];
