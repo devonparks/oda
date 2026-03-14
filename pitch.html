@@ -93,6 +93,16 @@ textarea.fun-input::placeholder{color:#3a4560}
 .scorecard-item .label{color:var(--text2)}
 .scorecard-item.earned .label{color:var(--text)}
 .scorecard-total{text-align:center;margin-top:16px;font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;color:var(--gold)}
+.scorecard-msg{text-align:center;margin-top:8px;font-size:14px;font-weight:600;color:var(--text2)}
+/* Pitch strength meter */
+.strength-meter{margin-bottom:20px}
+.strength-label{font-family:'Space Mono',monospace;font-size:11px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;text-align:center;display:flex;justify-content:space-between;align-items:center}
+.strength-bar{height:12px;border-radius:8px;background:var(--surface2);overflow:hidden}
+.strength-fill{height:100%;border-radius:8px;transition:width .8s cubic-bezier(.34,1.56,.64,1)}
+.strength-fill.low{background:var(--accent3)}
+.strength-fill.mid{background:var(--gold)}
+.strength-fill.high{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.word-count{text-align:center;font-size:13px;color:var(--text2);font-weight:600;margin-bottom:12px}
 
 /* Timer */
 .timer-display{font-size:72px;font-family:'Fredoka',sans-serif;font-weight:700;color:var(--accent2);text-align:center;margin-bottom:8px;transition:color .3s}
@@ -254,6 +264,8 @@ textarea.fun-input::placeholder{color:#3a4560}
 
 <div class="pitch-display"><div class="pitch-label" id="pitchNameLabel"></div><div class="pitch-text" id="pitchFullText"></div></div>
 
+<div class="word-count" id="wordCount"></div>
+<div class="strength-meter" id="strengthMeter"></div>
 <div class="scorecard" id="scorecard"></div>
 
 <div class="tip"><span style="font-size:20px">&#x1F4A1;</span><span class="tip-text"><strong>Teacher Tip:</strong> PIPES: Projection (speak up!), Inflection (don't be monotone), Pace (not too fast), Eye Contact (look at camera), Stance (stand tall!). Practice 3+ times!</span></div>
@@ -368,9 +380,13 @@ document.getElementById("pitchFullText").innerHTML=p;
 // ===== SCORECARD =====
 function renderScorecard(){
 var av=[d.a1,d.a2,d.a3].filter(function(a){return a});
-var wordCount=0;
 var plainText=d.hook+' My business is called '+d.bName+'. '+d.bDesc+' '+av.join(' ')+' '+(d.cta||'');
-wordCount=plainText.trim().split(/\s+/).length;
+var wc=plainText.trim().split(/\s+/).length;
+
+// Word count
+var wcEl=document.getElementById('wordCount');
+var wcMsg=wc<30?wc+' words \u2014 try adding more detail!':wc<=80?wc+' words \u2014 great length!':wc+' words \u2014 nice and detailed!';
+wcEl.textContent='\u{1F4AC} '+wcMsg;
 
 var criteria=[
 {key:'hook',label:'Hook Power',emoji:'\u{1FA9D}',earned:d.hook.trim().length>20},
@@ -389,6 +405,14 @@ if(c.earned)total++;
 h+='<div class="scorecard-item'+(c.earned?' earned':'')+'"><span class="star">'+(c.earned?'\u2B50':'\u2606')+'</span><span class="label">'+c.emoji+' '+c.label+'</span></div>';
 }
 h+='</div><div class="scorecard-total">'+total+'/'+criteria.length+' Stars</div>';
+var msgs=['Keep going! You can earn more stars!','Good start! A few more details will level you up!','Nice work! You\'re getting there!','Great pitch! Almost perfect!','Amazing! You\'re a pitch pro!','PERFECT SCORE! You crushed it! \u{1F525}'];
+h+='<div class="scorecard-msg">'+(msgs[total]||msgs[5])+'</div>';
+
+// Strength meter
+var pct=Math.round(total/criteria.length*100);
+var level=pct<50?'low':pct<84?'mid':'high';
+var sm=document.getElementById('strengthMeter');
+sm.innerHTML='<div class="strength-label"><span>PITCH STRENGTH</span><span>'+pct+'%</span></div><div class="strength-bar"><div class="strength-fill '+level+'" style="width:'+pct+'%"></div></div>';
 
 pitchScore={total:total,max:criteria.length,details:criteria};
 document.getElementById("scorecard").innerHTML=h;

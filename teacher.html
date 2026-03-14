@@ -159,6 +159,9 @@ select.settings-input{cursor:pointer}
 .due-field label{font-size:11px;font-weight:700;color:var(--text2);display:block;margin-bottom:4px;letter-spacing:.5px}
 .due-field input{width:100%;padding:10px;background:var(--bg);border:2px solid var(--border);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;outline:none}
 .due-field input:focus{border-color:var(--accent)}
+.date-input-big{width:100%;padding:14px 16px;background:var(--bg);border:2px solid var(--border);border-radius:14px;color:var(--text);font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;outline:none;cursor:pointer;transition:all .15s}
+.date-input-big:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(6,214,160,.15)}
+.date-input-big::-webkit-calendar-picker-indicator{filter:invert(1);cursor:pointer;font-size:20px;padding:4px}
 
 /* Class modal */
 .class-input{width:100%;padding:12px;background:var(--bg);border:2px solid var(--border);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:16px;outline:none;margin-bottom:12px}
@@ -597,9 +600,10 @@ select.settings-input{cursor:pointer}
 <div class="fg"><label>Grading</label><select id="createAssignGrading"><option value="teacher">Teacher Graded</option><option value="completion">Completion Only</option></select></div>
 </div>
 <div class="type-panel" id="panel-templates">
+<div style="font-size:12px;color:var(--text2);margin-bottom:10px;font-weight:600">Click a template to load it, then assign to students.</div>
 <div class="tmpl-list" id="templateList"></div>
 </div>
-<div class="fg" id="fgDueDate"><label>Due Date</label><input type="date" id="createDueDate"></div>
+<div class="fg" id="fgDueDate"><label>Due Date</label><input type="date" id="createDueDate" class="date-input-big"></div>
 <div class="fg" id="studentPickerWrap"><label>Assign To</label>
 <div class="sp-controls">
 <button class="btn btn-outline btn-sm" onclick="spSelectAll()">Select All</button>
@@ -682,7 +686,7 @@ try{
 var tDoc=await getDoc(doc(db,'teachers',user.uid));
 if(tDoc.exists()){window.teacherData=tDoc.data()}
 else{
-var td={name:user.displayName||user.email,email:user.email,school:'',classes:['All Students'],classCode:String(Math.floor(100000+Math.random()*900000)),createdAt:new Date().toISOString()};
+var td={name:user.displayName||user.email,email:user.email,school:'',classes:[],classCode:String(Math.floor(100000+Math.random()*900000)),createdAt:new Date().toISOString()};
 await setDoc(doc(db,'teachers',user.uid),td);
 window.teacherData=td;
 }
@@ -731,18 +735,17 @@ window.switchTab=switchTab;
 
 // ===== CLASSES =====
 function loadClasses(){
-var classes=window.teacherData&&window.teacherData.classes?window.teacherData.classes:['All Students'];
-if(classes.indexOf('All Students')===-1)classes.unshift('All Students');
+var classes=window.teacherData&&window.teacherData.classes?window.teacherData.classes.filter(function(c){return c!=='All Students'}):[];
 renderClassTabs(classes);
 }
 
 function renderClassTabs(classes){
 var el=document.getElementById('classTabs');
-var h='';
+var h='<button class="class-tab'+(currentClass==='All Students'?' active':'')+'" onclick="filterClass(\'All Students\')">All Students</button>';
 for(var i=0;i<classes.length;i++){
 h+='<button class="class-tab'+(classes[i]===currentClass?' active':'')+'" onclick="filterClass(\''+esc(classes[i])+'\')">';
 h+=esc(classes[i]);
-if(classes[i]!=='All Students')h+=' <span onclick="event.stopPropagation();deleteClass(\''+esc(classes[i])+'\')" style="margin-left:4px;opacity:.5;cursor:pointer">&times;</span>';
+h+=' <span onclick="event.stopPropagation();deleteClass(\''+esc(classes[i])+'\')" style="margin-left:4px;opacity:.5;cursor:pointer">&times;</span>';
 h+='</button>';
 }
 el.innerHTML=h;
@@ -761,10 +764,10 @@ window.openClassModal=openClassModal;window.closeClassModal=closeClassModal;
 
 function openAddStudentModal(){
 var sel=document.getElementById('addStudentClass');
-var classes=window.teacherData&&window.teacherData.classes?window.teacherData.classes:[];
-var h='<option value="">(Unassigned)</option>';
+var classes=window.teacherData&&window.teacherData.classes?window.teacherData.classes.filter(function(c){return c!=='All Students'}):[];
+if(!classes.length){alert('Create a class first before adding students.');openClassModal();return}
+var h='<option value="">Choose a class...</option>';
 for(var i=0;i<classes.length;i++){
-if(classes[i]==='All Students')continue;
 var isSelected=currentClass!=='All Students'&&classes[i]===currentClass;
 h+='<option value="'+esc(classes[i])+'"'+(isSelected?' selected':'')+'>'+esc(classes[i])+'</option>';
 }
@@ -854,7 +857,7 @@ window.regenerateClassCode=regenerateClassCode;
 async function createClass(){
 var name=document.getElementById('className').value.trim();
 if(!name)return;
-var classes=window.teacherData.classes||['All Students'];
+var classes=(window.teacherData.classes||[]).filter(function(c){return c!=='All Students'});
 if(classes.indexOf(name)===-1)classes.push(name);
 try{
 await window.fbUpdateDoc(window.fbDoc(window.fbDb,'teachers',window.currentTeacher.uid),{classes:classes});
@@ -928,7 +931,7 @@ var el=document.getElementById('studentList');
 var filtered=currentClass==='All Students'?students:students.filter(function(s){return s.className===currentClass});
 document.getElementById('rosterCount').textContent='('+filtered.length+')';
 
-if(!filtered.length){el.innerHTML='<div class="empty-state"><span class="emoji">&#x1F393;</span><p>No students'+(currentClass!=='All Students'?' in this class':'')+'.</p></div>';return}
+if(!filtered.length){el.innerHTML='<div class="empty-state"><span class="emoji">&#x1F393;</span><p>No students'+(currentClass!=='All Students'?' in this class':' yet. Create a class and add students to get started!')+'</p></div>';return}
 filtered.sort(function(a,b){return(a.name||'').localeCompare(b.name||'')});
 
 var h='';
@@ -943,7 +946,7 @@ if(pending>0){badge=pending+' pending';badgeClass='badge-pending'}
 else if(completed>0){badge='All done';badgeClass='badge-done'}
 else{badge='No tasks';badgeClass='badge-idle'}
 h+='<div class="s-row" onclick="openProfile(\''+s.id+'\')">';
-h+='<div class="s-info"><div class="s-avatar">'+init+'</div><div><div class="s-name">'+esc(s.name)+'</div><div class="s-meta">Grade '+esc(s.grade||'?')+(s.className&&s.className!=='All Students'?' • '+esc(s.className):'')+'</div></div></div>';
+h+='<div class="s-info"><div class="s-avatar">'+init+'</div><div><div class="s-name">'+esc(s.name)+'</div><div class="s-meta">Grade '+esc(s.grade||'?')+(s.className?' • '+esc(s.className):'')+'</div></div></div>';
 h+='<div class="s-right"><span class="s-code">'+esc(s.code)+'</span><span class="s-badge '+badgeClass+'">'+badge+'</span></div>';
 h+='</div>';
 }
@@ -955,6 +958,7 @@ var name=document.getElementById('addStudentName').value.trim();
 var grade=document.getElementById('addStudentGrade').value.trim();
 var className=document.getElementById('addStudentClass').value;
 if(!name)return;
+if(!className){alert('Please select a class for this student.');return}
 var code=String(Math.floor(1000+Math.random()*9000));
 try{
 await window.fbAddDoc(window.fbCollection(window.fbDb,'students'),{
@@ -1275,18 +1279,18 @@ if(type==='templates')loadTemplates();
 window.switchCreateTab=switchCreateTab;
 
 function populateClassFilters(){
-var classes=window.teacherData&&window.teacherData.classes?window.teacherData.classes:['All Students'];
+var classes=window.teacherData&&window.teacherData.classes?window.teacherData.classes.filter(function(c){return c!=='All Students'}):[];
 var fc=document.getElementById('filterClass');
 if(fc){
 var val=fc.value;
 fc.innerHTML='<option value="">All Classes</option>';
-classes.forEach(function(c){if(c!=='All Students')fc.innerHTML+='<option value="'+esc(c)+'">'+esc(c)+'</option>'});
+classes.forEach(function(c){fc.innerHTML+='<option value="'+esc(c)+'">'+esc(c)+'</option>'});
 fc.value=val;
 }
 var sp=document.getElementById('spClassFilter');
 if(sp){
 sp.innerHTML='<option value="">All Classes</option>';
-classes.forEach(function(c){if(c!=='All Students')sp.innerHTML+='<option value="'+esc(c)+'">'+esc(c)+'</option>'});
+classes.forEach(function(c){sp.innerHTML+='<option value="'+esc(c)+'">'+esc(c)+'</option>'});
 }
 }
 
@@ -1834,6 +1838,7 @@ document.getElementById('createAssignInstructions').value=t.instructions||'';
 document.getElementById('createAssignLink').value=t.linkUrl||'';
 document.getElementById('createAssignGrading').value=t.gradingType||'teacher';
 }
+showToast('Template loaded! Set due date and select students.','info');
 }
 window.loadTemplate=loadTemplate;
 
