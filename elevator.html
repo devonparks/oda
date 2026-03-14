@@ -526,7 +526,7 @@ method:'POST',headers:{'Content-Type':'application/json'},
 body:JSON.stringify({prompt:prompt,max_tokens:300})
 });
 var data=await resp.json();
-var text=data.response||data.text||data.content||'';
+var text=data.response||data.text||(Array.isArray(data.content)&&data.content[0]?data.content[0].text:'')||'';
 if(text){
 document.getElementById('aiLoading').style.display='none';
 var el=document.getElementById('aiSummaryText');
