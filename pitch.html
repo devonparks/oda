@@ -348,6 +348,25 @@ textarea.fun-input::placeholder{color:#3a4560}
 .export-progress{width:100%;height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin:12px 0}
 .export-progress-fill{height:100%;background:var(--accent);border-radius:4px;width:0%;transition:width .3s}
 
+/* Grading view */
+.grade-back{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);text-decoration:none;font-size:14px;font-weight:600;margin-bottom:12px;transition:all .15s}
+.grade-back:hover{border-color:var(--accent);color:var(--text)}
+.grade-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.grade-header h1{font-family:'Fredoka',sans-serif;font-size:24px;font-weight:700;color:var(--text)}
+.grade-student-bar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;margin-bottom:20px;flex-wrap:wrap}
+.gsb-name{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:var(--text)}
+.gsb-class{font-size:13px;color:var(--accent2);font-weight:600;background:rgba(17,138,178,.1);padding:3px 10px;border-radius:8px}
+.gsb-date{font-size:13px;color:var(--text2)}
+.gsb-status{font-size:11px;font-weight:700;padding:3px 10px;border-radius:8px;text-transform:uppercase;letter-spacing:1px}
+.grade-section-title{font-family:'Fredoka',sans-serif;font-size:17px;font-weight:700;color:var(--gold);margin-bottom:12px}
+.grade-summary div{margin-bottom:6px;font-size:15px;line-height:1.6}
+.grade-summary strong{color:var(--accent);font-weight:700}
+.grade-controls{border-color:var(--accent)!important}
+.grade-score-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.grade-score-row input[type=range]{-webkit-appearance:none;flex:1;height:6px;border-radius:3px;background:var(--border);outline:none;margin:0 12px}
+.grade-score-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--bg)}
+.grade-btn-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+
 .hidden{display:none!important}
 </style>
 </head>
@@ -582,6 +601,70 @@ textarea.fun-input::placeholder{color:#3a4560}
 </div>
 <div class="pitch-grid" id="galleryGrid">
 <div class="empty-state" style="grid-column:1/-1;text-align:center;padding:40px"><span style="font-size:48px">&#x1F30D;</span><p style="color:var(--text2);font-size:15px;margin-top:12px">No pitches shared yet! Be the first to share yours!</p></div>
+</div>
+</div>
+</div>
+
+<!-- ===== GRADING VIEW ===== -->
+<div class="view" id="view-grade">
+<div class="dash-wrap">
+<a href="teacher.html" class="grade-back" id="gradeBackLink">&#x2190; Back to Teacher Hub</a>
+<div class="grade-header">
+<div>
+<h1 id="gradeTitle">&#x1F4DD; Grade Pitch</h1>
+<div class="dash-sub" id="gradeSubtitle">Review and grade this student's pitch</div>
+</div>
+<div class="dash-top-btns">
+<button class="dash-create-btn" onclick="openGradePresent()" style="background:var(--gold);color:#1a1e2e">&#x1F3AC; View Presentation</button>
+<button class="dash-create-btn" id="gradeNextBtn" onclick="loadNextGrade()" style="background:var(--accent2);display:none">&#x2192; Next Student</button>
+</div>
+</div>
+
+<div class="grade-student-bar">
+<span class="gsb-name" id="gradeStudentName">Student</span>
+<span class="gsb-class" id="gradeClassName" style="display:none"></span>
+<span class="gsb-date" id="gradeDate"></span>
+<span class="gsb-status" id="gradeStatus"></span>
+</div>
+
+<div class="card" style="margin-bottom:16px">
+<div class="grade-section-title">&#x1F4CB; Pitch Summary</div>
+<div class="grade-summary" id="gradeSummary"></div>
+</div>
+
+<div class="card" style="margin-bottom:16px">
+<div class="grade-section-title">&#x1F3A4; Full Pitch</div>
+<div class="pitch-text" id="gradePitchText" style="font-size:17px;line-height:1.8"></div>
+</div>
+
+<div class="card" style="margin-bottom:16px;display:none" id="gradeVideoSection">
+<div class="grade-section-title">&#x1F3AC; Recorded Video</div>
+<div style="text-align:center"><video id="gradeVideo" controls playsinline style="max-width:100%;border-radius:14px;max-height:400px;background:#000"></video></div>
+</div>
+
+<div class="card" style="margin-bottom:16px;display:none" id="gradeAiSection">
+<div class="grade-section-title">&#x1F9E0; AI Coach Feedback</div>
+<div id="gradeAiFeedback" style="font-size:15px;color:var(--text2);line-height:1.7"></div>
+</div>
+
+<div class="card" style="margin-bottom:16px;display:none" id="gradePolishedSection">
+<div class="grade-section-title">&#x2728; AI-Polished Version</div>
+<div id="gradePolishedText" style="font-size:15px;color:var(--text);line-height:1.7;font-style:italic"></div>
+</div>
+
+<div class="card grade-controls">
+<div class="grade-section-title">&#x270F;&#xFE0F; Grade This Pitch</div>
+<div class="grade-score-row">
+<label style="font-weight:700;font-size:15px">Score</label>
+<input type="range" id="gradeScoreRange" min="0" max="100" value="85" oninput="document.getElementById('gradeScoreVal').textContent=this.value+'%'">
+<span id="gradeScoreVal" style="font-family:'Space Mono',monospace;font-size:18px;font-weight:700;color:var(--accent);min-width:50px;text-align:right">85%</span>
+</div>
+<textarea class="fun-input" id="gradeTeacherFeedback" rows="3" placeholder="Write feedback for the student..." style="margin-top:12px"></textarea>
+<div class="grade-btn-row">
+<button class="btn btn-normal btn-green" onclick="gradeFromPitch()">&#x2705; Grade</button>
+<button class="btn btn-small btn-yellow" onclick="returnFromPitch()">&#x21A9;&#xFE0F; Return for Revision</button>
+<button class="btn btn-small btn-gray" onclick="completeFromPitch()">&#x2713; Mark Complete</button>
+</div>
 </div>
 </div>
 </div>
@@ -828,7 +911,7 @@ renderDashboard();
 }
 
 function switchView(view){
-var views=['home','wizard','gallery'];
+var views=['home','wizard','gallery','grade'];
 views.forEach(function(v){var el=document.getElementById('view-'+v);if(el)el.classList.remove('active')});
 var target=document.getElementById('view-'+view);
 if(target)target.classList.add('active');
@@ -999,6 +1082,11 @@ presentSlides=[
 ];
 if(p.pitchText){
 presentSlides.splice(5,0,{emoji:'\u{1F3AC}',title:'The Full Pitch',subtitle:'',content:'<div style="font-size:18px;text-align:left;line-height:2">'+esc(p.pitchText).replace(/\n/g,'<br>')+'</div>'});
+}
+// Add video slide if recorded
+if(recordedBlob){
+var vidUrl=URL.createObjectURL(recordedBlob);
+presentSlides.splice(presentSlides.length-1,0,{emoji:'\u{1F4F9}',title:'Video Recording',subtitle:'Watch the pitch!',content:'<video src="'+vidUrl+'" controls playsinline style="max-width:100%;max-height:450px;border-radius:14px;background:#000"></video>'});
 }
 presentIdx=0;
 renderSlide();
@@ -1431,6 +1519,167 @@ var aiCoachResult='',polishedResult='';
 var mediaRecorder=null,recordedChunks=[],recordedBlob=null,cameraStream=null;
 var recTimerInterval=null,recSeconds=0;
 
+// ===== GRADING MODE =====
+var gradingAssignmentId=null;
+var gradingData=null;
+var gradeBatchAssignments=[];
+
+async function initGradeMode(assignId){
+gradingAssignmentId=assignId;
+try{
+var appMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js');
+var fsMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js');
+var cfg={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
+var app;try{app=appMod.getApp()}catch(e){app=appMod.initializeApp(cfg)}
+var db=fsMod.getFirestore(app);
+window._gradeFsMod=fsMod;window._gradeDb=db;
+var docSnap=await fsMod.getDoc(fsMod.doc(db,'assignments',assignId));
+if(!docSnap.exists()){alert('Assignment not found');return}
+gradingData=Object.assign({id:docSnap.id},docSnap.data());
+renderGradeView();
+switchView('grade');
+loadGradeBatch(fsMod,db);
+}catch(e){console.error('Grade load error:',e);alert('Could not load assignment: '+e.message)}
+}
+
+async function loadGradeBatch(fsMod,db){
+try{
+var q=fsMod.query(fsMod.collection(db,'assignments'),
+fsMod.where('toolType','==',gradingData.toolType||'pitch-challenge'),
+fsMod.where('status','==','submitted'));
+var snap=await fsMod.getDocs(q);
+gradeBatchAssignments=[];
+snap.forEach(function(d){if(d.id!==gradingAssignmentId)gradeBatchAssignments.push(Object.assign({id:d.id},d.data()))});
+var nextBtn=document.getElementById('gradeNextBtn');
+if(gradeBatchAssignments.length>0){
+nextBtn.style.display='inline-flex';
+nextBtn.textContent='\u2192 Next Student ('+gradeBatchAssignments.length+' more)';
+}else{nextBtn.style.display='none'}
+}catch(e){console.warn('Batch load failed:',e)}
+}
+
+function renderGradeView(){
+if(!gradingData)return;
+var a=gradingData;
+var resp={};try{resp=JSON.parse(a.studentResponse||'{}')}catch(e){}
+document.getElementById('gradeTitle').textContent='\u{1F4DD} Grade: '+(resp.businessName||a.title||'Pitch');
+document.getElementById('gradeSubtitle').textContent='Review '+(resp.studentName||'student')+'\'s pitch submission';
+document.getElementById('gradeStudentName').textContent=resp.studentName||a.studentName||'Student';
+var classEl=document.getElementById('gradeClassName');
+if(a.className){classEl.textContent=a.className;classEl.style.display=''}else{classEl.style.display='none'}
+var dateStr='';
+try{dateStr=new Date(a.submittedAt||a.assignedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}catch(e){}
+document.getElementById('gradeDate').textContent=dateStr;
+var statusEl=document.getElementById('gradeStatus');
+var st=a.status||'pending';
+statusEl.textContent=st;
+statusEl.style.background=st==='submitted'?'rgba(255,209,102,.15)':st==='graded'?'rgba(6,214,160,.15)':'rgba(17,138,178,.15)';
+statusEl.style.color=st==='submitted'?'var(--gold)':st==='graded'?'var(--accent)':'var(--accent2)';
+// Pitch summary
+var sum='';
+if(resp.problem)sum+='<div><strong>\u{1F50D} Problem:</strong> '+esc(resp.problem)+'</div>';
+if(resp.skills&&resp.skills.length)sum+='<div><strong>\u2B50 Skills:</strong> '+esc(resp.skills.join(', '))+'</div>';
+if(resp.businessName)sum+='<div><strong>\u{1F4A1} Business:</strong> '+esc(resp.businessName)+(resp.businessDesc?' \u2014 '+esc(resp.businessDesc):'')+'</div>';
+if(resp.customers&&resp.customers.length)sum+='<div><strong>\u{1F465} Customers:</strong> '+esc(resp.customers.join(', '))+'</div>';
+if(resp.advantages&&resp.advantages.length)sum+='<div><strong>\u{1F3C6} Advantages:</strong> '+esc(resp.advantages.join(' \u2022 '))+'</div>';
+if(resp.hook)sum+='<div><strong>\u{1FA9D} Hook:</strong> '+esc(resp.hook)+'</div>';
+if(resp.callToAction)sum+='<div><strong>\u{1F4E3} Call to Action:</strong> '+esc(resp.callToAction)+'</div>';
+document.getElementById('gradeSummary').innerHTML=sum||'<div style="color:var(--text2)">No summary data available</div>';
+// Full pitch text
+var pitchHtml=(resp.pitchText||'').split(/\n\n+/).map(function(p){return '<p>'+esc(p)+'</p>'}).join('');
+document.getElementById('gradePitchText').innerHTML=pitchHtml||'<p style="color:var(--text2)">No pitch text submitted</p>';
+// Video
+var videoSec=document.getElementById('gradeVideoSection');
+if(resp.videoUrl){videoSec.style.display='';document.getElementById('gradeVideo').src=resp.videoUrl}
+else{videoSec.style.display='none'}
+// AI feedback
+var aiSec=document.getElementById('gradeAiSection');
+if(resp.aiCoachFeedback){aiSec.style.display='';document.getElementById('gradeAiFeedback').textContent=resp.aiCoachFeedback}
+else{aiSec.style.display='none'}
+// Polished pitch
+var polSec=document.getElementById('gradePolishedSection');
+if(resp.polishedPitch){polSec.style.display='';document.getElementById('gradePolishedText').textContent=resp.polishedPitch}
+else{polSec.style.display='none'}
+// Pre-fill grade
+if(a.score!==null&&a.score!==undefined){document.getElementById('gradeScoreRange').value=a.score;document.getElementById('gradeScoreVal').textContent=a.score+'%'}
+if(a.feedback)document.getElementById('gradeTeacherFeedback').value=a.feedback;
+}
+
+async function gradeFromPitch(){
+if(!gradingData)return;
+var score=parseInt(document.getElementById('gradeScoreRange').value);
+var feedback=document.getElementById('gradeTeacherFeedback').value.trim();
+try{
+var fsMod=window._gradeFsMod,db=window._gradeDb;
+await fsMod.updateDoc(fsMod.doc(db,'assignments',gradingData.id),{status:'graded',score:score,feedback:feedback,gradedAt:new Date().toISOString()});
+gradingData.status='graded';gradingData.score=score;
+renderGradeView();
+showGradeToast('Graded: '+score+'%','success');
+}catch(e){alert('Error grading: '+e.message)}
+}
+
+async function returnFromPitch(){
+if(!gradingData)return;
+var feedback=document.getElementById('gradeTeacherFeedback').value.trim();
+if(!feedback){alert('Please add feedback before returning');return}
+try{
+var fsMod=window._gradeFsMod,db=window._gradeDb;
+await fsMod.updateDoc(fsMod.doc(db,'assignments',gradingData.id),{status:'returned',feedback:feedback});
+gradingData.status='returned';
+renderGradeView();
+showGradeToast('Returned for revision','info');
+}catch(e){alert('Error: '+e.message)}
+}
+
+async function completeFromPitch(){
+if(!gradingData)return;
+try{
+var fsMod=window._gradeFsMod,db=window._gradeDb;
+await fsMod.updateDoc(fsMod.doc(db,'assignments',gradingData.id),{status:'completed',completedAt:new Date().toISOString()});
+gradingData.status='completed';
+renderGradeView();
+showGradeToast('Marked complete','success');
+}catch(e){alert('Error: '+e.message)}
+}
+
+function loadNextGrade(){
+if(gradeBatchAssignments.length===0){alert('No more submissions to grade!');return}
+var next=gradeBatchAssignments.shift();
+history.replaceState(null,'','pitch.html?grade='+next.id);
+initGradeMode(next.id);
+}
+
+function openGradePresent(){
+if(!gradingData)return;
+var resp={};try{resp=JSON.parse(gradingData.studentResponse||'{}')}catch(e){}
+var av=resp.advantages||[];
+presentSlides=[
+{emoji:'\u{1F3A4}',title:resp.businessName||'My Business',subtitle:'A pitch by '+(resp.studentName||''),content:''},
+{emoji:'\u{1F50D}',title:'The Problem',subtitle:'What we noticed',content:'"'+(resp.problem||'')+'"'},
+{emoji:'\u{1F4A1}',title:'Our Solution',subtitle:resp.businessName||'',content:resp.businessDesc||''},
+{emoji:'\u{1F465}',title:'Our Customers',subtitle:'Who would love this?',content:(resp.customers||[]).join(' \u2022 ')},
+{emoji:'\u{1F3C6}',title:'Why Choose Us?',subtitle:'What makes us special',content:av.map(function(a,i){return '<strong>#'+(i+1)+'</strong> '+esc(a)}).join('<br><br>')}
+];
+if(resp.pitchText){
+presentSlides.push({emoji:'\u{1F3AC}',title:'The Full Pitch',subtitle:'',content:'<div style="font-size:18px;text-align:left;line-height:2">'+esc(resp.pitchText).replace(/\n/g,'<br>')+'</div>'});
+}
+if(resp.videoUrl){
+presentSlides.push({emoji:'\u{1F4F9}',title:'Video Recording',subtitle:'Watch the pitch!',content:'<video src="'+esc(resp.videoUrl)+'" controls playsinline style="max-width:100%;max-height:450px;border-radius:14px;background:#000"></video>'});
+}
+presentSlides.push({emoji:'\u{1F4E3}',title:'Get Started!',subtitle:resp.callToAction||'',content:'<strong>Thank you!</strong>'});
+presentIdx=0;renderSlide();renderDots();
+document.getElementById('presentTitle').textContent='\u{1F3A4} '+(resp.studentName||'')+'\'s Pitch';
+document.getElementById('presentBg').classList.add('show');
+}
+
+function showGradeToast(msg,type){
+var t=document.createElement('div');
+t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:12px;font-family:Fredoka,sans-serif;font-weight:600;font-size:15px;z-index:9999;animation:fadeUp .3s ease;color:#fff;'+(type==='success'?'background:var(--accent)':'background:var(--accent2)');
+t.textContent=msg;
+document.body.appendChild(t);
+setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t)},3000);
+}
+
 function init(){
 // Migrate old data
 migrateOldData();
@@ -1449,6 +1698,13 @@ document.getElementById('teacherModeBtn').style.display='inline-flex';
 }
 
 var params=new URLSearchParams(window.location.search);
+// Check for grading mode
+var gradeId=params.get('grade');
+if(gradeId){
+buildC("problemChips",PR,"p");buildC("skillChips",SK,"s");buildC("customerChips",CU,"c");
+initGradeMode(gradeId);
+return;
+}
 assignmentId=params.get('assignmentId');
 studentId=params.get('studentId')||sessionStorage.getItem('studentId');
 isAssignmentMode=!!assignmentId;
