@@ -123,7 +123,10 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 <div class="app">
 <div class="topbar">
 <div class="greeting">Hey, <span id="studentNameEl">Student</span>! &#x1F44B;</div>
+<div style="display:flex;gap:8px">
+<button class="btn btn-outline" onclick="checkForUpdates(this)" title="Check for updates" style="padding:8px 12px">&#x1F504;</button>
 <button class="btn btn-outline" onclick="studentLogout()">&#x2190; Exit</button>
+</div>
 </div>
 
 <div class="unlock" id="unlockBanner">
@@ -184,6 +187,24 @@ renderDashboard();
 </script>
 
 <script>
+var ODA_VERSION='2026-03-14a';
+function checkForUpdates(btn){
+btn.disabled=true;btn.innerHTML='&#x1F504;';
+fetch(location.href+'?_='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){
+var m=html.match(/ODA_VERSION='([^']+)'/);
+var remote=m?m[1]:'';
+if(remote&&remote!==ODA_VERSION){
+btn.innerHTML='&#x2705;';
+setTimeout(function(){location.reload(true)},600);
+}else{
+btn.innerHTML='&#x2705;';
+setTimeout(function(){btn.innerHTML='&#x1F504;';btn.disabled=false},2000);
+}
+}).catch(function(){
+btn.innerHTML='&#x1F504;';btn.disabled=false;
+location.reload(true);
+});
+}
 var GAMES=[
 {id:'connect4',emoji:'\u{1F534}',title:'Connect 4',desc:'Challenge a friend! Drop 4 in a row.',file:'arcade/connect4/index.html'},
 {id:'towerblocks',emoji:'\u{1F3D7}',title:'Tower Blocks',desc:'Stack blocks as high as you can!',file:'arcade/towerblocks/index.html'},

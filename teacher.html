@@ -342,6 +342,7 @@ select.settings-input{cursor:pointer}
 <h1>&#x1F3AE; <span>ODA Hub</span></h1>
 <div class="topbar-right">
 <span class="teacher-badge" id="teacherName">Loading...</span>
+<button class="btn btn-outline btn-sm" onclick="checkForUpdates(this)" title="Check for updates">&#x1F504; Update</button>
 <button class="btn btn-outline btn-sm" onclick="logout()">Sign Out</button>
 </div>
 </div>
@@ -717,7 +718,26 @@ setTimeout(populateSettings,100);
 </script>
 
 <script>
+var ODA_VERSION='2026-03-14a';
 var students=[],allAssignments=[],currentClass='All Students',selectedStudent=null,selectedOpt=null;
+
+function checkForUpdates(btn){
+btn.disabled=true;btn.innerHTML='&#x1F504; Checking...';
+fetch(location.href+'?_='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){
+var m=html.match(/ODA_VERSION='([^']+)'/);
+var remote=m?m[1]:'';
+if(remote&&remote!==ODA_VERSION){
+btn.innerHTML='&#x2705; Update found! Reloading...';
+setTimeout(function(){location.reload(true)},600);
+}else{
+btn.innerHTML='&#x2705; Up to date!';
+setTimeout(function(){btn.innerHTML='&#x1F504; Update';btn.disabled=false},2000);
+}
+}).catch(function(){
+btn.innerHTML='&#x1F504; Update';btn.disabled=false;
+location.reload(true);
+});
+}
 
 var ASSIGN_TYPES={
 'spelling-k2':{title:'Spelling K-2',emoji:'\u{1F4D6}'},'spelling-34':{title:'Spelling 3-4',emoji:'\u{1F4D6}'},'spelling-58':{title:'Spelling 5-8',emoji:'\u{1F4D6}'},
