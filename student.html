@@ -325,15 +325,16 @@ if(toolId&&(toolId.startsWith('spelling')||toolId.startsWith('vocab'))){
 return '<button class="a-btn start" onclick="startQuiz(\''+a.id+'\',\''+toolId+'\')">Start Quiz \u{1F680}</button>';
 }
 
-// Worksheet assignments
-if(a.type==='worksheet'){
+// Assignment type (also handles legacy worksheet/link/custom)
+if(a.type==='assignment'||a.type==='worksheet'||a.type==='link'||a.type==='custom'){
 var bh='';
 if(a.instructions)bh+='<div class="a-instructions">'+esc(a.instructions)+'</div>';
+if(a.linkUrl)bh+='<div style="margin-bottom:10px"><a class="a-btn start" href="'+esc(a.linkUrl)+'" target="_blank">Open Link \u{1F517}</a></div>';
 if(a.fileData){
 if(a.fileData.startsWith('data:image')){
-bh+='<div class="a-file-preview"><img src="'+a.fileData+'" alt="Worksheet"></div>';
+bh+='<div class="a-file-preview"><img src="'+a.fileData+'" alt="Attachment"></div>';
 }else{
-bh+='<div style="margin-bottom:10px"><a href="'+a.fileData+'" target="_blank" class="a-btn start">View File \u{1F4C4}</a></div>';
+bh+='<div style="margin-bottom:10px;background:var(--bg);border:1px solid var(--border);border-radius:12px;overflow:hidden"><iframe src="'+a.fileData+'" style="width:100%;height:400px;border:none"></iframe><div style="padding:8px;text-align:center"><a href="#" onclick="openFileBlob(\''+a.id+'\');return false" class="a-btn start" style="font-size:12px;padding:8px 16px">Open Full Screen \u{1F4C4}</a></div></div>';
 }
 }
 if(a.gradingType==='teacher'){
@@ -343,28 +344,6 @@ bh+='<button class="a-btn start" onclick="submitWork(\''+a.id+'\')">Submit \u{1F
 bh+='<button class="a-btn done-btn" onclick="markDone(\''+a.id+'\')">Mark Done \u{2705}</button>';
 }
 return bh;
-}
-
-// Link assignments
-if(a.type==='link'){
-var lh='';
-if(a.instructions)lh+='<div class="a-instructions">'+esc(a.instructions)+'</div>';
-lh+='<a class="a-btn start" href="'+esc(a.linkUrl)+'" target="_blank" style="margin-right:8px">Open Link \u{1F517}</a>';
-lh+='<button class="a-btn done-btn" onclick="markDone(\''+a.id+'\')">Mark Done \u{2705}</button>';
-return lh;
-}
-
-// Custom instructions
-if(a.type==='custom'){
-var ch='';
-if(a.instructions)ch+='<div class="a-instructions">'+esc(a.instructions)+'</div>';
-if(a.gradingType==='teacher'){
-ch+='<textarea class="a-response" id="resp-'+a.id+'" placeholder="Type your response here...">'+(a.studentResponse||'')+'</textarea>';
-ch+='<button class="a-btn start" onclick="submitWork(\''+a.id+'\')">Submit \u{1F4E4}</button>';
-}else{
-ch+='<button class="a-btn done-btn" onclick="markDone(\''+a.id+'\')">Mark Done \u{2705}</button>';
-}
-return ch;
 }
 
 // Fallback for old-format tool assignments
@@ -466,6 +445,22 @@ fireConfetti();
 }catch(e){console.error(e);alert('Error submitting')}
 }
 window.submitWork=submitWork;
+
+function openFileBlob(assignId){
+var a=(window.myAssignments||[]).find(function(x){return x.id===assignId});
+if(!a||!a.fileData)return;
+try{
+var parts=a.fileData.split(',');
+var mime=parts[0].match(/:(.*?);/)[1];
+var raw=atob(parts[1]);
+var arr=new Uint8Array(raw.length);
+for(var i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);
+var blob=new Blob([arr],{type:mime});
+var url=URL.createObjectURL(blob);
+window.open(url,'_blank');
+}catch(e){console.error('Could not open file:',e);window.open(a.fileData,'_blank')}
+}
+window.openFileBlob=openFileBlob;
 
 async function markDone(assignId){
 try{

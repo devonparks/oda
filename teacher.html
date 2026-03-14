@@ -175,6 +175,36 @@ select.settings-input{cursor:pointer}
 .ac-title{font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px}
 .ac-meta{font-size:11px;color:var(--text2);display:flex;gap:12px;flex-wrap:wrap}
 .ac-status{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;white-space:nowrap}
+
+/* Grouped assignment rows */
+.assign-group{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;transition:all .15s}
+.assign-group:hover{border-color:var(--accent2)}
+.assign-group.has-review{border-color:var(--accent3);border-width:2px}
+.ag-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;transition:background .15s}
+.ag-header:hover{background:var(--surface2)}
+.ag-emoji{font-size:22px;flex-shrink:0}
+.ag-info{flex:1;min-width:0}
+.ag-title{font-weight:700;font-size:15px;margin-bottom:3px;display:flex;align-items:center;gap:8px}
+.ag-stats{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ag-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;display:inline-flex;align-items:center;gap:3px}
+.ag-pill-pending{background:rgba(17,138,178,.12);color:var(--accent2)}
+.ag-pill-review{background:rgba(239,71,111,.15);color:var(--accent3)}
+.ag-pill-graded{background:rgba(6,214,160,.12);color:var(--accent)}
+.ag-pill-done{background:rgba(6,214,160,.08);color:var(--accent)}
+.ag-pill-returned{background:rgba(255,209,102,.12);color:var(--gold)}
+.ag-count{font-size:12px;color:var(--text2);font-weight:600;margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:6px}
+.ag-chevron{font-size:14px;color:var(--text2);transition:transform .2s}
+.assign-group.open .ag-chevron{transform:rotate(180deg)}
+.ag-due{font-size:10px;color:var(--text2);font-weight:600}
+.ag-due.overdue{color:var(--accent3)}
+.ag-body{display:none;border-top:1px solid var(--border);padding:4px 8px}
+.assign-group.open .ag-body{display:block}
+.ag-student{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .1s}
+.ag-student:hover{background:var(--surface2)}
+.ag-student-name{font-weight:600;font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ag-student-score{font-family:'Space Mono',monospace;font-size:12px;color:var(--gold);font-weight:700}
+.ag-bulk{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border)}
+.ag-bulk label{font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:4px}
 .st-pending{background:rgba(17,138,178,.12);color:var(--accent2)}
 .st-submitted{background:rgba(239,71,111,.15);color:var(--accent3)}
 .st-graded{background:rgba(6,214,160,.12);color:var(--accent)}
@@ -410,7 +440,7 @@ select.settings-input{cursor:pointer}
 <div class="filter-bar">
 <select id="filterClass" onchange="filterAssignments()"><option value="">All Classes</option></select>
 <select id="filterStatus" onchange="filterAssignments()"><option value="">All Status</option><option value="pending">Pending</option><option value="submitted">Needs Review</option><option value="graded">Graded</option><option value="completed">Completed</option><option value="returned">Returned</option></select>
-<select id="filterType" onchange="filterAssignments()"><option value="">All Types</option><option value="tool">Tool</option><option value="worksheet">Worksheet</option><option value="link">Link</option><option value="custom">Custom</option></select>
+<select id="filterType" onchange="filterAssignments()"><option value="">All Types</option><option value="tool">Tool</option><option value="assignment">Assignment</option></select>
 </div>
 <input type="text" class="search-input" id="assignSearch" placeholder="Search by title or student name..." oninput="filterAssignments()">
 <div class="bulk-bar" id="bulkBar">
@@ -529,9 +559,7 @@ select.settings-input{cursor:pointer}
 <div class="tmpl-bar" id="templateBar"></div>
 <div class="type-tabs">
 <div class="type-tab active" onclick="switchCreateTab('tool')">&#x1F6E0;&#xFE0F; Tool</div>
-<div class="type-tab" onclick="switchCreateTab('worksheet')">&#x1F4C4; File</div>
-<div class="type-tab" onclick="switchCreateTab('link')">&#x1F517; Link</div>
-<div class="type-tab" onclick="switchCreateTab('custom')">&#x270F;&#xFE0F; Custom</div>
+<div class="type-tab" onclick="switchCreateTab('assignment')">&#x1F4CB; Assignment</div>
 </div>
 <div class="type-panel show" id="panel-tool">
 <div class="fg"><label>Select Tool</label>
@@ -548,21 +576,12 @@ select.settings-input{cursor:pointer}
 <option value="robot-lab">Robot Lab</option>
 </select></div>
 </div>
-<div class="type-panel" id="panel-worksheet">
-<div class="fg"><label>Title</label><input type="text" id="createWsTitle" placeholder="Worksheet title"></div>
-<div class="fg"><label>Instructions (optional)</label><textarea id="createWsInstructions" placeholder="Instructions for the student..."></textarea></div>
-<div class="fg"><label>Upload File (PDF, image — max 1MB)</label><input type="file" id="createWsFile" accept=".pdf,.png,.jpg,.jpeg" style="padding:8px"></div>
-<div class="fg"><label>Grading</label><select id="createWsGrading"><option value="teacher">Teacher Graded</option><option value="completion">Completion Only</option></select></div>
-</div>
-<div class="type-panel" id="panel-link">
-<div class="fg"><label>Title</label><input type="text" id="createLinkTitle" placeholder="Assignment title"></div>
-<div class="fg"><label>URL</label><input type="url" id="createLinkUrl" placeholder="https://..."></div>
-<div class="fg"><label>Instructions (optional)</label><textarea id="createLinkInstructions" placeholder="Instructions for the student..."></textarea></div>
-</div>
-<div class="type-panel" id="panel-custom">
-<div class="fg"><label>Title</label><input type="text" id="createCustomTitle" placeholder="Assignment title"></div>
-<div class="fg"><label>Instructions</label><textarea id="createCustomInstructions" placeholder="Detailed instructions for the student..."></textarea></div>
-<div class="fg"><label>Grading</label><select id="createCustomGrading"><option value="teacher">Teacher Graded</option><option value="completion">Completion Only</option></select></div>
+<div class="type-panel" id="panel-assignment">
+<div class="fg"><label>Title</label><input type="text" id="createAssignTitle" placeholder="Assignment title"></div>
+<div class="fg"><label>Instructions</label><textarea id="createAssignInstructions" placeholder="What should students do? Be specific..."></textarea></div>
+<div class="fg"><label>Link (optional)</label><input type="url" id="createAssignLink" placeholder="https://..."></div>
+<div class="fg"><label>Attach File (optional — PDF or image, max 1MB)</label><input type="file" id="createAssignFile" accept=".pdf,.png,.jpg,.jpeg" style="padding:8px"></div>
+<div class="fg"><label>Grading</label><select id="createAssignGrading"><option value="teacher">Teacher Graded</option><option value="completion">Completion Only</option></select></div>
 </div>
 <div class="fg"><label>Due Date</label><input type="date" id="createDueDate"></div>
 <div class="fg"><label>Assign To</label>
@@ -1199,16 +1218,11 @@ var panels=document.querySelectorAll('.type-panel');
 panels.forEach(function(p){p.classList.remove('show')});
 document.getElementById('panel-tool').classList.add('show');
 document.getElementById('createToolSelect').value='';
-document.getElementById('createWsTitle').value='';
-document.getElementById('createWsInstructions').value='';
-document.getElementById('createWsFile').value='';
-document.getElementById('createWsGrading').value='teacher';
-document.getElementById('createLinkTitle').value='';
-document.getElementById('createLinkUrl').value='';
-document.getElementById('createLinkInstructions').value='';
-document.getElementById('createCustomTitle').value='';
-document.getElementById('createCustomInstructions').value='';
-document.getElementById('createCustomGrading').value='teacher';
+document.getElementById('createAssignTitle').value='';
+document.getElementById('createAssignInstructions').value='';
+document.getElementById('createAssignLink').value='';
+document.getElementById('createAssignFile').value='';
+document.getElementById('createAssignGrading').value='teacher';
 document.getElementById('createDueDate').value='';
 document.getElementById('saveAsTemplate').checked=false;
 populateClassFilters();
@@ -1229,7 +1243,7 @@ window.closeCreateAssignment=closeCreateAssignment;
 
 function switchCreateTab(type){
 createType=type;
-var types=['tool','worksheet','link','custom'];
+var types=['tool','assignment'];
 var tabs=document.querySelectorAll('.type-tab');
 tabs.forEach(function(t,i){t.classList.toggle('active',types[i]===type)});
 types.forEach(function(tp){
@@ -1307,33 +1321,21 @@ if(!tool){alert('Select a tool');return}
 var t=ASSIGN_TYPES[tool]||{title:tool};
 var isAutoGrade=tool.startsWith('spelling')||tool.startsWith('vocab');
 assignData={type:'tool',toolType:tool,title:t.title||tool,instructions:'',gradingType:isAutoGrade?'auto':'completion',fileData:null,linkUrl:null};
-}else if(createType==='worksheet'){
-var wsTitle=document.getElementById('createWsTitle').value.trim();
-if(!wsTitle){alert('Enter a title');return}
-var wsInstructions=document.getElementById('createWsInstructions').value.trim();
-var wsGrading=document.getElementById('createWsGrading').value;
-var fileInput=document.getElementById('createWsFile');
+}else if(createType==='assignment'){
+var aTitle=document.getElementById('createAssignTitle').value.trim();
+if(!aTitle){alert('Enter a title');return}
+var aInstructions=document.getElementById('createAssignInstructions').value.trim();
+if(!aInstructions){alert('Enter instructions so students know what to do');return}
+var aLink=document.getElementById('createAssignLink').value.trim()||null;
+var aGrading=document.getElementById('createAssignGrading').value;
+var fileInput=document.getElementById('createAssignFile');
 var fileData=null;
 if(fileInput.files.length>0){
 var file=fileInput.files[0];
 if(file.size>1048576){alert('File must be under 1MB');return}
 fileData=await readFileAsBase64(file);
 }
-assignData={type:'worksheet',toolType:null,title:wsTitle,instructions:wsInstructions,gradingType:wsGrading,fileData:fileData,linkUrl:null};
-}else if(createType==='link'){
-var linkTitle=document.getElementById('createLinkTitle').value.trim();
-var linkUrl=document.getElementById('createLinkUrl').value.trim();
-if(!linkTitle){alert('Enter a title');return}
-if(!linkUrl){alert('Enter a URL');return}
-var linkInstructions=document.getElementById('createLinkInstructions').value.trim();
-assignData={type:'link',toolType:null,title:linkTitle,instructions:linkInstructions,gradingType:'completion',fileData:null,linkUrl:linkUrl};
-}else if(createType==='custom'){
-var customTitle=document.getElementById('createCustomTitle').value.trim();
-if(!customTitle){alert('Enter a title');return}
-var customInstructions=document.getElementById('createCustomInstructions').value.trim();
-if(!customInstructions){alert('Enter instructions');return}
-var customGrading=document.getElementById('createCustomGrading').value;
-assignData={type:'custom',toolType:null,title:customTitle,instructions:customInstructions,gradingType:customGrading,fileData:null,linkUrl:null};
+assignData={type:'assignment',toolType:null,title:aTitle,instructions:aInstructions,gradingType:aGrading,fileData:fileData,linkUrl:aLink};
 }
 
 if(document.getElementById('saveAsTemplate').checked){
@@ -1398,6 +1400,7 @@ list=list.filter(function(a){return classStudentIds.indexOf(a.studentId)>=0});
 if(sf){list=list.filter(function(a){return a.status===sf})}
 if(tf){
 if(tf==='tool')list=list.filter(function(a){return a.type==='tool'||ASSIGN_TYPES[a.type]});
+else if(tf==='assignment')list=list.filter(function(a){return a.type==='assignment'||a.type==='worksheet'||a.type==='link'||a.type==='custom'});
 else list=list.filter(function(a){return a.type===tf});
 }
 if(search){
@@ -1417,37 +1420,88 @@ document.getElementById('bulkBar').classList.remove('show');
 return;
 }
 
-var h='';
+// Group assignments by title + type + dueDate
+var groups={};
+var groupOrder=[];
 list.forEach(function(a){
+var key=(a.title||a.type)+'||'+a.type+'||'+(a.dueDate||'none');
+if(!groups[key]){
+groups[key]={title:a.title||a.type,type:a.type,toolType:a.toolType,dueDate:a.dueDate,emoji:getAssignEmoji(a),items:[]};
+groupOrder.push(key);
+}
+groups[key].items.push(a);
+});
+
+var today=new Date().toISOString().split('T')[0];
+var h='';
+groupOrder.forEach(function(key,gi){
+var g=groups[key];
+var counts={pending:0,submitted:0,graded:0,completed:0,returned:0};
+g.items.forEach(function(a){counts[a.status]=(counts[a.status]||0)+1});
+var hasReview=counts.submitted>0;
+var overdue=counts.pending>0&&g.dueDate&&g.dueDate<today;
+
+h+='<div class="assign-group'+(hasReview?' has-review':'')+'" id="ag-'+gi+'">';
+h+='<div class="ag-header" onclick="toggleAssignGroup('+gi+')">';
+h+='<span class="ag-emoji">'+g.emoji+'</span>';
+h+='<div class="ag-info">';
+h+='<div class="ag-title">'+esc(g.title)+'</div>';
+h+='<div class="ag-stats">';
+if(counts.submitted>0)h+='<span class="ag-pill ag-pill-review">'+counts.submitted+' to review</span>';
+if(counts.pending>0)h+='<span class="ag-pill ag-pill-pending">'+counts.pending+' pending</span>';
+if(counts.returned>0)h+='<span class="ag-pill ag-pill-returned">'+counts.returned+' returned</span>';
+if(counts.graded>0)h+='<span class="ag-pill ag-pill-graded">'+counts.graded+' graded</span>';
+if(counts.completed>0)h+='<span class="ag-pill ag-pill-done">'+counts.completed+' done</span>';
+h+='</div></div>';
+h+='<div class="ag-count">';
+if(g.dueDate)h+='<span class="ag-due'+(overdue?' overdue':'')+'">Due '+g.dueDate+(overdue?' \u26A0\uFE0F':'')+'</span>';
+h+='<span>'+g.items.length+' student'+(g.items.length!==1?'s':'')+'</span>';
+h+='<span class="ag-chevron">\u25BC</span>';
+h+='</div></div>';
+
+h+='<div class="ag-body">';
+h+='<div class="ag-bulk"><label><input type="checkbox" class="ag-bulk-check" onclick="event.stopPropagation();toggleGroupBulk('+gi+')" style="accent-color:var(--accent);width:14px;height:14px;cursor:pointer"> Select all</label></div>';
+// Sort students: submitted first, then pending, returned, graded, completed
+var statusOrder={submitted:0,pending:1,returned:2,graded:3,completed:4};
+var sorted=g.items.slice().sort(function(a,b){return(statusOrder[a.status]||9)-(statusOrder[b.status]||9)});
+sorted.forEach(function(a){
 var student=students.find(function(s){return s.id===a.studentId});
 var studentName=student?student.name:'Unknown';
-var typeEmoji=getAssignEmoji(a);
 var statusClass=getStatusClass(a.status);
 var statusLabel=getStatusLabel(a.status);
-var isNeedsReview=a.status==='submitted';
-var today=new Date().toISOString().split('T')[0];
-var overdue=a.status==='pending'&&a.dueDate&&a.dueDate<today;
-
-h+='<div class="assign-card'+(isNeedsReview?' needs-review':'')+'" style="display:flex;align-items:flex-start;gap:8px">';
-h+='<input type="checkbox" class="bulk-check" value="'+a.id+'" onclick="event.stopPropagation();updateBulkBar()">';
-h+='<div style="flex:1;cursor:pointer" onclick="openGradePanel(\''+a.id+'\')">';
-h+='<div class="ac-header"><div class="ac-title">'+typeEmoji+' '+esc(a.title||a.type)+'</div>';
-h+='<span class="ac-status '+statusClass+'">'+statusLabel+'</span></div>';
-h+='<div class="ac-meta">';
-h+='<span>&#x1F464; '+esc(studentName)+'</span>';
-if(a.dueDate)h+='<span'+(overdue?' style="color:var(--accent3)"':'')+'>Due: '+a.dueDate+(overdue?' \u26A0\uFE0F':'')+'</span>';
-if(a.score!==null&&a.score!==undefined)h+='<span class="ac-score">'+a.score+'%</span>';
-h+='</div></div></div>';
+h+='<div class="ag-student" onclick="openGradePanel(\''+a.id+'\')">';
+h+='<input type="checkbox" class="bulk-check" value="'+a.id+'" onclick="event.stopPropagation();updateBulkBar()" style="accent-color:var(--accent);width:14px;height:14px;cursor:pointer;flex-shrink:0">';
+h+='<span class="ag-student-name">'+esc(studentName)+'</span>';
+if(a.score!==null&&a.score!==undefined)h+='<span class="ag-student-score">'+a.score+'%</span>';
+h+='<span class="ac-status '+statusClass+'" style="flex-shrink:0">'+statusLabel+'</span>';
+h+='</div>';
+});
+h+='</div></div>';
 });
 el.innerHTML=h;
-// Reset bulk bar
 document.getElementById('bulkBar').classList.remove('show');
 }
+
+function toggleAssignGroup(gi){
+var el=document.getElementById('ag-'+gi);
+if(el)el.classList.toggle('open');
+}
+window.toggleAssignGroup=toggleAssignGroup;
+
+function toggleGroupBulk(gi){
+var el=document.getElementById('ag-'+gi);
+if(!el)return;
+var master=el.querySelector('.ag-bulk-check');
+var checks=el.querySelectorAll('.bulk-check');
+checks.forEach(function(c){c.checked=master.checked});
+updateBulkBar();
+}
+window.toggleGroupBulk=toggleGroupBulk;
 
 function getAssignEmoji(a){
 if(a.toolType&&ASSIGN_TYPES[a.toolType])return ASSIGN_TYPES[a.toolType].emoji;
 if(ASSIGN_TYPES[a.type])return ASSIGN_TYPES[a.type].emoji;
-var map={tool:'\u{1F6E0}\uFE0F',worksheet:'\u{1F4C4}',link:'\u{1F517}',custom:'\u270F\uFE0F'};
+var map={tool:'\u{1F6E0}\uFE0F',assignment:'\u{1F4CB}',worksheet:'\u{1F4CB}',link:'\u{1F4CB}',custom:'\u{1F4CB}'};
 return map[a.type]||'\u{1F4CB}';
 }
 
@@ -1485,7 +1539,7 @@ h+='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:
 if(a.fileData.startsWith('data:image')){
 h+='<div class="grade-work"><img src="'+a.fileData+'" style="max-width:100%;border-radius:8px"></div>';
 }else{
-h+='<div class="grade-work"><a href="'+a.fileData+'" target="_blank" style="color:var(--accent2)">View File</a></div>';
+h+='<div class="grade-work" style="max-height:500px"><iframe src="'+a.fileData+'" style="width:100%;height:460px;border:none;border-radius:8px"></iframe><div style="margin-top:8px"><a href="#" onclick="openFileBlob(\''+a.id+'\');return false" style="color:var(--accent2);font-size:12px;font-weight:600">Open in new tab \u2197\uFE0F</a></div></div>';
 }
 }
 if(a.linkUrl){
@@ -1530,6 +1584,22 @@ window.openGradePanel=openGradePanel;
 
 function closeGradePanel(){document.getElementById('gradePanel').classList.remove('show');gradingAssignment=null}
 window.closeGradePanel=closeGradePanel;
+
+function openFileBlob(assignId){
+var a=allAssignments.find(function(x){return x.id===assignId});
+if(!a||!a.fileData)return;
+try{
+var parts=a.fileData.split(',');
+var mime=parts[0].match(/:(.*?);/)[1];
+var raw=atob(parts[1]);
+var arr=new Uint8Array(raw.length);
+for(var i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);
+var blob=new Blob([arr],{type:mime});
+var url=URL.createObjectURL(blob);
+window.open(url,'_blank');
+}catch(e){console.error('Could not open file:',e);window.open(a.fileData,'_blank')}
+}
+window.openFileBlob=openFileBlob;
 
 async function gradeAssignment(){
 if(!gradingAssignment)return;
@@ -1633,22 +1703,16 @@ bar.innerHTML=h;
 function loadTemplate(id){
 var t=templates.find(function(x){return x.id===id});
 if(!t)return;
-switchCreateTab(t.createType||t.type||'tool');
-if((t.createType||t.type)==='tool'&&t.toolType)document.getElementById('createToolSelect').value=t.toolType;
-if((t.createType||t.type)==='worksheet'){
-document.getElementById('createWsTitle').value=t.title||'';
-document.getElementById('createWsInstructions').value=t.instructions||'';
-document.getElementById('createWsGrading').value=t.gradingType||'teacher';
-}
-if((t.createType||t.type)==='link'){
-document.getElementById('createLinkTitle').value=t.title||'';
-document.getElementById('createLinkUrl').value=t.linkUrl||'';
-document.getElementById('createLinkInstructions').value=t.instructions||'';
-}
-if((t.createType||t.type)==='custom'){
-document.getElementById('createCustomTitle').value=t.title||'';
-document.getElementById('createCustomInstructions').value=t.instructions||'';
-document.getElementById('createCustomGrading').value=t.gradingType||'teacher';
+var ct=t.createType||t.type||'tool';
+// Map legacy types to new assignment tab
+if(ct==='worksheet'||ct==='link'||ct==='custom')ct='assignment';
+switchCreateTab(ct);
+if(ct==='tool'&&t.toolType)document.getElementById('createToolSelect').value=t.toolType;
+if(ct==='assignment'){
+document.getElementById('createAssignTitle').value=t.title||'';
+document.getElementById('createAssignInstructions').value=t.instructions||'';
+document.getElementById('createAssignLink').value=t.linkUrl||'';
+document.getElementById('createAssignGrading').value=t.gradingType||'teacher';
 }
 }
 window.loadTemplate=loadTemplate;
@@ -1937,10 +2001,10 @@ if(!lastAiAssignment)return;
 closeAiGen();
 openCreateAssignment();
 setTimeout(function(){
-switchCreateTab('custom');
-document.getElementById('createCustomTitle').value=lastAiAssignment.title||'';
-document.getElementById('createCustomInstructions').value=lastAiAssignment.instructions||'';
-document.getElementById('createCustomGrading').value=lastAiAssignment.gradingType||'teacher';
+switchCreateTab('assignment');
+document.getElementById('createAssignTitle').value=lastAiAssignment.title||'';
+document.getElementById('createAssignInstructions').value=lastAiAssignment.instructions||'';
+document.getElementById('createAssignGrading').value=lastAiAssignment.gradingType||'teacher';
 },100);
 }
 window.useAiAssignment=useAiAssignment;
