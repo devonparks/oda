@@ -259,7 +259,14 @@ select.settings-input{cursor:pointer}
 .stat.clickable{cursor:pointer;transition:all .15s}
 .stat.clickable:hover{border-color:var(--accent3);transform:translateY(-2px)}
 .needs-review-num{color:var(--accent3)!important}
-.create-modal{max-width:680px;width:95%}
+.create-modal{max-width:680px;width:95%;display:flex;flex-direction:column}
+.create-modal .type-panel{min-height:200px}
+.tool-pick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tool-pick{padding:12px 8px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;cursor:pointer;text-align:center;transition:all .15s}
+.tool-pick:hover{border-color:var(--accent2);transform:translateY(-2px)}
+.tool-pick.selected{border-color:var(--accent);background:rgba(6,214,160,.08);box-shadow:0 0 12px rgba(6,214,160,.1)}
+.tp-emoji{font-size:24px;display:block;margin-bottom:4px}
+.tp-name{font-size:13px;font-weight:700;color:var(--text)}
 /* Template list */
 .tmpl-list{max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:2px}
 .tmpl-card{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;cursor:pointer;transition:all .15s}
@@ -344,7 +351,7 @@ select.settings-input{cursor:pointer}
 <h1>&#x1F3AE; <span>ODA Hub</span></h1>
 <div class="topbar-right">
 <span class="teacher-badge" id="teacherName">Loading...</span>
-<button class="btn btn-outline btn-sm" onclick="checkForUpdates(this)" title="Check for updates">&#x1F504; Update</button>
+<button class="btn btn-outline btn-sm" onclick="location.reload(true)" title="Hard refresh">&#x1F504; Refresh</button>
 <button class="btn btn-outline btn-sm" onclick="logout()">Sign Out</button>
 </div>
 </div>
@@ -584,14 +591,26 @@ select.settings-input{cursor:pointer}
 <div class="modal create-modal">
 <button class="modal-close" onclick="closeCreateAssignment()">&times;</button>
 <h2>&#x1F4DD; Create Assignment</h2>
+<p style="color:var(--text2);margin-bottom:14px">Pick a type, choose students, and send it out.</p>
 <div class="type-tabs">
 <div class="type-tab active" onclick="switchCreateTab('tool')">&#x1F6E0;&#xFE0F; Tool</div>
-<div class="type-tab" onclick="switchCreateTab('assignment')">&#x1F4CB; Assignment</div>
+<div class="type-tab" onclick="switchCreateTab('assignment')">&#x1F4CB; Custom</div>
 <div class="type-tab" onclick="switchCreateTab('templates')">&#x1F4C1; Templates</div>
 </div>
 <div class="type-panel show" id="panel-tool">
 <div class="fg"><label>Select Tool</label>
-<select id="createToolSelect">
+<div class="tool-pick-grid" id="toolPickGrid">
+<div class="tool-pick" data-val="pitch-challenge" onclick="pickTool(this)"><span class="tp-emoji">&#x1F4A1;</span><span class="tp-name">Pitch Challenge</span></div>
+<div class="tool-pick" data-val="elevator-pitch" onclick="pickTool(this)"><span class="tp-emoji">&#x1F3A4;</span><span class="tp-name">Elevator Pitch</span></div>
+<div class="tool-pick" data-val="robot-lab" onclick="pickTool(this)"><span class="tp-emoji">&#x1F916;</span><span class="tp-name">Robot Lab</span></div>
+<div class="tool-pick" data-val="spelling-k2" onclick="pickTool(this)"><span class="tp-emoji">&#x1F4D6;</span><span class="tp-name">Spelling K-2</span></div>
+<div class="tool-pick" data-val="spelling-34" onclick="pickTool(this)"><span class="tp-emoji">&#x1F4D6;</span><span class="tp-name">Spelling 3-4</span></div>
+<div class="tool-pick" data-val="spelling-58" onclick="pickTool(this)"><span class="tp-emoji">&#x1F4D6;</span><span class="tp-name">Spelling 5-8</span></div>
+<div class="tool-pick" data-val="vocab-k2" onclick="pickTool(this)"><span class="tp-emoji">&#x1F4AC;</span><span class="tp-name">Vocab K-2</span></div>
+<div class="tool-pick" data-val="vocab-34" onclick="pickTool(this)"><span class="tp-emoji">&#x1F4AC;</span><span class="tp-name">Vocab 3-4</span></div>
+<div class="tool-pick" data-val="vocab-58" onclick="pickTool(this)"><span class="tp-emoji">&#x1F4AC;</span><span class="tp-name">Vocab 5-8</span></div>
+</div>
+<select id="createToolSelect" style="display:none">
 <option value="">Choose a tool...</option>
 <option value="spelling-k2">Spelling Bee K-2</option>
 <option value="spelling-34">Spelling Bee 3-4</option>
@@ -606,29 +625,39 @@ select.settings-input{cursor:pointer}
 </div>
 <div class="type-panel" id="panel-assignment">
 <div class="fg"><label>Title</label><input type="text" id="createAssignTitle" placeholder="Assignment title"></div>
-<div class="fg"><label>Instructions</label><textarea id="createAssignInstructions" placeholder="What should students do? Be specific..."></textarea></div>
+<div class="fg"><label>Instructions</label><textarea id="createAssignInstructions" placeholder="What should students do? Be specific..." style="min-height:100px"></textarea></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
 <div class="fg"><label>Link (optional)</label><input type="url" id="createAssignLink" placeholder="https://..."></div>
-<div class="fg"><label>Attach File (optional — PDF or image, max 50MB)</label><input type="file" id="createAssignFile" accept=".pdf,.png,.jpg,.jpeg" style="padding:8px"></div>
 <div class="fg"><label>Grading</label><select id="createAssignGrading"><option value="teacher">Teacher Graded</option><option value="completion">Completion Only</option></select></div>
+</div>
+<div class="fg"><label>Attach File (optional — PDF or image, max 50MB)</label><input type="file" id="createAssignFile" accept=".pdf,.png,.jpg,.jpeg" style="padding:8px"></div>
 </div>
 <div class="type-panel" id="panel-templates">
 <div style="font-size:14px;color:var(--text2);margin-bottom:10px;font-weight:600">Click a template to load it, then assign to students.</div>
 <div class="tmpl-list" id="templateList"></div>
 </div>
-<div class="fg" id="fgDueDate"><label>Due Date</label><input type="date" id="createDueDate" class="date-input-big"></div>
-<div class="fg" id="studentPickerWrap"><label>Assign To</label>
-<div class="sp-controls">
-<button class="btn btn-outline btn-sm" onclick="spSelectAll()">Select All</button>
-<button class="btn btn-outline btn-sm" onclick="spSelectNone()">Select None</button>
+<div id="createBottomSection" style="border-top:1px solid var(--border);margin-top:8px;padding-top:16px">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+<div class="fg" id="fgDueDate" style="margin-bottom:0"><label>Due Date</label><input type="date" id="createDueDate" class="date-input-big"></div>
+<div class="fg" style="margin-bottom:0"><label>Assign To</label>
+<div class="sp-controls" style="margin-bottom:0">
+<button class="btn btn-outline btn-sm" onclick="spSelectAll()">All</button>
+<button class="btn btn-outline btn-sm" onclick="spSelectNone()">None</button>
 <select id="spClassFilter" onchange="renderStudentPicker()"><option value="">All Classes</option></select>
 </div>
+</div>
+</div>
+<div class="fg" id="studentPickerWrap" style="margin-bottom:14px">
 <div class="student-picker" id="studentPicker"></div>
 </div>
-<div id="saveTemplateWrap" style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-<input type="checkbox" id="saveAsTemplate" style="accent-color:var(--accent);width:18px;height:18px">
-<label for="saveAsTemplate" style="font-size:15px;font-weight:600;cursor:pointer">Save as Template</label>
 </div>
-<button class="btn btn-accent btn-wide" id="btnCreateAssign" onclick="submitCreateAssignment()">Create Assignment &#x1F680;</button>
+<div style="display:flex;align-items:center;gap:14px">
+<div id="saveTemplateWrap" style="display:flex;align-items:center;gap:8px">
+<input type="checkbox" id="saveAsTemplate" style="accent-color:var(--accent);width:18px;height:18px">
+<label for="saveAsTemplate" style="font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap">Save as Template</label>
+</div>
+<button class="btn btn-accent btn-wide" id="btnCreateAssign" onclick="submitCreateAssignment()" style="flex:1">Create Assignment &#x1F680;</button>
+</div>
 </div>
 </div>
 
@@ -1273,6 +1302,7 @@ var panels=document.querySelectorAll('.type-panel');
 panels.forEach(function(p){p.classList.remove('show')});
 document.getElementById('panel-tool').classList.add('show');
 document.getElementById('createToolSelect').value='';
+document.querySelectorAll('.tool-pick').forEach(function(t){t.classList.remove('selected')});
 document.getElementById('createAssignTitle').value='';
 document.getElementById('createAssignInstructions').value='';
 document.getElementById('createAssignLink').value='';
@@ -1280,7 +1310,8 @@ document.getElementById('createAssignFile').value='';
 document.getElementById('createAssignGrading').value='teacher';
 document.getElementById('createDueDate').value='';
 document.getElementById('saveAsTemplate').checked=false;
-['fgDueDate','studentPickerWrap','saveTemplateWrap','btnCreateAssign'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=''});
+var bs=document.getElementById('createBottomSection');if(bs)bs.style.display='';
+var ft=document.getElementById('btnCreateAssign');if(ft)ft.parentElement.style.display='';
 populateClassFilters();
 renderStudentPicker();
 if(preSelectStudentId){
@@ -1306,11 +1337,18 @@ var p=document.getElementById('panel-'+tp);
 if(p)p.classList.toggle('show',tp===type);
 });
 var isTmpl=type==='templates';
-var hide=['fgDueDate','studentPickerWrap','saveTemplateWrap','btnCreateAssign'];
-hide.forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=isTmpl?'none':''});
+var el=document.getElementById('createBottomSection');if(el)el.style.display=isTmpl?'none':'';
+var ft=document.getElementById('btnCreateAssign');if(ft)ft.parentElement.style.display=isTmpl?'none':'';
 if(type==='templates')loadTemplates();
 }
 window.switchCreateTab=switchCreateTab;
+
+function pickTool(el){
+document.querySelectorAll('.tool-pick').forEach(function(t){t.classList.remove('selected')});
+el.classList.add('selected');
+document.getElementById('createToolSelect').value=el.getAttribute('data-val');
+}
+window.pickTool=pickTool;
 
 function populateClassFilters(){
 var classes=window.teacherData&&window.teacherData.classes?window.teacherData.classes.filter(function(c){return c!=='All Students'}):[];
