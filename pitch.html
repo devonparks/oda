@@ -87,7 +87,7 @@ textarea.fun-input::placeholder{color:#3a4560}
 /* AI Coach */
 .ai-coach{background:linear-gradient(135deg,var(--surface),var(--surface2));border:2px solid var(--accent2);border-radius:20px;padding:24px;margin:20px 0;animation:fadeUp .4s ease}
 .ai-coach-label{font-family:'Space Mono',monospace;font-size:11px;color:var(--accent2);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.ai-coach-text{font-size:15px;line-height:1.8;color:var(--text)}
+.ai-coach-text{font-size:17px;line-height:1.8;color:var(--text)}
 .ai-loading{text-align:center;padding:20px;color:var(--text2);font-size:14px;font-weight:600}
 .ai-loading::after{content:'';display:inline-block;width:14px;height:14px;border:2px solid var(--accent2);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;margin-left:8px;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -99,15 +99,17 @@ textarea.fun-input::placeholder{color:#3a4560}
 .btn-ai:active{transform:translateY(2px)}
 .btn-ai:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
 .ai-help-result{background:linear-gradient(135deg,var(--surface),var(--surface2));border:2px solid var(--accent2);border-radius:16px;padding:18px;margin:10px 0;animation:fadeUp .4s ease}
-.ai-help-result .ai-coach-label{margin-bottom:8px}
-.ai-help-result .ai-coach-text{font-size:14px;line-height:1.7}
+.ai-help-result .ai-coach-label{margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.ai-help-result .ai-coach-label .collapse-arrow{font-size:14px;transition:transform .2s}
+.ai-help-result .ai-coach-label .collapse-arrow.collapsed{transform:rotate(-90deg)}
+.ai-help-result .ai-coach-text{font-size:17px;line-height:1.8}
 .ai-help-loading{text-align:center;padding:14px;color:var(--text2);font-size:14px;font-weight:600}
 .ai-help-loading::after{content:'';display:inline-block;width:12px;height:12px;border:2px solid var(--accent2);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;margin-left:8px;vertical-align:middle}
 
 /* Polished pitch */
 .polished-pitch{background:rgba(6,214,160,.06);border:2px solid rgba(6,214,160,.2);border-radius:20px;padding:24px;margin:20px 0;animation:fadeUp .4s ease}
 .polished-label{font-family:'Space Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
-.polished-text{font-size:16px;line-height:1.8;color:var(--text);font-style:italic}
+.polished-text{font-size:18px;line-height:1.8;color:var(--text);font-style:italic}
 
 /* Webcam recording */
 .record-section{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:24px;margin:20px 0;text-align:center}
@@ -161,6 +163,10 @@ textarea.fun-input::placeholder{color:#3a4560}
 .confetti-piece{position:fixed;top:-20px;z-index:9999;pointer-events:none;animation:confettiFall 3s ease-in forwards}
 @keyframes confettiFall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
 .site-footer{text-align:center;padding:24px 0 12px;font-size:12px;color:var(--text2)}
+/* Teleprompter */
+.teleprompter{background:rgba(0,0,0,.85);border-radius:14px;padding:20px;margin-bottom:16px;max-height:150px;overflow-y:auto;border:2px solid var(--gold)}
+.teleprompter-text{font-family:'Outfit',sans-serif;font-size:26px;font-weight:600;color:var(--gold);line-height:1.6;text-align:center}
+.teleprompter-label{font-family:'Space Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;text-align:center;margin-bottom:8px}
 .hidden{display:none!important}
 </style>
 </head>
@@ -255,7 +261,8 @@ textarea.fun-input::placeholder{color:#3a4560}
 <div class="record-section" id="recordSection">
 <h3>&#x1F3A5; Record Your Pitch</h3>
 <p>Practice delivering your pitch, then record yourself! Your teacher will be able to watch it.</p>
-<div class="video-preview" id="videoPreview" style="display:none"><video id="cameraFeed" autoplay muted playsinline></video><div class="rec-indicator" id="recIndicator" style="display:none"><span class="rec-dot"></span><span id="recTimer">0:00</span></div></div>
+<div id="teleprompter" class="teleprompter" style="display:none"><div class="teleprompter-label">TELEPROMPTER</div><div class="teleprompter-text" id="teleprompterText"></div></div>
+<div class="video-preview" id="videoPreview" style="display:none"><video id="cameraFeed" autoplay muted playsinline style="transform:scaleX(-1)"></video><div class="rec-indicator" id="recIndicator" style="display:none"><span class="rec-dot"></span><span id="recTimer">0:00</span></div></div>
 <div class="video-playback" id="videoPlayback" style="display:none"><video id="playbackVideo" controls playsinline></video></div>
 <div class="rec-btns" id="recBtns"><button class="btn-record" onclick="startCamera()">&#x1F4F7; Open Camera</button></div>
 </div>
@@ -271,10 +278,7 @@ textarea.fun-input::placeholder{color:#3a4560}
 <div id="copyMsg" class="copy-msg">&#x2705; Copied! Now paste into your Google Doc or Sheet</div>
 
 <!-- AI Coach -->
-<div class="ai-coach" id="aiCoach"><div class="ai-loading" id="aiLoading">&#x1F9E0; AI Coach is analyzing your pitch</div><div id="aiCoachContent" style="display:none"><div class="ai-coach-label">&#x1F9E0; AI COACH FEEDBACK</div><div class="ai-coach-text" id="aiCoachText"></div></div></div>
-
-<!-- AI Polished Pitch -->
-<div class="polished-pitch" id="polishedPitchArea" style="display:none"><div class="polished-label">&#x2728; AI-POLISHED VERSION</div><div class="polished-text" id="polishedPitchText"></div></div>
+<div class="ai-coach" id="aiCoach"><div class="ai-loading" id="aiLoading">&#x1F9E0; AI Coach is analyzing your pitch</div><div id="aiCoachContent" style="display:none"><div class="ai-coach-label" onclick="toggleAiCollapse(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center">&#x1F9E0; AI COACH FEEDBACK <span class="collapse-arrow">&#x25BC;</span></div><div class="ai-coach-text" id="aiCoachText"></div></div></div>
 
 <div id="submitArea" class="hidden" style="margin:20px 0"><button class="btn-submit" onclick="submitAndGoHome()" id="btnSubmit">Submit & Go Home &#x1F3E0;</button></div>
 <div class="btn-row-center"><button class="btn btn-small btn-gray" onclick="goBackFromDone()">&#x2190; Edit Pitch</button><button class="btn btn-small btn-green" onclick="copySummary()">&#x1F4CB; Copy Summary</button><button class="btn btn-small btn-yellow" onclick="fireConfetti()">&#x1F389; Celebrate Again!</button><button class="btn btn-small btn-purple" id="btnNextStudent" onclick="nextStudent()">&#x1F195; Next Student</button></div>
@@ -409,10 +413,20 @@ var el=document.getElementById(containerId);
 el.innerHTML='<div class="ai-help-loading">\u{1F916} Thinking...</div>';
 }
 
+function stripMd(t){
+return t.replace(/^#{1,6}\s+/gm,'').replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1').replace(/__(.+?)__/g,'$1').replace(/_(.+?)_/g,'$1').replace(/^[-*]\s+/gm,'').replace(/^---+$/gm,'').replace(/`(.+?)`/g,'$1').replace(/^\s*\n/gm,'\n').trim();
+}
+function toggleAiCollapse(btn){
+var body=btn.parentElement.nextElementSibling;
+var arrow=btn.querySelector('.collapse-arrow');
+if(body.style.display==='none'){body.style.display='block';arrow.classList.remove('collapsed')}
+else{body.style.display='none';arrow.classList.add('collapsed')}
+}
 function showAiResult(containerId,text){
 var el=document.getElementById(containerId);
 if(!text){el.innerHTML='<div class="ai-help-result"><div class="ai-coach-text" style="color:var(--text2)">Hmm, I couldn\'t think of anything right now. Try again!</div></div>';return}
-el.innerHTML='<div class="ai-help-result"><div class="ai-coach-label">\u{1F916} AI COACH</div><div class="ai-coach-text">'+esc(text).replace(/\n/g,'<br>')+'</div></div>';
+var clean=esc(stripMd(text)).replace(/\n/g,'<br>');
+el.innerHTML='<div class="ai-help-result"><div class="ai-coach-label" onclick="toggleAiCollapse(this)">\u{1F916} AI COACH <span class="collapse-arrow">\u25BC</span></div><div class="ai-coach-text">'+clean+'</div></div>';
 }
 
 // ===== AI HELP BUTTONS =====
@@ -465,7 +479,7 @@ showAiResult('aiHelpAdvantagesResult',text);
 async function aiHelpExample(){
 showAiLoading('aiHelpExampleResult');
 var av=[d.a1,d.a2,d.a3].filter(function(a){return a});
-var prompt='You are a pitch coach for kids ages 8-14. A student named '+(d.name||'a student')+' needs help writing their business pitch. Here is their info:\n- Problem: '+d.prob+'\n- Business name: '+d.bName+'\n- What it does: '+d.bDesc+'\n- Customers: '+d.custs.join(', ')+'\n- Advantages: '+av.join(', ')+'\n\nWrite a sample HOOK (an attention-grabbing opening line, like a question) and a sample CALL TO ACTION (what they want the audience to do). Label them clearly. Keep it short, fun, and in a voice a kid would actually use. Do NOT write the full pitch, just the hook and call to action.';
+var prompt='You are a pitch coach for kids ages 8-14. A student named '+(d.name||'a student')+' needs help writing their business pitch. Here is their info:\n- Problem: '+d.prob+'\n- Business name: '+d.bName+'\n- What it does: '+d.bDesc+'\n- Customers: '+d.custs.join(', ')+'\n- Advantages: '+av.join(', ')+'\n\nWrite a sample HOOK (an attention-grabbing opening line, like a question) and a sample CALL TO ACTION (what they want the audience to do). Label them clearly. Keep it short, fun, and in a voice a kid would actually use. Do NOT write the full pitch, just the hook and call to action. Do NOT use markdown formatting (no hashtags, asterisks, or bold). Just plain text.';
 var text=await callAI(prompt,200);
 showAiResult('aiHelpExampleResult',text);
 }
@@ -476,10 +490,9 @@ try{
 var as=d.skills.slice();if(d.cSkill.trim())as.push(d.cSkill.trim());
 var av=[d.a1,d.a2,d.a3].filter(function(a){return a});
 
-var prompt='You are a supportive business coach for an afterschool program (Open Doors Academy). A student (age ~8-14) just created their first business pitch through the Pitch Challenge. Analyze it and provide two things:\n\n';
-prompt+='1. FEEDBACK: Write 3-4 sentences of encouraging, specific feedback. Mention what they did well and give 1-2 concrete tips to make their pitch stronger. Be warm and age-appropriate. Write directly to the student (use "you").\n\n';
-prompt+='2. POLISHED: Rewrite their pitch in a more polished, professional way while keeping their voice, ideas, and personality. Keep it under 100 words. This should sound like something they could actually say.\n\n';
-prompt+='Respond in this EXACT format (include the labels):\nFEEDBACK: [your feedback]\nPOLISHED: [polished pitch]\n\n';
+var prompt='You are a supportive business coach for an afterschool program (Open Doors Academy). A student (age ~8-14) just created their first business pitch through the Pitch Challenge. Provide feedback.\n\n';
+prompt+='Write 3-4 sentences of encouraging, specific feedback. Mention what they did well and give 1-2 concrete tips to make their pitch stronger. Be warm and age-appropriate. Write directly to the student (use "you").\n\n';
+prompt+='IMPORTANT: Do NOT use any markdown formatting. No hashtags, no asterisks, no bold, no headers. Just write plain text.\n\n';
 prompt+='Student: '+d.name+'\n';
 prompt+='Problem: '+d.prob+'\n';
 prompt+='Business: '+d.bName+' - '+d.bDesc+'\n';
@@ -490,34 +503,19 @@ prompt+='Their pitch:\n'+pitchText;
 
 var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
 method:'POST',headers:{'Content-Type':'application/json'},
-body:JSON.stringify({prompt:prompt,max_tokens:500})
+body:JSON.stringify({prompt:prompt,max_tokens:300})
 });
 var data=await resp.json();
 var text=data.response||data.text||(Array.isArray(data.content)&&data.content[0]?data.content[0].text:'')||'';
 
 if(text){
-// Parse FEEDBACK and POLISHED sections
-var feedbackMatch=text.match(/FEEDBACK:\s*([\s\S]*?)(?=POLISHED:|$)/i);
-var polishedMatch=text.match(/POLISHED:\s*([\s\S]*?)$/i);
-
-var feedback=feedbackMatch?feedbackMatch[1].trim():text;
-var polished=polishedMatch?polishedMatch[1].trim():'';
-
-aiCoachResult=feedback;
-polishedResult=polished;
+aiCoachResult=text;
 
 // Show feedback
 document.getElementById('aiLoading').style.display='none';
 var content=document.getElementById('aiCoachContent');
 content.style.display='block';
-document.getElementById('aiCoachText').textContent=feedback;
-
-// Show polished pitch if available
-if(polished){
-var area=document.getElementById('polishedPitchArea');
-area.style.display='block';
-document.getElementById('polishedPitchText').textContent=polished;
-}
+document.getElementById('aiCoachText').innerHTML=esc(stripMd(text)).replace(/\n/g,'<br>');
 }
 }catch(e){
 console.error('AI Coach error:',e);
@@ -534,13 +532,13 @@ try{
 var as=d.skills.slice();if(d.cSkill.trim())as.push(d.cSkill.trim());
 var av=[d.a1,d.a2,d.a3].filter(function(a){return a});
 pitchText=document.getElementById('pitchEditArea').value;
-var prompt='You are a supportive pitch coach for kids ages 8-14. Rewrite this student\'s business pitch in a more polished, professional way while keeping their voice, ideas, and personality. Keep it under 100 words. This should sound like something they could actually say out loud.\n\n';
+var prompt='You are a supportive pitch coach for kids ages 8-14. Rewrite this student\'s business pitch in a more polished, professional way while keeping their voice, ideas, and personality. Keep it under 100 words. This should sound like something they could actually say out loud. Do NOT use markdown formatting. Just plain text.\n\n';
 prompt+='Student: '+d.name+'\nBusiness: '+d.bName+' - '+d.bDesc+'\nCustomers: '+d.custs.join(', ')+'\nAdvantages: '+av.join(', ')+'\n\nTheir pitch:\n'+pitchText+'\n\nJust write the polished pitch, nothing else.';
 var text=await callAI(prompt,300);
 if(text){
-polishedResult=text;
+polishedResult=stripMd(text);
 document.getElementById('polishedStep7').style.display='block';
-document.getElementById('polishedStep7Text').textContent=text;
+document.getElementById('polishedStep7Text').textContent=polishedResult;
 }
 }catch(e){console.error('Polish error:',e)}
 btn.disabled=false;btn.innerHTML='\u2728 Get AI-Polished Version';
@@ -565,6 +563,11 @@ var video=document.getElementById('cameraFeed');
 video.srcObject=cameraStream;
 document.getElementById('videoPreview').style.display='block';
 document.getElementById('videoPlayback').style.display='none';
+// Show teleprompter with pitch text
+var tp=document.getElementById('teleprompter');
+var tpText=document.getElementById('teleprompterText');
+var currentPitch=document.getElementById('pitchEditArea').value||pitchText||'';
+if(currentPitch){tp.style.display='block';tpText.textContent=currentPitch}
 document.getElementById('recBtns').innerHTML='<button class="btn-record" onclick="startRecording()">\u{1F534} Start Recording</button><button class="btn btn-small btn-gray" onclick="stopCamera()">Cancel</button>';
 }catch(e){
 alert('Could not access camera. Make sure you allow camera and microphone access.');
@@ -575,6 +578,7 @@ console.error('Camera error:',e);
 function stopCamera(){
 if(cameraStream){cameraStream.getTracks().forEach(function(t){t.stop()});cameraStream=null}
 document.getElementById('videoPreview').style.display='none';
+document.getElementById('teleprompter').style.display='none';
 document.getElementById('recBtns').innerHTML='<button class="btn-record" onclick="startCamera()">\u{1F4F7} Open Camera</button>';
 }
 
@@ -591,6 +595,7 @@ mediaRecorder.onstop=function(){
 recordedBlob=new Blob(recordedChunks,{type:'video/webm'});
 var url=URL.createObjectURL(recordedBlob);
 document.getElementById('videoPreview').style.display='none';
+document.getElementById('teleprompter').style.display='none';
 var pb=document.getElementById('videoPlayback');
 pb.style.display='block';
 document.getElementById('playbackVideo').src=url;
@@ -718,8 +723,8 @@ var ids=["inputName","inputProblem","inputCustomSkill","inputBizName","inputBizD
 document.getElementById("btnStart").disabled=true;var ac=document.querySelectorAll(".chip");for(var i=0;i<ac.length;i++)ac[i].classList.remove("on");
 pitchText='';aiCoachResult='';polishedResult='';recordedBlob=null;recordedChunks=[];
 document.getElementById('aiLoading').style.display='';document.getElementById('aiCoachContent').style.display='none';
-document.getElementById('polishedPitchArea').style.display='none';
 document.getElementById('polishedStep7').style.display='none';
+document.getElementById('teleprompter').style.display='none';
 document.getElementById('videoPlayback').style.display='none';
 document.getElementById('videoPreview').style.display='none';
 document.getElementById('recBtns').innerHTML='<button class="btn-record" onclick="startCamera()">\u{1F4F7} Open Camera</button>';

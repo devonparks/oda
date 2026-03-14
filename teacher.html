@@ -233,9 +233,26 @@ select.settings-input{cursor:pointer}
 .sp-class{font-size:10px;color:var(--text2);margin-left:auto}
 .grade-panel{position:fixed;inset:0;background:rgba(10,14,26,.88);z-index:101;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .grade-panel.show{display:flex}
-.grade-modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;max-width:520px;width:92%;max-height:85vh;overflow-y:auto}
-.grade-work{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;max-height:200px;overflow-y:auto;font-size:13px;line-height:1.6}
-.score-input{width:80px;padding:10px;background:var(--bg);border:2px solid var(--border);border-radius:10px;color:var(--gold);font-family:'Space Mono',monospace;font-size:18px;font-weight:700;text-align:center;outline:none}
+.grade-modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;max-width:720px;width:95%;max-height:90vh;overflow-y:auto}
+.grade-header{margin-bottom:20px}
+.grade-header h2{font-family:'Fredoka',sans-serif;font-size:22px;margin-bottom:4px}
+.grade-header .grade-meta{font-size:14px;color:var(--text2);line-height:1.5}
+.grade-header .grade-instructions{font-size:13px;color:var(--text2);margin-top:8px;padding:10px;background:var(--surface2);border-radius:10px}
+.grade-work{background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:18px;max-height:none;overflow-y:auto;font-size:15px;line-height:1.7}
+.grade-work .gw-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.grade-work .gw-value{font-size:15px;margin-bottom:12px}
+.grade-work .gw-section{padding-top:12px;margin-top:12px;border-top:1px solid var(--border)}
+.grade-work .gw-pitch{font-size:16px;font-style:italic;line-height:1.8;padding:14px;background:var(--surface2);border-radius:10px}
+.grade-actions{border-top:1px solid var(--border);padding-top:18px;margin-top:18px}
+.grade-actions .ga-title{font-family:'Fredoka',sans-serif;font-size:16px;font-weight:700;margin-bottom:14px}
+.grade-score-row{display:flex;gap:14px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap}
+.grade-feedback-area{margin-bottom:14px}
+.grade-feedback-area label{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.grade-feedback-area textarea{width:100%;padding:12px;background:var(--bg);border:2px solid var(--border);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;outline:none;resize:vertical;min-height:80px;line-height:1.6}
+.grade-feedback-area textarea:focus{border-color:var(--accent)}
+.grade-btn-row{display:flex;gap:10px;flex-wrap:wrap}
+.grade-footer{border-top:1px solid var(--border);padding-top:14px;margin-top:14px;display:flex;justify-content:space-between;align-items:center}
+.score-input{width:90px;padding:12px;background:var(--bg);border:2px solid var(--border);border-radius:10px;color:var(--gold);font-family:'Space Mono',monospace;font-size:20px;font-weight:700;text-align:center;outline:none}
 .score-input:focus{border-color:var(--gold)}
 .stat.clickable{cursor:pointer;transition:all .15s}
 .stat.clickable:hover{border-color:var(--accent3);transform:translateY(-2px)}
@@ -1040,7 +1057,7 @@ try{
 var epDoc=await window.fbGetDoc(window.fbDoc(window.fbDb,'elevatorPitches',sid));
 if(epDoc.exists()){
 var ep=epDoc.data();
-h+='<div class="work-card"><div class="work-header"><span class="work-type wt-elevator">\u{1F3A4} Elevator Pitch</span><span class="work-date">'+(ep.savedAt?new Date(ep.savedAt).toLocaleDateString():'')+'</span></div>';
+h+='<div class="work-card"><div class="work-header"><span class="work-type wt-elevator">\u{1F3A4} Elevator Pitch</span><div style="display:flex;align-items:center;gap:8px"><span class="work-date">'+(ep.savedAt?new Date(ep.savedAt).toLocaleDateString():'')+'</span><button class="btn btn-red btn-sm" onclick="deleteStudentWork(\'elevatorPitches\',\''+sid+'\')" style="padding:2px 7px;font-size:11px" title="Delete">&times;</button></div></div>';
 h+='<div class="work-body">';
 if(ep.answers){
 if(ep.answers.name)h+='<div class="wl"><span class="wl-label">Name:</span> <span class="wl-value">'+esc(ep.answers.name)+'</span></div>';
@@ -1057,7 +1074,7 @@ h+='</div></div>';
 var pcDoc=await window.fbGetDoc(window.fbDoc(window.fbDb,'pitchChallenges',sid));
 if(pcDoc.exists()){
 var pc=pcDoc.data();
-h+='<div class="work-card"><div class="work-header"><span class="work-type wt-pitch">\u{1F4A1} Pitch Challenge</span><span class="work-date">'+(pc.savedAt?new Date(pc.savedAt).toLocaleDateString():'')+'</span></div>';
+h+='<div class="work-card"><div class="work-header"><span class="work-type wt-pitch">\u{1F4A1} Pitch Challenge</span><div style="display:flex;align-items:center;gap:8px"><span class="work-date">'+(pc.savedAt?new Date(pc.savedAt).toLocaleDateString():'')+'</span><button class="btn btn-red btn-sm" onclick="deleteStudentWork(\'pitchChallenges\',\''+sid+'\')" style="padding:2px 7px;font-size:11px" title="Delete">&times;</button></div></div>';
 h+='<div class="work-body">';
 if(pc.studentName)h+='<div class="wl"><span class="wl-label">Student:</span> <span class="wl-value">'+esc(pc.studentName)+'</span></div>';
 if(pc.businessName)h+='<div class="wl"><span class="wl-label">Business:</span> <span class="wl-value">'+esc(pc.businessName)+(pc.businessDesc?' — '+esc(pc.businessDesc):'')+'</span></div>';
@@ -1072,7 +1089,7 @@ h+='</div></div>';
 var rdDoc=await window.fbGetDoc(window.fbDoc(window.fbDb,'robotDesigns',sid));
 if(rdDoc.exists()){
 var rd=rdDoc.data();
-h+='<div class="work-card"><div class="work-header"><span class="work-type wt-robot">\u{1F916} Robot Design</span><span class="work-date">'+(rd.savedAt?new Date(rd.savedAt).toLocaleDateString():'')+'</span></div>';
+h+='<div class="work-card"><div class="work-header"><span class="work-type wt-robot">\u{1F916} Robot Design</span><div style="display:flex;align-items:center;gap:8px"><span class="work-date">'+(rd.savedAt?new Date(rd.savedAt).toLocaleDateString():'')+'</span><button class="btn btn-red btn-sm" onclick="deleteStudentWork(\'robotDesigns\',\''+sid+'\')" style="padding:2px 7px;font-size:11px" title="Delete">&times;</button></div></div>';
 h+='<div class="work-body">';
 if(rd.robotName)h+='<div class="wl"><span class="wl-label">Robot Name:</span> <span class="wl-value" style="color:var(--accent);font-size:16px">'+esc(rd.robotName)+'</span></div>';
 if(rd.brain)h+='<div class="wl"><span class="wl-label">\u{1F9E0} Brain:</span> <span class="wl-value">'+esc(rd.brain)+'</span></div>';
@@ -1090,7 +1107,7 @@ var srSnap=await window.fbGetDocs(srQ);
 if(!srSnap.empty){
 var results=[];srSnap.forEach(function(d){results.push(d.data())});
 results.sort(function(a,b){return(b.savedAt||'').localeCompare(a.savedAt||'')});
-h+='<div class="work-card"><div class="work-header"><span class="work-type wt-spelling">\u{1F41D} Spelling Bee</span><span class="work-date">'+results.length+' attempt'+(results.length!==1?'s':'')+'</span></div>';
+h+='<div class="work-card"><div class="work-header"><span class="work-type wt-spelling">\u{1F41D} Spelling Bee</span><div style="display:flex;align-items:center;gap:8px"><span class="work-date">'+results.length+' attempt'+(results.length!==1?'s':'')+'</span><button class="btn btn-red btn-sm" onclick="deleteStudentWork(\'spellingResults\',\''+sid+'\')" style="padding:2px 7px;font-size:11px" title="Delete">&times;</button></div></div>';
 h+='<div class="work-body">';
 h+='<div class="spelling-scores">';
 results.forEach(function(r){
@@ -1203,6 +1220,22 @@ if(!confirm('Remove this assignment?'))return;
 try{await window.fbDeleteDoc(window.fbDoc(window.fbDb,'assignments',assignId));await loadStudents();renderProfileAssignments()}catch(e){console.error(e)}
 }
 window.deleteAssignment=deleteAssignment;
+
+async function deleteStudentWork(collectionName,studentId){
+if(!confirm('Delete this student work? This cannot be undone.'))return;
+try{
+if(collectionName==='spellingResults'){
+var q=window.fbQuery(window.fbCollection(window.fbDb,'spellingResults'),window.fbWhere('studentId','==',studentId));
+var snap=await window.fbGetDocs(q);
+var deletes=[];snap.forEach(function(d){deletes.push(window.fbDeleteDoc(window.fbDoc(window.fbDb,'spellingResults',d.id)))});
+await Promise.all(deletes);
+}else{
+await window.fbDeleteDoc(window.fbDoc(window.fbDb,collectionName,studentId));
+}
+await loadStudentWork();
+}catch(e){console.error('Error deleting student work:',e)}
+}
+window.deleteStudentWork=deleteStudentWork;
 
 // ===== ASSIGNMENTS TAB =====
 var createType='tool';
@@ -1535,111 +1568,99 @@ var student=students.find(function(s){return s.id===gradingAssignment.studentId}
 var a=gradingAssignment;
 var el=document.getElementById('gradePanelContent');
 
-var h='<h2>'+getAssignEmoji(a)+' '+esc(a.title)+'</h2>';
-h+='<div style="font-size:13px;color:var(--text2);margin-bottom:14px">Assigned to <strong>'+esc(student?student.name:'Unknown')+'</strong> on '+(a.assignedAt?new Date(a.assignedAt).toLocaleDateString():'')+'</div>';
+// Header
+var h='<div class="grade-header">';
+h+='<h2>'+getAssignEmoji(a)+' '+esc(a.title)+'</h2>';
+h+='<div class="grade-meta">';
+h+='<strong>'+esc(student?student.name:'Unknown')+'</strong>';
+h+=' &bull; '+(a.assignedAt?new Date(a.assignedAt).toLocaleDateString():'');
+h+=' &bull; <span class="ac-status '+getStatusClass(a.status)+'">'+getStatusLabel(a.status)+'</span>';
+if(a.score!==null&&a.score!==undefined)h+=' &bull; <span style="font-family:Space Mono,monospace;color:var(--gold);font-weight:700">'+a.score+'%</span>';
+h+='</div>';
+if(a.instructions)h+='<div class="grade-instructions"><strong>Instructions:</strong> '+esc(a.instructions)+'</div>';
+if(a.feedback)h+='<div class="grade-instructions" style="border-left:3px solid var(--accent);margin-top:6px"><strong>Previous Feedback:</strong> '+esc(a.feedback)+'</div>';
+h+='</div>';
 
-if(a.instructions)h+='<div style="font-size:12px;color:var(--text2);margin-bottom:8px"><strong>Instructions:</strong> '+esc(a.instructions)+'</div>';
-
+// Student work
 if(a.studentResponse){
-h+='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px">Student\'s Response:</div>';
 var pitchParsed=null;
 try{pitchParsed=JSON.parse(a.studentResponse)}catch(e){}
 if(pitchParsed&&pitchParsed.businessName){
-h+='<div class="grade-work" style="max-height:400px">';
-h+='<div style="font-weight:800;font-size:15px;margin-bottom:10px;color:var(--accent)">\u{1F3A4} '+esc(pitchParsed.businessName)+'</div>';
-h+='<div style="margin-bottom:8px"><span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Problem:</span><div style="font-size:13px;margin-top:2px">'+esc(pitchParsed.problem||'')+'</div></div>';
-h+='<div style="margin-bottom:8px"><span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Business:</span><div style="font-size:13px;margin-top:2px">'+esc(pitchParsed.businessDesc||'')+'</div></div>';
-if(pitchParsed.skills&&pitchParsed.skills.length)h+='<div style="margin-bottom:8px"><span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Skills:</span><div style="font-size:13px;margin-top:2px">'+esc(pitchParsed.skills.join(', '))+'</div></div>';
-if(pitchParsed.customers&&pitchParsed.customers.length)h+='<div style="margin-bottom:8px"><span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Customers:</span><div style="font-size:13px;margin-top:2px">'+esc(pitchParsed.customers.join(', '))+'</div></div>';
-if(pitchParsed.advantages&&pitchParsed.advantages.length)h+='<div style="margin-bottom:8px"><span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Advantages:</span><div style="font-size:13px;margin-top:2px">'+esc(pitchParsed.advantages.join(' \u2022 '))+'</div></div>';
-h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Full Pitch:</span>';
-h+='<div style="font-size:13px;margin-top:4px;font-style:italic;line-height:1.7">';
-if(pitchParsed.hook)h+='<p style="margin-bottom:6px">'+esc(pitchParsed.hook)+'</p>';
-h+='<p style="margin-bottom:6px">My business is called <strong>'+esc(pitchParsed.businessName)+'</strong>. '+esc(pitchParsed.businessDesc||'')+'</p>';
-if(pitchParsed.advantages){pitchParsed.advantages.forEach(function(av){h+='<p style="margin-bottom:4px">\u{1F3C6} '+esc(av)+'</p>'})}
-if(pitchParsed.callToAction)h+='<p><strong>'+esc(pitchParsed.callToAction)+'</strong></p>';
+h+='<div class="grade-work">';
+h+='<div style="font-family:Fredoka,sans-serif;font-weight:700;font-size:18px;margin-bottom:14px;color:var(--accent)">\u{1F3A4} '+esc(pitchParsed.businessName)+'</div>';
+h+='<div class="gw-value"><div class="gw-label">Problem</div>'+esc(pitchParsed.problem||'')+'</div>';
+h+='<div class="gw-value"><div class="gw-label">Business Description</div>'+esc(pitchParsed.businessDesc||'')+'</div>';
+if(pitchParsed.skills&&pitchParsed.skills.length)h+='<div class="gw-value"><div class="gw-label">Skills</div>'+esc(pitchParsed.skills.join(', '))+'</div>';
+if(pitchParsed.customers&&pitchParsed.customers.length)h+='<div class="gw-value"><div class="gw-label">Customers</div>'+esc(pitchParsed.customers.join(', '))+'</div>';
+if(pitchParsed.advantages&&pitchParsed.advantages.length)h+='<div class="gw-value"><div class="gw-label">Advantages</div>'+esc(pitchParsed.advantages.join(' \u2022 '))+'</div>';
+
+h+='<div class="gw-section"><div class="gw-label">Full Pitch</div><div class="gw-pitch">';
+if(pitchParsed.hook)h+=esc(pitchParsed.hook)+'<br><br>';
+h+='My business is called <strong>'+esc(pitchParsed.businessName)+'</strong>. '+esc(pitchParsed.businessDesc||'')+'<br><br>';
+if(pitchParsed.advantages){pitchParsed.advantages.forEach(function(av){h+='\u{1F3C6} '+esc(av)+'<br>'})}
+if(pitchParsed.callToAction)h+='<br><strong>'+esc(pitchParsed.callToAction)+'</strong>';
 h+='</div></div>';
-if(pitchParsed.score)h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><span style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px">\u2B50 Scorecard:</span><div style="font-size:14px;margin-top:4px;font-weight:700;color:var(--gold)">'+(pitchParsed.score.total||0)+'/'+(pitchParsed.score.max||6)+' Stars</div></div>';
-if(pitchParsed.aiCoachFeedback)h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><span style="font-size:10px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.5px">\u{1F9E0} AI Coach Feedback:</span><div style="font-size:13px;margin-top:4px;line-height:1.7;background:rgba(17,138,178,.08);padding:10px;border-radius:8px">'+esc(pitchParsed.aiCoachFeedback)+'</div></div>';
-if(pitchParsed.polishedPitch)h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><span style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px">\u2728 AI-Polished Pitch:</span><div style="font-size:13px;margin-top:4px;font-style:italic;line-height:1.7;background:rgba(6,214,160,.08);padding:10px;border-radius:8px">'+esc(pitchParsed.polishedPitch)+'</div></div>';
-if(pitchParsed.videoUrl)h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><span style="font-size:10px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:.5px">\u{1F3AC} Video Recording:</span><div style="margin-top:6px"><video controls playsinline style="width:100%;max-height:300px;border-radius:8px;background:#000" src="'+esc(pitchParsed.videoUrl)+'"></video></div></div>';
+
+if(pitchParsed.videoUrl)h+='<div class="gw-section"><div class="gw-label">\u{1F3AC} Video Recording</div><div style="margin-top:8px"><video controls playsinline style="width:100%;max-height:360px;border-radius:10px;background:#000" src="'+esc(pitchParsed.videoUrl)+'"></video></div></div>';
+if(pitchParsed.aiCoachFeedback)h+='<div class="gw-section"><div class="gw-label">\u{1F9E0} AI Coach Feedback</div><div style="margin-top:6px;padding:12px;background:rgba(17,138,178,.08);border-radius:10px;font-size:14px;line-height:1.7">'+esc(pitchParsed.aiCoachFeedback)+'</div></div>';
+if(pitchParsed.polishedPitch)h+='<div class="gw-section"><div class="gw-label">\u2728 AI-Polished Pitch</div><div style="margin-top:6px;padding:12px;background:rgba(6,214,160,.08);border-radius:10px;font-size:14px;font-style:italic;line-height:1.7">'+esc(pitchParsed.polishedPitch)+'</div></div>';
+if(pitchParsed.score)h+='<div class="gw-section"><div class="gw-label">\u2B50 Scorecard</div><div style="font-size:18px;font-weight:700;color:var(--gold);margin-top:4px">'+(pitchParsed.score.total||0)+'/'+(pitchParsed.score.max||6)+' Stars</div></div>';
 h+='</div>';
 }else if(pitchParsed&&pitchParsed.answers){
-// Elevator Pitch response
-h+='<div class="grade-work" style="max-height:500px">';
-h+='<div style="font-weight:800;font-size:15px;margin-bottom:10px;color:var(--accent2)">\u{1F3A4} Elevator Pitch</div>';
+h+='<div class="grade-work">';
+h+='<div style="font-family:Fredoka,sans-serif;font-weight:700;font-size:18px;margin-bottom:14px;color:var(--accent2)">\u{1F3A4} Elevator Pitch</div>';
 var ans=pitchParsed.answers;
 var labels={name:'Name',age:'Age',school:'School',from:'From',grade:'Grade',dream:'Dream Job',why:'Why',hobby:'Hobby',fact:'Fun Fact',remember:'Remember Me For'};
-Object.keys(labels).forEach(function(k){if(ans[k])h+='<div style="margin-bottom:6px"><span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">'+labels[k]+':</span><div style="font-size:13px;margin-top:2px">'+esc(ans[k])+'</div></div>'});
-if(pitchParsed.pitchText){
-h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Generated Pitch:</span>';
-h+='<div style="font-size:13px;margin-top:4px;font-style:italic;line-height:1.7;white-space:pre-wrap">'+esc(pitchParsed.pitchText)+'</div></div>';
-}
-if(pitchParsed.aiSummary){
-h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><span style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px">\u2728 AI Summary:</span>';
-h+='<div style="font-size:13px;margin-top:4px;line-height:1.7;background:rgba(6,214,160,.08);padding:10px;border-radius:8px">'+esc(pitchParsed.aiSummary)+'</div></div>';
-}
-if(pitchParsed.videoUrl){
-h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><span style="font-size:10px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:.5px">\u{1F3AC} Video Recording:</span>';
-h+='<div style="margin-top:6px"><video controls playsinline style="width:100%;max-height:300px;border-radius:8px;background:#000" src="'+esc(pitchParsed.videoUrl)+'"></video></div></div>';
-}
+Object.keys(labels).forEach(function(k){if(ans[k])h+='<div class="gw-value"><div class="gw-label">'+labels[k]+'</div>'+esc(ans[k])+'</div>'});
+if(pitchParsed.pitchText)h+='<div class="gw-section"><div class="gw-label">Generated Pitch</div><div class="gw-pitch">'+esc(pitchParsed.pitchText)+'</div></div>';
+if(pitchParsed.aiSummary)h+='<div class="gw-section"><div class="gw-label">\u2728 AI Summary</div><div style="margin-top:6px;padding:12px;background:rgba(6,214,160,.08);border-radius:10px;font-size:14px;line-height:1.7">'+esc(pitchParsed.aiSummary)+'</div></div>';
+if(pitchParsed.videoUrl)h+='<div class="gw-section"><div class="gw-label">\u{1F3AC} Video Recording</div><div style="margin-top:8px"><video controls playsinline style="width:100%;max-height:360px;border-radius:10px;background:#000" src="'+esc(pitchParsed.videoUrl)+'"></video></div></div>';
 h+='</div>';
 }else{
-h+='<div class="grade-work">'+esc(a.studentResponse)+'</div>';
+h+='<div class="grade-work" style="white-space:pre-wrap">'+esc(a.studentResponse)+'</div>';
 }
 }
 if(a.fileUrl||a.fileData){
-h+='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px">Attached File:</div>';
 if(a.fileUrl){
-// New Storage URL — just use it directly
 if(a.fileUrl.match(/\.(png|jpg|jpeg|gif|webp)/i)){
-h+='<div class="grade-work"><img src="'+a.fileUrl+'" style="max-width:100%;border-radius:8px"></div>';
+h+='<div class="grade-work" style="text-align:center"><img src="'+a.fileUrl+'" style="max-width:100%;border-radius:10px"></div>';
 }else{
-h+='<div class="grade-work" style="max-height:500px"><iframe src="'+a.fileUrl+'" style="width:100%;height:460px;border:none;border-radius:8px"></iframe><div style="margin-top:8px"><a href="'+a.fileUrl+'" target="_blank" style="color:var(--accent2);font-size:12px;font-weight:600">Open in new tab \u2197\uFE0F</a></div></div>';
+h+='<div class="grade-work"><iframe src="'+a.fileUrl+'" style="width:100%;height:500px;border:none;border-radius:10px"></iframe><div style="margin-top:8px;text-align:center"><a href="'+a.fileUrl+'" target="_blank" style="color:var(--accent2);font-size:13px;font-weight:600">Open in new tab \u2197\uFE0F</a></div></div>';
 }
 }else if(a.fileData){
-// Legacy base64 — use blob conversion
 if(a.fileData.startsWith('data:image')){
-h+='<div class="grade-work"><img src="'+a.fileData+'" style="max-width:100%;border-radius:8px"></div>';
+h+='<div class="grade-work" style="text-align:center"><img src="'+a.fileData+'" style="max-width:100%;border-radius:10px"></div>';
 }else{
 var pdfUrl=dataUriToBlobUrl(a.id,a.fileData);
-h+='<div class="grade-work" style="max-height:500px"><iframe src="'+pdfUrl+'" style="width:100%;height:460px;border:none;border-radius:8px"></iframe><div style="margin-top:8px"><a href="#" onclick="openFileBlob(\''+a.id+'\');return false" style="color:var(--accent2);font-size:12px;font-weight:600">Open in new tab \u2197\uFE0F</a></div></div>';
+h+='<div class="grade-work"><iframe src="'+pdfUrl+'" style="width:100%;height:500px;border:none;border-radius:10px"></iframe><div style="margin-top:8px;text-align:center"><a href="#" onclick="openFileBlob(\''+a.id+'\');return false" style="color:var(--accent2);font-size:13px;font-weight:600">Open in new tab \u2197\uFE0F</a></div></div>';
 }
 }
 }
 if(a.linkUrl){
-h+='<div style="margin-bottom:14px"><a href="'+esc(a.linkUrl)+'" target="_blank" class="btn btn-blue btn-sm">Open Link &#x1F517;</a></div>';
+h+='<div style="margin-bottom:18px"><a href="'+esc(a.linkUrl)+'" target="_blank" class="btn btn-blue btn-sm">Open Link &#x1F517;</a></div>';
 }
 
-h+='<div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">';
-h+='<span class="ac-status '+getStatusClass(a.status)+'">'+getStatusLabel(a.status)+'</span>';
-if(a.score!==null&&a.score!==undefined)h+='<span style="font-family:Space Mono,monospace;color:var(--gold);font-weight:700">Score: '+a.score+'%</span>';
-h+='</div>';
-
-if(a.feedback){
-h+='<div style="font-size:12px;color:var(--text2);margin-bottom:14px"><strong>Feedback:</strong> '+esc(a.feedback)+'</div>';
-}
-
+// Grading section
 if(a.gradingType==='teacher'&&(a.status==='submitted'||a.status==='pending'||a.status==='returned')){
-h+='<div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px">';
-h+='<div style="font-size:14px;font-weight:800;margin-bottom:10px">Grade This Assignment</div>';
-h+='<div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:10px">';
-h+='<div><div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:4px">Score (0-100)</div>';
+h+='<div class="grade-actions">';
+h+='<div class="ga-title">Grade This Assignment</div>';
+h+='<div class="grade-score-row">';
+h+='<div><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px">Score (0-100)</div>';
 h+='<input type="number" class="score-input" id="gradeScore" min="0" max="100" value="'+(a.aiSuggestedScore||'')+'"></div>';
 h+='<button class="btn btn-blue btn-sm" onclick="aiSuggestGrade()" id="aiGradeBtn">&#x1F916; AI Suggest</button>';
 h+='</div>';
-h+='<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:4px">Feedback <button class="btn btn-outline btn-sm" onclick="aiWriteFeedback()" id="aiFeedbackBtn" style="margin-left:8px;font-size:10px">&#x1F916; AI Write Feedback</button></div>';
-h+='<textarea style="width:100%;padding:10px;background:var(--bg);border:2px solid var(--border);border-radius:10px;color:var(--text);font-family:Outfit,sans-serif;font-size:13px;outline:none;resize:vertical;min-height:60px" id="gradeFeedback">'+(a.aiSuggestedFeedback||a.feedback||'')+'</textarea></div>';
-h+='<div style="display:flex;gap:8px">';
+h+='<div class="grade-feedback-area"><label>Feedback <button class="btn btn-outline btn-sm" onclick="aiWriteFeedback()" id="aiFeedbackBtn" style="font-size:10px">&#x1F916; AI Write</button></label>';
+h+='<textarea id="gradeFeedback">'+(a.aiSuggestedFeedback||a.feedback||'')+'</textarea></div>';
+h+='<div class="grade-btn-row">';
 h+='<button class="btn btn-accent" onclick="gradeAssignment()">&#x2705; Grade</button>';
 h+='<button class="btn btn-gold" onclick="returnForRevision()">&#x1F504; Return for Revision</button>';
 h+='</div></div>';
 }
 
-h+='<div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;display:flex;justify-content:space-between">';
+h+='<div class="grade-footer">';
 if(a.status==='pending')h+='<button class="btn btn-accent btn-sm" onclick="markCompleteFromPanel()">Mark Complete</button>';
 else h+='<div></div>';
-h+='<button class="btn btn-red btn-sm" onclick="deleteFromPanel()">Delete Assignment</button>';
+h+='<button class="btn btn-red btn-sm" onclick="deleteFromPanel()">Delete</button>';
 h+='</div>';
 
 el.innerHTML=h;
