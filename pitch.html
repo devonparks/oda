@@ -1270,7 +1270,7 @@ document.getElementById('recModalTimer').style.display='none';
 var pw=document.getElementById('recPlaybackWrap');
 pw.style.display='flex';
 document.getElementById('recPlaybackVideo').src=url;
-document.getElementById('recCamControls').innerHTML='<button class="btn btn-small btn-green" onclick="reRecord()" style="font-size:16px;padding:12px 24px">\u{1F504} Re-record</button><button class="btn btn-small btn-yellow" onclick="keepRecording()" style="font-size:16px;padding:12px 24px">\u2705 Keep This!</button>';
+document.getElementById('recCamControls').innerHTML='<button class="btn btn-small btn-green" onclick="reRecord()" style="font-size:16px;padding:12px 24px">\u{1F504} Re-record</button><button class="btn btn-small btn-yellow" onclick="keepRecording()" style="font-size:16px;padding:12px 24px">\u2705 Keep This!</button><button class="btn btn-small btn-gray" onclick="downloadVideo()" style="font-size:16px;padding:12px 24px">\u2B07\uFE0F Download</button>';
 if(cameraStream){cameraStream.getTracks().forEach(function(t){t.stop()});cameraStream=null}
 clearInterval(recTimerInterval);
 };
@@ -1318,7 +1318,17 @@ document.getElementById('recCamControls').innerHTML='<button class="btn-record" 
 
 function keepRecording(){
 closeRecordModal();
-document.getElementById('recSavedMsg').innerHTML='<div style="color:var(--accent);font-weight:700;font-size:16px;padding:12px;text-align:center;background:rgba(6,214,160,.1);border-radius:12px;margin-bottom:12px">\u2705 Video saved! It will be submitted with your pitch.</div>';
+document.getElementById('recSavedMsg').innerHTML='<div style="color:var(--accent);font-weight:700;font-size:16px;padding:12px;text-align:center;background:rgba(6,214,160,.1);border-radius:12px;margin-bottom:12px">\u2705 Video saved! It will be submitted with your pitch.<br><button onclick="downloadVideo()" style="margin-top:8px;background:var(--accent2);color:#fff;border:none;padding:8px 16px;border-radius:10px;font-family:Fredoka,sans-serif;font-weight:600;font-size:14px;cursor:pointer">\u2B07\uFE0F Download Video</button></div>';
+}
+
+function downloadVideo(){
+if(!recordedBlob){alert('No video recorded yet');return}
+var url=URL.createObjectURL(recordedBlob);
+var a=document.createElement('a');
+a.href=url;
+a.download=(d.name||'pitch')+'-pitch-'+(d.bName||'video').replace(/[^a-zA-Z0-9]/g,'-')+'.webm';
+document.body.appendChild(a);a.click();document.body.removeChild(a);
+setTimeout(function(){URL.revokeObjectURL(url)},5000);
 }
 
 // Teleprompter auto-scroll
