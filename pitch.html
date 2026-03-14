@@ -183,7 +183,8 @@ textarea.fun-input::placeholder{color:#B8AED0}
 <div class="summary-box info-box pink" style="text-align:left" id="summaryBox"></div>
 <div class="pitch-display" style="text-align:left;margin-bottom:24px"><div style="font-family:'Fredoka',sans-serif;font-size:18px;color:#5B21B6;font-weight:700;text-align:center;margin-bottom:12px">&#x1F3A4; Full Pitch</div><div class="pitch-text" id="donePitchText"></div></div>
 <div id="copyMsg" style="display:none;text-align:center;padding:10px;margin-bottom:12px;border-radius:12px;background:#D1FAE5;color:#065F46;font-family:'Fredoka',sans-serif;font-weight:600;font-size:16px">&#x2705; Copied! Now paste into your Google Doc or Sheet</div>
-<div class="btn-row-center"><button class="btn btn-small btn-green" onclick="copySummary()">&#x1F4CB; Copy Summary</button><button class="btn btn-small btn-yellow" onclick="fireConfetti()">&#x1F389; Celebrate Again!</button><button class="btn btn-small btn-purple" onclick="nextStudent()">&#x1F195; Next Student</button></div>
+<div id="submitArea" class="hidden" style="margin-bottom:16px"><button class="btn btn-large btn-green" onclick="submitAndGoHome()" id="btnSubmit" style="width:100%">Submit & Go Home &#x1F3E0;</button></div>
+<div class="btn-row-center"><button class="btn btn-small btn-green" onclick="copySummary()">&#x1F4CB; Copy Summary</button><button class="btn btn-small btn-yellow" onclick="fireConfetti()">&#x1F389; Celebrate Again!</button><button class="btn btn-small btn-purple" id="btnNextStudent" onclick="nextStudent()">&#x1F195; Next Student</button></div>
 </div>
 
 <div class="site-footer">Built with &#x2764;&#xFE0F; for ODA students</div>
@@ -195,8 +196,29 @@ var PR=[["\u{1F3EB}","Something at school that bugs me"],["\u{1F3E0}","Something
 var SK=[["\u{1F3A8}","Drawing & Art"],["\u{1F9EE}","Math & Numbers"],["\u{1F4D6}","Reading & Writing"],["\u{1F5E3}\uFE0F","Talking to People"],["\u{1F527}","Building & Fixing"],["\u{1F4BB}","Computers & Tech"],["\u{1F373}","Cooking & Baking"],["\u{1F3B5}","Music & Dancing"],["\u26BD","Sports & Games"],["\u{1F91D}","Helping Others"],["\u{1F9F9}","Organizing & Cleaning"],["\u{1F9EA}","Science & Experiments"]];
 var CU=[["\u{1F476}","Little Kids"],["\u{1F9D2}","Kids My Age"],["\u{1F466}","Older Kids"],["\u{1F468}\u200D\u{1F469}\u200D\u{1F467}","Families"],["\u{1F469}","Moms & Dads"],["\u{1F474}","Grandparents"],["\u{1F469}\u200D\u{1F3EB}","Teachers"],["\u{1F3D8}\uFE0F","My Neighbors"],["\u{1F43E}","Pet Owners"],["\u{1F30E}","Everyone!"]];
 var cs=0,d={name:"",pCat:"",prob:"",skills:[],cSkill:"",bName:"",bDesc:"",custs:[],a1:"",a2:"",a3:"",hook:"",cta:""},tI=null,tS=0,tR=false,STK="oda-pitch-students";
+var assignmentId=null,studentId=null,isAssignmentMode=false;
 
-function init(){buildBG();buildC("problemChips",PR,"p");buildC("skillChips",SK,"s");buildC("customerChips",CU,"c");loadSaved();
+function init(){
+// Check for assignment params
+var params=new URLSearchParams(window.location.search);
+assignmentId=params.get('assignmentId');
+studentId=params.get('studentId')||sessionStorage.getItem('studentId');
+isAssignmentMode=!!assignmentId;
+
+buildBG();buildC("problemChips",PR,"p");buildC("skillChips",SK,"s");buildC("customerChips",CU,"c");
+
+if(!isAssignmentMode)loadSaved();
+
+// Pre-fill name from session if available
+var sessionName=sessionStorage.getItem('studentName');
+if(isAssignmentMode&&sessionName){
+d.name=sessionName;
+document.getElementById("inputName").value=sessionName;
+document.getElementById("btnStart").disabled=false;
+// Hide saved area and next student button in assignment mode
+var savedArea=document.getElementById("savedArea");if(savedArea)savedArea.style.display="none";
+}
+
 document.getElementById("inputName").addEventListener("input",function(){d.name=this.value;document.getElementById("btnStart").disabled=!this.value.trim()});
 document.getElementById("inputProblem").addEventListener("input",function(){d.prob=this.value;document.getElementById("btnProblem").disabled=!this.value.trim()});
 document.getElementById("inputCustomSkill").addEventListener("input",function(){d.cSkill=this.value;chkS()});
@@ -238,7 +260,8 @@ var as=d.skills.slice();if(d.cSkill.trim())as.push(d.cSkill.trim());var av=[d.a1
 var s='<div class="sum-title" style="color:#86198F">\u{1F4CB} '+esc(d.name)+"'s Pitch Challenge Summary</div>";s+='<div class="sum-content" style="color:#4A044E">';s+="<div><strong>\u{1F50D} Problem:</strong> "+esc(d.prob)+"</div>";s+="<div><strong>\u2B50 Skills:</strong> "+esc(as.join(", "))+"</div>";s+="<div><strong>\u{1F4A1} Business:</strong> "+esc(d.bName)+" \u2014 "+esc(d.bDesc)+"</div>";s+="<div><strong>\u{1F465} Customers:</strong> "+esc(d.custs.join(", "))+"</div>";s+="<div><strong>\u{1F3C6} Advantages:</strong> "+esc(av.join(" \u2022 "))+"</div></div>";
 document.getElementById("summaryBox").innerHTML=s;
 var p="<p>"+esc(d.hook)+"</p><p>My business is called <strong>"+esc(d.bName)+"</strong>. "+esc(d.bDesc)+"</p>";if(d.a1)p+="<p>\u{1F3C6} "+esc(d.a1)+"</p>";if(d.a2)p+="<p>\u{1F3C6} "+esc(d.a2)+"</p>";if(d.a3)p+="<p>\u{1F3C6} "+esc(d.a3)+"</p>";if(d.cta)p+="<p><strong>"+esc(d.cta)+"</strong></p>";
-document.getElementById("donePitchText").innerHTML=p;cs=8;showStep(8);fireConfetti()}
+document.getElementById("donePitchText").innerHTML=p;cs=8;showStep(8);fireConfetti();
+if(isAssignmentMode){document.getElementById("submitArea").classList.remove("hidden");document.getElementById("btnNextStudent").style.display="none"}}
 
 function timerStart(){if(!tR){tR=true;tI=setInterval(function(){tS++;updT()},1000);document.getElementById("timerBtns").innerHTML='<button class="btn btn-normal btn-red" onclick="timerStop()">\u23F9 STOP</button>'}}
 function timerStop(){tR=false;clearInterval(tI);var g=tS>=30&&tS<=90;document.getElementById("timerMsg").textContent=g?"\u{1F31F} Perfect timing!":tS<30?"Try to talk a little longer next time!":"Try to shorten it a bit next time!";document.getElementById("timerMsg").style.color=g?"#10B981":"#7C6FA0";document.getElementById("timerBtns").innerHTML='<button class="btn btn-normal btn-green" onclick="timerReset();timerStart()">\u25B6 AGAIN</button><button class="btn btn-normal btn-gray" onclick="timerReset()">\u21BA RESET</button>'}
@@ -271,6 +294,31 @@ completedStep:cs,savedAt:new Date().toISOString()
 console.log('Pitch saved to Firebase');
 });});
 }catch(e){console.log('Firebase save skipped:',e)}
+}
+
+async function submitAndGoHome(){
+if(!assignmentId)return;
+var btn=document.getElementById('btnSubmit');
+btn.disabled=true;btn.textContent='Submitting...';
+try{
+var appMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js');
+var fsMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js');
+var cfg={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
+var app;try{app=appMod.getApp()}catch(e){app=appMod.initializeApp(cfg)}
+var db=fsMod.getFirestore(app);
+var as=d.skills.slice();if(d.cSkill.trim())as.push(d.cSkill.trim());
+var av=[d.a1,d.a2,d.a3].filter(function(a){return a});
+var pitchData=JSON.stringify({
+studentName:d.name,problem:d.prob,problemCategory:d.pCat,
+skills:as,businessName:d.bName,businessDesc:d.bDesc,
+customers:d.custs,advantages:av,
+hook:d.hook,callToAction:d.cta
+});
+await fsMod.updateDoc(fsMod.doc(db,'assignments',assignmentId),{
+studentResponse:pitchData,status:'submitted',submittedAt:new Date().toISOString()
+});
+window.location.href='student.html';
+}catch(e){console.error('Submit error:',e);btn.disabled=false;btn.textContent='Submit & Go Home \u{1F3E0}';alert('Error submitting. Please try again.')}
 }
 
 function loadSaved(){try{var l=JSON.parse(localStorage.getItem(STK)||"[]"),a=document.getElementById("savedArea");if(!l.length){a.innerHTML="";return}var h='<button class="saved-toggle" onclick="toggleSaved()">\u{1F4CB} Continue a saved student\'s work ('+l.length+' saved)</button><div class="saved-list hidden" id="savedList">';for(var i=0;i<l.length;i++){h+='<div class="saved-item"><div><span class="saved-name">'+esc(l[i].name)+'</span><span class="saved-step">Step '+((l[i].completedStep||0)+1)+'/9</span></div><div><button class="saved-btn saved-continue" onclick="loadSt('+i+')">Continue</button><button class="saved-btn saved-delete" onclick="delSt('+i+')">\u2715</button></div></div>'}h+='<button class="saved-clear" onclick="clearSaved()">Clear all saved data</button></div>';a.innerHTML=h}catch(x){}}

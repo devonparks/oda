@@ -1541,7 +1541,26 @@ if(a.instructions)h+='<div style="font-size:12px;color:var(--text2);margin-botto
 
 if(a.studentResponse){
 h+='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px">Student\'s Response:</div>';
+var pitchParsed=null;
+try{pitchParsed=JSON.parse(a.studentResponse)}catch(e){}
+if(pitchParsed&&pitchParsed.businessName){
+h+='<div class="grade-work" style="max-height:400px">';
+h+='<div style="font-weight:800;font-size:15px;margin-bottom:10px;color:var(--accent)">\u{1F3A4} '+esc(pitchParsed.businessName)+'</div>';
+h+='<div style="margin-bottom:8px"><span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Problem:</span><div style="font-size:13px;margin-top:2px">'+esc(pitchParsed.problem||'')+'</div></div>';
+h+='<div style="margin-bottom:8px"><span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Business:</span><div style="font-size:13px;margin-top:2px">'+esc(pitchParsed.businessDesc||'')+'</div></div>';
+if(pitchParsed.skills&&pitchParsed.skills.length)h+='<div style="margin-bottom:8px"><span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Skills:</span><div style="font-size:13px;margin-top:2px">'+esc(pitchParsed.skills.join(', '))+'</div></div>';
+if(pitchParsed.customers&&pitchParsed.customers.length)h+='<div style="margin-bottom:8px"><span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Customers:</span><div style="font-size:13px;margin-top:2px">'+esc(pitchParsed.customers.join(', '))+'</div></div>';
+if(pitchParsed.advantages&&pitchParsed.advantages.length)h+='<div style="margin-bottom:8px"><span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Advantages:</span><div style="font-size:13px;margin-top:2px">'+esc(pitchParsed.advantages.join(' \u2022 '))+'</div></div>';
+h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Full Pitch:</span>';
+h+='<div style="font-size:13px;margin-top:4px;font-style:italic;line-height:1.7">';
+if(pitchParsed.hook)h+='<p style="margin-bottom:6px">'+esc(pitchParsed.hook)+'</p>';
+h+='<p style="margin-bottom:6px">My business is called <strong>'+esc(pitchParsed.businessName)+'</strong>. '+esc(pitchParsed.businessDesc||'')+'</p>';
+if(pitchParsed.advantages){pitchParsed.advantages.forEach(function(av){h+='<p style="margin-bottom:4px">\u{1F3C6} '+esc(av)+'</p>'})}
+if(pitchParsed.callToAction)h+='<p><strong>'+esc(pitchParsed.callToAction)+'</strong></p>';
+h+='</div></div></div>';
+}else{
 h+='<div class="grade-work">'+esc(a.studentResponse)+'</div>';
+}
 }
 if(a.fileUrl||a.fileData){
 h+='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px">Attached File:</div>';
