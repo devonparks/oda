@@ -239,9 +239,22 @@ select.settings-input{cursor:pointer}
 .stat.clickable:hover{border-color:var(--accent3);transform:translateY(-2px)}
 .needs-review-num{color:var(--accent3)!important}
 .create-modal{max-width:560px;width:92%}
-.tmpl-bar{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
-.tmpl-chip{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s}
-.tmpl-chip:hover{border-color:var(--accent2)}
+/* Template list */
+.tmpl-list{max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:2px}
+.tmpl-card{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;cursor:pointer;transition:all .15s}
+.tmpl-card:hover{border-color:var(--accent2);transform:translateY(-1px)}
+.tmpl-card-icon{font-size:22px;flex-shrink:0}
+.tmpl-card-info{flex:1;min-width:0}
+.tmpl-card-title{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tmpl-card-meta{font-size:11px;color:var(--text2);margin-top:2px;display:flex;gap:8px;align-items:center}
+.tmpl-card-meta .tag{padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.tmpl-card-meta .tag-tool{background:rgba(6,214,160,.12);color:var(--accent)}
+.tmpl-card-meta .tag-assign{background:rgba(17,138,178,.12);color:var(--accent2)}
+.tmpl-card-del{width:28px;height:28px;border-radius:8px;border:none;background:rgba(239,71,111,.08);color:var(--accent3);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.tmpl-card-del:hover{background:rgba(239,71,111,.2)}
+.tmpl-empty{text-align:center;padding:40px 20px;color:var(--text2)}
+.tmpl-empty-icon{font-size:40px;margin-bottom:8px}
+.tmpl-empty-text{font-size:13px;font-weight:600;line-height:1.5}
 
 /* Loading overlay */
 .loading-overlay{position:fixed;inset:0;background:rgba(10,14,26,.92);z-index:200;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;backdrop-filter:blur(4px)}
@@ -556,10 +569,10 @@ select.settings-input{cursor:pointer}
 <div class="modal create-modal">
 <button class="modal-close" onclick="closeCreateAssignment()">&times;</button>
 <h2>&#x1F4DD; Create Assignment</h2>
-<div class="tmpl-bar" id="templateBar"></div>
 <div class="type-tabs">
 <div class="type-tab active" onclick="switchCreateTab('tool')">&#x1F6E0;&#xFE0F; Tool</div>
 <div class="type-tab" onclick="switchCreateTab('assignment')">&#x1F4CB; Assignment</div>
+<div class="type-tab" onclick="switchCreateTab('templates')">&#x1F4C1; Templates</div>
 </div>
 <div class="type-panel show" id="panel-tool">
 <div class="fg"><label>Select Tool</label>
@@ -583,8 +596,11 @@ select.settings-input{cursor:pointer}
 <div class="fg"><label>Attach File (optional — PDF or image, max 10MB)</label><input type="file" id="createAssignFile" accept=".pdf,.png,.jpg,.jpeg" style="padding:8px"></div>
 <div class="fg"><label>Grading</label><select id="createAssignGrading"><option value="teacher">Teacher Graded</option><option value="completion">Completion Only</option></select></div>
 </div>
-<div class="fg"><label>Due Date</label><input type="date" id="createDueDate"></div>
-<div class="fg"><label>Assign To</label>
+<div class="type-panel" id="panel-templates">
+<div class="tmpl-list" id="templateList"></div>
+</div>
+<div class="fg" id="fgDueDate"><label>Due Date</label><input type="date" id="createDueDate"></div>
+<div class="fg" id="studentPickerWrap"><label>Assign To</label>
 <div class="sp-controls">
 <button class="btn btn-outline btn-sm" onclick="spSelectAll()">Select All</button>
 <button class="btn btn-outline btn-sm" onclick="spSelectNone()">Select None</button>
@@ -592,11 +608,11 @@ select.settings-input{cursor:pointer}
 </div>
 <div class="student-picker" id="studentPicker"></div>
 </div>
-<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+<div id="saveTemplateWrap" style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
 <input type="checkbox" id="saveAsTemplate" style="accent-color:var(--accent);width:16px;height:16px">
 <label for="saveAsTemplate" style="font-size:12px;font-weight:600;cursor:pointer">Save as Template</label>
 </div>
-<button class="btn btn-accent btn-wide" onclick="submitCreateAssignment()">Create Assignment &#x1F680;</button>
+<button class="btn btn-accent btn-wide" id="btnCreateAssign" onclick="submitCreateAssignment()">Create Assignment &#x1F680;</button>
 </div>
 </div>
 
@@ -1226,6 +1242,7 @@ document.getElementById('createAssignFile').value='';
 document.getElementById('createAssignGrading').value='teacher';
 document.getElementById('createDueDate').value='';
 document.getElementById('saveAsTemplate').checked=false;
+['fgDueDate','studentPickerWrap','saveTemplateWrap','btnCreateAssign'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=''});
 populateClassFilters();
 renderStudentPicker();
 if(preSelectStudentId){
@@ -1234,7 +1251,6 @@ var checks=document.querySelectorAll('.sp-check');
 checks.forEach(function(c){c.checked=(c.value===preSelectStudentId)});
 },50);
 }
-loadTemplates();
 document.getElementById('createAssignModal').classList.add('show');
 }
 window.openCreateAssignment=openCreateAssignment;
@@ -1243,14 +1259,18 @@ function closeCreateAssignment(){document.getElementById('createAssignModal').cl
 window.closeCreateAssignment=closeCreateAssignment;
 
 function switchCreateTab(type){
-createType=type;
-var types=['tool','assignment'];
+createType=type==='templates'?'tool':type;
+var types=['tool','assignment','templates'];
 var tabs=document.querySelectorAll('.type-tab');
 tabs.forEach(function(t,i){t.classList.toggle('active',types[i]===type)});
 types.forEach(function(tp){
 var p=document.getElementById('panel-'+tp);
 if(p)p.classList.toggle('show',tp===type);
 });
+var isTmpl=type==='templates';
+var hide=['fgDueDate','studentPickerWrap','saveTemplateWrap','btnCreateAssign'];
+hide.forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=isTmpl?'none':''});
+if(type==='templates')loadTemplates();
 }
 window.switchCreateTab=switchCreateTab;
 
@@ -1754,27 +1774,57 @@ btn.textContent='\u{1F916} AI Suggest';btn.disabled=false;
 window.aiSuggestGrade=aiSuggestGrade;
 
 // ===== TEMPLATES =====
+var toolLabels={'spelling-k2':'Spelling Bee K-2','spelling-34':'Spelling Bee 3-4','spelling-58':'Spelling Bee 5-8','vocab-k2':'Vocab K-2','vocab-34':'Vocab 3-4','vocab-58':'Vocab 5-8','pitch-challenge':'Pitch Challenge','elevator-pitch':'Elevator Pitch','robot-lab':'Robot Lab'};
+
 async function loadTemplates(){
-var bar=document.getElementById('templateBar');
-if(!bar)return;
+var list=document.getElementById('templateList');
+if(!list)return;
 try{
 var q=window.fbQuery(window.fbCollection(window.fbDb,'templates'),window.fbWhere('teacherId','==',window.currentTeacher.uid));
 var snap=await window.fbGetDocs(q);
 templates=[];snap.forEach(function(d){templates.push({id:d.id,...d.data()})});
-if(!templates.length){bar.innerHTML='';return}
-var h='<span style="font-size:11px;color:var(--text2);font-weight:600">Templates:</span> ';
-templates.forEach(function(t){
-h+='<span class="tmpl-chip" onclick="loadTemplate(\''+t.id+'\')">'+esc(t.title)+'</span>';
-});
-bar.innerHTML=h;
-}catch(e){console.error(e);bar.innerHTML=''}
+if(!templates.length){
+list.innerHTML='<div class="tmpl-empty"><div class="tmpl-empty-icon">\u{1F4C1}</div><div class="tmpl-empty-text">No templates yet.<br>Create an assignment and check "Save as Template" to save one here.</div></div>';
+return;
 }
+var h='';
+templates.forEach(function(t){
+var ct=t.createType||t.type||'tool';
+var isTool=ct==='tool';
+var icon=isTool?'\u{1F6E0}\uFE0F':'\u{1F4CB}';
+var tagClass=isTool?'tag-tool':'tag-assign';
+var tagLabel=isTool?(toolLabels[t.toolType]||t.toolType||'Tool'):'Assignment';
+var meta=t.gradingType==='completion'?'Completion':'Teacher Graded';
+var date=t.createdAt?new Date(t.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+h+='<div class="tmpl-card" onclick="loadTemplate(\''+t.id+'\')">';
+h+='<div class="tmpl-card-icon">'+icon+'</div>';
+h+='<div class="tmpl-card-info">';
+h+='<div class="tmpl-card-title">'+esc(t.title||tagLabel)+'</div>';
+h+='<div class="tmpl-card-meta"><span class="tag '+tagClass+'">'+tagLabel+'</span>';
+if(!isTool)h+='<span>'+meta+'</span>';
+if(date)h+='<span>'+date+'</span>';
+h+='</div></div>';
+h+='<button class="tmpl-card-del" onclick="event.stopPropagation();deleteTemplate(\''+t.id+'\')" title="Delete template">\u{1F5D1}</button>';
+h+='</div>';
+});
+list.innerHTML=h;
+}catch(e){console.error(e);list.innerHTML='<div class="tmpl-empty"><div class="tmpl-empty-text">Failed to load templates.</div></div>'}
+}
+
+async function deleteTemplate(id){
+if(!confirm('Delete this template?'))return;
+try{
+await window.fbDeleteDoc(window.fbDoc(window.fbDb,'templates',id));
+templates=templates.filter(function(t){return t.id!==id});
+loadTemplates();
+}catch(e){console.error(e);alert('Failed to delete template')}
+}
+window.deleteTemplate=deleteTemplate;
 
 function loadTemplate(id){
 var t=templates.find(function(x){return x.id===id});
 if(!t)return;
 var ct=t.createType||t.type||'tool';
-// Map legacy types to new assignment tab
 if(ct==='worksheet'||ct==='link'||ct==='custom')ct='assignment';
 switchCreateTab(ct);
 if(ct==='tool'&&t.toolType)document.getElementById('createToolSelect').value=t.toolType;

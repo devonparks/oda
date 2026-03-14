@@ -84,12 +84,6 @@ textarea.fun-input::placeholder{color:#3a4560}
 .pitch-text p{margin:0 0 12px 0}
 .pitch-text strong{color:var(--accent);font-weight:700}
 
-/* Style selector */
-.style-selector{display:flex;gap:8px;margin-bottom:16px;justify-content:center}
-.style-btn{padding:8px 16px;border:2px solid var(--border);border-radius:12px;background:var(--surface2);color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
-.style-btn:hover{border-color:var(--accent2)}
-.style-btn.active{border-color:var(--accent);background:rgba(6,214,160,.1);color:var(--accent)}
-
 /* Scorecard */
 .scorecard{background:var(--surface2);border:2px solid var(--border);border-radius:20px;padding:24px;margin-bottom:20px}
 .scorecard-title{font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700;text-align:center;margin-bottom:16px;color:var(--gold)}
@@ -256,9 +250,7 @@ textarea.fun-input::placeholder{color:#3a4560}
 
 <!-- Step 7: Practice -->
 <div class="card step hidden" id="step-7">
-<div class="step-emoji">&#x1F3AC;</div><div class="step-title">Practice Your Pitch!</div><div class="step-sub">Pick a style, read it out loud, and use the timer to hit 30-90 seconds!</div>
-
-<div class="style-selector" id="styleSelector"></div>
+<div class="step-emoji">&#x1F3AC;</div><div class="step-title">Practice Your Pitch!</div><div class="step-sub">Read it out loud and use the timer to hit 30-90 seconds!</div>
 
 <div class="pitch-display"><div class="pitch-label" id="pitchNameLabel"></div><div class="pitch-text" id="pitchFullText"></div></div>
 
@@ -310,7 +302,7 @@ var SK=[["\u{1F3A8}","Drawing & Art"],["\u{1F9EE}","Math & Numbers"],["\u{1F4D6}
 var CU=[["\u{1F476}","Little Kids"],["\u{1F9D2}","Kids My Age"],["\u{1F466}","Older Kids"],["\u{1F468}\u200D\u{1F469}\u200D\u{1F467}","Families"],["\u{1F469}","Moms & Dads"],["\u{1F474}","Grandparents"],["\u{1F469}\u200D\u{1F3EB}","Teachers"],["\u{1F3D8}\uFE0F","My Neighbors"],["\u{1F43E}","Pet Owners"],["\u{1F30E}","Everyone!"]];
 var cs=0,d={name:"",pCat:"",prob:"",skills:[],cSkill:"",bName:"",bDesc:"",custs:[],a1:"",a2:"",a3:"",hook:"",cta:""},tI=null,tS=0,tR=false,STK="oda-pitch-students";
 var assignmentId=null,studentId=null,isAssignmentMode=false;
-var pitchStyles=[],currentStyleIdx=0,pitchScore={};
+var pitchText='',pitchScore={};
 var aiCoachResult='',polishedResult='';
 var mediaRecorder=null,recordedChunks=[],recordedBlob=null,cameraStream=null;
 var recTimerInterval=null,recSeconds=0;
@@ -357,56 +349,20 @@ function goNext(){saveD();
 if(cs===0)document.getElementById("problemTitle").textContent=d.name+", What's a Problem You See?";
 if(cs===2){document.getElementById("recapProblem").textContent='"'+d.prob+'"';var as=d.skills.slice();if(d.cSkill.trim())as.push(d.cSkill.trim());document.getElementById("recapSkills").textContent=as.join(", ")}
 if(cs===5){var r="";if(d.a1)r+="\u{1F3C6} "+d.a1+"<br>";if(d.a2)r+="\u{1F3C6} "+d.a2+"<br>";if(d.a3)r+="\u{1F3C6} "+d.a3;document.getElementById("advRecap").innerHTML=r}
-if(cs===6){buildPitchStyles();renderScorecard()}
+if(cs===6){buildPitch();renderScorecard()}
 cs++;showStep(cs)}
 function goBack(){cs--;showStep(cs)}
 
-// ===== MULTIPLE PITCH STYLES =====
-function buildPitchStyles(){
-pitchStyles=[];
+// ===== BUILD PITCH =====
+function buildPitch(){
 var av=[d.a1,d.a2,d.a3].filter(function(a){return a});
-
-// Style 1: Professional
-var p1="<p>"+esc(d.hook)+"</p>";
-p1+="<p>My business is called <strong>"+esc(d.bName)+"</strong>. "+esc(d.bDesc)+"</p>";
-if(av.length>0)p1+="<p>Here's why you should choose us: "+esc(av[0])+"</p>";
-if(av.length>1)p1+="<p>"+esc(av[1])+"</p>";
-if(av.length>2)p1+="<p>And "+esc(av[2])+"</p>";
-if(d.cta)p1+="<p><strong>"+esc(d.cta)+"</strong></p>";
-pitchStyles.push({label:'Professional',text:p1});
-
-// Style 2: Storyteller
-var p2="<p>"+esc(d.hook)+"</p>";
-p2+="<p>That's exactly why I created <strong>"+esc(d.bName)+"</strong> \u2014 "+esc(d.bDesc)+"</p>";
-if(av.length>0){p2+="<p>What makes us special? First, "+esc(av[0])+".";if(av.length>1)p2+=" Plus, "+esc(av[1])+".";if(av.length>2)p2+=" And best of all, "+esc(av[2])+".";p2+="</p>"}
-if(d.cta)p2+="<p><strong>"+esc(d.cta)+"</strong></p>";
-pitchStyles.push({label:'Storyteller',text:p2});
-
-// Style 3: Bold & Energetic
-var p3="<p>\u{1F525} "+esc(d.hook)+"</p>";
-p3+="<p>Meet <strong>"+esc(d.bName)+"</strong>! "+esc(d.bDesc)+"</p>";
-for(var i=0;i<av.length;i++)p3+="<p>\u{1F3C6} "+esc(av[i])+"</p>";
-if(d.cta)p3+="<p>\u{1F4A5} <strong>"+esc(d.cta)+"</strong></p>";
-pitchStyles.push({label:'Bold & Energetic',text:p3});
-
-// Render style selector
-var sel=document.getElementById("styleSelector");
-sel.innerHTML="";
-for(var i=0;i<pitchStyles.length;i++){
-sel.innerHTML+='<button class="style-btn'+(i===0?' active':'')+'" onclick="switchPitchStyle('+i+')">'+pitchStyles[i].label+'</button>';
-}
-
-// Show first style
+var p="<p>"+esc(d.hook)+"</p>";
+p+="<p>That's why I created <strong>"+esc(d.bName)+"</strong> \u2014 "+esc(d.bDesc)+"</p>";
+if(av.length>0){p+="<p>Here's what makes us special: "+esc(av[0])+".";if(av.length>1)p+=" Plus, "+esc(av[1])+".";if(av.length>2)p+=" And best of all, "+esc(av[2])+".";p+="</p>"}
+if(d.cta)p+="<p><strong>"+esc(d.cta)+"</strong></p>";
+pitchText=p;
 document.getElementById("pitchNameLabel").textContent=d.name+"'s Elevator Pitch";
-document.getElementById("pitchFullText").innerHTML=pitchStyles[0].text;
-currentStyleIdx=0;
-}
-
-function switchPitchStyle(idx){
-currentStyleIdx=idx;
-document.getElementById("pitchFullText").innerHTML=pitchStyles[idx].text;
-var btns=document.querySelectorAll(".style-btn");
-for(var i=0;i<btns.length;i++)btns[i].className='style-btn'+(i===idx?' active':'');
+document.getElementById("pitchFullText").innerHTML=p;
 }
 
 // ===== SCORECARD =====
@@ -455,7 +411,7 @@ s+="<div><strong>\u2B50 Score:</strong> "+(pitchScore.total||0)+"/"+(pitchScore.
 document.getElementById("summaryBox").innerHTML=s;
 
 // Show the current style pitch on done page
-document.getElementById("donePitchText").innerHTML=pitchStyles[currentStyleIdx]?pitchStyles[currentStyleIdx].text:'';
+document.getElementById("donePitchText").innerHTML=pitchText;
 
 cs=8;showStep(8);fireConfetti();
 if(isAssignmentMode){document.getElementById("submitArea").classList.remove("hidden");document.getElementById("btnNextStudent").style.display="none"}
@@ -677,7 +633,7 @@ t+="\n---\n\n";try{var ta=document.createElement("textarea");ta.value=t;document
 function nextStudent(){d={name:"",pCat:"",prob:"",skills:[],cSkill:"",bName:"",bDesc:"",custs:[],a1:"",a2:"",a3:"",hook:"",cta:""};
 var ids=["inputName","inputProblem","inputCustomSkill","inputBizName","inputBizDesc","inputAdv1","inputAdv2","inputAdv3","inputHook","inputCTA"];for(var i=0;i<ids.length;i++)document.getElementById(ids[i]).value="";
 document.getElementById("btnStart").disabled=true;var ac=document.querySelectorAll(".chip");for(var i=0;i<ac.length;i++)ac[i].classList.remove("on");
-pitchStyles=[];currentStyleIdx=0;pitchScore={};aiCoachResult='';polishedResult='';recordedBlob=null;recordedChunks=[];
+pitchText='';pitchScore={};aiCoachResult='';polishedResult='';recordedBlob=null;recordedChunks=[];
 document.getElementById('aiLoading').style.display='';document.getElementById('aiCoachContent').style.display='none';
 document.getElementById('polishedPitchArea').style.display='none';
 document.getElementById('videoPlayback').style.display='none';
