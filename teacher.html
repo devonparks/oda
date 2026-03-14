@@ -554,7 +554,11 @@ select.settings-input{cursor:pointer}
 <div class="fg"><label>Student Name</label>
 <input type="text" id="addStudentName" placeholder="Full name"></div>
 <div class="fg"><label>Grade</label>
-<input type="text" id="addStudentGrade" placeholder="e.g. 3rd, K, 5th"></div>
+<select id="addStudentGrade" style="width:100%;padding:10px 12px;background:var(--bg);border:2px solid var(--border);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;cursor:pointer">
+<option value="">Choose a grade...</option>
+<option value="K">K</option><option value="1st">1st</option><option value="2nd">2nd</option><option value="3rd">3rd</option><option value="4th">4th</option><option value="5th">5th</option><option value="6th">6th</option><option value="7th">7th</option><option value="8th">8th</option><option value="9th">9th</option><option value="10th">10th</option><option value="11th">11th</option><option value="12th">12th</option><option value="Other">Other</option>
+</select>
+<input type="text" id="addStudentGradeCustom" placeholder="Type custom grade..." style="display:none;margin-top:6px"></div>
 <div class="fg"><label>Class</label>
 <select id="addStudentClass" style="width:100%;padding:10px 12px;background:var(--bg);border:2px solid var(--border);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;cursor:pointer"></select></div>
 <button class="btn btn-accent btn-wide" onclick="addStudent()">Add Student</button>
@@ -773,6 +777,8 @@ function closeAddStudentModal(){
 document.getElementById('addStudentModal').classList.remove('show');
 document.getElementById('addStudentName').value='';
 document.getElementById('addStudentGrade').value='';
+document.getElementById('addStudentGradeCustom').value='';
+document.getElementById('addStudentGradeCustom').style.display='none';
 }
 window.openAddStudentModal=openAddStudentModal;window.closeAddStudentModal=closeAddStudentModal;
 
@@ -947,11 +953,20 @@ h+='</div>';
 el.innerHTML=h;
 }
 
+// Grade select: show custom input when "Other" is chosen
+document.getElementById('addStudentGrade').addEventListener('change',function(){
+var custom=document.getElementById('addStudentGradeCustom');
+custom.style.display=this.value==='Other'?'':'none';
+if(this.value!=='Other')custom.value='';
+});
+
 async function addStudent(){
 var name=document.getElementById('addStudentName').value.trim();
-var grade=document.getElementById('addStudentGrade').value.trim();
+var gradeSelect=document.getElementById('addStudentGrade').value;
+var grade=gradeSelect==='Other'?document.getElementById('addStudentGradeCustom').value.trim():gradeSelect;
 var className=document.getElementById('addStudentClass').value;
 if(!name)return;
+if(!grade){alert('Please select a grade.');return}
 if(!className){alert('Please select a class for this student.');return}
 var code=String(Math.floor(1000+Math.random()*9000));
 try{
