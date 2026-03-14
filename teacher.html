@@ -1558,6 +1558,26 @@ h+='<p style="margin-bottom:6px">My business is called <strong>'+esc(pitchParsed
 if(pitchParsed.advantages){pitchParsed.advantages.forEach(function(av){h+='<p style="margin-bottom:4px">\u{1F3C6} '+esc(av)+'</p>'})}
 if(pitchParsed.callToAction)h+='<p><strong>'+esc(pitchParsed.callToAction)+'</strong></p>';
 h+='</div></div></div>';
+}else if(pitchParsed&&pitchParsed.answers){
+// Elevator Pitch response
+h+='<div class="grade-work" style="max-height:500px">';
+h+='<div style="font-weight:800;font-size:15px;margin-bottom:10px;color:var(--accent2)">\u{1F3A4} Elevator Pitch</div>';
+var ans=pitchParsed.answers;
+var labels={name:'Name',age:'Age',school:'School',from:'From',grade:'Grade',dream:'Dream Job',why:'Why',hobby:'Hobby',fact:'Fun Fact',remember:'Remember Me For'};
+Object.keys(labels).forEach(function(k){if(ans[k])h+='<div style="margin-bottom:6px"><span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">'+labels[k]+':</span><div style="font-size:13px;margin-top:2px">'+esc(ans[k])+'</div></div>'});
+if(pitchParsed.pitchText){
+h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Generated Pitch:</span>';
+h+='<div style="font-size:13px;margin-top:4px;font-style:italic;line-height:1.7;white-space:pre-wrap">'+esc(pitchParsed.pitchText)+'</div></div>';
+}
+if(pitchParsed.aiSummary){
+h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><span style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px">\u2728 AI Summary:</span>';
+h+='<div style="font-size:13px;margin-top:4px;line-height:1.7;background:rgba(6,214,160,.08);padding:10px;border-radius:8px">'+esc(pitchParsed.aiSummary)+'</div></div>';
+}
+if(pitchParsed.videoUrl){
+h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><span style="font-size:10px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:.5px">\u{1F3AC} Video Recording:</span>';
+h+='<div style="margin-top:6px"><video controls playsinline style="width:100%;max-height:300px;border-radius:8px;background:#000" src="'+esc(pitchParsed.videoUrl)+'"></video></div></div>';
+}
+h+='</div>';
 }else{
 h+='<div class="grade-work">'+esc(a.studentResponse)+'</div>';
 }

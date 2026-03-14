@@ -89,6 +89,33 @@ textarea.q-input{resize:none;min-height:100px;font-size:17px;line-height:1.5}
 
 .confetti-piece{position:fixed;top:-20px;z-index:9999;pointer-events:none;animation:confettiFall 3s ease-in forwards}
 @keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+
+/* AI Summary */
+.ai-summary{background:linear-gradient(135deg,var(--surface),var(--surface2));border:2px solid var(--accent2);border-radius:20px;padding:24px;margin:20px 0;animation:fadeUp .4s ease}
+.ai-summary-label{font-family:'Space Mono',monospace;font-size:11px;color:var(--accent2);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.ai-summary-text{font-size:15px;line-height:1.8;color:var(--text);white-space:pre-wrap}
+.ai-loading{text-align:center;padding:20px;color:var(--text2);font-size:14px;font-weight:600}
+.ai-loading::after{content:'';display:inline-block;width:14px;height:14px;border:2px solid var(--accent2);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;margin-left:8px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Webcam recording */
+.record-section{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:24px;margin:20px 0;text-align:center}
+.record-section h3{font-size:18px;font-weight:800;margin-bottom:6px}
+.record-section p{font-size:13px;color:var(--text2);margin-bottom:16px}
+.video-preview{width:100%;max-width:480px;border-radius:14px;background:#000;margin:0 auto 16px;overflow:hidden;position:relative;aspect-ratio:4/3}
+.video-preview video{width:100%;height:100%;object-fit:cover;display:block}
+.rec-indicator{position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.6);padding:4px 10px;border-radius:8px;font-size:12px;font-weight:700;color:#fff}
+.rec-dot{width:10px;height:10px;border-radius:50%;background:var(--accent3);animation:recPulse 1s ease-in-out infinite}
+@keyframes recPulse{0%,100%{opacity:1}50%{opacity:.3}}
+.rec-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn-record{background:var(--accent3);color:#fff;padding:14px 28px}
+.btn-record.recording{animation:recPulse 1s ease-in-out infinite}
+.video-playback{width:100%;max-width:480px;border-radius:14px;margin:0 auto 16px;overflow:hidden}
+.video-playback video{width:100%;display:block;border-radius:14px}
+
+/* Submit section */
+.submit-section{margin:24px 0;text-align:center}
+.btn-submit{background:linear-gradient(135deg,var(--accent),#04b890);color:var(--bg);padding:18px 40px;font-size:20px;width:100%;border-radius:18px}
 </style>
 </head>
 <body>
@@ -124,14 +151,20 @@ var QUESTIONS=[
 ];
 
 var answers={};
-var step=-1; // -1 = start screen
+var step=-1;
 var savedKey='oda-elevator-pitches';
 var timerInterval=null;
 var timerSeconds=0;
 var timerRunning=false;
+var assignmentId=null,studentId=null,isAssignmentMode=false;
+var mediaRecorder=null,recordedChunks=[],recordedBlob=null,cameraStream=null;
 
 function init(){
-loadSaved();
+var params=new URLSearchParams(window.location.search);
+assignmentId=params.get('assignmentId');
+studentId=params.get('studentId')||sessionStorage.getItem('studentId');
+isAssignmentMode=!!assignmentId;
+if(!isAssignmentMode)loadSaved();
 showStart();
 }
 
@@ -139,13 +172,21 @@ function showStart(){
 step=-1;
 document.getElementById('progWrap').style.display='none';
 var saved=getSaved();
+// In assignment mode with a session name, skip start and jump right in
+var sessionName=sessionStorage.getItem('studentName');
+if(isAssignmentMode&&sessionName){
+answers.name=sessionName;
+step=1; // skip the name question
+startInterview();
+return;
+}
 var html='<div class="card" style="text-align:center">';
 html+='<span class="q-emoji">\u{1F680}</span>';
 html+='<div class="q-label">Ready to shine?</div>';
 html+='<div class="q-hint">Answer 10 quick questions and we\'ll build your elevator pitch. It takes about 3 minutes!</div>';
 html+='<div style="margin-top:20px"><button class="btn btn-next" onclick="startInterview()" style="padding:18px 40px;font-size:20px">Start My Pitch! \u{1F3A4}</button></div>';
 html+='</div>';
-if(saved.length>0){
+if(!isAssignmentMode&&saved.length>0){
 html+='<div class="saved-section">';
 html+='<button class="saved-toggle" onclick="toggleSaved()">&#x1F4CB; Load a saved pitch ('+saved.length+' saved)</button>';
 html+='<div class="saved-list" id="savedList" style="display:none">';
@@ -160,8 +201,7 @@ document.getElementById('content').innerHTML=html;
 }
 
 function startInterview(){
-answers={};
-step=0;
+if(step<=0){answers={};step=0}
 showQuestion();
 }
 
@@ -277,7 +317,7 @@ html+='<div id="copyMsg" class="copy-msg"></div>';
 html+='<div class="result-btns">';
 html+='<button class="btn btn-gold" onclick="copyPitch()">&#x1F4CB; Copy Pitch</button>';
 html+='<button class="btn btn-blue" onclick="toggleTimer()">&#x23F1;&#xFE0F; Practice Timer</button>';
-html+='<button class="btn btn-green" onclick="nextStudent()">&#x1F195; Next Student</button>';
+if(!isAssignmentMode)html+='<button class="btn btn-green" onclick="nextStudent()">&#x1F195; Next Student</button>';
 html+='</div>';
 
 // Timer
@@ -288,10 +328,29 @@ html+='<div class="timer-btns">';
 html+='<button class="btn btn-next" id="timerStartBtn" onclick="timerStart()">&#x25B6; Start</button>';
 html+='</div></div>';
 
+// AI Summary
+html+='<div class="ai-summary" id="aiSummary"><div class="ai-loading" id="aiLoading">\u{1F916} AI is writing your personalized summary</div><div class="ai-summary-text" id="aiSummaryText" style="display:none"></div></div>';
+
+// Webcam recording
+html+='<div class="record-section" id="recordSection">';
+html+='<h3>\u{1F3A5} Record Your Pitch</h3>';
+html+='<p>Practice saying your pitch out loud, then record yourself! Your teacher will be able to watch it.</p>';
+html+='<div class="video-preview" id="videoPreview" style="display:none"><video id="cameraFeed" autoplay muted playsinline></video><div class="rec-indicator" id="recIndicator" style="display:none"><span class="rec-dot"></span><span id="recTimer">0:00</span></div></div>';
+html+='<div class="video-playback" id="videoPlayback" style="display:none"><video id="playbackVideo" controls playsinline></video></div>';
+html+='<div class="rec-btns" id="recBtns"><button class="btn btn-record" onclick="startCamera()">\u{1F4F7} Open Camera</button></div>';
+html+='</div>';
+
+// Submit & Go Home (assignment mode)
+if(isAssignmentMode){
+html+='<div class="submit-section"><button class="btn btn-submit" onclick="submitAndGoHome()" id="btnSubmit">Submit & Go Home \u{1F3E0}</button></div>';
+}
+
 document.getElementById('content').innerHTML=html;
 window.currentPitches=pitches;
 window.currentAnswers=a;
 fireConfetti();
+// Trigger AI summary
+fetchAiSummary(a);
 }
 
 function switchStyle(idx){
@@ -455,6 +514,133 @@ function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent
 function fireConfetti(){
 var co=["#06d6a0","#118ab2","#ffd166","#ef476f","#a855f7","#06b6d4"];
 for(var i=0;i<50;i++){var p=document.createElement('div');p.className='confetti-piece';var sz=6+Math.random()*10;p.style.width=sz+'px';p.style.height=sz*(Math.random()>.5?1:.6)+'px';p.style.left=Math.random()*100+'%';p.style.backgroundColor=co[i%co.length];p.style.borderRadius=Math.random()>.5?'50%':'2px';p.style.animationDuration=(2+Math.random()*3)+'s';p.style.animationDelay=(Math.random()*2)+'s';document.body.appendChild(p);(function(el){setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},5000)})(p)}
+}
+
+// ===== AI SUMMARY =====
+async function fetchAiSummary(a){
+try{
+var prompt='You are a supportive teacher for an afterschool program. A student just completed their elevator pitch questionnaire. Write a short (3-4 sentences) personalized summary that:\n1. Highlights what makes this student unique and special\n2. Connects their interests to their dream career\n3. Gives one specific tip for delivering their pitch confidently\n\nKeep it warm, encouraging, and age-appropriate (K-12). Do NOT use bullet points. Write it as a paragraph directly to the student (use "you").\n\nStudent answers:\nName: '+a.name+'\nAge: '+a.age+'\nSchool: '+a.school+'\nFrom: '+a.from+'\nGrade: '+a.grade+'\nDream career: '+a.dream+'\nWhy: '+a.why+'\nHobby: '+a.hobby+'\nFun fact: '+a.fact+'\nRemember me as: '+a.remember;
+
+var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+method:'POST',headers:{'Content-Type':'application/json'},
+body:JSON.stringify({prompt:prompt,max_tokens:300})
+});
+var data=await resp.json();
+var text=data.response||data.text||data.content||'';
+if(text){
+document.getElementById('aiLoading').style.display='none';
+var el=document.getElementById('aiSummaryText');
+el.style.display='block';
+el.innerHTML='<div class="ai-summary-label">\u{1F916} AI Summary</div>'+esc(text);
+window.aiSummaryText=text;
+}
+}catch(e){
+console.error('AI summary error:',e);
+var el=document.getElementById('aiSummary');
+if(el)el.style.display='none';
+}
+}
+
+// ===== WEBCAM RECORDING =====
+var recTimerInterval=null,recSeconds=0;
+
+async function startCamera(){
+try{
+cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:true});
+var video=document.getElementById('cameraFeed');
+video.srcObject=cameraStream;
+document.getElementById('videoPreview').style.display='block';
+document.getElementById('videoPlayback').style.display='none';
+document.getElementById('recBtns').innerHTML='<button class="btn btn-record" onclick="startRecording()">\u{1F534} Start Recording</button><button class="btn btn-back" onclick="stopCamera()">Cancel</button>';
+}catch(e){
+alert('Could not access camera. Make sure you allow camera and microphone access.');
+console.error('Camera error:',e);
+}
+}
+
+function stopCamera(){
+if(cameraStream){cameraStream.getTracks().forEach(function(t){t.stop()});cameraStream=null}
+document.getElementById('videoPreview').style.display='none';
+document.getElementById('recBtns').innerHTML='<button class="btn btn-record" onclick="startCamera()">\u{1F4F7} Open Camera</button>';
+}
+
+function startRecording(){
+if(!cameraStream)return;
+recordedChunks=[];
+recSeconds=0;
+var options={mimeType:'video/webm;codecs=vp8,opus'};
+try{mediaRecorder=new MediaRecorder(cameraStream,options)}catch(e){
+try{mediaRecorder=new MediaRecorder(cameraStream)}catch(e2){alert('Recording not supported on this browser');return}
+}
+mediaRecorder.ondataavailable=function(e){if(e.data.size>0)recordedChunks.push(e.data)};
+mediaRecorder.onstop=function(){
+recordedBlob=new Blob(recordedChunks,{type:'video/webm'});
+var url=URL.createObjectURL(recordedBlob);
+document.getElementById('videoPreview').style.display='none';
+var pb=document.getElementById('videoPlayback');
+pb.style.display='block';
+document.getElementById('playbackVideo').src=url;
+document.getElementById('recBtns').innerHTML='<button class="btn btn-next" onclick="startCamera()">\u{1F504} Re-record</button><button class="btn btn-gold" onclick="keepRecording()">\u2705 Keep This!</button>';
+if(cameraStream){cameraStream.getTracks().forEach(function(t){t.stop()});cameraStream=null}
+clearInterval(recTimerInterval);
+};
+mediaRecorder.start();
+document.getElementById('recIndicator').style.display='flex';
+recTimerInterval=setInterval(function(){recSeconds++;document.getElementById('recTimer').textContent=Math.floor(recSeconds/60)+':'+(recSeconds%60<10?'0':'')+(recSeconds%60)},1000);
+document.getElementById('recBtns').innerHTML='<button class="btn btn-record recording" onclick="stopRecording()">\u23F9 Stop Recording</button>';
+}
+
+function stopRecording(){
+if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();
+document.getElementById('recIndicator').style.display='none';
+clearInterval(recTimerInterval);
+}
+
+function keepRecording(){
+document.getElementById('recBtns').innerHTML='<div style="color:var(--accent);font-weight:700;font-size:15px">\u2705 Video saved! It will be submitted with your pitch.</div>';
+}
+
+// ===== SUBMIT & GO HOME =====
+async function submitAndGoHome(){
+if(!assignmentId)return;
+var btn=document.getElementById('btnSubmit');
+btn.disabled=true;btn.textContent='Submitting...';
+try{
+var appMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js');
+var fsMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js');
+var storageMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-storage.js');
+var cfg={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
+var app;try{app=appMod.getApp()}catch(e){app=appMod.initializeApp(cfg)}
+var db=fsMod.getFirestore(app);
+
+// Upload video if recorded
+var videoUrl=null;
+if(recordedBlob){
+btn.textContent='Uploading video...';
+var storage=storageMod.getStorage(app);
+var ts=Date.now();
+var path='assignments/elevator-videos/'+assignmentId+'_'+ts+'.webm';
+var sRef=storageMod.ref(storage,path);
+await storageMod.uploadBytes(sRef,recordedBlob);
+videoUrl=await storageMod.getDownloadURL(sRef);
+}
+
+// Build response data
+var a=window.currentAnswers||answers;
+var pitchEl=document.getElementById('pitchText');
+var pitchText=pitchEl?(pitchEl.innerText||pitchEl.textContent):'';
+var responseData=JSON.stringify({
+answers:a,pitchText:pitchText,
+aiSummary:window.aiSummaryText||'',
+videoUrl:videoUrl
+});
+
+btn.textContent='Saving...';
+await fsMod.updateDoc(fsMod.doc(db,'assignments',assignmentId),{
+studentResponse:responseData,status:'submitted',submittedAt:new Date().toISOString()
+});
+window.location.href='student.html';
+}catch(e){console.error('Submit error:',e);btn.disabled=false;btn.textContent='Submit & Go Home \u{1F3E0}';alert('Error submitting: '+e.message)}
 }
 
 // Enter key
