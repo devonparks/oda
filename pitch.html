@@ -245,6 +245,10 @@ textarea.fun-input::placeholder{color:#3a4560}
 
 <div class="pitch-display"><div class="pitch-label" id="pitchNameLabel"></div><textarea class="pitch-edit" id="pitchEditArea" rows="8" placeholder="Your pitch will appear here..."></textarea></div>
 
+<!-- AI Polished Version (before recording) -->
+<div style="text-align:center;margin-bottom:16px"><button class="btn-ai" onclick="getPolishedPitch()" id="btnPolish" style="font-size:17px;padding:14px 24px">&#x2728; Get AI-Polished Version</button></div>
+<div id="polishedStep7" style="display:none" class="polished-pitch"><div class="polished-label">&#x2728; AI-POLISHED VERSION &#x2014; Read this during your recording!</div><div class="polished-text" id="polishedStep7Text"></div><div style="text-align:center;margin-top:12px"><button class="btn btn-small btn-green" onclick="usePolished()">&#x1F4DD; Use This Version</button></div></div>
+
 <div class="info-box orange" style="padding:16px;text-align:left"><p style="font-family:'Fredoka',sans-serif;font-size:16px;color:var(--gold);font-weight:600;margin-bottom:8px">&#x1F3A5; Filming Tips</p><div class="film-tips"><div>&#x1F4F1; Use a phone or iPad on a flat surface</div><div>&#x1F4A1; Find a spot with good light (face a window!)</div><div>&#x1F5BC;&#xFE0F; Plain background, just YOU in the frame</div><div>&#x1F440; Look into the camera like it's a person</div><div>&#x1F60A; Smile, relax, and have fun!</div><div>&#x1F504; Film it 2-3 times and pick the best one</div></div></div>
 
 <!-- Webcam Recording (moved here from step 8) -->
@@ -273,7 +277,7 @@ textarea.fun-input::placeholder{color:#3a4560}
 <div class="polished-pitch" id="polishedPitchArea" style="display:none"><div class="polished-label">&#x2728; AI-POLISHED VERSION</div><div class="polished-text" id="polishedPitchText"></div></div>
 
 <div id="submitArea" class="hidden" style="margin:20px 0"><button class="btn-submit" onclick="submitAndGoHome()" id="btnSubmit">Submit & Go Home &#x1F3E0;</button></div>
-<div class="btn-row-center"><button class="btn btn-small btn-green" onclick="copySummary()">&#x1F4CB; Copy Summary</button><button class="btn btn-small btn-yellow" onclick="fireConfetti()">&#x1F389; Celebrate Again!</button><button class="btn btn-small btn-purple" id="btnNextStudent" onclick="nextStudent()">&#x1F195; Next Student</button></div>
+<div class="btn-row-center"><button class="btn btn-small btn-gray" onclick="goBackFromDone()">&#x2190; Edit Pitch</button><button class="btn btn-small btn-green" onclick="copySummary()">&#x1F4CB; Copy Summary</button><button class="btn btn-small btn-yellow" onclick="fireConfetti()">&#x1F389; Celebrate Again!</button><button class="btn btn-small btn-purple" id="btnNextStudent" onclick="nextStudent()">&#x1F195; Next Student</button></div>
 </div>
 
 <div class="site-footer">Built with &#x2764;&#xFE0F; for ODA students</div>
@@ -522,6 +526,37 @@ if(el)el.style.display='none';
 }
 }
 
+// ===== GET POLISHED PITCH (Step 7, before recording) =====
+async function getPolishedPitch(){
+var btn=document.getElementById('btnPolish');
+btn.disabled=true;btn.innerHTML='\u{1F916} Getting polished version...';
+try{
+var as=d.skills.slice();if(d.cSkill.trim())as.push(d.cSkill.trim());
+var av=[d.a1,d.a2,d.a3].filter(function(a){return a});
+pitchText=document.getElementById('pitchEditArea').value;
+var prompt='You are a supportive pitch coach for kids ages 8-14. Rewrite this student\'s business pitch in a more polished, professional way while keeping their voice, ideas, and personality. Keep it under 100 words. This should sound like something they could actually say out loud.\n\n';
+prompt+='Student: '+d.name+'\nBusiness: '+d.bName+' - '+d.bDesc+'\nCustomers: '+d.custs.join(', ')+'\nAdvantages: '+av.join(', ')+'\n\nTheir pitch:\n'+pitchText+'\n\nJust write the polished pitch, nothing else.';
+var text=await callAI(prompt,300);
+if(text){
+polishedResult=text;
+document.getElementById('polishedStep7').style.display='block';
+document.getElementById('polishedStep7Text').textContent=text;
+}
+}catch(e){console.error('Polish error:',e)}
+btn.disabled=false;btn.innerHTML='\u2728 Get AI-Polished Version';
+}
+
+function usePolished(){
+if(polishedResult){
+document.getElementById('pitchEditArea').value=polishedResult;
+pitchText=polishedResult;
+}
+}
+
+function goBackFromDone(){
+cs=7;showStep(7);
+}
+
 // ===== WEBCAM RECORDING =====
 async function startCamera(){
 try{
@@ -624,12 +659,17 @@ var videoUrl=null;
 if(recordedBlob){
 console.log('Uploading video blob, size:',recordedBlob.size,'bytes');
 btn.textContent='Uploading video...';
+try{
 var storage=storageMod.getStorage(app);
 var ts=Date.now();
 var path='assignments/pitch-videos/'+assignmentId+'_'+ts+'.webm';
 var sRef=storageMod.ref(storage,path);
 await storageMod.uploadBytes(sRef,recordedBlob);
 videoUrl=await storageMod.getDownloadURL(sRef);
+}catch(uploadErr){
+console.warn('Video upload failed (storage permissions), submitting without video:',uploadErr.message);
+videoUrl=null;
+}
 }
 
 var as=d.skills.slice();if(d.cSkill.trim())as.push(d.cSkill.trim());
@@ -679,6 +719,7 @@ document.getElementById("btnStart").disabled=true;var ac=document.querySelectorA
 pitchText='';aiCoachResult='';polishedResult='';recordedBlob=null;recordedChunks=[];
 document.getElementById('aiLoading').style.display='';document.getElementById('aiCoachContent').style.display='none';
 document.getElementById('polishedPitchArea').style.display='none';
+document.getElementById('polishedStep7').style.display='none';
 document.getElementById('videoPlayback').style.display='none';
 document.getElementById('videoPreview').style.display='none';
 document.getElementById('recBtns').innerHTML='<button class="btn-record" onclick="startCamera()">\u{1F4F7} Open Camera</button>';
