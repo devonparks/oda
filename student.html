@@ -73,6 +73,19 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 .vocab-opt.correct{border-color:var(--accent);background:rgba(6,214,160,.1);color:var(--accent)}
 .vocab-opt.wrong{border-color:var(--accent3);background:rgba(239,71,111,.1);color:var(--accent3)}
 
+/* My Tools */
+.tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:16px}
+.tool-card{background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:20px;text-align:center;transition:all .2s;cursor:pointer;position:relative}
+.tool-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.tool-card .tc-emoji{font-size:36px;display:block;margin-bottom:8px}
+.tool-card .tc-name{font-family:'Fredoka',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px}
+.tool-card .tc-desc{font-size:12px;color:var(--text2);line-height:1.4;margin-bottom:10px}
+.tool-card .tc-count{font-size:11px;font-weight:700;color:var(--accent);background:rgba(6,214,160,.1);padding:3px 10px;border-radius:8px;display:inline-block}
+.tool-card.coming-soon{opacity:.4;cursor:default;pointer-events:none}
+.tool-card.coming-soon::after{content:'COMING SOON';position:absolute;top:10px;right:10px;font-size:9px;font-weight:700;color:var(--gold);background:rgba(255,209,102,.15);padding:2px 8px;border-radius:6px;letter-spacing:1px}
+.tools-section-title{font-family:'Fredoka',sans-serif;font-size:16px;color:var(--text);font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.tools-section-title .ts-sub{font-size:12px;color:var(--text2);font-weight:500}
+
 /* Arcade */
 .game-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:450px){.game-grid{grid-template-columns:1fr}}
@@ -136,6 +149,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 
 <div class="tabs">
 <div class="tab active" onclick="switchTab('work')">&#x1F4DD; <span>My Work</span><span class="tab-badge zero" id="workBadge">0</span></div>
+<div class="tab" onclick="switchTab('tools')">&#x1F6E0;&#xFE0F; <span>My Tools</span></div>
 <div class="tab" onclick="switchTab('arcade')">&#x1F3AE; <span>Arcade</span></div>
 </div>
 
@@ -146,6 +160,14 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 <div class="encourage-text" id="encourageText"></div>
 </div>
 <div id="assignmentList"><div class="empty-state"><span class="emoji">&#x23F3;</span><p>Loading your assignments...</p></div></div>
+</div>
+
+<!-- MY TOOLS -->
+<div class="section" id="sec-tools">
+<div class="tools-section-title">&#x1F680; ODA Tools <span class="ts-sub">&#x2014; Use these anytime to create, learn, and have fun!</span></div>
+<div class="tools-grid" id="toolsGrid"></div>
+<div class="tools-section-title" style="margin-top:20px">&#x1F3AE; Coming Soon</div>
+<div class="tools-grid" id="toolsComingSoon"></div>
 </div>
 
 <!-- ARCADE -->
@@ -226,8 +248,9 @@ var tabs=document.querySelectorAll('.tab');
 var secs=document.querySelectorAll('.section');
 for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');secs[i].classList.remove('show')}
 document.getElementById('sec-'+id).classList.add('show');
-var m={work:0,arcade:1};
+var m={work:0,tools:1,arcade:2};
 if(m[id]!==undefined)tabs[m[id]].classList.add('active');
+if(id==='tools')renderMyTools();
 }
 
 function renderDashboard(){
@@ -523,6 +546,47 @@ h+='<div class="game-title">'+g.title+'</div>';
 h+='<div class="game-desc">'+g.desc+'</div></div>';
 });
 document.getElementById('gameGrid').innerHTML=h;
+}
+
+// ===== MY TOOLS =====
+var ODA_TOOLS=[
+{id:'pitch-challenge',emoji:'\u{1F4A1}',name:'Pitch Challenge',desc:'Build and record your business pitch!',url:'pitch.html',storageKey:'oda-pitch-projects'},
+{id:'elevator-pitch',emoji:'\u{1F3A4}',name:'Elevator Pitch',desc:'Practice your 30-second elevator pitch!',url:'elevator.html',storageKey:null},
+{id:'spelling',emoji:'\u{1F4D6}',name:'Spelling Bee',desc:'Practice spelling with fun challenges!',url:'spelling.html',storageKey:null},
+{id:'robot-lab',emoji:'\u{1F916}',name:'Robot Lab',desc:'Build and program your own robot!',url:'robot.html',storageKey:null}
+];
+var COMING_SOON_TOOLS=[
+{id:'jeopardy',emoji:'\u2753',name:'Jeopardy',desc:'Host or play live Jeopardy games!'},
+{id:'kahoot',emoji:'\u26A1',name:'Quick Quiz',desc:'Create and play Kahoot-style quizzes!'},
+{id:'oda-studio',emoji:'\u{1F3AC}',name:'ODA Studio',desc:'Edit videos with filters, stickers & effects!'},
+{id:'debate',emoji:'\u{1F5E3}\uFE0F',name:'Debate Club',desc:'Practice persuasive arguments!'}
+];
+
+function renderMyTools(){
+var grid=document.getElementById('toolsGrid');
+var h='';
+ODA_TOOLS.forEach(function(t){
+var count=0;
+if(t.storageKey){try{count=JSON.parse(localStorage.getItem(t.storageKey)||'[]').length}catch(e){}}
+h+='<div class="tool-card" onclick="window.open(\''+t.url+'\',\'_self\')">';
+h+='<span class="tc-emoji">'+t.emoji+'</span>';
+h+='<div class="tc-name">'+t.name+'</div>';
+h+='<div class="tc-desc">'+t.desc+'</div>';
+if(count>0)h+='<span class="tc-count">'+count+' saved</span>';
+h+='</div>';
+});
+grid.innerHTML=h;
+
+var coming=document.getElementById('toolsComingSoon');
+var ch='';
+COMING_SOON_TOOLS.forEach(function(t){
+ch+='<div class="tool-card coming-soon">';
+ch+='<span class="tc-emoji">'+t.emoji+'</span>';
+ch+='<div class="tc-name">'+t.name+'</div>';
+ch+='<div class="tc-desc">'+t.desc+'</div>';
+ch+='</div>';
+});
+coming.innerHTML=ch;
 }
 
 function studentLogout(){if(confirm('Are you sure you want to log out?')){sessionStorage.clear();window.location.href='index.html'}}

@@ -437,6 +437,11 @@ textarea.fun-input::placeholder{color:#3a4560}
 <div style="margin-top:8px"><button class="btn-ai" onclick="aiHelpBizNames()">&#x1F916; Suggest business names</button><div id="aiHelpBizNamesResult"></div></div>
 <p class="field-label" style="margin-top:16px">What does your business do?</p><textarea class="fun-input" id="inputBizDesc" rows="4" placeholder="My business makes/does... to solve the problem of..."></textarea>
 <div style="margin-top:8px"><button class="btn-ai" onclick="aiHelpSolution()">&#x1F916; How could I solve this?</button><div id="aiHelpSolutionResult"></div></div>
+<div id="ceoStep3" style="display:none;margin-top:16px">
+<div class="info-box green" style="padding:16px;text-align:left;margin-bottom:12px"><p style="font-size:14px;color:var(--accent);font-weight:600">&#x1F4BC; CEO DEEP DIVE</p></div>
+<p class="field-label">&#x1F4B0; How much would you charge?</p><textarea class="fun-input" id="inputPricing" rows="2" placeholder="Example: $5 per item, or $10/month subscription..."></textarea>
+<p class="field-label" style="margin-top:12px">&#x1F3E2; Who's your competition?</p><textarea class="fun-input" id="inputCompetitors" rows="2" placeholder="What other businesses solve a similar problem? How is yours different?"></textarea>
+</div>
 <div class="btn-row"><button class="btn btn-small btn-gray" onclick="goBack()">&#x2190; Back</button><button class="btn btn-normal btn-purple" id="btnIdea" disabled onclick="goNext()">Next &#x2192;</button></div>
 </div>
 
@@ -686,6 +691,7 @@ for(var i=0;i<aiIds.length;i++){var el=document.getElementById(aiIds[i]);if(el)e
 document.getElementById('aiLoading').style.display='';
 document.getElementById('aiCoachContent').style.display='none';
 cs=0;showStep(0);
+applyAgeMode();
 switchView('wizard');
 }
 
@@ -721,6 +727,7 @@ cs=p.completedStep||0;
 if(cs>=7&&!pitchText&&d.hook){buildPitch()}
 else if(pitchText){document.getElementById('pitchEditArea').value=pitchText;updatePitchWordCount()}
 showStep(cs);
+applyAgeMode();
 switchView('wizard');
 }
 
@@ -760,6 +767,33 @@ updatedAt:new Date().toISOString()
 };
 if(idx>=0)projects[idx]=proj;else projects.push(proj);
 saveProjects(projects);
+}
+
+// ===== AGE MODE STYLING =====
+function applyAgeMode(){
+// CEO: show advanced fields
+var ceoStep3=document.getElementById('ceoStep3');
+if(ceoStep3)ceoStep3.style.display=ageMode==='ceo'?'block':'none';
+// Little Boss: make text bigger, simplify subtitles
+if(ageMode==='little-boss'){
+document.querySelectorAll('.step-sub').forEach(function(el){el.style.fontSize='19px'});
+document.querySelectorAll('.step-title').forEach(function(el){el.style.fontSize='34px'});
+document.querySelectorAll('.step-emoji').forEach(function(el){el.style.fontSize='64px'});
+// Simplify step 0 text
+var step0Sub=document.querySelector('#step-0 .step-sub');
+if(step0Sub)step0Sub.textContent="Let's make YOUR idea and tell everyone about it!";
+var step1Sub=document.querySelector('#step-1 .step-sub');
+if(step1Sub)step1Sub.textContent="What's something that bugs you? Something you wish was better?";
+var step3Sub=document.querySelector('#step-3 .step-sub');
+if(step3Sub)step3Sub.textContent="What's your idea called? What does it do?";
+// Show teacher banner in 1-on-1 mode
+if(isTeacherMode)document.getElementById('teacherBanner').style.display='flex';
+}else{
+document.querySelectorAll('.step-sub').forEach(function(el){el.style.fontSize=''});
+document.querySelectorAll('.step-title').forEach(function(el){el.style.fontSize=''});
+document.querySelectorAll('.step-emoji').forEach(function(el){el.style.fontSize=''});
+if(document.getElementById('teacherBanner'))document.getElementById('teacherBanner').style.display='none';
+}
 }
 
 // ===== TEACHER MODE =====
@@ -918,15 +952,45 @@ function chkS(){document.getElementById("btnSkills").disabled=d.skills.length===
 function chkI(){document.getElementById("btnIdea").disabled=!d.bName.trim()||!d.bDesc.trim()}
 
 function showStep(n){var st=document.querySelectorAll(".step");for(var i=0;i<st.length;i++)st[i].classList.add("hidden");document.getElementById("step-"+n).classList.remove("hidden");
-var pr=document.getElementById("progWrap");if(n>0&&n<8){pr.classList.remove("hidden");document.getElementById("progStep").textContent="Step "+(n+1)+" of 9";document.getElementById("progLabel").textContent=SI[n].e+" "+SI[n].l;document.getElementById("progFill").style.width=(n/8*100)+"%"}else{pr.classList.add("hidden")}window.scrollTo(0,0)}
+var pr=document.getElementById("progWrap");
+if(n>0&&n<8){
+pr.classList.remove("hidden");
+if(ageMode==='little-boss'){
+// Little Boss: 6 steps (0,1,3,6,7,8) shown as "Step X of 6"
+var lbSteps=[0,1,3,6,7,8];var lbIdx=lbSteps.indexOf(n);
+if(lbIdx<0)lbIdx=0;
+document.getElementById("progStep").textContent="Step "+(lbIdx+1)+" of 6";
+document.getElementById("progFill").style.width=(lbIdx/5*100)+"%";
+}else{
+document.getElementById("progStep").textContent="Step "+(n+1)+" of 9";
+document.getElementById("progFill").style.width=(n/8*100)+"%";
+}
+document.getElementById("progLabel").textContent=SI[n].e+" "+SI[n].l;
+}else{pr.classList.add("hidden")}
+window.scrollTo(0,0)}
 
+// Little Boss skips: step 2 (skills), step 4 (customers), step 5 (advantages)
+var LITTLE_BOSS_SKIP=[2,4,5];
+function getNextStep(cur,dir){
+var next=cur+dir;
+if(ageMode==='little-boss'){
+while(next>0&&next<8&&LITTLE_BOSS_SKIP.indexOf(next)>=0)next+=dir;
+}
+return Math.max(0,Math.min(8,next));
+}
 function goNext(){saveD();
 if(cs===0)document.getElementById("problemTitle").textContent=d.name+", What's a Problem You See?";
 if(cs===2){document.getElementById("recapProblem").textContent='"'+d.prob+'"';var as=d.skills.slice();if(d.cSkill.trim())as.push(d.cSkill.trim());document.getElementById("recapSkills").textContent=as.join(", ")}
 if(cs===5){var r="";if(d.a1)r+="\u{1F3C6} "+d.a1+"<br>";if(d.a2)r+="\u{1F3C6} "+d.a2+"<br>";if(d.a3)r+="\u{1F3C6} "+d.a3;document.getElementById("advRecap").innerHTML=r}
-if(cs===6){buildPitch()}
-cs++;showStep(cs)}
-function goBack(){cs--;showStep(cs)}
+// Little Boss: auto-fill skipped fields
+if(ageMode==='little-boss'){
+if(cs===1){d.skills=['Talking to People','Helping Others'];d.cSkill=''}
+if(cs===3){d.custs=['Everyone!']}
+if(cs===3||cs===1){d.a1='It solves a real problem!';d.a2='';d.a3=''}
+}
+if(cs===6||cs===3&&ageMode==='little-boss'){buildPitch()}
+cs=getNextStep(cs,1);showStep(cs)}
+function goBack(){cs=getNextStep(cs,-1);showStep(cs)}
 
 // ===== BUILD PITCH =====
 function buildPitch(){
