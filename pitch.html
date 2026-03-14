@@ -199,6 +199,8 @@ textarea.fun-input::placeholder{color:#3a4560}
 .rec-split.horizontal{grid-template-columns:1fr;grid-template-rows:1fr auto}
 .rec-split.horizontal .rec-tp-side{border-right:none;border-top:1px solid var(--border);order:2;max-height:180px}
 .rec-split.horizontal .rec-cam-side{order:1}
+.rec-split.camera-only{grid-template-columns:1fr}
+.rec-split.camera-only .rec-tp-side{display:none}
 .rec-tp-side{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden}
 @media(max-width:768px){.rec-tp-side{border-right:none;border-bottom:1px solid var(--border)}}
 .btn-layout{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:10px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
@@ -708,7 +710,7 @@ cs=7;showStep(7);
 
 // ===== RECORDING MODAL =====
 var scrollSpeed=1,scrollSpeeds=[0,0.5,1,1.5,2],scrollSpeedIdx=2,scrollInterval=null;
-var recLayoutHorizontal=false;
+var recLayoutMode=0; // 0=vertical, 1=horizontal, 2=camera-only
 var MAX_REC_SECONDS=30;
 var audioCtx=null;
 
@@ -739,8 +741,8 @@ document.getElementById('recModalTimer').style.display='none';
 // Reset scroll speed and layout
 scrollSpeedIdx=2;
 document.getElementById('scrollSpeedLabel').textContent='1x';
-recLayoutHorizontal=false;
-document.querySelector('.rec-split').classList.remove('horizontal');
+recLayoutMode=0;
+document.querySelector('.rec-split').classList.remove('horizontal','camera-only');
 var lbtn=document.getElementById('btnLayoutToggle');
 lbtn.innerHTML='\u{1F4F1} Vertical';lbtn.classList.remove('active');
 // Start camera
@@ -888,17 +890,18 @@ else if(spd>0&&mediaRecorder&&mediaRecorder.state==='recording'){startScrolling(
 }
 
 function toggleRecLayout(){
-recLayoutHorizontal=!recLayoutHorizontal;
+recLayoutMode=(recLayoutMode+1)%3;
 var split=document.querySelector('.rec-split');
 var btn=document.getElementById('btnLayoutToggle');
-if(recLayoutHorizontal){
+split.classList.remove('horizontal','camera-only');
+if(recLayoutMode===0){
+btn.innerHTML='\u{1F4F1} Vertical';btn.classList.remove('active');
+}else if(recLayoutMode===1){
 split.classList.add('horizontal');
-btn.innerHTML='\u{1F4BB} Horizontal';
-btn.classList.add('active');
+btn.innerHTML='\u{1F4BB} Horizontal';btn.classList.add('active');
 }else{
-split.classList.remove('horizontal');
-btn.innerHTML='\u{1F4F1} Vertical';
-btn.classList.remove('active');
+split.classList.add('camera-only');
+btn.innerHTML='\u{1F3A5} Camera Only';btn.classList.add('active');
 }
 }
 
