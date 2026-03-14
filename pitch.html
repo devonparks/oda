@@ -196,8 +196,14 @@ textarea.fun-input::placeholder{color:#3a4560}
 .rec-modal-close:hover{color:var(--text)}
 .rec-split{display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden}
 @media(max-width:768px){.rec-split{grid-template-columns:1fr;grid-template-rows:1fr 1fr}}
+.rec-split.horizontal{grid-template-columns:1fr;grid-template-rows:1fr auto}
+.rec-split.horizontal .rec-tp-side{border-right:none;border-top:1px solid var(--border);order:2;max-height:180px}
+.rec-split.horizontal .rec-cam-side{order:1}
 .rec-tp-side{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden}
 @media(max-width:768px){.rec-tp-side{border-right:none;border-bottom:1px solid var(--border)}}
+.btn-layout{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:10px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn-layout:hover{border-color:var(--accent2);color:var(--text)}
+.btn-layout.active{border-color:var(--accent2);color:var(--accent2);background:rgba(17,138,178,.1)}
 .rec-tp-header{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .rec-tp-header span{font-family:'Space Mono',monospace;font-size:11px;color:var(--gold);letter-spacing:2px;text-transform:uppercase}
 .rec-tp-speed{display:flex;align-items:center;gap:6px}
@@ -364,7 +370,8 @@ textarea.fun-input::placeholder{color:#3a4560}
 <div class="rec-modal-bg" id="recModalBg">
 <div class="rec-modal-topbar">
 <h2>&#x1F3A5; Recording Studio</h2>
-<div style="display:flex;align-items:center;gap:12px">
+<div style="display:flex;align-items:center;gap:10px">
+<button class="btn-layout" id="btnLayoutToggle" onclick="toggleRecLayout()" title="Switch between vertical and horizontal layout">&#x1F4F1; Vertical</button>
 <span id="recModalTimer" style="font-family:'Space Mono',monospace;font-size:15px;color:var(--gold);font-weight:700;display:none">0:00 / 0:30</span>
 <button class="rec-modal-close" onclick="closeRecordModal()">&times;</button>
 </div>
@@ -380,7 +387,7 @@ textarea.fun-input::placeholder{color:#3a4560}
 </div>
 </div>
 <div class="rec-tp-body" id="recTpBody"><div class="rec-tp-text" id="recTpText"></div></div>
-<div class="rec-tp-hint" id="recTpHint">Speed controls adjust how fast the teleprompter scrolls while recording</div>
+<div class="rec-tp-hint" id="recTpHint">Use &#x25C0; &#x25B6; to adjust scroll speed or set to Off if your pitch fits on screen</div>
 </div>
 <div class="rec-cam-side">
 <div class="rec-cam-feed" id="recCamFeed">
@@ -700,7 +707,8 @@ cs=7;showStep(7);
 }
 
 // ===== RECORDING MODAL =====
-var scrollSpeed=1,scrollSpeeds=[0.5,1,1.5,2],scrollSpeedIdx=1,scrollInterval=null;
+var scrollSpeed=1,scrollSpeeds=[0,0.5,1,1.5,2],scrollSpeedIdx=2,scrollInterval=null;
+var recLayoutHorizontal=false;
 var MAX_REC_SECONDS=30;
 var audioCtx=null;
 
@@ -728,6 +736,13 @@ document.getElementById('recCamIndicator').style.display='none';
 document.getElementById('recCamTimer').style.display='none';
 document.getElementById('recCountdownOverlay').style.display='none';
 document.getElementById('recModalTimer').style.display='none';
+// Reset scroll speed and layout
+scrollSpeedIdx=2;
+document.getElementById('scrollSpeedLabel').textContent='1x';
+recLayoutHorizontal=false;
+document.querySelector('.rec-split').classList.remove('horizontal');
+var lbtn=document.getElementById('btnLayoutToggle');
+lbtn.innerHTML='\u{1F4F1} Vertical';lbtn.classList.remove('active');
 // Start camera
 try{
 cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},audio:true});
@@ -848,6 +863,7 @@ document.getElementById('recSavedMsg').innerHTML='<div style="color:var(--accent
 
 // Teleprompter auto-scroll
 function startScrolling(){
+if(scrollSpeeds[scrollSpeedIdx]===0)return;
 var body=document.getElementById('recTpBody');
 body.scrollTop=0;
 var pxPerFrame=scrollSpeeds[scrollSpeedIdx]*0.8;
@@ -864,9 +880,26 @@ if(scrollInterval){cancelAnimationFrame(scrollInterval);scrollInterval=null}
 
 function changeScrollSpeed(dir){
 scrollSpeedIdx=Math.max(0,Math.min(scrollSpeeds.length-1,scrollSpeedIdx+dir));
-document.getElementById('scrollSpeedLabel').textContent=scrollSpeeds[scrollSpeedIdx]+'x';
-// If currently scrolling, restart with new speed
-if(scrollInterval){stopScrolling();startScrolling()}
+var spd=scrollSpeeds[scrollSpeedIdx];
+document.getElementById('scrollSpeedLabel').textContent=spd===0?'Off':spd+'x';
+// If currently scrolling, restart with new speed or stop
+if(scrollInterval){stopScrolling();if(spd>0)startScrolling()}
+else if(spd>0&&mediaRecorder&&mediaRecorder.state==='recording'){startScrolling()}
+}
+
+function toggleRecLayout(){
+recLayoutHorizontal=!recLayoutHorizontal;
+var split=document.querySelector('.rec-split');
+var btn=document.getElementById('btnLayoutToggle');
+if(recLayoutHorizontal){
+split.classList.add('horizontal');
+btn.innerHTML='\u{1F4BB} Horizontal';
+btn.classList.add('active');
+}else{
+split.classList.remove('horizontal');
+btn.innerHTML='\u{1F4F1} Vertical';
+btn.classList.remove('active');
+}
 }
 
 // Legacy stubs for old inline usage
