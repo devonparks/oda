@@ -51,8 +51,9 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 .status-done{background:rgba(6,214,160,.12);color:var(--accent)}
 .status-overdue{background:rgba(239,71,111,.12);color:var(--accent3)}
 .a-meta{font-size:12px;color:var(--text2);margin-bottom:12px}
-.a-actions{display:flex;gap:8px}
-.a-btn{padding:10px 20px;border:none;border-radius:12px;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;text-decoration:none;display:inline-block}
+.a-actions{display:flex;flex-direction:column;gap:10px}
+.a-actions-row{display:flex;gap:8px;flex-wrap:wrap}
+.a-btn{padding:10px 20px;border:none;border-radius:12px;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;text-decoration:none;display:inline-block;text-align:center}
 .a-btn:active{transform:scale(.97)}
 .a-btn.start{background:var(--accent);color:var(--bg)}
 .a-btn.done-btn{background:var(--gold);color:var(--bg)}
@@ -329,20 +330,20 @@ return '<button class="a-btn start" onclick="startQuiz(\''+a.id+'\',\''+toolId+'
 if(a.type==='assignment'||a.type==='worksheet'||a.type==='link'||a.type==='custom'){
 var bh='';
 if(a.instructions)bh+='<div class="a-instructions">'+esc(a.instructions)+'</div>';
-if(a.linkUrl)bh+='<div style="margin-bottom:10px"><a class="a-btn start" href="'+esc(a.linkUrl)+'" target="_blank">Open Link \u{1F517}</a></div>';
+if(a.linkUrl)bh+='<div style="margin-bottom:10px"><a class="a-btn start" href="'+esc(a.linkUrl)+'" target="_blank" style="display:inline-block">Open Link \u{1F517}</a></div>';
 if(a.fileData){
 if(a.fileData.startsWith('data:image')){
 bh+='<div class="a-file-preview"><img src="'+a.fileData+'" alt="Attachment"></div>';
 }else{
 var pdfUrl=dataUriToBlobUrl(a.id,a.fileData);
-bh+='<div style="margin-bottom:10px;background:var(--bg);border:1px solid var(--border);border-radius:12px;overflow:hidden"><iframe src="'+pdfUrl+'" style="width:100%;height:400px;border:none"></iframe><div style="padding:8px;text-align:center"><a href="#" onclick="openFileBlob(\''+a.id+'\');return false" class="a-btn start" style="font-size:12px;padding:8px 16px">Open Full Screen \u{1F4C4}</a></div></div>';
+bh+='<div class="a-file-preview" style="padding:0;overflow:hidden"><iframe src="'+pdfUrl+'" style="width:100%;height:450px;border:none;display:block"></iframe><div style="padding:10px;text-align:center;border-top:1px solid var(--border)"><a href="#" onclick="openFileBlob(\''+a.id+'\');return false" class="a-btn start" style="font-size:13px;padding:10px 24px">Open Full Screen \u{1F4C4}</a></div></div>';
 }
 }
 if(a.gradingType==='teacher'){
 bh+='<textarea class="a-response" id="resp-'+a.id+'" placeholder="Type your response here...">'+(a.studentResponse||'')+'</textarea>';
-bh+='<button class="a-btn start" onclick="submitWork(\''+a.id+'\')">Submit \u{1F4E4}</button>';
+bh+='<div><button class="a-btn start" onclick="submitWork(\''+a.id+'\')" style="width:100%;padding:14px;font-size:15px">Submit \u{1F4E4}</button></div>';
 }else{
-bh+='<button class="a-btn done-btn" onclick="markDone(\''+a.id+'\')">Mark Done \u{2705}</button>';
+bh+='<div><button class="a-btn done-btn" onclick="markDone(\''+a.id+'\')" style="width:100%;padding:14px;font-size:15px">Mark Done \u{2705}</button></div>';
 }
 return bh;
 }
