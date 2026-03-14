@@ -89,7 +89,6 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 .s-name{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .s-meta{font-size:11px;color:var(--text2)}
 .s-right{display:flex;gap:6px;align-items:center;flex-shrink:0}
-.s-code{font-family:'Space Mono',monospace;font-size:11px;color:var(--gold);background:rgba(255,209,102,.08);padding:2px 7px;border-radius:5px}
 .s-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;white-space:nowrap}
 .badge-pending{background:rgba(17,138,178,.12);color:var(--accent2)}
 .badge-done{background:rgba(6,214,160,.12);color:var(--accent)}
@@ -421,7 +420,7 @@ select.settings-input{cursor:pointer}
 <div class="profile-avatar" id="profileAvatar">?</div>
 <div>
 <div class="profile-name" id="profileName">Student</div>
-<div class="profile-detail" id="profileDetail">Grade ? • Code: 0000</div>
+<div class="profile-detail" id="profileDetail">Grade ?</div>
 </div>
 </div>
 <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
@@ -939,7 +938,7 @@ else if(completed>0){badge='All done';badgeClass='badge-done'}
 else{badge='No tasks';badgeClass='badge-idle'}
 h+='<div class="s-row" onclick="openProfile(\''+s.id+'\')">';
 h+='<div class="s-info"><div class="s-avatar">'+init+'</div><div><div class="s-name">'+esc(s.name)+'</div><div class="s-meta">Grade '+esc(s.grade||'?')+(s.className?' • '+esc(s.className):'')+'</div></div></div>';
-h+='<div class="s-right"><span class="s-code">'+esc(s.code)+'</span><span class="s-badge '+badgeClass+'">'+badge+'</span></div>';
+h+='<div class="s-right"><span class="s-badge '+badgeClass+'">'+badge+'</span></div>';
 h+='</div>';
 }
 el.innerHTML=h;
@@ -960,11 +959,9 @@ var className=document.getElementById('addStudentClass').value;
 if(!name)return;
 if(!grade){alert('Please select a grade.');return}
 if(!className){alert('Please select a class for this student.');return}
-var code=String(Math.floor(1000+Math.random()*9000));
 try{
 await window.fbAddDoc(window.fbCollection(window.fbDb,'students'),{
-name:name,nameLower:name.toLowerCase(),grade:grade,code:code,
-parentCode:String(Math.floor(1000+Math.random()*9000)),
+name:name,nameLower:name.toLowerCase(),grade:grade,
 teacherId:window.currentTeacher.uid,
 school:window.teacherData?window.teacherData.school:'',
 className:className,
@@ -984,7 +981,7 @@ document.getElementById('rosterView').style.display='none';
 document.getElementById('profilePanel').classList.add('show');
 document.getElementById('profileAvatar').textContent=(selectedStudent.name||'?').charAt(0).toUpperCase();
 document.getElementById('profileName').textContent=selectedStudent.name;
-document.getElementById('profileDetail').textContent='Grade '+(selectedStudent.grade||'?')+' \u2022 Code: '+selectedStudent.code;
+document.getElementById('profileDetail').textContent='Grade '+(selectedStudent.grade||'?')+(selectedStudent.className?' \u2022 '+selectedStudent.className:'');
 // Arcade toggle
 var arcOn=selectedStudent.arcadeUnlocked||false;
 var abtn=document.getElementById('arcadeToggleBtn');
