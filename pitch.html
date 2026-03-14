@@ -707,10 +707,19 @@ document.getElementById('inputAdv2').value=d.a2;
 document.getElementById('inputAdv3').value=d.a3;
 document.getElementById('inputHook').value=d.hook;
 document.getElementById('inputCTA').value=d.cta;
-if(pitchText)document.getElementById('pitchEditArea').value=pitchText;
 rChips('p',[d.pCat]);rChips('s',d.skills);rChips('c',d.custs);
 document.getElementById('btnStart').disabled=!d.name.trim();
+// Re-enable step buttons based on loaded data
+if(d.prob)document.getElementById('btnProblem').disabled=false;
+if(d.skills.length||d.cSkill)chkS();
+if(d.bName&&d.bDesc)chkI();
+if(d.a1)document.getElementById('btnAdv').disabled=false;
+if(d.hook)document.getElementById('btnPitch').disabled=false;
+if(d.custs.length)document.getElementById('btnCustomer').disabled=false;
 cs=p.completedStep||0;
+// If loading at step 7+ and pitch text is empty, rebuild it
+if(cs>=7&&!pitchText&&d.hook){buildPitch()}
+else if(pitchText){document.getElementById('pitchEditArea').value=pitchText;updatePitchWordCount()}
 showStep(cs);
 switchView('wizard');
 }
@@ -884,13 +893,6 @@ switchView('wizard');
 }else{
 // Show dashboard
 renderDashboard();
-}
-var sessionName=sessionStorage.getItem('studentName');
-if(isAssignmentMode&&sessionName){
-d.name=sessionName;
-document.getElementById("inputName").value=sessionName;
-document.getElementById("btnStart").disabled=false;
-var savedArea=document.getElementById("savedArea");if(savedArea)savedArea.style.display="none";
 }
 document.getElementById("inputName").addEventListener("input",function(){d.name=this.value;document.getElementById("btnStart").disabled=!this.value.trim()});
 document.getElementById("inputProblem").addEventListener("input",function(){d.prob=this.value;document.getElementById("btnProblem").disabled=!this.value.trim()});
