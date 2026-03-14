@@ -73,6 +73,12 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 .tool-desc{font-size:14px;color:var(--text2);line-height:1.4;margin-bottom:12px}
 .tool-btn{padding:7px 14px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:'Outfit',sans-serif;text-decoration:none;display:inline-block;color:var(--bg);background:var(--accent);transition:all .15s}
 .tool-btn:active{transform:scale(.96)}
+.tool-btn.assign{background:var(--purple);margin-left:6px}
+.tool-btn.subs{background:var(--accent2);margin-left:6px}
+.tool-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto}
+.tool-stat{font-size:11px;font-weight:700;color:var(--accent);background:rgba(6,214,160,.1);padding:3px 10px;border-radius:8px;display:inline-block;margin-bottom:8px}
+.tool-card.coming-soon{opacity:.35;pointer-events:none;border-style:dashed;position:relative}
+.tool-card.coming-soon::after{content:'COMING SOON';position:absolute;top:10px;right:10px;font-size:9px;font-weight:700;color:var(--gold);background:rgba(255,209,102,.15);padding:2px 8px;border-radius:6px;letter-spacing:1px}
 
 /* Roster */
 
@@ -411,18 +417,13 @@ select.settings-input{cursor:pointer}
 </div>
 </div>
 
-<!-- ===== TOOLS ===== -->
+<!-- ===== MY TOOLS ===== -->
 <div class="section" id="sec-tools">
-<div style="font-size:16px;font-weight:800;margin-bottom:14px">&#x1F6E0;&#xFE0F; Teacher Tools</div>
-<div class="tools-grid">
-<div class="tool-card"><span class="tool-emoji">&#x1F3A4;</span><div class="tool-title">Elevator Pitch</div><div class="tool-desc">10-question interview → auto-generated pitch. 3 styles.</div><a class="tool-btn" href="elevator.html" target="_blank">Open</a></div>
-<div class="tool-card"><span class="tool-emoji">&#x1F4A1;</span><div class="tool-title">Pitch Challenge</div><div class="tool-desc">Full business pitch — problem, idea, customers.</div><a class="tool-btn" href="pitch.html" target="_blank">Open</a></div>
-<div class="tool-card"><span class="tool-emoji">&#x1F34B;</span><div class="tool-title">Lemonade Day</div><div class="tool-desc">Mikaila video, mission, sign-ups.</div><a class="tool-btn" href="lemonade.html" target="_blank">Open</a></div>
-<div class="tool-card"><span class="tool-emoji">&#x1F41D;</span><div class="tool-title">Spelling Bee</div><div class="tool-desc">Cleveland-themed spelling. 5 levels.</div><a class="tool-btn" href="spelling.html" target="_blank">Open</a></div>
-<div class="tool-card"><span class="tool-emoji">&#x1F916;</span><div class="tool-title">Robot Lab</div><div class="tool-desc">Design a custom robot step by step.</div><a class="tool-btn" href="robot.html" target="_blank">Open</a></div>
-<div class="tool-card" style="border-color:var(--gold)"><span class="tool-emoji">&#x2728;</span><div class="tool-title">ODA Studio</div><div class="tool-desc">Build custom tools with AI! Chat-powered studio with live preview.</div><a class="tool-btn" href="builder.html" target="_blank" style="background:var(--gold)">Create</a></div>
-<div class="tool-card" style="border-style:dashed;opacity:.4"><span class="tool-emoji">&#x2795;</span><div class="tool-title">More Coming</div><div class="tool-desc">Cavs Night, custom tools, and more.</div></div>
-</div>
+<div style="font-size:16px;font-weight:800;margin-bottom:6px">&#x1F6E0;&#xFE0F; My Tools</div>
+<p style="font-size:13px;color:var(--text2);margin-bottom:14px">Open tools, assign to your class, or view student submissions.</p>
+<div class="tools-grid" id="teacherToolsGrid"></div>
+<div style="font-size:15px;font-weight:800;margin:20px 0 10px">&#x1F3AE; Coming Soon</div>
+<div class="tools-grid" id="teacherToolsComingSoon"></div>
 </div>
 
 <!-- ===== ROSTER ===== -->
@@ -786,8 +787,88 @@ var m={home:0,tools:1,roster:2,assignments:3,arcade:4,settings:5};
 if(m[id]!==undefined)tabs[m[id]].classList.add('active');
 closeProfile();
 if(id==='assignments'){renderAssignmentsList();populateClassFilters()}
+if(id==='tools')renderMyTools();
 }
 window.switchTab=switchTab;
+
+// ===== MY TOOLS =====
+var TEACHER_TOOLS=[
+{id:'pitch-challenge',emoji:'\u{1F4A1}',name:'Pitch Challenge',desc:'Full business pitch \u2014 problem, idea, customers, record & present.',url:'pitch.html',toolType:'pitch-challenge'},
+{id:'elevator-pitch',emoji:'\u{1F3A4}',name:'Elevator Pitch',desc:'10-question interview \u2192 auto-generated pitch. 3 styles.',url:'elevator.html',toolType:'elevator-pitch'},
+{id:'lemonade',emoji:'\u{1F34B}',name:'Lemonade Day',desc:'Mikaila video, mission statement, sign-ups & hype.',url:'lemonade.html',toolType:'lemonade-day'},
+{id:'spelling',emoji:'\u{1F41D}',name:'Spelling Bee',desc:'Cleveland-themed spelling challenges. 5 levels.',url:'spelling.html',toolType:'spelling-bee'},
+{id:'robot-lab',emoji:'\u{1F916}',name:'Robot Lab',desc:'Design a custom robot step by step.',url:'robot.html',toolType:'robot-lab'},
+{id:'oda-studio',emoji:'\u2728',name:'ODA Studio',desc:'Build custom tools with AI! Chat-powered studio.',url:'builder.html',toolType:'oda-studio'}
+];
+var COMING_SOON_TEACHER=[
+{id:'jeopardy',emoji:'\u2753',name:'Jeopardy',desc:'Host live Jeopardy games with your class!'},
+{id:'kahoot',emoji:'\u26A1',name:'Quick Quiz',desc:'Create and play Kahoot-style quizzes!'},
+{id:'debate',emoji:'\u{1F5E3}\uFE0F',name:'Debate Club',desc:'Structured debate practice for students.'},
+{id:'video-studio',emoji:'\u{1F3AC}',name:'Video Studio',desc:'Student video editor with filters & effects.'}
+];
+
+function renderMyTools(){
+var grid=document.getElementById('teacherToolsGrid');
+var h='';
+TEACHER_TOOLS.forEach(function(t){
+// Count submissions for this tool
+var subs=0;var assigned=0;
+if(window.allAssignments){
+window.allAssignments.forEach(function(a){
+if(a.toolType===t.toolType){
+assigned++;
+if(a.status==='submitted'||a.status==='completed')subs++;
+}
+});
+}
+h+='<div class="tool-card">';
+h+='<span class="tool-emoji">'+t.emoji+'</span>';
+h+='<div class="tool-title">'+t.name+'</div>';
+h+='<div class="tool-desc">'+t.desc+'</div>';
+if(assigned>0)h+='<span class="tool-stat">'+subs+'/'+assigned+' submitted</span>';
+h+='<div class="tool-actions">';
+h+='<a class="tool-btn" href="'+t.url+'" target="_blank">Open</a>';
+h+='<button class="tool-btn assign" onclick="quickAssignTool(\''+t.toolType+'\')">Assign</button>';
+if(subs>0)h+='<button class="tool-btn subs" onclick="viewToolSubmissions(\''+t.toolType+'\')">View Work</button>';
+h+='</div></div>';
+});
+grid.innerHTML=h;
+
+var coming=document.getElementById('teacherToolsComingSoon');
+var ch='';
+COMING_SOON_TEACHER.forEach(function(t){
+ch+='<div class="tool-card coming-soon">';
+ch+='<span class="tool-emoji">'+t.emoji+'</span>';
+ch+='<div class="tool-title">'+t.name+'</div>';
+ch+='<div class="tool-desc">'+t.desc+'</div>';
+ch+='</div>';
+});
+coming.innerHTML=ch;
+}
+
+function quickAssignTool(toolType){
+switchTab('assignments');
+setTimeout(function(){
+openCreateAssignment();
+setTimeout(function(){
+// Try to auto-select the tool
+var cards=document.querySelectorAll('.tp-card');
+cards.forEach(function(c){
+if(c.getAttribute('data-tool')===toolType){c.click()}
+});
+},200);
+},100);
+}
+window.quickAssignTool=quickAssignTool;
+
+function viewToolSubmissions(toolType){
+switchTab('assignments');
+setTimeout(function(){
+var sel=document.getElementById('filterStatus');
+if(sel){sel.value='submitted';filterAssignments()}
+},100);
+}
+window.viewToolSubmissions=viewToolSubmissions;
 
 // ===== CLASSES =====
 function loadClasses(){

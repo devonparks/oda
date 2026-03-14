@@ -317,8 +317,17 @@ textarea.fun-input::placeholder{color:#3a4560}
 .filter-chip.active{border-color:var(--accent);color:var(--accent);background:rgba(6,214,160,.1)}
 
 /* Teacher 1-on-1 mode */
-.teacher-banner{background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(239,71,111,.1));border:2px solid var(--purple);border-radius:16px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text);font-weight:600}
+.teacher-banner{background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(239,71,111,.1));border:2px solid var(--purple);border-radius:16px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text);font-weight:600;flex-wrap:wrap}
 .teacher-banner .tb-badge{background:var(--purple);color:#fff;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.teacher-banner .tb-student{color:var(--accent);font-weight:700}
+.teacher-notes{background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(124,58,237,.03));border:1.5px solid rgba(124,58,237,.3);border-radius:14px;padding:14px 16px;margin-top:16px;display:none}
+.teacher-notes.show{display:block}
+.teacher-notes-title{font-size:12px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.teacher-notes-title::before{content:'\1F469\200D\1F3EB';font-size:14px}
+.teacher-notes p{font-size:13px;color:var(--text2);line-height:1.6;margin:4px 0}
+.teacher-notes ul{margin:6px 0;padding-left:18px}
+.teacher-notes li{font-size:13px;color:var(--text2);line-height:1.6;margin:3px 0}
+.teacher-notes .tn-say{color:var(--accent);font-weight:600;font-style:italic}
 
 .hidden{display:none!important}
 </style>
@@ -399,7 +408,7 @@ textarea.fun-input::placeholder{color:#3a4560}
 <div class="wrap">
 <a class="back" id="backLink" href="javascript:void(0)" onclick="backToDash()">&#x2190; Back to My Pitches</a>
 <div class="site-hdr"><h1>&#x2728; ODA Pitch Challenge &#x2728;</h1><p>Open Doors Academy &#x2022; Young Entrepreneur Institute</p></div>
-<div id="teacherBanner" style="display:none" class="teacher-banner"><span class="tb-badge">Teacher</span> &#x1F469;&#x200D;&#x1F3EB; 1-on-1 Mode &#x2014; Guiding a student through their pitch</div>
+<div id="teacherBanner" style="display:none" class="teacher-banner"><span class="tb-badge">Teacher</span> &#x1F469;&#x200D;&#x1F3EB; 1-on-1 Mode &#x2014; Guiding <span class="tb-student" id="tbStudentName">a student</span> through their pitch</div>
 <div class="prog hidden" id="progWrap"><div class="prog-info"><span id="progStep"></span><span id="progLabel"></span></div><div class="prog-bar"><div class="prog-fill" id="progFill"></div></div></div>
 
 <!-- Step 0: Start -->
@@ -408,6 +417,7 @@ textarea.fun-input::placeholder{color:#3a4560}
 <div class="info-box purple"><p>An <strong>entrepreneur</strong> is someone who sees a problem and creates something to fix it!</p><p class="sub">Today, YOU get to be an entrepreneur. &#x1F389;</p></div>
 <div style="margin-bottom:20px"><label class="field-label" style="font-size:20px;display:block;margin-bottom:10px">What's your name, boss? &#x1F60E;</label><input type="text" class="input-name" id="inputName" placeholder="Type your name here..."></div>
 <div id="savedArea"></div>
+<div class="teacher-notes" id="tn-0"></div>
 <div style="text-align:center;margin-top:8px"><button class="btn btn-large btn-purple" id="btnStart" disabled onclick="goNext()">Let's Go! &#x1F680;</button></div>
 </div>
 
@@ -417,6 +427,7 @@ textarea.fun-input::placeholder{color:#3a4560}
 <p class="field-label">Pick a category that fits your problem:</p><div class="chips" id="problemChips"></div>
 <p class="field-label">Now tell me about it! What's the problem?</p><textarea class="fun-input" id="inputProblem" rows="4" placeholder="Example: Kids at recess don't have anything fun to play with when it rains..."></textarea>
 <div style="margin-top:12px"><button class="btn-ai" onclick="aiHelpProblem()">&#x1F916; Help me think</button><div id="aiHelpProblemResult"></div></div>
+<div class="teacher-notes" id="tn-1"></div>
 <div class="btn-row"><button class="btn btn-small btn-gray" onclick="goBack()">&#x2190; Back</button><button class="btn btn-normal btn-purple" id="btnProblem" disabled onclick="goNext()">Next &#x2192;</button></div>
 </div>
 
@@ -426,6 +437,7 @@ textarea.fun-input::placeholder{color:#3a4560}
 <div class="chips" id="skillChips"></div>
 <p class="field-label" style="font-size:16px">Something else you're great at?</p><textarea class="fun-input" id="inputCustomSkill" rows="2" placeholder="I'm also really good at..."></textarea>
 <div style="margin-top:12px"><button class="btn-ai" onclick="aiHelpSkills()">&#x1F916; What skills would help?</button><div id="aiHelpSkillsResult"></div></div>
+<div class="teacher-notes" id="tn-2"></div>
 <div class="btn-row"><button class="btn btn-small btn-gray" onclick="goBack()">&#x2190; Back</button><button class="btn btn-normal btn-purple" id="btnSkills" disabled onclick="goNext()">Next &#x2192;</button></div>
 </div>
 
@@ -442,6 +454,7 @@ textarea.fun-input::placeholder{color:#3a4560}
 <p class="field-label">&#x1F4B0; How much would you charge?</p><textarea class="fun-input" id="inputPricing" rows="2" placeholder="Example: $5 per item, or $10/month subscription..."></textarea>
 <p class="field-label" style="margin-top:12px">&#x1F3E2; Who's your competition?</p><textarea class="fun-input" id="inputCompetitors" rows="2" placeholder="What other businesses solve a similar problem? How is yours different?"></textarea>
 </div>
+<div class="teacher-notes" id="tn-3"></div>
 <div class="btn-row"><button class="btn btn-small btn-gray" onclick="goBack()">&#x2190; Back</button><button class="btn btn-normal btn-purple" id="btnIdea" disabled onclick="goNext()">Next &#x2192;</button></div>
 </div>
 
@@ -450,6 +463,7 @@ textarea.fun-input::placeholder{color:#3a4560}
 <div class="step-emoji">&#x1F465;</div><div class="step-title">Who Would Buy It?</div><div class="step-sub">Every business needs customers! Who would want what you're selling?</div>
 <div class="chips" id="customerChips"></div>
 <div style="margin-top:12px"><button class="btn-ai" onclick="aiHelpCustomers()">&#x1F916; Who would buy this?</button><div id="aiHelpCustomersResult"></div></div>
+<div class="teacher-notes" id="tn-4"></div>
 <div class="btn-row"><button class="btn btn-small btn-gray" onclick="goBack()">&#x2190; Back</button><button class="btn btn-normal btn-purple" id="btnCustomer" disabled onclick="goNext()">Next &#x2192;</button></div>
 </div>
 
@@ -462,6 +476,7 @@ textarea.fun-input::placeholder{color:#3a4560}
 <div><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span class="adv-num">3</span><span class="field-label" style="margin:0;font-size:16px">Reason #3:</span></div><textarea class="fun-input" id="inputAdv3" rows="2" placeholder="Example: Nobody else has this!"></textarea></div>
 </div>
 <div style="margin-top:12px"><button class="btn-ai" onclick="aiHelpAdvantages()">&#x1F916; Help me think of reasons</button><div id="aiHelpAdvantagesResult"></div></div>
+<div class="teacher-notes" id="tn-5"></div>
 <div class="btn-row"><button class="btn btn-small btn-gray" onclick="goBack()">&#x2190; Back</button><button class="btn btn-normal btn-purple" id="btnAdv" disabled onclick="goNext()">Next &#x2192;</button></div>
 </div>
 
@@ -472,6 +487,7 @@ textarea.fun-input::placeholder{color:#3a4560}
 <p class="field-label">&#x1FA9D; Your Hook (grab their attention!)</p><textarea class="fun-input" id="inputHook" rows="3" placeholder="Start with a question or exciting statement about the problem..."></textarea><div class="input-hint">Try to keep this to 1-2 sentences</div>
 <div class="adv-recap"><div class="adv-recap-title">Your 3 Advantages (already done! &#x2705;)</div><div class="adv-recap-list" id="advRecap"></div></div>
 <p class="field-label">&#x1F4E3; Call to Action (tell them what to do next!)</p><textarea class="fun-input" id="inputCTA" rows="2" placeholder="Example: Come visit my website at SuperCoolBusiness.com!"></textarea>
+<div class="teacher-notes" id="tn-6"></div>
 <div class="btn-row"><button class="btn btn-small btn-gray" onclick="goBack()">&#x2190; Back</button><button class="btn btn-normal btn-purple" id="btnPitch" disabled onclick="goNext()">See My Pitch! &#x2192;</button></div>
 </div>
 
@@ -693,6 +709,15 @@ document.getElementById('aiLoading').style.display='';
 document.getElementById('aiCoachContent').style.display='none';
 cs=0;showStep(0);
 applyAgeMode();
+// Teacher 1-on-1: ask for student name and pre-fill
+if(isTeacherMode){
+var studentName=prompt('Student name for this 1-on-1 pitch:');
+if(studentName&&studentName.trim()){
+d.name=studentName.trim();
+document.getElementById('inputName').value=d.name;
+document.getElementById('btnStart').disabled=false;
+}
+}
 switchView('wizard');
 }
 
@@ -780,20 +805,98 @@ if(ageMode==='little-boss'){
 document.querySelectorAll('.step-sub').forEach(function(el){el.style.fontSize='19px'});
 document.querySelectorAll('.step-title').forEach(function(el){el.style.fontSize='34px'});
 document.querySelectorAll('.step-emoji').forEach(function(el){el.style.fontSize='64px'});
-// Simplify step 0 text
 var step0Sub=document.querySelector('#step-0 .step-sub');
 if(step0Sub)step0Sub.textContent="Let's make YOUR idea and tell everyone about it!";
 var step1Sub=document.querySelector('#step-1 .step-sub');
 if(step1Sub)step1Sub.textContent="What's something that bugs you? Something you wish was better?";
 var step3Sub=document.querySelector('#step-3 .step-sub');
 if(step3Sub)step3Sub.textContent="What's your idea called? What does it do?";
-// Show teacher banner in 1-on-1 mode
-if(isTeacherMode)document.getElementById('teacherBanner').style.display='flex';
 }else{
 document.querySelectorAll('.step-sub').forEach(function(el){el.style.fontSize=''});
 document.querySelectorAll('.step-title').forEach(function(el){el.style.fontSize=''});
 document.querySelectorAll('.step-emoji').forEach(function(el){el.style.fontSize=''});
-if(document.getElementById('teacherBanner'))document.getElementById('teacherBanner').style.display='none';
+}
+// Teacher banner: show in ALL modes when teacher mode is on
+if(isTeacherMode){
+document.getElementById('teacherBanner').style.display='flex';
+var nameEl=document.getElementById('tbStudentName');
+if(nameEl)nameEl.textContent=d.name||'a student';
+showTeacherNotes();
+}else{
+document.getElementById('teacherBanner').style.display='none';
+hideTeacherNotes();
+}
+}
+
+// ===== TEACHER NOTES =====
+var TEACHER_NOTES=[
+{step:0,title:'Getting Started',notes:[
+'<span class="tn-say">"Today we\'re going to be entrepreneurs! Do you know what that is?"</span>',
+'Let the student type their own name if possible',
+'For younger students, you can type for them \u2014 just ask them to tell you',
+'<span class="tn-say">"An entrepreneur sees a problem and makes something to fix it!"</span>'
+]},
+{step:1,title:'Finding a Problem',notes:[
+'<span class="tn-say">"Think about something that bugs you. At school, at home, anywhere!"</span>',
+'Help them pick a category first \u2014 it makes thinking easier',
+'If stuck, try: <span class="tn-say">"What\'s something you wish was different about recess? Lunchtime? Your neighborhood?"</span>',
+'Write down exactly what they say, even if it\'s simple',
+'Use the AI "Help me think" button if they need more ideas'
+]},
+{step:2,title:'Skills & Superpowers',notes:[
+'<span class="tn-say">"What are YOU really good at? Everyone has superpowers!"</span>',
+'Encourage them to pick at least 2-3 skills',
+'If shy, suggest: <span class="tn-say">"Are you good at drawing? Talking to people? Being creative?"</span>',
+'Remind them their skills will help build their business'
+]},
+{step:3,title:'The Big Idea',notes:[
+'<span class="tn-say">"Now let\'s make a business that uses YOUR skills to fix that problem!"</span>',
+'Help them come up with a fun business name \u2014 use AI suggest if needed',
+'For the description, ask: <span class="tn-say">"Tell me what your business does, like you\'re telling a friend"</span>',
+'Write what they say in their own words \u2014 don\'t overthink it'
+]},
+{step:4,title:'Finding Customers',notes:[
+'<span class="tn-say">"Who would want to buy this? Who needs it the most?"</span>',
+'Help them think about specific people: kids, parents, teachers, neighbors',
+'Ask: <span class="tn-say">"If you could sell this to anyone, who would you pick?"</span>'
+]},
+{step:5,title:'What Makes It Special',notes:[
+'<span class="tn-say">"Why should someone pick YOUR business instead of something else?"</span>',
+'Help them think of 1-3 reasons \u2014 even simple ones count!',
+'Prompt with: <span class="tn-say">"Is it cheaper? More fun? Made just for kids?"</span>'
+]},
+{step:6,title:'Building the Pitch',notes:[
+'<span class="tn-say">"Now we write a short speech about your business!"</span>',
+'The hook is the most important \u2014 help them start with a question or bold statement',
+'For younger kids, you can dictate as they talk and type for them',
+'Read the pitch back to them and ask <span class="tn-say">"Does this sound like you?"</span>',
+'Use AI example button for inspiration if they\'re stuck'
+]},
+{step:7,title:'Review & Record',notes:[
+'Read the full pitch aloud WITH the student first',
+'Practice 2-3 times before recording',
+'<span class="tn-say">"Pretend the camera is your best friend and you\'re telling them about your business"</span>',
+'Younger kids: hold the device steady, stand at their eye level',
+'It\'s OK if it\'s not perfect \u2014 confidence matters more than polish!'
+]}
+];
+
+function showTeacherNotes(){
+TEACHER_NOTES.forEach(function(tn){
+var el=document.getElementById('tn-'+tn.step);
+if(!el)return;
+var h='<div class="teacher-notes-title">Teacher Guide: '+tn.title+'</div><ul>';
+tn.notes.forEach(function(n){h+='<li>'+n+'</li>'});
+h+='</ul>';
+el.innerHTML=h;
+el.classList.add('show');
+});
+}
+
+function hideTeacherNotes(){
+for(var i=0;i<8;i++){
+var el=document.getElementById('tn-'+i);
+if(el){el.classList.remove('show');el.innerHTML=''}
 }
 }
 
@@ -801,10 +904,13 @@ if(document.getElementById('teacherBanner'))document.getElementById('teacherBann
 function toggleTeacherMode(){
 isTeacherMode=!isTeacherMode;
 var btn=document.getElementById('teacherModeBtn');
+var sub=document.querySelector('.dash-sub');
 if(isTeacherMode){
 btn.innerHTML='\u{1F469}\u200D\u{1F3EB} Exit Teacher Mode';btn.style.background='var(--accent3)';
+if(sub)sub.textContent='1-on-1 Mode \u2014 Sit with a student and guide them through their pitch';
 }else{
 btn.innerHTML='\u{1F469}\u200D\u{1F3EB} Teacher Mode';btn.style.background='var(--purple)';
+if(sub)sub.textContent='Build, record, and share your business pitch!';
 }
 renderDashboard();
 }
