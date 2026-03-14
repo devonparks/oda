@@ -429,14 +429,6 @@ select.settings-input{cursor:pointer}
 <button class="btn btn-gold" id="arcadeToggleBtn" onclick="toggleArcade()">&#x1F3AE; Unlock Arcade</button>
 <button class="btn btn-red" onclick="deleteStudent()">&#x1F5D1; Delete Student</button>
 </div>
-<div style="padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
-<div><div style="font-size:12px;font-weight:700">&#x1F512; PIN for this student</div><div style="font-size:11px;color:var(--text2)" id="studentPinDisplay">PIN: ----</div></div>
-<div style="display:flex;gap:6px;align-items:center">
-<input type="text" id="studentPinEdit" maxlength="4" placeholder="0000" style="width:60px;padding:5px 8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--gold);font-family:'Space Mono',monospace;font-size:14px;text-align:center;outline:none" inputmode="numeric">
-<button class="btn btn-accent btn-sm" onclick="saveStudentPin()">Set</button>
-<button class="btn btn-outline btn-sm" id="studentPinToggle" onclick="toggleStudentPin()">OFF</button>
-</div>
-</div>
 <div class="card-title">&#x1F4CB; Assignments</div>
 <div class="assign-list" id="profileAssignments"><div class="empty-state"><span class="emoji">&#x1F4ED;</span><p>No assignments yet</p></div></div>
 <div class="card-title" style="margin-top:16px">&#x1F4DD; Student Work</div>
@@ -993,11 +985,6 @@ document.getElementById('profilePanel').classList.add('show');
 document.getElementById('profileAvatar').textContent=(selectedStudent.name||'?').charAt(0).toUpperCase();
 document.getElementById('profileName').textContent=selectedStudent.name;
 document.getElementById('profileDetail').textContent='Grade '+(selectedStudent.grade||'?')+' \u2022 Code: '+selectedStudent.code;
-// Per-student PIN display
-var hasPinEnabled=selectedStudent.pinEnabled||false;
-document.getElementById('studentPinDisplay').textContent='PIN: '+(hasPinEnabled?selectedStudent.code:'disabled');
-document.getElementById('studentPinEdit').value=selectedStudent.code||'';
-updateToggleBtn('studentPinToggle',hasPinEnabled);
 // Arcade toggle
 var arcOn=selectedStudent.arcadeUnlocked||false;
 var abtn=document.getElementById('arcadeToggleBtn');
@@ -1126,32 +1113,6 @@ el.innerHTML='<div class="empty-state"><span class="emoji">\u{26A0}\uFE0F</span>
 }
 }
 window.loadStudentWork=loadStudentWork;
-
-async function toggleStudentPin(){
-if(!selectedStudent)return;
-var on=!(selectedStudent.pinEnabled);
-try{
-await window.fbUpdateDoc(window.fbDoc(window.fbDb,'students',selectedStudent.id),{pinEnabled:on});
-selectedStudent.pinEnabled=on;
-document.getElementById('studentPinDisplay').textContent='PIN: '+(on?selectedStudent.code:'disabled');
-updateToggleBtn('studentPinToggle',on);
-}catch(e){console.error(e)}
-}
-window.toggleStudentPin=toggleStudentPin;
-
-async function saveStudentPin(){
-if(!selectedStudent)return;
-var newPin=document.getElementById('studentPinEdit').value.trim();
-if(!newPin||!/^\d{4}$/.test(newPin)){alert('PIN must be exactly 4 digits (numbers only)');return}
-try{
-await window.fbUpdateDoc(window.fbDoc(window.fbDb,'students',selectedStudent.id),{code:newPin});
-selectedStudent.code=newPin;
-document.getElementById('profileDetail').textContent='Grade '+(selectedStudent.grade||'?')+' \u2022 Code: '+newPin;
-document.getElementById('studentPinDisplay').textContent='PIN: '+(selectedStudent.pinEnabled?newPin:'disabled');
-loadStudents();
-}catch(e){console.error(e)}
-}
-window.saveStudentPin=saveStudentPin;
 
 function renderProfileAssignments(){
 if(!selectedStudent)return;
