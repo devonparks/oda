@@ -580,7 +580,7 @@ select.settings-input{cursor:pointer}
 <div class="fg"><label>Title</label><input type="text" id="createAssignTitle" placeholder="Assignment title"></div>
 <div class="fg"><label>Instructions</label><textarea id="createAssignInstructions" placeholder="What should students do? Be specific..."></textarea></div>
 <div class="fg"><label>Link (optional)</label><input type="url" id="createAssignLink" placeholder="https://..."></div>
-<div class="fg"><label>Attach File (optional — PDF or image, max 1MB)</label><input type="file" id="createAssignFile" accept=".pdf,.png,.jpg,.jpeg" style="padding:8px"></div>
+<div class="fg"><label>Attach File (optional — PDF or image, max 10MB)</label><input type="file" id="createAssignFile" accept=".pdf,.png,.jpg,.jpeg" style="padding:8px"></div>
 <div class="fg"><label>Grading</label><select id="createAssignGrading"><option value="teacher">Teacher Graded</option><option value="completion">Completion Only</option></select></div>
 </div>
 <div class="fg"><label>Due Date</label><input type="date" id="createDueDate"></div>
@@ -650,11 +650,12 @@ select.settings-input{cursor:pointer}
 import{initializeApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
 import{getAuth,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
 import{getFirestore,doc,setDoc,getDoc,getDocs,deleteDoc,collection,query,where,addDoc,updateDoc,orderBy,Timestamp,onSnapshot}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+import{getStorage,ref as storageRef,uploadBytes,getDownloadURL}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-storage.js";
 
 const cfg={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
-const app=initializeApp(cfg);const auth=getAuth(app);const db=getFirestore(app);
+const app=initializeApp(cfg);const auth=getAuth(app);const db=getFirestore(app);const storage=getStorage(app);
 
-window.fbAuth=auth;window.fbDb=db;window.fbSignOut=signOut;
+window.fbAuth=auth;window.fbDb=db;window.fbSignOut=signOut;window.fbStorage=storage;window.fbStorageRef=storageRef;window.fbUploadBytes=uploadBytes;window.fbGetDownloadURL=getDownloadURL;
 window.fbDoc=doc;window.fbSetDoc=setDoc;window.fbGetDoc=getDoc;window.fbGetDocs=getDocs;window.fbDeleteDoc=deleteDoc;
 window.fbCollection=collection;window.fbQuery=query;window.fbWhere=where;window.fbAddDoc=addDoc;window.fbUpdateDoc=updateDoc;window.fbOrderBy=orderBy;window.fbTimestamp=Timestamp;window.fbOnSnapshot=onSnapshot;
 
@@ -1329,13 +1330,21 @@ if(!aInstructions){alert('Enter instructions so students know what to do');retur
 var aLink=document.getElementById('createAssignLink').value.trim()||null;
 var aGrading=document.getElementById('createAssignGrading').value;
 var fileInput=document.getElementById('createAssignFile');
-var fileData=null;
+var fileUrl=null;
 if(fileInput.files.length>0){
 var file=fileInput.files[0];
-if(file.size>1048576){alert('File must be under 1MB');return}
-fileData=await readFileAsBase64(file);
+if(file.size>10*1024*1024){alert('File must be under 10MB');return}
+showLoading('Uploading file...');
+try{
+var ts=Date.now();
+var safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+var path='assignments/'+window.currentTeacher.uid+'/'+ts+'_'+safeName;
+var sRef=window.fbStorageRef(window.fbStorage,path);
+await window.fbUploadBytes(sRef,file);
+fileUrl=await window.fbGetDownloadURL(sRef);
+}catch(e){hideLoading();console.error(e);alert('File upload failed: '+e.message);return}
 }
-assignData={type:'assignment',toolType:null,title:aTitle,instructions:aInstructions,gradingType:aGrading,fileData:fileData,linkUrl:aLink};
+assignData={type:'assignment',toolType:null,title:aTitle,instructions:aInstructions,gradingType:aGrading,fileData:null,fileUrl:fileUrl,linkUrl:aLink};
 }
 
 if(document.getElementById('saveAsTemplate').checked){
@@ -1364,7 +1373,7 @@ submittedAt:null,completedAt:null,gradedAt:null,
 score:null,feedback:null,aiSuggestedScore:null,aiSuggestedFeedback:null,
 school:td.school||'',district:td.district||'',program:td.program||'',
 grade:student?student.grade:'',
-fileData:assignData.fileData,linkUrl:assignData.linkUrl,studentResponse:null,templateId:null
+fileData:assignData.fileData||null,fileUrl:assignData.fileUrl||null,linkUrl:assignData.linkUrl,studentResponse:null,templateId:null
 });
 }
 hideLoading();
@@ -1534,13 +1543,23 @@ if(a.studentResponse){
 h+='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px">Student\'s Response:</div>';
 h+='<div class="grade-work">'+esc(a.studentResponse)+'</div>';
 }
-if(a.fileData){
+if(a.fileUrl||a.fileData){
 h+='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px">Attached File:</div>';
+if(a.fileUrl){
+// New Storage URL — just use it directly
+if(a.fileUrl.match(/\.(png|jpg|jpeg|gif|webp)/i)){
+h+='<div class="grade-work"><img src="'+a.fileUrl+'" style="max-width:100%;border-radius:8px"></div>';
+}else{
+h+='<div class="grade-work" style="max-height:500px"><iframe src="'+a.fileUrl+'" style="width:100%;height:460px;border:none;border-radius:8px"></iframe><div style="margin-top:8px"><a href="'+a.fileUrl+'" target="_blank" style="color:var(--accent2);font-size:12px;font-weight:600">Open in new tab \u2197\uFE0F</a></div></div>';
+}
+}else if(a.fileData){
+// Legacy base64 — use blob conversion
 if(a.fileData.startsWith('data:image')){
 h+='<div class="grade-work"><img src="'+a.fileData+'" style="max-width:100%;border-radius:8px"></div>';
 }else{
 var pdfUrl=dataUriToBlobUrl(a.id,a.fileData);
 h+='<div class="grade-work" style="max-height:500px"><iframe src="'+pdfUrl+'" style="width:100%;height:460px;border:none;border-radius:8px"></iframe><div style="margin-top:8px"><a href="#" onclick="openFileBlob(\''+a.id+'\');return false" style="color:var(--accent2);font-size:12px;font-weight:600">Open in new tab \u2197\uFE0F</a></div></div>';
+}
 }
 }
 if(a.linkUrl){

@@ -331,12 +331,21 @@ if(a.type==='assignment'||a.type==='worksheet'||a.type==='link'||a.type==='custo
 var bh='';
 if(a.instructions)bh+='<div class="a-instructions">'+esc(a.instructions)+'</div>';
 if(a.linkUrl)bh+='<div style="margin-bottom:10px"><a class="a-btn start" href="'+esc(a.linkUrl)+'" target="_blank" style="display:inline-block">Open Link \u{1F517}</a></div>';
-if(a.fileData){
-if(a.fileData.startsWith('data:image')){
-bh+='<div class="a-file-preview"><img src="'+a.fileData+'" alt="Attachment"></div>';
+if(a.fileUrl||a.fileData){
+var fSrc=a.fileUrl||null;
+var isImage=a.fileUrl?a.fileUrl.match(/\.(png|jpg|jpeg|gif|webp)/i):false;
+if(!fSrc&&a.fileData){
+// Legacy base64
+if(a.fileData.startsWith('data:image')){isImage=true;fSrc=a.fileData;}
+else{fSrc=dataUriToBlobUrl(a.id,a.fileData);}
+}
+if(fSrc){
+if(isImage){
+bh+='<div class="a-file-preview"><img src="'+fSrc+'" alt="Attachment"></div>';
 }else{
-var pdfUrl=dataUriToBlobUrl(a.id,a.fileData);
-bh+='<div class="a-file-preview" style="padding:0;overflow:hidden"><iframe src="'+pdfUrl+'" style="width:100%;height:450px;border:none;display:block"></iframe><div style="padding:10px;text-align:center;border-top:1px solid var(--border)"><a href="#" onclick="openFileBlob(\''+a.id+'\');return false" class="a-btn start" style="font-size:13px;padding:10px 24px">Open Full Screen \u{1F4C4}</a></div></div>';
+var openLink=a.fileUrl?a.fileUrl:'#" onclick="openFileBlob(\''+a.id+'\');return false';
+bh+='<div class="a-file-preview" style="padding:0;overflow:hidden"><iframe src="'+fSrc+'" style="width:100%;height:450px;border:none;display:block"></iframe><div style="padding:10px;text-align:center;border-top:1px solid var(--border)"><a href="'+openLink+'" target="_blank" class="a-btn start" style="font-size:13px;padding:10px 24px">Open Full Screen \u{1F4C4}</a></div></div>';
+}
 }
 }
 if(a.gradingType==='teacher'){
