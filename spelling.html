@@ -4,451 +4,1194 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ODA Spelling Bee</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#a8b2c8}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh}
-.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
-.app{position:relative;z-index:1;max-width:640px;margin:0 auto;padding:16px}
-.back{display:inline-block;margin-bottom:12px;color:var(--text2);text-decoration:none;font-size:14px;font-weight:600}
-.back:hover{color:var(--text)}
-.header{text-align:center;margin-bottom:20px}
-.header .emoji{font-size:48px;margin-bottom:6px;display:block}
-.header h1{font-size:28px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,var(--gold),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.header p{font-size:15px;color:var(--text2);margin-top:2px}
+body{background:#FFF8E1;font-family:'Quicksand',sans-serif;min-height:100vh}
+.wrap{max-width:900px;margin:0 auto;padding:20px 16px}
+.back-link{display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;padding:10px 18px;border-radius:12px;font-family:'Fredoka',sans-serif;font-size:14px;color:#92400E;text-decoration:none;font-weight:600;background:#FEF3C7;border:2px solid #F59E0B;transition:all .15s}
+.back-link:hover{background:#FDE68A;color:#78350F}
+.hdr{text-align:center;margin-bottom:24px}
+.hdr .emoji{font-size:64px;margin-bottom:8px;display:block}
+.hdr h1{font-family:'Fredoka',sans-serif;font-size:36px;font-weight:700;background:linear-gradient(135deg,#F59E0B,#D97706,#F59E0B);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr p{font-size:15px;color:#92400E;font-weight:600;margin-top:4px}
 
-/* Tabs */
-.mode-tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface);border-radius:12px;padding:4px;border:1px solid var(--border)}
-.mode-tab{flex:1;padding:10px;text-align:center;border-radius:8px;cursor:pointer;font-weight:700;font-size:14px;color:var(--text2);transition:all .2s}
-.mode-tab:hover{color:var(--text)}
-.mode-tab.active{background:var(--accent);color:var(--bg)}
+/* Cards */
+.card{background:#fff;border-radius:24px;padding:28px 24px;box-shadow:0 8px 32px rgba(245,158,11,.1),0 2px 8px rgba(0,0,0,.04);margin-bottom:20px}
+.card-title{font-family:'Fredoka',sans-serif;font-size:24px;font-weight:700;color:#92400E;margin-bottom:12px;text-align:center}
 
-.section{display:none;animation:fadeUp .2s ease}
-.section.show{display:block}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+/* Buttons */
+.btn{font-family:'Fredoka',sans-serif;font-weight:600;border:none;cursor:pointer;letter-spacing:.5px;transition:all .15s;display:inline-block;text-align:center;border-radius:18px;color:#fff}
+.btn:active{transform:translateY(4px)!important}
+.btn:disabled{background:#ccc!important;cursor:not-allowed;box-shadow:none!important;color:#999!important}
+.btn-large{padding:18px 40px;font-size:22px}
+.btn-normal{padding:14px 28px;font-size:18px}
+.btn-small{padding:10px 20px;font-size:15px}
+.btn-xs{padding:6px 14px;font-size:13px;border-radius:10px}
+.btn-orange{background:#F59E0B;box-shadow:0 6px 0 rgba(217,119,6,.6)}
+.btn-red{background:#EF4444;box-shadow:0 6px 0 rgba(220,38,38,.5)}
+.btn-green{background:#10B981;box-shadow:0 6px 0 rgba(16,185,129,.5)}
+.btn-blue{background:#3B82F6;box-shadow:0 6px 0 rgba(59,130,246,.5)}
+.btn-purple{background:#8B5CF6;box-shadow:0 6px 0 rgba(139,92,246,.5)}
+.btn-gray{background:#9CA3AF;box-shadow:0 6px 0 rgba(107,114,128,.5)}
+.btn-outline{background:#fff;color:#92400E;border:2px solid #FDE68A;box-shadow:none}
+.btn-outline:hover{border-color:#F59E0B;background:#FFFBEB}
+.btn-wide{width:100%;display:block}
+.btn-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px}
 
-/* Common */
-.btn{padding:10px 20px;border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .15s}
-.btn:active{transform:scale(.97)}
-.btn-accent{background:var(--accent);color:var(--bg)}
-.btn-blue{background:var(--accent2);color:#fff}
-.btn-gold{background:var(--gold);color:var(--bg)}
-.btn-outline{background:none;border:1px solid var(--border);color:var(--text2)}
-.btn-outline:hover{border-color:var(--text2);color:var(--text)}
-.btn-sm{padding:6px 14px;font-size:13px;border-radius:8px}
-.btn-wide{width:100%;padding:14px;font-size:16px;border-radius:14px}
-.btn-red{background:rgba(239,71,111,.15);color:var(--accent3)}
+/* Inputs */
+.input{width:100%;padding:14px;border-radius:14px;border:3px solid #FDE68A;font-family:'Quicksand',sans-serif;font-size:18px;color:#92400E;outline:none;background:#FFFBEB;font-weight:600;transition:border-color .2s;margin-bottom:12px}
+.input:focus{border-color:#F59E0B}
+.input::placeholder{color:#D4A84A}
+textarea.input{resize:vertical;min-height:100px;font-size:16px;line-height:1.6}
+.input-label{font-family:'Fredoka',sans-serif;font-size:16px;color:#92400E;font-weight:600;margin-bottom:6px;display:block}
 
-.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:12px}
+/* Mode cards */
+.mode-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px}
+.mode-card{background:#fff;border:3px solid #FDE68A;border-radius:20px;padding:20px 16px;text-align:center;cursor:pointer;transition:all .2s}
+.mode-card:hover{border-color:#F59E0B;transform:translateY(-3px);box-shadow:0 8px 24px rgba(245,158,11,.15)}
+.mode-card.active{border-color:#F59E0B;background:#FEF3C7}
+.mode-card .mc-emoji{font-size:36px;margin-bottom:6px;display:block}
+.mode-card .mc-title{font-family:'Fredoka',sans-serif;font-size:16px;font-weight:700;color:#92400E}
+.mode-card .mc-desc{font-size:12px;color:#B45309;font-weight:600;margin-top:2px}
 
-/* Grade selector */
-.grade-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
-@media(max-width:400px){.grade-grid{grid-template-columns:repeat(2,1fr)}}
-.grade-btn{padding:14px 8px;background:var(--surface);border:2px solid var(--border);border-radius:12px;cursor:pointer;text-align:center;transition:all .2s;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;color:var(--text)}
-.grade-btn:hover{border-color:var(--accent2);transform:translateY(-2px)}
-.grade-btn.active{border-color:var(--accent);background:rgba(6,214,160,.06);box-shadow:0 0 15px rgba(6,214,160,.1)}
-.grade-btn .grade-label{font-size:13px;color:var(--text2);font-weight:500;margin-top:2px}
+/* List selector */
+.list-section{margin-bottom:20px}
+.list-section-title{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:#92400E;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.list-grid{display:grid;gap:8px}
+.list-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:2px solid #FDE68A;border-radius:14px;cursor:pointer;transition:all .2s}
+.list-item:hover{border-color:#F59E0B;background:#FFFBEB}
+.list-item.active{border-color:#F59E0B;background:#FEF3C7}
+.list-item .li-name{font-family:'Fredoka',sans-serif;font-size:15px;font-weight:600;color:#92400E}
+.list-item .li-count{font-size:13px;color:#B45309;font-weight:600}
 
-/* Practice */
-.practice-card{background:var(--surface);border:2px solid var(--accent2);border-radius:20px;padding:28px;text-align:center;margin-bottom:16px}
-.practice-word{font-family:'Space Mono',monospace;font-size:36px;font-weight:700;color:var(--gold);letter-spacing:3px;margin-bottom:6px;min-height:50px;transition:all .3s}
-.practice-word.hidden{color:transparent;text-shadow:0 0 20px var(--gold);user-select:none}
-.practice-hint{font-size:15px;color:var(--text2);margin-bottom:16px;min-height:20px}
-.practice-input{width:100%;padding:16px;background:var(--bg);border:2px solid var(--border);border-radius:14px;color:var(--text);font-family:'Space Mono',monospace;font-size:22px;font-weight:600;text-align:center;letter-spacing:2px;outline:none;margin-bottom:10px}
-.practice-input:focus{border-color:var(--accent)}
-.practice-input::placeholder{color:#3a4560;font-size:16px;letter-spacing:0}
-.practice-progress{display:flex;justify-content:space-between;font-size:14px;color:var(--text2);margin-bottom:10px;font-family:'Space Mono',monospace}
-.practice-feedback{font-size:18px;font-weight:700;min-height:28px;margin-bottom:10px}
-.practice-dots{display:flex;gap:4px;justify-content:center;margin-bottom:12px;flex-wrap:wrap}
-.p-dot{width:10px;height:10px;border-radius:50%;background:var(--border);transition:all .2s}
-.p-dot.correct{background:var(--accent)}
-.p-dot.wrong{background:var(--accent3)}
-.p-dot.current{background:var(--gold);box-shadow:0 0 8px var(--gold)}
+/* Grade grid */
+.grade-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.grade-btn{padding:12px 8px;background:#fff;border:2px solid #FDE68A;border-radius:14px;cursor:pointer;text-align:center;transition:all .2s;font-family:'Fredoka',sans-serif;font-weight:600;font-size:14px;color:#92400E}
+.grade-btn:hover{border-color:#F59E0B;transform:translateY(-2px)}
+.grade-btn.active{border-color:#F59E0B;background:#FEF3C7;box-shadow:0 4px 12px rgba(245,158,11,.15)}
+.grade-btn .gb-count{font-size:12px;color:#B45309;font-weight:500;margin-top:2px}
 
 /* Study mode */
-.study-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
-.study-word{font-family:'Space Mono',monospace;font-size:18px;font-weight:700}
-.study-num{font-size:14px;color:var(--text2);font-family:'Space Mono',monospace}
-.speak-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer;transition:all .15s}
-.speak-btn:hover{border-color:var(--accent)}
+.study-list{display:grid;gap:8px}
+.study-card{background:#FFFBEB;border:2px solid #FDE68A;border-radius:14px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;transition:all .15s}
+.study-card:hover{border-color:#F59E0B}
+.study-word{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:600;color:#92400E}
+.study-num{font-size:13px;color:#B45309;font-weight:600;margin-right:8px}
+.study-btns{display:flex;gap:6px}
+.speak-btn{background:#FEF3C7;border:2px solid #FDE68A;border-radius:10px;padding:6px 12px;font-size:14px;cursor:pointer;transition:all .15s;color:#92400E;font-weight:600}
+.speak-btn:hover{border-color:#F59E0B;background:#FDE68A}
 
-/* Edit mode */
-.edit-area{width:100%;min-height:300px;padding:14px;background:var(--bg);border:2px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Mono',monospace;font-size:14px;line-height:1.8;outline:none;resize:vertical}
-.edit-area:focus{border-color:var(--accent)}
-.edit-help{font-size:14px;color:var(--text2);margin-top:6px;line-height:1.5}
+/* Practice quiz */
+.quiz-card{background:#fff;border:3px solid #F59E0B;border-radius:24px;padding:32px 24px;text-align:center;margin-bottom:20px}
+.quiz-word{font-family:'Fredoka',sans-serif;font-size:42px;font-weight:700;color:#F59E0B;letter-spacing:3px;margin-bottom:8px;min-height:55px;transition:all .3s}
+.quiz-word.hidden-word{color:transparent;text-shadow:0 0 30px rgba(245,158,11,.4);user-select:none}
+.quiz-hint{font-size:15px;color:#B45309;font-weight:600;margin-bottom:16px;min-height:22px}
+.quiz-input{width:100%;padding:18px;background:#FFFBEB;border:3px solid #FDE68A;border-radius:16px;color:#92400E;font-family:'Fredoka',sans-serif;font-size:24px;font-weight:600;text-align:center;letter-spacing:3px;outline:none;margin-bottom:12px}
+.quiz-input:focus{border-color:#F59E0B}
+.quiz-input::placeholder{color:#D4A84A;font-size:16px;letter-spacing:0}
+.quiz-progress{display:flex;justify-content:space-between;font-size:14px;color:#B45309;font-weight:700;margin-bottom:10px;font-family:'Fredoka',sans-serif}
+.quiz-feedback{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;min-height:28px;margin-bottom:10px}
+.quiz-dots{display:flex;gap:5px;justify-content:center;margin-bottom:14px;flex-wrap:wrap}
+.q-dot{width:12px;height:12px;border-radius:50%;background:#FDE68A;transition:all .2s}
+.q-dot.correct{background:#10B981}
+.q-dot.wrong{background:#EF4444}
+.q-dot.current{background:#F59E0B;box-shadow:0 0 10px rgba(245,158,11,.5)}
+
+/* Bee mode */
+.bee-card{background:linear-gradient(135deg,#FFF7ED,#FFEDD5);border:3px solid #F59E0B;border-radius:24px;padding:36px 24px;text-align:center;margin-bottom:20px;position:relative}
+.bee-round{font-family:'Fredoka',sans-serif;font-size:16px;color:#B45309;font-weight:700;margin-bottom:6px}
+.bee-emoji{font-size:72px;display:block;margin-bottom:12px;animation:beeBounce 2s ease-in-out infinite}
+@keyframes beeBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.bee-status{font-family:'Fredoka',sans-serif;font-size:20px;color:#92400E;font-weight:700;margin-bottom:16px}
+.bee-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
+.bee-action{padding:10px 18px;border-radius:14px;border:2px solid #FDE68A;background:#fff;cursor:pointer;font-family:'Fredoka',sans-serif;font-size:14px;font-weight:600;color:#92400E;transition:all .15s}
+.bee-action:hover{border-color:#F59E0B;background:#FEF3C7}
+.bee-action:disabled{opacity:.5;cursor:not-allowed}
+.bee-input{width:100%;max-width:400px;padding:18px;background:#fff;border:3px solid #FDE68A;border-radius:16px;color:#92400E;font-family:'Fredoka',sans-serif;font-size:24px;font-weight:600;text-align:center;letter-spacing:3px;outline:none;margin:0 auto 12px}
+.bee-input:focus{border-color:#F59E0B}
+.bee-ai-bubble{margin:12px auto;max-width:400px;padding:14px;background:#fff;border:2px solid rgba(59,130,246,.2);border-radius:14px;font-size:15px;line-height:1.7;color:#78350F;text-align:left;animation:fadeUp .3s ease}
 
 /* Results */
-.result-card{background:var(--surface);border:2px solid var(--accent);border-radius:20px;padding:28px;text-align:center}
-.result-emoji{font-size:56px;margin-bottom:8px;display:block}
-.result-score{font-family:'Space Mono',monospace;font-size:48px;font-weight:700;color:var(--accent)}
-.result-label{font-size:14px;color:var(--text2);margin-bottom:16px}
+.result-card{background:#fff;border:3px solid #10B981;border-radius:24px;padding:32px;text-align:center}
+.result-emoji{font-size:64px;margin-bottom:8px;display:block}
+.result-score{font-family:'Fredoka',sans-serif;font-size:56px;font-weight:700;color:#F59E0B}
+.result-label{font-size:15px;color:#B45309;font-weight:600;margin-bottom:16px}
 .result-words{text-align:left;margin-top:16px}
-.rw{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:14px}
-.rw:last-child{border-bottom:none}
-.rw-correct{color:var(--accent)}
-.rw-wrong{color:var(--accent3)}
-.rw-answer{font-family:'Space Mono',monospace;font-size:14px;color:var(--text2)}
+.rw{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:10px;margin-bottom:4px;font-size:14px;font-weight:600}
+.rw.rw-ok{background:#D1FAE5;color:#065F46}
+.rw.rw-bad{background:#FEE2E2;color:#991B1B}
+.rw-answer{font-size:13px;color:#B45309}
+.personal-best{background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-radius:14px;padding:12px 16px;margin-top:12px;font-family:'Fredoka',sans-serif;font-size:15px;color:#92400E;font-weight:600;text-align:center;border:2px solid rgba(245,158,11,.2)}
 
+/* AI button */
+.ai-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(59,130,246,.05));border:2px solid rgba(59,130,246,.25);border-radius:12px;cursor:pointer;font-family:'Quicksand',sans-serif;font-size:13px;font-weight:700;color:#3B82F6;transition:all .2s}
+.ai-btn:hover{border-color:#3B82F6;background:rgba(59,130,246,.12)}
+.ai-btn:disabled{opacity:.5;cursor:not-allowed}
+.ai-bubble{margin-top:8px;padding:12px;background:linear-gradient(135deg,rgba(59,130,246,.06),rgba(59,130,246,.02));border:1px solid rgba(59,130,246,.15);border-radius:12px;font-size:14px;line-height:1.7;color:#78350F;white-space:pre-wrap;animation:fadeUp .3s ease}
+
+/* Teacher dashboard */
+.dash-wrap{max-width:900px;margin:0 auto;padding:20px 16px}
+.dash-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+.dash-hdr h1{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;color:#92400E}
+.dash-hdr .dh-sub{font-size:14px;color:#B45309;font-weight:600}
+.dash-tab-bar{display:flex;gap:6px;margin-bottom:20px;overflow-x:auto;padding-bottom:4px}
+.dash-tab{padding:10px 18px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;border:2px solid #FDE68A;background:#fff;color:#92400E;white-space:nowrap;transition:all .15s;font-family:'Fredoka',sans-serif}
+.dash-tab.active{background:#F59E0B;color:#fff;border-color:#F59E0B}
+.dash-section{display:none}
+.dash-section.show{display:block}
+
+.tl-card{background:#fff;border:2px solid #FDE68A;border-radius:18px;padding:18px;margin-bottom:12px;transition:all .15s}
+.tl-card:hover{border-color:#F59E0B;box-shadow:0 4px 16px rgba(245,158,11,.1)}
+.tl-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.tl-name{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:#92400E}
+.tl-grade{font-size:13px;color:#B45309;font-weight:600}
+.tl-words{font-size:13px;color:#78350F;margin-top:4px;line-height:1.5}
+.tl-btns{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+
+.sr-card{background:#fff;border:2px solid #FDE68A;border-radius:14px;padding:14px;margin-bottom:8px}
+.sr-top{display:flex;justify-content:space-between;align-items:center}
+.sr-name{font-family:'Fredoka',sans-serif;font-size:15px;font-weight:700;color:#92400E}
+.sr-score{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:#F59E0B}
+.sr-meta{font-size:12px;color:#B45309;margin-top:4px}
+
+/* Toast */
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(80px);background:#fff;border:3px solid #10B981;color:#065F46;padding:14px 28px;border-radius:16px;font-family:'Fredoka',sans-serif;font-weight:600;font-size:15px;z-index:9999;opacity:0;transition:all .3s;pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,.1);max-width:90vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.error{border-color:#EF4444;color:#991B1B}
+
+/* Sync indicator */
+.sync-indicator{position:fixed;top:12px;right:12px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:8px;z-index:100;transition:all .3s}
+.sync-saved{background:#D1FAE5;color:#065F46}
+.sync-saving{background:#FEF3C7;color:#92400E}
+
+/* Confetti */
 .confetti-piece{position:fixed;top:-20px;z-index:9999;pointer-events:none;animation:confettiFall 3s ease-in forwards}
 @keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.hidden{display:none!important}
+
+@media(max-width:500px){
+.mode-grid{grid-template-columns:1fr;gap:8px}
+.mode-card{padding:14px}
+.mode-card .mc-emoji{font-size:28px}
+.grade-grid{grid-template-columns:repeat(3,1fr)}
+.quiz-word{font-size:28px}
+.quiz-input{font-size:18px;padding:14px}
+.bee-emoji{font-size:48px}
+.bee-input{font-size:18px;padding:14px}
+.result-score{font-size:40px}
+}
+@media(min-width:768px){
+.wrap{padding:28px 32px}
+.dash-wrap{padding:28px 32px}
+.card{padding:32px 28px}
+.mode-grid{gap:16px}
+}
+@media(min-width:1024px){
+.wrap{max-width:1100px}
+.dash-wrap{max-width:1100px}
+.card{padding:36px 32px}
+.mode-grid{gap:20px}
+}
 </style>
 </head>
 <body>
-<div class="grid-bg"></div>
-<div class="app">
-<a class="back" href="index.html">&#x2190; Back to ODA Hub</a>
-<div class="header">
+<div class="wrap">
+<a class="back-link" id="backLink" href="student.html">&#x2190; Back to ODA Hub</a>
+<div class="hdr">
 <span class="emoji">&#x1F41D;</span>
 <h1>ODA Spelling Bee</h1>
-<p>Pick your grade, study the words, then test yourself!</p>
+<p id="hdrSub">Study, practice, and compete in your own spelling bee!</p>
+</div>
+<div id="mainContent"></div>
 </div>
 
-<div class="mode-tabs">
-<div class="mode-tab active" onclick="switchMode('practice')">&#x1F3AF; Practice</div>
-<div class="mode-tab" onclick="switchMode('study')">&#x1F4D6; Study</div>
-<div class="mode-tab" onclick="switchMode('edit')">&#x270F;&#xFE0F; Edit Words</div>
+<div id="teacherDash" style="display:none">
+<div class="dash-wrap">
+<a class="back-link" href="teacher.html">&#x2190; Back to Teacher Hub</a>
+<div class="dash-hdr">
+<div>
+<h1>&#x1F41D; Spelling Bee Dashboard</h1>
+<div class="dh-sub">Manage word lists and view student results</div>
+</div>
+<div>
+<button class="btn btn-small btn-orange" onclick="loadTeacherData()">&#x1F504; Refresh</button>
+</div>
+</div>
+<div class="dash-tab-bar" id="dashTabs">
+<div class="dash-tab active" onclick="switchDashTab('lists')">&#x1F4DD; Word Lists</div>
+<div class="dash-tab" onclick="switchDashTab('results')">&#x1F4CA; Student Results</div>
+</div>
+<div id="dashContent"></div>
+</div>
 </div>
 
-<div style="font-size:14px;font-weight:700;margin-bottom:8px">Pick a Grade:</div>
-<div class="grade-grid" id="gradeGrid"></div>
-
-<!-- PRACTICE -->
-<div class="section show" id="sec-practice">
-<div id="practiceArea"></div>
-</div>
-
-<!-- STUDY -->
-<div class="section" id="sec-study">
-<div id="studyArea"></div>
-</div>
-
-<!-- EDIT -->
-<div class="section" id="sec-edit">
-<div class="card">
-<div style="font-size:16px;font-weight:800;margin-bottom:4px">&#x270F;&#xFE0F; Edit Word List</div>
-<div style="font-size:14px;color:var(--text2);margin-bottom:12px">One word per line. Changes save automatically.</div>
-<textarea class="edit-area" id="editArea" oninput="saveCustomWords()"></textarea>
-<div class="edit-help">Editing words for: <strong id="editGradeLabel">—</strong><br>Put one word per line. Hit enter after each word.</div>
-<div style="display:flex;gap:8px;margin-top:12px">
-<button class="btn btn-outline btn-sm" onclick="resetWords()">Reset to Default</button>
-<button class="btn btn-accent btn-sm" onclick="saveCustomWords()">&#x2714;&#xFE0F; Save</button>
-</div>
-</div>
-</div>
-</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="sync-indicator hidden" id="syncIndicator"></div>
 
 <script>
-var DEFAULT_WORDS = {
-'K': ['cat','dog','run','big','the','and','see','red','mom','dad','sun','cup','hat','bed','fun','top','sit','hop','map','pen'],
-'1st': ['play','jump','like','come','went','that','this','have','good','help','look','make','said','want','from','give','been','done','some','just'],
-'2nd': ['about','again','every','found','house','learn','night','plant','still','water','story','world','write','under','after','never','today','happy','table','green'],
-'3rd': ['because','friend','school','before','listen','answer','people','change','around','should','family','really','animal','enough','hungry','follow','minute','ocean','travel','wonder'],
-'4th': ['believe','different','together','favorite','important','beautiful','remember','calendar','continue','discover','exercise','possible','probably','sentence','surprise','thousand','vacation','question','practice','complete'],
-'5th': ['necessary','accomplish','adventure','brilliant','challenge','dangerous','education','excellent','fortunate','generally','knowledge','literature','paragraph','recognize','signature','temporary','volunteer','wonderful','yesterday','attention'],
-'6th': ['accommodate','appreciate','categories','communicate','demonstrate','environment','experience','immediately','independent','intelligent','magnificent','observation','participate','performance','recommend','responsible','significant','temperature','understand','vegetable'],
-'7th': ['acknowledge','circumstances','consequently','determination','embarrassment','extraordinary','fundamental','inappropriate','investigation','miscellaneous','nevertheless','opportunities','pharmaceutical','pronunciation','questionnaire','rehabilitation','sophisticated','technological','unfortunately','vulnerability'],
-'8th': ['abbreviation','bibliography','characteristic','conscientious','deterioration','entrepreneur','exaggeration','hypothetical','inconvenience','knowledgeable','Mediterranean','neighbourhood','onomatopoeia','perseverance','reconnaissance','simultaneously','surveillance','unprecedented','meteorological','archaeological']
+// ===== FIREBASE CONFIG =====
+var ODA_FB_CFG={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
+
+var _fbApp=null,_fbDb=null;
+async function getFirebaseDB(){
+if(_fbDb){var fsMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js');return{db:_fbDb,fsMod:fsMod,app:_fbApp}}
+var appMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js');
+var fsMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js');
+try{_fbApp=appMod.getApp()}catch(e){_fbApp=appMod.initializeApp(ODA_FB_CFG)}
+_fbDb=fsMod.getFirestore(_fbApp);
+return{db:_fbDb,fsMod:fsMod,app:_fbApp};
+}
+
+// ===== DEFAULT WORD BANKS =====
+var DEFAULT_WORDS={
+'K':['cat','dog','run','big','the','and','see','red','mom','dad','sun','cup','hat','bed','fun','top','sit','hop','map','pen'],
+'1st':['play','jump','like','come','went','that','this','have','good','help','look','make','said','want','from','give','been','done','some','just'],
+'2nd':['about','again','every','found','house','learn','night','plant','still','water','story','world','write','under','after','never','today','happy','table','green'],
+'3rd':['because','friend','school','before','listen','answer','people','change','around','should','family','really','animal','enough','hungry','follow','minute','ocean','travel','wonder'],
+'4th':['believe','different','together','favorite','important','beautiful','remember','calendar','continue','discover','exercise','possible','probably','sentence','surprise','thousand','vacation','question','practice','complete'],
+'5th':['necessary','accomplish','adventure','brilliant','challenge','dangerous','education','excellent','fortunate','generally','knowledge','literature','paragraph','recognize','signature','temporary','volunteer','wonderful','yesterday','attention'],
+'6th':['accommodate','appreciate','categories','communicate','demonstrate','environment','experience','immediately','independent','intelligent','magnificent','observation','participate','performance','recommend','responsible','significant','temperature','understand','vegetable'],
+'7th':['acknowledge','circumstances','consequently','determination','embarrassment','extraordinary','fundamental','inappropriate','investigation','miscellaneous','nevertheless','opportunities','pharmaceutical','pronunciation','questionnaire','rehabilitation','sophisticated','technological','unfortunately','vulnerability'],
+'8th':['abbreviation','bibliography','characteristic','conscientious','deterioration','entrepreneur','exaggeration','hypothetical','inconvenience','knowledgeable','Mediterranean','neighbourhood','onomatopoeia','perseverance','reconnaissance','simultaneously','surveillance','unprecedented','meteorological','archaeological']
 };
 
-var GRADES = ['K','1st','2nd','3rd','4th','5th','6th','7th','8th'];
-var currentGrade = '3rd';
-var currentMode = 'practice';
-var quizState = null;
+var GRADES=['K','1st','2nd','3rd','4th','5th','6th','7th','8th'];
 
-function init() {
-    renderGrades();
-    renderPractice();
-    renderStudy();
-    renderEdit();
+// ===== GLOBALS =====
+var studentId=null,studentName=null,classCode=null;
+var _teacherUid=null;
+var _currentMode=null; // 'study','practice','bee'
+var _selectedList=null; // {name, words, id, source}
+var _quizState=null;
+var _beeState=null;
+var _teacherLists=[];
+var _dashTabCurrent='lists';
+var _personalBests={};
+
+// ===== INIT =====
+async function init(){
+studentId=sessionStorage.getItem('studentId');
+studentName=sessionStorage.getItem('studentName');
+classCode=sessionStorage.getItem('classCode');
+
+var isTeacher=localStorage.getItem('odaUserRole')==='teacher'||sessionStorage.getItem('userRole')==='teacher';
+var backEl=document.getElementById('backLink');
+
+if(studentId){
+backEl.href='student.html';
+loadPersonalBests();
+showStudentDashboard();
+return;
 }
 
-function getWords(grade) {
-    var custom = null;
-    try { custom = JSON.parse(localStorage.getItem('oda-spelling-' + grade)); } catch(e) {}
-    return custom || DEFAULT_WORDS[grade] || [];
+if(isTeacher&&!studentId){
+backEl.href='teacher.html';
+backEl.textContent='\u2190 Back to Teacher Hub';
+try{
+var authMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js');
+var fb=await getFirebaseDB();
+var auth=authMod.getAuth(fb.app);
+var user=auth.currentUser;
+if(!user){
+user=await new Promise(function(resolve){
+var unsub=authMod.onAuthStateChanged(auth,function(u){unsub();resolve(u)});
+});
+}
+if(user){
+_teacherUid=user.uid;
+var tDoc=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'teachers',user.uid));
+if(tDoc.exists()&&tDoc.data().classCode){
+classCode=tDoc.data().classCode;
+}
+initTeacherDash();
+return;
+}
+}catch(e){console.error('Auth error:',e)}
 }
 
-function switchMode(mode) {
-    currentMode = mode;
-    var tabs = document.querySelectorAll('.mode-tab');
-    var secs = document.querySelectorAll('.section');
-    for (var i = 0; i < tabs.length; i++) { tabs[i].classList.remove('active'); secs[i].classList.remove('show'); }
-    var map = {practice:0, study:1, edit:2};
-    tabs[map[mode]].classList.add('active');
-    secs[map[mode]].classList.add('show');
-    if (mode === 'study') renderStudy();
-    if (mode === 'edit') renderEdit();
-    if (mode === 'practice') renderPractice();
+// Fallback: show student dashboard without login
+showStudentDashboard();
 }
 
-function renderGrades() {
-    var h = '';
-    GRADES.forEach(function(g) {
-        h += '<div class="grade-btn' + (g === currentGrade ? ' active' : '') + '" onclick="pickGrade(\'' + g + '\')">';
-        h += '<div>' + g + (g === 'K' ? '' : ' Grade') + '</div>';
-        h += '<div class="grade-label">' + getWords(g).length + ' words</div></div>';
-    });
-    document.getElementById('gradeGrid').innerHTML = h;
+// ===== UTILITIES =====
+function esc(s){if(!s)return '';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function showToast(msg,type){
+var t=document.getElementById('toast');
+t.textContent=msg;
+t.className='toast'+(type?' '+type:'');
+t.classList.add('show');
+setTimeout(function(){t.classList.remove('show')},2500);
+}
+function shuffle(arr){
+var a=arr.slice();
+for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}
+return a;
 }
 
-function pickGrade(g) {
-    currentGrade = g;
-    quizState = null;
-    renderGrades();
-    if (currentMode === 'practice') renderPractice();
-    if (currentMode === 'study') renderStudy();
-    if (currentMode === 'edit') renderEdit();
+// ===== STUDENT DASHBOARD =====
+async function showStudentDashboard(){
+var h='';
+
+// Mode cards
+h+='<div class="mode-grid">';
+h+='<div class="mode-card" onclick="selectMode(\'study\')" id="modeStudy">';
+h+='<span class="mc-emoji">&#x1F4DA;</span>';
+h+='<div class="mc-title">Study Words</div>';
+h+='<div class="mc-desc">Flashcard review</div>';
+h+='</div>';
+h+='<div class="mode-card" onclick="selectMode(\'practice\')" id="modePractice">';
+h+='<span class="mc-emoji">&#x270F;&#xFE0F;</span>';
+h+='<div class="mc-title">Practice Quiz</div>';
+h+='<div class="mc-desc">Type what you see</div>';
+h+='</div>';
+h+='<div class="mode-card" onclick="selectMode(\'bee\')" id="modeBee">';
+h+='<span class="mc-emoji">&#x1F41D;</span>';
+h+='<div class="mc-title">Spelling Bee</div>';
+h+='<div class="mc-desc">Real bee simulation</div>';
+h+='</div>';
+h+='</div>';
+
+// Word lists section
+h+='<div id="listArea"></div>';
+
+// Active mode area
+h+='<div id="modeArea"></div>';
+
+document.getElementById('mainContent').innerHTML=h;
+
+await loadWordLists();
 }
 
-// ===== PRACTICE =====
-function renderPractice() {
-    var words = getWords(currentGrade);
-    if (!words.length) {
-        document.getElementById('practiceArea').innerHTML = '<div class="card" style="text-align:center"><p>No words for this grade. Go to Edit to add some!</p></div>';
-        return;
-    }
-    if (quizState && quizState.grade === currentGrade && quizState.finished) {
-        showResults();
-        return;
-    }
-    if (!quizState || quizState.grade !== currentGrade) {
-        var shuffled = words.slice();
-        for (var i = shuffled.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = t; }
-        quizState = { grade: currentGrade, words: shuffled.slice(0, 20), current: 0, correct: 0, results: [], showingWord: true, finished: false };
-    }
-    showQuizQuestion();
+async function loadWordLists(){
+var h='';
+var teacherLists=[];
+
+// Try to load teacher lists from Firestore
+if(classCode){
+try{
+var fb=await getFirebaseDB();
+var q=fb.fsMod.query(
+fb.fsMod.collection(fb.db,'spellingLists'),
+fb.fsMod.where('classCode','==',classCode)
+);
+var snap=await fb.fsMod.getDocs(q);
+snap.forEach(function(doc){
+var d=doc.data();
+teacherLists.push({id:doc.id,name:d.name,grade:d.grade||'',words:d.words||[],source:'teacher'});
+});
+}catch(e){console.log('Could not load teacher lists:',e)}
 }
 
-function showQuizQuestion() {
-    var q = quizState;
-    if (q.current >= q.words.length) { q.finished = true; showResults(); return; }
-    var word = q.words[q.current];
-    var dots = '';
-    for (var i = 0; i < q.words.length; i++) {
-        var cls = 'p-dot';
-        if (i < q.results.length) cls += q.results[i] ? ' correct' : ' wrong';
-        else if (i === q.current) cls += ' current';
-        dots += '<div class="' + cls + '"></div>';
-    }
-    var h = '<div class="practice-card">';
-    h += '<div class="practice-progress"><span>Word ' + (q.current + 1) + ' of ' + q.words.length + '</span><span>' + q.correct + ' correct</span></div>';
-    h += '<div class="practice-dots">' + dots + '</div>';
-    h += '<div class="practice-word' + (q.showingWord ? '' : ' hidden') + '" id="quizWord">' + esc(word) + '</div>';
-    h += '<div class="practice-hint" id="quizHint">' + (q.showingWord ? 'Look at the word carefully...' : 'Now spell it!') + '</div>';
-    if (q.showingWord) {
-        h += '<button class="btn btn-gold btn-wide" onclick="hideWord()">I\'m Ready! &#x1F4AA;</button>';
-        if ('speechSynthesis' in window) {
-            h += '<button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="speakWord(\'' + esc(word).replace(/'/g, "\\'") + '\')">&#x1F50A; Hear It</button>';
-        }
-    } else {
-        h += '<input type="text" class="practice-input" id="quizInput" placeholder="Type the word..." autocomplete="off" spellcheck="false">';
-        h += '<div class="practice-feedback" id="quizFb"></div>';
-        h += '<button class="btn btn-blue btn-wide" onclick="checkAnswer()">Check &#x2714;&#xFE0F;</button>';
-    }
-    h += '</div>';
-    document.getElementById('practiceArea').innerHTML = h;
-    if (!q.showingWord) {
-        var inp = document.getElementById('quizInput');
-        if (inp) inp.focus();
-    }
+// Teacher lists
+if(teacherLists.length>0){
+h+='<div class="list-section">';
+h+='<div class="list-section-title">&#x1F4CB; My Word Lists</div>';
+h+='<div class="list-grid">';
+for(var i=0;i<teacherLists.length;i++){
+var tl=teacherLists[i];
+h+='<div class="list-item" onclick="pickList(\'teacher\','+i+')" data-teacher-idx="'+i+'">';
+h+='<span class="li-name">'+esc(tl.name)+'</span>';
+h+='<span class="li-count">'+tl.words.length+' words</span>';
+h+='</div>';
+}
+h+='</div></div>';
 }
 
-function hideWord() {
-    quizState.showingWord = false;
-    showQuizQuestion();
+// Default grade banks
+h+='<div class="list-section">';
+h+='<div class="list-section-title">&#x1F4D6; Default Practice by Grade</div>';
+h+='<div class="grade-grid">';
+for(var i=0;i<GRADES.length;i++){
+var g=GRADES[i];
+var words=getLocalWords(g);
+h+='<div class="grade-btn" onclick="pickList(\'grade\',\''+g+'\')">';
+h+='<div>'+g+(g==='K'?'':' Grade')+'</div>';
+h+='<div class="gb-count">'+words.length+' words</div>';
+h+='</div>';
+}
+h+='</div></div>';
+
+// Store teacher lists for access
+window._loadedTeacherLists=teacherLists;
+
+document.getElementById('listArea').innerHTML=h;
 }
 
-function checkAnswer() {
-    var inp = document.getElementById('quizInput');
-    if (!inp) return;
-    var answer = inp.value.trim().toLowerCase();
-    var word = quizState.words[quizState.current].toLowerCase();
-    var correct = answer === word;
-    if (correct) quizState.correct++;
-    quizState.results.push(correct);
-    var fb = document.getElementById('quizFb');
-    if (correct) {
-        fb.innerHTML = '<span style="color:var(--accent)">&#x2705; Correct!</span>';
-    } else {
-        fb.innerHTML = '<span style="color:var(--accent3)">&#x274C; It was: <strong>' + esc(quizState.words[quizState.current]) + '</strong></span>';
-    }
-    quizState.current++;
-    quizState.showingWord = true;
-    setTimeout(function() {
-        if (quizState.current >= quizState.words.length) {
-            quizState.finished = true;
-            showResults();
-        } else {
-            showQuizQuestion();
-        }
-    }, 1400);
+function getLocalWords(grade){
+var custom=null;
+try{custom=JSON.parse(localStorage.getItem('oda-spelling-'+grade))}catch(e){}
+return custom||DEFAULT_WORDS[grade]||[];
 }
 
-function showResults() {
-    var q = quizState;
-    var pct = Math.round(q.correct / q.words.length * 100);
-    var emoji = pct >= 90 ? '\u{1F3C6}' : pct >= 70 ? '\u{1F389}' : pct >= 50 ? '\u{1F44D}' : '\u{1F4AA}';
-    var h = '<div class="result-card">';
-    h += '<span class="result-emoji">' + emoji + '</span>';
-    h += '<div class="result-score">' + pct + '%</div>';
-    h += '<div class="result-label">' + q.correct + ' out of ' + q.words.length + ' correct \u2022 ' + q.grade + (q.grade === 'K' ? '' : ' Grade') + '</div>';
-    h += '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:16px">';
-    h += '<button class="btn btn-accent" onclick="retryQuiz()">&#x1F504; Try Again</button>';
-    h += '<button class="btn btn-gold" onclick="switchMode(\'study\')">&#x1F4D6; Study Words</button>';
-    h += '</div>';
-    h += '<div class="result-words">';
-    for (var i = 0; i < q.words.length; i++) {
-        var ok = q.results[i];
-        h += '<div class="rw"><span class="' + (ok ? 'rw-correct' : 'rw-wrong') + '">' + (ok ? '\u2705' : '\u274C') + ' ' + esc(q.words[i]) + '</span></div>';
-    }
-    h += '</div></div>';
-    document.getElementById('practiceArea').innerHTML = h;
-    if (pct >= 70) fireConfetti();
-    saveResultToFirebase(pct);
+function pickList(type,idx){
+if(type==='teacher'){
+var tl=window._loadedTeacherLists[idx];
+_selectedList={name:tl.name,words:tl.words,id:tl.id,source:'teacher'};
+}else{
+_selectedList={name:idx+(idx==='K'?'':' Grade')+' Words',words:getLocalWords(idx),id:idx,source:'grade'};
 }
 
-function retryQuiz() {
-    quizState = null;
-    renderPractice();
+// Highlight selected
+var items=document.querySelectorAll('.list-item,.grade-btn');
+for(var i=0;i<items.length;i++){items[i].classList.remove('active')}
+if(type==='teacher'){
+var el=document.querySelector('[data-teacher-idx="'+idx+'"]');
+if(el)el.classList.add('active');
 }
 
-// ===== STUDY =====
-function renderStudy() {
-    var words = getWords(currentGrade);
-    if (!words.length) {
-        document.getElementById('studyArea').innerHTML = '<div class="card" style="text-align:center"><p>No words. Go to Edit to add some!</p></div>';
-        return;
-    }
-    var h = '<div class="card"><div style="font-size:16px;font-weight:800;margin-bottom:12px">' + currentGrade + (currentGrade === 'K' ? '' : ' Grade') + ' Words (' + words.length + ')</div>';
-    if ('speechSynthesis' in window) {
-        h += '<button class="btn btn-blue btn-sm" style="margin-bottom:12px" onclick="speakAll()">&#x1F50A; Read All Words</button> ';
-    }
-    h += '<button class="btn btn-accent btn-sm" style="margin-bottom:12px" onclick="switchMode(\'practice\')">&#x1F3AF; Start Practice</button>';
-    for (var i = 0; i < words.length; i++) {
-        h += '<div class="study-card"><div><span class="study-num">' + (i + 1) + '.</span> <span class="study-word">' + esc(words[i]) + '</span></div>';
-        if ('speechSynthesis' in window) {
-            h += '<button class="speak-btn" onclick="speakWord(\'' + esc(words[i]).replace(/'/g, "\\'") + '\')">&#x1F50A;</button>';
-        }
-        h += '</div>';
-    }
-    h += '</div>';
-    document.getElementById('studyArea').innerHTML = h;
+// If mode is selected, start it
+if(_currentMode){
+startMode(_currentMode);
+}else{
+showToast('Now pick a mode above!');
+}
 }
 
-function speakWord(word) {
-    if (!('speechSynthesis' in window)) return;
-    speechSynthesis.cancel();
-    var u = new SpeechSynthesisUtterance(word);
-    u.rate = 0.8;
-    speechSynthesis.speak(u);
+function selectMode(mode){
+_currentMode=mode;
+// Highlight mode card
+var cards=document.querySelectorAll('.mode-card');
+for(var i=0;i<cards.length;i++){cards[i].classList.remove('active')}
+var el=document.getElementById('mode'+mode.charAt(0).toUpperCase()+mode.slice(1));
+if(el)el.classList.add('active');
+
+if(_selectedList){
+startMode(mode);
+}else{
+document.getElementById('modeArea').innerHTML='<div class="card" style="text-align:center"><p style="color:#B45309;font-weight:600">&#x1F447; Pick a word list below to get started!</p></div>';
+}
 }
 
-function speakAll() {
-    var words = getWords(currentGrade);
-    if (!words.length) return;
-    speechSynthesis.cancel();
-    var i = 0;
-    function next() {
-        if (i >= words.length) return;
-        var u = new SpeechSynthesisUtterance(words[i]);
-        u.rate = 0.7;
-        u.onend = function() { i++; setTimeout(next, 600); };
-        speechSynthesis.speak(u);
-    }
-    next();
+function startMode(mode){
+if(!_selectedList||!_selectedList.words||!_selectedList.words.length){
+document.getElementById('modeArea').innerHTML='<div class="card" style="text-align:center"><p style="color:#B45309;font-weight:600">No words in this list. Pick a different one!</p></div>';
+return;
+}
+_quizState=null;
+_beeState=null;
+if(mode==='study')showStudyMode(_selectedList.words,_selectedList.name);
+else if(mode==='practice')showPracticeMode(_selectedList.words,_selectedList.name);
+else if(mode==='bee')showBeeMode(_selectedList.words,_selectedList.name);
 }
 
-// ===== EDIT =====
-function renderEdit() {
-    var words = getWords(currentGrade);
-    document.getElementById('editArea').value = words.join('\n');
-    document.getElementById('editGradeLabel').textContent = currentGrade + (currentGrade === 'K' ? '' : ' Grade');
+// ===== STUDY MODE =====
+function showStudyMode(words,listName){
+var h='<div class="card">';
+h+='<div class="card-title">&#x1F4DA; Study: '+esc(listName)+'</div>';
+h+='<div class="btn-row" style="margin-bottom:16px">';
+if('speechSynthesis' in window){
+h+='<button class="btn btn-small btn-blue" onclick="speakAll()">&#x1F50A; Read All Words</button>';
+}
+h+='<button class="btn btn-small btn-orange" onclick="selectMode(\'practice\')">&#x270F;&#xFE0F; Start Quiz</button>';
+h+='<button class="btn btn-small btn-purple" onclick="selectMode(\'bee\')">&#x1F41D; Spelling Bee</button>';
+h+='</div>';
+h+='<div class="study-list">';
+for(var i=0;i<words.length;i++){
+h+='<div class="study-card">';
+h+='<div><span class="study-num">'+(i+1)+'.</span> <span class="study-word">'+esc(words[i])+'</span></div>';
+h+='<div class="study-btns">';
+if('speechSynthesis' in window){
+h+='<button class="speak-btn" onclick="speakWord(\''+esc(words[i]).replace(/'/g,"\\'")+'\')">&#x1F50A;</button>';
+}
+h+='<button class="ai-btn" onclick="getAIDefinition(\''+esc(words[i]).replace(/'/g,"\\'")+'\',this)">&#x1F916; Define</button>';
+h+='</div>';
+h+='</div>';
+}
+h+='</div></div>';
+document.getElementById('modeArea').innerHTML=h;
 }
 
-function saveCustomWords() {
-    var text = document.getElementById('editArea').value;
-    var words = text.split('\n').map(function(w) { return w.trim(); }).filter(function(w) { return w.length > 0; });
-    try { localStorage.setItem('oda-spelling-' + currentGrade, JSON.stringify(words)); } catch(e) {}
-    renderGrades();
-    // Save to Firebase if teacher is logged in
-    saveWordsToFirebase(currentGrade, words);
+// ===== PRACTICE QUIZ MODE =====
+function showPracticeMode(words,listName){
+var shuffled=shuffle(words).slice(0,20);
+_quizState={words:shuffled,current:0,correct:0,results:[],answers:[],showingWord:true,finished:false,listName:listName};
+showQuizQuestion();
 }
 
-function resetWords() {
-    if (!confirm('Reset ' + currentGrade + ' words to default?')) return;
-    try { localStorage.removeItem('oda-spelling-' + currentGrade); } catch(e) {}
-    renderGrades();
-    renderEdit();
+function showQuizQuestion(){
+var q=_quizState;
+if(q.current>=q.words.length){q.finished=true;showQuizResults();return}
+var word=q.words[q.current];
+
+var dots='';
+for(var i=0;i<q.words.length;i++){
+var cls='q-dot';
+if(i<q.results.length)cls+=q.results[i]?' correct':' wrong';
+else if(i===q.current)cls+=' current';
+dots+='<div class="'+cls+'"></div>';
 }
 
-// ===== FIREBASE =====
-function saveResultToFirebase(pct) {
-    var studentId = sessionStorage.getItem('studentId');
-    if (!studentId) return;
-    try {
-        import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js').then(function(appMod) {
-            import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js').then(function(fsMod) {
-                var cfg = {apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
-                var app; try { app = appMod.getApp(); } catch(e) { app = appMod.initializeApp(cfg); }
-                var db = fsMod.getFirestore(app);
-                fsMod.addDoc(fsMod.collection(db, 'spellingResults'), {
-                    studentId: studentId,
-                    studentName: sessionStorage.getItem('studentName') || '',
-                    grade: currentGrade,
-                    score: pct,
-                    correct: quizState.correct,
-                    total: quizState.words.length,
-                    words: quizState.words,
-                    results: quizState.results,
-                    savedAt: new Date().toISOString()
-                });
-                console.log('Spelling result saved to Firebase');
-            });
-        });
-    } catch(e) { console.log('Firebase save skipped:', e); }
+var h='<div class="quiz-card">';
+h+='<div class="quiz-progress"><span>Word '+(q.current+1)+' of '+q.words.length+'</span><span>'+q.correct+' correct</span></div>';
+h+='<div class="quiz-dots">'+dots+'</div>';
+h+='<div class="quiz-word'+(q.showingWord?'':' hidden-word')+'" id="quizWord">'+esc(word)+'</div>';
+h+='<div class="quiz-hint" id="quizHint">'+(q.showingWord?'Look at the word carefully...':'Now spell it from memory!')+'</div>';
+
+if(q.showingWord){
+h+='<div class="btn-row">';
+h+='<button class="btn btn-normal btn-orange" onclick="hideQuizWord()">I\'m Ready! &#x1F4AA;</button>';
+h+='</div>';
+if('speechSynthesis' in window){
+h+='<div class="btn-row" style="margin-top:8px"><button class="btn btn-xs btn-outline" onclick="speakWord(\''+esc(word).replace(/'/g,"\\'")+'\')">&#x1F50A; Hear It</button></div>';
+}
+}else{
+h+='<input type="text" class="quiz-input" id="quizInput" placeholder="Type the word..." autocomplete="off" autocapitalize="off" spellcheck="false">';
+h+='<div class="quiz-feedback" id="quizFb"></div>';
+h+='<div class="btn-row"><button class="btn btn-normal btn-green" onclick="checkQuizAnswer()">Check &#x2714;&#xFE0F;</button></div>';
+}
+h+='</div>';
+
+document.getElementById('modeArea').innerHTML=h;
+if(!q.showingWord){
+var inp=document.getElementById('quizInput');
+if(inp)inp.focus();
+}
 }
 
-function saveWordsToFirebase(grade, words) {
-    try {
-        import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js').then(function(appMod) {
-            import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js').then(function(fsMod) {
-                var cfg = {apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
-                var app; try { app = appMod.getApp(); } catch(e) { app = appMod.initializeApp(cfg); }
-                var db = fsMod.getFirestore(app);
-                fsMod.setDoc(fsMod.doc(db, 'spellingWords', grade), {
-                    grade: grade,
-                    words: words,
-                    updatedAt: new Date().toISOString()
-                });
-            });
-        });
-    } catch(e) {}
+function hideQuizWord(){
+_quizState.showingWord=false;
+showQuizQuestion();
 }
 
-// ===== UTILS =====
-function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function checkQuizAnswer(){
+var inp=document.getElementById('quizInput');
+if(!inp)return;
+var answer=inp.value.trim().toLowerCase();
+if(!answer)return;
+var word=_quizState.words[_quizState.current].toLowerCase();
+var correct=answer===word;
+if(correct)_quizState.correct++;
+_quizState.results.push(correct);
+_quizState.answers.push(inp.value.trim());
 
-function fireConfetti() {
-    var co = ["#06d6a0","#118ab2","#ffd166","#ef476f","#a855f7"];
-    for (var i = 0; i < 50; i++) {
-        var p = document.createElement('div'); p.className = 'confetti-piece';
-        var sz = 6 + Math.random() * 10;
-        p.style.width = sz + 'px'; p.style.height = sz * (Math.random() > .5 ? 1 : .6) + 'px';
-        p.style.left = Math.random() * 100 + '%';
-        p.style.backgroundColor = co[i % co.length];
-        p.style.borderRadius = Math.random() > .5 ? '50%' : '2px';
-        p.style.animationDuration = (2 + Math.random() * 3) + 's';
-        p.style.animationDelay = (Math.random() * 2) + 's';
-        document.body.appendChild(p);
-        (function(el) { setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 5000); })(p);
-    }
+var fb=document.getElementById('quizFb');
+if(correct){
+fb.innerHTML='<span style="color:#10B981">&#x2705; Correct!</span>';
+}else{
+fb.innerHTML='<span style="color:#EF4444">&#x274C; It was: <strong>'+esc(_quizState.words[_quizState.current])+'</strong></span>';
 }
 
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && document.activeElement && document.activeElement.id === 'quizInput') checkAnswer();
+_quizState.current++;
+_quizState.showingWord=true;
+setTimeout(function(){
+if(_quizState.current>=_quizState.words.length){
+_quizState.finished=true;
+showQuizResults();
+}else{
+showQuizQuestion();
+}
+},1400);
+}
+
+function showQuizResults(){
+var q=_quizState;
+var pct=Math.round(q.correct/q.words.length*100);
+var emoji=pct>=90?'\u{1F3C6}':pct>=70?'\u{1F389}':pct>=50?'\u{1F44D}':'\u{1F4AA}';
+
+var h='<div class="result-card">';
+h+='<span class="result-emoji">'+emoji+'</span>';
+h+='<div class="result-score">'+pct+'%</div>';
+h+='<div class="result-label">'+q.correct+' out of '+q.words.length+' correct</div>';
+h+='<div class="btn-row">';
+h+='<button class="btn btn-normal btn-orange" onclick="retryPractice()">&#x1F504; Try Again</button>';
+h+='<button class="btn btn-normal btn-blue" onclick="selectMode(\'study\')">&#x1F4DA; Study Words</button>';
+h+='<button class="btn btn-normal btn-purple" onclick="selectMode(\'bee\')">&#x1F41D; Spelling Bee</button>';
+h+='</div>';
+h+='<div class="result-words">';
+for(var i=0;i<q.words.length;i++){
+var ok=q.results[i];
+h+='<div class="rw '+(ok?'rw-ok':'rw-bad')+'">';
+h+='<span>'+(ok?'\u2705':'\u274C')+' '+esc(q.words[i])+'</span>';
+if(!ok)h+='<span class="rw-answer">You typed: '+esc(q.answers[i])+'</span>';
+h+='</div>';
+}
+h+='</div></div>';
+
+document.getElementById('modeArea').innerHTML=h;
+if(pct>=70)fireConfetti();
+saveResults({mode:'practice',score:pct,correct:q.correct,total:q.words.length,listName:q.listName,words:q.words,results:q.results});
+}
+
+function retryPractice(){
+if(_selectedList)showPracticeMode(_selectedList.words,_selectedList.name);
+}
+
+// ===== SPELLING BEE SIMULATION =====
+function showBeeMode(words,listName){
+var shuffled=shuffle(words).slice(0,20);
+_beeState={
+words:shuffled,
+current:0,
+correct:0,
+results:[],
+answers:[],
+finished:false,
+listName:listName,
+defUsed:false,
+sentUsed:false,
+repeatCount:0
+};
+showBeeRound();
+}
+
+function showBeeRound(){
+var b=_beeState;
+if(b.current>=b.words.length){b.finished=true;showBeeResults();return}
+
+var round=b.current+1;
+b.defUsed=false;
+b.sentUsed=false;
+b.repeatCount=0;
+
+var h='<div class="bee-card">';
+h+='<div class="bee-round">Round '+round+' of '+b.words.length+'</div>';
+h+='<span class="bee-emoji">&#x1F41D;</span>';
+h+='<div class="bee-status" id="beeStatus">Your word has been spoken. Listen carefully!</div>';
+h+='<div id="beeBubble"></div>';
+h+='<div class="bee-actions">';
+h+='<button class="bee-action" onclick="beeRepeat()" id="beeRepeatBtn">&#x1F501; Repeat Word</button>';
+h+='<button class="bee-action" onclick="beeDefinition()" id="beeDefBtn">&#x1F4D6; Definition</button>';
+h+='<button class="bee-action" onclick="beeSentence()" id="beeSentBtn">&#x1F4DD; Use in Sentence</button>';
+h+='</div>';
+h+='<input type="text" class="bee-input" id="beeInput" placeholder="Spell the word..." autocomplete="off" autocapitalize="off" spellcheck="false">';
+h+='<div class="quiz-feedback" id="beeFb"></div>';
+h+='<div class="btn-row"><button class="btn btn-normal btn-orange" onclick="checkBeeAnswer()">Submit Spelling &#x1F41D;</button></div>';
+h+='</div>';
+
+// Progress dots
+h+='<div class="quiz-dots" style="margin-top:12px">';
+for(var i=0;i<b.words.length;i++){
+var cls='q-dot';
+if(i<b.results.length)cls+=b.results[i]?' correct':' wrong';
+else if(i===b.current)cls+=' current';
+h+='<div class="'+cls+'"></div>';
+}
+h+='</div>';
+
+document.getElementById('modeArea').innerHTML=h;
+
+// Speak the word after a short delay
+setTimeout(function(){
+speakWord(b.words[b.current]);
+},500);
+
+var inp=document.getElementById('beeInput');
+if(inp)inp.focus();
+}
+
+function beeRepeat(){
+var b=_beeState;
+if(b.repeatCount>=3){
+showToast('Max repeats reached!','error');
+return;
+}
+b.repeatCount++;
+speakWord(b.words[b.current]);
+document.getElementById('beeStatus').textContent='Word repeated ('+b.repeatCount+'/3)';
+}
+
+async function beeDefinition(){
+var b=_beeState;
+if(b.defUsed){showToast('Definition already shown');return}
+b.defUsed=true;
+var btn=document.getElementById('beeDefBtn');
+btn.disabled=true;
+btn.textContent='Loading...';
+
+var word=b.words[b.current];
+var def=await getAIResponse('Give a brief, simple dictionary definition of the word "'+word+'". Do not include the word itself in the definition. Keep it under 30 words.');
+btn.textContent='\u2705 Definition';
+if(def){
+document.getElementById('beeBubble').innerHTML='<div class="bee-ai-bubble"><strong>Definition:</strong> '+esc(def)+'</div>';
+}
+}
+
+async function beeSentence(){
+var b=_beeState;
+if(b.sentUsed){showToast('Sentence already shown');return}
+b.sentUsed=true;
+var btn=document.getElementById('beeSentBtn');
+btn.disabled=true;
+btn.textContent='Loading...';
+
+var word=b.words[b.current];
+var sent=await getAIResponse('Use the word "'+word+'" in a simple example sentence. Replace the word itself with a blank (___) in the sentence. Keep it under 20 words.');
+btn.textContent='\u2705 Sentence';
+if(sent){
+var existing=document.getElementById('beeBubble').innerHTML;
+document.getElementById('beeBubble').innerHTML=existing+'<div class="bee-ai-bubble"><strong>Sentence:</strong> '+esc(sent)+'</div>';
+}
+}
+
+function checkBeeAnswer(){
+var inp=document.getElementById('beeInput');
+if(!inp)return;
+var answer=inp.value.trim().toLowerCase();
+if(!answer)return;
+var b=_beeState;
+var word=b.words[b.current].toLowerCase();
+var correct=answer===word;
+
+if(correct)b.correct++;
+b.results.push(correct);
+b.answers.push(inp.value.trim());
+
+var fb=document.getElementById('beeFb');
+if(correct){
+fb.innerHTML='<span style="color:#10B981">&#x2705; Correct! Amazing spelling!</span>';
+if(b.current<b.words.length-1){
+setTimeout(function(){
+b.current++;
+showBeeRound();
+},1500);
+}else{
+b.current++;
+setTimeout(function(){b.finished=true;showBeeResults()},1500);
+}
+}else{
+fb.innerHTML='<span style="color:#EF4444">&#x274C; Eliminated! The correct spelling is: <strong>'+esc(b.words[b.current])+'</strong></span>';
+b.current++;
+// In a real bee you'd be out, but we let them keep going for practice
+setTimeout(function(){
+if(b.current>=b.words.length){b.finished=true;showBeeResults()}
+else{showBeeRound()}
+},2000);
+}
+}
+
+function showBeeResults(){
+var b=_beeState;
+var pct=Math.round(b.correct/b.words.length*100);
+var bestKey='bee-'+(_selectedList?_selectedList.id:'unknown');
+var prevBest=_personalBests[bestKey]||0;
+var newBest=b.correct>prevBest;
+if(newBest){
+_personalBests[bestKey]=b.correct;
+savePersonalBests();
+}
+
+var emoji=pct>=90?'\u{1F3C6}':pct>=70?'\u{1F389}':pct>=50?'\u{1F41D}':'\u{1F4AA}';
+
+var h='<div class="result-card">';
+h+='<span class="result-emoji">'+emoji+'</span>';
+h+='<div class="result-score">'+b.correct+'/'+b.words.length+'</div>';
+h+='<div class="result-label">Spelling Bee Score - '+pct+'%</div>';
+
+if(newBest&&prevBest>0){
+h+='<div class="personal-best">&#x1F31F; NEW PERSONAL BEST! Previous: '+prevBest+'/'+b.words.length+'</div>';
+}else if(newBest){
+h+='<div class="personal-best">&#x1F31F; Personal best recorded!</div>';
+}else{
+h+='<div class="personal-best">Personal best: '+prevBest+'/'+b.words.length+'</div>';
+}
+
+h+='<div class="btn-row">';
+h+='<button class="btn btn-normal btn-orange" onclick="retryBee()">&#x1F504; Try Again</button>';
+h+='<button class="btn btn-normal btn-blue" onclick="selectMode(\'study\')">&#x1F4DA; Study Words</button>';
+h+='</div>';
+h+='<div class="result-words">';
+for(var i=0;i<b.words.length;i++){
+var ok=b.results[i];
+h+='<div class="rw '+(ok?'rw-ok':'rw-bad')+'">';
+h+='<span>'+(ok?'\u2705':'\u274C')+' '+esc(b.words[i])+'</span>';
+if(!ok)h+='<span class="rw-answer">You typed: '+esc(b.answers[i])+'</span>';
+h+='</div>';
+}
+h+='</div></div>';
+
+document.getElementById('modeArea').innerHTML=h;
+if(pct>=70)fireConfetti();
+saveResults({mode:'bee',score:pct,correct:b.correct,total:b.words.length,listName:b.listName,words:b.words,results:b.results,personalBest:newBest});
+}
+
+function retryBee(){
+if(_selectedList)showBeeMode(_selectedList.words,_selectedList.name);
+}
+
+// ===== PERSONAL BESTS =====
+function loadPersonalBests(){
+try{_personalBests=JSON.parse(localStorage.getItem('oda-spelling-bests'))||{}}catch(e){_personalBests={}}
+}
+
+function savePersonalBests(){
+try{localStorage.setItem('oda-spelling-bests',JSON.stringify(_personalBests))}catch(e){}
+}
+
+// ===== SPEECH =====
+function speakWord(word){
+if(!('speechSynthesis' in window))return;
+speechSynthesis.cancel();
+var u=new SpeechSynthesisUtterance(word);
+u.rate=0.75;
+u.pitch=1;
+speechSynthesis.speak(u);
+}
+
+function speakAll(){
+if(!_selectedList||!_selectedList.words)return;
+var words=_selectedList.words;
+speechSynthesis.cancel();
+var i=0;
+function next(){
+if(i>=words.length)return;
+var u=new SpeechSynthesisUtterance(words[i]);
+u.rate=0.7;
+u.onend=function(){i++;setTimeout(next,600)};
+speechSynthesis.speak(u);
+}
+next();
+}
+
+// ===== AI INTEGRATION =====
+async function getAIResponse(prompt){
+try{
+var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({prompt:prompt,max_tokens:150})
+});
+var data=await resp.json();
+if(data.error)return null;
+// Handle different response formats
+if(typeof data==='string')return data;
+if(data.response)return data.response;
+if(data.text)return data.text;
+if(data.content){
+if(typeof data.content==='string')return data.content;
+if(Array.isArray(data.content)&&data.content.length>0){
+return data.content[0].text||data.content[0];
+}
+}
+if(data.choices&&data.choices[0]){
+var msg=data.choices[0].message||data.choices[0];
+return msg.content||msg.text||'';
+}
+return JSON.stringify(data);
+}catch(e){
+console.error('AI error:',e);
+return null;
+}
+}
+
+async function getAIDefinition(word,btnEl){
+if(btnEl.dataset.loaded==='true'){return}
+btnEl.dataset.loaded='true';
+btnEl.disabled=true;
+btnEl.innerHTML='&#x23F3; Loading...';
+
+var def=await getAIResponse('Give a brief, kid-friendly definition and one example sentence for the word "'+word+'". Format: Definition: [definition]. Example: [sentence]. Keep it under 40 words total.');
+
+if(def){
+var bubble=document.createElement('div');
+bubble.className='ai-bubble';
+bubble.textContent=def;
+btnEl.parentNode.parentNode.appendChild(bubble);
+btnEl.innerHTML='&#x2705; Defined';
+}else{
+btnEl.innerHTML='&#x1F916; Define';
+btnEl.disabled=false;
+btnEl.dataset.loaded='false';
+}
+}
+
+// ===== FIREBASE SAVE =====
+async function saveResults(data){
+if(!studentId)return;
+try{
+var fb=await getFirebaseDB();
+await fb.fsMod.addDoc(fb.fsMod.collection(fb.db,'spellingResults'),{
+studentId:studentId,
+studentName:studentName||'',
+classCode:classCode||'',
+mode:data.mode,
+score:data.score,
+correct:data.correct,
+total:data.total,
+listName:data.listName||'',
+words:data.words,
+results:data.results,
+personalBest:data.personalBest||false,
+savedAt:new Date().toISOString()
+});
+showToast('Results saved!');
+}catch(e){console.log('Save skipped:',e)}
+}
+
+// ===== TEACHER DASHBOARD =====
+async function initTeacherDash(){
+document.querySelector('.wrap').style.display='none';
+document.getElementById('teacherDash').style.display='block';
+await loadTeacherData();
+}
+
+function switchDashTab(tab){
+_dashTabCurrent=tab;
+var tabs=document.querySelectorAll('.dash-tab');
+for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active')}
+if(tab==='lists')tabs[0].classList.add('active');
+else tabs[1].classList.add('active');
+renderDashContent();
+}
+
+async function loadTeacherData(){
+try{
+var fb=await getFirebaseDB();
+// Load teacher's spelling lists
+var q=fb.fsMod.query(
+fb.fsMod.collection(fb.db,'spellingLists'),
+fb.fsMod.where('teacherId','==',_teacherUid)
+);
+var snap=await fb.fsMod.getDocs(q);
+_teacherLists=[];
+snap.forEach(function(doc){
+var d=doc.data();
+d._id=doc.id;
+_teacherLists.push(d);
+});
+_teacherLists.sort(function(a,b){return(b.createdAt||'').localeCompare(a.createdAt||'')});
+}catch(e){console.error('Load error:',e)}
+renderDashContent();
+}
+
+function renderDashContent(){
+if(_dashTabCurrent==='lists')renderListsTab();
+else renderResultsTab();
+}
+
+function renderListsTab(){
+var h='';
+
+// Create new list button
+h+='<div class="card" style="text-align:center;border:3px dashed #F59E0B;background:#FFF7ED;cursor:pointer" onclick="showCreateListForm()">';
+h+='<div style="font-size:36px;margin-bottom:6px">&#x2795;</div>';
+h+='<div style="font-family:\'Fredoka\',sans-serif;font-size:18px;font-weight:700;color:#92400E">Create New Word List</div>';
+h+='</div>';
+
+// Existing lists
+if(_teacherLists.length===0){
+h+='<div class="card" style="text-align:center"><p style="color:#B45309;font-weight:600">No word lists yet. Create one above!</p></div>';
+}else{
+for(var i=0;i<_teacherLists.length;i++){
+var tl=_teacherLists[i];
+h+='<div class="tl-card">';
+h+='<div class="tl-top">';
+h+='<div class="tl-name">'+esc(tl.name)+'</div>';
+h+='<div class="tl-grade">'+(tl.grade?esc(tl.grade):'')+' &bull; '+((tl.words||[]).length)+' words</div>';
+h+='</div>';
+h+='<div class="tl-words">'+esc((tl.words||[]).slice(0,8).join(', '))+(tl.words&&tl.words.length>8?'...':'')+'</div>';
+h+='<div class="tl-btns">';
+h+='<button class="btn btn-xs btn-orange" onclick="editList('+i+')">&#x270F;&#xFE0F; Edit</button>';
+h+='<button class="btn btn-xs btn-outline" onclick="previewList('+i+')">&#x1F441;&#xFE0F; Preview</button>';
+h+='<button class="btn btn-xs" style="background:#EF4444;color:#fff;box-shadow:0 4px 0 rgba(220,38,38,.5)" onclick="deleteList('+i+')">&#x1F5D1;&#xFE0F; Delete</button>';
+h+='</div>';
+h+='</div>';
+}
+}
+
+document.getElementById('dashContent').innerHTML=h;
+}
+
+function showCreateListForm(){
+var h='<div class="card">';
+h+='<div class="card-title">&#x1F4DD; Create Word List</div>';
+h+='<label class="input-label">List Name</label>';
+h+='<input class="input" id="newListName" placeholder="e.g. Week 1 Words, Bee Practice Round 1">';
+h+='<label class="input-label">Grade Level</label>';
+h+='<input class="input" id="newListGrade" placeholder="e.g. 3rd, 4th-5th, All">';
+h+='<label class="input-label">Words (one per line)</label>';
+h+='<textarea class="input" id="newListWords" rows="10" placeholder="apple\nbanana\ncherry\n..."></textarea>';
+h+='<div class="btn-row">';
+h+='<button class="btn btn-normal btn-green" onclick="saveNewList()">&#x2714;&#xFE0F; Save List</button>';
+h+='<button class="btn btn-normal btn-outline" onclick="renderListsTab()">Cancel</button>';
+h+='</div>';
+h+='</div>';
+document.getElementById('dashContent').innerHTML=h;
+}
+
+async function saveNewList(){
+var name=document.getElementById('newListName').value.trim();
+var grade=document.getElementById('newListGrade').value.trim();
+var wordsText=document.getElementById('newListWords').value;
+var words=wordsText.split('\n').map(function(w){return w.trim()}).filter(function(w){return w.length>0});
+
+if(!name){showToast('Please enter a list name','error');return}
+if(words.length===0){showToast('Please add some words','error');return}
+
+try{
+var fb=await getFirebaseDB();
+await fb.fsMod.addDoc(fb.fsMod.collection(fb.db,'spellingLists'),{
+name:name,
+grade:grade,
+words:words,
+teacherId:_teacherUid,
+classCode:classCode||'',
+createdAt:new Date().toISOString()
+});
+showToast('Word list saved!');
+await loadTeacherData();
+}catch(e){
+showToast('Error saving list','error');
+console.error(e);
+}
+}
+
+function editList(idx){
+var tl=_teacherLists[idx];
+var h='<div class="card">';
+h+='<div class="card-title">&#x270F;&#xFE0F; Edit: '+esc(tl.name)+'</div>';
+h+='<label class="input-label">List Name</label>';
+h+='<input class="input" id="editListName" value="'+esc(tl.name)+'">';
+h+='<label class="input-label">Grade Level</label>';
+h+='<input class="input" id="editListGrade" value="'+esc(tl.grade||'')+'">';
+h+='<label class="input-label">Words (one per line)</label>';
+h+='<textarea class="input" id="editListWords" rows="10">'+esc((tl.words||[]).join('\n'))+'</textarea>';
+h+='<div class="btn-row">';
+h+='<button class="btn btn-normal btn-green" onclick="saveEditedList('+idx+')">&#x2714;&#xFE0F; Save Changes</button>';
+h+='<button class="btn btn-normal btn-outline" onclick="renderListsTab()">Cancel</button>';
+h+='</div>';
+h+='</div>';
+document.getElementById('dashContent').innerHTML=h;
+}
+
+async function saveEditedList(idx){
+var tl=_teacherLists[idx];
+var name=document.getElementById('editListName').value.trim();
+var grade=document.getElementById('editListGrade').value.trim();
+var wordsText=document.getElementById('editListWords').value;
+var words=wordsText.split('\n').map(function(w){return w.trim()}).filter(function(w){return w.length>0});
+
+if(!name){showToast('Please enter a list name','error');return}
+if(words.length===0){showToast('Please add some words','error');return}
+
+try{
+var fb=await getFirebaseDB();
+await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'spellingLists',tl._id),{
+name:name,
+grade:grade,
+words:words,
+updatedAt:new Date().toISOString()
+});
+showToast('List updated!');
+await loadTeacherData();
+}catch(e){
+showToast('Error updating list','error');
+console.error(e);
+}
+}
+
+async function deleteList(idx){
+var tl=_teacherLists[idx];
+if(!confirm('Delete "'+tl.name+'"? This cannot be undone.'))return;
+try{
+var fb=await getFirebaseDB();
+await fb.fsMod.deleteDoc(fb.fsMod.doc(fb.db,'spellingLists',tl._id));
+showToast('List deleted');
+await loadTeacherData();
+}catch(e){
+showToast('Error deleting','error');
+}
+}
+
+function previewList(idx){
+var tl=_teacherLists[idx];
+var h='<div class="card">';
+h+='<div class="card-title">&#x1F441;&#xFE0F; '+esc(tl.name)+'</div>';
+h+='<div style="text-align:center;margin-bottom:12px;font-size:14px;color:#B45309;font-weight:600">'+(tl.grade||'')+' &bull; '+(tl.words||[]).length+' words</div>';
+h+='<div class="study-list">';
+for(var i=0;i<(tl.words||[]).length;i++){
+h+='<div class="study-card">';
+h+='<div><span class="study-num">'+(i+1)+'.</span> <span class="study-word">'+esc(tl.words[i])+'</span></div>';
+if('speechSynthesis' in window){
+h+='<button class="speak-btn" onclick="speakWord(\''+esc(tl.words[i]).replace(/'/g,"\\'")+'\')">&#x1F50A;</button>';
+}
+h+='</div>';
+}
+h+='</div>';
+h+='<div class="btn-row"><button class="btn btn-normal btn-outline" onclick="renderListsTab()">&#x2190; Back to Lists</button></div>';
+h+='</div>';
+document.getElementById('dashContent').innerHTML=h;
+}
+
+async function renderResultsTab(){
+var h='<div class="card"><div class="card-title">&#x1F4CA; Student Spelling Results</div>';
+h+='<div id="resultsArea"><p style="text-align:center;color:#B45309;font-weight:600">Loading results...</p></div></div>';
+document.getElementById('dashContent').innerHTML=h;
+
+try{
+var fb=await getFirebaseDB();
+var q;
+if(classCode){
+q=fb.fsMod.query(
+fb.fsMod.collection(fb.db,'spellingResults'),
+fb.fsMod.where('classCode','==',classCode),
+fb.fsMod.orderBy('savedAt','desc'),
+fb.fsMod.limit(50)
+);
+}else{
+q=fb.fsMod.query(
+fb.fsMod.collection(fb.db,'spellingResults'),
+fb.fsMod.orderBy('savedAt','desc'),
+fb.fsMod.limit(50)
+);
+}
+var snap=await fb.fsMod.getDocs(q);
+var results=[];
+snap.forEach(function(doc){results.push(doc.data())});
+
+if(results.length===0){
+document.getElementById('resultsArea').innerHTML='<p style="text-align:center;color:#B45309;font-weight:600">No results yet. Students will appear here after they practice!</p>';
+return;
+}
+
+var rh='';
+for(var i=0;i<results.length;i++){
+var r=results[i];
+var d=r.savedAt?new Date(r.savedAt).toLocaleDateString():'';
+var modeLabel=r.mode==='bee'?'\u{1F41D} Bee':'\u270F\uFE0F Quiz';
+rh+='<div class="sr-card">';
+rh+='<div class="sr-top">';
+rh+='<div class="sr-name">'+esc(r.studentName||r.studentId||'Student')+'</div>';
+rh+='<div class="sr-score">'+r.score+'%</div>';
+rh+='</div>';
+rh+='<div class="sr-meta">'+modeLabel+' &bull; '+esc(r.listName||'')+' &bull; '+r.correct+'/'+r.total+' &bull; '+d+'</div>';
+rh+='</div>';
+}
+document.getElementById('resultsArea').innerHTML=rh;
+}catch(e){
+console.error('Results error:',e);
+document.getElementById('resultsArea').innerHTML='<p style="text-align:center;color:#EF4444;font-weight:600">Error loading results. Try refreshing.</p>';
+}
+}
+
+// ===== CONFETTI =====
+function fireConfetti(){
+var co=['#F59E0B','#10B981','#3B82F6','#EF4444','#8B5CF6'];
+for(var i=0;i<50;i++){
+var p=document.createElement('div');p.className='confetti-piece';
+var sz=6+Math.random()*10;
+p.style.width=sz+'px';p.style.height=sz*(Math.random()>.5?1:.6)+'px';
+p.style.left=Math.random()*100+'%';
+p.style.backgroundColor=co[i%co.length];
+p.style.borderRadius=Math.random()>.5?'50%':'2px';
+p.style.animationDuration=(2+Math.random()*3)+'s';
+p.style.animationDelay=(Math.random()*2)+'s';
+document.body.appendChild(p);
+(function(el){setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},5000)})(p);
+}
+}
+
+// ===== KEYBOARD HANDLER =====
+document.addEventListener('keydown',function(e){
+if(e.key==='Enter'){
+var active=document.activeElement;
+if(active&&active.id==='quizInput')checkQuizAnswer();
+if(active&&active.id==='beeInput')checkBeeAnswer();
+}
 });
 
+// ===== START =====
 init();
 </script>
 </body>
