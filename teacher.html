@@ -90,6 +90,10 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 .student-list{display:flex;flex-direction:column;gap:6px}
 .s-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;transition:all .15s;cursor:pointer;gap:8px}
 .s-row:hover{border-color:var(--accent)}
+.s-row.selected-row{border-color:var(--accent3);background:rgba(239,71,111,.08)}
+.s-check{width:18px;height:18px;accent-color:var(--accent3);cursor:pointer;flex-shrink:0}
+.bulk-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(239,71,111,.12);border:1px solid rgba(239,71,111,.25);border-radius:10px;margin-bottom:10px;font-size:14px;font-weight:600;color:var(--accent3)}
+.bulk-bar .bulk-count{flex:1}
 .s-info{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
 .s-avatar{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--bg);flex-shrink:0}
 .s-name{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -473,6 +477,7 @@ select.settings-input{cursor:pointer}
 <button class="btn btn-accent btn-sm" onclick="openAddStudentModal()">+ Add Student</button>
 <button class="btn btn-blue btn-sm" onclick="openClassModal()">+ New Class</button>
 </div>
+<div id="bulkBar" class="bulk-bar" style="display:none"><span class="bulk-count" id="bulkCount">0 selected</span><button class="btn btn-sm btn-accent" onclick="selectAllStudents()" id="selectAllBtn">Select All</button><button class="btn btn-sm btn-red" onclick="deleteSelectedStudents()">Delete Selected</button><button class="btn btn-sm btn-outline" onclick="clearStudentSelection()">Cancel</button></div>
 <div class="student-list" id="studentList"><div class="empty-state"><span class="emoji">&#x23F3;</span><p>Loading...</p></div></div>
 </div>
 
@@ -1137,12 +1142,15 @@ var badge,badgeClass;
 if(pending>0){badge=pending+' pending';badgeClass='badge-pending'}
 else if(completed>0){badge='All done';badgeClass='badge-done'}
 else{badge='No tasks';badgeClass='badge-idle'}
-h+='<div class="s-row" onclick="openProfile(\''+s.id+'\')">';
+var checked=_selectedStudentIds.indexOf(s.id)>=0;
+h+='<div class="s-row'+(checked?' selected-row':'')+'" onclick="openProfile(\''+s.id+'\')">';
+h+='<input type="checkbox" class="s-check" data-sid="'+s.id+'"'+(checked?' checked':'')+' onclick="event.stopPropagation();toggleStudentCheck(\''+s.id+'\',this)">';
 h+='<div class="s-info"><div class="s-avatar">'+init+'</div><div><div class="s-name">'+esc(s.name)+'</div><div class="s-meta">Grade '+esc(s.grade||'?')+(s.className?' • '+esc(s.className):'')+'</div></div></div>';
 h+='<div class="s-right"><span class="s-badge '+badgeClass+'">'+badge+'</span></div>';
 h+='</div>';
 }
 el.innerHTML=h;
+updateBulkBar();
 }
 
 // Grade select: show custom input when "Other" is chosen
@@ -1152,7 +1160,9 @@ custom.style.display=this.value==='Other'?'':'none';
 if(this.value!=='Other')custom.value='';
 });
 
+var _addingStudent=false;
 async function addStudent(){
+if(_addingStudent)return;
 var name=document.getElementById('addStudentName').value.trim();
 var gradeSelect=document.getElementById('addStudentGrade').value;
 var grade=gradeSelect==='Other'?document.getElementById('addStudentGradeCustom').value.trim():gradeSelect;
@@ -1160,6 +1170,9 @@ var className=document.getElementById('addStudentClass').value;
 if(!name)return;
 if(!grade){alert('Please select a grade.');return}
 if(!className){alert('Please select a class for this student.');return}
+_addingStudent=true;
+var btn=document.querySelector('#addStudentModal .btn-accent');
+if(btn){btn.textContent='Adding...';btn.disabled=true}
 try{
 await window.fbAddDoc(window.fbCollection(window.fbDb,'students'),{
 name:name,nameLower:name.toLowerCase(),grade:grade,
@@ -1171,6 +1184,7 @@ createdAt:new Date().toISOString()
 closeAddStudentModal();
 loadStudents();
 }catch(e){console.error(e);alert('Error: '+e.message)}
+finally{_addingStudent=false;if(btn){btn.textContent='Add Student';btn.disabled=false}}
 }
 window.addStudent=addStudent;
 
@@ -1204,21 +1218,92 @@ window.closeProfile=closeProfile;
 async function deleteStudent(){
 if(!selectedStudent)return;
 if(!confirm('Delete "'+selectedStudent.name+'"? This will also delete all their assignments. This cannot be undone.'))return;
+var sName=selectedStudent.name;
+var sId=selectedStudent.id;
 try{
-// Delete all assignments for this student
-var aq=window.fbQuery(window.fbCollection(window.fbDb,'assignments'),window.fbWhere('studentId','==',selectedStudent.id));
+var aq=window.fbQuery(window.fbCollection(window.fbDb,'assignments'),window.fbWhere('studentId','==',sId));
 var asnap=await window.fbGetDocs(aq);
 var deletes=[];
 asnap.forEach(function(d){deletes.push(window.fbDeleteDoc(window.fbDoc(window.fbDb,'assignments',d.id)))});
 await Promise.all(deletes);
-// Delete the student record
-await window.fbDeleteDoc(window.fbDoc(window.fbDb,'students',selectedStudent.id));
+await window.fbDeleteDoc(window.fbDoc(window.fbDb,'students',sId));
 closeProfile();
 await loadStudents();
-showToast('"'+selectedStudent.name+'" deleted','success');
+showToast('"'+sName+'" deleted','success');
 }catch(e){console.error(e);alert('Error deleting student: '+e.message)}
 }
 window.deleteStudent=deleteStudent;
+
+// ===== MULTI-SELECT DELETE =====
+var _selectedStudentIds=[];
+
+function toggleStudentCheck(sid,cb){
+var idx=_selectedStudentIds.indexOf(sid);
+if(cb.checked&&idx<0)_selectedStudentIds.push(sid);
+else if(!cb.checked&&idx>=0)_selectedStudentIds.splice(idx,1);
+var row=cb.closest('.s-row');
+if(row)row.classList.toggle('selected-row',cb.checked);
+updateBulkBar();
+}
+window.toggleStudentCheck=toggleStudentCheck;
+
+function updateBulkBar(){
+var bar=document.getElementById('bulkBar');
+var count=_selectedStudentIds.length;
+if(count>0){
+bar.style.display='flex';
+document.getElementById('bulkCount').textContent=count+' student'+(count!==1?'s':'')+' selected';
+}else{
+bar.style.display='none';
+}
+}
+
+function selectAllStudents(){
+var boxes=document.querySelectorAll('#studentList .s-check');
+_selectedStudentIds=[];
+boxes.forEach(function(cb){
+cb.checked=true;
+_selectedStudentIds.push(cb.getAttribute('data-sid'));
+var row=cb.closest('.s-row');
+if(row)row.classList.add('selected-row');
+});
+updateBulkBar();
+}
+window.selectAllStudents=selectAllStudents;
+
+function clearStudentSelection(){
+_selectedStudentIds=[];
+var boxes=document.querySelectorAll('#studentList .s-check');
+boxes.forEach(function(cb){
+cb.checked=false;
+var row=cb.closest('.s-row');
+if(row)row.classList.remove('selected-row');
+});
+updateBulkBar();
+}
+window.clearStudentSelection=clearStudentSelection;
+
+async function deleteSelectedStudents(){
+var count=_selectedStudentIds.length;
+if(!count)return;
+if(!confirm('Delete '+count+' student'+(count!==1?'s':'')+'? This will also delete all their assignments. This cannot be undone.'))return;
+try{
+for(var i=0;i<_selectedStudentIds.length;i++){
+var sid=_selectedStudentIds[i];
+var aq=window.fbQuery(window.fbCollection(window.fbDb,'assignments'),window.fbWhere('studentId','==',sid));
+var asnap=await window.fbGetDocs(aq);
+var dels=[];
+asnap.forEach(function(d){dels.push(window.fbDeleteDoc(window.fbDoc(window.fbDb,'assignments',d.id)))});
+await Promise.all(dels);
+await window.fbDeleteDoc(window.fbDoc(window.fbDb,'students',sid));
+}
+_selectedStudentIds=[];
+updateBulkBar();
+await loadStudents();
+showToast(count+' student'+(count!==1?'s':'')+' deleted','success');
+}catch(e){console.error(e);alert('Error deleting students: '+e.message)}
+}
+window.deleteSelectedStudents=deleteSelectedStudents;
 
 async function loadStudentWork(){
 if(!selectedStudent)return;
