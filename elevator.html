@@ -231,10 +231,97 @@ body.desktop-mode .grade-app{max-width:1100px}
 .polished-pitch{background:rgba(6,214,160,.08);border:2px solid rgba(6,214,160,.25);border-radius:20px;padding:24px;margin:20px 0;animation:fadeUp .4s ease}
 .polished-label{font-family:'Space Mono',monospace;font-size:12px;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
 .polished-text{font-size:19px;line-height:2;color:var(--text);font-weight:500;background:var(--bg);padding:16px 20px;border-radius:14px;border:1px solid var(--border)}
+
+/* ===== TEACHER DASHBOARD ===== */
+.td-wrap{max-width:900px;margin:0 auto;padding:20px 16px;position:relative;z-index:1}
+.td-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.td-top h1{font-size:28px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,var(--gold),var(--accent3),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.td-top-sub{font-size:15px;color:var(--text2);font-weight:600;margin-top:4px}
+.td-top-btns{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.td-btn{padding:10px 18px;font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;border:none;border-radius:12px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.td-btn:hover{transform:translateY(-2px)}
+.td-btn-green{background:linear-gradient(135deg,var(--accent),#04b890);color:var(--bg)}
+.td-btn-purple{background:#7C3AED;color:#fff}
+.td-btn-purple:hover{box-shadow:0 4px 12px rgba(124,58,237,.3)}
+.td-btn-blue{background:linear-gradient(135deg,var(--accent2),#0d7ea0);color:#fff}
+.td-search{width:100%;max-width:400px;padding:12px 16px;background:var(--surface);border:2px solid var(--border);border-radius:14px;color:var(--text);font-family:'Outfit',sans-serif;font-size:15px;font-weight:500;outline:none;transition:border-color .2s}
+.td-search:focus{border-color:var(--accent)}
+.td-search::placeholder{color:#3a4560}
+.td-stats{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.td-stat{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:12px 18px;flex:1;min-width:120px;text-align:center}
+.td-stat-num{font-family:'Space Mono',monospace;font-size:24px;font-weight:700;color:var(--accent)}
+.td-stat-label{font-size:12px;color:var(--text2);font-weight:600;margin-top:2px}
+.td-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:24px}
+.td-card{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:20px;transition:all .2s;position:relative;overflow:hidden}
+.td-card:hover{border-color:var(--accent);transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.td-card-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.td-card-name{font-size:18px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.td-card-school{font-size:13px;color:var(--accent2);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.td-card-grade-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:8px;text-transform:uppercase;letter-spacing:1px;background:rgba(17,138,178,.15);color:var(--accent2)}
+.td-card-status{font-size:11px;font-weight:700;padding:3px 10px;border-radius:8px;text-transform:uppercase;letter-spacing:1px}
+.td-card-preview{font-size:13px;color:var(--text2);line-height:1.5;margin:10px 0;max-height:60px;overflow:hidden;text-overflow:ellipsis}
+.td-card-meta{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text2);margin-bottom:12px}
+.td-card-actions{display:flex;gap:6px}
+.td-card-btn{padding:6px 14px;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;border:none;cursor:pointer;transition:all .15s}
+.td-card-btn:hover{transform:translateY(-1px)}
+.td-card-btn.view{background:var(--accent2);color:#fff}
+.td-card-btn.grade{background:var(--accent);color:var(--bg)}
+.td-empty{text-align:center;padding:60px 20px;color:var(--text2);grid-column:1/-1}
+.td-empty .emoji{font-size:48px;margin-bottom:12px;display:block}
+.td-loading{text-align:center;padding:40px;color:var(--text2);font-size:15px;font-weight:600;grid-column:1/-1}
+.td-loading::after{content:'';display:inline-block;width:14px;height:14px;border:2px solid var(--accent2);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;margin-left:8px;vertical-align:middle}
+
+/* Teacher Dashboard Detail View */
+.td-detail-back{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);text-decoration:none;font-size:14px;font-weight:600;margin-bottom:12px;cursor:pointer;transition:all .15s}
+.td-detail-back:hover{border-color:var(--accent);color:var(--text)}
+
+@media(min-width:900px){
+body.desktop-mode .td-wrap{max-width:1100px}
+}
 </style>
 </head>
 <body>
 <div class="grid-bg"></div>
+
+<!-- ===== TEACHER DASHBOARD VIEW ===== -->
+<div id="teacherDashView" style="display:none">
+<div class="td-wrap">
+<a href="teacher.html" class="td-detail-back" id="tdBackLink">&#x2190; Back to Teacher Hub</a>
+<div class="td-top">
+<div>
+<h1>&#x1F3A4; Elevator Pitch Dashboard</h1>
+<div class="td-top-sub">View and grade student elevator pitches</div>
+</div>
+<div class="td-top-btns">
+<button class="td-btn td-btn-green" onclick="tdSwitchToStudent()">&#x1F393; Switch to Student View</button>
+<button class="td-btn td-btn-purple" onclick="tdStartOneOnOne()">&#x1F469;&#x200D;&#x1F3EB; 1-on-1 Mode</button>
+<button class="td-btn td-btn-blue" onclick="tdRefresh()">&#x1F504; Refresh</button>
+</div>
+</div>
+<div style="margin-bottom:16px">
+<input type="text" class="td-search" id="tdSearchInput" placeholder="&#x1F50D; Search by student name..." oninput="tdFilterCards()">
+</div>
+<div class="td-stats" id="tdStats"></div>
+<div class="td-grid" id="tdGrid">
+<div class="td-loading">Loading student pitches</div>
+</div>
+</div>
+
+<!-- Teacher Dashboard Detail/Grade View -->
+<div id="tdDetailView" style="display:none">
+<div class="td-wrap">
+<button class="td-detail-back" onclick="tdBackToList()">&#x2190; Back to Dashboard</button>
+<div class="grade-hdr"><h1><span class="emoji">&#x1F3A4;</span> <span id="tdDetailTitle">View Elevator Pitch</span></h1></div>
+<div class="grade-bar">
+<span class="gb-name" id="tdDetailName">Student</span>
+<span class="gb-info" id="tdDetailDate"></span>
+<span class="gb-status" id="tdDetailStatus"></span>
+</div>
+<div id="tdDetailContent"></div>
+</div>
+</div>
+</div>
+
 <div class="app">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
 <a class="back" id="backLink" href="index.html" style="margin-bottom:0">&#x2190; Back to ODA Hub</a>
@@ -471,7 +558,7 @@ var _gradeData=null,_gradeEpData=null;
 
 function init(){
 var params=new URLSearchParams(window.location.search);
-// Teacher grade mode
+// Teacher grade mode (from assignments page)
 var gradeId=params.get('grade');
 if(gradeId){initGradeMode(gradeId);return}
 assignmentId=params.get('assignmentId');
@@ -484,10 +571,316 @@ if(studentId)backEl.href='student.html';
 else if(isTeacherMode)backEl.href='teacher.html';
 // Show teacher mode button if teacher (but not if student is active)
 var isStudentSession=!!sessionStorage.getItem('studentId');
-if(!isStudentSession&&(sessionStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher')){
+var isTeacherUser=!isStudentSession&&(sessionStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher');
+if(isTeacherUser){
 document.getElementById('teacherModeBtn').style.display='inline-flex';
 }
+// If teacher and no assignment/grade params, show teacher dashboard
+if(isTeacherUser&&!isAssignmentMode&&!gradeId){
+showTeacherDashboard();
+return;
+}
 showStart();
+}
+
+// ===== TEACHER DASHBOARD =====
+var _tdPitches=[];
+var _tdCurrentPitch=null;
+
+function showTeacherDashboard(){
+document.querySelector('.app').style.display='none';
+document.getElementById('gradeView').style.display='none';
+document.getElementById('teacherDashView').style.display='block';
+loadTeacherDashboard();
+}
+
+function hideTeacherDashboard(){
+document.getElementById('teacherDashView').style.display='none';
+document.querySelector('.app').style.display='';
+}
+
+async function loadTeacherDashboard(){
+var grid=document.getElementById('tdGrid');
+grid.innerHTML='<div class="td-loading">Loading student pitches</div>';
+document.getElementById('tdStats').innerHTML='';
+try{
+var fb=await getFirebaseDB();
+var teacherId=sessionStorage.getItem('teacherId')||sessionStorage.getItem('userId')||'';
+// Query all elevator pitches - try teacher-specific first, fall back to all
+var pitchesRef=fb.fsMod.collection(fb.db,'elevatorPitches');
+var q;
+if(teacherId){
+// Try teacher-specific query first
+try{
+q=fb.fsMod.query(pitchesRef,fb.fsMod.where('teacherId','==',teacherId));
+var snap=await fb.fsMod.getDocs(q);
+if(snap.empty){
+// Fall back to all pitches
+q=pitchesRef;
+snap=await fb.fsMod.getDocs(q);
+}
+_tdPitches=[];
+snap.forEach(function(doc){_tdPitches.push(Object.assign({id:doc.id},doc.data()))});
+}catch(e){
+// If query fails (no index), fall back to all
+q=pitchesRef;
+var snap=await fb.fsMod.getDocs(q);
+_tdPitches=[];
+snap.forEach(function(doc){_tdPitches.push(Object.assign({id:doc.id},doc.data()))});
+}
+}else{
+var snap=await fb.fsMod.getDocs(pitchesRef);
+_tdPitches=[];
+snap.forEach(function(doc){_tdPitches.push(Object.assign({id:doc.id},doc.data()))});
+}
+// Sort by savedAt descending
+_tdPitches.sort(function(a,b){
+var da=a.savedAt||a.createdAt||'';
+var db_=b.savedAt||b.createdAt||'';
+return db_>da?1:db_<da?-1:0;
+});
+renderTeacherDashboard(_tdPitches);
+}catch(e){
+console.error('Dashboard load error:',e);
+grid.innerHTML='<div class="td-empty"><span class="emoji">\u26A0\uFE0F</span><p>Could not load pitches: '+esc(e.message)+'</p><p style="margin-top:8px"><button class="td-btn td-btn-blue" onclick="loadTeacherDashboard()">\u{1F504} Try Again</button></p></div>';
+}
+}
+
+function renderTeacherDashboard(pitches){
+var grid=document.getElementById('tdGrid');
+var statsEl=document.getElementById('tdStats');
+if(!pitches||pitches.length===0){
+grid.innerHTML='<div class="td-empty"><span class="emoji">\u{1F3A4}</span><p>No student elevator pitches found yet.</p><p style="font-size:13px;margin-top:6px">Pitches will appear here once students complete them.</p></div>';
+statsEl.innerHTML='';
+return;
+}
+// Stats
+var total=pitches.length;
+var withVideo=pitches.filter(function(p){return p.videoUrl}).length;
+var withSummary=pitches.filter(function(p){return p.aiSummary}).length;
+var today=new Date().toDateString();
+var todayCount=pitches.filter(function(p){try{return new Date(p.savedAt).toDateString()===today}catch(e){return false}}).length;
+statsEl.innerHTML='<div class="td-stat"><div class="td-stat-num">'+total+'</div><div class="td-stat-label">Total Pitches</div></div>'
++'<div class="td-stat"><div class="td-stat-num">'+withVideo+'</div><div class="td-stat-label">With Video</div></div>'
++'<div class="td-stat"><div class="td-stat-num">'+withSummary+'</div><div class="td-stat-label">AI Summaries</div></div>'
++'<div class="td-stat"><div class="td-stat-num">'+todayCount+'</div><div class="td-stat-label">Today</div></div>';
+// Cards
+var h='';
+for(var i=0;i<pitches.length;i++){
+var p=pitches[i];
+var name=p.studentName||p.answers&&p.answers.name||'Unknown Student';
+var school=p.answers&&p.answers.school||'';
+var grade=p.answers&&p.answers.grade||'';
+var pitch=p.pitch||'';
+var preview=pitch.length>100?pitch.substring(0,100)+'...':pitch;
+var dateStr='';
+try{dateStr=new Date(p.savedAt||p.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}catch(e){}
+var hasVideo=!!p.videoUrl;
+var status=p.status||'submitted';
+var statusColor=status==='graded'?'rgba(6,214,160,.15)':status==='returned'?'rgba(239,71,111,.15)':'rgba(255,209,102,.15)';
+var statusTextColor=status==='graded'?'var(--accent)':status==='returned'?'var(--accent3)':'var(--gold)';
+h+='<div class="td-card" data-name="'+esc(name.toLowerCase())+'">';
+h+='<div class="td-card-top"><span style="font-size:28px">'+(hasVideo?'\u{1F3AC}':'\u{1F3A4}')+'</span>';
+h+='<div style="flex:1;min-width:0"><div class="td-card-name">'+esc(name)+'</div>';
+if(school)h+='<div class="td-card-school">'+esc(school)+'</div>';
+h+='</div>';
+if(grade)h+='<span class="td-card-grade-badge">Grade '+esc(grade)+'</span>';
+h+='</div>';
+if(preview)h+='<div class="td-card-preview">'+esc(preview)+'</div>';
+h+='<div class="td-card-meta"><span>'+dateStr+'</span>';
+h+='<span class="td-card-status" style="background:'+statusColor+';color:'+statusTextColor+'">'+esc(status)+'</span></div>';
+h+='<div class="td-card-actions">';
+h+='<button class="td-card-btn view" onclick="tdViewPitch(\''+esc(p.id)+'\')">View</button>';
+h+='<button class="td-card-btn grade" onclick="tdGradePitch(\''+esc(p.id)+'\')">Grade</button>';
+h+='</div></div>';
+}
+grid.innerHTML=h;
+}
+
+function tdFilterCards(){
+var query=document.getElementById('tdSearchInput').value.toLowerCase().trim();
+var cards=document.querySelectorAll('.td-card');
+var visibleCount=0;
+for(var i=0;i<cards.length;i++){
+var name=cards[i].getAttribute('data-name')||'';
+if(!query||name.indexOf(query)>=0){
+cards[i].style.display='';
+visibleCount++;
+}else{
+cards[i].style.display='none';
+}
+}
+}
+
+function tdFindPitch(id){
+return _tdPitches.find(function(p){return p.id===id});
+}
+
+function tdViewPitch(id){
+var p=tdFindPitch(id);
+if(!p)return;
+_tdCurrentPitch=p;
+document.getElementById('tdDetailView').style.display='block';
+document.querySelector('#teacherDashView > .td-wrap:first-child').style.display='none';
+var ans=p.answers||{};
+var name=p.studentName||ans.name||'Unknown Student';
+document.getElementById('tdDetailName').textContent=name;
+document.getElementById('tdDetailTitle').textContent='View Elevator Pitch';
+var dateStr='';
+try{dateStr=new Date(p.savedAt||p.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}catch(e){}
+document.getElementById('tdDetailDate').textContent=dateStr;
+var statusEl=document.getElementById('tdDetailStatus');
+var st=p.status||'submitted';
+statusEl.textContent=st.replace(/_/g,' ');
+statusEl.style.background=st==='graded'?'rgba(6,214,160,.15)':st==='returned'?'rgba(239,71,111,.15)':'rgba(255,209,102,.15)';
+statusEl.style.color=st==='graded'?'var(--accent)':st==='returned'?'var(--accent3)':'var(--gold)';
+renderTdDetail(p,false);
+}
+
+function tdGradePitch(id){
+var p=tdFindPitch(id);
+if(!p)return;
+_tdCurrentPitch=p;
+document.getElementById('tdDetailView').style.display='block';
+document.querySelector('#teacherDashView > .td-wrap:first-child').style.display='none';
+var ans=p.answers||{};
+var name=p.studentName||ans.name||'Unknown Student';
+document.getElementById('tdDetailName').textContent=name;
+document.getElementById('tdDetailTitle').textContent='Grade Elevator Pitch';
+var dateStr='';
+try{dateStr=new Date(p.savedAt||p.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}catch(e){}
+document.getElementById('tdDetailDate').textContent=dateStr;
+var statusEl=document.getElementById('tdDetailStatus');
+var st=p.status||'submitted';
+statusEl.textContent=st.replace(/_/g,' ');
+statusEl.style.background=st==='graded'?'rgba(6,214,160,.15)':st==='returned'?'rgba(239,71,111,.15)':'rgba(255,209,102,.15)';
+statusEl.style.color=st==='graded'?'var(--accent)':st==='returned'?'var(--accent3)':'var(--gold)';
+renderTdDetail(p,true);
+}
+
+function renderTdDetail(p,showGrading){
+var el=document.getElementById('tdDetailContent');
+var ans=p.answers||{};
+var h='';
+// About Me card
+h+='<div class="grade-card"><div class="gc-title">\u{1F464} About Me</div>';
+var fields=[['Name',ans.name],['Age',ans.age],['School',ans.school],['From',ans.from],['Grade',ans.grade],['Dream Job',ans.dream],['Why',ans.why],['Favorite Hobby',ans.hobby],['Fun Fact',ans.fact],['Remember Me For',ans.remember]];
+fields.forEach(function(f){if(f[1])h+='<div class="gc-row"><strong>'+f[0]+':</strong> '+esc(f[1])+'</div>'});
+h+='</div>';
+// Generated Pitch
+if(p.pitch){
+h+='<div class="grade-card"><div class="gc-title">\u{1F4AC} Generated Pitch</div>';
+h+='<div class="gc-pitch">'+esc(p.pitch)+'</div></div>';
+}
+// Video
+if(p.videoUrl){
+h+='<div class="grade-card"><div class="gc-title">\u{1F3AC} Video Recording</div>';
+h+='<div style="text-align:center"><video controls playsinline style="max-width:100%;max-height:360px;border-radius:14px;background:#000" src="'+esc(p.videoUrl)+'"></video></div></div>';
+}
+// AI Summary
+if(p.aiSummary){
+h+='<div class="grade-card"><div class="gc-title">\u2728 AI Personalized Summary</div>';
+h+='<div class="gc-summary">'+esc(p.aiSummary)+'</div></div>';
+}
+// Grading controls
+if(showGrading){
+h+='<div class="grade-card grade-controls"><div class="gc-title">\u270F\uFE0F Grade This Pitch</div>';
+h+='<div class="grade-score-row"><label>Score</label>';
+h+='<input type="range" id="tdGradeScoreRange" min="0" max="100" value="'+(p.score||85)+'" oninput="document.getElementById(\'tdGradeScoreVal\').textContent=this.value+\'%\'">';
+h+='<span class="grade-score-val" id="tdGradeScoreVal">'+(p.score||85)+'%</span></div>';
+h+='<div class="grade-feedback"><textarea id="tdGradeFeedback" placeholder="Write feedback for the student...">'+(p.feedback||'')+'</textarea></div>';
+h+='<div class="grade-btn-row">';
+h+='<button class="btn btn-grade" onclick="tdSubmitGrade()">\u2705 Grade</button>';
+h+='<button class="btn btn-return" onclick="tdReturnForRevision()">\u21A9\uFE0F Return for Revision</button>';
+h+='<button class="btn btn-complete" onclick="tdMarkComplete()">\u2713 Mark Complete</button>';
+h+='</div></div>';
+}
+el.innerHTML=h;
+}
+
+async function tdSubmitGrade(){
+if(!_tdCurrentPitch)return;
+var score=parseInt(document.getElementById('tdGradeScoreRange').value);
+var feedback=document.getElementById('tdGradeFeedback').value.trim();
+try{
+var fb=await getFirebaseDB();
+await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'elevatorPitches',_tdCurrentPitch.id),{
+status:'graded',score:score,feedback:feedback,gradedAt:new Date().toISOString()
+});
+_tdCurrentPitch.status='graded';
+_tdCurrentPitch.score=score;
+_tdCurrentPitch.feedback=feedback;
+// Update status in detail view
+var statusEl=document.getElementById('tdDetailStatus');
+statusEl.textContent='graded';
+statusEl.style.background='rgba(6,214,160,.15)';
+statusEl.style.color='var(--accent)';
+document.getElementById('tdDetailTitle').textContent='Grade Elevator Pitch \u2014 '+score+'%';
+showToast('\u2705 Graded: '+score+'%','');
+}catch(e){alert('Error grading: '+e.message)}
+}
+
+async function tdReturnForRevision(){
+if(!_tdCurrentPitch)return;
+var feedback=document.getElementById('tdGradeFeedback').value.trim();
+if(!feedback){alert('Please add feedback before returning');return}
+try{
+var fb=await getFirebaseDB();
+await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'elevatorPitches',_tdCurrentPitch.id),{
+status:'returned',feedback:feedback
+});
+_tdCurrentPitch.status='returned';
+_tdCurrentPitch.feedback=feedback;
+var statusEl=document.getElementById('tdDetailStatus');
+statusEl.textContent='returned';
+statusEl.style.background='rgba(239,71,111,.15)';
+statusEl.style.color='var(--accent3)';
+showToast('Returned for revision');
+}catch(e){alert('Error: '+e.message)}
+}
+
+async function tdMarkComplete(){
+if(!_tdCurrentPitch)return;
+try{
+var fb=await getFirebaseDB();
+await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'elevatorPitches',_tdCurrentPitch.id),{
+status:'completed',completedAt:new Date().toISOString()
+});
+_tdCurrentPitch.status='completed';
+var statusEl=document.getElementById('tdDetailStatus');
+statusEl.textContent='completed';
+statusEl.style.background='rgba(6,214,160,.15)';
+statusEl.style.color='var(--accent)';
+showToast('\u2705 Marked complete','');
+}catch(e){alert('Error: '+e.message)}
+}
+
+function tdBackToList(){
+document.getElementById('tdDetailView').style.display='none';
+document.querySelector('#teacherDashView > .td-wrap:first-child').style.display='';
+// Refresh the grid to reflect any grading changes
+renderTeacherDashboard(_tdPitches);
+}
+
+function tdSwitchToStudent(){
+hideTeacherDashboard();
+showStart();
+}
+
+function tdStartOneOnOne(){
+hideTeacherDashboard();
+isTeacherMode=true;
+var btn=document.getElementById('teacherModeBtn');
+btn.innerHTML='\u{1F469}\u200D\u{1F3EB} Exit Teacher Mode';btn.style.background='var(--accent3)';
+var sub=document.getElementById('headerSub');
+if(sub)sub.textContent='1-on-1 Mode \u2014 Sit with a student and guide them through their pitch';
+document.getElementById('teacherBanner').style.display='flex';
+showStart();
+}
+
+function tdRefresh(){
+document.getElementById('tdSearchInput').value='';
+loadTeacherDashboard();
 }
 
 // ===== TEACHER GRADING MODE =====
