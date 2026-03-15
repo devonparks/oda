@@ -206,6 +206,49 @@ textarea.input{resize:vertical;min-height:100px;font-size:16px;line-height:1.6}
 .btn-complete-lem{background:#FEF3C7;color:#92400E;border:1.5px solid #F59E0B!important}
 .grade-empty{text-align:center;padding:40px 20px;color:#B45309}
 .grade-empty .emoji{font-size:48px;margin-bottom:12px}
+
+/* ===== TEACHER DASHBOARD ===== */
+.dash-wrap{max-width:800px;margin:0 auto;padding:20px 16px}
+.dash-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+.dash-hdr h1{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;color:#92400E}
+.dash-hdr .dh-sub{font-size:14px;color:#B45309;font-weight:600}
+.dash-actions{display:flex;gap:8px;flex-wrap:wrap}
+.dash-tab-bar{display:flex;gap:4px;margin-bottom:20px;overflow-x:auto;padding-bottom:4px}
+.dash-tab{padding:8px 16px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid #FDE68A;background:#fff;color:#92400E;white-space:nowrap;transition:all .15s;font-family:'Fredoka',sans-serif}
+.dash-tab.active{background:#F59E0B;color:#fff;border-color:#F59E0B}
+.dash-tab .dt-count{display:inline-block;min-width:18px;text-align:center;font-size:11px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px;background:rgba(0,0,0,.1);color:inherit}
+.dash-tab.active .dt-count{background:rgba(255,255,255,.3)}
+.dash-section{display:none}
+.dash-section.show{display:block}
+.group-card{background:#fff;border:2px solid #FDE68A;border-radius:18px;padding:18px;margin-bottom:14px;transition:all .15s}
+.group-card:hover{border-color:#F59E0B;transform:translateY(-1px);box-shadow:0 4px 16px rgba(245,158,11,.1)}
+.group-card.needs-approval{border-color:#EF4444;border-style:dashed;background:#FEF2F2}
+.gc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.gc-name{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:#92400E}
+.gc-company{font-size:14px;font-weight:700;color:#F59E0B;margin-top:2px}
+.gc-badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;text-transform:uppercase;letter-spacing:.5px}
+.gc-badge.pending{background:#FEE2E2;color:#EF4444}
+.gc-badge.approved{background:#D1FAE5;color:#059669}
+.gc-badge.submitted{background:#FEF3C7;color:#D97706}
+.gc-badge.graded{background:#EDE9FE;color:#7C3AED}
+.gc-meta{font-size:13px;color:#78350F;margin-top:4px;display:flex;gap:10px;flex-wrap:wrap}
+.gc-members{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.gc-member{font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;background:#FEF3C7;color:#92400E}
+.gc-member.leader{background:#F59E0B;color:#fff}
+.gc-progress{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.gc-prog{background:#FFF8E1;border:1.5px solid #FDE68A;border-radius:10px;padding:8px;text-align:center}
+.gc-prog .gp-num{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:#F59E0B}
+.gc-prog .gp-label{font-size:10px;color:#B45309;font-weight:600;margin-top:2px}
+.gc-score{margin-top:8px;font-family:'Fredoka',sans-serif;font-size:16px;color:#F59E0B;font-weight:700}
+.gc-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.gc-btns .btn{font-family:'Fredoka',sans-serif}
+.dash-empty{text-align:center;padding:40px 20px;color:#B45309}
+.dash-empty .emoji{font-size:48px;margin-bottom:8px}
+.dash-empty p{font-size:15px;font-weight:600}
+
+/* Group detail view */
+.detail-back{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;background:#FEF3C7;border:1.5px solid #F59E0B;color:#92400E;text-decoration:none;font-size:14px;font-weight:600;margin-bottom:16px;cursor:pointer;transition:all .15s}
+.detail-back:hover{background:#FDE68A}
 </style>
 </head>
 <body>
@@ -217,6 +260,30 @@ textarea.input{resize:vertical;min-height:100px;font-size:16px;line-height:1.6}
 <p id="hdrSub">Build a real business with your team!</p>
 </div>
 <div id="mainContent"></div>
+</div>
+
+<div id="teacherDash" style="display:none">
+<div class="dash-wrap">
+<a class="back-link" href="teacher.html">&#x2190; Back to Teacher Hub</a>
+<div class="dash-hdr">
+<div>
+<h1>&#x1F34B; Lemonade Day Dashboard</h1>
+<div class="dh-sub">Manage student groups, approve teams, and grade projects</div>
+</div>
+<div class="dash-actions">
+<button class="btn btn-small btn-orange" onclick="loadTeacherGroups()">&#x1F504; Refresh</button>
+</div>
+</div>
+<div class="dash-tab-bar" id="dashTabs"></div>
+<div id="dashContent"></div>
+</div>
+</div>
+
+<div id="groupDetailView" style="display:none">
+<div class="dash-wrap">
+<div class="detail-back" onclick="backToDash()">&#x2190; Back to Dashboard</div>
+<div id="groupDetailContent"></div>
+</div>
 </div>
 
 <div id="gradeView" style="display:none">
@@ -302,16 +369,345 @@ if(gradeId){initGradeMode(gradeId);return}
 studentId=sessionStorage.getItem('studentId');
 studentName=sessionStorage.getItem('studentName');
 classCode=sessionStorage.getItem('classCode');
+var teacherId=sessionStorage.getItem('teacherId');
 // Smart back link
 var backEl=document.getElementById('backLink');
 if(studentId)backEl.href='student.html';
-else if(sessionStorage.getItem('teacherId'))backEl.href='teacher.html';
+else if(teacherId)backEl.href='teacher.html';
+// Teacher dashboard mode
+if(teacherId&&!studentId){
+initTeacherDash();
+return;
+}
 // Check if student has an existing group
 if(studentId){
 checkExistingGroup();
 }else{
 showIntro();
 }
+}
+
+// ===== TEACHER DASHBOARD =====
+var _teacherGroups=[];
+var _dashTab='all';
+
+async function initTeacherDash(){
+document.querySelector('.wrap').style.display='none';
+document.getElementById('teacherDash').style.display='block';
+await loadTeacherGroups();
+}
+
+async function loadTeacherGroups(){
+try{
+var fb=await getFirebaseDB();
+var teacherId=sessionStorage.getItem('teacherId');
+var cc=sessionStorage.getItem('classCode')||'';
+_teacherGroups=[];
+// Query by classCode
+if(cc){
+var q1=fb.fsMod.query(fb.fsMod.collection(fb.db,'lemonadeGroups'),fb.fsMod.where('classCode','==',cc));
+var s1=await fb.fsMod.getDocs(q1);
+s1.forEach(function(d){_teacherGroups.push({id:d.id,...d.data()})});
+}
+// Query by teacherId
+var q2=fb.fsMod.query(fb.fsMod.collection(fb.db,'lemonadeGroups'),fb.fsMod.where('teacherId','==',teacherId));
+var s2=await fb.fsMod.getDocs(q2);
+s2.forEach(function(d){
+if(!_teacherGroups.find(function(g){return g.id===d.id})){
+_teacherGroups.push({id:d.id,...d.data()});
+}
+});
+renderDashboard();
+}catch(e){console.error('Load groups error:',e)}
+}
+
+function renderDashboard(){
+var pending=_teacherGroups.filter(function(g){return g.status==='pending_approval'});
+var active=_teacherGroups.filter(function(g){return g.status==='approved'});
+var submitted=_teacherGroups.filter(function(g){return g.status==='submitted'});
+var graded=_teacherGroups.filter(function(g){return g.status==='graded'});
+
+// Tabs
+var tabs=[
+{id:'all',label:'All Groups',count:_teacherGroups.length},
+{id:'pending',label:'Needs Approval',count:pending.length},
+{id:'active',label:'Active',count:active.length},
+{id:'submitted',label:'Submitted',count:submitted.length},
+{id:'graded',label:'Graded',count:graded.length}
+];
+var th='';
+tabs.forEach(function(t){
+th+='<div class="dash-tab'+(_dashTab===t.id?' active':'')+'" onclick="switchDashTab(\''+t.id+'\')">'+t.label+'<span class="dt-count">'+t.count+'</span></div>';
+});
+document.getElementById('dashTabs').innerHTML=th;
+
+// Content
+var groups=_dashTab==='all'?_teacherGroups:_dashTab==='pending'?pending:_dashTab==='active'?active:_dashTab==='submitted'?submitted:graded;
+
+if(!groups.length){
+document.getElementById('dashContent').innerHTML='<div class="dash-empty"><div class="emoji">&#x1F34B;</div><p>No groups here yet. Students create groups from the Lemonade Day tool.</p></div>';
+return;
+}
+
+var h='';
+groups.forEach(function(g){h+=renderGroupCard(g)});
+document.getElementById('dashContent').innerHTML=h;
+}
+
+function switchDashTab(tab){
+_dashTab=tab;
+renderDashboard();
+}
+
+function renderGroupCard(g){
+var statusMap={pending_approval:'pending',approved:'approved',submitted:'submitted',graded:'graded'};
+var statusLabel={pending_approval:'Needs Approval',approved:'Active',submitted:'Submitted',graded:'Graded'};
+var plan=g.plan||{};
+var planFields=[plan.idea,plan.howToMake,plan.targetCustomers,plan.marketingPlan].filter(function(f){return f&&f.trim()});
+
+var h='<div class="group-card'+(g.status==='pending_approval'?' needs-approval':'')+'">';
+h+='<div class="gc-top"><div>';
+h+='<div class="gc-name">&#x1F34B; '+esc(g.groupName)+'</div>';
+h+='<div class="gc-company">'+esc(g.companyName||'No company name yet')+'</div>';
+h+='</div>';
+h+='<span class="gc-badge '+(statusMap[g.status]||'pending')+'">'+(statusLabel[g.status]||g.status)+'</span>';
+h+='</div>';
+
+// Meta
+h+='<div class="gc-meta">';
+h+='<span>'+((g.members||[]).length)+'/6 members</span>';
+h+='<span>Code: <strong>'+esc(g.groupCode||'')+'</strong></span>';
+if(g.createdAt)h+='<span>Created '+new Date(g.createdAt).toLocaleDateString()+'</span>';
+h+='</div>';
+
+// Members
+h+='<div class="gc-members">';
+(g.members||[]).forEach(function(m){
+var isLdr=m.studentId===(g.leader||{}).studentId;
+h+='<span class="gc-member'+(isLdr?' leader':'')+'">'+(isLdr?'&#x2B50; ':'')+esc(m.studentName)+(m.role?' \u2022 '+esc(m.role):'')+'</span>';
+});
+h+='</div>';
+
+// Progress stats
+if(g.status!=='pending_approval'){
+h+='<div class="gc-progress">';
+h+='<div class="gc-prog"><div class="gp-num">'+planFields.length+'/4</div><div class="gp-label">Plan Done</div></div>';
+h+='<div class="gc-prog"><div class="gp-num">'+(g.supplies||[]).length+'</div><div class="gp-label">Supplies</div></div>';
+h+='<div class="gc-prog"><div class="gp-num">'+(g.salesLog||[]).length+'</div><div class="gp-label">Sales</div></div>';
+h+='</div>';
+}
+
+// Score
+if(g.status==='graded'&&g.score!==undefined){
+h+='<div class="gc-score">Score: '+g.score+'%</div>';
+if(g.feedback)h+='<div style="font-size:13px;color:#78350F;margin-top:4px">'+esc(g.feedback)+'</div>';
+}
+
+// Action buttons
+h+='<div class="gc-btns">';
+if(g.status==='pending_approval'){
+h+='<button class="btn btn-small btn-green" onclick="approveGroup(\''+g.id+'\')">&#x2705; Approve</button>';
+h+='<button class="btn btn-small btn-red" onclick="deleteGroup(\''+g.id+'\')">&#x1F5D1; Delete</button>';
+}
+h+='<button class="btn btn-small btn-blue" onclick="viewGroupDetail(\''+g.id+'\')">&#x1F441; View Details</button>';
+if(g.status==='submitted'||g.status==='graded'){
+h+='<button class="btn btn-small btn-orange" onclick="openGroupGrade(\''+g.id+'\')">'+(g.status==='graded'?'&#x270F;&#xFE0F; Re-Grade':'&#x1F4DD; Grade')+'</button>';
+}
+h+='</div></div>';
+return h;
+}
+
+async function approveGroup(groupId){
+if(!confirm('Approve this group? They will be able to start working on their business plan.'))return;
+try{
+var fb=await getFirebaseDB();
+await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'lemonadeGroups',groupId),{status:'approved',approvedAt:new Date().toISOString()});
+showToast('Group approved!','');
+loadTeacherGroups();
+}catch(e){console.error(e);showToast('Error approving','error')}
+}
+
+async function deleteGroup(groupId){
+if(!confirm('Delete this group? This cannot be undone.'))return;
+try{
+var fb=await getFirebaseDB();
+await fb.fsMod.deleteDoc(fb.fsMod.doc(fb.db,'lemonadeGroups',groupId));
+showToast('Group deleted','');
+loadTeacherGroups();
+}catch(e){console.error(e);showToast('Error deleting','error')}
+}
+
+function viewGroupDetail(groupId){
+var g=_teacherGroups.find(function(x){return x.id===groupId});
+if(!g)return;
+document.getElementById('teacherDash').style.display='none';
+document.getElementById('groupDetailView').style.display='block';
+renderGroupDetail(g);
+}
+
+function backToDash(){
+document.getElementById('groupDetailView').style.display='none';
+document.getElementById('teacherDash').style.display='block';
+loadTeacherGroups();
+}
+
+function renderGroupDetail(g){
+var el=document.getElementById('groupDetailContent');
+var plan=g.plan||{};
+var supplies=g.supplies||[];
+var salesLog=g.salesLog||[];
+var files=g.files||[];
+var links=g.links||[];
+var totalCost=0;
+supplies.forEach(function(s){totalCost+=(parseFloat(s.qty)||0)*(parseFloat(s.unitCost)||0)});
+var totalUnits=0,totalRev=0;
+salesLog.forEach(function(s){totalUnits+=(parseInt(s.unitsSold)||0);totalRev+=(parseFloat(s.revenue)||0)});
+var totalProfit=totalRev-totalCost;
+
+var statusLabel={pending_approval:'Needs Approval',approved:'Active',submitted:'Submitted',graded:'Graded'};
+
+var h='<div class="grade-hdr" style="text-align:left"><h1>&#x1F34B; '+esc(g.companyName||g.groupName)+'</h1>';
+h+='<div class="gh-sub">'+esc(g.groupName)+' \u2022 '+(g.members||[]).length+' members \u2022 <span class="gc-badge '+({pending_approval:'pending',approved:'approved',submitted:'submitted',graded:'graded'}[g.status]||'pending')+'">'+(statusLabel[g.status]||g.status)+'</span></div></div>';
+
+// Team Members
+h+='<div class="g-card"><div class="gc-title">&#x1F465; Team Members</div>';
+h+='<div class="g-members">';
+(g.members||[]).forEach(function(m){
+var isLdr=m.studentId===(g.leader||{}).studentId;
+h+='<span class="g-member'+(isLdr?' leader':'')+'">'+(isLdr?'&#x2B50; ':'')+esc(m.studentName)+(m.role?' \u2014 '+esc(m.role):'')+'</span>';
+});
+h+='</div></div>';
+
+// Business Plan
+var hasPlan=plan.idea||plan.howToMake||plan.targetCustomers||plan.marketingPlan;
+h+='<div class="g-card"><div class="gc-title">&#x1F4DD; Business Plan</div>';
+if(hasPlan){
+if(plan.idea)h+='<div class="gc-row"><strong>&#x1F4A1; Product:</strong> '+esc(plan.idea)+'</div>';
+if(plan.howToMake)h+='<div class="gc-row"><strong>&#x1F6E0;&#xFE0F; How to Make:</strong> '+esc(plan.howToMake)+'</div>';
+if(plan.targetCustomers)h+='<div class="gc-row"><strong>&#x1F3AF; Target Customers:</strong> '+esc(plan.targetCustomers)+'</div>';
+if(plan.marketingPlan)h+='<div class="gc-row"><strong>&#x1F4E3; Marketing Plan:</strong> '+esc(plan.marketingPlan)+'</div>';
+}else{h+='<div class="gc-empty">No business plan written yet.</div>'}
+h+='</div>';
+
+// Costs & Pricing
+h+='<div class="g-card"><div class="gc-title">&#x1F4B0; Costs & Pricing</div>';
+if(supplies.length){
+h+='<table class="g-supply-tbl"><thead><tr><th>Item</th><th>Qty</th><th>Cost</th><th>Total</th></tr></thead><tbody>';
+supplies.forEach(function(s){
+var lc=(parseFloat(s.qty)||0)*(parseFloat(s.unitCost)||0);
+h+='<tr><td>'+esc(s.item||'\u2014')+'</td><td>'+(s.qty||0)+'</td><td>$'+(parseFloat(s.unitCost)||0).toFixed(2)+'</td><td>$'+lc.toFixed(2)+'</td></tr>';
+});
+h+='</tbody></table>';
+h+='<div class="gc-row" style="margin-top:8px"><strong>Total Cost:</strong> $'+totalCost.toFixed(2)+'</div>';
+}else{h+='<div class="gc-empty">No supplies listed yet.</div>'}
+var sellPrice=parseFloat(g.sellingPrice)||0;
+if(sellPrice>0){
+var costPer=supplies.length>0?totalCost/Math.max(1,supplies.reduce(function(a,s){return a+(parseFloat(s.qty)||0)},0)):0;
+h+='<div class="gc-row"><strong>Selling Price:</strong> $'+sellPrice.toFixed(2)+' \u2022 <strong>Profit/Item:</strong> <span style="color:'+(sellPrice-costPer>=0?'#059669':'#EF4444')+'">$'+(sellPrice-costPer).toFixed(2)+'</span></div>';
+}
+h+='</div>';
+
+// Sales Day
+if(salesLog.length){
+h+='<div class="g-card"><div class="gc-title">&#x1F6D2; Sales Day Results</div>';
+h+='<div class="g-stats">';
+h+='<div class="g-stat"><div class="gs-num">'+totalUnits+'</div><div class="gs-label">Items Sold</div></div>';
+h+='<div class="g-stat"><div class="gs-num">$'+totalRev.toFixed(2)+'</div><div class="gs-label">Revenue</div></div>';
+h+='<div class="g-stat" style="background:'+(totalProfit>=0?'#D1FAE5':'#FEE2E2')+'"><div class="gs-num" style="color:'+(totalProfit>=0?'#059669':'#EF4444')+'">$'+totalProfit.toFixed(2)+'</div><div class="gs-label">'+(totalProfit>=0?'Profit!':'Loss')+'</div></div>';
+h+='</div></div>';
+}
+
+// Files & Links
+if(files.length||links.length){
+h+='<div class="g-card"><div class="gc-title">&#x1F4CE; Files & Links</div>';
+if(files.length){
+h+='<div class="g-file-list">';
+files.forEach(function(f){h+='<a class="g-file" href="'+esc(f.url)+'" target="_blank">&#x1F4C4; '+esc(f.name)+'</a>'});
+h+='</div>';
+}
+if(links.length){
+h+='<div class="g-file-list" style="margin-top:8px">';
+links.forEach(function(l){h+='<a class="g-file" href="'+esc(l.url)+'" target="_blank">&#x1F517; '+esc(l.title||l.url)+'</a>'});
+h+='</div>';
+}
+h+='</div>';
+}
+
+// Notes
+if(g.notes){
+h+='<div class="g-card"><div class="gc-title">&#x1F4AC; Team Notes</div>';
+h+='<div class="gc-row" style="white-space:pre-wrap">'+esc(g.notes)+'</div></div>';
+}
+
+// Action buttons at bottom
+h+='<div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">';
+if(g.status==='pending_approval'){
+h+='<button class="btn btn-green" onclick="approveGroup(\''+g.id+'\');backToDash()">&#x2705; Approve Group</button>';
+}
+if(g.status==='submitted'||g.status==='graded'){
+h+='<button class="btn btn-orange" onclick="openGroupGrade(\''+g.id+'\')">&#x1F4DD; '+(g.status==='graded'?'Re-Grade':'Grade')+' This Project</button>';
+}
+h+='</div>';
+
+el.innerHTML=h;
+}
+
+function openGroupGrade(groupId){
+var g=_teacherGroups.find(function(x){return x.id===groupId});
+if(!g)return;
+// Show grading in the grade view
+document.getElementById('teacherDash').style.display='none';
+document.getElementById('groupDetailView').style.display='none';
+document.getElementById('gradeView').style.display='block';
+_gradeGroup=g;
+_gradeData={id:g.id,status:g.status,score:g.score,feedback:g.feedback,studentName:(g.members||[])[0]&&(g.members||[])[0].studentName||'Group'};
+renderGradeViewFromDash();
+}
+
+function renderGradeViewFromDash(){
+var g=_gradeGroup;
+var el=document.getElementById('gradeContent');
+// Update header
+document.getElementById('gradeTitle').textContent='Grade: '+esc(g.companyName||g.groupName);
+document.getElementById('gradeSubtitle').textContent=g.groupName+' \u2022 '+(g.members||[]).length+' members';
+document.getElementById('gradeGroupName').textContent=g.groupName||'Group';
+document.getElementById('gradeCompanyName').textContent=g.companyName||'';
+var statusEl=document.getElementById('gradeStatusBadge');
+var st=g.status||'pending';
+statusEl.textContent=({pending_approval:'Needs Approval',approved:'Active',submitted:'Submitted',graded:'Graded'}[st]||st);
+statusEl.style.background=st==='submitted'?'rgba(245,158,11,.15)':st==='graded'?'rgba(16,185,129,.15)':'rgba(17,138,178,.15)';
+statusEl.style.color=st==='submitted'?'#D97706':st==='graded'?'#059669':'#0EA5E9';
+if(g.createdAt)document.getElementById('gradeDate').textContent=new Date(g.createdAt).toLocaleDateString();
+// Change back link to go to dashboard
+document.querySelector('#gradeView .grade-back').onclick=function(e){
+e.preventDefault();
+document.getElementById('gradeView').style.display='none';
+document.getElementById('teacherDash').style.display='block';
+loadTeacherGroups();
+};
+document.querySelector('#gradeView .grade-back').href='#';
+document.querySelector('#gradeView .grade-back').textContent='\u2190 Back to Dashboard';
+
+// Reuse renderGradeView but with dashboard data
+renderGradeView();
+}
+
+// Override grade submit to also handle dashboard mode
+var _origSubmitGrade=submitLemonadeGrade;
+async function submitLemonadeGradeFromDash(){
+if(!_gradeGroup)return;
+var score=parseInt(document.getElementById('gradeScoreRange').value);
+var feedback=document.getElementById('gradeTeacherFeedback').value.trim();
+try{
+var fb=await getFirebaseDB();
+await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'lemonadeGroups',_gradeGroup.id),{status:'graded',score:score,feedback:feedback,gradedAt:new Date().toISOString()});
+_gradeGroup.status='graded';_gradeGroup.score=score;_gradeGroup.feedback=feedback;
+showToast('Graded: '+score+'%','');
+// Go back to dashboard
+document.getElementById('gradeView').style.display='none';
+document.getElementById('teacherDash').style.display='block';
+loadTeacherGroups();
+}catch(e){alert('Error grading: '+e.message)}
 }
 
 // ===== TEACHER GRADING MODE =====
@@ -480,13 +876,17 @@ el.innerHTML=h;
 }
 
 async function submitLemonadeGrade(){
+// Dashboard mode (no assignment, just grading the group directly)
+if(_gradeGroup&&(!_gradeData||!_gradeData.id||_gradeData.id===_gradeGroup.id)){
+submitLemonadeGradeFromDash();
+return;
+}
 if(!_gradeData)return;
 var score=parseInt(document.getElementById('gradeScoreRange').value);
 var feedback=document.getElementById('gradeTeacherFeedback').value.trim();
 try{
 var fb=await getFirebaseDB();
 await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'assignments',_gradeData.id),{status:'graded',score:score,feedback:feedback,gradedAt:new Date().toISOString()});
-// Also update lemonade group status
 if(_gradeGroup){
 await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'lemonadeGroups',_gradeGroup.id),{status:'graded',score:score,feedback:feedback});
 }
