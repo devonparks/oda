@@ -9,8 +9,8 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#FFF8E1;font-family:'Quicksand',sans-serif;min-height:100vh}
 .wrap{max-width:700px;margin:0 auto;padding:20px 16px}
-.back-link{display:inline-block;margin-bottom:16px;font-family:'Fredoka',sans-serif;font-size:14px;color:#F59E0B;text-decoration:none;font-weight:600}
-.back-link:hover{color:#D97706}
+.back-link{display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;padding:10px 18px;border-radius:12px;font-family:'Fredoka',sans-serif;font-size:14px;color:#92400E;text-decoration:none;font-weight:600;background:#FEF3C7;border:2px solid #F59E0B;transition:all .15s}
+.back-link:hover{background:#FDE68A;color:#78350F}
 .hdr{text-align:center;margin-bottom:24px}
 .hdr .emoji{font-size:64px;margin-bottom:8px}
 .hdr h1{font-family:'Fredoka',sans-serif;font-size:36px;font-weight:700;background:linear-gradient(135deg,#F59E0B,#EF4444,#F59E0B);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
@@ -51,7 +51,11 @@ body{background:#FFF8E1;font-family:'Quicksand',sans-serif;min-height:100vh}
 .rule .ico{font-size:22px;flex-shrink:0}
 .rule .txt{font-size:15px;color:#78350F;font-weight:500;line-height:1.5}
 .roles-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-.role-tag{background:#fff;border-radius:10px;padding:6px 12px;font-size:13px;font-weight:600;color:#92400E;border:1px solid rgba(245,158,11,.2)}
+.role-tag{background:#fff;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;color:#92400E;border:2px solid rgba(245,158,11,.2);cursor:pointer;transition:all .2s;position:relative}
+.role-tag:hover{border-color:#F59E0B;background:#FFFBEB;transform:translateY(-1px)}
+.role-tag.expanded{border-color:#F59E0B;background:#FEF3C7}
+.role-desc{display:none;font-size:12px;color:#78350F;font-weight:500;margin-top:4px;line-height:1.4}
+.role-tag.expanded .role-desc{display:block}
 
 /* Buttons */
 .btn{font-family:'Fredoka',sans-serif;font-weight:600;border:none;cursor:pointer;letter-spacing:.5px;transition:all .15s;display:inline-block;text-align:center;border-radius:18px;color:#fff}
@@ -362,7 +366,15 @@ var currentGroup=null,currentGroupId=null;
 var _unsubGroup=null; // Firestore listener
 var _saveTimer=null;
 var _aiLoading=false;
-var ROLES=['CEO - The Boss','CFO - Money Manager','Marketing Director','Sales Lead','Product Designer','Operations Manager'];
+var ROLES=[
+{name:'CEO - The Boss',desc:'Leads the team, makes big decisions, keeps everyone on track'},
+{name:'CFO - Money Manager',desc:'Tracks costs, counts money, manages the budget'},
+{name:'Marketing Director',desc:'Creates signs, ads, and ideas to attract customers'},
+{name:'Sales Lead',desc:'Talks to customers, pitches the product, closes the deal'},
+{name:'Product Designer',desc:'Designs and creates the products you sell'},
+{name:'Operations Manager',desc:'Organizes supplies, sets up the booth, keeps things running'}
+];
+var ROLE_NAMES=ROLES.map(function(r){return r.name});
 
 // ===== TOAST =====
 var _toastTimer=null;
@@ -1097,9 +1109,9 @@ h+='<div class="rule"><span class="ico">&#x1F3A8;</span><span class="txt">Plan a
 h+='<div class="rule"><span class="ico">&#x1F4B0;</span><span class="txt">On Lemonade Day, you run your booth and <strong>make real money</strong></span></div>';
 h+='</div>';
 h+='<div class="rules" style="background:#FDF4FF;border-color:rgba(168,85,247,.15)">';
-h+='<h3 style="color:#6B21A8">&#x1F4BC; Business Roles</h3>';
+h+='<h3 style="color:#6B21A8">&#x1F4BC; Business Roles <span style="font-size:12px;font-weight:500;color:#9333EA">(tap to learn more)</span></h3>';
 h+='<div class="roles-grid">';
-for(var i=0;i<ROLES.length;i++)h+='<div class="role-tag">'+ROLES[i]+'</div>';
+for(var i=0;i<ROLES.length;i++)h+='<div class="role-tag" onclick="this.classList.toggle(\'expanded\')">'+esc(ROLES[i].name)+'<div class="role-desc">'+esc(ROLES[i].desc)+'</div></div>';
 h+='</div></div></div>';
 }else if(_wtStep===2){
 // Step 3: Brainstorm your idea
@@ -1111,8 +1123,9 @@ h+='<h3>&#x1F914; What Could You Sell?</h3>';
 h+='<div class="rule"><span class="ico">&#x1F9F8;</span><span class="txt">Fidget toys, slime, or stress balls</span></div>';
 h+='<div class="rule"><span class="ico">&#x1F56F;</span><span class="txt">Candles, soaps, or bath bombs</span></div>';
 h+='<div class="rule"><span class="ico">&#x1F3A8;</span><span class="txt">Custom art, stickers, or friendship bracelets</span></div>';
-h+='<div class="rule"><span class="ico">&#x1F370;</span><span class="txt">Baked goods, lemonade, or candy</span></div>';
 h+='<div class="rule"><span class="ico">&#x1F9EA;</span><span class="txt">STEM kits, bookmarks, or plant pots</span></div>';
+h+='<div class="rule"><span class="ico">&#x1F48E;</span><span class="txt">Jewelry, keychains, or custom phone grips</span></div>';
+h+='<div style="margin-top:12px;padding:10px 14px;background:#FEE2E2;border-radius:10px;border:1.5px solid #FECACA;font-size:14px;font-weight:600;color:#991B1B">&#x1F6AB; <strong>No food or drinks allowed</strong> at Lemonade Day. Products only!</div>';
 h+='</div>';
 h+='<div style="margin-top:16px">';
 h+='<label class="input-label">&#x2728; What\'s YOUR big idea? (optional)</label>';
@@ -1152,9 +1165,9 @@ var idea=document.getElementById('wtIdea')?document.getElementById('wtIdea').val
 var btn=document.getElementById('wtAiBtn');
 if(btn){btn.disabled=true;btn.innerHTML='&#x1F916; Thinking...'}
 try{
-var prompt='You are a friendly AI brainstorm buddy for a K-12 student planning a Lemonade Day business. ';
-if(idea)prompt+='They are thinking about selling: "'+idea+'". Give them 3 quick tips to make this idea awesome and 2 alternative product ideas they might like. Keep it fun and encouraging!';
-else prompt+='They have not decided what to sell yet. Give them 5 creative product ideas that kids can make and sell at a school Lemonade Day event. Be specific and fun! Include emojis.';
+var prompt='You are a friendly AI brainstorm buddy for a K-12 student planning a Lemonade Day business. IMPORTANT RULE: No food or drinks are allowed at this event - only non-food products. If the student suggests food/drinks, gently redirect them to product-only ideas. ';
+if(idea)prompt+='They are thinking about selling: "'+idea+'". If this is a food/drink item, kindly explain no food is allowed and suggest 3 similar non-food alternatives. Otherwise give them 3 quick tips to make this idea awesome and 2 alternative product ideas they might like. Keep it fun and encouraging!';
+else prompt+='They have not decided what to sell yet. Give them 5 creative NON-FOOD product ideas that kids can make and sell at a school Lemonade Day event (fidget toys, candles, art, jewelry, slime, STEM kits, etc). Be specific and fun! Include emojis.';
 var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt,maxTokens:300})});
 var data=await resp.json();
 var bubble=document.getElementById('wtAiBubble');
@@ -1489,8 +1502,8 @@ h+='<div style="display:flex;align-items:center;gap:6px">';
 if(isLeader||m.studentId===studentId){
 h+='<select onchange="updateRole('+i+',this.value)">';
 h+='<option value="">Pick role...</option>';
-for(var r=0;r<ROLES.length;r++){
-h+='<option value="'+ROLES[r]+'"'+(m.role===ROLES[r]?' selected':'')+'>'+ROLES[r]+'</option>';
+for(var r=0;r<ROLE_NAMES.length;r++){
+h+='<option value="'+ROLE_NAMES[r]+'"'+(m.role===ROLE_NAMES[r]?' selected':'')+'>'+ROLE_NAMES[r]+'</option>';
 }
 h+='</select>';
 }else{
@@ -1795,10 +1808,10 @@ _aiLoading=true;
 var area=document.getElementById('aiArea-'+field);
 if(area)area.innerHTML='<div style="text-align:center;padding:10px;color:#3B82F6;font-weight:700;font-size:13px">AI is thinking... <span style="display:inline-block;width:12px;height:12px;border:2px solid #3B82F6;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-left:4px"></span></div>';
 var prompts={
-idea:'A group of students (ages 8-14) need to come up with a product to sell at their school\'s Lemonade Day event. They need ideas for things they can actually MAKE and sell. No food allowed. Help them brainstorm by asking 3-4 fun questions about what they\'re good at and interested in, then suggest 3-4 creative product ideas based on real things kids have made (fidget toys, candles, art prints, STEM kits, jewelry, slime, etc). Keep it exciting and age-appropriate. Use plain text, no markdown.',
-howToMake:'A group of students is making products to sell. Help them plan the step-by-step process by asking 3-4 organizing questions: What materials do you need? How long does each one take to make? How many can you make before sell day? Can you make an assembly line? Keep it practical and encouraging. Use plain text, no markdown.',
-marketing:'A group of students needs to attract customers to their booth on Lemonade Day. Help them brainstorm marketing ideas by asking questions and suggesting tactics: signs, demos, free samples of non-food items, social media, flyers, booth decoration, a catchy slogan. Keep it fun and realistic for kids ages 8-14. Use plain text, no markdown.',
-pricing:'A group of students needs help figuring out the right price for their product. Ask them about their costs, what similar products sell for, and help them understand profit margins. Explain in simple terms: if it costs $2 to make and you sell for $5, you make $3 profit. Help them find a price that is fair but also makes good money. Keep it simple and encouraging. Use plain text, no markdown.'
+idea:'A group of students (ages 8-14) need to come up with a product to sell at their school\'s Lemonade Day event. They need ideas for things they can actually MAKE and sell. IMPORTANT: No food or drinks are allowed - only non-food products. If they mention food/drinks, gently redirect them. Help them brainstorm by asking 3-4 fun questions about what they\'re good at and interested in, then suggest 3-4 creative product ideas based on real things kids have made (fidget toys, candles, art prints, STEM kits, jewelry, slime, etc). Keep it exciting and age-appropriate. Use plain text, no markdown.',
+howToMake:'A group of students is making non-food products to sell at Lemonade Day. No food or drinks allowed. Help them plan the step-by-step process by asking 3-4 organizing questions: What materials do you need? How long does each one take to make? How many can you make before sell day? Can you make an assembly line? Keep it practical and encouraging. Use plain text, no markdown.',
+marketing:'A group of students needs to attract customers to their booth on Lemonade Day. No food or drinks are allowed at this event. Help them brainstorm marketing ideas by asking questions and suggesting tactics: signs, demos, free samples of non-food items, social media, flyers, booth decoration, a catchy slogan. Keep it fun and realistic for kids ages 8-14. Use plain text, no markdown.',
+pricing:'A group of students needs help figuring out the right price for their non-food product at Lemonade Day. Ask them about their costs, what similar products sell for, and help them understand profit margins. Explain in simple terms: if it costs $2 to make and you sell for $5, you make $3 profit. Help them find a price that is fair but also makes good money. Keep it simple and encouraging. Use plain text, no markdown.'
 };
 var prompt=prompts[field]||prompts.idea;
 // Add context from their current plan
