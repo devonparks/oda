@@ -343,6 +343,30 @@ select.settings-input{cursor:pointer}
 .notif-badge{background:var(--accent3);color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;margin-left:4px}
 .notif-badge.zero{display:none}
 
+/* Lemonade Day Groups */
+.lem-group-card{background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:18px;margin-bottom:12px;transition:all .15s}
+.lem-group-card:hover{border-color:var(--gold);transform:translateY(-1px)}
+.lem-group-card.needs-approval{border-color:var(--accent3);border-style:dashed}
+.lem-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.lem-title{font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px}
+.lem-company{font-size:14px;color:var(--gold);font-weight:700;margin-top:2px}
+.lem-meta{font-size:13px;color:var(--text2);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap}
+.lem-status{font-size:12px;font-weight:700;padding:4px 10px;border-radius:6px}
+.lem-status.pending{background:rgba(239,71,111,.15);color:var(--accent3)}
+.lem-status.approved{background:rgba(6,214,160,.12);color:var(--accent)}
+.lem-status.submitted{background:rgba(255,209,102,.12);color:var(--gold)}
+.lem-status.graded{background:rgba(168,85,247,.12);color:#a855f7}
+.lem-members{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.lem-member{font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;background:var(--surface2);color:var(--text2)}
+.lem-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.lem-progress{margin-top:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.lem-prog-item{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center}
+.lem-prog-item .lp-num{font-family:'Space Mono',monospace;font-size:16px;font-weight:700;color:var(--accent)}
+.lem-prog-item .lp-label{font-size:10px;color:var(--text2);font-weight:600;margin-top:2px}
+.lem-detail-section{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.lem-detail-section .ld-title{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.lem-detail-section .ld-value{font-size:14px;line-height:1.6;color:var(--text)}
+
 /* AI panels */
 .ai-result{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:10px;font-size:15px;line-height:1.6;max-height:300px;overflow-y:auto;white-space:pre-wrap}
 .ai-btn{display:inline-flex;align-items:center;gap:6px}
@@ -390,7 +414,7 @@ select.settings-input{cursor:pointer}
 <div class="quick-grid">
 <div class="quick-card" onclick="switchTab('roster')"><span class="quick-emoji">&#x1F465;</span><div class="quick-title">Manage Roster</div><div class="quick-desc">Add students, view progress, assign work</div></div>
 <a class="quick-card" href="elevator.html" target="_blank"><span class="quick-emoji">&#x1F3A4;</span><div class="quick-title">Elevator Pitch</div><div class="quick-desc">Quick 1-on-1 pitch builder</div></a>
-<a class="quick-card" href="lemonade.html" target="_blank"><span class="quick-emoji">&#x1F34B;</span><div class="quick-title">Lemonade Day</div><div class="quick-desc">Sign ups and hype</div></a>
+<div class="quick-card" onclick="switchTab('tools');setTimeout(showLemonadeGroups,200)"><span class="quick-emoji">&#x1F34B;</span><div class="quick-title">Lemonade Day</div><div class="quick-desc">Manage groups, approve, grade</div></div>
 <a class="quick-card" href="pitch.html" target="_blank"><span class="quick-emoji">&#x1F4A1;</span><div class="quick-title">Pitch Challenge</div><div class="quick-desc">Full business pitch</div></a>
 </div>
 
@@ -423,6 +447,18 @@ select.settings-input{cursor:pointer}
 <div class="tools-grid" id="teacherToolsGrid"></div>
 <div style="font-size:15px;font-weight:800;margin:20px 0 10px">&#x1F3AE; Coming Soon</div>
 <div class="tools-grid" id="teacherToolsComingSoon"></div>
+<div id="lemonadeGroupsSection" style="display:none;margin-top:20px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<div style="font-size:16px;font-weight:800">&#x1F34B; Lemonade Day Groups</div>
+<div style="display:flex;gap:6px">
+<button class="btn btn-outline btn-sm" onclick="loadLemonadeGroups()">&#x1F504; Refresh</button>
+<a class="btn btn-gold btn-sm" href="lemonade.html" target="_blank">Open Tool &#x2197;&#xFE0F;</a>
+</div>
+</div>
+<div id="lemPendingSection"></div>
+<div id="lemActiveSection"></div>
+<div id="lemGradedSection"></div>
+</div>
 </div>
 
 <!-- ===== ROSTER ===== -->
@@ -546,6 +582,7 @@ select.settings-input{cursor:pointer}
 <div class="assign-opt" onclick="pickOpt(this,'vocab-58')"><span class="opt-emoji">&#x1F4AC;</span><div><div class="opt-name">Vocab 5-8</div><div class="opt-desc">Match words to meanings</div></div></div>
 <div class="assign-opt" onclick="pickOpt(this,'pitch-challenge')"><span class="opt-emoji">&#x1F4A1;</span><div><div class="opt-name">Pitch Challenge</div><div class="opt-desc">Build a business pitch</div></div></div>
 <div class="assign-opt" onclick="pickOpt(this,'elevator-pitch')"><span class="opt-emoji">&#x1F3A4;</span><div><div class="opt-name">Elevator Pitch</div><div class="opt-desc">10-question personal pitch</div></div></div>
+<div class="assign-opt" onclick="pickOpt(this,'lemonade-day')"><span class="opt-emoji">&#x1F34B;</span><div><div class="opt-name">Lemonade Day</div><div class="opt-desc">Group business project</div></div></div>
 </div>
 <div class="due-field">
 <label>Due Date (optional)</label>
@@ -602,6 +639,7 @@ select.settings-input{cursor:pointer}
 <div class="tool-pick-grid" id="toolPickGrid">
 <div class="tool-pick" data-val="pitch-challenge" onclick="pickTool(this)"><span class="tp-emoji">&#x1F4A1;</span><span class="tp-name">Pitch Challenge</span></div>
 <div class="tool-pick" data-val="elevator-pitch" onclick="pickTool(this)"><span class="tp-emoji">&#x1F3A4;</span><span class="tp-name">Elevator Pitch</span></div>
+<div class="tool-pick" data-val="lemonade-day" onclick="pickTool(this)"><span class="tp-emoji">&#x1F34B;</span><span class="tp-name">Lemonade Day</span></div>
 <div class="tool-pick" data-val="spelling-k2" onclick="pickTool(this)"><span class="tp-emoji">&#x1F4D6;</span><span class="tp-name">Spelling K-2</span></div>
 <div class="tool-pick" data-val="spelling-34" onclick="pickTool(this)"><span class="tp-emoji">&#x1F4D6;</span><span class="tp-name">Spelling 3-4</span></div>
 <div class="tool-pick" data-val="spelling-58" onclick="pickTool(this)"><span class="tp-emoji">&#x1F4D6;</span><span class="tp-name">Spelling 5-8</span></div>
@@ -619,6 +657,7 @@ select.settings-input{cursor:pointer}
 <option value="vocab-58">Vocab 5-8</option>
 <option value="pitch-challenge">Pitch Challenge</option>
 <option value="elevator-pitch">Elevator Pitch</option>
+<option value="lemonade-day">Lemonade Day</option>
 </select></div>
 </div>
 <div class="type-panel" id="panel-assignment">
@@ -686,6 +725,14 @@ select.settings-input{cursor:pointer}
 <div id="aiGenActions" style="display:none;margin-top:10px">
 <button class="btn btn-accent" onclick="useAiAssignment()">Use This Assignment &#x2705;</button>
 </div>
+</div>
+</div>
+
+<!-- LEMONADE GRADE MODAL -->
+<div class="grade-panel" id="lemGradePanel">
+<div class="grade-modal">
+<button class="modal-close" onclick="closeLemGrade()">&times;</button>
+<div id="lemGradeContent"></div>
 </div>
 </div>
 
@@ -769,7 +816,7 @@ location.reload(true);
 var ASSIGN_TYPES={
 'spelling-k2':{title:'Spelling K-2',emoji:'\u{1F4D6}'},'spelling-34':{title:'Spelling 3-4',emoji:'\u{1F4D6}'},'spelling-58':{title:'Spelling 5-8',emoji:'\u{1F4D6}'},
 'vocab-k2':{title:'Vocab K-2',emoji:'\u{1F4AC}'},'vocab-34':{title:'Vocab 3-4',emoji:'\u{1F4AC}'},'vocab-58':{title:'Vocab 5-8',emoji:'\u{1F4AC}'},
-'pitch-challenge':{title:'Pitch Challenge',emoji:'\u{1F4A1}'},'elevator-pitch':{title:'Elevator Pitch',emoji:'\u{1F3A4}'},
+'pitch-challenge':{title:'Pitch Challenge',emoji:'\u{1F4A1}'},'elevator-pitch':{title:'Elevator Pitch',emoji:'\u{1F3A4}'},'lemonade-day':{title:'Lemonade Day',emoji:'\u{1F34B}'},
 'free-play':{title:'Free Play',emoji:'\u{1F3AE}'},
 'worksheet':{title:'Worksheet',emoji:'\u{1F4C4}'},
 'link':{title:'Link',emoji:'\u{1F517}'},
@@ -785,7 +832,7 @@ var m={home:0,tools:1,roster:2,assignments:3,arcade:4,settings:5};
 if(m[id]!==undefined)tabs[m[id]].classList.add('active');
 closeProfile();
 if(id==='assignments'){renderAssignmentsList();populateClassFilters()}
-if(id==='tools')renderMyTools();
+if(id==='tools'){renderMyTools();showLemonadeGroups()}
 }
 window.switchTab=switchTab;
 
@@ -1212,6 +1259,22 @@ if(pc.hook)h+='<div class="pitch-text">'+esc(pc.hook)+'</div>';
 h+='</div></div>';
 }
 
+
+// Lemonade Day Groups
+var lemQ=window.fbQuery(window.fbCollection(window.fbDb,'lemonadeGroups'),window.fbWhere('memberIds','array-contains',sid));
+var lemSnap=await window.fbGetDocs(lemQ);
+if(!lemSnap.empty){
+lemSnap.forEach(function(d){
+var lg=d.data();
+h+='<div class="work-card"><div class="work-header"><span class="work-type" style="background:rgba(245,158,11,.12);color:#F59E0B">&#x1F34B; Lemonade Day</span><span class="work-date">'+(lg.createdAt?new Date(lg.createdAt).toLocaleDateString():'')+'</span></div>';
+h+='<div class="work-body">';
+h+='<div class="wl"><span class="wl-label">Company:</span> <span class="wl-value">'+esc(lg.companyName||'')+'</span></div>';
+h+='<div class="wl"><span class="wl-label">Group:</span> <span class="wl-value">'+esc(lg.groupName||'')+' ('+((lg.members||[]).length)+' members)</span></div>';
+h+='<div class="wl"><span class="wl-label">Status:</span> <span class="wl-value">'+(lg.status||'?')+'</span></div>';
+if(lg.score!==undefined&&lg.score!==null)h+='<div class="wl"><span class="wl-label">Score:</span> <span class="wl-value" style="color:var(--gold)">'+lg.score+'%</span></div>';
+h+='</div></div>';
+});
+}
 
 // Spelling Results
 var srQ=window.fbQuery(window.fbCollection(window.fbDb,'spellingResults'),window.fbWhere('studentId','==',sid));
@@ -1902,7 +1965,7 @@ btn.textContent='\u{1F916} AI Suggest';btn.disabled=false;
 window.aiSuggestGrade=aiSuggestGrade;
 
 // ===== TEMPLATES =====
-var toolLabels={'spelling-k2':'Spelling Bee K-2','spelling-34':'Spelling Bee 3-4','spelling-58':'Spelling Bee 5-8','vocab-k2':'Vocab K-2','vocab-34':'Vocab 3-4','vocab-58':'Vocab 5-8','pitch-challenge':'Pitch Challenge','elevator-pitch':'Elevator Pitch'};
+var toolLabels={'spelling-k2':'Spelling Bee K-2','spelling-34':'Spelling Bee 3-4','spelling-58':'Spelling Bee 5-8','vocab-k2':'Vocab K-2','vocab-34':'Vocab 3-4','vocab-58':'Vocab 5-8','pitch-challenge':'Pitch Challenge','elevator-pitch':'Elevator Pitch','lemonade-day':'Lemonade Day'};
 
 async function loadTemplates(){
 var list=document.getElementById('templateList');
@@ -2055,7 +2118,7 @@ var toolCounts={};
 allAssignments.forEach(function(a){var t=a.toolType||a.type;toolCounts[t]=(toolCounts[t]||0)+1});
 var topTool='--';var topCount=0;
 Object.keys(toolCounts).forEach(function(k){if(toolCounts[k]>topCount){topCount=toolCounts[k];topTool=k}});
-var toolNames={'spelling-k2':'Spell K2','spelling-34':'Spell 3-4','spelling-58':'Spell 5-8','vocab-k2':'Vocab K2','vocab-34':'Vocab 3-4','vocab-58':'Vocab 5-8','pitch-challenge':'Pitch','elevator-pitch':'Elevator',tool:'Tool',worksheet:'Worksheet',link:'Link',custom:'Custom'};
+var toolNames={'spelling-k2':'Spell K2','spelling-34':'Spell 3-4','spelling-58':'Spell 5-8','vocab-k2':'Vocab K2','vocab-34':'Vocab 3-4','vocab-58':'Vocab 5-8','pitch-challenge':'Pitch','elevator-pitch':'Elevator','lemonade-day':'Lemonade',tool:'Tool',worksheet:'Worksheet',link:'Link',custom:'Custom'};
 document.getElementById('anTopTool').textContent=toolNames[topTool]||topTool;
 
 // Bar chart
@@ -2326,6 +2389,330 @@ if(fb)fb.value=text;
 if(btn)btnLoading(btn,false,'\u{1F916} AI Write Feedback');
 }
 window.aiWriteFeedback=aiWriteFeedback;
+
+// ===== LEMONADE DAY GROUPS =====
+var lemonadeGroups=[];
+
+function showLemonadeGroups(){
+var sec=document.getElementById('lemonadeGroupsSection');
+if(sec){sec.style.display='block';loadLemonadeGroups()}
+}
+window.showLemonadeGroups=showLemonadeGroups;
+
+async function loadLemonadeGroups(){
+try{
+var q=window.fbQuery(window.fbCollection(window.fbDb,'lemonadeGroups'),window.fbWhere('classCode','==',window.teacherData.classCode||''));
+var snap=await window.fbGetDocs(q);
+lemonadeGroups=[];snap.forEach(function(d){lemonadeGroups.push({id:d.id,...d.data()})});
+// Also try by teacherId
+var q2=window.fbQuery(window.fbCollection(window.fbDb,'lemonadeGroups'),window.fbWhere('teacherId','==',window.currentTeacher.uid));
+var snap2=await window.fbGetDocs(q2);
+snap2.forEach(function(d){
+if(!lemonadeGroups.find(function(g){return g.id===d.id})){
+lemonadeGroups.push({id:d.id,...d.data()});
+}
+});
+renderLemonadeGroups();
+}catch(e){console.error('Load lemonade groups error:',e)}
+}
+window.loadLemonadeGroups=loadLemonadeGroups;
+
+function renderLemonadeGroups(){
+var pending=lemonadeGroups.filter(function(g){return g.status==='pending_approval'});
+var active=lemonadeGroups.filter(function(g){return g.status==='approved'});
+var submitted=lemonadeGroups.filter(function(g){return g.status==='submitted'});
+var graded=lemonadeGroups.filter(function(g){return g.status==='graded'});
+
+// Pending approval
+var pEl=document.getElementById('lemPendingSection');
+if(pending.length){
+var h='<div style="font-size:14px;font-weight:700;color:var(--accent3);margin-bottom:8px;display:flex;align-items:center;gap:6px">&#x26A0;&#xFE0F; Needs Approval ('+pending.length+')</div>';
+pending.forEach(function(g){h+=renderLemGroupCard(g)});
+pEl.innerHTML=h;
+}else{pEl.innerHTML=''}
+
+// Active + Submitted
+var aEl=document.getElementById('lemActiveSection');
+var allActive=active.concat(submitted);
+if(allActive.length){
+var h='<div style="font-size:14px;font-weight:700;color:var(--accent);margin:12px 0 8px;display:flex;align-items:center;gap:6px">&#x2705; Active Groups ('+allActive.length+')</div>';
+allActive.forEach(function(g){h+=renderLemGroupCard(g)});
+aEl.innerHTML=h;
+}else if(!pending.length){aEl.innerHTML='<div class="empty-state"><span class="emoji">&#x1F34B;</span><p>No Lemonade Day groups yet. Students create groups from the Lemonade Day tool.</p></div>'}
+else{aEl.innerHTML=''}
+
+// Graded
+var gEl=document.getElementById('lemGradedSection');
+if(graded.length){
+var h='<div style="font-size:14px;font-weight:700;color:#a855f7;margin:12px 0 8px;display:flex;align-items:center;gap:6px">&#x2B50; Graded ('+graded.length+')</div>';
+graded.forEach(function(g){h+=renderLemGroupCard(g)});
+gEl.innerHTML=h;
+}else{gEl.innerHTML=''}
+}
+
+function renderLemGroupCard(g){
+var h='<div class="lem-group-card'+(g.status==='pending_approval'?' needs-approval':'')+'">';
+h+='<div class="lem-header">';
+h+='<div><div class="lem-title">&#x1F34B; '+esc(g.groupName)+'</div>';
+h+='<div class="lem-company">'+esc(g.companyName||'No company name')+'</div></div>';
+var statusMap={pending_approval:'pending',approved:'approved',submitted:'submitted',graded:'graded'};
+var statusLabel={pending_approval:'Needs Approval',approved:'Active',submitted:'Submitted',graded:'Graded'};
+h+='<span class="lem-status '+(statusMap[g.status]||'pending')+'">'+( statusLabel[g.status]||g.status)+'</span>';
+h+='</div>';
+
+// Members
+h+='<div class="lem-meta">';
+h+='<span>'+((g.members||[]).length)+'/6 members</span>';
+h+='<span>Code: <strong>'+esc(g.groupCode||'')+'</strong></span>';
+if(g.createdAt)h+='<span>Created: '+new Date(g.createdAt).toLocaleDateString()+'</span>';
+h+='</div>';
+h+='<div class="lem-members">';
+(g.members||[]).forEach(function(m){
+h+='<span class="lem-member">'+(m.studentId===(g.leader||{}).studentId?'&#x2B50; ':'')+esc(m.studentName)+(m.role?' &bull; '+esc(m.role):'')+'</span>';
+});
+h+='</div>';
+
+// Progress stats for active/submitted groups
+if(g.status!=='pending_approval'){
+var plan=g.plan||{};
+var planFields=[plan.idea,plan.howToMake,plan.targetCustomers,plan.marketingPlan].filter(function(f){return f&&f.trim()});
+var suppliesCount=(g.supplies||[]).length;
+var salesCount=(g.salesLog||[]).length;
+h+='<div class="lem-progress">';
+h+='<div class="lem-prog-item"><div class="lp-num">'+planFields.length+'/4</div><div class="lp-label">Plan Done</div></div>';
+h+='<div class="lem-prog-item"><div class="lp-num">'+suppliesCount+'</div><div class="lp-label">Supplies</div></div>';
+h+='<div class="lem-prog-item"><div class="lp-num">'+salesCount+'</div><div class="lp-label">Sales</div></div>';
+h+='</div>';
+}
+
+// Score if graded
+if(g.status==='graded'&&g.score!==undefined){
+h+='<div style="margin-top:8px;font-family:Space Mono,monospace;font-size:16px;color:var(--gold);font-weight:700">Score: '+g.score+'%</div>';
+if(g.feedback)h+='<div style="font-size:13px;color:var(--text2);margin-top:4px">'+esc(g.feedback)+'</div>';
+}
+
+// Action buttons
+h+='<div class="lem-actions">';
+if(g.status==='pending_approval'){
+h+='<button class="btn btn-accent btn-sm" onclick="approveLemGroup(\''+g.id+'\')">&#x2705; Approve</button>';
+h+='<button class="btn btn-red btn-sm" onclick="deleteLemGroup(\''+g.id+'\')">&#x1F5D1; Delete</button>';
+}
+if(g.status==='approved'||g.status==='submitted'){
+h+='<button class="btn btn-blue btn-sm" onclick="viewLemGroup(\''+g.id+'\')">&#x1F441; View Details</button>';
+}
+if(g.status==='submitted'){
+h+='<button class="btn btn-gold btn-sm" onclick="openLemGrade(\''+g.id+'\')">&#x1F4DD; Grade</button>';
+}
+if(g.status==='graded'){
+h+='<button class="btn btn-blue btn-sm" onclick="viewLemGroup(\''+g.id+'\')">&#x1F441; View</button>';
+h+='<button class="btn btn-gold btn-sm" onclick="openLemGrade(\''+g.id+'\')">&#x270F;&#xFE0F; Re-Grade</button>';
+}
+h+='</div></div>';
+return h;
+}
+
+async function approveLemGroup(groupId){
+if(!confirm('Approve this group? They will be able to start working on their business plan.'))return;
+try{
+await window.fbUpdateDoc(window.fbDoc(window.fbDb,'lemonadeGroups',groupId),{status:'approved',approvedAt:new Date().toISOString()});
+showToast('Group approved!','success');
+loadLemonadeGroups();
+}catch(e){console.error(e);showToast('Error approving group','error')}
+}
+window.approveLemGroup=approveLemGroup;
+
+async function deleteLemGroup(groupId){
+if(!confirm('Delete this group? This cannot be undone.'))return;
+try{
+await window.fbDeleteDoc(window.fbDoc(window.fbDb,'lemonadeGroups',groupId));
+showToast('Group deleted','success');
+loadLemonadeGroups();
+}catch(e){console.error(e);showToast('Error deleting group','error')}
+}
+window.deleteLemGroup=deleteLemGroup;
+
+function viewLemGroup(groupId){
+var g=lemonadeGroups.find(function(x){return x.id===groupId});
+if(!g)return;
+var plan=g.plan||{};
+var supplies=g.supplies||[];
+var salesLog=g.salesLog||[];
+var files=g.files||[];
+var links=g.links||[];
+var totalCost=0;
+supplies.forEach(function(s){totalCost+=(parseFloat(s.qty)||0)*(parseFloat(s.unitCost)||0)});
+var totalRevenue=0;var totalUnits=0;
+salesLog.forEach(function(s){totalUnits+=(parseInt(s.unitsSold)||0);totalRevenue+=(parseFloat(s.revenue)||0)});
+var totalProfit=totalRevenue-totalCost;
+
+var h='<div class="grade-header">';
+h+='<h2>&#x1F34B; '+esc(g.companyName||g.groupName)+'</h2>';
+h+='<div class="grade-meta"><strong>'+esc(g.groupName)+'</strong> &bull; '+(g.members||[]).length+' members &bull; <span class="lem-status '+(g.status==='approved'?'approved':g.status==='submitted'?'submitted':'graded')+'">'+( g.status==='approved'?'Active':g.status==='submitted'?'Submitted':'Graded')+'</span></div>';
+h+='</div>';
+
+// Members
+h+='<div class="lem-detail-section"><div class="ld-title">&#x1F465; Team Members</div>';
+(g.members||[]).forEach(function(m){
+h+='<div style="font-size:14px;margin-bottom:4px">'+(m.studentId===(g.leader||{}).studentId?'&#x2B50; ':'')+' <strong>'+esc(m.studentName)+'</strong>'+(m.role?' &mdash; '+esc(m.role):'')+'</div>';
+});
+h+='</div>';
+
+// Business Plan
+h+='<div class="lem-detail-section"><div class="ld-title">&#x1F4DD; Business Plan</div>';
+h+='<div class="ld-value"><strong>Product:</strong> '+(plan.idea?esc(plan.idea):'<em style="color:var(--text2)">Not filled in</em>')+'</div>';
+h+='<div class="ld-value" style="margin-top:8px"><strong>How to Make:</strong> '+(plan.howToMake?esc(plan.howToMake):'<em style="color:var(--text2)">Not filled in</em>')+'</div>';
+h+='<div class="ld-value" style="margin-top:8px"><strong>Target Customers:</strong> '+(plan.targetCustomers?esc(plan.targetCustomers):'<em style="color:var(--text2)">Not filled in</em>')+'</div>';
+h+='<div class="ld-value" style="margin-top:8px"><strong>Marketing Plan:</strong> '+(plan.marketingPlan?esc(plan.marketingPlan):'<em style="color:var(--text2)">Not filled in</em>')+'</div>';
+h+='</div>';
+
+// Costs
+if(supplies.length){
+h+='<div class="lem-detail-section"><div class="ld-title">&#x1F4B0; Supplies & Costs</div>';
+supplies.forEach(function(s){
+var line=(parseFloat(s.qty)||0)*(parseFloat(s.unitCost)||0);
+h+='<div style="font-size:14px;margin-bottom:3px">'+esc(s.item||'?')+' &mdash; Qty: '+(s.qty||0)+' &times; $'+(parseFloat(s.unitCost)||0).toFixed(2)+' = <strong>$'+line.toFixed(2)+'</strong></div>';
+});
+h+='<div style="font-size:15px;font-weight:700;color:var(--gold);margin-top:6px">Total Cost: $'+totalCost.toFixed(2)+' &bull; Selling Price: $'+( parseFloat(g.sellingPrice)||0).toFixed(2)+'</div>';
+h+='</div>';
+}
+
+// Sales
+if(salesLog.length){
+h+='<div class="lem-detail-section"><div class="ld-title">&#x1F6D2; Sales Log</div>';
+salesLog.forEach(function(s){
+h+='<div style="font-size:14px;margin-bottom:3px">'+(s.unitsSold||0)+' sold for $'+(parseFloat(s.revenue)||0).toFixed(2)+(s.notes?' &mdash; '+esc(s.notes):'')+'</div>';
+});
+h+='<div style="font-size:15px;font-weight:700;margin-top:6px;color:'+(totalProfit>=0?'var(--accent)':'var(--accent3)')+'">Revenue: $'+totalRevenue.toFixed(2)+' &bull; Profit: $'+totalProfit.toFixed(2)+'</div>';
+h+='</div>';
+}
+
+// Files
+if(files.length){
+h+='<div class="lem-detail-section"><div class="ld-title">&#x1F4CE; Files ('+files.length+')</div>';
+files.forEach(function(f){
+h+='<div style="font-size:14px;margin-bottom:4px"><a href="'+esc(f.url)+'" target="_blank" style="color:var(--accent2);font-weight:600;text-decoration:none">'+esc(f.name)+'</a> <span style="font-size:11px;color:var(--text2)">by '+esc(f.uploadedBy||'?')+'</span></div>';
+});
+h+='</div>';
+}
+
+// Notes
+if(g.notes){
+h+='<div class="lem-detail-section"><div class="ld-title">&#x1F4AC; Team Notes</div>';
+h+='<div class="ld-value" style="white-space:pre-wrap;background:var(--bg);padding:12px;border-radius:10px;border:1px solid var(--border)">'+esc(g.notes)+'</div>';
+h+='</div>';
+}
+
+h+='<div class="grade-footer">';
+h+='<button class="btn btn-outline btn-sm" onclick="closeLemGrade()">Close</button>';
+if(g.status==='submitted')h+='<button class="btn btn-gold btn-sm" onclick="closeLemGrade();openLemGrade(\''+g.id+'\')">Grade This Group</button>';
+h+='</div>';
+
+document.getElementById('lemGradeContent').innerHTML=h;
+document.getElementById('lemGradePanel').classList.add('show');
+}
+window.viewLemGroup=viewLemGroup;
+
+function openLemGrade(groupId){
+var g=lemonadeGroups.find(function(x){return x.id===groupId});
+if(!g)return;
+var plan=g.plan||{};
+var planFields=[plan.idea,plan.howToMake,plan.targetCustomers,plan.marketingPlan].filter(function(f){return f&&f.trim()});
+
+var h='<div class="grade-header">';
+h+='<h2>&#x1F4DD; Grade: '+esc(g.companyName||g.groupName)+'</h2>';
+h+='<div class="grade-meta"><strong>'+esc(g.groupName)+'</strong> &bull; '+(g.members||[]).length+' members &bull; Plan: '+planFields.length+'/4 &bull; Supplies: '+(g.supplies||[]).length+' &bull; Sales: '+(g.salesLog||[]).length+'</div>';
+h+='</div>';
+
+// Quick summary
+h+='<div class="grade-work">';
+h+='<div class="gw-label">Product</div><div class="gw-value">'+(plan.idea?esc(plan.idea):'<em>Not filled in</em>')+'</div>';
+if(plan.howToMake){h+='<div class="gw-section"><div class="gw-label">How to Make</div><div class="gw-value">'+esc(plan.howToMake)+'</div></div>'}
+if(plan.marketingPlan){h+='<div class="gw-section"><div class="gw-label">Marketing</div><div class="gw-value">'+esc(plan.marketingPlan)+'</div></div>'}
+var totalCost=0;(g.supplies||[]).forEach(function(s){totalCost+=(parseFloat(s.qty)||0)*(parseFloat(s.unitCost)||0)});
+var totalRevenue=0;(g.salesLog||[]).forEach(function(s){totalRevenue+=(parseFloat(s.revenue)||0)});
+h+='<div class="gw-section"><div class="gw-label">Financials</div><div class="gw-value">Cost: $'+totalCost.toFixed(2)+' &bull; Revenue: $'+totalRevenue.toFixed(2)+' &bull; Profit: $'+(totalRevenue-totalCost).toFixed(2)+'</div></div>';
+
+// Members & roles
+h+='<div class="gw-section"><div class="gw-label">Team</div>';
+(g.members||[]).forEach(function(m){
+h+='<div class="gw-value" style="margin-bottom:2px">'+esc(m.studentName)+(m.role?' &mdash; '+esc(m.role):'')+'</div>';
+});
+h+='</div></div>';
+
+// Grading fields
+h+='<div class="grade-actions">';
+h+='<div class="ga-title">Grade This Group</div>';
+h+='<div class="grade-score-row">';
+h+='<div><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px">Score (0-100)</div>';
+h+='<input type="number" class="score-input" id="lemGradeScore" min="0" max="100" value="'+(g.score||'')+'"></div>';
+h+='<button class="btn btn-blue btn-sm" onclick="aiSuggestLemGrade(\''+g.id+'\')">&#x1F916; AI Suggest</button>';
+h+='</div>';
+h+='<div class="grade-feedback-area"><label>Feedback</label>';
+h+='<textarea id="lemGradeFeedback">'+(g.feedback||'')+'</textarea></div>';
+h+='<div class="grade-btn-row">';
+h+='<button class="btn btn-accent" onclick="gradeLemGroup(\''+g.id+'\')">&#x2705; Grade Group</button>';
+h+='<button class="btn btn-outline" onclick="closeLemGrade()">Cancel</button>';
+h+='</div></div>';
+
+document.getElementById('lemGradeContent').innerHTML=h;
+document.getElementById('lemGradePanel').classList.add('show');
+}
+window.openLemGrade=openLemGrade;
+
+function closeLemGrade(){document.getElementById('lemGradePanel').classList.remove('show')}
+window.closeLemGrade=closeLemGrade;
+
+async function gradeLemGroup(groupId){
+var score=parseInt(document.getElementById('lemGradeScore').value);
+var feedback=document.getElementById('lemGradeFeedback').value.trim();
+if(isNaN(score)||score<0||score>100){alert('Enter a valid score (0-100)');return}
+try{
+await window.fbUpdateDoc(window.fbDoc(window.fbDb,'lemonadeGroups',groupId),{status:'graded',score:score,feedback:feedback,gradedAt:new Date().toISOString()});
+closeLemGrade();
+showToast('Group graded: '+score+'%','success');
+loadLemonadeGroups();
+}catch(e){console.error(e);showToast('Error grading group','error')}
+}
+window.gradeLemGroup=gradeLemGroup;
+
+async function aiSuggestLemGrade(groupId){
+var g=lemonadeGroups.find(function(x){return x.id===groupId});
+if(!g)return;
+var plan=g.plan||{};
+var planFields=[plan.idea,plan.howToMake,plan.targetCustomers,plan.marketingPlan].filter(function(f){return f&&f.trim()});
+var totalCost=0;(g.supplies||[]).forEach(function(s){totalCost+=(parseFloat(s.qty)||0)*(parseFloat(s.unitCost)||0)});
+var totalRevenue=0;(g.salesLog||[]).forEach(function(s){totalRevenue+=(parseFloat(s.revenue)||0)});
+
+var prompt='Grade this student group\'s Lemonade Day project (0-100). Group: "'+esc(g.companyName)+'", '+
+(g.members||[]).length+' members. Business plan completion: '+planFields.length+'/4 sections. '+
+'Product idea: "'+(plan.idea||'none')+'". How to make: "'+(plan.howToMake||'none')+'". Marketing: "'+(plan.marketingPlan||'none')+'". '+
+'Supplies: '+(g.supplies||[]).length+' items, total cost $'+totalCost.toFixed(2)+'. '+
+'Selling price: $'+(g.sellingPrice||0)+'. Sales: '+(g.salesLog||[]).length+' entries, revenue $'+totalRevenue.toFixed(2)+'. '+
+'Files uploaded: '+(g.files||[]).length+'. '+
+'Grade based on: completeness of plan (30%), creativity (20%), financial thinking (20%), teamwork/roles assigned (15%), effort (15%). '+
+'Respond with ONLY a JSON object: {"score": number, "feedback": "2-3 sentences of specific, encouraging feedback"}';
+
+try{
+var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
+});
+var data=await resp.json();
+var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'';
+var match=text.match(/\{[\s\S]*\}/);
+if(match){
+var parsed=JSON.parse(match[0]);
+document.getElementById('lemGradeScore').value=parsed.score||'';
+document.getElementById('lemGradeFeedback').value=parsed.feedback||'';
+}
+}catch(e){console.error(e);showToast('AI grading failed','error')}
+}
+window.aiSuggestLemGrade=aiSuggestLemGrade;
+
+// Add escape handler for lemonade grade panel
+var _origEscHandler=document.onkeydown;
+document.addEventListener('keydown',function(e){
+if(e.key==='Escape'&&document.getElementById('lemGradePanel').classList.contains('show')){closeLemGrade();e.stopPropagation()}
+});
 </script>
 </body>
 </html>
