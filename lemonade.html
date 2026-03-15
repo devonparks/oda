@@ -359,8 +359,9 @@ function genCode(){return Math.random().toString(36).substr(2,6).toUpperCase()}
 
 // ===== INIT =====
 var _gradeData=null,_gradeGroup=null;
+var _teacherUid=null;
 
-function init(){
+async function init(){
 // Teacher grade mode
 var params=new URLSearchParams(window.location.search);
 var gradeId=params.get('grade');
@@ -369,22 +370,45 @@ if(gradeId){initGradeMode(gradeId);return}
 studentId=sessionStorage.getItem('studentId');
 studentName=sessionStorage.getItem('studentName');
 classCode=sessionStorage.getItem('classCode');
-var teacherId=sessionStorage.getItem('teacherId');
-// Smart back link
+
+// Check if teacher via localStorage (persists across tabs) or sessionStorage
+var isTeacher=localStorage.getItem('odaUserRole')==='teacher'||sessionStorage.getItem('userRole')==='teacher';
 var backEl=document.getElementById('backLink');
-if(studentId)backEl.href='student.html';
-else if(teacherId)backEl.href='teacher.html';
-// Teacher dashboard mode
-if(teacherId&&!studentId){
+
+if(studentId){
+backEl.href='student.html';
+checkExistingGroup();
+return;
+}
+
+if(isTeacher){
+backEl.href='teacher.html';
+backEl.textContent='\u2190 Back to Teacher Hub';
+// Get teacher UID from Firebase Auth
+try{
+var authMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js');
+var fb=await getFirebaseDB();
+var auth=authMod.getAuth(fb.app);
+var user=auth.currentUser;
+if(!user){
+// Wait for auth state
+user=await new Promise(function(resolve){
+var unsub=authMod.onAuthStateChanged(auth,function(u){unsub();resolve(u)});
+});
+}
+if(user){
+_teacherUid=user.uid;
+// Get teacher's classCode from Firestore
+var tDoc=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'teachers',user.uid));
+if(tDoc.exists()&&tDoc.data().classCode){
+classCode=tDoc.data().classCode;
+}
 initTeacherDash();
 return;
 }
-// Check if student has an existing group
-if(studentId){
-checkExistingGroup();
-}else{
-showIntro();
+}catch(e){console.error('Auth error:',e)}
 }
+showIntro();
 }
 
 // ===== TEACHER DASHBOARD =====
@@ -400,8 +424,8 @@ await loadTeacherGroups();
 async function loadTeacherGroups(){
 try{
 var fb=await getFirebaseDB();
-var teacherId=sessionStorage.getItem('teacherId');
-var cc=sessionStorage.getItem('classCode')||'';
+var tid=_teacherUid;
+var cc=classCode||'';
 _teacherGroups=[];
 // Query by classCode
 if(cc){
@@ -410,13 +434,15 @@ var s1=await fb.fsMod.getDocs(q1);
 s1.forEach(function(d){_teacherGroups.push({id:d.id,...d.data()})});
 }
 // Query by teacherId
-var q2=fb.fsMod.query(fb.fsMod.collection(fb.db,'lemonadeGroups'),fb.fsMod.where('teacherId','==',teacherId));
+if(tid){
+var q2=fb.fsMod.query(fb.fsMod.collection(fb.db,'lemonadeGroups'),fb.fsMod.where('teacherId','==',tid));
 var s2=await fb.fsMod.getDocs(q2);
 s2.forEach(function(d){
 if(!_teacherGroups.find(function(g){return g.id===d.id})){
 _teacherGroups.push({id:d.id,...d.data()});
 }
 });
+}
 renderDashboard();
 }catch(e){console.error('Load groups error:',e)}
 }
@@ -1033,12 +1059,25 @@ btn.disabled=true;btn.textContent='Creating...';
 try{
 var fb=await getFirebaseDB();
 var groupCode=genCode();
+// Look up teacher from student doc
+var sTeacherId='',sClassCode=classCode||'';
+try{
+var sDoc=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',studentId));
+if(sDoc.exists()){
+sTeacherId=sDoc.data().teacherId||'';
+// Also get classCode from teacher doc
+if(sTeacherId){
+var tDoc=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'teachers',sTeacherId));
+if(tDoc.exists())sClassCode=tDoc.data().classCode||sClassCode;
+}
+}
+}catch(e2){console.error('Lookup teacher:',e2)}
 var groupData={
 groupName:groupName,
 companyName:companyName,
 groupCode:groupCode,
-classCode:classCode||'',
-teacherId:sessionStorage.getItem('teacherId')||'',
+classCode:sClassCode,
+teacherId:sTeacherId,
 leader:{studentId:studentId,studentName:studentName},
 members:[{studentId:studentId,studentName:studentName,role:'CEO - The Boss'}],
 memberIds:[studentId],
