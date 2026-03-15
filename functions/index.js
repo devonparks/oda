@@ -89,7 +89,7 @@ exports.ai = onRequest({ secrets: [ANTHROPIC_KEY] }, async (req, res) => {
   }
 
   // Input validation
-  const { prompt, max_tokens, temperature, system } = req.body;
+  const { prompt, max_tokens, temperature, system, model } = req.body;
 
   if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
     res.status(400).json({ error: "A valid prompt is required." });
@@ -104,6 +104,20 @@ exports.ai = onRequest({ secrets: [ANTHROPIC_KEY] }, async (req, res) => {
   const validatedMaxTokens = Math.min(Math.max(parseInt(max_tokens, 10) || 1000, 1), 4000);
   const validatedTemperature = Math.min(Math.max(parseFloat(temperature) || 0.9, 0), 1);
 
+  // Model selection — Opus requires authenticated teacher, everyone else gets Sonnet
+  const ALLOWED_MODELS = {
+    "sonnet": "claude-sonnet-4-20250514",
+    "opus": "claude-opus-4-20250514",
+  };
+  let selectedModel = ALLOWED_MODELS["sonnet"]; // default
+  if (model && ALLOWED_MODELS[model]) {
+    if (model === "opus" && !isAuthenticated) {
+      res.status(403).json({ error: "Opus model requires teacher authentication." });
+      return;
+    }
+    selectedModel = ALLOWED_MODELS[model];
+  }
+
   // Build system prompt — use default, append client system prompt if provided
   let finalSystemPrompt = SYSTEM_PROMPT;
   if (system && typeof system === "string" && system.trim().length > 0) {
@@ -112,7 +126,7 @@ exports.ai = onRequest({ secrets: [ANTHROPIC_KEY] }, async (req, res) => {
 
   // Call Anthropic API
   const body = JSON.stringify({
-    model: "claude-sonnet-4-20250514",
+    model: selectedModel,
     max_tokens: validatedMaxTokens,
     temperature: validatedTemperature,
     system: finalSystemPrompt,

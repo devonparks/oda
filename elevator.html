@@ -36,6 +36,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 .q-input:focus{border-color:var(--accent)}
 .q-input::placeholder{color:#3a4560;font-weight:400}
 textarea.q-input{resize:none;min-height:100px;font-size:17px;line-height:1.5}
+select.q-input{cursor:pointer;-webkit-appearance:none;-moz-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23a8b2c8' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 5.5l6.5 6.5 6.5-6.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;padding-right:44px}
 
 /* Buttons */
 .btn-row{display:flex;justify-content:space-between;margin-top:20px}
@@ -106,16 +107,60 @@ textarea.q-input{resize:none;min-height:100px;font-size:17px;line-height:1.5}
 .record-section{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:24px;margin:20px 0;text-align:center}
 .record-section h3{font-size:18px;font-weight:800;margin-bottom:6px}
 .record-section p{font-size:15px;color:var(--text2);margin-bottom:16px}
-.video-preview{width:100%;max-width:480px;border-radius:14px;background:#000;margin:0 auto 16px;overflow:hidden;position:relative;aspect-ratio:4/3}
-.video-preview video{width:100%;height:100%;object-fit:cover;display:block}
-.rec-indicator{position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.6);padding:4px 10px;border-radius:8px;font-size:14px;font-weight:700;color:#fff}
-.rec-dot{width:10px;height:10px;border-radius:50%;background:var(--accent3);animation:recPulse 1s ease-in-out infinite}
-@keyframes recPulse{0%,100%{opacity:1}50%{opacity:.3}}
 .rec-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.btn-record{background:var(--accent3);color:#fff;padding:14px 28px}
+.btn-record{background:var(--accent3);color:#fff;padding:14px 28px;font-family:'Outfit',sans-serif;font-weight:600;font-size:16px;border:none;border-radius:14px;cursor:pointer;transition:all .15s}
+.btn-record:active{transform:scale(.97)}
 .btn-record.recording{animation:recPulse 1s ease-in-out infinite}
-.video-playback{width:100%;max-width:480px;border-radius:14px;margin:0 auto 16px;overflow:hidden}
-.video-playback video{width:100%;display:block;border-radius:14px}
+@keyframes recPulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Recording Studio Modal */
+.rec-modal-bg{position:fixed;inset:0;background:#000;z-index:200;display:none}
+.rec-modal-bg.show{display:flex;flex-direction:column}
+.rec-modal-topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;border-bottom:1px solid var(--border);flex-shrink:0}
+.rec-modal-topbar h2{font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;color:var(--text)}
+.rec-modal-close{background:none;border:none;color:var(--text2);font-size:28px;cursor:pointer;padding:4px 8px}
+.rec-modal-close:hover{color:var(--text)}
+.rec-split{display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden}
+@media(max-width:768px){.rec-split{grid-template-columns:1fr;grid-template-rows:2fr 1fr}}
+.rec-split.horizontal{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+.rec-split.horizontal .rec-tp-side{border-right:none;border-bottom:1px solid var(--border);order:1;max-height:200px;overflow:hidden}
+.rec-split.horizontal .rec-tp-text{font-size:20px;line-height:1.6}
+.rec-split.horizontal .rec-tp-body{padding:10px 24px;overflow-y:auto;scroll-behavior:auto}
+.rec-split.horizontal .rec-cam-side{order:2}
+.rec-split.camera-only{grid-template-columns:1fr}
+.rec-split.camera-only .rec-tp-side{display:none}
+.rec-tp-side{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden}
+@media(max-width:768px){.rec-tp-side{border-right:none;border-bottom:1px solid var(--border)}}
+.btn-layout{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:10px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn-layout:hover{border-color:var(--accent2);color:var(--text)}
+.btn-layout.active{border-color:var(--accent2);color:var(--accent2);background:rgba(17,138,178,.1)}
+.rec-tp-header{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.rec-tp-header span{font-family:'Space Mono',monospace;font-size:11px;color:var(--gold);letter-spacing:2px;text-transform:uppercase}
+.rec-tp-speed{display:flex;align-items:center;gap:6px}
+.rec-tp-speed button{background:var(--surface2);border:1px solid var(--border);color:var(--text);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.rec-tp-speed button:hover{border-color:var(--gold)}
+.rec-tp-speed .speed-label{font-size:12px;color:var(--gold);font-weight:700;min-width:30px;text-align:center}
+.rec-tp-body{flex:1;overflow-y:auto;padding:32px 28px}
+.rec-tp-text{font-family:'Outfit',sans-serif;font-size:28px;font-weight:600;color:var(--gold);line-height:2;text-align:center}
+.rec-tp-hint{text-align:center;padding:8px 20px;font-size:12px;color:var(--text2);border-top:1px solid var(--border);flex-shrink:0}
+.rec-cam-side{display:flex;flex-direction:column;overflow:hidden}
+.rec-cam-feed{flex:1;display:flex;align-items:center;justify-content:center;background:#000;position:relative;overflow:hidden;min-height:0}
+.rec-cam-feed video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.rec-cam-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.rec-countdown-num{font-family:'Outfit',sans-serif;font-size:120px;font-weight:800;color:#fff;text-shadow:0 0 40px rgba(255,209,102,.5);animation:countPop .4s ease}
+@keyframes countPop{0%{transform:scale(2);opacity:0}60%{transform:scale(.9)}100%{transform:scale(1);opacity:1}}
+.rec-cam-indicator{position:absolute;top:16px;left:16px;display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.7);padding:6px 14px;border-radius:10px;font-size:15px;font-weight:700;color:#fff}
+.rec-cam-timer{position:absolute;top:16px;right:16px;background:rgba(0,0,0,.7);padding:6px 14px;border-radius:10px;font-family:'Space Mono',monospace;font-size:15px;font-weight:700;color:var(--gold)}
+.rec-cam-controls{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap;flex-shrink:0}
+.rec-cam-controls .btn-record{padding:14px 32px;font-size:18px;border-radius:16px}
+.rec-playback-wrap{flex:1;display:flex;align-items:center;justify-content:center;background:#000;padding:20px}
+.rec-playback-wrap video{max-width:100%;max-height:100%;border-radius:14px}
+.studio-bar{padding:8px 16px;border-top:1px solid var(--border);display:flex;gap:6px;align-items:center;flex-shrink:0;overflow-x:auto}
+.studio-bar-label{font-family:'Space Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:1px;text-transform:uppercase;white-space:nowrap;margin-right:4px}
+.filter-chip{padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:var(--surface2);border:1px solid var(--border);color:var(--text2);cursor:pointer;white-space:nowrap;transition:all .15s}
+.filter-chip:hover{border-color:var(--accent2);color:var(--text)}
+.filter-chip.active{border-color:var(--accent);color:var(--accent);background:rgba(6,214,160,.1)}
+.rec-dot{width:10px;height:10px;border-radius:50%;background:var(--accent3);animation:recPulse 1s ease-in-out infinite}
 
 /* Submit section */
 .submit-section{margin:24px 0;text-align:center}
@@ -123,7 +168,6 @@ textarea.q-input{resize:none;min-height:100px;font-size:17px;line-height:1.5}
 
 /* Mobile recording fix */
 @media(max-width:500px){
-.video-preview{aspect-ratio:auto}
 .rec-btns{flex-direction:column;align-items:center}
 }
 
@@ -159,6 +203,16 @@ textarea.q-input{resize:none;min-height:100px;font-size:17px;line-height:1.5}
 .btn-complete{background:var(--surface2);color:var(--accent);border:1.5px solid var(--accent)!important}
 .grade-empty{text-align:center;padding:40px 20px;color:var(--text2)}
 .grade-empty .emoji{font-size:48px;margin-bottom:12px}
+
+/* Desktop mode */
+@media(min-width:900px){
+body.desktop-mode .app{max-width:1100px}
+body.desktop-mode .grade-app{max-width:1100px}
+}
+.desktop-toggle{position:fixed;bottom:20px;right:20px;z-index:100;background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);padding:10px 16px;border-radius:12px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;display:none;align-items:center;gap:6px;transition:all .15s;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.desktop-toggle:hover{border-color:var(--accent);color:var(--text)}
+.desktop-toggle.active{border-color:var(--accent);color:var(--accent);background:rgba(6,214,160,.1)}
+@media(min-width:900px){.desktop-toggle{display:inline-flex}}
 </style>
 </head>
 <body>
@@ -192,6 +246,58 @@ textarea.q-input{resize:none;min-height:100px;font-size:17px;line-height:1.5}
 </div>
 </div>
 
+<!-- RECORDING STUDIO MODAL -->
+<div class="rec-modal-bg" id="recModalBg" role="dialog" aria-modal="true" aria-label="Recording Studio">
+<div class="rec-modal-topbar">
+<h2>&#x1F3A5; Recording Studio</h2>
+<div style="display:flex;align-items:center;gap:10px">
+<button class="btn-layout" id="btnLayoutToggle" onclick="toggleRecLayout()" title="Switch layout">&#x1F4F1; Vertical</button>
+<span id="recModalTimer" style="font-family:'Space Mono',monospace;font-size:15px;color:var(--gold);font-weight:700;display:none">0:00 / 2:00</span>
+<button class="rec-modal-close" onclick="closeRecordModal()">&times;</button>
+</div>
+</div>
+<div class="rec-split">
+<div class="rec-tp-side">
+<div class="rec-tp-header">
+<span>&#x1F4DC; Your Pitch</span>
+<div class="rec-tp-speed">
+<button onclick="changeScrollSpeed(-1)">&#x25C0;</button>
+<span class="speed-label" id="scrollSpeedLabel">0.3x</span>
+<button onclick="changeScrollSpeed(1)">&#x25B6;</button>
+</div>
+</div>
+<div class="rec-tp-body" id="recTpBody"><div class="rec-tp-text" id="recTpText"></div></div>
+<div class="rec-tp-hint" id="recTpHint">Use &#x25C0; &#x25B6; to adjust scroll speed or set to Off</div>
+</div>
+<div class="rec-cam-side">
+<div class="rec-cam-feed" id="recCamFeed">
+<video id="recCamVideo" autoplay muted playsinline></video>
+<div class="rec-cam-overlay" id="recCountdownOverlay" style="display:none"><div class="rec-countdown-num" id="recCountdownNum"></div></div>
+<div class="rec-cam-indicator" id="recCamIndicator" style="display:none"><span class="rec-dot"></span> REC</div>
+<div class="rec-cam-timer" id="recCamTimer" style="display:none">0:00 / 2:00</div>
+</div>
+<div class="rec-playback-wrap" id="recPlaybackWrap" style="display:none"><video id="recPlaybackVideo" controls playsinline></video></div>
+<div class="studio-bar" id="studioFilterBar">
+<span class="studio-bar-label">&#x1F3A8; Filter</span>
+<button class="filter-chip active" onclick="setFilter('none',this)">None</button>
+<button class="filter-chip" onclick="setFilter('warm',this)">&#x2600;&#xFE0F; Warm</button>
+<button class="filter-chip" onclick="setFilter('cool',this)">&#x2744;&#xFE0F; Cool</button>
+<button class="filter-chip" onclick="setFilter('bw',this)">&#x25AB; B&amp;W</button>
+<button class="filter-chip" onclick="setFilter('sepia',this)">&#x1F4DC; Sepia</button>
+<button class="filter-chip" onclick="setFilter('vintage',this)">&#x1F4F7; Vintage</button>
+<button class="filter-chip" onclick="setFilter('vivid',this)">&#x1F308; Vivid</button>
+<button class="filter-chip" onclick="setFilter('dramatic',this)">&#x1F525; Drama</button>
+</div>
+<canvas id="recCanvas" style="display:none"></canvas>
+<div class="rec-cam-controls" id="recCamControls">
+<button class="btn-record" onclick="startCountdown()" style="font-size:18px;padding:16px 32px">&#x1F534; Record</button>
+<button class="btn btn-small btn-gray" onclick="closeRecordModal()" style="padding:10px 20px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:12px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">Cancel</button>
+</div>
+</div>
+</div>
+</div>
+
+<button class="desktop-toggle" id="desktopToggle" onclick="toggleDesktopMode()">&#x1F4BB; Desktop Mode</button>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="js/oda-core.js"></script>
@@ -202,7 +308,7 @@ var QUESTIONS=[
 {id:'age',emoji:'\u{1F382}',label:'How old are you?',hint:'',type:'text',placeholder:'Your age...',aiHelp:false},
 {id:'school',emoji:'\u{1F3EB}',label:'What school do you go to?',hint:'',type:'text',placeholder:'Your school name...',aiHelp:false},
 {id:'from',emoji:'\u{1F3E0}',label:'Where are you from?',hint:'Your city or neighborhood',type:'text',placeholder:'Cleveland, Ohio...',aiHelp:false},
-{id:'grade',emoji:'\u{1F4DA}',label:'What grade are you in?',hint:'',type:'text',placeholder:'3rd grade...',aiHelp:false},
+{id:'grade',emoji:'\u{1F4DA}',label:'What grade are you in?',hint:'',type:'select',options:['Kindergarten','1st grade','2nd grade','3rd grade','4th grade','5th grade','6th grade','7th grade','8th grade','9th grade','10th grade','11th grade','12th grade'],placeholder:'Pick your grade...',aiHelp:false},
 {id:'dream',emoji:'\u{1F31F}',label:'What do you want to be when you grow up?',hint:'Dream BIG! There\'s no wrong answer.',type:'text',placeholder:'I want to be a...',aiHelp:true,aiPrompt:'A student is trying to figure out what they want to be when they grow up but is stuck. Do NOT give them an answer. Instead, ask them 3-4 fun thinking questions to help them discover what excites them. Like: What do you love doing so much you forget about time? What problems in the world do you wish you could fix? If you could have any superpower job, what would it be? Keep it short, fun, and encouraging. Use plain text, no markdown.'},
 {id:'why',emoji:'\u{1F4AD}',label:'Why do you want to be that?',hint:'What makes you excited about it?',type:'textarea',placeholder:'Because I love...',aiHelp:true,aiPrompt:'A student knows what they want to be when they grow up but is having trouble explaining WHY. Do NOT write their answer for them. Instead, ask them 3-4 simple thinking questions to help them figure out why. Like: What got you interested in this? How would this job let you help people? What would a normal day look like in that job? Keep it warm, short, and encouraging. Use plain text, no markdown.'},
 {id:'hobby',emoji:'\u{1F3AE}',label:'What do you like to do for fun?',hint:'Sports, games, art, music, anything!',type:'text',placeholder:'I like to...',aiHelp:true,aiPrompt:'A student is struggling to think of what they do for fun. Do NOT give them answers. Instead, ask them 3-4 fun prompting questions to help them think about their hobbies. Like: What do you do right after school? What do you love doing on weekends? What would you do if you had a whole free day? What makes you laugh the most? Keep it short and fun. Use plain text, no markdown.'},
@@ -220,6 +326,21 @@ var assignmentId=null,studentId=null,isAssignmentMode=false,isTeacherMode=false;
 var mediaRecorder=null,recordedChunks=[],recordedBlob=null,cameraStream=null;
 var _aiLoading=false;
 var MAX_REC_SECONDS=120;
+
+// ===== DESKTOP MODE =====
+function toggleDesktopMode(){
+document.body.classList.toggle('desktop-mode');
+var btn=document.getElementById('desktopToggle');
+var on=document.body.classList.contains('desktop-mode');
+btn.classList.toggle('active',on);
+btn.innerHTML=on?'\u{1F4F1} Mobile Mode':'\u{1F4BB} Desktop Mode';
+localStorage.setItem('elevatorDesktop',on?'1':'0');
+}
+if(localStorage.getItem('elevatorDesktop')==='1'&&window.innerWidth>=900){
+document.body.classList.add('desktop-mode');
+var _db=document.getElementById('desktopToggle');
+if(_db){_db.classList.add('active');_db.innerHTML='\u{1F4F1} Mobile Mode'}
+}
 
 // ===== TOAST =====
 var _toastTimer=null;
@@ -427,7 +548,12 @@ html+='<span class="q-emoji">'+q.emoji+'</span>';
 html+='<div class="q-label">'+q.label+'</div>';
 if(q.hint)html+='<div class="q-hint">'+q.hint+'</div>';
 
-if(q.type==='textarea'){
+if(q.type==='select'){
+html+='<select class="q-input" id="qInput" aria-label="'+esc(q.label)+'">';
+html+='<option value="" disabled '+(val?'':'selected')+'>'+q.placeholder+'</option>';
+for(var oi=0;oi<q.options.length;oi++){html+='<option value="'+esc(q.options[oi])+'"'+(val===q.options[oi]?' selected':'')+'>'+esc(q.options[oi])+'</option>'}
+html+='</select>';
+}else if(q.type==='textarea'){
 html+='<textarea class="q-input" id="qInput" placeholder="'+q.placeholder+'" aria-label="'+esc(q.label)+'">'+esc(val)+'</textarea>';
 }else{
 html+='<input type="text" class="q-input" id="qInput" placeholder="'+q.placeholder+'" value="'+esc(val)+'" autocomplete="off" aria-label="'+esc(q.label)+'">';
@@ -448,7 +574,8 @@ html+='</div></div>';
 document.getElementById('content').innerHTML=html;
 var inp=document.getElementById('qInput');
 inp.focus();
-inp.addEventListener('input',function(){
+var evtType=q.type==='select'?'change':'input';
+inp.addEventListener(evtType,function(){
 document.getElementById('nextBtn').disabled=!this.value.trim();
 });
 document.getElementById('nextBtn').disabled=!val.trim();
@@ -568,6 +695,7 @@ html+='</div>';
 html+='<div class="result-btns">';
 html+='<button class="btn btn-gold" onclick="copyPitch()">&#x1F4CB; Copy Pitch</button>';
 html+='<button class="btn btn-blue" onclick="toggleTimer()">&#x23F1;&#xFE0F; Practice Timer</button>';
+html+='<button class="btn" style="background:linear-gradient(135deg,#8B5CF6,#6D28D9);color:#fff" onclick="aiPolishPitch()" id="btnPolish">&#x2728; Polish with AI</button>';
 html+='<button class="btn btn-back" onclick="editAnswers()">&#x270F;&#xFE0F; Edit Answers</button>';
 if(isTeacherMode&&!isAssignmentMode)html+='<button class="btn btn-green" onclick="nextStudent()" id="btnNextStudent">&#x1F195; Next Student</button>';
 html+='</div>';
@@ -583,13 +711,12 @@ html+='</div></div>';
 // AI Summary
 html+='<div class="ai-summary" id="aiSummary" role="region" aria-label="AI personalized summary"><div class="ai-loading" id="aiLoading">\u{1F916} AI is writing your personalized summary</div><div class="ai-summary-text" id="aiSummaryText" style="display:none"></div></div>';
 
-// Webcam recording
+// Recording Studio
 html+='<div class="record-section" id="recordSection" role="region" aria-label="Record your pitch">';
 html+='<h3>\u{1F3A5} Record Your Pitch</h3>';
-html+='<p>Practice saying your pitch out loud, then record yourself!</p>';
-html+='<div class="video-preview" id="videoPreview" style="display:none"><video id="cameraFeed" autoplay muted playsinline></video><div class="rec-indicator" id="recIndicator" style="display:none"><span class="rec-dot"></span><span id="recTimer">0:00</span></div></div>';
-html+='<div class="video-playback" id="videoPlayback" style="display:none"><video id="playbackVideo" controls playsinline></video></div>';
-html+='<div class="rec-btns" id="recBtns"><button class="btn btn-record" onclick="startCamera()">\u{1F4F7} Open Camera</button></div>';
+html+='<p>Open the recording studio with teleprompter, filters, and countdown!</p>';
+html+='<div id="recSavedMsg"></div>';
+html+='<div class="rec-btns" id="recBtns"><button class="btn btn-record" onclick="openRecordModal()" style="font-size:18px;padding:16px 32px">\u{1F3A5} Open Recording Studio</button></div>';
 html+='</div>';
 
 // Submit & Go Home (assignment mode)
@@ -642,6 +769,31 @@ document.body.appendChild(ta);ta.select();
 document.execCommand('copy');document.body.removeChild(ta);
 showToast('\u2705 Copied! Paste it anywhere.','');
 }catch(e){showToast('Could not copy. Try selecting the text manually.','error')}
+}
+
+// ===== AI POLISH =====
+var _polishing=false;
+async function aiPolishPitch(){
+if(_polishing)return;
+var pitchEl=document.getElementById('pitchText');
+var rawText=pitchEl.innerText||pitchEl.textContent;
+if(!rawText||rawText.length<20){showToast('No pitch to polish yet','error');return}
+var btn=document.getElementById('btnPolish');
+btn.disabled=true;btn.textContent='\u2728 Polishing...';
+_polishing=true;
+try{
+var result=await odaAI(
+'Here is a student\'s elevator pitch. Polish it to sound smoother, more confident, and more natural — like a real speech. Keep their personality, facts, and voice. Do NOT change the meaning or add new information. Keep it roughly the same length. Return ONLY the polished pitch text, nothing else.\n\nOriginal pitch:\n'+rawText,
+{max_tokens:1000,temperature:0.7,system:'You polish student speeches to sound confident and natural while preserving their unique voice and all their personal details. Return only the polished text.'}
+);
+pitchEl.innerHTML=esc(result);
+showToast('\u2728 Pitch polished!','');
+}catch(e){
+console.error('Polish error:',e);
+showToast('Could not polish pitch. Try again!','error');
+}
+_polishing=false;
+btn.disabled=false;btn.textContent='\u2728 Polish with AI';
 }
 
 // ===== TIMER =====
@@ -798,71 +950,272 @@ if(el)el.style.display='none';
 _aiSummaryLoading=false;
 }
 
-// ===== WEBCAM RECORDING =====
+// ===== RECORDING STUDIO =====
 var recTimerInterval=null,recSeconds=0;
+var scrollSpeeds=[0,0.15,0.3,0.5],scrollSpeedIdx=2,scrollInterval=null;
+var recLayoutMode=0;
+var activeFilter='none';
+var audioCtx=null;
+var canvasStream=null,canvasCtx=null,canvasEl=null,canvasAnimId=null;
 
-async function startCamera(){
+var FILTERS={
+none:'none',
+warm:'sepia(0.25) saturate(1.4) brightness(1.08)',
+cool:'hue-rotate(15deg) saturate(0.8) brightness(1.1)',
+bw:'grayscale(1)',
+sepia:'sepia(0.85) contrast(1.1)',
+vintage:'sepia(0.35) contrast(1.2) brightness(0.92) saturate(1.4)',
+vivid:'saturate(1.8) contrast(1.15) brightness(1.05)',
+dramatic:'contrast(1.4) brightness(0.85) saturate(1.3)'
+};
+
+function beep(freq,ms){
 try{
-cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:true});
-var video=document.getElementById('cameraFeed');
-video.srcObject=cameraStream;
-document.getElementById('videoPreview').style.display='block';
-document.getElementById('videoPlayback').style.display='none';
-document.getElementById('recBtns').innerHTML='<button class="btn btn-record" onclick="startRecording()">\u{1F534} Start Recording</button><button class="btn btn-back" onclick="stopCamera()">Cancel</button>';
+if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+var osc=audioCtx.createOscillator();var g=audioCtx.createGain();
+osc.connect(g);g.connect(audioCtx.destination);
+osc.frequency.value=freq;g.gain.value=0.25;
+osc.start();setTimeout(function(){osc.stop()},ms);
+}catch(e){}
+}
+
+async function openRecordModal(){
+var modal=document.getElementById('recModalBg');
+modal.classList.add('show');
+// Load pitch text into teleprompter
+var pitchEl=document.getElementById('pitchText');
+var currentPitch=pitchEl?(pitchEl.innerText||pitchEl.textContent):'';
+document.getElementById('recTpText').textContent=currentPitch||'No pitch text yet. Go back and write your pitch first!';
+document.getElementById('recTpBody').scrollTop=0;
+// Reset state
+document.getElementById('recPlaybackWrap').style.display='none';
+document.getElementById('recCamFeed').style.display='flex';
+document.getElementById('recCamIndicator').style.display='none';
+document.getElementById('recCamTimer').style.display='none';
+document.getElementById('recCountdownOverlay').style.display='none';
+document.getElementById('recModalTimer').style.display='none';
+stopCanvasPipeline();
+activeFilter='none';
+var filterChips=document.querySelectorAll('#studioFilterBar .filter-chip');
+for(var i=0;i<filterChips.length;i++){filterChips[i].classList.remove('active');if(i===0)filterChips[i].classList.add('active')}
+scrollSpeedIdx=2;
+document.getElementById('scrollSpeedLabel').textContent='0.3x';
+recLayoutMode=0;
+document.querySelector('.rec-split').classList.remove('horizontal','camera-only');
+var lbtn=document.getElementById('btnLayoutToggle');
+lbtn.innerHTML='\u{1F4F1} Vertical';lbtn.classList.remove('active');
+try{
+cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},audio:true});
+document.getElementById('recCamVideo').srcObject=cameraStream;
+document.getElementById('recCamControls').innerHTML='<button class="btn-record" onclick="startCountdown()" style="font-size:18px;padding:16px 32px">\u{1F534} Record</button><button style="padding:10px 20px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:12px;cursor:pointer;font-family:Outfit,sans-serif;font-weight:600" onclick="closeRecordModal()">Cancel</button>';
 }catch(e){
-showToast('Could not access camera. Check your permissions.','error');
-console.error('Camera error:',e);
+alert('Could not access camera. Make sure you allow camera and microphone access.');
+closeRecordModal();
 }
 }
 
-function stopCamera(){
+function closeRecordModal(){
+stopScrolling();
+stopCanvasPipeline();
+if(mediaRecorder&&mediaRecorder.state!=='inactive'){try{mediaRecorder.stop()}catch(e){}}
 if(cameraStream){cameraStream.getTracks().forEach(function(t){t.stop()});cameraStream=null}
-document.getElementById('videoPreview').style.display='none';
-document.getElementById('recBtns').innerHTML='<button class="btn btn-record" onclick="startCamera()">\u{1F4F7} Open Camera</button>';
+clearInterval(recTimerInterval);
+document.getElementById('recModalBg').classList.remove('show');
+var v=document.getElementById('recCamVideo');if(v)v.style.filter='none';
 }
 
-function startRecording(){
+function startCountdown(){
+var overlay=document.getElementById('recCountdownOverlay');
+var numEl=document.getElementById('recCountdownNum');
+overlay.style.display='flex';
+var count=5;
+numEl.textContent=count;
+beep(440,200);
+document.getElementById('recCamControls').innerHTML='<div style="color:var(--gold);font-family:Outfit,sans-serif;font-size:18px;font-weight:700">Get ready...</div>';
+var ci=setInterval(function(){
+count--;
+if(count>0){
+numEl.textContent=count;
+numEl.style.animation='none';
+void numEl.offsetWidth;
+numEl.style.animation='countPop .4s ease';
+beep(440,200);
+}else{
+clearInterval(ci);
+numEl.textContent='GO!';
+numEl.style.animation='none';
+void numEl.offsetWidth;
+numEl.style.animation='countPop .4s ease';
+beep(880,400);
+setTimeout(function(){overlay.style.display='none';startModalRecording()},600);
+}
+},1000);
+}
+
+function startModalRecording(){
 if(!cameraStream)return;
 recordedChunks=[];
 recSeconds=0;
+var useCanvas=activeFilter!=='none';
+if(useCanvas&&!canvasAnimId)startCanvasPipeline();
+var recStream=useCanvas&&canvasStream?canvasStream:cameraStream;
 var options={mimeType:'video/webm;codecs=vp8,opus'};
-try{mediaRecorder=new MediaRecorder(cameraStream,options)}catch(e){
-try{mediaRecorder=new MediaRecorder(cameraStream)}catch(e2){showToast('Recording not supported on this browser','error');return}
+try{mediaRecorder=new MediaRecorder(recStream,options)}catch(e){
+try{mediaRecorder=new MediaRecorder(recStream)}catch(e2){alert('Recording not supported');return}
 }
 mediaRecorder.ondataavailable=function(e){if(e.data.size>0)recordedChunks.push(e.data)};
 mediaRecorder.onstop=function(){
 recordedBlob=new Blob(recordedChunks,{type:'video/webm'});
 var url=URL.createObjectURL(recordedBlob);
-document.getElementById('videoPreview').style.display='none';
-var pb=document.getElementById('videoPlayback');
-pb.style.display='block';
-document.getElementById('playbackVideo').src=url;
-document.getElementById('recBtns').innerHTML='<button class="btn btn-next" onclick="startCamera()">\u{1F504} Re-record</button><button class="btn btn-gold" onclick="keepRecording()">\u2705 Keep This!</button>';
+stopScrolling();
+document.getElementById('recCamFeed').style.display='none';
+document.getElementById('recCamIndicator').style.display='none';
+document.getElementById('recCamTimer').style.display='none';
+document.getElementById('recModalTimer').style.display='none';
+var pw=document.getElementById('recPlaybackWrap');
+pw.style.display='flex';
+document.getElementById('recPlaybackVideo').src=url;
+document.getElementById('recCamControls').innerHTML='<button class="btn-record" onclick="reRecord()" style="font-size:16px;padding:12px 24px">\u{1F504} Re-record</button><button class="btn-record" style="background:var(--accent);font-size:16px;padding:12px 24px" onclick="keepRecording()">\u2705 Keep This!</button><button style="padding:10px 20px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:12px;cursor:pointer;font-family:Outfit,sans-serif;font-weight:600" onclick="downloadVideo()">\u2B07\uFE0F Download</button>';
 if(cameraStream){cameraStream.getTracks().forEach(function(t){t.stop()});cameraStream=null}
 clearInterval(recTimerInterval);
 };
 mediaRecorder.start();
-document.getElementById('recIndicator').style.display='flex';
+document.getElementById('recCamIndicator').style.display='flex';
+document.getElementById('recCamTimer').style.display='block';
+document.getElementById('recModalTimer').style.display='inline';
+updateRecTimerDisplay();
 recTimerInterval=setInterval(function(){
 recSeconds++;
-document.getElementById('recTimer').textContent=Math.floor(recSeconds/60)+':'+(recSeconds%60<10?'0':'')+(recSeconds%60);
-if(recSeconds>=MAX_REC_SECONDS){
-stopRecording();
-showToast('Recording limit reached (2 minutes)','warning');
-}
+updateRecTimerDisplay();
+if(recSeconds>=MAX_REC_SECONDS){stopModalRecording()}
 },1000);
-document.getElementById('recBtns').innerHTML='<button class="btn btn-record recording" onclick="stopRecording()">\u23F9 Stop Recording</button>';
+document.getElementById('recCamControls').innerHTML='<button class="btn-record recording" onclick="stopModalRecording()" style="font-size:18px;padding:16px 32px">\u23F9 Stop Recording</button>';
+startScrolling();
 }
 
-function stopRecording(){
+function updateRecTimerDisplay(){
+var t=Math.floor(recSeconds/60)+':'+(recSeconds%60<10?'0':'')+(recSeconds%60);
+var max=Math.floor(MAX_REC_SECONDS/60)+':'+((MAX_REC_SECONDS%60)<10?'0':'')+(MAX_REC_SECONDS%60);
+document.getElementById('recCamTimer').textContent=t+' / '+max;
+document.getElementById('recModalTimer').textContent=t+' / '+max;
+if(recSeconds>=MAX_REC_SECONDS-5)document.getElementById('recCamTimer').style.color='var(--accent3)';
+}
+
+function stopModalRecording(){
 if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();
-document.getElementById('recIndicator').style.display='none';
 clearInterval(recTimerInterval);
+stopScrolling();
+}
+
+async function reRecord(){
+document.getElementById('recPlaybackWrap').style.display='none';
+document.getElementById('recCamFeed').style.display='flex';
+document.getElementById('recCamTimer').style.display='none';
+document.getElementById('recCamTimer').style.color='var(--gold)';
+document.getElementById('recTpBody').scrollTop=0;
+stopCanvasPipeline();
+try{
+cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},audio:true});
+document.getElementById('recCamVideo').srcObject=cameraStream;
+var v=document.getElementById('recCamVideo');if(v)v.style.filter=FILTERS[activeFilter]||'none';
+document.getElementById('recCamControls').innerHTML='<button class="btn-record" onclick="startCountdown()" style="font-size:18px;padding:16px 32px">\u{1F534} Record</button><button style="padding:10px 20px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:12px;cursor:pointer;font-family:Outfit,sans-serif;font-weight:600" onclick="closeRecordModal()">Cancel</button>';
+}catch(e){alert('Could not access camera.');closeRecordModal()}
 }
 
 function keepRecording(){
-document.getElementById('recBtns').innerHTML='<div style="color:var(--accent);font-weight:700;font-size:15px">\u2705 Video saved! It will be submitted with your pitch.</div>';
+closeRecordModal();
+document.getElementById('recSavedMsg').innerHTML='<div style="color:var(--accent);font-weight:700;font-size:16px;padding:12px;text-align:center;background:rgba(6,214,160,.1);border-radius:12px;margin-bottom:12px">\u2705 Video saved! It will be submitted with your pitch.<br><button onclick="downloadVideo()" style="margin-top:8px;background:var(--accent2);color:#fff;border:none;padding:8px 16px;border-radius:10px;font-family:Outfit,sans-serif;font-weight:600;font-size:14px;cursor:pointer">\u2B07\uFE0F Download Video</button></div>';
 showToast('\u2705 Video saved!','');
+}
+
+function downloadVideo(){
+if(!recordedBlob){showToast('No video recorded yet','error');return}
+var a=document.createElement('a');
+a.href=URL.createObjectURL(recordedBlob);
+a.download='elevator-pitch-'+Date.now()+'.webm';
+document.body.appendChild(a);a.click();document.body.removeChild(a);
+showToast('Downloading video...','');
+}
+
+// Teleprompter auto-scroll
+function startScrolling(){
+if(scrollSpeeds[scrollSpeedIdx]===0)return;
+var body=document.getElementById('recTpBody');
+var pxPerFrame=scrollSpeeds[scrollSpeedIdx]*0.6;
+function scroll(){
+body.scrollTop+=pxPerFrame;
+scrollInterval=requestAnimationFrame(scroll);
+}
+scrollInterval=requestAnimationFrame(scroll);
+}
+
+function stopScrolling(){
+if(scrollInterval){cancelAnimationFrame(scrollInterval);scrollInterval=null}
+}
+
+function changeScrollSpeed(dir){
+scrollSpeedIdx=Math.max(0,Math.min(scrollSpeeds.length-1,scrollSpeedIdx+dir));
+var spd=scrollSpeeds[scrollSpeedIdx];
+document.getElementById('scrollSpeedLabel').textContent=spd===0?'Off':spd+'x';
+if(scrollInterval){stopScrolling();if(spd>0)startScrolling()}
+else if(spd>0&&mediaRecorder&&mediaRecorder.state==='recording'){startScrolling()}
+}
+
+function toggleRecLayout(){
+recLayoutMode=(recLayoutMode+1)%3;
+var split=document.querySelector('.rec-split');
+var btn=document.getElementById('btnLayoutToggle');
+split.classList.remove('horizontal','camera-only');
+if(recLayoutMode===0){
+btn.innerHTML='\u{1F4F1} Vertical';btn.classList.remove('active');
+}else if(recLayoutMode===1){
+split.classList.add('horizontal');
+btn.innerHTML='\u{1F4BB} Horizontal';btn.classList.add('active');
+}else{
+split.classList.add('camera-only');
+btn.innerHTML='\u{1F3A5} Camera Only';btn.classList.add('active');
+}
+}
+
+// Studio Filters
+function setFilter(name,btn){
+activeFilter=name;
+var video=document.getElementById('recCamVideo');
+if(video)video.style.filter=FILTERS[name]||'none';
+var chips=document.querySelectorAll('#studioFilterBar .filter-chip');
+for(var i=0;i<chips.length;i++)chips[i].classList.remove('active');
+if(btn)btn.classList.add('active');
+}
+
+// Canvas pipeline for baking filters into recording
+function startCanvasPipeline(){
+canvasEl=document.getElementById('recCanvas');
+var video=document.getElementById('recCamVideo');
+canvasEl.width=video.videoWidth||640;
+canvasEl.height=video.videoHeight||480;
+canvasCtx=canvasEl.getContext('2d');
+canvasEl.style.display='none';
+drawCanvasFrame();
+canvasStream=canvasEl.captureStream(30);
+if(cameraStream){
+var audioTracks=cameraStream.getAudioTracks();
+audioTracks.forEach(function(t){canvasStream.addTrack(t)});
+}
+}
+
+function drawCanvasFrame(){
+if(!canvasEl||!canvasCtx)return;
+var video=document.getElementById('recCamVideo');
+if(!video||video.readyState<2){canvasAnimId=requestAnimationFrame(drawCanvasFrame);return}
+canvasCtx.filter=FILTERS[activeFilter]||'none';
+canvasCtx.drawImage(video,0,0,canvasEl.width,canvasEl.height);
+canvasCtx.filter='none';
+canvasAnimId=requestAnimationFrame(drawCanvasFrame);
+}
+
+function stopCanvasPipeline(){
+if(canvasAnimId){cancelAnimationFrame(canvasAnimId);canvasAnimId=null}
+canvasStream=null;
 }
 
 // ===== SUBMIT & GO HOME =====

@@ -88,7 +88,8 @@ window.odaAI = async function(prompt, options) {
       prompt: prompt,
       max_tokens: options.max_tokens || 1000,
       temperature: options.temperature || 0.9,
-      system: options.system || undefined
+      system: options.system || undefined,
+      model: options.model || undefined  // "sonnet" (default) or "opus" (teacher-only)
     })
   });
 
