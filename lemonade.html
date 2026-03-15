@@ -349,8 +349,8 @@ textarea.input{resize:vertical;min-height:100px;font-size:16px;line-height:1.6}
 </div>
 
 <div class="idea-expand-bg" id="ideaExpandBg">
-<div class="idea-expand-top"><h3>&#x2728; What's YOUR big idea?</h3><button class="ie-close" onclick="closeIdeaExpand()">&times;</button></div>
-<div class="idea-expand-body"><textarea id="ideaExpandText" placeholder="Write your product idea here... What would YOU sell?"></textarea></div>
+<div class="idea-expand-top"><h3>&#x2728; What's YOUR big idea?</h3><div style="display:flex;align-items:center;gap:10px"><button class="ai-btn" onclick="aiHelpBrainstormExpanded()" id="wtAiBtnExp" style="margin:0;padding:8px 14px;font-size:13px">&#x1F916; AI Brainstorm</button><button class="ie-close" onclick="closeIdeaExpand()">&times;</button></div></div>
+<div class="idea-expand-body"><textarea id="ideaExpandText" placeholder="Write your product idea here... What would YOU sell?"></textarea><div id="wtAiBubbleExp" style="flex-shrink:0;max-height:200px;overflow-y:auto"></div></div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -1207,6 +1207,23 @@ var bubble=document.getElementById('wtAiBubble');
 if(bubble)bubble.innerHTML='<div class="ai-bubble">'+esc(text||'No response')+'</div>';
 }catch(e){console.error(e);showToast('AI not available right now','warning')}
 finally{if(btn){btn.disabled=false;btn.innerHTML='&#x1F916; AI Brainstorm Helper'}}
+}
+
+async function aiHelpBrainstormExpanded(){
+var idea=document.getElementById('ideaExpandText')?document.getElementById('ideaExpandText').value.trim():'';
+var btn=document.getElementById('wtAiBtnExp');
+if(btn){btn.disabled=true;btn.innerHTML='&#x1F916; Thinking...'}
+try{
+var prompt='You are a friendly AI brainstorm buddy for a K-12 student planning a Lemonade Day business. IMPORTANT RULE: No food or drinks are allowed at this event - only non-food products. If the student suggests food/drinks, gently redirect them to product-only ideas. ';
+if(idea)prompt+='They are thinking about selling: "'+idea+'". If this is a food/drink item, kindly explain no food is allowed and suggest 3 similar non-food alternatives. Otherwise give them 3 quick tips to make this idea awesome and 2 alternative product ideas they might like. Keep it fun and encouraging!';
+else prompt+='They have not decided what to sell yet. Give them 5 creative NON-FOOD product ideas that kids can make and sell at a school Lemonade Day event (fidget toys, candles, art, jewelry, slime, STEM kits, etc). Be specific and fun! Include emojis.';
+var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt,max_tokens:300})});
+var data=await resp.json();
+var text=data.response||data.text||(Array.isArray(data.content)&&data.content[0]?data.content[0].text:'')||'';
+var bubble=document.getElementById('wtAiBubbleExp');
+if(bubble)bubble.innerHTML='<div class="ai-bubble">'+esc(text||'No response')+'</div>';
+}catch(e){console.error(e);showToast('AI not available right now','warning')}
+finally{if(btn){btn.disabled=false;btn.innerHTML='&#x1F916; AI Brainstorm'}}
 }
 
 // ===== LEGACY: showIntro redirects to dashboard =====
