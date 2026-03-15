@@ -1855,6 +1855,11 @@ if(gradingAssignment.toolType==='lemonade-day'){
 openLemGradeFromAssign(gradingAssignment);
 return;
 }
+// Elevator Pitch: load from elevatorPitches collection if no studentResponse
+if(gradingAssignment.toolType==='elevator-pitch'&&!gradingAssignment.studentResponse){
+openElevatorGradeFromAssign(gradingAssignment);
+return;
+}
 var student=students.find(function(s){return s.id===gradingAssignment.studentId});
 var a=gradingAssignment;
 var el=document.getElementById('gradePanelContent');
@@ -1898,14 +1903,41 @@ if(pitchParsed.polishedPitch)h+='<div class="gw-section"><div class="gw-label">\
 if(pitchParsed.score)h+='<div class="gw-section"><div class="gw-label">\u2B50 Scorecard</div><div style="font-size:18px;font-weight:700;color:var(--gold);margin-top:4px">'+(pitchParsed.score.total||0)+'/'+(pitchParsed.score.max||6)+' Stars</div></div>';
 h+='</div>';
 }else if(pitchParsed&&pitchParsed.answers){
-h+='<div class="grade-work">';
-h+='<div style="font-family:Fredoka,sans-serif;font-weight:700;font-size:18px;margin-bottom:14px;color:var(--accent2)">\u{1F3A4} Elevator Pitch</div>';
 var ans=pitchParsed.answers;
-var labels={name:'Name',age:'Age',school:'School',from:'From',grade:'Grade',dream:'Dream Job',why:'Why',hobby:'Hobby',fact:'Fun Fact',remember:'Remember Me For'};
-Object.keys(labels).forEach(function(k){if(ans[k])h+='<div class="gw-value"><div class="gw-label">'+labels[k]+'</div>'+esc(ans[k])+'</div>'});
-if(pitchParsed.pitchText)h+='<div class="gw-section"><div class="gw-label">Generated Pitch</div><div class="gw-pitch">'+esc(pitchParsed.pitchText)+'</div></div>';
-if(pitchParsed.aiSummary)h+='<div class="gw-section"><div class="gw-label">\u2728 AI Summary</div><div style="margin-top:6px;padding:12px;background:rgba(6,214,160,.08);border-radius:10px;font-size:14px;line-height:1.7">'+esc(pitchParsed.aiSummary)+'</div></div>';
-if(pitchParsed.videoUrl)h+='<div class="gw-section"><div class="gw-label">\u{1F3AC} Video Recording</div><div style="margin-top:8px"><video controls playsinline style="width:100%;max-height:360px;border-radius:10px;background:#000" src="'+esc(pitchParsed.videoUrl)+'"></video></div></div>';
+h+='<div class="grade-work">';
+h+='<div style="font-family:Fredoka,sans-serif;font-weight:700;font-size:20px;margin-bottom:4px;color:var(--accent2)">\u{1F3A4} '+esc(ans.name||'Student')+'\'s Elevator Pitch</div>';
+h+='<div style="font-size:13px;color:var(--text2);margin-bottom:16px">'+esc(ans.grade?'Grade '+ans.grade:'')+' '+esc(ans.school?' \u2022 '+ans.school:'')+' '+esc(ans.from?' \u2022 From '+ans.from:'')+'</div>';
+
+// About Me section
+h+='<div class="gw-section"><div class="gw-label">\u{1F464} About Me</div>';
+if(ans.age)h+='<div class="gw-value"><strong>Age:</strong> '+esc(ans.age)+'</div>';
+if(ans.dream)h+='<div class="gw-value" style="margin-top:4px"><strong>Dream Job:</strong> '+esc(ans.dream)+'</div>';
+if(ans.why)h+='<div class="gw-value" style="margin-top:4px"><strong>Why:</strong> '+esc(ans.why)+'</div>';
+if(ans.hobby)h+='<div class="gw-value" style="margin-top:4px"><strong>Favorite Hobby:</strong> '+esc(ans.hobby)+'</div>';
+if(ans.fact)h+='<div class="gw-value" style="margin-top:4px"><strong>Fun Fact:</strong> '+esc(ans.fact)+'</div>';
+if(ans.remember)h+='<div class="gw-value" style="margin-top:4px"><strong>Remember Me For:</strong> '+esc(ans.remember)+'</div>';
+h+='</div>';
+
+// Generated Pitch
+if(pitchParsed.pitchText){
+h+='<div class="gw-section"><div class="gw-label">\u{1F4AC} Generated Pitch</div>';
+h+='<div style="margin-top:8px;padding:16px;background:rgba(17,138,178,.06);border-radius:12px;border-left:3px solid var(--accent2);font-size:15px;line-height:1.8;font-style:italic">'+esc(pitchParsed.pitchText)+'</div>';
+h+='</div>';
+}
+
+// Video Recording
+if(pitchParsed.videoUrl){
+h+='<div class="gw-section"><div class="gw-label">\u{1F3AC} Video Recording</div>';
+h+='<div style="margin-top:8px"><video controls playsinline style="width:100%;max-height:360px;border-radius:10px;background:#000" src="'+esc(pitchParsed.videoUrl)+'"></video></div>';
+h+='</div>';
+}
+
+// AI Summary
+if(pitchParsed.aiSummary){
+h+='<div class="gw-section"><div class="gw-label">\u2728 AI Personalized Summary</div>';
+h+='<div style="margin-top:6px;padding:14px;background:rgba(6,214,160,.08);border-radius:12px;font-size:14px;line-height:1.7">'+esc(pitchParsed.aiSummary)+'</div>';
+h+='</div>';
+}
 h+='</div>';
 }else{
 h+='<div class="grade-work" style="white-space:pre-wrap">'+esc(a.studentResponse)+'</div>';
@@ -2117,6 +2149,73 @@ document.getElementById('gradeFeedback').value=parsed.feedback||'';
 if(btn)btnLoading(btn,false,'&#x1F916; AI Suggest');
 }
 window.aiSuggestLemGradeInPanel=aiSuggestLemGradeInPanel;
+
+// Elevator Pitch: load from elevatorPitches collection and grade in standard panel
+async function openElevatorGradeFromAssign(a){
+var student=students.find(function(s){return s.id===a.studentId});
+var el=document.getElementById('gradePanelContent');
+var ep=null;
+try{
+var epDoc=await window.fbGetDoc(window.fbDoc(window.fbDb,'elevatorPitches',a.studentId));
+if(epDoc.exists())ep=epDoc.data();
+}catch(e){console.error(e)}
+
+if(!ep||!ep.answers){
+el.innerHTML='<div class="grade-header"><h2>&#x1F3A4; Elevator Pitch</h2><div class="grade-meta"><strong>'+esc(student?student.name:'Unknown')+'</strong></div></div><div class="empty-state"><span class="emoji">&#x1F3A4;</span><p>This student hasn\'t completed their elevator pitch yet.</p></div><div class="grade-footer"><div></div><button class="btn btn-red btn-sm" onclick="deleteFromPanel()">Delete Assignment</button></div>';
+document.getElementById('gradePanel').classList.add('show');
+return;
+}
+var ans=ep.answers;
+var h='<div class="grade-header">';
+h+='<h2>&#x1F3A4; '+esc(ans.name||student&&student.name||'Student')+'\'s Elevator Pitch</h2>';
+h+='<div class="grade-meta"><strong>'+esc(student?student.name:'Unknown')+'</strong>';
+h+=' &bull; <span class="ac-status '+getStatusClass(a.status)+'">'+getStatusLabel(a.status)+'</span>';
+if(a.score!==null&&a.score!==undefined)h+=' &bull; <span style="font-family:Space Mono,monospace;color:var(--gold);font-weight:700">'+a.score+'%</span>';
+if(ep.savedAt)h+=' &bull; Completed '+new Date(ep.savedAt).toLocaleDateString();
+h+='</div></div>';
+
+h+='<div class="grade-work">';
+h+='<div style="font-size:13px;color:var(--text2);margin-bottom:16px">'+esc(ans.grade?'Grade '+ans.grade:'')+esc(ans.school?' \u2022 '+ans.school:'')+esc(ans.from?' \u2022 From '+ans.from:'')+'</div>';
+
+h+='<div class="gw-section"><div class="gw-label">&#x1F464; About Me</div>';
+if(ans.age)h+='<div class="gw-value"><strong>Age:</strong> '+esc(ans.age)+'</div>';
+if(ans.dream)h+='<div class="gw-value" style="margin-top:4px"><strong>Dream Job:</strong> '+esc(ans.dream)+'</div>';
+if(ans.why)h+='<div class="gw-value" style="margin-top:4px"><strong>Why:</strong> '+esc(ans.why)+'</div>';
+if(ans.hobby)h+='<div class="gw-value" style="margin-top:4px"><strong>Favorite Hobby:</strong> '+esc(ans.hobby)+'</div>';
+if(ans.fact)h+='<div class="gw-value" style="margin-top:4px"><strong>Fun Fact:</strong> '+esc(ans.fact)+'</div>';
+if(ans.remember)h+='<div class="gw-value" style="margin-top:4px"><strong>Remember Me For:</strong> '+esc(ans.remember)+'</div>';
+h+='</div>';
+
+if(ep.pitch){
+h+='<div class="gw-section"><div class="gw-label">&#x1F4AC; Generated Pitch</div>';
+h+='<div style="margin-top:8px;padding:16px;background:rgba(17,138,178,.06);border-radius:12px;border-left:3px solid var(--accent2);font-size:15px;line-height:1.8;font-style:italic">'+esc(ep.pitch)+'</div>';
+h+='</div>';
+}
+h+='</div>';
+
+// Grading section
+h+='<div class="grade-actions">';
+h+='<div class="ga-title">Grade This Pitch</div>';
+h+='<div class="grade-score-row">';
+h+='<div><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px">Score (0-100)</div>';
+h+='<input type="number" class="score-input" id="gradeScore" min="0" max="100" value="'+(a.score||'')+'"></div>';
+h+='<button class="btn btn-blue btn-sm" onclick="aiSuggestGrade()" id="aiGradeBtn">&#x1F916; AI Suggest</button>';
+h+='</div>';
+h+='<div class="grade-feedback-area"><label>Feedback <button class="btn btn-outline btn-sm" onclick="aiWriteFeedback()" id="aiFeedbackBtn" style="font-size:10px">&#x1F916; AI Write</button></label>';
+h+='<textarea id="gradeFeedback">'+(a.feedback||'')+'</textarea></div>';
+h+='<div class="grade-btn-row">';
+h+='<button class="btn btn-accent" onclick="gradeAssignment()">&#x2705; Grade</button>';
+h+='<button class="btn btn-gold" onclick="returnForRevision()">&#x1F504; Return for Revision</button>';
+h+='</div></div>';
+
+h+='<div class="grade-footer"><div></div>';
+h+='<button class="btn btn-red btn-sm" onclick="deleteFromPanel()">Delete Assignment</button>';
+h+='</div>';
+
+el.innerHTML=h;
+document.getElementById('gradePanel').classList.add('show');
+}
+window.openElevatorGradeFromAssign=openElevatorGradeFromAssign;
 
 var _blobCache={};
 function dataUriToBlobUrl(id,dataUri){
