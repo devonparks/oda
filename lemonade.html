@@ -103,10 +103,6 @@ textarea.input{resize:vertical;min-height:100px;font-size:16px;line-height:1.6}
 .profit-box .profit-num{font-family:'Fredoka',sans-serif;font-size:36px;font-weight:700;color:#065F46}
 .profit-box .profit-label{font-size:14px;color:#047857;font-weight:600}
 
-/* Sales log */
-.sale-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;background:#FFFBEB;padding:10px;border-radius:12px}
-.sale-row input{flex:1;min-width:0}
-
 /* File list */
 .file-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#FFFBEB;border-radius:12px;margin-bottom:8px}
 .file-item .fi-name{font-weight:700;font-size:14px;color:#92400E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
@@ -215,6 +211,16 @@ textarea.input{resize:vertical;min-height:100px;font-size:16px;line-height:1.6}
 .ws-tab{padding:12px 20px;font-size:15px}
 .stat-row{gap:16px}
 .idea-expand-body{max-width:900px;padding:28px 36px}
+}
+@media(min-width:1024px){
+.wrap{max-width:1100px}
+.dash-wrap{max-width:1100px}
+.grade-wrap{max-width:1100px}
+.card{padding:36px 32px}
+.wt-step .card{padding:32px 28px}
+.my-groups-grid{grid-template-columns:1fr 1fr 1fr}
+.rules{padding:24px}
+.idea-expand-body{max-width:1000px}
 }
 
 /* ===== TEACHER GRADE VIEW ===== */
@@ -361,7 +367,7 @@ textarea.input{resize:vertical;min-height:100px;font-size:16px;line-height:1.6}
 
 <div class="idea-expand-bg" id="ideaExpandBg">
 <div class="idea-expand-top"><h3>&#x2728; What's YOUR big idea?</h3><div style="display:flex;align-items:center;gap:10px"><button class="ai-btn" onclick="aiHelpBrainstormExpanded()" id="wtAiBtnExp" style="margin:0;padding:8px 14px;font-size:13px">&#x1F916; AI Brainstorm</button><button class="ai-btn hidden" onclick="aiHelpBrainstormExpanded()" id="wtAiRefreshExp" title="Get new ideas" style="margin:0;padding:8px 12px;font-size:12px;min-width:0">&#x1F504;</button><button class="ie-close" onclick="closeIdeaExpand()">&times;</button></div></div>
-<div class="idea-expand-body"><div id="wtAiBubbleExp" style="flex-shrink:0;max-height:200px;overflow-y:auto;margin-bottom:12px"></div><textarea id="ideaExpandText" placeholder="Write your product idea here... What would YOU sell?"></textarea></div>
+<div class="idea-expand-body"><div id="wtAiBubbleExp" style="flex-shrink:0;max-height:250px;overflow-y:auto;margin-bottom:12px"></div><textarea id="ideaExpandText" placeholder="Write your product idea here... What would YOU sell?"></textarea></div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -393,7 +399,6 @@ return{storage:_fbStorage,storageMod:storageMod,app:_fbApp};
 var studentId=null,studentName=null,classCode=null;
 var currentGroup=null,currentGroupId=null;
 var _unsubGroup=null; // Firestore listener
-var _saveTimer=null;
 var _aiLoading=false;
 var ROLES=[
 {name:'CEO - The Boss',desc:'Leads the team, makes big decisions, keeps everyone on track'},
@@ -787,8 +792,7 @@ document.querySelector('#gradeView .grade-back').textContent='\u2190 Back to Das
 renderGradeView();
 }
 
-// Override grade submit to also handle dashboard mode
-var _origSubmitGrade=submitLemonadeGrade;
+// Dashboard grade submit
 async function submitLemonadeGradeFromDash(){
 if(!_gradeGroup)return;
 var score=parseInt(document.getElementById('gradeScoreRange').value);
@@ -831,12 +835,14 @@ var a=_gradeData;
 var g=_gradeGroup;
 var el=document.getElementById('gradeContent');
 
-// Status badge
-var st=a.status||'pending';
+// Determine status from group if available, else from assignment
+var gStatus=g?g.status:(a.status||'pending');
+var st=gStatus;
 var statusEl=document.getElementById('gradeStatusBadge');
-statusEl.textContent=st.replace(/_/g,' ');
-statusEl.style.background=st==='submitted'?'rgba(245,158,11,.15)':st==='graded'?'rgba(16,185,129,.15)':st==='returned'?'rgba(239,71,111,.15)':'rgba(17,138,178,.15)';
-statusEl.style.color=st==='submitted'?'#D97706':st==='graded'?'#059669':st==='returned'?'#EF4444':'#0EA5E9';
+var statusLabels={pending_approval:'Needs Approval',approved:'Active',submitted:'Submitted',graded:'Graded',returned:'Returned',completed:'Completed'};
+statusEl.textContent=statusLabels[st]||st.replace(/_/g,' ');
+statusEl.style.background=st==='pending_approval'?'rgba(239,71,111,.15)':st==='submitted'?'rgba(245,158,11,.15)':st==='graded'?'rgba(16,185,129,.15)':st==='returned'?'rgba(239,71,111,.15)':'rgba(17,138,178,.15)';
+statusEl.style.color=st==='pending_approval'?'#EF4444':st==='submitted'?'#D97706':st==='graded'?'#059669':st==='returned'?'#EF4444':'#0EA5E9';
 
 if(a.score!==null&&a.score!==undefined){
 document.getElementById('gradeTitle').textContent='Lemonade Day — '+a.score+'%';
@@ -858,6 +864,17 @@ document.getElementById('gradeGroupName').textContent=g.groupName||'Group';
 document.getElementById('gradeCompanyName').textContent=g.companyName||'';
 
 var h='';
+
+// --- PENDING APPROVAL STATE: show approve/deny ---
+if(st==='pending_approval'){
+h+='<div class="g-card" style="text-align:center;border-color:#EF4444;border-style:dashed;background:#FEF2F2">';
+h+='<div class="gc-title">&#x23F3; Pending Approval</div>';
+h+='<p style="font-size:15px;color:#78350F;font-weight:600;margin-bottom:16px">This group is waiting for your approval before they can start working.</p>';
+h+='<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">';
+h+='<button class="btn btn-green" style="padding:12px 24px;font-size:15px;border-radius:14px" onclick="approveGroupFromGrade()">&#x2705; Approve Group</button>';
+h+='<button class="btn btn-red" style="padding:12px 24px;font-size:15px;border-radius:14px" onclick="denyGroupFromGrade()">&#x274C; Deny Group</button>';
+h+='</div></div>';
+}
 
 // Team Members card
 h+='<div class="g-card"><div class="gc-title">&#x1F465; Team Members ('+g.members.length+')</div>';
@@ -955,19 +972,53 @@ h+='<div class="g-card"><div class="gc-title">&#x1F4AC; Team Notes</div>';
 h+='<div class="gc-row" style="white-space:pre-wrap">'+esc(g.notes)+'</div></div>';
 }
 
-// Grading controls
-h+='<div class="g-card grade-controls"><div class="gc-title">&#x270F;&#xFE0F; Grade This Project</div>';
+// --- GRADED STATE: show scores/feedback with re-grade option ---
+if(st==='graded'&&g.score!==undefined){
+h+='<div class="g-card" style="border-color:#10B981;background:#F0FDF4"><div class="gc-title">&#x2B50; Grade Results</div>';
+h+='<div style="text-align:center;margin-bottom:12px"><span style="font-family:Fredoka,sans-serif;font-size:36px;font-weight:700;color:#059669">'+g.score+'%</span></div>';
+if(g.feedback)h+='<div class="gc-row" style="background:#fff;padding:12px;border-radius:10px"><strong>Feedback:</strong> '+esc(g.feedback)+'</div>';
+h+='</div>';
+}
+
+// Grading controls (show for approved/submitted/graded — not for pending_approval)
+if(st!=='pending_approval'){
+h+='<div class="g-card grade-controls"><div class="gc-title">&#x270F;&#xFE0F; '+(st==='graded'?'Re-Grade':'Grade')+' This Project</div>';
 h+='<div class="grade-score-row"><label>Score</label>';
-h+='<input type="range" id="gradeScoreRange" min="0" max="100" value="'+(a.score||85)+'" oninput="document.getElementById(\'gradeScoreVal\').textContent=this.value+\'%\'">';
-h+='<span class="grade-score-val" id="gradeScoreVal">'+(a.score||85)+'%</span></div>';
-h+='<div class="grade-feedback"><textarea id="gradeTeacherFeedback" placeholder="Write feedback for the group...">'+(a.feedback||'')+'</textarea></div>';
+h+='<input type="range" id="gradeScoreRange" min="0" max="100" value="'+(a.score||g.score||85)+'" oninput="document.getElementById(\'gradeScoreVal\').textContent=this.value+\'%\'">';
+h+='<span class="grade-score-val" id="gradeScoreVal">'+(a.score||g.score||85)+'%</span></div>';
+h+='<div class="grade-feedback"><textarea id="gradeTeacherFeedback" placeholder="Write feedback for the group...">'+(a.feedback||g.feedback||'')+'</textarea></div>';
 h+='<div class="grade-btn-row">';
-h+='<button class="btn btn-grade" onclick="submitLemonadeGrade()">&#x2705; Grade</button>';
+h+='<button class="btn btn-grade" onclick="submitLemonadeGrade()">&#x2705; '+(st==='graded'?'Re-Grade':'Grade')+'</button>';
 h+='<button class="btn btn-return-rev" onclick="returnLemonadeForRevision()">&#x21A9;&#xFE0F; Return for Revision</button>';
 h+='<button class="btn btn-complete-lem" onclick="completeLemonade()">&#x2713; Mark Complete</button>';
 h+='</div></div>';
+}
 
 el.innerHTML=h;
+}
+
+async function approveGroupFromGrade(){
+if(!_gradeGroup)return;
+if(!confirm('Approve this group? They will be able to start working on their business plan.'))return;
+try{
+var fb=await getFirebaseDB();
+await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'lemonadeGroups',_gradeGroup.id),{status:'approved',approvedAt:new Date().toISOString()});
+_gradeGroup.status='approved';
+if(_gradeData)_gradeData.status='approved';
+showToast('Group approved!','');
+renderGradeView();
+}catch(e){console.error(e);showToast('Error approving','error')}
+}
+
+async function denyGroupFromGrade(){
+if(!_gradeGroup)return;
+if(!confirm('Deny and delete this group? This cannot be undone.'))return;
+try{
+var fb=await getFirebaseDB();
+await fb.fsMod.deleteDoc(fb.fsMod.doc(fb.db,'lemonadeGroups',_gradeGroup.id));
+showToast('Group denied and deleted','');
+window.close();
+}catch(e){console.error(e);showToast('Error denying','error')}
 }
 
 async function submitLemonadeGrade(){
@@ -1136,6 +1187,7 @@ h+='<div class="rule"><span class="ico">&#x1F46B;</span><span class="txt">Form a
 h+='<div class="rule"><span class="ico">&#x1F454;</span><span class="txt">Every person gets a <strong>real business role</strong></span></div>';
 h+='<div class="rule"><span class="ico">&#x1F3A8;</span><span class="txt">Plan and <strong>create products</strong> to sell (fidget toys, candles, art, STEM kits...)</span></div>';
 h+='<div class="rule"><span class="ico">&#x1F4B0;</span><span class="txt">On Lemonade Day, you run your booth and <strong>make real money</strong></span></div>';
+h+='<div class="rule"><span class="ico">&#x1F6AB;</span><span class="txt"><strong>No food or drinks</strong> — only products you make or create!</span></div>';
 h+='</div>';
 h+='<div class="rules" style="background:#FDF4FF;border-color:rgba(168,85,247,.15)">';
 h+='<h3 style="color:#6B21A8">&#x1F4BC; Business Roles <span style="font-size:12px;font-weight:500;color:#9333EA">(tap to learn more)</span></h3>';
@@ -1158,13 +1210,13 @@ h+='<div style="margin-top:12px;padding:10px 14px;background:#FEE2E2;border-radi
 h+='</div>';
 h+='<div style="margin-top:16px">';
 h+='<label class="input-label" style="margin-bottom:8px">&#x2728; What\'s YOUR big idea?</label>';
-h+='<textarea class="input hidden" id="wtIdea" placeholder="Write your product idea here... What would YOU sell?" rows="3" style="resize:none;margin-top:8px"></textarea>';
-h+='<button class="btn btn-normal btn-orange" onclick="expandIdea()" style="width:100%;margin-bottom:8px">&#x270F;&#xFE0F; Write Your Idea</button>';
-h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">';
+h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">';
 h+='<button class="ai-btn" onclick="aiHelpBrainstorm()" id="wtAiBtn">&#x1F916; AI Brainstorm</button>';
 h+='<button class="ai-btn hidden" onclick="aiHelpBrainstorm()" id="wtAiRefresh" title="Get new ideas" style="margin-top:0;padding:8px 12px;font-size:12px;min-width:0">&#x1F504;</button>';
 h+='</div>';
-h+='<div id="wtAiBubble"></div>';
+h+='<div id="wtAiBubble" style="margin-bottom:10px"></div>';
+h+='<textarea class="input" id="wtIdea" placeholder="Write your product idea here... What would YOU sell?" rows="3" style="resize:none"></textarea>';
+h+='<div style="display:flex;gap:8px;align-items:center;margin-top:4px"><button class="idea-expand-btn" onclick="expandIdea()">&#x26A1; Expand Fullscreen</button></div>';
 h+='</div></div>';
 }else if(_wtStep===3){
 // Step 4: Create or Join
@@ -1503,7 +1555,7 @@ h+='</div>';
 
 // Tabs
 h+='<div class="ws-tabs" role="tablist">';
-var tabs=[{id:'overview',label:'Overview',icon:'&#x1F3E0;'},{id:'plan',label:'Business Plan',icon:'&#x1F4DD;'},{id:'costs',label:'Costs & Pricing',icon:'&#x1F4B0;'},{id:'files',label:'Files & Links',icon:'&#x1F4CE;'},{id:'notes',label:'Notes',icon:'&#x1F4AC;'}];
+var tabs=[{id:'overview',label:'Overview',icon:'&#x1F3E0;'},{id:'plan',label:'Business Plan',icon:'&#x1F4DD;'},{id:'costs',label:'Costs & Pricing',icon:'&#x1F4B0;'},{id:'files',label:'Files & Links',icon:'&#x1F4CE;'},{id:'notes',label:'Team Notes',icon:'&#x1F4AC;'}];
 for(var i=0;i<tabs.length;i++){
 h+='<button class="ws-tab'+(_wsTab===tabs[i].id?' active':'')+'" onclick="switchWsTab(\''+tabs[i].id+'\')" role="tab" aria-selected="'+(_wsTab===tabs[i].id)+'">'+tabs[i].icon+' '+tabs[i].label+'</button>';
 }
@@ -1554,7 +1606,31 @@ if(panel)panel.classList.add('show');
 }
 
 function updateWorkspaceData(){
-// Light update — just refresh member count and status badge without re-rendering everything
+// Light update — refresh member count, status badge, and overview member list
+if(!currentGroup)return;
+var g=currentGroup;
+// Update status badge in header
+var badgeEl=document.querySelector('#mainContent .status-badge');
+if(badgeEl){
+var statusText=g.status==='approved'?'Active':g.status==='submitted'?'Submitted':g.status==='graded'?'Graded':'Pending';
+badgeEl.textContent=statusText;
+badgeEl.className='status-badge sb-'+g.status;
+}
+// Update member count label
+var memberLabels=document.querySelectorAll('.input-label');
+memberLabels.forEach(function(el){
+if(el.textContent.indexOf('Team Members')>=0){
+el.innerHTML='&#x1F465; Team Members ('+g.members.length+'/6)';
+}
+});
+// Re-render overview panel member list if visible
+var overviewPanel=document.getElementById('panel-overview');
+if(overviewPanel&&overviewPanel.classList.contains('show')){
+var isLeader=g.leader&&g.leader.studentId===studentId;
+overviewPanel.outerHTML=renderOverviewPanel(g,isLeader);
+var newPanel=document.getElementById('panel-overview');
+if(newPanel)newPanel.classList.add('show');
+}
 }
 
 // ===== PANEL RENDERERS =====
