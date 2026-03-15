@@ -56,6 +56,26 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Pitch Gallery: community sharing
+    match /pitchGallery/{pitchId} {
+      allow read: if true;
+      allow create: if true;  // Students share pitches
+      allow update: if true;  // Like counts
+      allow delete: if request.auth != null;  // Only teachers delete
+    }
+
+    // Pitch Projects: student pitch saves synced to cloud
+    match /pitchProjects/{projectId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Spelling Words: teacher-managed word lists
+    match /spellingWords/{wordId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
     // Default deny
     match /{document=**} {
       allow read, write: if false;
