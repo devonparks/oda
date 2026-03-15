@@ -155,6 +155,34 @@ textarea.input{resize:vertical;min-height:100px;font-size:16px;line-height:1.6}
 
 @keyframes spin{to{transform:rotate(360deg)}}
 .hidden{display:none!important}
+
+/* ===== STUDENT DASHBOARD ===== */
+.my-groups-grid{display:grid;gap:16px;margin-top:16px}
+.mg-card{background:#fff;border:2px solid #FDE68A;border-radius:20px;padding:20px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.mg-card:hover{border-color:#F59E0B;transform:translateY(-2px);box-shadow:0 8px 24px rgba(245,158,11,.15)}
+.mg-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.mg-name{font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700;color:#92400E}
+.mg-company{font-size:14px;font-weight:700;color:#F59E0B;margin-top:2px}
+.mg-members{display:flex;gap:4px;flex-wrap:wrap;margin-top:10px}
+.mg-member{font-size:12px;font-weight:600;padding:3px 10px;border-radius:8px;background:#FEF3C7;color:#92400E}
+.mg-member.leader{background:#F59E0B;color:#fff}
+.mg-role{font-size:12px;color:#B45309;font-weight:600;margin-top:6px}
+.mg-footer{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.mg-date{font-size:12px;color:#B45309}
+.new-group-card{background:linear-gradient(135deg,#FFF7ED,#FFEDD5);border:3px dashed #F59E0B;border-radius:20px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s}
+.new-group-card:hover{background:#FDE68A;transform:translateY(-2px)}
+.new-group-card .ngc-emoji{font-size:48px;margin-bottom:8px}
+.new-group-card .ngc-title{font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700;color:#92400E}
+.new-group-card .ngc-sub{font-size:14px;color:#B45309;font-weight:600;margin-top:4px}
+
+/* ===== WALKTHROUGH STEPS ===== */
+.wt-progress{display:flex;gap:4px;margin-bottom:20px}
+.wt-dot{flex:1;height:6px;border-radius:3px;background:#FDE68A;transition:background .3s}
+.wt-dot.done{background:#F59E0B}
+.wt-dot.active{background:linear-gradient(90deg,#F59E0B,#EF4444)}
+.wt-step{animation:fadeUp .3s ease}
+.wt-nav{display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:12px}
+
 @media(max-width:500px){
 .ws-tabs{gap:4px}
 .ws-tab{font-size:12px;padding:8px 12px}
@@ -377,7 +405,7 @@ var backEl=document.getElementById('backLink');
 
 if(studentId){
 backEl.href='student.html';
-checkExistingGroup();
+showStudentDashboard();
 return;
 }
 
@@ -949,39 +977,105 @@ showToast('Marked complete','');
 }catch(e){alert('Error: '+e.message)}
 }
 
-async function checkExistingGroup(){
+// ===== STUDENT DASHBOARD (like pitch challenge) =====
+var _studentGroups=[];
+
+async function showStudentDashboard(){
+document.getElementById('hdrSub').textContent='Build a real business with your team!';
+var el=document.getElementById('mainContent');
+el.innerHTML='<div style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:8px">&#x1F34B;</div><div style="font-family:Fredoka,sans-serif;color:#92400E;font-weight:600">Loading your groups...</div></div>';
 try{
 var fb=await getFirebaseDB();
-// Check if student is in any group
 var q=fb.fsMod.query(fb.fsMod.collection(fb.db,'lemonadeGroups'),fb.fsMod.where('memberIds','array-contains',studentId));
 var snap=await fb.fsMod.getDocs(q);
-if(!snap.empty){
-var doc=snap.docs[0];
-currentGroupId=doc.id;
-currentGroup=doc.data();
-if(currentGroup.status==='pending_approval'){
-showPendingApproval();
-}else{
-showWorkspace();
-}
-}else{
-showIntro();
-}
-}catch(e){
-console.error('Check group error:',e);
-showIntro();
-}
+_studentGroups=[];
+snap.forEach(function(d){_studentGroups.push({id:d.id,...d.data()})});
+}catch(e){console.error('Load groups:',e)}
+renderStudentDashboard();
 }
 
-// ===== INTRO SCREEN =====
-function showIntro(){
+function renderStudentDashboard(){
 var h='';
-// Video card
+
+// New group cards
+h+='<div class="my-groups-grid">';
+// Create new / join
+h+='<div class="new-group-card" onclick="startWalkthrough()">';
+h+='<div class="ngc-emoji">&#x2728;</div>';
+h+='<div class="ngc-title">Start New Project</div>';
+h+='<div class="ngc-sub">Watch the video, brainstorm, and create your group</div>';
+h+='</div>';
+
+h+='<div class="new-group-card" onclick="showJoinGroup()" style="border-color:#3B82F6;background:linear-gradient(135deg,#EFF6FF,#DBEAFE)">';
+h+='<div class="ngc-emoji">&#x1F517;</div>';
+h+='<div class="ngc-title" style="color:#1E40AF">Join a Group</div>';
+h+='<div class="ngc-sub" style="color:#3B82F6">Have a group code? Join your team here</div>';
+h+='</div>';
+
+// Existing groups
+for(var i=0;i<_studentGroups.length;i++){
+var g=_studentGroups[i];
+var statusLabel={pending_approval:'Waiting for Approval',approved:'Active',submitted:'Submitted',graded:'Graded'}[g.status]||g.status;
+var statusClass={pending_approval:'pending',approved:'approved',submitted:'submitted',graded:'graded'}[g.status]||'';
+var myRole='';
+if(g.members){for(var j=0;j<g.members.length;j++){if(g.members[j].studentId===studentId)myRole=g.members[j].role||''}}
+h+='<div class="mg-card" onclick="openGroup(\''+g.id+'\')">';
+h+='<div class="mg-top"><div><div class="mg-name">'+esc(g.groupName||'Unnamed Group')+'</div>';
+h+='<div class="mg-company">'+esc(g.companyName||'')+'</div></div>';
+h+='<span class="status-badge sb-'+statusClass+'">'+statusLabel+'</span></div>';
+if(myRole)h+='<div class="mg-role">&#x1F454; Your Role: '+esc(myRole)+'</div>';
+h+='<div class="mg-members">';
+if(g.members){for(var j=0;j<g.members.length;j++){
+var m=g.members[j];
+var isLeader=g.leader&&g.leader.studentId===m.studentId;
+h+='<span class="mg-member'+(isLeader?' leader':'')+'">'+esc(m.studentName)+(isLeader?' &#x2B50;':'')+'</span>';
+}}
+h+='</div>';
+h+='<div class="mg-footer"><span class="mg-date">Created '+new Date(g.createdAt).toLocaleDateString()+'</span>';
+if(g.status==='graded'&&g.score!=null)h+='<span style="font-family:Fredoka,sans-serif;font-weight:700;color:#F59E0B;font-size:18px">'+g.score+'%</span>';
+h+='</div></div>';
+}
+h+='</div>';
+
+document.getElementById('mainContent').innerHTML=h;
+}
+
+function openGroup(groupId){
+var g=_studentGroups.find(function(x){return x.id===groupId});
+if(!g)return;
+currentGroupId=groupId;
+currentGroup=g;
+if(g.status==='pending_approval'){showPendingApproval()}
+else{showWorkspace()}
+}
+
+// ===== GUIDED WALKTHROUGH =====
+var _wtStep=0;
+var _wtTotalSteps=4;
+
+function startWalkthrough(){
+_wtStep=0;
+renderWalkthrough();
+}
+
+function renderWalkthrough(){
+var h='';
+// Progress dots
+h+='<div class="wt-progress">';
+for(var i=0;i<_wtTotalSteps;i++){
+var cls='wt-dot';
+if(i<_wtStep)cls+=' done';
+else if(i===_wtStep)cls+=' active';
+h+='<div class="'+cls+'"></div>';
+}
+h+='</div>';
+
+h+='<div class="wt-step">';
+if(_wtStep===0){
+// Step 1: Watch Mikaila's story
 h+='<div class="card">';
 h+='<div class="card-title">&#x1F3AC; Watch This First</div>';
-h+='<div class="video-wrap" id="videoWrap1">';
-h+='<video controls playsinline poster="" style="width:100%;height:100%;object-fit:contain" src="https://firebasestorage.googleapis.com/v0/b/oda-hub-d4bef.firebasestorage.app/o/videos%2Fmikaila_ulmer.mp4?alt=media"></video>';
-h+='</div>';
+h+='<div class="video-wrap"><video controls playsinline style="width:100%;height:100%;object-fit:contain" src="https://firebasestorage.googleapis.com/v0/b/oda-hub-d4bef.firebasestorage.app/o/videos%2Fmikaila_ulmer.mp4?alt=media"></video></div>';
 h+='<div class="story-box">';
 h+='<p><strong>Mikaila Ulmer</strong> started selling lemonade at age 4. She went on Shark Tank at age 9 and got <strong>$60,000</strong> from Daymond John. Today her lemonade is in <strong>2,500+ stores</strong>. It all started with one idea and the courage to try.</p>';
 h+='</div>';
@@ -990,19 +1084,13 @@ h+='<div class="stat"><div class="num">4</div><div class="label">Age She Started
 h+='<div class="stat"><div class="num">$60K</div><div class="label">Shark Tank Deal</div></div>';
 h+='<div class="stat"><div class="num">2500+</div><div class="label">Stores Today</div></div>';
 h+='</div></div>';
-
-// Mission
-h+='<div class="mission">';
-h+='<h2>&#x1F3C6; YOUR MISSION</h2>';
+}else if(_wtStep===1){
+// Step 2: Your Mission
+h+='<div class="mission"><h2>&#x1F3C6; YOUR MISSION</h2>';
 h+='<p>Form a team. Build a real product. Sell it at Lemonade Day.</p>';
-h+='<span class="big">You are starting a REAL business.</span>';
-h+='</div>';
-
-// How it works
-h+='<div class="card">';
-h+='<div class="card-title">&#x1F3E2; How It Works</div>';
-h+='<div class="rules">';
-h+='<h3>The Setup</h3>';
+h+='<span class="big">You are starting a REAL business.</span></div>';
+h+='<div class="card"><div class="card-title">&#x1F3E2; How It Works</div>';
+h+='<div class="rules"><h3>The Setup</h3>';
 h+='<div class="rule"><span class="ico">&#x1F46B;</span><span class="txt">Form a <strong>team of 5-6</strong> and start your own company</span></div>';
 h+='<div class="rule"><span class="ico">&#x1F454;</span><span class="txt">Every person gets a <strong>real business role</strong></span></div>';
 h+='<div class="rule"><span class="ico">&#x1F3A8;</span><span class="txt">Plan and <strong>create products</strong> to sell (fidget toys, candles, art, STEM kits...)</span></div>';
@@ -1013,25 +1101,70 @@ h+='<h3 style="color:#6B21A8">&#x1F4BC; Business Roles</h3>';
 h+='<div class="roles-grid">';
 for(var i=0;i<ROLES.length;i++)h+='<div class="role-tag">'+ROLES[i]+'</div>';
 h+='</div></div></div>';
-
-// Get started
-h+='<div class="card" style="text-align:center">';
-if(studentId){
-h+='<div class="card-title">&#x1F680; Get Started</div>';
-h+='<p style="font-size:16px;color:#78350F;font-weight:600;margin-bottom:20px">Create a new group or join an existing one!</p>';
-h+='<div class="btn-row">';
-h+='<button class="btn btn-large btn-orange" onclick="showCreateGroup()">Create Group &#x2728;</button>';
-h+='<button class="btn btn-large btn-blue" onclick="showJoinGroup()">Join Group &#x1F517;</button>';
+}else if(_wtStep===2){
+// Step 3: Brainstorm your idea
+h+='<div class="card">';
+h+='<div class="card-title">&#x1F4A1; Brainstorm Your Idea</div>';
+h+='<p style="font-size:16px;color:#78350F;font-weight:600;margin-bottom:16px;text-align:center">Before you make a group, think about what you want to sell!</p>';
+h+='<div class="rules">';
+h+='<h3>&#x1F914; What Could You Sell?</h3>';
+h+='<div class="rule"><span class="ico">&#x1F9F8;</span><span class="txt">Fidget toys, slime, or stress balls</span></div>';
+h+='<div class="rule"><span class="ico">&#x1F56F;</span><span class="txt">Candles, soaps, or bath bombs</span></div>';
+h+='<div class="rule"><span class="ico">&#x1F3A8;</span><span class="txt">Custom art, stickers, or friendship bracelets</span></div>';
+h+='<div class="rule"><span class="ico">&#x1F370;</span><span class="txt">Baked goods, lemonade, or candy</span></div>';
+h+='<div class="rule"><span class="ico">&#x1F9EA;</span><span class="txt">STEM kits, bookmarks, or plant pots</span></div>';
 h+='</div>';
-}else{
-h+='<div class="card-title">&#x1F512; Sign In First</div>';
-h+='<p style="font-size:16px;color:#78350F;font-weight:600;margin-bottom:16px">You need to sign in from the student dashboard to create or join a group.</p>';
-h+='<a class="btn btn-normal btn-orange" href="student.html">Go to Student Dashboard &#x2192;</a>';
+h+='<div style="margin-top:16px">';
+h+='<label class="input-label">&#x2728; What\'s YOUR big idea? (optional)</label>';
+h+='<textarea class="input" id="wtIdea" placeholder="Write your product idea here... What would YOU sell?" rows="3"></textarea>';
+h+='<button class="ai-btn" onclick="aiHelpBrainstorm()" id="wtAiBtn">&#x1F916; AI Brainstorm Helper</button>';
+h+='<div id="wtAiBubble"></div>';
+h+='</div></div>';
+}else if(_wtStep===3){
+// Step 4: Create or Join
+h+='<div class="card" style="text-align:center">';
+h+='<div class="card-title">&#x1F680; Ready to Go!</div>';
+h+='<p style="font-size:16px;color:#78350F;font-weight:600;margin-bottom:24px">Now create your group or join one that already exists.</p>';
+h+='<div style="display:grid;gap:16px;max-width:400px;margin:0 auto">';
+h+='<button class="btn btn-large btn-orange" onclick="showCreateGroup()" style="width:100%">Create Group &#x2728;</button>';
+h+='<button class="btn btn-large btn-blue" onclick="showJoinGroup()" style="width:100%">Join Group &#x1F517;</button>';
+h+='</div></div>';
 }
+h+='</div>';
+
+// Navigation
+h+='<div class="wt-nav">';
+if(_wtStep>0)h+='<button class="btn btn-normal btn-gray" onclick="wtBack()">&#x2190; Back</button>';
+else h+='<button class="btn btn-normal btn-gray" onclick="showStudentDashboard()">&#x2190; My Groups</button>';
+if(_wtStep<_wtTotalSteps-1)h+='<button class="btn btn-normal btn-orange" onclick="wtNext()">Next &#x2192;</button>';
+else h+='<div></div>';
 h+='</div>';
 
 document.getElementById('mainContent').innerHTML=h;
+window.scrollTo(0,0);
 }
+
+function wtNext(){if(_wtStep<_wtTotalSteps-1){_wtStep++;renderWalkthrough()}}
+function wtBack(){if(_wtStep>0){_wtStep--;renderWalkthrough()}else{showStudentDashboard()}}
+
+async function aiHelpBrainstorm(){
+var idea=document.getElementById('wtIdea')?document.getElementById('wtIdea').value.trim():'';
+var btn=document.getElementById('wtAiBtn');
+if(btn){btn.disabled=true;btn.innerHTML='&#x1F916; Thinking...'}
+try{
+var prompt='You are a friendly AI brainstorm buddy for a K-12 student planning a Lemonade Day business. ';
+if(idea)prompt+='They are thinking about selling: "'+idea+'". Give them 3 quick tips to make this idea awesome and 2 alternative product ideas they might like. Keep it fun and encouraging!';
+else prompt+='They have not decided what to sell yet. Give them 5 creative product ideas that kids can make and sell at a school Lemonade Day event. Be specific and fun! Include emojis.';
+var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt,maxTokens:300})});
+var data=await resp.json();
+var bubble=document.getElementById('wtAiBubble');
+if(bubble)bubble.innerHTML='<div class="ai-bubble">'+esc(data.response||data.text||'No response')+'</div>';
+}catch(e){console.error(e);showToast('AI not available right now','warning')}
+finally{if(btn){btn.disabled=false;btn.innerHTML='&#x1F916; AI Brainstorm Helper'}}
+}
+
+// ===== LEGACY: showIntro redirects to dashboard =====
+function showIntro(){showStudentDashboard()}
 
 // ===== CREATE GROUP =====
 function showCreateGroup(){
@@ -1042,7 +1175,7 @@ h+='<input type="text" class="input" id="newGroupName" placeholder="e.g. Team Hu
 h+='<label class="input-label">Company Name (you can change this later)</label>';
 h+='<input type="text" class="input" id="newCompanyName" placeholder="e.g. Fresh Fidgets, Glow Candles..." autocomplete="off">';
 h+='<div class="btn-row">';
-h+='<button class="btn btn-normal btn-gray" onclick="showIntro()">&#x2190; Back</button>';
+h+='<button class="btn btn-normal btn-gray" onclick="showStudentDashboard()">&#x2190; Back</button>';
 h+='<button class="btn btn-normal btn-orange" onclick="createGroup()" id="createBtn">Create Group &#x1F680;</button>';
 h+='</div></div>';
 document.getElementById('mainContent').innerHTML=h;
@@ -1111,7 +1244,7 @@ h+='<div class="card-title">&#x1F517; Join a Group</div>';
 h+='<p style="font-size:16px;color:#78350F;font-weight:600;text-align:center;margin-bottom:16px">Ask your group leader for the 6-letter code</p>';
 h+='<input type="text" class="input" id="joinCode" placeholder="Enter group code..." style="text-align:center;font-size:28px;letter-spacing:6px;text-transform:uppercase" maxlength="6" autocomplete="off">';
 h+='<div class="btn-row">';
-h+='<button class="btn btn-normal btn-gray" onclick="showIntro()">&#x2190; Back</button>';
+h+='<button class="btn btn-normal btn-gray" onclick="showStudentDashboard()">&#x2190; Back</button>';
 h+='<button class="btn btn-normal btn-blue" onclick="joinGroup()" id="joinBtn">Join &#x1F44B;</button>';
 h+='</div></div>';
 document.getElementById('mainContent').innerHTML=h;
@@ -1181,7 +1314,7 @@ h+='</div>';
 }
 }
 h+='</div>';
-h+='<div class="btn-row" style="margin-top:20px"><button class="btn btn-small btn-gray" onclick="refreshGroup()">&#x1F504; Refresh Status</button></div>';
+h+='<div class="btn-row" style="margin-top:20px"><button class="btn btn-small btn-gray" onclick="refreshGroup()">&#x1F504; Refresh Status</button><button class="btn btn-small btn-gray" onclick="showStudentDashboard()">&#x2190; My Groups</button></div>';
 h+='</div></div>';
 document.getElementById('mainContent').innerHTML=h;
 // Auto-refresh every 10 seconds
@@ -1245,6 +1378,14 @@ startGroupListener();
 renderWorkspace();
 }
 
+function exitWorkspace(){
+if(_unsubGroup)_unsubGroup();
+_unsubGroup=null;
+currentGroupId=null;
+currentGroup=null;
+showStudentDashboard();
+}
+
 function startGroupListener(){
 if(_unsubGroup)_unsubGroup();
 getFirebaseDB().then(function(fb){
@@ -1264,6 +1405,9 @@ function renderWorkspace(){
 var g=currentGroup;
 var isLeader=g.leader&&g.leader.studentId===studentId;
 var h='';
+
+// Back to dashboard
+h+='<button class="btn btn-small btn-gray" onclick="exitWorkspace()" style="margin-bottom:12px">&#x2190; My Groups</button>';
 
 // Header
 h+='<div class="card" style="text-align:center;padding:20px">';
