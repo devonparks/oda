@@ -126,6 +126,39 @@ textarea.q-input{resize:none;min-height:100px;font-size:17px;line-height:1.5}
 .video-preview{aspect-ratio:auto}
 .rec-btns{flex-direction:column;align-items:center}
 }
+
+/* ===== TEACHER GRADE VIEW ===== */
+.grade-app{max-width:680px;margin:0 auto;padding:20px 16px}
+.grade-back{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);text-decoration:none;font-size:14px;font-weight:600;margin-bottom:12px;transition:all .15s}
+.grade-back:hover{border-color:var(--accent);color:var(--text)}
+.grade-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.grade-hdr h1{font-size:24px;font-weight:800;color:var(--text)}
+.grade-hdr h1 .emoji{font-size:28px;margin-right:6px}
+.grade-bar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;margin-bottom:20px;flex-wrap:wrap}
+.grade-bar .gb-name{font-size:18px;font-weight:700;color:var(--text)}
+.grade-bar .gb-info{font-size:13px;color:var(--text2)}
+.grade-bar .gb-status{font-size:11px;font-weight:700;padding:3px 10px;border-radius:8px;text-transform:uppercase;letter-spacing:1px}
+.grade-card{background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:24px;margin-bottom:16px}
+.grade-card .gc-title{font-size:17px;font-weight:700;color:var(--gold);margin-bottom:12px}
+.grade-card .gc-row{margin-bottom:8px;font-size:15px;line-height:1.6}
+.grade-card .gc-row strong{color:var(--accent);font-weight:700}
+.grade-card .gc-pitch{margin-top:8px;padding:16px;background:rgba(17,138,178,.06);border-radius:12px;border-left:3px solid var(--accent2);font-size:16px;line-height:1.8;font-style:italic;color:var(--text)}
+.grade-card .gc-summary{margin-top:8px;padding:14px;background:rgba(6,214,160,.06);border-radius:12px;font-size:14px;line-height:1.7;color:var(--text2)}
+.grade-controls{border-color:var(--accent)!important}
+.grade-score-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.grade-score-row label{font-weight:700;font-size:15px;color:var(--text)}
+.grade-score-row input[type=range]{-webkit-appearance:none;flex:1;height:6px;border-radius:3px;background:var(--border);outline:none;margin:0 12px}
+.grade-score-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--bg)}
+.grade-score-val{font-family:'Space Mono',monospace;font-size:18px;font-weight:700;color:var(--accent);min-width:50px;text-align:right}
+.grade-feedback textarea{width:100%;min-height:80px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:12px;font-size:14px;color:var(--text);font-family:inherit;resize:vertical;margin-top:8px}
+.grade-feedback textarea:focus{border-color:var(--accent);outline:none}
+.grade-btn-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.grade-btn-row .btn{padding:12px 20px;font-weight:700;font-size:14px;border:none;border-radius:12px;cursor:pointer;transition:all .15s}
+.btn-grade{background:linear-gradient(135deg,var(--accent),#04b890);color:var(--bg)}
+.btn-return{background:linear-gradient(135deg,var(--gold),#e6b800);color:var(--bg)}
+.btn-complete{background:var(--surface2);color:var(--accent);border:1.5px solid var(--accent)!important}
+.grade-empty{text-align:center;padding:40px 20px;color:var(--text2)}
+.grade-empty .emoji{font-size:48px;margin-bottom:12px}
 </style>
 </head>
 <body>
@@ -144,6 +177,19 @@ textarea.q-input{resize:none;min-height:100px;font-size:17px;line-height:1.5}
 </div>
 
 <div id="content"></div>
+</div>
+
+<div id="gradeView" style="display:none">
+<div class="grade-app">
+<a href="teacher.html" class="grade-back">&#x2190; Back to Teacher Hub</a>
+<div class="grade-hdr"><h1><span class="emoji">&#x1F3A4;</span> <span id="gradeTitle">Grade Elevator Pitch</span></h1></div>
+<div class="grade-bar">
+<span class="gb-name" id="gradeStudentName">Student</span>
+<span class="gb-info" id="gradeDate"></span>
+<span class="gb-status" id="gradeStatus"></span>
+</div>
+<div id="gradeContent"></div>
+</div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -204,8 +250,13 @@ clearTimeout(_toastTimer);
 _toastTimer=setTimeout(function(){t.classList.remove('show')},3000);
 }
 
+var _gradeData=null,_gradeEpData=null;
+
 function init(){
 var params=new URLSearchParams(window.location.search);
+// Teacher grade mode
+var gradeId=params.get('grade');
+if(gradeId){initGradeMode(gradeId);return}
 assignmentId=params.get('assignmentId');
 studentId=params.get('studentId')||sessionStorage.getItem('studentId');
 isAssignmentMode=!!assignmentId;
@@ -215,6 +266,134 @@ var backEl=document.getElementById('backLink');
 if(studentId)backEl.href='student.html';
 else if(isTeacherMode)backEl.href='teacher.html';
 showStart();
+}
+
+// ===== TEACHER GRADING MODE =====
+async function initGradeMode(assignId){
+try{
+var fb=await getFirebaseDB();
+var docSnap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'assignments',assignId));
+if(!docSnap.exists()){alert('Assignment not found');return}
+_gradeData=Object.assign({id:docSnap.id},docSnap.data());
+
+// Try to load from studentResponse first, then from elevatorPitches collection
+var resp={};
+try{resp=JSON.parse(_gradeData.studentResponse||'{}')}catch(e){}
+if(resp.answers){
+_gradeEpData={answers:resp.answers,pitch:resp.pitchText||'',aiSummary:resp.aiSummary||'',videoUrl:resp.videoUrl||'',savedAt:_gradeData.submittedAt};
+}else{
+// Fallback: load from elevatorPitches collection
+var epDoc=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'elevatorPitches',_gradeData.studentId));
+if(epDoc.exists())_gradeEpData=epDoc.data();
+}
+
+renderGradeView();
+// Hide student UI, show grade UI
+document.querySelector('.app').style.display='none';
+document.getElementById('gradeView').style.display='block';
+}catch(e){console.error('Grade load error:',e);alert('Could not load assignment: '+e.message)}
+}
+
+function renderGradeView(){
+var a=_gradeData;
+var ep=_gradeEpData;
+var el=document.getElementById('gradeContent');
+
+// Student name and status
+document.getElementById('gradeStudentName').textContent=a.studentName||'Student';
+var st=a.status||'pending';
+var statusEl=document.getElementById('gradeStatus');
+statusEl.textContent=st.replace(/_/g,' ');
+statusEl.style.background=st==='submitted'?'rgba(255,209,102,.15)':st==='graded'?'rgba(6,214,160,.15)':st==='returned'?'rgba(239,71,111,.15)':'rgba(17,138,178,.15)';
+statusEl.style.color=st==='submitted'?'var(--gold)':st==='graded'?'var(--accent)':st==='returned'?'var(--accent3)':'var(--accent2)';
+var dateStr='';
+try{dateStr=new Date(a.submittedAt||ep&&ep.savedAt||a.assignedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}catch(e){}
+document.getElementById('gradeDate').textContent=dateStr;
+if(a.score!==null&&a.score!==undefined)document.getElementById('gradeTitle').textContent='Grade Elevator Pitch — '+a.score+'%';
+
+if(!ep||!ep.answers){
+el.innerHTML='<div class="grade-empty"><div class="emoji">&#x1F3A4;</div><p>This student hasn\'t completed their elevator pitch yet.</p></div>';
+return;
+}
+
+var ans=ep.answers;
+var h='';
+
+// About Me card
+h+='<div class="grade-card"><div class="gc-title">&#x1F464; About Me</div>';
+var fields=[['Name',ans.name],['Age',ans.age],['School',ans.school],['From',ans.from],['Grade',ans.grade],['Dream Job',ans.dream],['Why',ans.why],['Favorite Hobby',ans.hobby],['Fun Fact',ans.fact],['Remember Me For',ans.remember]];
+fields.forEach(function(f){if(f[1])h+='<div class="gc-row"><strong>'+f[0]+':</strong> '+esc(f[1])+'</div>'});
+h+='</div>';
+
+// Generated Pitch card
+if(ep.pitch){
+h+='<div class="grade-card"><div class="gc-title">&#x1F4AC; Generated Pitch</div>';
+h+='<div class="gc-pitch">'+esc(ep.pitch)+'</div></div>';
+}
+
+// Video Recording
+if(ep.videoUrl||(_gradeEpData&&_gradeEpData.videoUrl)){
+var vUrl=ep.videoUrl||_gradeEpData.videoUrl;
+h+='<div class="grade-card"><div class="gc-title">&#x1F3AC; Video Recording</div>';
+h+='<div style="text-align:center"><video controls playsinline style="max-width:100%;max-height:360px;border-radius:14px;background:#000" src="'+esc(vUrl)+'"></video></div></div>';
+}
+
+// AI Summary
+if(ep.aiSummary){
+h+='<div class="grade-card"><div class="gc-title">&#x2728; AI Personalized Summary</div>';
+h+='<div class="gc-summary">'+esc(ep.aiSummary)+'</div></div>';
+}
+
+// Grading controls
+h+='<div class="grade-card grade-controls"><div class="gc-title">&#x270F;&#xFE0F; Grade This Pitch</div>';
+h+='<div class="grade-score-row"><label>Score</label>';
+h+='<input type="range" id="gradeScoreRange" min="0" max="100" value="'+(a.score||85)+'" oninput="document.getElementById(\'gradeScoreVal\').textContent=this.value+\'%\'">';
+h+='<span class="grade-score-val" id="gradeScoreVal">'+(a.score||85)+'%</span></div>';
+h+='<div class="grade-feedback"><textarea id="gradeTeacherFeedback" placeholder="Write feedback for the student...">'+(a.feedback||'')+'</textarea></div>';
+h+='<div class="grade-btn-row">';
+h+='<button class="btn btn-grade" onclick="submitElevatorGrade()">&#x2705; Grade</button>';
+h+='<button class="btn btn-return" onclick="returnElevatorForRevision()">&#x21A9;&#xFE0F; Return for Revision</button>';
+h+='<button class="btn btn-complete" onclick="completeElevator()">&#x2713; Mark Complete</button>';
+h+='</div></div>';
+
+el.innerHTML=h;
+}
+
+async function submitElevatorGrade(){
+if(!_gradeData)return;
+var score=parseInt(document.getElementById('gradeScoreRange').value);
+var feedback=document.getElementById('gradeTeacherFeedback').value.trim();
+try{
+var fb=await getFirebaseDB();
+await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'assignments',_gradeData.id),{status:'graded',score:score,feedback:feedback,gradedAt:new Date().toISOString()});
+_gradeData.status='graded';_gradeData.score=score;_gradeData.feedback=feedback;
+renderGradeView();
+showToast('Graded: '+score+'%','success');
+}catch(e){alert('Error grading: '+e.message)}
+}
+
+async function returnElevatorForRevision(){
+if(!_gradeData)return;
+var feedback=document.getElementById('gradeTeacherFeedback').value.trim();
+if(!feedback){alert('Please add feedback before returning');return}
+try{
+var fb=await getFirebaseDB();
+await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'assignments',_gradeData.id),{status:'returned',feedback:feedback});
+_gradeData.status='returned';_gradeData.feedback=feedback;
+renderGradeView();
+showToast('Returned for revision');
+}catch(e){alert('Error: '+e.message)}
+}
+
+async function completeElevator(){
+if(!_gradeData)return;
+try{
+var fb=await getFirebaseDB();
+await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'assignments',_gradeData.id),{status:'completed',completedAt:new Date().toISOString()});
+_gradeData.status='completed';
+renderGradeView();
+showToast('Marked complete','success');
+}catch(e){alert('Error: '+e.message)}
 }
 
 function showStart(){
