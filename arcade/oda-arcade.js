@@ -15,16 +15,9 @@
     var coins=Math.max(1,Math.floor(score));
     var studentId=sessionStorage.getItem('studentId');
     if(!studentId)return;
-    import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js').then(function(appMod){
-      import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js').then(function(fsMod){
-        var app;
-        try{app=appMod.getApp()}catch(e){
-          app=appMod.initializeApp({apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"});
-        }
-        var db=fsMod.getFirestore(app);
-        fsMod.updateDoc(fsMod.doc(db,'students',studentId),{coins:fsMod.increment(coins)}).then(function(){
-          showCoinPopup(coins);
-        });
+    window.getFirebaseDB().then(function(fb){
+      fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{coins:fb.fsMod.increment(coins)}).then(function(){
+        showCoinPopup(coins);
       });
     });
   };

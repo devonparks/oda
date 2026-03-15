@@ -176,12 +176,15 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 </div>
 </div>
 
+<!-- SHARED CORE -->
+<script src="js/oda-core.js"></script>
+
 <!-- FIREBASE -->
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
 import{getFirestore,doc,getDoc,getDocs,updateDoc,collection,query,where,onSnapshot}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 
-const cfg={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
+const cfg=ODA_CONFIG.firebase;
 const app=initializeApp(cfg);const db=getFirestore(app);
 
 window.fbDb=db;window.fbDoc=doc;window.fbGetDoc=getDoc;window.fbGetDocs=getDocs;window.fbUpdateDoc=updateDoc;
@@ -593,7 +596,6 @@ window.studentLogout=studentLogout;
 
 function fireConfetti(){var co=["#06d6a0","#118ab2","#ffd166","#ef476f","#a855f7"];for(var i=0;i<50;i++){var p=document.createElement('div');p.className='confetti-piece';var sz=6+Math.random()*10;p.style.width=sz+'px';p.style.height=sz*(Math.random()>.5?1:.6)+'px';p.style.left=Math.random()*100+'%';p.style.backgroundColor=co[i%co.length];p.style.borderRadius=Math.random()>.5?'50%':'2px';p.style.animationDuration=(2+Math.random()*3)+'s';p.style.animationDelay=(Math.random()*2)+'s';document.body.appendChild(p);(function(el){setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},5000)})(p)}}
 
-function esc(s){if(s===null||s===undefined)return'';var d=document.createElement('div');d.textContent=String(s);return d.innerHTML}
 document.addEventListener('keydown',function(e){if(e.key==='Enter'&&document.activeElement&&document.activeElement.id==='qInput')checkSpelling()});
 
 // ===== AI STUDY BUDDY (8e) =====
@@ -615,7 +617,7 @@ var prompt='You are a friendly AI study buddy for a K-12 student named '+(window
 'Give 1-2 specific tips they can use next time. Keep it to 3-4 sentences. Be warm and supportive.';
 
 try{
-var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+var resp=await fetch(ODA_CONFIG.aiEndpoint,{
 method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
 });
 if(!resp.ok)throw new Error('Server error');
@@ -645,7 +647,7 @@ var prompt='You are a fun, encouraging AI buddy for a K-12 afterschool student n
 'Write a SHORT (1-2 sentences) motivational message to start their session. Be upbeat, use age-appropriate language, and reference their progress. '+
 'Do NOT use emojis. Keep it under 30 words.';
 
-fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+fetch(ODA_CONFIG.aiEndpoint,{
 method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
 }).then(function(r){if(!r.ok)throw new Error('Server error');return r.json()}).then(function(data){
 var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'';

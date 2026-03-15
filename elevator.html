@@ -194,27 +194,8 @@ textarea.q-input{resize:none;min-height:100px;font-size:17px;line-height:1.5}
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="js/oda-core.js"></script>
 <script>
-var ODA_FB_CFG={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
-
-// ===== FIREBASE CACHING =====
-var _fbApp=null,_fbDb=null,_fbStorage=null;
-async function getFirebaseDB(){
-if(_fbDb){var fsMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js');return{db:_fbDb,fsMod:fsMod,app:_fbApp}}
-var appMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js');
-var fsMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js');
-try{_fbApp=appMod.getApp()}catch(e){_fbApp=appMod.initializeApp(ODA_FB_CFG)}
-_fbDb=fsMod.getFirestore(_fbApp);
-return{db:_fbDb,fsMod:fsMod,app:_fbApp};
-}
-async function getFirebaseStorage(){
-if(_fbStorage){var storageMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-storage.js');return{storage:_fbStorage,storageMod:storageMod,app:_fbApp}}
-var appMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js');
-var storageMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-storage.js');
-try{_fbApp=appMod.getApp()}catch(e){_fbApp=appMod.initializeApp(ODA_FB_CFG)}
-_fbStorage=storageMod.getStorage(_fbApp);
-return{storage:_fbStorage,storageMod:storageMod,app:_fbApp};
-}
 
 var QUESTIONS=[
 {id:'name',emoji:'\u{1F44B}',label:"What's your name?",hint:'First and last name!',type:'text',placeholder:'Type your full name...',aiHelp:false},
@@ -505,7 +486,7 @@ var prompt=q.aiPrompt;
 if(currentVal)prompt+='\n\nThe student has started writing: "'+currentVal+'" - use this to make your questions more specific to what they are already thinking about.';
 if(answers.name)prompt+='\n\nThe student\'s name is '+answers.name+'. Address them by name to make it personal.';
 
-var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+var resp=await fetch(ODA_CONFIG.aiEndpoint,{
 method:'POST',headers:{'Content-Type':'application/json'},
 body:JSON.stringify({prompt:prompt,max_tokens:250,temperature:0.9})
 });
@@ -783,8 +764,6 @@ var el=document.getElementById('savedList');
 if(el)el.style.display=el.style.display==='none'?'block':'none';
 }
 
-function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
-
 function fireConfetti(){
 var co=["#06d6a0","#118ab2","#ffd166","#ef476f","#a855f7","#06b6d4"];
 for(var i=0;i<50;i++){var p=document.createElement('div');p.className='confetti-piece';var sz=6+Math.random()*10;p.style.width=sz+'px';p.style.height=sz*(Math.random()>.5?1:.6)+'px';p.style.left=Math.random()*100+'%';p.style.backgroundColor=co[i%co.length];p.style.borderRadius=Math.random()>.5?'50%':'2px';p.style.animationDuration=(2+Math.random()*3)+'s';p.style.animationDelay=(Math.random()*2)+'s';document.body.appendChild(p);(function(el){setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},5000)})(p)}
@@ -798,7 +777,7 @@ _aiSummaryLoading=true;
 try{
 var prompt='You are a supportive teacher for Open Doors Academy, an afterschool program. A student just completed their elevator pitch questionnaire. Write a short (3-4 sentences) personalized summary that:\n1. Highlights what makes this student unique and special\n2. Connects their interests to their dream career\n3. Gives one specific tip for delivering their pitch confidently\n\nKeep it warm, encouraging, and age-appropriate (K-12). Do NOT use bullet points or markdown. Write it as a paragraph directly to the student (use "you"). Never repeat the same generic phrases - make it truly personal to THIS student.\n\nStudent answers:\nName: '+a.name+'\nAge: '+a.age+'\nSchool: '+a.school+'\nFrom: '+a.from+'\nGrade: '+a.grade+'\nDream career: '+a.dream+'\nWhy: '+a.why+'\nHobby: '+a.hobby+'\nFun fact: '+a.fact+'\nRemember me as: '+a.remember;
 
-var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+var resp=await fetch(ODA_CONFIG.aiEndpoint,{
 method:'POST',headers:{'Content-Type':'application/json'},
 body:JSON.stringify({prompt:prompt,max_tokens:300,temperature:0.9})
 });

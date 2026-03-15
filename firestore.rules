@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Teachers: only the teacher themselves can read/write their own doc
+    match /teachers/{teacherId} {
+      // Allow any authenticated user to read teacher docs (needed for class code lookup)
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == teacherId;
+      allow update, delete: if request.auth != null && request.auth.uid == teacherId;
+    }
+
+    // Students: teachers can manage their students, students can read their own data
+    match /students/{studentId} {
+      allow read: if true;  // Students need to read without auth (class code login)
+      allow create: if request.auth != null;  // Only teachers create students
+      allow update: if true;  // Students update their own data (coins, etc.)
+      allow delete: if request.auth != null;  // Only teachers delete
+    }
+
+    // Assignments: readable by the student assigned, writable by teacher
+    match /assignments/{assignmentId} {
+      allow read: if true;  // Students read without Firebase Auth
+      allow create: if request.auth != null;  // Teachers create
+      allow update: if true;  // Students submit, teachers grade
+      allow delete: if request.auth != null;  // Teachers delete
+    }
+
+    // Pitch Challenges: student creates, teacher reads for grading
+    match /pitchChallenges/{pitchId} {
+      allow read: if true;
+      allow write: if true;  // Students save pitches without Firebase Auth
+    }
+
+    // Elevator Pitches: same pattern
+    match /elevatorPitches/{pitchId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Lemonade Groups: students create groups, teachers approve
+    match /lemonadeGroups/{groupId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Spelling Lists: teachers create, students read
+    match /spellingLists/{listId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
+    }
+
+    // Spelling Results: students write results, teachers read
+    match /spellingResults/{resultId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

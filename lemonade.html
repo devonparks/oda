@@ -373,27 +373,8 @@ textarea.input{resize:vertical;min-height:100px;font-size:16px;line-height:1.6}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="sync-indicator hidden" id="syncIndicator"></div>
 
+<script src="js/oda-core.js"></script>
 <script>
-var ODA_FB_CFG={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
-
-// ===== FIREBASE CACHING =====
-var _fbApp=null,_fbDb=null,_fbStorage=null;
-async function getFirebaseDB(){
-if(_fbDb){var fsMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js');return{db:_fbDb,fsMod:fsMod,app:_fbApp}}
-var appMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js');
-var fsMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js');
-try{_fbApp=appMod.getApp()}catch(e){_fbApp=appMod.initializeApp(ODA_FB_CFG)}
-_fbDb=fsMod.getFirestore(_fbApp);
-return{db:_fbDb,fsMod:fsMod,app:_fbApp};
-}
-async function getFirebaseStorage(){
-if(_fbStorage){var storageMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-storage.js');return{storage:_fbStorage,storageMod:storageMod,app:_fbApp}}
-var appMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js');
-var storageMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-storage.js');
-try{_fbApp=appMod.getApp()}catch(e){_fbApp=appMod.initializeApp(ODA_FB_CFG)}
-_fbStorage=storageMod.getStorage(_fbApp);
-return{storage:_fbStorage,storageMod:storageMod,app:_fbApp};
-}
 
 // ===== GLOBALS =====
 var studentId=null,studentName=null,classCode=null;
@@ -426,8 +407,6 @@ el.classList.remove('hidden');
 if(saving){el.className='sync-indicator sync-saving';el.textContent='Saving...'}
 else{el.className='sync-indicator sync-saved';el.textContent='Saved!';setTimeout(function(){el.classList.add('hidden')},2000)}
 }
-
-function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 
 function genCode(){return Math.random().toString(36).substr(2,6).toUpperCase()}
 
@@ -1269,7 +1248,7 @@ try{
 var prompt='You are a friendly AI brainstorm buddy for a K-12 student planning a Lemonade Day business. IMPORTANT RULE: No food, drinks, or baked goods are allowed at this event - only non-food products like crafts, art, jewelry, slime, STEM kits, candles, accessories, etc. If the student suggests food/drinks, gently redirect them to product-only ideas. ';
 if(idea)prompt+='They are thinking about selling: "'+idea+'". If this is a food/drink item, kindly explain no food is allowed and suggest 3 similar non-food alternatives. Otherwise give them 3 quick tips to make this idea awesome and 2 alternative product ideas they might like. Keep it fun and encouraging!';
 else prompt+='They have not decided what to sell yet. Give them 5 creative NON-FOOD product ideas that kids can make and sell at a school Lemonade Day event (fidget toys, candles, art, jewelry, slime, STEM kits, etc). Be specific and fun! Include emojis.';
-var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt,max_tokens:300})});
+var resp=await fetch(ODA_CONFIG.aiEndpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt,max_tokens:300})});
 var data=await resp.json();
 var text=data.response||data.text||(Array.isArray(data.content)&&data.content[0]?data.content[0].text:'')||'';
 var bubble=document.getElementById('wtAiBubble');
@@ -1288,7 +1267,7 @@ try{
 var prompt='You are a friendly AI brainstorm buddy for a K-12 student planning a Lemonade Day business. IMPORTANT RULE: No food, drinks, or baked goods are allowed at this event - only non-food products like crafts, art, jewelry, slime, STEM kits, candles, accessories, etc. If the student suggests food/drinks, gently redirect them to product-only ideas. ';
 if(idea)prompt+='They are thinking about selling: "'+idea+'". If this is a food/drink item, kindly explain no food is allowed and suggest 3 similar non-food alternatives. Otherwise give them 3 quick tips to make this idea awesome and 2 alternative product ideas they might like. Keep it fun and encouraging!';
 else prompt+='They have not decided what to sell yet. Give them 5 creative NON-FOOD product ideas that kids can make and sell at a school Lemonade Day event (fidget toys, candles, art, jewelry, slime, STEM kits, etc). Be specific and fun! Include emojis.';
-var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt,max_tokens:300})});
+var resp=await fetch(ODA_CONFIG.aiEndpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt,max_tokens:300})});
 var data=await resp.json();
 var text=data.response||data.text||(Array.isArray(data.content)&&data.content[0]?data.content[0].text:'')||'';
 var bubble=document.getElementById('wtAiBubbleExp');
@@ -1912,7 +1891,7 @@ if(plan.idea&&field!=='idea')prompt+='\n\nTheir product idea is: '+plan.idea;
 if(currentGroup.companyName)prompt+='\n\nTheir company name is: '+currentGroup.companyName;
 
 try{
-var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+var resp=await fetch(ODA_CONFIG.aiEndpoint,{
 method:'POST',headers:{'Content-Type':'application/json'},
 body:JSON.stringify({prompt:prompt,max_tokens:350,temperature:0.9})
 });

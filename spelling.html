@@ -230,19 +230,8 @@ textarea.input{resize:vertical;min-height:100px;font-size:16px;line-height:1.6}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="sync-indicator hidden" id="syncIndicator"></div>
 
+<script src="js/oda-core.js"></script>
 <script>
-// ===== FIREBASE CONFIG =====
-var ODA_FB_CFG={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
-
-var _fbApp=null,_fbDb=null;
-async function getFirebaseDB(){
-if(_fbDb){var fsMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js');return{db:_fbDb,fsMod:fsMod,app:_fbApp}}
-var appMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js');
-var fsMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js');
-try{_fbApp=appMod.getApp()}catch(e){_fbApp=appMod.initializeApp(ODA_FB_CFG)}
-_fbDb=fsMod.getFirestore(_fbApp);
-return{db:_fbDb,fsMod:fsMod,app:_fbApp};
-}
 
 // ===== DEFAULT WORD BANKS =====
 var DEFAULT_WORDS={
@@ -316,7 +305,6 @@ showStudentDashboard();
 }
 
 // ===== UTILITIES =====
-function esc(s){if(!s)return '';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function showToast(msg,type){
 var t=document.getElementById('toast');
 t.textContent=msg;
@@ -847,7 +835,7 @@ next();
 // ===== AI INTEGRATION =====
 async function getAIResponse(prompt){
 try{
-var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+var resp=await fetch(ODA_CONFIG.aiEndpoint,{
 method:'POST',
 headers:{'Content-Type':'application/json'},
 body:JSON.stringify({prompt:prompt,max_tokens:150})

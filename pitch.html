@@ -712,26 +712,8 @@ textarea.fun-input::placeholder{color:#3a4560}
 </div>
 </div>
 
+<script src="js/oda-core.js"></script>
 <script>
-// ===== FIREBASE CONFIG (single source of truth) =====
-var ODA_FB_CFG={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
-
-// ===== FIREBASE IMPORT CACHING =====
-var _fbApp=null,_fbDb=null;
-async function getFirebaseDB(){
-if(_fbDb)return{db:_fbDb,fsMod:await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js')};
-var appMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js');
-var fsMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js');
-try{_fbApp=appMod.getApp()}catch(e){_fbApp=appMod.initializeApp(ODA_FB_CFG)}
-_fbDb=fsMod.getFirestore(_fbApp);
-return{db:_fbDb,fsMod:fsMod,app:_fbApp};
-}
-async function getFirebaseStorage(){
-var appMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js');
-var storageMod=await import('https://www.gstatic.com/firebasejs/11.8.1/firebase-storage.js');
-if(!_fbApp){try{_fbApp=appMod.getApp()}catch(e){_fbApp=appMod.initializeApp(ODA_FB_CFG)}}
-return{storage:storageMod.getStorage(_fbApp),storageMod:storageMod,app:_fbApp};
-}
 
 // ===== DASHBOARD & PROJECT MANAGEMENT =====
 var PROJECTS_KEY='oda-pitch-projects';
@@ -1633,8 +1615,6 @@ document.getElementById("pitchEditArea").value=pitchText;
 updatePitchWordCount();
 }
 
-function esc(s){var v=document.createElement("div");v.textContent=s;return v.innerHTML}
-
 function finishUp(){saveD();
 // Grab latest text from the editable textarea
 pitchText=document.getElementById("pitchEditArea").value;
@@ -1670,7 +1650,7 @@ function fireConfetti(){var colors=["#06d6a0","#118ab2","#ffd166","#ef476f","#a8
 // ===== AI HELPER (generic) =====
 async function callAI(prompt,maxTokens){
 try{
-var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+var resp=await fetch(ODA_CONFIG.aiEndpoint,{
 method:'POST',headers:{'Content-Type':'application/json'},
 body:JSON.stringify({prompt:prompt,max_tokens:maxTokens||300})
 });
@@ -1784,7 +1764,7 @@ prompt+='Customers: '+d.custs.join(', ')+'\n';
 prompt+='Advantages: '+av.join(', ')+'\n';
 prompt+='Their pitch:\n'+pitchText;
 
-var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+var resp=await fetch(ODA_CONFIG.aiEndpoint,{
 method:'POST',headers:{'Content-Type':'application/json'},
 body:JSON.stringify({prompt:prompt,max_tokens:300})
 });

@@ -708,6 +708,9 @@ select.settings-input{cursor:pointer}
 </div>
 </div>
 
+<!-- SHARED CORE -->
+<script src="js/oda-core.js"></script>
+
 <!-- FIREBASE -->
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
@@ -715,7 +718,7 @@ import{getAuth,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasej
 import{getFirestore,doc,setDoc,getDoc,getDocs,deleteDoc,collection,query,where,addDoc,updateDoc,orderBy,Timestamp,onSnapshot}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 import{getStorage,ref as storageRef,uploadBytes,getDownloadURL}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-storage.js";
 
-const cfg={apiKey:"AIzaSyAAHwgxErk_M53tYXAMZmgA78m9AiRsEPk",authDomain:"oda-hub-d4bef.firebaseapp.com",projectId:"oda-hub-d4bef",storageBucket:"oda-hub-d4bef.firebasestorage.app",messagingSenderId:"632797371461",appId:"1:632797371461:web:5ec619138d64c0cbc3d72c"};
+const cfg=ODA_CONFIG.firebase;
 const app=initializeApp(cfg);const auth=getAuth(app);const db=getFirestore(app);const storage=getStorage(app);
 
 window.fbAuth=auth;window.fbDb=db;window.fbSignOut=signOut;window.fbStorage=storage;window.fbStorageRef=storageRef;window.fbUploadBytes=uploadBytes;window.fbGetDownloadURL=getDownloadURL;
@@ -2021,7 +2024,7 @@ var prompt='Grade this student submission on a scale of 0-100. The assignment wa
 (a.title||'')+'" with instructions: "'+(a.instructions||'None')+'". The student submitted: "'+
 (a.studentResponse||'No text response')+'". Respond with ONLY a JSON object: {"score": number, "feedback": "string"}';
 try{
-var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+var resp=await fetch(ODA_CONFIG.aiEndpoint,{
 method:'POST',headers:{'Content-Type':'application/json'},
 body:JSON.stringify({prompt:prompt})
 });
@@ -2108,7 +2111,6 @@ window.loadTemplate=loadTemplate;
 function logout(){window.fbSignOut(window.fbAuth).then(function(){window.location.href='index.html'})}
 window.logout=logout;
 
-function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function stripMd(t){if(!t)return'';return t.replace(/^#{1,6}\s+/gm,'').replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*\*/g,'').replace(/\*(.+?)\*/g,'$1').replace(/__(.+?)__/g,'$1').replace(/_(.+?)_/g,'$1').replace(/^[-*]\s+/gm,'').replace(/^---+$/gm,'').replace(/`(.+?)`/g,'$1').replace(/^\s*\n/gm,'\n').trim()}
 document.addEventListener('keydown',function(e){
 if(e.key==='Escape'){
@@ -2337,7 +2339,7 @@ return name+': '+d.completed+' done, '+d.pending+' pending, avg: '+avg2;
 var prompt='You are a helpful education assistant for an afterschool program. Write a weekly class summary for the teacher. Class data: '+students.length+' students, '+total+' total assignments, '+done+' completed, '+pending+' pending, '+submitted+' needs review, class avg score: '+avg+'. Per-student breakdown: '+studentSummary+'. Write a friendly 3-4 paragraph narrative summary highlighting class achievements, students who are excelling, students who may need extra support, and 2-3 actionable recommendations for next week. Keep it encouraging and professional.';
 
 try{
-var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+var resp=await fetch(ODA_CONFIG.aiEndpoint,{
 method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
 });
 if(!resp.ok)throw new Error('Server error');
@@ -2368,7 +2370,7 @@ document.getElementById('aiGenActions').style.display='none';
 var prompt='You are an education assistant for a K-12 afterschool program. Create an assignment for grade level '+grade+' on this topic: "'+topic+'". Respond with ONLY a JSON object: {"title": "assignment title", "instructions": "detailed instructions for the student (2-4 sentences)", "gradingType": "teacher" or "completion"}. Make it engaging, age-appropriate, and educational.';
 
 try{
-var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+var resp=await fetch(ODA_CONFIG.aiEndpoint,{
 method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
 });
 if(!resp.ok)throw new Error('Server error');
@@ -2422,7 +2424,7 @@ perStudent.push(s.name+' (grade '+s.grade+', avg: '+avg+', completed: '+complete
 var prompt='You are an education consultant for a K-12 afterschool program. Analyze these students and suggest differentiation groupings (K-2 level, 3-4 level, 5-8 level) for each student based on their performance. Also suggest specific activities or supports for each group. Students: '+perStudent.join('; ')+'. Format your response clearly with group headers and student names under each group, followed by recommendations for each group.';
 
 try{
-var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+var resp=await fetch(ODA_CONFIG.aiEndpoint,{
 method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
 });
 if(!resp.ok)throw new Error('Server error');
@@ -2453,7 +2455,7 @@ var prompt='You are a supportive afterschool program teacher writing personalize
 (a.studentResponse||'No text response')+'". Student history: '+historyStr+'. Write 2-3 sentences of warm, specific, actionable feedback. Be encouraging but honest. Reference specific things the student did well and one area to improve.';
 
 try{
-var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{
+var resp=await fetch(ODA_CONFIG.aiEndpoint,{
 method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
 });
 if(!resp.ok)throw new Error('Server error');

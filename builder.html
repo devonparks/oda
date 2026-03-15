@@ -205,6 +205,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;heig
 
 <div class="toast" id="toast"></div>
 
+<script src="js/oda-core.js"></script>
 <script>
 // ===== STATE =====
 var messages=[];
@@ -212,7 +213,7 @@ var currentHTML='';
 var versions=[];
 var isGenerating=false;
 var activeRightTab='preview';
-var ENDPOINT='https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai';
+var ENDPOINT=ODA_CONFIG.aiEndpoint;
 
 var SYSTEM_PROMPT='You are ODA Studio, an AI that builds educational web tools for K-8 teachers and students.\n\nOUTPUT FORMAT — respond in EXACTLY this format:\n[MSG]Brief explanation of what you created or changed (2-3 sentences)[/MSG]\n[HTML]\n<!DOCTYPE html>\n<html lang="en">\n...complete self-contained HTML document...\n</html>\n[/HTML]\n\nDESIGN RULES:\n- Complete, self-contained HTML with inline <style> and <script>\n- Dark theme: body bg #0a0e1a, cards/surface #111827, borders #2a3450, accent #06d6a0, blue #118ab2, gold #ffd166, red #ef476f, text #f0f4ff, muted #8892a8\n- Font: Outfit from Google Fonts (import weights 400,600,700,800)\n- Responsive layout, max-width 600px centered\n- Include a back link at top: <a href="student.html" style="color:#8892a8;text-decoration:none;font-size:13px;font-weight:600">← Back to ODA Hub</a>\n- Educational, age-appropriate for K-8\n- Interactive with JavaScript (quizzes self-score, cards flip, etc.)\n- Modern UI: rounded corners (8-12px), subtle borders, smooth transitions\n- IMPORTANT: When modifying existing code, change ONLY what was requested. Preserve everything else.';
 
@@ -532,8 +533,6 @@ switchRightTab('templates');
 }
 
 // ===== UTILITY =====
-function esc(s){if(s===null||s===undefined)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-
 function showToast(msg){
 var t=document.getElementById('toast');
 t.textContent=msg;
