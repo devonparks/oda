@@ -1200,10 +1200,11 @@ try{
 var prompt='You are a friendly AI brainstorm buddy for a K-12 student planning a Lemonade Day business. IMPORTANT RULE: No food or drinks are allowed at this event - only non-food products. If the student suggests food/drinks, gently redirect them to product-only ideas. ';
 if(idea)prompt+='They are thinking about selling: "'+idea+'". If this is a food/drink item, kindly explain no food is allowed and suggest 3 similar non-food alternatives. Otherwise give them 3 quick tips to make this idea awesome and 2 alternative product ideas they might like. Keep it fun and encouraging!';
 else prompt+='They have not decided what to sell yet. Give them 5 creative NON-FOOD product ideas that kids can make and sell at a school Lemonade Day event (fidget toys, candles, art, jewelry, slime, STEM kits, etc). Be specific and fun! Include emojis.';
-var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt,maxTokens:300})});
+var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt,max_tokens:300})});
 var data=await resp.json();
+var text=data.response||data.text||(Array.isArray(data.content)&&data.content[0]?data.content[0].text:'')||'';
 var bubble=document.getElementById('wtAiBubble');
-if(bubble)bubble.innerHTML='<div class="ai-bubble">'+esc(data.response||data.text||'No response')+'</div>';
+if(bubble)bubble.innerHTML='<div class="ai-bubble">'+esc(text||'No response')+'</div>';
 }catch(e){console.error(e);showToast('AI not available right now','warning')}
 finally{if(btn){btn.disabled=false;btn.innerHTML='&#x1F916; AI Brainstorm Helper'}}
 }
