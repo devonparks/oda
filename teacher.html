@@ -142,7 +142,6 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 .work-type{font-size:12px;font-weight:700;padding:3px 10px;border-radius:6px}
 .wt-pitch{background:rgba(17,138,178,.12);color:var(--accent2)}
 .wt-elevator{background:rgba(255,209,102,.12);color:var(--gold)}
-.wt-robot{background:rgba(6,214,160,.12);color:var(--accent)}
 .wt-spelling{background:rgba(239,71,111,.12);color:var(--accent3)}
 .work-date{font-size:12px;color:var(--text2)}
 .work-body{font-size:15px;line-height:1.6;color:var(--text)}
@@ -603,7 +602,6 @@ select.settings-input{cursor:pointer}
 <div class="tool-pick-grid" id="toolPickGrid">
 <div class="tool-pick" data-val="pitch-challenge" onclick="pickTool(this)"><span class="tp-emoji">&#x1F4A1;</span><span class="tp-name">Pitch Challenge</span></div>
 <div class="tool-pick" data-val="elevator-pitch" onclick="pickTool(this)"><span class="tp-emoji">&#x1F3A4;</span><span class="tp-name">Elevator Pitch</span></div>
-<div class="tool-pick" data-val="robot-lab" onclick="pickTool(this)"><span class="tp-emoji">&#x1F916;</span><span class="tp-name">Robot Lab</span></div>
 <div class="tool-pick" data-val="spelling-k2" onclick="pickTool(this)"><span class="tp-emoji">&#x1F4D6;</span><span class="tp-name">Spelling K-2</span></div>
 <div class="tool-pick" data-val="spelling-34" onclick="pickTool(this)"><span class="tp-emoji">&#x1F4D6;</span><span class="tp-name">Spelling 3-4</span></div>
 <div class="tool-pick" data-val="spelling-58" onclick="pickTool(this)"><span class="tp-emoji">&#x1F4D6;</span><span class="tp-name">Spelling 5-8</span></div>
@@ -621,7 +619,6 @@ select.settings-input{cursor:pointer}
 <option value="vocab-58">Vocab 5-8</option>
 <option value="pitch-challenge">Pitch Challenge</option>
 <option value="elevator-pitch">Elevator Pitch</option>
-<option value="robot-lab">Robot Lab</option>
 </select></div>
 </div>
 <div class="type-panel" id="panel-assignment">
@@ -774,7 +771,6 @@ var ASSIGN_TYPES={
 'vocab-k2':{title:'Vocab K-2',emoji:'\u{1F4AC}'},'vocab-34':{title:'Vocab 3-4',emoji:'\u{1F4AC}'},'vocab-58':{title:'Vocab 5-8',emoji:'\u{1F4AC}'},
 'pitch-challenge':{title:'Pitch Challenge',emoji:'\u{1F4A1}'},'elevator-pitch':{title:'Elevator Pitch',emoji:'\u{1F3A4}'},
 'free-play':{title:'Free Play',emoji:'\u{1F3AE}'},
-'robot-lab':{title:'Robot Lab',emoji:'\u{1F916}'},
 'worksheet':{title:'Worksheet',emoji:'\u{1F4C4}'},
 'link':{title:'Link',emoji:'\u{1F517}'},
 'custom':{title:'Custom',emoji:'\u270F\uFE0F'}
@@ -799,7 +795,6 @@ var TEACHER_TOOLS=[
 {id:'elevator-pitch',emoji:'\u{1F3A4}',name:'Elevator Pitch',desc:'10-question interview \u2192 auto-generated pitch. 3 styles.',url:'elevator.html',toolType:'elevator-pitch'},
 {id:'lemonade',emoji:'\u{1F34B}',name:'Lemonade Day',desc:'Mikaila video, mission statement, sign-ups & hype.',url:'lemonade.html',toolType:'lemonade-day'},
 {id:'spelling',emoji:'\u{1F41D}',name:'Spelling Bee',desc:'Cleveland-themed spelling challenges. 5 levels.',url:'spelling.html',toolType:'spelling-bee'},
-{id:'robot-lab',emoji:'\u{1F916}',name:'Robot Lab',desc:'Design a custom robot step by step.',url:'robot.html',toolType:'robot-lab'},
 {id:'oda-studio',emoji:'\u2728',name:'ODA Studio',desc:'Build custom tools with AI! Chat-powered studio.',url:'builder.html',toolType:'oda-studio'}
 ];
 var COMING_SOON_TEACHER=[
@@ -1217,21 +1212,6 @@ if(pc.hook)h+='<div class="pitch-text">'+esc(pc.hook)+'</div>';
 h+='</div></div>';
 }
 
-// Robot Design
-var rdDoc=await window.fbGetDoc(window.fbDoc(window.fbDb,'robotDesigns',sid));
-if(rdDoc.exists()){
-var rd=rdDoc.data();
-h+='<div class="work-card"><div class="work-header"><span class="work-type wt-robot">\u{1F916} Robot Design</span><div style="display:flex;align-items:center;gap:8px"><span class="work-date">'+(rd.savedAt?new Date(rd.savedAt).toLocaleDateString():'')+'</span><button class="btn btn-red btn-sm" onclick="deleteStudentWork(\'robotDesigns\',\''+sid+'\')" style="padding:2px 7px;font-size:11px" title="Delete">&times;</button></div></div>';
-h+='<div class="work-body">';
-if(rd.robotName)h+='<div class="wl"><span class="wl-label">Robot Name:</span> <span class="wl-value" style="color:var(--accent);font-size:16px">'+esc(rd.robotName)+'</span></div>';
-if(rd.brain)h+='<div class="wl"><span class="wl-label">\u{1F9E0} Brain:</span> <span class="wl-value">'+esc(rd.brain)+'</span></div>';
-if(rd.body)h+='<div class="wl"><span class="wl-label">\u{1F916} Body:</span> <span class="wl-value">'+esc(rd.body)+'</span></div>';
-if(rd.hand)h+='<div class="wl"><span class="wl-label">\u{1F9BE} Hand:</span> <span class="wl-value">'+esc(rd.hand)+'</span></div>';
-if(rd.voice)h+='<div class="wl"><span class="wl-label">\u{1F50A} Voice:</span> <span class="wl-value">'+esc(rd.voice)+'</span></div>';
-if(rd.color)h+='<div class="wl"><span class="wl-label">\u{1F3A8} Color:</span> <span class="wl-value">'+esc(rd.color)+'</span></div>';
-if(rd.powers&&rd.powers.length)h+='<div class="wl"><span class="wl-label">\u{26A1} Powers:</span> <span class="wl-value">'+esc(rd.powers.join(', '))+'</span></div>';
-h+='</div></div>';
-}
 
 // Spelling Results
 var srQ=window.fbQuery(window.fbCollection(window.fbDb,'spellingResults'),window.fbWhere('studentId','==',sid));
@@ -1923,7 +1903,7 @@ btn.textContent='\u{1F916} AI Suggest';btn.disabled=false;
 window.aiSuggestGrade=aiSuggestGrade;
 
 // ===== TEMPLATES =====
-var toolLabels={'spelling-k2':'Spelling Bee K-2','spelling-34':'Spelling Bee 3-4','spelling-58':'Spelling Bee 5-8','vocab-k2':'Vocab K-2','vocab-34':'Vocab 3-4','vocab-58':'Vocab 5-8','pitch-challenge':'Pitch Challenge','elevator-pitch':'Elevator Pitch','robot-lab':'Robot Lab'};
+var toolLabels={'spelling-k2':'Spelling Bee K-2','spelling-34':'Spelling Bee 3-4','spelling-58':'Spelling Bee 5-8','vocab-k2':'Vocab K-2','vocab-34':'Vocab 3-4','vocab-58':'Vocab 5-8','pitch-challenge':'Pitch Challenge','elevator-pitch':'Elevator Pitch'};
 
 async function loadTemplates(){
 var list=document.getElementById('templateList');
@@ -2076,7 +2056,7 @@ var toolCounts={};
 allAssignments.forEach(function(a){var t=a.toolType||a.type;toolCounts[t]=(toolCounts[t]||0)+1});
 var topTool='--';var topCount=0;
 Object.keys(toolCounts).forEach(function(k){if(toolCounts[k]>topCount){topCount=toolCounts[k];topTool=k}});
-var toolNames={'spelling-k2':'Spell K2','spelling-34':'Spell 3-4','spelling-58':'Spell 5-8','vocab-k2':'Vocab K2','vocab-34':'Vocab 3-4','vocab-58':'Vocab 5-8','pitch-challenge':'Pitch','elevator-pitch':'Elevator','robot-lab':'Robot',tool:'Tool',worksheet:'Worksheet',link:'Link',custom:'Custom'};
+var toolNames={'spelling-k2':'Spell K2','spelling-34':'Spell 3-4','spelling-58':'Spell 5-8','vocab-k2':'Vocab K2','vocab-34':'Vocab 3-4','vocab-58':'Vocab 5-8','pitch-challenge':'Pitch','elevator-pitch':'Elevator',tool:'Tool',worksheet:'Worksheet',link:'Link',custom:'Custom'};
 document.getElementById('anTopTool').textContent=toolNames[topTool]||topTool;
 
 // Bar chart

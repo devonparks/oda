@@ -59,7 +59,6 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 .work-type{font-size:13px;font-weight:700;padding:3px 10px;border-radius:6px}
 .wt-pitch{background:rgba(17,138,178,.12);color:var(--accent2)}
 .wt-elevator{background:rgba(255,209,102,.12);color:var(--gold)}
-.wt-robot{background:rgba(6,214,160,.12);color:var(--accent)}
 .wt-spelling{background:rgba(239,71,111,.12);color:var(--accent3)}
 .work-date{font-size:12px;color:var(--text2)}
 .work-body{font-size:15px;line-height:1.6;color:var(--text)}
@@ -215,7 +214,7 @@ el.innerHTML=h;
 function renderAssignCard(a){
 var statusMap={pending:'st-pending',submitted:'st-submitted',graded:'st-graded',completed:'st-completed',returned:'st-returned'};
 var labelMap={pending:'Pending',submitted:'Submitted',graded:'Graded',completed:'Completed',returned:'Returned'};
-var emojiMap={'spelling-k2':'&#x1F4D6;','spelling-34':'&#x1F4D6;','spelling-58':'&#x1F4D6;','vocab-k2':'&#x1F4AC;','vocab-34':'&#x1F4AC;','vocab-58':'&#x1F4AC;','pitch-challenge':'&#x1F4A1;','elevator-pitch':'&#x1F3A4;','robot-lab':'&#x1F916;',tool:'&#x1F6E0;&#xFE0F;',worksheet:'&#x1F4C4;',link:'&#x1F517;',custom:'&#x270F;&#xFE0F;'};
+var emojiMap={'spelling-k2':'&#x1F4D6;','spelling-34':'&#x1F4D6;','spelling-58':'&#x1F4D6;','vocab-k2':'&#x1F4AC;','vocab-34':'&#x1F4AC;','vocab-58':'&#x1F4AC;','pitch-challenge':'&#x1F4A1;','elevator-pitch':'&#x1F3A4;',tool:'&#x1F6E0;&#xFE0F;',worksheet:'&#x1F4C4;',link:'&#x1F517;',custom:'&#x270F;&#xFE0F;'};
 var emoji=emojiMap[a.toolType]||emojiMap[a.type]||'&#x1F4CB;';
 var h='<div class="a-card">';
 h+='<div class="a-header"><div class="a-title">'+emoji+' '+esc(a.title||a.type)+'</div>';
@@ -265,21 +264,6 @@ if(pc.problem)h+='<div class="wl"><span class="wl-label">Problem:</span> <span c
 if(pc.customers&&pc.customers.length)h+='<div class="wl"><span class="wl-label">Customers:</span> <span class="wl-value">'+esc(pc.customers.join(', '))+'</span></div>';
 if(pc.advantages&&pc.advantages.length)h+='<div class="wl"><span class="wl-label">Advantages:</span> <span class="wl-value">'+esc(pc.advantages.join(' \u2022 '))+'</span></div>';
 if(pc.hook)h+='<div class="pitch-text">'+esc(pc.hook)+'</div>';
-h+='</div></div>';
-}
-// Robot Design
-var rdDoc=await window.fbGetDoc(window.fbDoc(window.fbDb,'robotDesigns',sid));
-if(rdDoc.exists()){
-var rd=rdDoc.data();
-h+='<div class="work-card"><div class="work-header"><span class="work-type wt-robot">&#x1F916; Robot Design</span><span class="work-date">'+(rd.savedAt?new Date(rd.savedAt).toLocaleDateString():'')+'</span></div>';
-h+='<div class="work-body">';
-if(rd.robotName)h+='<div class="wl"><span class="wl-label">Robot Name:</span> <span class="wl-value" style="color:var(--accent);font-size:16px">'+esc(rd.robotName)+'</span></div>';
-if(rd.brain)h+='<div class="wl"><span class="wl-label">Brain:</span> <span class="wl-value">'+esc(rd.brain)+'</span></div>';
-if(rd.body)h+='<div class="wl"><span class="wl-label">Body:</span> <span class="wl-value">'+esc(rd.body)+'</span></div>';
-if(rd.hand)h+='<div class="wl"><span class="wl-label">Hand:</span> <span class="wl-value">'+esc(rd.hand)+'</span></div>';
-if(rd.voice)h+='<div class="wl"><span class="wl-label">Voice:</span> <span class="wl-value">'+esc(rd.voice)+'</span></div>';
-if(rd.color)h+='<div class="wl"><span class="wl-label">Color:</span> <span class="wl-value">'+esc(rd.color)+'</span></div>';
-if(rd.powers&&rd.powers.length)h+='<div class="wl"><span class="wl-label">Powers:</span> <span class="wl-value">'+esc(rd.powers.join(', '))+'</span></div>';
 h+='</div></div>';
 }
 // Spelling Results
