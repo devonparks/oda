@@ -213,16 +213,38 @@ body.desktop-mode .grade-app{max-width:1100px}
 .desktop-toggle:hover{border-color:var(--accent);color:var(--text)}
 .desktop-toggle.active{border-color:var(--accent);color:var(--accent);background:rgba(6,214,160,.1)}
 @media(min-width:900px){.desktop-toggle{display:inline-flex}}
+
+/* Teacher mode */
+.dash-teacher-btn{background:#7C3AED;color:#fff;padding:10px 18px;font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;border:none;border-radius:12px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.dash-teacher-btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(124,58,237,.3)}
+.teacher-banner{background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(239,71,111,.1));border:2px solid #7C3AED;border-radius:16px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text);font-weight:600;flex-wrap:wrap}
+.teacher-banner .tb-badge{background:#7C3AED;color:#fff;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.teacher-banner .tb-student{color:var(--accent);font-weight:700}
+.teacher-notes{background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(124,58,237,.03));border:1.5px solid rgba(124,58,237,.3);border-radius:14px;padding:14px 16px;margin-top:16px}
+.teacher-notes-title{font-size:12px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.teacher-notes p{font-size:13px;color:var(--text2);line-height:1.6;margin:4px 0}
+.teacher-notes ul{margin:6px 0;padding-left:18px}
+.teacher-notes li{font-size:13px;color:var(--text2);line-height:1.6;margin:3px 0}
+.teacher-notes .tn-say{color:var(--accent);font-weight:600;font-style:italic}
+
+/* AI Polish result box */
+.polished-pitch{background:rgba(6,214,160,.08);border:2px solid rgba(6,214,160,.25);border-radius:20px;padding:24px;margin:20px 0;animation:fadeUp .4s ease}
+.polished-label{font-family:'Space Mono',monospace;font-size:12px;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+.polished-text{font-size:19px;line-height:2;color:var(--text);font-weight:500;background:var(--bg);padding:16px 20px;border-radius:14px;border:1px solid var(--border)}
 </style>
 </head>
 <body>
 <div class="grid-bg"></div>
 <div class="app">
-<a class="back" id="backLink" href="index.html">&#x2190; Back to ODA Hub</a>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+<a class="back" id="backLink" href="index.html" style="margin-bottom:0">&#x2190; Back to ODA Hub</a>
+<button class="dash-teacher-btn" id="teacherModeBtn" onclick="toggleTeacherMode()" style="display:none">&#x1F469;&#x200D;&#x1F3EB; Teacher Mode</button>
+</div>
+<div id="teacherBanner" style="display:none" class="teacher-banner"><span class="tb-badge">Teacher</span> &#x1F469;&#x200D;&#x1F3EB; 1-on-1 Mode &#x2014; Guiding <span class="tb-student" id="tbStudentName">a student</span> through their pitch</div>
 <div class="header">
 <span class="emoji">&#x1F3A4;</span>
 <h1>Elevator Pitch Builder</h1>
-<p>Answer a few questions and we'll write your pitch!</p>
+<p id="headerSub">Answer a few questions and we'll write your pitch!</p>
 </div>
 
 <div class="prog" id="progWrap" style="display:none">
@@ -262,7 +284,7 @@ body.desktop-mode .grade-app{max-width:1100px}
 <span>&#x1F4DC; Your Pitch</span>
 <div class="rec-tp-speed">
 <button onclick="changeScrollSpeed(-1)">&#x25C0;</button>
-<span class="speed-label" id="scrollSpeedLabel">0.3x</span>
+<span class="speed-label" id="scrollSpeedLabel">0.2x</span>
 <button onclick="changeScrollSpeed(1)">&#x25B6;</button>
 </div>
 </div>
@@ -308,7 +330,7 @@ var QUESTIONS=[
 {id:'age',emoji:'\u{1F382}',label:'How old are you?',hint:'',type:'text',placeholder:'Your age...',aiHelp:false},
 {id:'school',emoji:'\u{1F3EB}',label:'What school do you go to?',hint:'',type:'text',placeholder:'Your school name...',aiHelp:false},
 {id:'from',emoji:'\u{1F3E0}',label:'Where are you from?',hint:'Your city or neighborhood',type:'text',placeholder:'Cleveland, Ohio...',aiHelp:false},
-{id:'grade',emoji:'\u{1F4DA}',label:'What grade are you in?',hint:'',type:'select',options:['Kindergarten','1st grade','2nd grade','3rd grade','4th grade','5th grade','6th grade','7th grade','8th grade','9th grade','10th grade','11th grade','12th grade'],placeholder:'Pick your grade...',aiHelp:false},
+{id:'grade',emoji:'\u{1F4DA}',label:'What grade are you in?',hint:'',type:'select',options:['K','1','2','3','4','5','6','7','8','9','10','11','12'],placeholder:'Pick your grade...',aiHelp:false},
 {id:'dream',emoji:'\u{1F31F}',label:'What do you want to be when you grow up?',hint:'Dream BIG! There\'s no wrong answer.',type:'text',placeholder:'I want to be a...',aiHelp:true,aiPrompt:'A student is trying to figure out what they want to be when they grow up but is stuck. Do NOT give them an answer. Instead, ask them 3-4 fun thinking questions to help them discover what excites them. Like: What do you love doing so much you forget about time? What problems in the world do you wish you could fix? If you could have any superpower job, what would it be? Keep it short, fun, and encouraging. Use plain text, no markdown.'},
 {id:'why',emoji:'\u{1F4AD}',label:'Why do you want to be that?',hint:'What makes you excited about it?',type:'textarea',placeholder:'Because I love...',aiHelp:true,aiPrompt:'A student knows what they want to be when they grow up but is having trouble explaining WHY. Do NOT write their answer for them. Instead, ask them 3-4 simple thinking questions to help them figure out why. Like: What got you interested in this? How would this job let you help people? What would a normal day look like in that job? Keep it warm, short, and encouraging. Use plain text, no markdown.'},
 {id:'hobby',emoji:'\u{1F3AE}',label:'What do you like to do for fun?',hint:'Sports, games, art, music, anything!',type:'text',placeholder:'I like to...',aiHelp:true,aiPrompt:'A student is struggling to think of what they do for fun. Do NOT give them answers. Instead, ask them 3-4 fun prompting questions to help them think about their hobbies. Like: What do you do right after school? What do you love doing on weekends? What would you do if you had a whole free day? What makes you laugh the most? Keep it short and fun. Use plain text, no markdown.'},
@@ -326,6 +348,65 @@ var assignmentId=null,studentId=null,isAssignmentMode=false,isTeacherMode=false;
 var mediaRecorder=null,recordedChunks=[],recordedBlob=null,cameraStream=null;
 var _aiLoading=false;
 var MAX_REC_SECONDS=120;
+var polishedResult='';
+
+// ===== TEACHER NOTES =====
+var TEACHER_NOTES=[
+{step:0,title:'Name',notes:[
+'<span class="tn-say">"Let\'s start with your name. Tell me your first and last name!"</span>',
+'Let the student type their own name if possible',
+'For younger students, you can type for them'
+]},
+{step:1,title:'Age',notes:[
+'<span class="tn-say">"How old are you?"</span>',
+'Simple question to get them warmed up and comfortable'
+]},
+{step:2,title:'School',notes:[
+'<span class="tn-say">"What school do you go to?"</span>',
+'Help them spell their school name if needed'
+]},
+{step:3,title:'Hometown',notes:[
+'<span class="tn-say">"Where are you from? Your city or neighborhood?"</span>',
+'Some students may say their neighborhood vs city \u2014 either is fine'
+]},
+{step:4,title:'Grade',notes:[
+'<span class="tn-say">"What grade are you in?"</span>',
+'Let them pick from the dropdown'
+]},
+{step:5,title:'Dream Career',notes:[
+'<span class="tn-say">"What do you want to be when you grow up? Dream BIG!"</span>',
+'If stuck, ask: <span class="tn-say">"What do you love doing so much you forget about time?"</span>',
+'Use the AI thinking helper if they need more prompting',
+'There\'s no wrong answer \u2014 encourage creativity!'
+]},
+{step:6,title:'Why That Dream',notes:[
+'<span class="tn-say">"Why do you want to be that? What excites you about it?"</span>',
+'Help them articulate the WHY, not just the WHAT',
+'Prompt with: <span class="tn-say">"What got you interested? How would it help people?"</span>'
+]},
+{step:7,title:'Hobbies',notes:[
+'<span class="tn-say">"What do you like to do for fun?"</span>',
+'If shy, try: <span class="tn-say">"What do you do right after school? On weekends?"</span>',
+'Sports, games, art, music, reading \u2014 anything counts!'
+]},
+{step:8,title:'Fun Fact',notes:[
+'<span class="tn-say">"Tell me something cool about you! A talent, fun fact, or something unique."</span>',
+'Help them think: <span class="tn-say">"Can you do anything that surprises people?"</span>',
+'Even small things count \u2014 like knowing all 50 states or being a great cook'
+]},
+{step:9,title:'Remember Me As',notes:[
+'<span class="tn-say">"If people could remember ONE thing about you, what would it be?"</span>',
+'One word or phrase is perfect: determined, creative, kind, funny, etc.',
+'Prompt with: <span class="tn-say">"What do your friends always say about you?"</span>'
+]},
+{step:'result',title:'Pitch Result & Recording',notes:[
+'Read the full pitch aloud WITH the student first',
+'Let them pick the style that sounds most like them',
+'Practice 2-3 times before recording',
+'<span class="tn-say">"Pretend the camera is your best friend and you\'re telling them about yourself"</span>',
+'It\'s OK if it\'s not perfect \u2014 confidence matters more than polish!'
+]}
+];
 
 // ===== DESKTOP MODE =====
 function toggleDesktopMode(){
@@ -340,6 +421,40 @@ if(localStorage.getItem('elevatorDesktop')==='1'&&window.innerWidth>=900){
 document.body.classList.add('desktop-mode');
 var _db=document.getElementById('desktopToggle');
 if(_db){_db.classList.add('active');_db.innerHTML='\u{1F4F1} Mobile Mode'}
+}
+
+// ===== TEACHER MODE =====
+function toggleTeacherMode(){
+isTeacherMode=!isTeacherMode;
+var btn=document.getElementById('teacherModeBtn');
+var sub=document.getElementById('headerSub');
+if(isTeacherMode){
+btn.innerHTML='\u{1F469}\u200D\u{1F3EB} Exit Teacher Mode';btn.style.background='var(--accent3)';
+if(sub)sub.textContent='1-on-1 Mode \u2014 Sit with a student and guide them through their pitch';
+document.getElementById('teacherBanner').style.display='flex';
+}else{
+btn.innerHTML='\u{1F469}\u200D\u{1F3EB} Teacher Mode';btn.style.background='#7C3AED';
+if(sub)sub.textContent="Answer a few questions and we'll write your pitch!";
+document.getElementById('teacherBanner').style.display='none';
+}
+}
+
+function getTeacherNoteForStep(stepIdx){
+var tn=TEACHER_NOTES.find(function(n){return n.step===stepIdx});
+if(!tn)return '';
+var h='<div class="teacher-notes"><div class="teacher-notes-title">\u{1F469}\u200D\u{1F3EB} Teacher Guide: '+tn.title+'</div><ul>';
+tn.notes.forEach(function(n){h+='<li>'+n+'</li>'});
+h+='</ul></div>';
+return h;
+}
+
+function getTeacherNoteForResult(){
+var tn=TEACHER_NOTES.find(function(n){return n.step==='result'});
+if(!tn)return '';
+var h='<div class="teacher-notes"><div class="teacher-notes-title">\u{1F469}\u200D\u{1F3EB} Teacher Guide: '+tn.title+'</div><ul>';
+tn.notes.forEach(function(n){h+='<li>'+n+'</li>'});
+h+='</ul></div>';
+return h;
 }
 
 // ===== TOAST =====
@@ -367,6 +482,11 @@ isTeacherMode=!!sessionStorage.getItem('teacherMode')||!!sessionStorage.getItem(
 var backEl=document.getElementById('backLink');
 if(studentId)backEl.href='student.html';
 else if(isTeacherMode)backEl.href='teacher.html';
+// Show teacher mode button if teacher (but not if student is active)
+var isStudentSession=!!sessionStorage.getItem('studentId');
+if(!isStudentSession&&(sessionStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher')){
+document.getElementById('teacherModeBtn').style.display='inline-flex';
+}
 showStart();
 }
 
@@ -532,6 +652,15 @@ document.getElementById('content').innerHTML=html;
 
 function startInterview(){
 if(step<=0){answers={};step=0}
+// Teacher 1-on-1: ask for student name and pre-fill
+if(isTeacherMode&&!answers.name){
+var studentName=prompt('Student name for this 1-on-1 pitch:');
+if(studentName&&studentName.trim()){
+answers.name=studentName.trim();
+var nameEl=document.getElementById('tbStudentName');
+if(nameEl)nameEl.textContent=answers.name;
+}
+}
 showQuestion();
 }
 
@@ -565,6 +694,11 @@ html+='<button class="ai-think-btn" id="aiThinkBtn" onclick="aiThinkHelp()" aria
 html+='<div id="aiThinkArea"></div>';
 }
 
+// Teacher notes for this step
+if(isTeacherMode){
+html+=getTeacherNoteForStep(step);
+}
+
 html+='<div class="btn-row">';
 if(step>0)html+='<button class="btn btn-back" onclick="prevQ()">&#x2190; Back</button>';
 else html+='<div></div>';
@@ -585,6 +719,11 @@ function nextQ(){
 var val=document.getElementById('qInput').value.trim();
 if(!val)return;
 answers[QUESTIONS[step].id]=val;
+// Update teacher banner with student name
+if(QUESTIONS[step].id==='name'&&isTeacherMode){
+var nameEl=document.getElementById('tbStudentName');
+if(nameEl)nameEl.textContent=val;
+}
 step++;
 showQuestion();
 }
@@ -692,10 +831,13 @@ html+='<div class="pitch-label">&#x1F3A4; '+esc(a.name)+'\'s Elevator Pitch</div
 html+='<div class="pitch-text" id="pitchText">'+formatPitch(pitches[0].text,a)+'</div>';
 html+='</div>';
 
+// AI Polished Version area
+html+='<div style="text-align:center;margin-bottom:16px"><button class="btn" style="background:linear-gradient(135deg,#8B5CF6,#6D28D9);color:#fff;padding:14px 24px;font-size:17px" onclick="aiPolishPitch()" id="btnPolish">&#x2728; Get AI-Polished Version</button></div>';
+html+='<div id="polishedArea" style="display:none" class="polished-pitch"><div class="polished-label">&#x2728; AI-POLISHED VERSION</div><div class="polished-text" id="polishedText"></div><div style="display:flex;gap:10px;justify-content:center;margin-top:14px"><button class="btn btn-green" onclick="usePolished()" style="padding:10px 20px;font-size:14px">&#x1F4DD; Use This Version</button></div></div>';
+
 html+='<div class="result-btns">';
 html+='<button class="btn btn-gold" onclick="copyPitch()">&#x1F4CB; Copy Pitch</button>';
 html+='<button class="btn btn-blue" onclick="toggleTimer()">&#x23F1;&#xFE0F; Practice Timer</button>';
-html+='<button class="btn" style="background:linear-gradient(135deg,#8B5CF6,#6D28D9);color:#fff" onclick="aiPolishPitch()" id="btnPolish">&#x2728; Polish with AI</button>';
 html+='<button class="btn btn-back" onclick="editAnswers()">&#x270F;&#xFE0F; Edit Answers</button>';
 if(isTeacherMode&&!isAssignmentMode)html+='<button class="btn btn-green" onclick="nextStudent()" id="btnNextStudent">&#x1F195; Next Student</button>';
 html+='</div>';
@@ -710,6 +852,11 @@ html+='</div></div>';
 
 // AI Summary
 html+='<div class="ai-summary" id="aiSummary" role="region" aria-label="AI personalized summary"><div class="ai-loading" id="aiLoading">\u{1F916} AI is writing your personalized summary</div><div class="ai-summary-text" id="aiSummaryText" style="display:none"></div></div>';
+
+// Teacher notes for result
+if(isTeacherMode){
+html+=getTeacherNoteForResult();
+}
 
 // Recording Studio
 html+='<div class="record-section" id="recordSection" role="region" aria-label="Record your pitch">';
@@ -779,21 +926,35 @@ var pitchEl=document.getElementById('pitchText');
 var rawText=pitchEl.innerText||pitchEl.textContent;
 if(!rawText||rawText.length<20){showToast('No pitch to polish yet','error');return}
 var btn=document.getElementById('btnPolish');
-btn.disabled=true;btn.textContent='\u2728 Polishing...';
+btn.disabled=true;btn.innerHTML='\u{1F916} Getting polished version...';
 _polishing=true;
 try{
-var result=await odaAI(
-'Here is a student\'s elevator pitch. Polish it to sound smoother, more confident, and more natural — like a real speech. Keep their personality, facts, and voice. Do NOT change the meaning or add new information. Keep it roughly the same length. Return ONLY the polished pitch text, nothing else.\n\nOriginal pitch:\n'+rawText,
-{max_tokens:1000,temperature:0.7,system:'You polish student speeches to sound confident and natural while preserving their unique voice and all their personal details. Return only the polished text.'}
-);
-pitchEl.innerHTML=esc(result);
-showToast('\u2728 Pitch polished!','');
+var prompt='You are a supportive pitch coach for kids ages K-12. Rewrite this student\'s elevator pitch in a more polished, professional way while keeping their voice, ideas, and personality. Keep it under 150 words. This should sound like something they could actually say out loud. Do NOT use markdown formatting. Just plain text.\n\nTheir pitch:\n'+rawText+'\n\nJust write the polished pitch, nothing else.';
+var resp=await fetch(ODA_CONFIG.aiEndpoint,{
+method:'POST',headers:{'Content-Type':'application/json'},
+body:JSON.stringify({prompt:prompt,max_tokens:400,temperature:0.7})
+});
+var data=await resp.json();
+var text=data.response||data.text||(Array.isArray(data.content)&&data.content[0]?data.content[0].text:'')||'';
+if(text){
+polishedResult=text.replace(/^#{1,6}\s+/gm,'').replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1').replace(/__(.+?)__/g,'$1').replace(/_(.+?)_/g,'$1').trim();
+document.getElementById('polishedArea').style.display='block';
+document.getElementById('polishedText').textContent=polishedResult;
+}
 }catch(e){
 console.error('Polish error:',e);
 showToast('Could not polish pitch. Try again!','error');
 }
 _polishing=false;
-btn.disabled=false;btn.textContent='\u2728 Polish with AI';
+btn.disabled=false;btn.innerHTML='\u2728 Get AI-Polished Version';
+}
+
+function usePolished(){
+if(polishedResult){
+var pitchEl=document.getElementById('pitchText');
+pitchEl.innerHTML=esc(polishedResult);
+showToast('\u2728 Polished version applied!','');
+}
 }
 
 // ===== TIMER =====
@@ -952,7 +1113,7 @@ _aiSummaryLoading=false;
 
 // ===== RECORDING STUDIO =====
 var recTimerInterval=null,recSeconds=0;
-var scrollSpeeds=[0,0.15,0.3,0.5],scrollSpeedIdx=2,scrollInterval=null;
+var scrollSpeeds=[0,0.1,0.2,0.3,0.5,0.8,1],scrollSpeedIdx=2,scrollInterval=null;
 var recLayoutMode=0;
 var activeFilter='none';
 var audioCtx=null;
@@ -999,7 +1160,7 @@ activeFilter='none';
 var filterChips=document.querySelectorAll('#studioFilterBar .filter-chip');
 for(var i=0;i<filterChips.length;i++){filterChips[i].classList.remove('active');if(i===0)filterChips[i].classList.add('active')}
 scrollSpeedIdx=2;
-document.getElementById('scrollSpeedLabel').textContent='0.3x';
+document.getElementById('scrollSpeedLabel').textContent='0.2x';
 recLayoutMode=0;
 document.querySelector('.rec-split').classList.remove('horizontal','camera-only');
 var lbtn=document.getElementById('btnLayoutToggle');
@@ -1141,7 +1302,7 @@ showToast('Downloading video...','');
 function startScrolling(){
 if(scrollSpeeds[scrollSpeedIdx]===0)return;
 var body=document.getElementById('recTpBody');
-var pxPerFrame=scrollSpeeds[scrollSpeedIdx]*0.6;
+var pxPerFrame=scrollSpeeds[scrollSpeedIdx]*0.3;
 function scroll(){
 body.scrollTop+=pxPerFrame;
 scrollInterval=requestAnimationFrame(scroll);
