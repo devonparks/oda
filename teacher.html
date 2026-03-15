@@ -1150,7 +1150,7 @@ h+='<div class="s-right"><span class="s-badge '+badgeClass+'">'+badge+'</span></
 h+='</div>';
 }
 el.innerHTML=h;
-updateBulkBar();
+updateRosterBulkBar();
 }
 
 // Grade select: show custom input when "Other" is chosen
@@ -1243,11 +1243,11 @@ if(cb.checked&&idx<0)_selectedStudentIds.push(sid);
 else if(!cb.checked&&idx>=0)_selectedStudentIds.splice(idx,1);
 var row=cb.closest('.s-row');
 if(row)row.classList.toggle('selected-row',cb.checked);
-updateBulkBar();
+updateRosterBulkBar();
 }
 window.toggleStudentCheck=toggleStudentCheck;
 
-function updateBulkBar(){
+function updateRosterBulkBar(){
 var bar=document.getElementById('rosterBulkBar');
 var count=_selectedStudentIds.length;
 if(count>0){
@@ -1267,7 +1267,7 @@ _selectedStudentIds.push(cb.getAttribute('data-sid'));
 var row=cb.closest('.s-row');
 if(row)row.classList.add('selected-row');
 });
-updateBulkBar();
+updateRosterBulkBar();
 }
 window.selectAllStudents=selectAllStudents;
 
@@ -1279,7 +1279,7 @@ cb.checked=false;
 var row=cb.closest('.s-row');
 if(row)row.classList.remove('selected-row');
 });
-updateBulkBar();
+updateRosterBulkBar();
 }
 window.clearStudentSelection=clearStudentSelection;
 
@@ -1298,7 +1298,7 @@ await Promise.all(dels);
 await window.fbDeleteDoc(window.fbDoc(window.fbDb,'students',sid));
 }
 _selectedStudentIds=[];
-updateBulkBar();
+updateRosterBulkBar();
 await loadStudents();
 showToast(count+' student'+(count!==1?'s':'')+' deleted','success');
 }catch(e){console.error(e);alert('Error deleting students: '+e.message)}
