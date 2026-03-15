@@ -418,7 +418,7 @@ select.settings-input{cursor:pointer}
 <div class="quick-grid">
 <div class="quick-card" onclick="switchTab('roster')"><span class="quick-emoji">&#x1F465;</span><div class="quick-title">Manage Roster</div><div class="quick-desc">Add students, view progress, assign work</div></div>
 <a class="quick-card" href="elevator.html" target="_blank"><span class="quick-emoji">&#x1F3A4;</span><div class="quick-title">Elevator Pitch</div><div class="quick-desc">Quick 1-on-1 pitch builder</div></a>
-<div class="quick-card" onclick="switchTab('tools');setTimeout(showLemonadeGroups,200)"><span class="quick-emoji">&#x1F34B;</span><div class="quick-title">Lemonade Day</div><div class="quick-desc">Manage groups, approve, grade</div></div>
+<div class="quick-card" onclick="switchTab('assignments')"><span class="quick-emoji">&#x1F34B;</span><div class="quick-title">Lemonade Day</div><div class="quick-desc">Manage groups, approve, grade</div></div>
 <a class="quick-card" href="pitch.html" target="_blank"><span class="quick-emoji">&#x1F4A1;</span><div class="quick-title">Pitch Challenge</div><div class="quick-desc">Full business pitch</div></a>
 </div>
 
@@ -507,6 +507,18 @@ select.settings-input{cursor:pointer}
 
 <!-- ===== ASSIGNMENTS ===== -->
 <div class="section" id="sec-assignments">
+<div id="lemAssignSection" style="display:none;margin-bottom:20px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<div style="font-size:16px;font-weight:800">&#x1F34B; Lemonade Day Groups</div>
+<div style="display:flex;gap:6px">
+<button class="btn btn-outline btn-sm" onclick="loadLemonadeGroups()">&#x1F504; Refresh</button>
+<a class="btn btn-gold btn-sm" href="lemonade.html" target="_blank">Open Tool &#x2197;&#xFE0F;</a>
+</div>
+</div>
+<div id="lemAssignPending"></div>
+<div id="lemAssignActive"></div>
+<div id="lemAssignGraded"></div>
+</div>
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
 <div style="font-size:16px;font-weight:800">&#x1F4CB; Assignments</div>
 </div>
@@ -836,8 +848,8 @@ document.getElementById('sec-'+id).classList.add('show');
 var m={home:0,tools:1,roster:2,assignments:3,arcade:4,settings:5};
 if(m[id]!==undefined)tabs[m[id]].classList.add('active');
 closeProfile();
-if(id==='assignments'){renderAssignmentsList();populateClassFilters()}
-if(id==='tools'){renderMyTools();showLemonadeGroups()}
+if(id==='assignments'){renderAssignmentsList();populateClassFilters();showLemonadeGroupsInAssign()}
+if(id==='tools'){renderMyTools()}
 }
 window.switchTab=switchTab;
 
@@ -1838,6 +1850,11 @@ if(gradingAssignment.toolType==='pitch-challenge'){
 window.open('pitch.html?grade='+assignId,'_blank');
 return;
 }
+// Lemonade Day: show group details in grade panel
+if(gradingAssignment.toolType==='lemonade-day'){
+openLemGradeFromAssign(gradingAssignment);
+return;
+}
 var student=students.find(function(s){return s.id===gradingAssignment.studentId});
 var a=gradingAssignment;
 var el=document.getElementById('gradePanelContent');
@@ -1944,6 +1961,162 @@ window.openGradePanel=openGradePanel;
 
 function closeGradePanel(){document.getElementById('gradePanel').classList.remove('show');gradingAssignment=null}
 window.closeGradePanel=closeGradePanel;
+
+// Lemonade Day: open group details in the standard grade panel
+async function openLemGradeFromAssign(a){
+var student=students.find(function(s){return s.id===a.studentId});
+var el=document.getElementById('gradePanelContent');
+// Find this student's lemonade group
+if(!lemonadeGroups.length)await loadLemonadeGroups();
+var g=lemonadeGroups.find(function(gr){return(gr.memberIds||[]).indexOf(a.studentId)>=0});
+if(!g){
+// Try fetching directly
+try{
+var gq=window.fbQuery(window.fbCollection(window.fbDb,'lemonadeGroups'),window.fbWhere('memberIds','array-contains',a.studentId));
+var gs=await window.fbGetDocs(gq);
+gs.forEach(function(d){if(!g)g={id:d.id,...d.data()}});
+}catch(e){console.error(e)}
+}
+if(!g){
+el.innerHTML='<div class="grade-header"><h2>&#x1F34B; Lemonade Day</h2><div class="grade-meta"><strong>'+esc(student?student.name:'Unknown')+'</strong></div></div><div class="empty-state"><span class="emoji">&#x1F34B;</span><p>This student hasn\'t joined a Lemonade Day group yet.</p></div><div class="grade-footer"><div></div><button class="btn btn-red btn-sm" onclick="deleteFromPanel()">Delete Assignment</button></div>';
+document.getElementById('gradePanel').classList.add('show');
+return;
+}
+var plan=g.plan||{};
+var supplies=g.supplies||[];
+var salesLog=g.salesLog||[];
+var totalCost=0;supplies.forEach(function(s){totalCost+=(parseFloat(s.qty)||0)*(parseFloat(s.unitCost)||0)});
+var totalRevenue=0;var totalUnits=0;
+salesLog.forEach(function(s){totalUnits+=(parseInt(s.unitsSold)||0);totalRevenue+=(parseFloat(s.revenue)||0)});
+var totalProfit=totalRevenue-totalCost;
+var planFields=[plan.idea,plan.howToMake,plan.targetCustomers,plan.marketingPlan].filter(function(f){return f&&f.trim()});
+var statusMap={pending_approval:'Needs Approval',approved:'Active',submitted:'Submitted',graded:'Graded'};
+
+var h='<div class="grade-header">';
+h+='<h2>&#x1F34B; '+esc(g.companyName||g.groupName)+'</h2>';
+h+='<div class="grade-meta"><strong>'+esc(student?student.name:'Unknown')+'</strong> &bull; '+esc(g.groupName)+' &bull; '+(g.members||[]).length+' members &bull; <span class="ac-status '+getStatusClass(g.status==='approved'?'pending':g.status)+'">'+(statusMap[g.status]||g.status)+'</span>';
+if(g.score!==null&&g.score!==undefined)h+=' &bull; <span style="font-family:Space Mono,monospace;color:var(--gold);font-weight:700">'+g.score+'%</span>';
+h+='</div></div>';
+
+// Team members
+h+='<div class="grade-work">';
+h+='<div class="gw-section"><div class="gw-label">&#x1F465; Team Members</div>';
+(g.members||[]).forEach(function(m){
+h+='<div class="gw-value" style="margin-bottom:2px">'+(m.studentId===(g.leader||{}).studentId?'&#x2B50; ':'')+'<strong>'+esc(m.studentName)+'</strong>'+(m.role?' &mdash; '+esc(m.role):'')+'</div>';
+});
+h+='</div>';
+
+// Business plan
+h+='<div class="gw-section"><div class="gw-label">&#x1F4DD; Business Plan ('+planFields.length+'/4)</div>';
+h+='<div class="gw-value"><strong>Product:</strong> '+(plan.idea?esc(plan.idea):'<em style="color:var(--text2)">Not filled in</em>')+'</div>';
+h+='<div class="gw-value" style="margin-top:6px"><strong>How to Make:</strong> '+(plan.howToMake?esc(plan.howToMake):'<em style="color:var(--text2)">Not filled in</em>')+'</div>';
+h+='<div class="gw-value" style="margin-top:6px"><strong>Target Customers:</strong> '+(plan.targetCustomers?esc(plan.targetCustomers):'<em style="color:var(--text2)">Not filled in</em>')+'</div>';
+h+='<div class="gw-value" style="margin-top:6px"><strong>Marketing Plan:</strong> '+(plan.marketingPlan?esc(plan.marketingPlan):'<em style="color:var(--text2)">Not filled in</em>')+'</div>';
+h+='</div>';
+
+// Supplies & Costs
+if(supplies.length){
+h+='<div class="gw-section"><div class="gw-label">&#x1F4B0; Supplies & Costs</div>';
+supplies.forEach(function(s){
+var line=(parseFloat(s.qty)||0)*(parseFloat(s.unitCost)||0);
+h+='<div class="gw-value" style="margin-bottom:2px">'+esc(s.item||'?')+' &mdash; Qty: '+(s.qty||0)+' &times; $'+(parseFloat(s.unitCost)||0).toFixed(2)+' = <strong>$'+line.toFixed(2)+'</strong></div>';
+});
+h+='<div style="font-weight:700;color:var(--gold);margin-top:6px">Total Cost: $'+totalCost.toFixed(2)+' &bull; Selling Price: $'+(parseFloat(g.sellingPrice)||0).toFixed(2)+'</div>';
+h+='</div>';
+}
+
+// Sales log
+if(salesLog.length){
+h+='<div class="gw-section"><div class="gw-label">&#x1F6D2; Sales Log</div>';
+salesLog.forEach(function(s){
+h+='<div class="gw-value" style="margin-bottom:2px">'+(s.unitsSold||0)+' sold for $'+(parseFloat(s.revenue)||0).toFixed(2)+(s.notes?' &mdash; '+esc(s.notes):'')+'</div>';
+});
+h+='<div style="font-weight:700;margin-top:6px;color:'+(totalProfit>=0?'var(--accent)':'var(--accent3)')+'">Revenue: $'+totalRevenue.toFixed(2)+' &bull; Profit: $'+totalProfit.toFixed(2)+'</div>';
+h+='</div>';
+}
+
+// Files
+if((g.files||[]).length){
+h+='<div class="gw-section"><div class="gw-label">&#x1F4CE; Files ('+(g.files||[]).length+')</div>';
+(g.files||[]).forEach(function(f){
+h+='<div class="gw-value" style="margin-bottom:2px"><a href="'+esc(f.url)+'" target="_blank" style="color:var(--accent2);font-weight:600;text-decoration:none">'+esc(f.name)+'</a> <span style="font-size:11px;color:var(--text2)">by '+esc(f.uploadedBy||'?')+'</span></div>';
+});
+h+='</div>';
+}
+
+// Notes
+if(g.notes){
+h+='<div class="gw-section"><div class="gw-label">&#x1F4AC; Team Notes</div>';
+h+='<div class="gw-value" style="white-space:pre-wrap">'+esc(g.notes)+'</div></div>';
+}
+h+='</div>';
+
+// Grading section
+h+='<div class="grade-actions">';
+h+='<div class="ga-title">Grade This Group</div>';
+h+='<div class="grade-score-row">';
+h+='<div><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px">Score (0-100)</div>';
+h+='<input type="number" class="score-input" id="gradeScore" min="0" max="100" value="'+(g.score||'')+'"></div>';
+h+='<button class="btn btn-blue btn-sm" onclick="aiSuggestLemGradeInPanel(\''+g.id+'\')" id="aiGradeBtn">&#x1F916; AI Suggest</button>';
+h+='</div>';
+h+='<div class="grade-feedback-area"><label>Feedback</label>';
+h+='<textarea id="gradeFeedback">'+(g.feedback||'')+'</textarea></div>';
+h+='<div class="grade-btn-row">';
+h+='<button class="btn btn-accent" onclick="gradeLemFromPanel(\''+g.id+'\')">&#x2705; Grade Group</button>';
+h+='<button class="btn btn-outline" onclick="closeGradePanel()">Cancel</button>';
+h+='</div></div>';
+
+h+='<div class="grade-footer"><div></div>';
+h+='<button class="btn btn-red btn-sm" onclick="deleteFromPanel()">Delete Assignment</button>';
+h+='</div>';
+
+el.innerHTML=h;
+document.getElementById('gradePanel').classList.add('show');
+}
+window.openLemGradeFromAssign=openLemGradeFromAssign;
+
+async function gradeLemFromPanel(groupId){
+var score=parseInt(document.getElementById('gradeScore').value);
+var feedback=document.getElementById('gradeFeedback').value.trim();
+if(isNaN(score)||score<0||score>100){alert('Enter a valid score (0-100)');return}
+try{
+// Update the lemonade group
+await window.fbUpdateDoc(window.fbDoc(window.fbDb,'lemonadeGroups',groupId),{status:'graded',score:score,feedback:feedback,gradedAt:new Date().toISOString()});
+// Also update the assignment record
+if(gradingAssignment){
+await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',gradingAssignment.id),{status:'graded',score:score,feedback:feedback,gradedAt:new Date().toISOString()});
+}
+closeGradePanel();
+showToast('Group graded: '+score+'%','success');
+loadLemonadeGroups();
+}catch(e){console.error(e);showToast('Error grading group','error')}
+}
+window.gradeLemFromPanel=gradeLemFromPanel;
+
+async function aiSuggestLemGradeInPanel(groupId){
+var g=lemonadeGroups.find(function(x){return x.id===groupId});
+if(!g)return;
+var btn=document.getElementById('aiGradeBtn');
+if(btn)btnLoading(btn,true);
+var plan=g.plan||{};
+var planFields=[plan.idea,plan.howToMake,plan.targetCustomers,plan.marketingPlan].filter(function(f){return f&&f.trim()});
+var totalCost=0;(g.supplies||[]).forEach(function(s){totalCost+=(parseFloat(s.qty)||0)*(parseFloat(s.unitCost)||0)});
+var totalRevenue=0;(g.salesLog||[]).forEach(function(s){totalRevenue+=(parseFloat(s.revenue)||0)});
+var prompt='Grade this student group\'s Lemonade Day project (0-100). Group: "'+esc(g.companyName)+'", '+(g.members||[]).length+' members. Plan: '+planFields.length+'/4. Product: "'+(plan.idea||'none')+'". Marketing: "'+(plan.marketingPlan||'none')+'". Cost: $'+totalCost.toFixed(2)+'. Revenue: $'+totalRevenue.toFixed(2)+'. Files: '+(g.files||[]).length+'. Grade on: plan completeness (30%), creativity (20%), financial thinking (20%), teamwork (15%), effort (15%). Respond with ONLY JSON: {"score": number, "feedback": "2-3 specific encouraging sentences"}';
+try{
+var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})});
+var data=await resp.json();
+var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'';
+var match=text.match(/\{[\s\S]*\}/);
+if(match){
+var parsed=JSON.parse(match[0]);
+document.getElementById('gradeScore').value=parsed.score||'';
+document.getElementById('gradeFeedback').value=parsed.feedback||'';
+}
+}catch(e){console.error(e);showToast('AI grading failed','error')}
+if(btn)btnLoading(btn,false,'&#x1F916; AI Suggest');
+}
+window.aiSuggestLemGradeInPanel=aiSuggestLemGradeInPanel;
 
 var _blobCache={};
 function dataUriToBlobUrl(id,dataUri){
@@ -2478,10 +2651,14 @@ window.aiWriteFeedback=aiWriteFeedback;
 // ===== LEMONADE DAY GROUPS =====
 var lemonadeGroups=[];
 
-function showLemonadeGroups(){
-var sec=document.getElementById('lemonadeGroupsSection');
+function showLemonadeGroupsInAssign(){
+var sec=document.getElementById('lemAssignSection');
 if(sec){sec.style.display='block';loadLemonadeGroups()}
 }
+window.showLemonadeGroupsInAssign=showLemonadeGroupsInAssign;
+
+// Keep old name for Tools tab compatibility
+function showLemonadeGroups(){showLemonadeGroupsInAssign()}
 window.showLemonadeGroups=showLemonadeGroups;
 
 async function loadLemonadeGroups(){
@@ -2489,7 +2666,6 @@ try{
 var q=window.fbQuery(window.fbCollection(window.fbDb,'lemonadeGroups'),window.fbWhere('classCode','==',window.teacherData.classCode||''));
 var snap=await window.fbGetDocs(q);
 lemonadeGroups=[];snap.forEach(function(d){lemonadeGroups.push({id:d.id,...d.data()})});
-// Also try by teacherId
 var q2=window.fbQuery(window.fbCollection(window.fbDb,'lemonadeGroups'),window.fbWhere('teacherId','==',window.currentTeacher.uid));
 var snap2=await window.fbGetDocs(q2);
 snap2.forEach(function(d){
@@ -2508,31 +2684,42 @@ var active=lemonadeGroups.filter(function(g){return g.status==='approved'});
 var submitted=lemonadeGroups.filter(function(g){return g.status==='submitted'});
 var graded=lemonadeGroups.filter(function(g){return g.status==='graded'});
 
-// Pending approval
-var pEl=document.getElementById('lemPendingSection');
+// Render into Assignments tab
+var pEl=document.getElementById('lemAssignPending');
+var aEl=document.getElementById('lemAssignActive');
+var gEl=document.getElementById('lemAssignGraded');
+if(!pEl||!aEl||!gEl)return;
+
 if(pending.length){
 var h='<div style="font-size:14px;font-weight:700;color:var(--accent3);margin-bottom:8px;display:flex;align-items:center;gap:6px">&#x26A0;&#xFE0F; Needs Approval ('+pending.length+')</div>';
 pending.forEach(function(g){h+=renderLemGroupCard(g)});
 pEl.innerHTML=h;
 }else{pEl.innerHTML=''}
 
-// Active + Submitted
-var aEl=document.getElementById('lemActiveSection');
 var allActive=active.concat(submitted);
 if(allActive.length){
 var h='<div style="font-size:14px;font-weight:700;color:var(--accent);margin:12px 0 8px;display:flex;align-items:center;gap:6px">&#x2705; Active Groups ('+allActive.length+')</div>';
 allActive.forEach(function(g){h+=renderLemGroupCard(g)});
 aEl.innerHTML=h;
-}else if(!pending.length){aEl.innerHTML='<div class="empty-state"><span class="emoji">&#x1F34B;</span><p>No Lemonade Day groups yet. Students create groups from the Lemonade Day tool.</p></div>'}
+}else if(!pending.length&&!graded.length){aEl.innerHTML='<div class="empty-state"><span class="emoji">&#x1F34B;</span><p>No Lemonade Day groups yet. Students create groups from the Lemonade Day tool.</p></div>'}
 else{aEl.innerHTML=''}
 
-// Graded
-var gEl=document.getElementById('lemGradedSection');
 if(graded.length){
 var h='<div style="font-size:14px;font-weight:700;color:#a855f7;margin:12px 0 8px;display:flex;align-items:center;gap:6px">&#x2B50; Graded ('+graded.length+')</div>';
 graded.forEach(function(g){h+=renderLemGroupCard(g)});
 gEl.innerHTML=h;
 }else{gEl.innerHTML=''}
+
+// Also update Tools tab section if it exists
+var toolSec=document.getElementById('lemonadeGroupsSection');
+if(toolSec){
+var tP=document.getElementById('lemPendingSection');
+var tA=document.getElementById('lemActiveSection');
+var tG=document.getElementById('lemGradedSection');
+if(tP)tP.innerHTML=pEl.innerHTML;
+if(tA)tA.innerHTML=aEl.innerHTML;
+if(tG)tG.innerHTML=gEl.innerHTML;
+}
 }
 
 function renderLemGroupCard(g){
