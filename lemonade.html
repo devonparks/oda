@@ -158,6 +158,19 @@ textarea.input{resize:vertical;min-height:100px;font-size:16px;line-height:1.6}
 @keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
 
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* Expand button + modal */
+.idea-expand-btn{background:#FFFBEB;border:2px solid #FDE68A;color:#92400E;padding:6px 14px;border-radius:10px;cursor:pointer;font-family:'Fredoka',sans-serif;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.idea-expand-btn:hover{border-color:#F59E0B;color:#F59E0B}
+.idea-expand-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:150;display:none;flex-direction:column;backdrop-filter:blur(6px)}
+.idea-expand-bg.show{display:flex}
+.idea-expand-top{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:2px solid #FDE68A;flex-shrink:0;background:#FFF8E1}
+.idea-expand-top h3{font-family:'Fredoka',sans-serif;font-size:20px;color:#92400E;font-weight:700}
+.idea-expand-top .ie-close{background:none;border:none;color:#92400E;font-size:28px;cursor:pointer;padding:4px 8px}
+.idea-expand-top .ie-close:hover{color:#EF4444}
+.idea-expand-body{flex:1;display:flex;flex-direction:column;padding:24px 28px;max-width:800px;width:100%;margin:0 auto;overflow:hidden}
+.idea-expand-body textarea{flex:1;width:100%;padding:28px;border-radius:16px;border:3px solid #FDE68A;font-family:'Quicksand',sans-serif;font-size:20px;color:#92400E;resize:none;outline:none;background:#FFFBEB;line-height:2;transition:border-color .2s}
+.idea-expand-body textarea:focus{border-color:#F59E0B}
 .hidden{display:none!important}
 
 /* ===== STUDENT DASHBOARD ===== */
@@ -333,6 +346,11 @@ textarea.input{resize:vertical;min-height:100px;font-size:16px;line-height:1.6}
 </div>
 <div id="gradeContent"></div>
 </div>
+</div>
+
+<div class="idea-expand-bg" id="ideaExpandBg">
+<div class="idea-expand-top"><h3>&#x2728; What's YOUR big idea?</h3><button class="ie-close" onclick="closeIdeaExpand()">&times;</button></div>
+<div class="idea-expand-body"><textarea id="ideaExpandText" placeholder="Write your product idea here... What would YOU sell?"></textarea></div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -1128,8 +1146,8 @@ h+='<div class="rule"><span class="ico">&#x1F48E;</span><span class="txt">Jewelr
 h+='<div style="margin-top:12px;padding:10px 14px;background:#FEE2E2;border-radius:10px;border:1.5px solid #FECACA;font-size:14px;font-weight:600;color:#991B1B">&#x1F6AB; <strong>No food or drinks allowed</strong> at Lemonade Day. Products only!</div>';
 h+='</div>';
 h+='<div style="margin-top:16px">';
-h+='<label class="input-label">&#x2728; What\'s YOUR big idea?</label>';
-h+='<textarea class="input" id="wtIdea" placeholder="Write your product idea here... What would YOU sell?" rows="3" style="resize:vertical;min-height:80px"></textarea>';
+h+='<div style="display:flex;justify-content:space-between;align-items:center"><label class="input-label" style="margin-bottom:0">&#x2728; What\'s YOUR big idea?</label><button class="idea-expand-btn" onclick="expandIdea()">&#x26F6; Expand</button></div>';
+h+='<textarea class="input" id="wtIdea" placeholder="Write your product idea here... What would YOU sell?" rows="3" style="resize:none;margin-top:8px"></textarea>';
 h+='<button class="ai-btn" onclick="aiHelpBrainstorm()" id="wtAiBtn">&#x1F916; AI Brainstorm Helper</button>';
 h+='<div id="wtAiBubble"></div>';
 h+='</div></div>';
@@ -1159,6 +1177,20 @@ window.scrollTo(0,0);
 
 function wtNext(){if(_wtStep<_wtTotalSteps-1){_wtStep++;renderWalkthrough()}}
 function wtBack(){if(_wtStep>0){_wtStep--;renderWalkthrough()}else{showStudentDashboard()}}
+
+function expandIdea(){
+var small=document.getElementById('wtIdea');
+var big=document.getElementById('ideaExpandText');
+if(small)big.value=small.value;
+document.getElementById('ideaExpandBg').classList.add('show');
+setTimeout(function(){big.focus()},100);
+}
+function closeIdeaExpand(){
+var small=document.getElementById('wtIdea');
+var big=document.getElementById('ideaExpandText');
+if(small&&big)small.value=big.value;
+document.getElementById('ideaExpandBg').classList.remove('show');
+}
 
 async function aiHelpBrainstorm(){
 var idea=document.getElementById('wtIdea')?document.getElementById('wtIdea').value.trim():'';
