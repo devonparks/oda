@@ -1,0 +1,15 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow public read access to videos
+    match /videos/{allPaths=**} {
+      allow read;
+      allow write: if request.auth != null;
+    }
+
+    // Default: require authentication for everything else
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

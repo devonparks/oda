@@ -8,7 +8,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#FFF8E1;font-family:'Quicksand',sans-serif;min-height:100vh}
-.wrap{max-width:700px;margin:0 auto;padding:20px 16px}
+.wrap{max-width:900px;margin:0 auto;padding:20px 16px}
 .back-link{display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;padding:10px 18px;border-radius:12px;font-family:'Fredoka',sans-serif;font-size:14px;color:#92400E;text-decoration:none;font-weight:600;background:#FEF3C7;border:2px solid #F59E0B;transition:all .15s}
 .back-link:hover{background:#FDE68A;color:#78350F}
 .hdr{text-align:center;margin-bottom:24px}
@@ -205,9 +205,20 @@ textarea.input{resize:vertical;min-height:100px;font-size:16px;line-height:1.6}
 .ws-tab{font-size:12px;padding:8px 12px}
 .stat-row{grid-template-columns:1fr 1fr}
 }
+@media(min-width:768px){
+.wrap{padding:28px 32px}
+.dash-wrap{padding:28px 32px}
+.grade-wrap{padding:28px 32px}
+.card{padding:32px 28px}
+.my-groups-grid{grid-template-columns:1fr 1fr}
+.ws-tabs{gap:8px}
+.ws-tab{padding:12px 20px;font-size:15px}
+.stat-row{gap:16px}
+.idea-expand-body{max-width:900px;padding:28px 36px}
+}
 
 /* ===== TEACHER GRADE VIEW ===== */
-.grade-wrap{max-width:700px;margin:0 auto;padding:20px 16px}
+.grade-wrap{max-width:900px;margin:0 auto;padding:20px 16px}
 .grade-back{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;background:#FEF3C7;border:1.5px solid #F59E0B;color:#92400E;text-decoration:none;font-size:14px;font-weight:600;margin-bottom:12px;transition:all .15s}
 .grade-back:hover{background:#FDE68A}
 .grade-hdr{text-align:center;margin-bottom:20px}
@@ -253,7 +264,7 @@ textarea.input{resize:vertical;min-height:100px;font-size:16px;line-height:1.6}
 .grade-empty .emoji{font-size:48px;margin-bottom:12px}
 
 /* ===== TEACHER DASHBOARD ===== */
-.dash-wrap{max-width:800px;margin:0 auto;padding:20px 16px}
+.dash-wrap{max-width:960px;margin:0 auto;padding:20px 16px}
 .dash-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px}
 .dash-hdr h1{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;color:#92400E}
 .dash-hdr .dh-sub{font-size:14px;color:#B45309;font-weight:600}
@@ -349,8 +360,8 @@ textarea.input{resize:vertical;min-height:100px;font-size:16px;line-height:1.6}
 </div>
 
 <div class="idea-expand-bg" id="ideaExpandBg">
-<div class="idea-expand-top"><h3>&#x2728; What's YOUR big idea?</h3><div style="display:flex;align-items:center;gap:10px"><button class="ai-btn" onclick="aiHelpBrainstormExpanded()" id="wtAiBtnExp" style="margin:0;padding:8px 14px;font-size:13px">&#x1F916; AI Brainstorm</button><button class="ie-close" onclick="closeIdeaExpand()">&times;</button></div></div>
-<div class="idea-expand-body"><textarea id="ideaExpandText" placeholder="Write your product idea here... What would YOU sell?"></textarea><div id="wtAiBubbleExp" style="flex-shrink:0;max-height:200px;overflow-y:auto"></div></div>
+<div class="idea-expand-top"><h3>&#x2728; What's YOUR big idea?</h3><div style="display:flex;align-items:center;gap:10px"><button class="ai-btn" onclick="aiHelpBrainstormExpanded()" id="wtAiBtnExp" style="margin:0;padding:8px 14px;font-size:13px">&#x1F916; AI Brainstorm</button><button class="ai-btn hidden" onclick="aiHelpBrainstormExpanded()" id="wtAiRefreshExp" title="Get new ideas" style="margin:0;padding:8px 12px;font-size:12px;min-width:0">&#x1F504;</button><button class="ie-close" onclick="closeIdeaExpand()">&times;</button></div></div>
+<div class="idea-expand-body"><div id="wtAiBubbleExp" style="flex-shrink:0;max-height:200px;overflow-y:auto;margin-bottom:12px"></div><textarea id="ideaExpandText" placeholder="Write your product idea here... What would YOU sell?"></textarea></div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -1105,7 +1116,7 @@ if(_wtStep===0){
 // Step 1: Watch Mikaila's story
 h+='<div class="card">';
 h+='<div class="card-title">&#x1F3AC; Watch This First</div>';
-h+='<div class="video-wrap"><video controls playsinline style="width:100%;height:100%;object-fit:contain" src="https://firebasestorage.googleapis.com/v0/b/oda-hub-d4bef.firebasestorage.app/o/videos%2Fmikaila_ulmer.mp4?alt=media&amp;token=0da54865-a908-4b4d-8a33-186bb99de8c3"></video></div>';
+h+='<div class="video-wrap"><video controls playsinline style="width:100%;height:100%;object-fit:contain" src="https://firebasestorage.googleapis.com/v0/b/oda-hub-d4bef.firebasestorage.app/o/videos%2Fmikaila_ulmer.mp4?alt=media"></video></div>';
 h+='<div class="story-box">';
 h+='<p><strong>Mikaila Ulmer</strong> started selling lemonade at age 4. She went on Shark Tank at age 9 and got <strong>$60,000</strong> from Daymond John. Today her lemonade is in <strong>2,500+ stores</strong>. It all started with one idea and the courage to try.</p>';
 h+='</div>';
@@ -1146,9 +1157,13 @@ h+='<div class="rule"><span class="ico">&#x1F48E;</span><span class="txt">Jewelr
 h+='<div style="margin-top:12px;padding:10px 14px;background:#FEE2E2;border-radius:10px;border:1.5px solid #FECACA;font-size:14px;font-weight:600;color:#991B1B">&#x1F6AB; <strong>No food or drinks allowed</strong> at Lemonade Day. Products only!</div>';
 h+='</div>';
 h+='<div style="margin-top:16px">';
-h+='<div style="display:flex;justify-content:space-between;align-items:center"><label class="input-label" style="margin-bottom:0">&#x2728; What\'s YOUR big idea?</label><button class="idea-expand-btn" onclick="expandIdea()">&#x26F6; Expand</button></div>';
-h+='<textarea class="input" id="wtIdea" placeholder="Write your product idea here... What would YOU sell?" rows="3" style="resize:none;margin-top:8px"></textarea>';
-h+='<button class="ai-btn" onclick="aiHelpBrainstorm()" id="wtAiBtn">&#x1F916; AI Brainstorm Helper</button>';
+h+='<label class="input-label" style="margin-bottom:8px">&#x2728; What\'s YOUR big idea?</label>';
+h+='<textarea class="input hidden" id="wtIdea" placeholder="Write your product idea here... What would YOU sell?" rows="3" style="resize:none;margin-top:8px"></textarea>';
+h+='<button class="btn btn-normal btn-orange" onclick="expandIdea()" style="width:100%;margin-bottom:8px">&#x270F;&#xFE0F; Write Your Idea</button>';
+h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">';
+h+='<button class="ai-btn" onclick="aiHelpBrainstorm()" id="wtAiBtn">&#x1F916; AI Brainstorm</button>';
+h+='<button class="ai-btn hidden" onclick="aiHelpBrainstorm()" id="wtAiRefresh" title="Get new ideas" style="margin-top:0;padding:8px 12px;font-size:12px;min-width:0">&#x1F504;</button>';
+h+='</div>';
 h+='<div id="wtAiBubble"></div>';
 h+='</div></div>';
 }else if(_wtStep===3){
@@ -1194,10 +1209,12 @@ document.getElementById('ideaExpandBg').classList.remove('show');
 
 async function aiHelpBrainstorm(){
 var idea=document.getElementById('wtIdea')?document.getElementById('wtIdea').value.trim():'';
+var ideaExp=document.getElementById('ideaExpandText');
+if(!idea&&ideaExp)idea=ideaExp.value.trim();
 var btn=document.getElementById('wtAiBtn');
 if(btn){btn.disabled=true;btn.innerHTML='&#x1F916; Thinking...'}
 try{
-var prompt='You are a friendly AI brainstorm buddy for a K-12 student planning a Lemonade Day business. IMPORTANT RULE: No food or drinks are allowed at this event - only non-food products. If the student suggests food/drinks, gently redirect them to product-only ideas. ';
+var prompt='You are a friendly AI brainstorm buddy for a K-12 student planning a Lemonade Day business. IMPORTANT RULE: No food, drinks, or baked goods are allowed at this event - only non-food products like crafts, art, jewelry, slime, STEM kits, candles, accessories, etc. If the student suggests food/drinks, gently redirect them to product-only ideas. ';
 if(idea)prompt+='They are thinking about selling: "'+idea+'". If this is a food/drink item, kindly explain no food is allowed and suggest 3 similar non-food alternatives. Otherwise give them 3 quick tips to make this idea awesome and 2 alternative product ideas they might like. Keep it fun and encouraging!';
 else prompt+='They have not decided what to sell yet. Give them 5 creative NON-FOOD product ideas that kids can make and sell at a school Lemonade Day event (fidget toys, candles, art, jewelry, slime, STEM kits, etc). Be specific and fun! Include emojis.';
 var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt,max_tokens:300})});
@@ -1205,8 +1222,10 @@ var data=await resp.json();
 var text=data.response||data.text||(Array.isArray(data.content)&&data.content[0]?data.content[0].text:'')||'';
 var bubble=document.getElementById('wtAiBubble');
 if(bubble)bubble.innerHTML='<div class="ai-bubble">'+esc(text||'No response')+'</div>';
+var refreshBtn=document.getElementById('wtAiRefresh');
+if(refreshBtn)refreshBtn.classList.remove('hidden');
 }catch(e){console.error(e);showToast('AI not available right now','warning')}
-finally{if(btn){btn.disabled=false;btn.innerHTML='&#x1F916; AI Brainstorm Helper'}}
+finally{if(btn){btn.disabled=false;btn.innerHTML='&#x1F916; AI Brainstorm'}}
 }
 
 async function aiHelpBrainstormExpanded(){
@@ -1214,7 +1233,7 @@ var idea=document.getElementById('ideaExpandText')?document.getElementById('idea
 var btn=document.getElementById('wtAiBtnExp');
 if(btn){btn.disabled=true;btn.innerHTML='&#x1F916; Thinking...'}
 try{
-var prompt='You are a friendly AI brainstorm buddy for a K-12 student planning a Lemonade Day business. IMPORTANT RULE: No food or drinks are allowed at this event - only non-food products. If the student suggests food/drinks, gently redirect them to product-only ideas. ';
+var prompt='You are a friendly AI brainstorm buddy for a K-12 student planning a Lemonade Day business. IMPORTANT RULE: No food, drinks, or baked goods are allowed at this event - only non-food products like crafts, art, jewelry, slime, STEM kits, candles, accessories, etc. If the student suggests food/drinks, gently redirect them to product-only ideas. ';
 if(idea)prompt+='They are thinking about selling: "'+idea+'". If this is a food/drink item, kindly explain no food is allowed and suggest 3 similar non-food alternatives. Otherwise give them 3 quick tips to make this idea awesome and 2 alternative product ideas they might like. Keep it fun and encouraging!';
 else prompt+='They have not decided what to sell yet. Give them 5 creative NON-FOOD product ideas that kids can make and sell at a school Lemonade Day event (fidget toys, candles, art, jewelry, slime, STEM kits, etc). Be specific and fun! Include emojis.';
 var resp=await fetch('https://us-central1-oda-hub-d4bef.cloudfunctions.net/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt,max_tokens:300})});
@@ -1222,6 +1241,8 @@ var data=await resp.json();
 var text=data.response||data.text||(Array.isArray(data.content)&&data.content[0]?data.content[0].text:'')||'';
 var bubble=document.getElementById('wtAiBubbleExp');
 if(bubble)bubble.innerHTML='<div class="ai-bubble">'+esc(text||'No response')+'</div>';
+var refreshBtn=document.getElementById('wtAiRefreshExp');
+if(refreshBtn)refreshBtn.classList.remove('hidden');
 }catch(e){console.error(e);showToast('AI not available right now','warning')}
 finally{if(btn){btn.disabled=false;btn.innerHTML='&#x1F916; AI Brainstorm'}}
 }
@@ -1482,7 +1503,7 @@ h+='</div>';
 
 // Tabs
 h+='<div class="ws-tabs" role="tablist">';
-var tabs=[{id:'overview',label:'Overview',icon:'&#x1F3E0;'},{id:'plan',label:'Business Plan',icon:'&#x1F4DD;'},{id:'costs',label:'Costs & Pricing',icon:'&#x1F4B0;'},{id:'files',label:'Files & Links',icon:'&#x1F4CE;'},{id:'sales',label:'Sales Day',icon:'&#x1F6D2;'},{id:'notes',label:'Notes',icon:'&#x1F4AC;'}];
+var tabs=[{id:'overview',label:'Overview',icon:'&#x1F3E0;'},{id:'plan',label:'Business Plan',icon:'&#x1F4DD;'},{id:'costs',label:'Costs & Pricing',icon:'&#x1F4B0;'},{id:'files',label:'Files & Links',icon:'&#x1F4CE;'},{id:'notes',label:'Notes',icon:'&#x1F4AC;'}];
 for(var i=0;i<tabs.length;i++){
 h+='<button class="ws-tab'+(_wsTab===tabs[i].id?' active':'')+'" onclick="switchWsTab(\''+tabs[i].id+'\')" role="tab" aria-selected="'+(_wsTab===tabs[i].id)+'">'+tabs[i].icon+' '+tabs[i].label+'</button>';
 }
@@ -1494,7 +1515,6 @@ h+=renderOverviewPanel(g,isLeader);
 h+=renderPlanPanel(g);
 h+=renderCostsPanel(g);
 h+=renderFilesPanel(g);
-h+=renderSalesPanel(g);
 h+=renderNotesPanel(g);
 h+='</div>';
 
@@ -1680,41 +1700,6 @@ h+='</div>';
 return h;
 }
 
-function renderSalesPanel(g){
-var salesLog=g.salesLog||[];
-var h='<div class="ws-panel card'+(_wsTab==='sales'?' show':'')+'" id="panel-sales">';
-h+='<div class="card-title">&#x1F6D2; Sales Day Tracker</div>';
-h+='<p style="font-size:14px;color:#78350F;font-weight:600;margin-bottom:16px;text-align:center">Track your sales on the big day!</p>';
-
-var totalUnits=0,totalRevenue=0;
-for(var i=0;i<salesLog.length;i++){
-var s=salesLog[i];
-totalUnits+=(parseInt(s.unitsSold)||0);
-totalRevenue+=(parseFloat(s.revenue)||0);
-h+='<div class="sale-row">';
-h+='<input type="number" value="'+(s.unitsSold||'')+'" placeholder="Units" style="max-width:70px" onchange="updateSale('+i+',\'unitsSold\',this.value)">';
-h+='<span style="font-weight:700;color:#92400E;font-size:14px">sold for $</span>';
-h+='<input type="number" value="'+(s.revenue||'')+'" placeholder="0.00" step="0.01" style="max-width:90px" onchange="updateSale('+i+',\'revenue\',this.value)">';
-h+='<input value="'+esc(s.notes||'')+'" placeholder="Notes..." onchange="updateSale('+i+',\'notes\',this.value)" style="flex:2">';
-h+='<button class="del-btn" onclick="removeSale('+i+')" style="background:none;border:none;color:#EF4444;font-size:18px;cursor:pointer">&times;</button>';
-h+='</div>';
-}
-h+='<div class="btn-row" style="justify-content:flex-start"><button class="btn btn-small btn-green" onclick="addSale()">+ Log a Sale</button></div>';
-
-// Totals
-var totalCost=0;
-(g.supplies||[]).forEach(function(s){totalCost+=(parseFloat(s.qty)||0)*(parseFloat(s.unitCost)||0)});
-var totalProfit=totalRevenue-totalCost;
-h+='<div class="stat-row" style="margin-top:20px">';
-h+='<div class="stat"><div class="num">'+totalUnits+'</div><div class="label">Items Sold</div></div>';
-h+='<div class="stat"><div class="num">$'+totalRevenue.toFixed(2)+'</div><div class="label">Revenue</div></div>';
-h+='<div class="stat" style="background:'+(totalProfit>=0?'#D1FAE5':'#FEE2E2')+'"><div class="num" style="color:'+(totalProfit>=0?'#065F46':'#991B1B')+'">$'+totalProfit.toFixed(2)+'</div><div class="label">'+(totalProfit>=0?'Profit!':'Loss')+'</div></div>';
-h+='</div>';
-
-h+='</div>';
-return h;
-}
-
 function renderNotesPanel(g){
 var h='<div class="ws-panel card'+(_wsTab==='notes'?' show':'')+'" id="panel-notes">';
 h+='<div class="card-title">&#x1F4AC; Team Notes</div>';
@@ -1785,25 +1770,6 @@ await saveField('supplies',supplies);
 renderWorkspace();
 }
 
-// ===== SALES FUNCTIONS =====
-async function addSale(){
-var salesLog=currentGroup.salesLog||[];
-salesLog.push({unitsSold:0,revenue:0,notes:'',date:new Date().toISOString()});
-await saveField('salesLog',salesLog);
-renderWorkspace();
-}
-async function updateSale(idx,field,value){
-var salesLog=currentGroup.salesLog||[];
-if(salesLog[idx])salesLog[idx][field]=value;
-await saveField('salesLog',salesLog);
-}
-async function removeSale(idx){
-var salesLog=currentGroup.salesLog||[];
-salesLog.splice(idx,1);
-await saveField('salesLog',salesLog);
-renderWorkspace();
-}
-
 // ===== FILE UPLOAD =====
 async function uploadFile(){
 var fileInput=document.getElementById('fileUpload');
@@ -1858,10 +1824,10 @@ _aiLoading=true;
 var area=document.getElementById('aiArea-'+field);
 if(area)area.innerHTML='<div style="text-align:center;padding:10px;color:#3B82F6;font-weight:700;font-size:13px">AI is thinking... <span style="display:inline-block;width:12px;height:12px;border:2px solid #3B82F6;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-left:4px"></span></div>';
 var prompts={
-idea:'A group of students (ages 8-14) need to come up with a product to sell at their school\'s Lemonade Day event. They need ideas for things they can actually MAKE and sell. IMPORTANT: No food or drinks are allowed - only non-food products. If they mention food/drinks, gently redirect them. Help them brainstorm by asking 3-4 fun questions about what they\'re good at and interested in, then suggest 3-4 creative product ideas based on real things kids have made (fidget toys, candles, art prints, STEM kits, jewelry, slime, etc). Keep it exciting and age-appropriate. Use plain text, no markdown.',
-howToMake:'A group of students is making non-food products to sell at Lemonade Day. No food or drinks allowed. Help them plan the step-by-step process by asking 3-4 organizing questions: What materials do you need? How long does each one take to make? How many can you make before sell day? Can you make an assembly line? Keep it practical and encouraging. Use plain text, no markdown.',
-marketing:'A group of students needs to attract customers to their booth on Lemonade Day. No food or drinks are allowed at this event. Help them brainstorm marketing ideas by asking questions and suggesting tactics: signs, demos, free samples of non-food items, social media, flyers, booth decoration, a catchy slogan. Keep it fun and realistic for kids ages 8-14. Use plain text, no markdown.',
-pricing:'A group of students needs help figuring out the right price for their non-food product at Lemonade Day. Ask them about their costs, what similar products sell for, and help them understand profit margins. Explain in simple terms: if it costs $2 to make and you sell for $5, you make $3 profit. Help them find a price that is fair but also makes good money. Keep it simple and encouraging. Use plain text, no markdown.'
+idea:'A group of students (ages 8-14) need to come up with a product to sell at their school\'s Lemonade Day event. They need ideas for things they can actually MAKE and sell. IMPORTANT RULE: No food, drinks, or baked goods are allowed at this event - only non-food products like crafts, art, jewelry, slime, STEM kits, candles, accessories, etc. If they mention food/drinks/baked goods, gently redirect them to non-food alternatives. Help them brainstorm by asking 3-4 fun questions about what they\'re good at and interested in, then suggest 3-4 creative product ideas based on real things kids have made (fidget toys, candles, art prints, STEM kits, jewelry, slime, etc). Keep it exciting and age-appropriate. Use plain text, no markdown.',
+howToMake:'A group of students is making non-food products to sell at Lemonade Day. IMPORTANT RULE: No food, drinks, or baked goods are allowed at this event - only non-food products like crafts, art, jewelry, slime, STEM kits, candles, accessories, etc. Help them plan the step-by-step process by asking 3-4 organizing questions: What materials do you need? How long does each one take to make? How many can you make before sell day? Can you make an assembly line? Keep it practical and encouraging. Use plain text, no markdown.',
+marketing:'A group of students needs to attract customers to their booth on Lemonade Day. IMPORTANT RULE: No food, drinks, or baked goods are allowed at this event - only non-food products like crafts, art, jewelry, slime, STEM kits, candles, accessories, etc. Help them brainstorm marketing ideas by asking questions and suggesting tactics: signs, demos, free samples of non-food items, social media, flyers, booth decoration, a catchy slogan. Keep it fun and realistic for kids ages 8-14. Use plain text, no markdown.',
+pricing:'A group of students needs help figuring out the right price for their non-food product at Lemonade Day. IMPORTANT RULE: No food, drinks, or baked goods are allowed at this event - only non-food products. Ask them about their costs, what similar products sell for, and help them understand profit margins. Explain in simple terms: if it costs $2 to make and you sell for $5, you make $3 profit. Help them find a price that is fair but also makes good money. Keep it simple and encouraging. Use plain text, no markdown.'
 };
 var prompt=prompts[field]||prompts.idea;
 // Add context from their current plan
