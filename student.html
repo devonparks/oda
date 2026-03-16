@@ -7,8 +7,8 @@
 <meta name="description" content="ODA Hub Student Dashboard - Learning tools, assignments, and arcade games for Open Doors Academy students.">
 <meta name="classification" content="Education">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/oda-theme.css">
 <style>
-:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#a8b2c8}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh}
 .grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
@@ -491,7 +491,9 @@ setTimeout(renderVocab,1200);
 }
 window.checkVocab=checkVocab;
 
+var _submitting={};
 async function finishQuiz(){
+if(!activeQuiz||_submitting.quiz)return;_submitting.quiz=true;
 var pct=Math.round(activeQuiz.correct/activeQuiz.words.length*100);
 var passed=pct>=60;
 var el=document.getElementById('actions-'+activeQuiz.assignId);
@@ -502,18 +504,21 @@ await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',activeQuiz.assig
 fireConfetti();
 }catch(e){console.error(e)}
 }
-activeQuiz=null;
+activeQuiz=null;_submitting.quiz=false;
 }
 
 async function submitWork(assignId){
+if(_submitting[assignId])return;
 var resp=document.getElementById('resp-'+assignId);
 if(!resp||!resp.value.trim()){alert('Please type your response before submitting');return}
+_submitting[assignId]=true;
 try{
 await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',assignId),{
 studentResponse:resp.value.trim(),status:'submitted',submittedAt:new Date().toISOString()
 });
 fireConfetti();
 }catch(e){console.error(e);alert('Error submitting')}
+finally{_submitting[assignId]=false}
 }
 window.submitWork=submitWork;
 
@@ -540,12 +545,14 @@ window.open(dataUriToBlobUrl(a.id,a.fileData),'_blank');
 window.openFileBlob=openFileBlob;
 
 async function markDone(assignId){
+if(_submitting[assignId])return;_submitting[assignId]=true;
 try{
 await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',assignId),{
 status:'completed',completedAt:new Date().toISOString()
 });
 fireConfetti();
 }catch(e){console.error(e);alert('Error')}
+finally{_submitting[assignId]=false}
 }
 window.markDone=markDone;
 
@@ -657,11 +664,12 @@ window.aiStudyBuddy=aiStudyBuddy;
 
 // ===== AI ENCOURAGEMENT BANNER (8f) =====
 var encourageShown=localStorage.getItem('encourageShown');
+var _encourageRetries=0;
 function generateEncouragement(){
 if(encourageShown)return;
-// Wait for assignments to load
+// Wait for assignments to load (max 5 retries)
 var assigns=window.myAssignments;
-if(!assigns||!assigns.length){setTimeout(generateEncouragement,1500);return}
+if(!assigns||!assigns.length){if(_encourageRetries++<5){setTimeout(generateEncouragement,1500)}return}
 
 var completed=assigns.filter(function(a){return a.status==='completed'||a.status==='graded'}).length;
 var pending=assigns.filter(function(a){return a.status==='pending'}).length;
@@ -735,9 +743,9 @@ window.submitFeedback=submitFeedback;
 </script>
 
 <!-- FEEDBACK MODAL -->
-<div id="feedbackModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px">
+<div id="feedbackModal" role="dialog" aria-modal="true" aria-label="Submit Feedback" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px">
 <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;max-width:480px;width:100%;position:relative;animation:fadeUp .2s ease">
-<button onclick="closeFeedbackModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text2);font-size:24px;cursor:pointer;line-height:1">&times;</button>
+<button onclick="closeFeedbackModal()" aria-label="Close" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text2);font-size:24px;cursor:pointer;line-height:1">&times;</button>
 <h2 id="feedbackTitle" style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;margin-bottom:16px;color:var(--text)"></h2>
 <div style="margin-bottom:14px">
 <label style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Description</label>

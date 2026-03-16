@@ -7,8 +7,8 @@
 <meta name="description" content="ODA Hub Teacher Dashboard - Manage rosters, create assignments, and track student progress for Open Doors Academy.">
 <meta name="classification" content="Education">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/oda-theme.css">
 <style>
-:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--purple:#7c3aed;--text:#f0f4ff;--text2:#a8b2c8}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh}
 .grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
@@ -557,9 +557,9 @@ select.settings-input{cursor:pointer}
 </div>
 
 <!-- ASSIGN MODAL -->
-<div class="modal-bg" id="assignModal">
+<div class="modal-bg" id="assignModal" role="dialog" aria-modal="true" aria-label="Assign Work">
 <div class="modal">
-<button class="modal-close" onclick="closeAssignModal()">&times;</button>
+<button class="modal-close" onclick="closeAssignModal()" aria-label="Close">&times;</button>
 <h2>&#x1F4DD; Assign Work</h2>
 <p>For <strong id="assignForName"></strong></p>
 <div id="assignOpts">
@@ -582,9 +582,9 @@ select.settings-input{cursor:pointer}
 </div>
 
 <!-- CLASS MODAL -->
-<div class="modal-bg" id="classModal">
+<div class="modal-bg" id="classModal" role="dialog" aria-modal="true" aria-label="New Class">
 <div class="modal">
-<button class="modal-close" onclick="closeClassModal()">&times;</button>
+<button class="modal-close" onclick="closeClassModal()" aria-label="Close">&times;</button>
 <h2>&#x2795; New Class</h2>
 <p>Create a class group to organize your roster</p>
 <input type="text" class="class-input" id="className" placeholder="e.g. K-2 Afternoon, 5th Grade">
@@ -593,9 +593,9 @@ select.settings-input{cursor:pointer}
 </div>
 
 <!-- ADD STUDENT MODAL -->
-<div class="modal-bg" id="addStudentModal">
+<div class="modal-bg" id="addStudentModal" role="dialog" aria-modal="true" aria-label="Add Student">
 <div class="modal">
-<button class="modal-close" onclick="closeAddStudentModal()">&times;</button>
+<button class="modal-close" onclick="closeAddStudentModal()" aria-label="Close">&times;</button>
 <h2>&#x1F393; Add Student</h2>
 <p>Add a new student to your roster</p>
 <div class="fg"><label>Student Name</label>
@@ -613,9 +613,9 @@ select.settings-input{cursor:pointer}
 </div>
 
 <!-- CREATE ASSIGNMENT MODAL -->
-<div class="modal-bg" id="createAssignModal">
+<div class="modal-bg" id="createAssignModal" role="dialog" aria-modal="true" aria-label="Create Assignment">
 <div class="modal create-modal">
-<button class="modal-close" onclick="closeCreateAssignment()">&times;</button>
+<button class="modal-close" onclick="closeCreateAssignment()" aria-label="Close">&times;</button>
 <h2>&#x1F4DD; Create Assignment</h2>
 <p style="color:var(--text2);margin-bottom:14px">Pick a type, choose students, and send it out.</p>
 <div class="type-tabs">
@@ -684,9 +684,9 @@ select.settings-input{cursor:pointer}
 </div>
 
 <!-- GRADE PANEL -->
-<div class="grade-panel" id="gradePanel">
+<div class="grade-panel" id="gradePanel" role="dialog" aria-modal="true" aria-label="Grade Assignment">
 <div class="grade-modal">
-<button class="modal-close" onclick="closeGradePanel()">&times;</button>
+<button class="modal-close" onclick="closeGradePanel()" aria-label="Close">&times;</button>
 <div id="gradePanelContent"></div>
 </div>
 </div>
@@ -701,9 +701,9 @@ select.settings-input{cursor:pointer}
 <div class="toast-container" id="toastContainer"></div>
 
 <!-- AI GENERATOR MODAL -->
-<div class="modal-bg" id="aiGenModal">
+<div class="modal-bg" id="aiGenModal" role="dialog" aria-modal="true" aria-label="AI Assignment Generator">
 <div class="modal create-modal">
-<button class="modal-close" onclick="closeAiGen()">&times;</button>
+<button class="modal-close" onclick="closeAiGen()" aria-label="Close">&times;</button>
 <h2>&#x1F916; AI Assignment Generator</h2>
 <p>Describe a topic and AI will create an assignment for you</p>
 <div class="fg"><label>Topic or Theme</label><input type="text" id="aiGenTopic" placeholder="e.g. Financial literacy for 5th graders"></div>
@@ -718,9 +718,9 @@ select.settings-input{cursor:pointer}
 </div>
 
 <!-- AI DIFFERENTIATION MODAL -->
-<div class="modal-bg" id="aiDiffModal">
+<div class="modal-bg" id="aiDiffModal" role="dialog" aria-modal="true" aria-label="AI Differentiation Suggestions">
 <div class="modal create-modal">
-<button class="modal-close" onclick="closeAiDiff()">&times;</button>
+<button class="modal-close" onclick="closeAiDiff()" aria-label="Close">&times;</button>
 <h2>&#x1F916; AI Differentiation Suggestions</h2>
 <p>Analyzes student performance to suggest grouping and differentiation</p>
 <button class="btn btn-accent btn-wide" onclick="runAiDifferentiation()" id="aiDiffBtn">Analyze Students &#x1F52C;</button>
@@ -735,7 +735,7 @@ select.settings-input{cursor:pointer}
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
 import{getAuth,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
-import{getFirestore,doc,setDoc,getDoc,getDocs,deleteDoc,collection,query,where,addDoc,updateDoc,orderBy,Timestamp,onSnapshot}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+import{getFirestore,doc,setDoc,getDoc,getDocs,deleteDoc,collection,query,where,addDoc,updateDoc,orderBy,limit,startAfter,Timestamp,onSnapshot}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 import{getStorage,ref as storageRef,uploadBytes,getDownloadURL}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-storage.js";
 
 const cfg=ODA_CONFIG.firebase;
@@ -743,7 +743,7 @@ const app=initializeApp(cfg);const auth=getAuth(app);const db=getFirestore(app);
 
 window.fbAuth=auth;window.fbDb=db;window.fbSignOut=signOut;window.fbStorage=storage;window.fbStorageRef=storageRef;window.fbUploadBytes=uploadBytes;window.fbGetDownloadURL=getDownloadURL;
 window.fbDoc=doc;window.fbSetDoc=setDoc;window.fbGetDoc=getDoc;window.fbGetDocs=getDocs;window.fbDeleteDoc=deleteDoc;
-window.fbCollection=collection;window.fbQuery=query;window.fbWhere=where;window.fbAddDoc=addDoc;window.fbUpdateDoc=updateDoc;window.fbOrderBy=orderBy;window.fbTimestamp=Timestamp;window.fbOnSnapshot=onSnapshot;
+window.fbCollection=collection;window.fbQuery=query;window.fbWhere=where;window.fbAddDoc=addDoc;window.fbUpdateDoc=updateDoc;window.fbOrderBy=orderBy;window.fbLimit=limit;window.fbStartAfter=startAfter;window.fbTimestamp=Timestamp;window.fbOnSnapshot=onSnapshot;
 
 onAuthStateChanged(auth,async function(user){
 if(!user){window.location.href='index.html';return}
@@ -931,8 +931,9 @@ renderStudentList();
 }
 window.filterClass=filterClass;
 
-function openClassModal(){document.getElementById('classModal').classList.add('show');document.getElementById('className').focus()}
-function closeClassModal(){document.getElementById('classModal').classList.remove('show');document.getElementById('className').value=''}
+var _odaFocusTraps={};
+function openClassModal(){var m=document.getElementById('classModal');m.classList.add('show');if(window.odaTrapFocus)_odaFocusTraps.classModal=window.odaTrapFocus(m)}
+function closeClassModal(){document.getElementById('classModal').classList.remove('show');document.getElementById('className').value='';if(_odaFocusTraps.classModal){_odaFocusTraps.classModal();_odaFocusTraps.classModal=null}}
 window.openClassModal=openClassModal;window.closeClassModal=closeClassModal;
 
 function openAddStudentModal(){
@@ -945,11 +946,11 @@ var isSelected=currentClass!=='All Students'&&classes[i]===currentClass;
 h+='<option value="'+esc(classes[i])+'"'+(isSelected?' selected':'')+'>'+esc(classes[i])+'</option>';
 }
 sel.innerHTML=h;
-document.getElementById('addStudentModal').classList.add('show');
-document.getElementById('addStudentName').focus();
+var m=document.getElementById('addStudentModal');m.classList.add('show');
+if(window.odaTrapFocus)_odaFocusTraps.addStudentModal=window.odaTrapFocus(m);
 }
 function closeAddStudentModal(){
-document.getElementById('addStudentModal').classList.remove('show');
+document.getElementById('addStudentModal').classList.remove('show');if(_odaFocusTraps.addStudentModal){_odaFocusTraps.addStudentModal();_odaFocusTraps.addStudentModal=null}
 document.getElementById('addStudentName').value='';
 document.getElementById('addStudentGrade').value='';
 document.getElementById('addStudentGradeCustom').value='';
@@ -1537,11 +1538,12 @@ var checks=document.querySelectorAll('.sp-check');
 checks.forEach(function(c){c.checked=(c.value===preSelectStudentId)});
 },50);
 }
-document.getElementById('createAssignModal').classList.add('show');
+var m=document.getElementById('createAssignModal');m.classList.add('show');
+if(window.odaTrapFocus)_odaFocusTraps.createAssignModal=window.odaTrapFocus(m);
 }
 window.openCreateAssignment=openCreateAssignment;
 
-function closeCreateAssignment(){document.getElementById('createAssignModal').classList.remove('show')}
+function closeCreateAssignment(){document.getElementById('createAssignModal').classList.remove('show');if(_odaFocusTraps.createAssignModal){_odaFocusTraps.createAssignModal();_odaFocusTraps.createAssignModal=null}}
 window.closeCreateAssignment=closeCreateAssignment;
 
 function switchCreateTab(type){
@@ -1699,7 +1701,7 @@ if(selectedStudent)renderProfileAssignments();
 }
 window.submitCreateAssignment=submitCreateAssignment;
 
-function filterAssignments(){renderAssignmentsList()}
+function filterAssignments(){window._assignShowAll=false;renderAssignmentsList()}
 window.filterAssignments=filterAssignments;
 
 function renderAssignmentsList(){
@@ -1756,7 +1758,9 @@ groups[key].items.push(a);
 
 var today=new Date().toISOString().split('T')[0];
 var h='';
-groupOrder.forEach(function(key,gi){
+var ASSIGN_PAGE_SIZE=20;
+var visibleGroups=window._assignShowAll?groupOrder.length:Math.min(groupOrder.length,ASSIGN_PAGE_SIZE);
+groupOrder.slice(0,visibleGroups).forEach(function(key,gi){
 var g=groups[key];
 var counts={pending:0,submitted:0,graded:0,completed:0,returned:0};
 g.items.forEach(function(a){counts[a.status]=(counts[a.status]||0)+1});
@@ -1800,6 +1804,9 @@ h+='</div>';
 });
 h+='</div></div>';
 });
+if(groupOrder.length>visibleGroups){
+h+='<div style="text-align:center;padding:14px"><button class="btn btn-outline" onclick="window._assignShowAll=true;renderAssignmentsList()">Show All '+groupOrder.length+' Groups</button></div>';
+}
 el.innerHTML=h;
 document.getElementById('bulkBar').classList.remove('show');
 }
@@ -1983,11 +1990,12 @@ h+='<button class="btn btn-red btn-sm" onclick="deleteFromPanel()">Delete</butto
 h+='</div>';
 
 el.innerHTML=h;
-document.getElementById('gradePanel').classList.add('show');
+var gm=document.getElementById('gradePanel');gm.classList.add('show');
+if(window.odaTrapFocus)_odaFocusTraps.gradePanel=window.odaTrapFocus(gm);
 }
 window.openGradePanel=openGradePanel;
 
-function closeGradePanel(){document.getElementById('gradePanel').classList.remove('show');gradingAssignment=null}
+function closeGradePanel(){document.getElementById('gradePanel').classList.remove('show');gradingAssignment=null;if(_odaFocusTraps.gradePanel){_odaFocusTraps.gradePanel();_odaFocusTraps.gradePanel=null}}
 window.closeGradePanel=closeGradePanel;
 
 var _blobCache={};
@@ -2403,8 +2411,8 @@ result.scrollIntoView({behavior:'smooth',block:'nearest'});
 window.aiClassSummary=aiClassSummary;
 
 // ===== AI: ASSIGNMENT GENERATOR (8a) =====
-function openAiGen(){document.getElementById('aiGenModal').classList.add('show');document.getElementById('aiGenTopic').value='';document.getElementById('aiGenResult').style.display='none';document.getElementById('aiGenActions').style.display='none'}
-function closeAiGen(){document.getElementById('aiGenModal').classList.remove('show')}
+function openAiGen(){var m=document.getElementById('aiGenModal');m.classList.add('show');document.getElementById('aiGenTopic').value='';document.getElementById('aiGenResult').style.display='none';document.getElementById('aiGenActions').style.display='none';if(window.odaTrapFocus)_odaFocusTraps.aiGenModal=window.odaTrapFocus(m)}
+function closeAiGen(){document.getElementById('aiGenModal').classList.remove('show');if(_odaFocusTraps.aiGenModal){_odaFocusTraps.aiGenModal();_odaFocusTraps.aiGenModal=null}}
 window.openAiGen=openAiGen;window.closeAiGen=closeAiGen;
 
 var lastAiAssignment=null;
@@ -2571,9 +2579,9 @@ window.submitFeedback=submitFeedback;
 </script>
 
 <!-- FEEDBACK MODAL -->
-<div id="feedbackModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px">
+<div id="feedbackModal" role="dialog" aria-modal="true" aria-label="Submit Feedback" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px">
 <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;max-width:480px;width:100%;position:relative;animation:fadeUp .2s ease">
-<button onclick="closeFeedbackModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text2);font-size:24px;cursor:pointer;line-height:1">&times;</button>
+<button onclick="closeFeedbackModal()" aria-label="Close" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text2);font-size:24px;cursor:pointer;line-height:1">&times;</button>
 <h2 id="feedbackTitle" style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;margin-bottom:16px;color:var(--text)"></h2>
 <div style="margin-bottom:14px">
 <label style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Description</label>

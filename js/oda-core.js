@@ -130,6 +130,8 @@ window.odaToast = function(message, type) {
   var colors = { info: '#118ab2', success: '#06d6a0', error: '#ef476f', warning: '#ffd166' };
   var textColors = { info: '#fff', success: '#0a0e1a', error: '#fff', warning: '#0a0e1a' };
   var toast = document.createElement('div');
+  toast.setAttribute('role', 'alert');
+  toast.setAttribute('aria-live', 'assertive');
   toast.textContent = message;
   toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:' + (colors[type] || colors.info) + ';color:' + (textColors[type] || '#fff') + ';padding:12px 24px;border-radius:12px;font-family:Outfit,sans-serif;font-weight:600;font-size:14px;z-index:10000;box-shadow:0 4px 20px rgba(0,0,0,0.3);animation:odaFadeIn .3s ease;max-width:90vw;text-align:center';
   document.body.appendChild(toast);
@@ -155,6 +157,54 @@ window.odaConfetti = function() {
   }
 };
 
+// ============================================
+// Accessibility Helpers
+// ============================================
+
+// Focus trap for modals — call on open, returns cleanup function
+window.odaTrapFocus = function(modalEl) {
+  var focusable = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  var previousFocus = document.activeElement;
+  function handler(e) {
+    if (e.key !== 'Tab') return;
+    var els = modalEl.querySelectorAll(focusable);
+    if (!els.length) return;
+    var first = els[0], last = els[els.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+  modalEl.addEventListener('keydown', handler);
+  // Focus first focusable element
+  setTimeout(function() {
+    var els = modalEl.querySelectorAll(focusable);
+    if (els.length) els[0].focus();
+  }, 50);
+  // Return cleanup function
+  return function() {
+    modalEl.removeEventListener('keydown', handler);
+    if (previousFocus && previousFocus.focus) previousFocus.focus();
+  };
+};
+
+// Screen-reader live announcer
+window.odaAnnounce = function(message) {
+  var el = document.getElementById('oda-sr-announce');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'oda-sr-announce';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    el.setAttribute('aria-atomic', 'true');
+    el.style.cssText = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0';
+    document.body.appendChild(el);
+  }
+  el.textContent = '';
+  setTimeout(function() { el.textContent = message; }, 100);
+};
+
 // Add global animations CSS
 (function() {
   var style = document.createElement('style');
@@ -162,4 +212,4 @@ window.odaConfetti = function() {
   document.head.appendChild(style);
 })();
 
-console.log('[ODA] Core loaded v1.0');
+console.log('[ODA] Core loaded v1.1');
