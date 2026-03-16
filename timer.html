@@ -17,7 +17,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 /* Header */
 .header{text-align:center;margin-bottom:24px}
 .header .emoji{font-size:56px;margin-bottom:8px;display:block}
-.header h1{font-family:'Fredoka',sans-serif;font-size:34px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.header h1{font-family:'Fredoka',sans-serif;font-size:34px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;overflow-wrap:break-word}
 .header p{font-size:15px;color:var(--text2);margin-top:4px}
 
 /* Top controls */
@@ -175,6 +175,9 @@ body.fullscreen-mode .fs-exit{position:fixed;top:20px;right:20px;z-index:100}
 
 /* ========== RESPONSIVE ========== */
 @media(max-width:500px){
+  .header h1{font-size:24px}
+  .header .emoji{font-size:40px}
+  .header p{font-size:13px}
   .clock-time{font-size:64px}
   .clock-seconds{font-size:28px}
   .timer-ring-container{width:220px;height:220px}
@@ -202,7 +205,7 @@ body.fullscreen-mode .fs-exit{position:fixed;top:20px;right:20px;z-index:100}
 <div class="grid-bg"></div>
 
 <div class="app">
-  <a href="student.html" class="back">&larr; Back to Hub</a>
+  <a href="student.html" class="back" id="backLink">&larr; Back to Hub</a>
 
   <div class="header">
     <span class="emoji">&#9202;</span>
@@ -1196,6 +1199,12 @@ function init() {
   // Alarm checker runs with clock
 
   console.log('[ODA] Timer loaded');
+}
+
+// Fix back link
+var isTeacher = !sessionStorage.getItem('studentId') && (sessionStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
+if (isTeacher) {
+  document.getElementById('backLink').href = 'teacher.html';
 }
 
 init();

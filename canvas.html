@@ -219,7 +219,7 @@ select.prop-input{cursor:pointer;-webkit-appearance:none;appearance:none;padding
 <div class="tb-divider"></div>
 <button class="tb tb-red" onclick="clearCanvas()">Clear</button>
 <div class="tb-divider"></div>
-<a class="tb tb-outline" href="student.html" style="text-decoration:none">Back</a>
+<a class="tb tb-outline" href="student.html" style="text-decoration:none" id="backLink">Back</a>
 </div>
 </div>
 
@@ -1649,6 +1649,13 @@ window.addEventListener('resize', function() {
   // Re-fit canvas on resize
   zoomCanvas(0);
 });
+
+// Fix back link
+var isTeacher = !sessionStorage.getItem('studentId') && (sessionStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
+if (isTeacher) {
+  document.getElementById('backLink').href = 'teacher.html';
+  document.querySelector('h1').setAttribute('onclick', "window.location.href='teacher.html'");
+}
 
 // ===== INITIALIZE =====
 init();

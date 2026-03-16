@@ -17,7 +17,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 /* Header */
 .header{text-align:center;margin-bottom:28px}
 .header .emoji{font-size:56px;margin-bottom:8px;display:block}
-.header h1{font-family:'Fredoka',sans-serif;font-size:32px;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header h1{font-family:'Fredoka',sans-serif;font-size:32px;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;overflow-wrap:break-word}
 .header p{font-size:15px;color:var(--text2);margin-top:4px}
 
 /* Cards */
@@ -163,7 +163,9 @@ select.input{cursor:pointer;-webkit-appearance:none;appearance:none;background-i
 /* Responsive */
 @media(max-width:600px){
   .opt-grid{grid-template-columns:1fr 1fr}
-  .header h1{font-size:26px}
+  .header h1{font-size:24px}
+  .header .emoji{font-size:40px}
+  .header p{font-size:13px}
   .game-cell{font-size:14px}
   .complete-stats{grid-template-columns:1fr 1fr}
   .ai-row{flex-direction:column}
@@ -187,7 +189,7 @@ select.input{cursor:pointer;-webkit-appearance:none;appearance:none;background-i
 <body>
 <div class="grid-bg"></div>
 <div class="app">
-  <a href="student.html" class="back">&larr; Back to Hub</a>
+  <a href="student.html" class="back" id="backLink">&larr; Back to Hub</a>
 
   <div class="header">
     <span class="emoji">&#128270;</span>
@@ -421,7 +423,7 @@ function playSound(type){
   if(isTeacher){
     showSection('secTeacher');
     document.getElementById('headerSub').textContent='Create & assign word searches';
-    document.querySelector('.back').href='teacher.html';
+    document.getElementById('backLink').href='teacher.html';
   } else {
     showSection('secBrowse');
     loadPuzzles();
@@ -774,12 +776,17 @@ async function loadPuzzles(){
   var c=document.getElementById('puzzleBrowser');
   try{
     var fb=await getFirebaseDB();
-    var constraints=[fb.fsMod.where('isPublic','==',true),fb.fsMod.orderBy('createdAt','desc'),fb.fsMod.limit(30)];
+    var allPuzzles=[];
+    // Get class-assigned puzzles
     if(classCode){
-      constraints=[fb.fsMod.where('classCode','==',classCode),fb.fsMod.where('isPublic','==',true),fb.fsMod.orderBy('createdAt','desc'),fb.fsMod.limit(30)];
+      var q1=fb.fsMod.query(fb.fsMod.collection(fb.db,'wordSearchPuzzles'),fb.fsMod.where('classCode','==',classCode),fb.fsMod.orderBy('createdAt','desc'),fb.fsMod.limit(30));
+      var s1=await fb.fsMod.getDocs(q1);
+      s1.forEach(function(d){allPuzzles.push(Object.assign({id:d.id},d.data()));});
     }
-    var q=fb.fsMod.query(fb.fsMod.collection(fb.db,'wordSearchPuzzles'),...constraints);
-    var snap=await fb.fsMod.getDocs(q);
+    // Get public/community puzzles
+    var q2=fb.fsMod.query(fb.fsMod.collection(fb.db,'wordSearchPuzzles'),fb.fsMod.where('isPublic','==',true),fb.fsMod.orderBy('createdAt','desc'),fb.fsMod.limit(30));
+    var snap=await fb.fsMod.getDocs(q2);
+    snap.forEach(function(d){if(!allPuzzles.find(function(p){return p.id===d.id;})){allPuzzles.push(Object.assign({id:d.id},d.data()));}});
 
     // Get completed puzzles
     var completedIds={};
@@ -791,13 +798,12 @@ async function loadPuzzles(){
       }catch(e){}
     }
 
-    if(snap.empty){c.innerHTML='<p style="color:var(--text2);grid-column:1/-1;text-align:center;padding:40px">No puzzles available yet. Ask your teacher to create one!</p>';return;}
+    if(allPuzzles.length===0){c.innerHTML='<p style="color:var(--text2);grid-column:1/-1;text-align:center;padding:40px">No puzzles available yet. Ask your teacher to create one!</p>';return;}
     var h='';
-    snap.forEach(function(doc){
-      var d=doc.data();
-      var done=completedIds[doc.id];
+    allPuzzles.forEach(function(d){
+      var done=completedIds[d.id];
       var diffEmoji=d.difficulty==='easy'?'&#127775;':d.difficulty==='hard'?'&#9889;':'&#128293;';
-      h+='<div class="pb-card" onclick="startPuzzle(\''+doc.id+'\')">';
+      h+='<div class="pb-card" onclick="startPuzzle(\''+d.id+'\')">';
       h+='<span class="pb-emoji">'+diffEmoji+'</span>';
       h+='<div class="pb-title">'+esc(d.title)+'</div>';
       h+='<div class="pb-meta">'+esc(d.gridSize)+'x'+esc(d.gridSize)+' &bull; '+esc(d.difficulty)+' &bull; '+esc((d.words||[]).length)+' words</div>';

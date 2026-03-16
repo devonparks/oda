@@ -15,7 +15,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 .back:hover{color:var(--text)}
 .site-hdr{text-align:center;margin-bottom:20px}
 .site-hdr .emoji{font-size:56px;display:block;margin-bottom:8px}
-.site-hdr h1{font-family:'Fredoka',sans-serif;font-size:32px;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--accent3),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-.5px}
+.site-hdr h1{font-family:'Fredoka',sans-serif;font-size:32px;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--accent3),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-.5px;overflow-wrap:break-word}
 .site-hdr p{font-size:15px;color:var(--text2);font-weight:600;margin-top:4px}
 
 /* Views */
@@ -209,7 +209,9 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
   .team-card .tc-score{font-size:72px}
   .display-mode .team-card .tc-score{font-size:100px}
   .mode-grid{grid-template-columns:1fr}
-  .site-hdr h1{font-size:26px}
+  .site-hdr h1{font-size:24px}
+  .site-hdr .emoji{font-size:40px}
+  .site-hdr p{font-size:13px}
   .timer-display{font-size:28px}
   .wo-title{font-size:32px}
   .wo-score{font-size:48px}
@@ -229,7 +231,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 <!-- ========== SETUP VIEW ========== -->
 <div id="v-setup" class="view active">
 <div class="wrap">
-<a href="student.html" class="back">&larr; Back to Hub</a>
+<a href="student.html" class="back" id="backLink">&larr; Back to Hub</a>
 <div class="site-hdr">
   <span class="emoji">&#127942;</span>
   <h1>ODA Scoreboard</h1>
@@ -1353,6 +1355,12 @@ window.addEventListener('resize', function() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 });
+
+// Fix back link
+var isTeacher = !sessionStorage.getItem('studentId') && (sessionStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
+if (isTeacher) {
+  document.getElementById('backLink').href = 'teacher.html';
+}
 </script>
 </body>
 </html>

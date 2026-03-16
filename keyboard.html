@@ -15,7 +15,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 .back:hover{color:var(--text)}
 .header{text-align:center;margin-bottom:24px}
 .header .emoji{font-size:56px;margin-bottom:8px;display:block}
-.header h1{font-family:'Fredoka',sans-serif;font-size:32px;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--accent3),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header h1{font-family:'Fredoka',sans-serif;font-size:32px;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--accent3),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;overflow-wrap:break-word}
 .header p{font-size:15px;color:var(--text2);margin-top:4px}
 
 /* Cards */
@@ -154,6 +154,9 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 .screen.active{display:block}
 
 @media(max-width:600px){
+.header h1{font-size:24px}
+.header .emoji{font-size:40px}
+.header p{font-size:13px}
 .mode-grid{grid-template-columns:1fr}
 .level-grid{grid-template-columns:repeat(5,1fr)}
 .stats-grid{grid-template-columns:repeat(2,1fr)}
@@ -166,7 +169,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 <body>
 <div class="grid-bg"></div>
 <div class="app">
-<a href="student.html" class="back">&#8592; Back to Hub</a>
+<a href="student.html" class="back" id="backLink">&#8592; Back to Hub</a>
 <div class="header">
 <span class="emoji">&#9000;&#65039;</span>
 <h1>Keyboard Warriors</h1>
@@ -1732,6 +1735,12 @@ document.getElementById('typeInput').addEventListener('blur', function() {
     setTimeout(function() { self.focus(); }, 100);
   }
 });
+
+// Fix back link
+var isTeacher = !sessionStorage.getItem('studentId') && (sessionStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
+if (isTeacher) {
+  document.getElementById('backLink').href = 'teacher.html';
+}
 
 console.log('[ODA] Keyboard Warriors loaded');
 </script>
