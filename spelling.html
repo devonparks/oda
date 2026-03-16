@@ -1014,6 +1014,14 @@ h+='</div>';
 h+='<div id="aiStatus" style="margin-top:8px;min-height:20px"></div>';
 h+='</div>';
 
+h+='<div style="margin-bottom:16px">';
+h+='<div class="input-label">&#x1F4E5; Import Content</div>';
+h+='<div style="display:flex;gap:8px;flex-wrap:wrap">';
+h+='<button class="btn btn-normal btn-outline" style="font-size:13px;padding:8px 14px" onclick="importFromFlashcards()">&#x1F5C2;&#xFE0F; From Flashcards</button>';
+h+='</div>';
+h+='<div id="importArea" style="display:none;margin-top:8px"></div>';
+h+='</div>';
+
 h+='<label class="input-label">List Name</label>';
 h+='<input class="input" id="newListName" placeholder="e.g. Week 1 Words, Bee Practice Round 1">';
 h+='<label class="input-label">Grade Level</label>';
@@ -1079,6 +1087,62 @@ console.error('AI generation error:',e);
 status.innerHTML='<span style="color:#EF4444;font-weight:600">Error generating words. Please try again or type words manually.</span>';
 btn.disabled=false;
 }
+}
+
+// ============================================
+// IMPORT: From Flashcards
+// ============================================
+var _importedFlashcardDecks = [];
+async function importFromFlashcards() {
+  var area = document.getElementById('importArea');
+  area.style.display = 'block';
+  area.innerHTML = '<div class="ai-loading"><div class="ai-spinner"></div>Loading flashcard decks...</div>';
+  try {
+    var fb = await getFirebaseDB();
+    var fs = fb.fsMod;
+    if (!_teacherUid) { area.innerHTML = '<span style="color:#EF4444;font-size:13px">Could not determine teacher ID.</span>'; return; }
+    var q = fs.query(fs.collection(fb.db, 'flashcardDecks'), fs.where('teacherId', '==', _teacherUid));
+    var snap = await fs.getDocs(q);
+    var decks = [];
+    snap.forEach(function(d) { decks.push(Object.assign({id: d.id}, d.data())); });
+    if (decks.length === 0) {
+      area.innerHTML = '<span style="color:#92400E;font-size:13px">No flashcard decks found. Create one in Flashcards first!</span>';
+      return;
+    }
+    var html = '<select class="input" style="max-width:300px;padding:10px;font-size:14px" onchange="applyFlashcardImportToSpelling(this.value)">';
+    html += '<option value="">-- Select a deck --</option>';
+    decks.forEach(function(d, i) {
+      html += '<option value="' + i + '">' + esc(d.title || 'Deck') + ' (' + (d.cards || []).length + ' cards)</option>';
+    });
+    html += '</select>';
+    area.innerHTML = html;
+    _importedFlashcardDecks = decks;
+  } catch(e) {
+    area.innerHTML = '<span style="color:#EF4444;font-size:13px">Error loading: ' + esc(e.message) + '</span>';
+  }
+}
+
+function applyFlashcardImportToSpelling(idx) {
+  if (idx === '') return;
+  var deck = _importedFlashcardDecks[parseInt(idx)];
+  if (!deck || !deck.cards) return;
+  var words = [];
+  deck.cards.forEach(function(c) {
+    var word = (c.front || '').trim();
+    if (word) words.push(word);
+  });
+  if (words.length === 0) { showToast('No words found in that deck', 'error'); return; }
+  var textarea = document.getElementById('newListWords');
+  var existing = textarea.value.trim();
+  textarea.value = existing ? existing + '\n' + words.join('\n') : words.join('\n');
+  if (!document.getElementById('newListName').value) {
+    document.getElementById('newListName').value = deck.title || 'Imported from Flashcards';
+  }
+  var area = document.getElementById('importArea');
+  area.innerHTML = '<span style="color:#10B981;font-weight:700;font-size:13px">&#x2705; Imported ' + words.length + ' words from flashcards!</span>';
+  setTimeout(function() { area.style.display = 'none'; }, 3000);
+  showToast('Imported ' + words.length + ' words from Flashcards!');
+  textarea.scrollIntoView({behavior:'smooth',block:'center'});
 }
 
 async function saveNewList(){

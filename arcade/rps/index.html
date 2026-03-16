@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Rock Paper Scissors - ODA Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#a8b2c8}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden;user-select:none}
+h1,h2,h3{font-family:'Fredoka',sans-serif}
+
+/* Back button */
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:10px;padding:8px 16px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+/* Screen system */
+.screen{display:none;width:100%;max-width:600px;padding:20px;animation:fadeUp .35s ease}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* Buttons */
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:220px;text-align:center;text-decoration:none;display:inline-block}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-blue{background:var(--accent2);color:#fff}
+.btn-red{background:var(--accent3);color:#fff}
+.btn-gold{background:var(--gold);color:var(--bg)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto}
+.btn-icon{padding:10px 16px;min-width:auto;font-size:20px;border-radius:12px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+
+/* Home screen */
+.home-title{font-size:42px;font-weight:700;margin-top:60px;margin-bottom:4px;letter-spacing:-1px}
+.home-title span{color:var(--accent)}
+.home-sub{color:var(--text2);font-size:15px;margin-bottom:28px}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;max-width:380px}
+.mode-card{background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:24px 16px;text-align:center;cursor:pointer;transition:all .2s}
+.mode-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(6,214,160,.1)}
+.mode-card .mc-icon{font-size:36px;margin-bottom:8px}
+.mode-card .mc-title{font-weight:700;font-size:16px;margin-bottom:4px}
+.mode-card .mc-desc{color:var(--text2);font-size:12px;line-height:1.3}
+
+/* Section divider */
+.divider{display:flex;align-items:center;gap:12px;width:100%;margin:16px 0}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.divider span{color:var(--text2);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:2px}
+
+/* Code input */
+.code-input{background:var(--surface);border:2px solid var(--border);border-radius:12px;padding:14px 20px;color:var(--text);font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;text-align:center;width:180px;letter-spacing:8px;outline:none;transition:border-color .2s}
+.code-input:focus{border-color:var(--accent)}
+.code-input::placeholder{color:#2a3450;letter-spacing:4px}
+.join-row{display:flex;gap:12px;align-items:center;justify-content:center}
+.error-text{color:var(--accent3);font-size:13px;margin-top:8px;min-height:20px}
+
+/* Room code display */
+.room-code{font-size:52px;font-weight:900;color:var(--gold);letter-spacing:14px;margin:20px 0;font-family:'Fredoka',sans-serif}
+.waiting-text{color:var(--text2);font-size:14px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Difficulty picker */
+.diff-grid{display:flex;flex-direction:column;gap:12px;align-items:center;width:100%;max-width:300px;margin-top:12px}
+.diff-label{color:var(--text2);font-size:12px;margin-top:-4px}
+
+/* Best-of picker */
+.bestof-row{display:flex;gap:10px;margin:16px 0}
+.bestof-btn{padding:10px 20px;border:2px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text2);font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:all .15s}
+.bestof-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(6,214,160,.1)}
+
+/* ===== GAME SCREEN ===== */
+.game-header{width:100%;display:flex;justify-content:space-between;align-items:center;padding:8px 0;margin-top:50px}
+.game-player{text-align:center;flex:1}
+.game-player .gp-name{font-weight:700;font-size:14px;color:var(--text2)}
+.game-player .gp-score{font-family:'Fredoka',sans-serif;font-size:42px;font-weight:700;line-height:1}
+.game-player.left .gp-score{color:var(--accent)}
+.game-player.right .gp-score{color:var(--accent3)}
+.game-vs{font-family:'Fredoka',sans-serif;font-size:20px;color:var(--text2);padding:0 16px}
+.game-best-of{font-size:12px;color:var(--text2);text-align:center;margin-bottom:12px}
+
+/* Arena */
+.arena{width:100%;display:flex;align-items:center;justify-content:center;gap:20px;min-height:220px;position:relative;margin:12px 0}
+.arena-side{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0}
+.arena-emoji{font-size:120px;line-height:1;transition:all .4s cubic-bezier(.4,0,.2,1);filter:grayscale(0)}
+.arena-emoji.hidden{font-size:80px;opacity:.3;filter:grayscale(1)}
+.arena-emoji.shake{animation:shakeHand .15s ease-in-out infinite}
+.arena-emoji.reveal-left{animation:revealFromLeft .5s cubic-bezier(.2,0,.2,1) forwards}
+.arena-emoji.reveal-right{animation:revealFromRight .5s cubic-bezier(.2,0,.2,1) forwards}
+.arena-emoji.winner{filter:drop-shadow(0 0 20px var(--accent));transform:scale(1.15)}
+.arena-emoji.loser{opacity:.35;filter:grayscale(1);transform:scale(.85)}
+.arena-emoji.draw-result{filter:drop-shadow(0 0 12px var(--gold))}
+.arena-label{font-size:13px;color:var(--text2);margin-top:8px;font-weight:600}
+.arena-divider{font-family:'Fredoka',sans-serif;font-size:28px;color:var(--border);flex-shrink:0}
+
+@keyframes shakeHand{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-12px) rotate(-5deg)}75%{transform:translateY(-12px) rotate(5deg)}}
+@keyframes revealFromLeft{0%{transform:translateX(-80px) scale(.5);opacity:0}100%{transform:translateX(0) scale(1);opacity:1}}
+@keyframes revealFromRight{0%{transform:translateX(80px) scale(.5);opacity:0}100%{transform:translateX(0) scale(1);opacity:1}}
+
+/* Choice buttons */
+.choices{display:flex;gap:14px;justify-content:center;margin:8px 0 16px;flex-wrap:wrap}
+.choice-btn{width:110px;height:120px;border:3px solid var(--border);border-radius:20px;background:var(--surface);cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.choice-btn:hover{border-color:var(--accent);transform:translateY(-4px);box-shadow:0 8px 24px rgba(6,214,160,.15)}
+.choice-btn:active{transform:scale(.95)}
+.choice-btn.selected{border-color:var(--gold);background:rgba(255,209,102,.08);box-shadow:0 0 20px rgba(255,209,102,.2)}
+.choice-btn.disabled{opacity:.35;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+.choice-btn .cb-emoji{font-size:48px;line-height:1}
+.choice-btn .cb-label{font-weight:700;font-size:13px;color:var(--text2)}
+.choice-btn.rock{--glow:rgba(160,160,180,.4)}
+.choice-btn.paper{--glow:rgba(100,160,255,.4)}
+.choice-btn.scissors{--glow:rgba(239,71,111,.4)}
+
+/* Countdown overlay */
+.countdown-overlay{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;z-index:200;background:rgba(10,14,26,.85);backdrop-filter:blur(6px);pointer-events:none}
+.countdown-num{font-family:'Fredoka',sans-serif;font-size:160px;font-weight:700;color:var(--accent);animation:countPop .6s ease forwards;text-shadow:0 0 60px rgba(6,214,160,.5)}
+.countdown-num.go{color:var(--gold);font-size:100px}
+@keyframes countPop{0%{transform:scale(2);opacity:0}30%{transform:scale(1);opacity:1}80%{transform:scale(1);opacity:1}100%{transform:scale(.8);opacity:0}}
+
+/* Round result banner */
+.round-banner{font-family:'Fredoka',sans-serif;font-size:32px;font-weight:700;text-align:center;padding:12px 0;animation:bannerSlide .4s ease;min-height:52px}
+.round-banner.win{color:var(--accent)}
+.round-banner.lose{color:var(--accent3)}
+.round-banner.draw{color:var(--gold)}
+@keyframes bannerSlide{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* Round history */
+.round-history{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:8px 0}
+.rh-dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;transition:all .3s}
+.rh-dot.win{background:rgba(6,214,160,.2);border-color:var(--accent);color:var(--accent)}
+.rh-dot.lose{background:rgba(239,71,111,.2);border-color:var(--accent3);color:var(--accent3)}
+.rh-dot.draw{background:rgba(255,209,102,.2);border-color:var(--gold);color:var(--gold)}
+.rh-dot.pending{background:var(--surface2);color:var(--text2)}
+
+/* Status text */
+.status-text{color:var(--text2);font-size:14px;text-align:center;min-height:24px;font-weight:600}
+
+/* ===== RESULT SCREEN ===== */
+.result-wrap{text-align:center;margin-top:80px}
+.result-wrap h2{font-size:40px;margin-bottom:6px}
+.result-wrap .result-sub{font-size:16px;color:var(--text2);margin-bottom:6px}
+.coins-display{color:var(--gold);font-size:22px;font-weight:700;margin:12px 0 24px}
+.result-buttons{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.final-score{font-family:'Fredoka',sans-serif;font-size:56px;font-weight:700;margin:8px 0}
+.final-score .fs-win{color:var(--accent)}
+.final-score .fs-lose{color:var(--accent3)}
+
+/* ===== RECORDS SCREEN ===== */
+.records-grid{width:100%;max-width:400px;margin-top:16px}
+.stat-row{display:flex;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
+.stat-row .sr-label{color:var(--text2);font-weight:600}
+.stat-row .sr-val{font-weight:800;color:var(--text)}
+.leaderboard{width:100%;max-width:400px;margin-top:16px}
+.lb-entry{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border)}
+.lb-rank{font-family:'Fredoka',sans-serif;font-weight:700;font-size:18px;color:var(--text2);width:28px;text-align:center}
+.lb-rank.gold{color:var(--gold)}
+.lb-rank.silver{color:#c0c0c0}
+.lb-rank.bronze{color:#cd7f32}
+.lb-name{flex:1;font-weight:600;font-size:14px}
+.lb-stat{font-weight:800;color:var(--accent);font-size:14px}
+.no-records{color:var(--text2);font-size:14px;text-align:center;padding:32px 0}
+
+/* ===== TOURNAMENT ===== */
+.tourney-info{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;width:100%;margin:12px 0;text-align:center}
+.tourney-info .ti-code{font-family:'Fredoka',sans-serif;font-size:36px;color:var(--gold);letter-spacing:8px}
+.tourney-info .ti-status{color:var(--text2);font-size:13px;margin-top:4px}
+.bracket-area{width:100%;overflow-x:auto;padding:16px 0}
+.bracket-round{display:flex;flex-direction:column;gap:12px;min-width:180px}
+.bracket-match{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px}
+.bracket-match .bm-player{padding:4px 0;font-size:13px;font-weight:600;display:flex;justify-content:space-between}
+.bracket-match .bm-player.winner{color:var(--accent)}
+.bracket-match .bm-player.loser{color:var(--text2);opacity:.5}
+.bracket-match .bm-vs{font-size:11px;color:var(--text2);text-align:center}
+.players-list{width:100%;max-width:350px}
+.pl-entry{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border)}
+.pl-name{font-weight:600;font-size:14px}
+.pl-status{font-size:12px;color:var(--accent);font-weight:700}
+
+/* Confetti canvas */
+#confettiCanvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:300}
+
+/* Responsive */
+@media(max-width:480px){
+  .home-title{font-size:32px;margin-top:50px}
+  .mode-grid{grid-template-columns:1fr 1fr;gap:10px;max-width:100%}
+  .mode-card{padding:18px 12px}
+  .arena-emoji{font-size:80px}
+  .choice-btn{width:90px;height:100px}
+  .choice-btn .cb-emoji{font-size:36px}
+  .game-player .gp-score{font-size:32px}
+  .countdown-num{font-size:120px}
+  .final-score{font-size:44px}
+  .room-code{font-size:40px;letter-spacing:10px}
+}
+@media(max-width:360px){
+  .choice-btn{width:80px;height:90px}
+  .arena-emoji{font-size:64px}
+}
+</style>
+</head>
+<body>
+
+<a class="back-btn" id="backLink" href="../../student.html">&larr; Back to Hub</a>
+<canvas id="confettiCanvas"></canvas>
+
+<!-- ===== HOME SCREEN ===== -->
+<div class="screen active" id="homeScreen">
+  <h1 class="home-title">Rock Paper <span>Scissors</span></h1>
+  <p class="home-sub">Choose your weapon!</p>
+  <div class="mode-grid">
+    <div class="mode-card" onclick="showAiPicker()">
+      <div class="mc-icon">&#x1F916;</div>
+      <div class="mc-title">VS Computer</div>
+      <div class="mc-desc">Play against the AI</div>
+    </div>
+    <div class="mode-card" onclick="showMultiplayer()">
+      <div class="mc-icon">&#x1F91D;</div>
+      <div class="mc-title">Quick Match</div>
+      <div class="mc-desc">Challenge a friend online</div>
+    </div>
+    <div class="mode-card" onclick="showTournamentLobby()">
+      <div class="mc-icon">&#x1F3C6;</div>
+      <div class="mc-title">Tournament</div>
+      <div class="mc-desc">Bracket competition</div>
+    </div>
+    <div class="mode-card" onclick="showRecords()">
+      <div class="mc-icon">&#x1F4CA;</div>
+      <div class="mc-title">Records</div>
+      <div class="mc-desc">Stats &amp; leaderboard</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== AI PICKER ===== -->
+<div class="screen" id="aiPickerScreen">
+  <h2 style="margin-top:80px">VS <span style="color:var(--accent)">Computer</span></h2>
+  <p style="color:var(--text2);margin:8px 0 4px">Select format</p>
+  <div class="bestof-row" id="aiBestOf">
+    <button class="bestof-btn active" onclick="setBestOf(3,this)">Best of 3</button>
+    <button class="bestof-btn" onclick="setBestOf(5,this)">Best of 5</button>
+    <button class="bestof-btn" onclick="setBestOf(7,this)">Best of 7</button>
+  </div>
+  <p style="color:var(--text2);margin:8px 0 4px">Select difficulty</p>
+  <div class="diff-grid">
+    <button class="btn btn-accent" onclick="startAiGame('easy')">Easy</button>
+    <div class="diff-label">Pure random picks</div>
+    <button class="btn btn-gold" onclick="startAiGame('medium')">Medium</button>
+    <div class="diff-label">Reads your patterns a little</div>
+    <button class="btn btn-red" onclick="startAiGame('hard')">Hard</button>
+    <div class="diff-label">Strong pattern detection</div>
+    <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&larr; Back</button>
+  </div>
+</div>
+
+<!-- ===== MULTIPLAYER LOBBY ===== -->
+<div class="screen" id="multiplayerScreen">
+  <h2 style="margin-top:80px">Quick <span style="color:var(--accent)">Match</span></h2>
+  <p style="color:var(--text2);margin:8px 0 16px">Play against a friend online</p>
+  <p style="color:var(--text2);margin-bottom:4px">Select format</p>
+  <div class="bestof-row" id="mpBestOf">
+    <button class="bestof-btn active" onclick="setBestOf(3,this)">Best of 3</button>
+    <button class="bestof-btn" onclick="setBestOf(5,this)">Best of 5</button>
+    <button class="bestof-btn" onclick="setBestOf(7,this)">Best of 7</button>
+  </div>
+  <button class="btn btn-accent" onclick="createRoom()" style="margin-top:8px">Create Room</button>
+  <div class="divider"><span>or join</span></div>
+  <div class="join-row">
+    <input class="code-input" id="codeInput" type="text" maxlength="4" placeholder="CODE" inputmode="numeric">
+    <button class="btn btn-blue btn-small" onclick="joinRoom()">Join</button>
+  </div>
+  <div class="error-text" id="lobbyError"></div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&larr; Back</button>
+</div>
+
+<!-- ===== WAITING ROOM ===== -->
+<div class="screen" id="waitingScreen">
+  <h2 style="margin-top:80px">Room Created!</h2>
+  <p style="color:var(--text2)">Share this code with your opponent:</p>
+  <div class="room-code" id="roomCodeDisplay"></div>
+  <p class="waiting-text">Waiting for opponent to join...</p>
+  <button class="btn btn-outline btn-small" onclick="cancelRoom()" style="margin-top:16px">Cancel</button>
+</div>
+
+<!-- ===== GAME SCREEN ===== -->
+<div class="screen" id="gameScreen">
+  <div class="game-header">
+    <div class="game-player left">
+      <div class="gp-name" id="p1Name">You</div>
+      <div class="gp-score" id="p1Score">0</div>
+    </div>
+    <div class="game-vs">VS</div>
+    <div class="game-player right">
+      <div class="gp-name" id="p2Name">Opponent</div>
+      <div class="gp-score" id="p2Score">0</div>
+    </div>
+  </div>
+  <div class="game-best-of" id="gameBestOfLabel">Best of 3</div>
+
+  <div class="round-history" id="roundHistory"></div>
+
+  <div class="arena">
+    <div class="arena-side">
+      <div class="arena-emoji" id="arenaLeft">&#x270A;</div>
+      <div class="arena-label" id="arenaLeftLabel">You</div>
+    </div>
+    <div class="arena-divider">VS</div>
+    <div class="arena-side">
+      <div class="arena-emoji" id="arenaRight">&#x2753;</div>
+      <div class="arena-label" id="arenaRightLabel">Opponent</div>
+    </div>
+  </div>
+
+  <div class="round-banner" id="roundBanner"></div>
+  <div class="status-text" id="statusText">Choose your move!</div>
+
+  <div class="choices" id="choicesArea">
+    <button class="choice-btn rock" onclick="makeChoice('rock')">
+      <span class="cb-emoji">&#x1FAA8;</span>
+      <span class="cb-label">Rock</span>
+    </button>
+    <button class="choice-btn paper" onclick="makeChoice('paper')">
+      <span class="cb-emoji">&#x1F4C4;</span>
+      <span class="cb-label">Paper</span>
+    </button>
+    <button class="choice-btn scissors" onclick="makeChoice('scissors')">
+      <span class="cb-emoji">&#x2702;&#xFE0F;</span>
+      <span class="cb-label">Scissors</span>
+    </button>
+  </div>
+  <button class="btn btn-outline btn-small" id="gameLeaveBtn" onclick="leaveGame()" style="margin-top:8px">&larr; Leave</button>
+</div>
+
+<!-- ===== MATCH RESULT ===== -->
+<div class="screen" id="resultScreen">
+  <div class="result-wrap">
+    <h2 id="resultTitle">You Win!</h2>
+    <div class="final-score" id="finalScore"><span class="fs-win">3</span> - <span class="fs-lose">1</span></div>
+    <div class="result-sub" id="resultSub"></div>
+    <div class="coins-display" id="coinsDisplay"></div>
+    <div class="result-buttons">
+      <button class="btn btn-accent" onclick="playAgain()">Play Again</button>
+      <a class="btn btn-outline" id="resultBackLink" href="../../student.html">Back to Hub</a>
+    </div>
+  </div>
+</div>
+
+<!-- ===== RECORDS ===== -->
+<div class="screen" id="recordsScreen">
+  <h2 style="margin-top:80px">Your <span style="color:var(--accent)">Records</span></h2>
+  <div class="records-grid" id="recordsGrid">
+    <div class="no-records">Loading...</div>
+  </div>
+  <h3 style="margin-top:24px;color:var(--gold)">Leaderboard</h3>
+  <div class="leaderboard" id="leaderboard">
+    <div class="no-records">Loading...</div>
+  </div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:20px">&larr; Back</button>
+</div>
+
+<!-- ===== TOURNAMENT LOBBY ===== -->
+<div class="screen" id="tournamentLobbyScreen">
+  <h2 style="margin-top:80px">Tournament <span style="color:var(--gold)">Mode</span></h2>
+  <p style="color:var(--text2);margin:8px 0 16px">Create or join a bracket tournament</p>
+  <button class="btn btn-gold" onclick="createTournament()">Create Tournament</button>
+  <div class="divider"><span>or join</span></div>
+  <div class="join-row">
+    <input class="code-input" id="tourneyCodeInput" type="text" maxlength="4" placeholder="CODE" inputmode="numeric">
+    <button class="btn btn-gold btn-small" onclick="joinTournament()">Join</button>
+  </div>
+  <div class="error-text" id="tourneyError"></div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&larr; Back</button>
+</div>
+
+<!-- ===== TOURNAMENT WAITING ===== -->
+<div class="screen" id="tournamentWaitingScreen">
+  <h2 style="margin-top:80px">Tournament Lobby</h2>
+  <div class="tourney-info">
+    <div class="ti-code" id="tourneyCodeDisplay"></div>
+    <div class="ti-status" id="tourneyStatus">Share the code - waiting for players...</div>
+  </div>
+  <div class="players-list" id="tourneyPlayersList"></div>
+  <div style="display:flex;gap:10px;margin-top:16px">
+    <button class="btn btn-gold btn-small" id="startTourneyBtn" onclick="startTournament()" disabled>Start Tournament</button>
+    <button class="btn btn-outline btn-small" onclick="leaveTournament()">Leave</button>
+  </div>
+</div>
+
+<!-- ===== TOURNAMENT BRACKET ===== -->
+<div class="screen" id="tournamentBracketScreen">
+  <h2 style="margin-top:80px">Tournament <span style="color:var(--gold)">Bracket</span></h2>
+  <div class="tourney-info" style="margin-bottom:8px">
+    <div class="ti-status" id="bracketStatus">Tournament in progress...</div>
+  </div>
+  <div class="bracket-area" id="bracketArea"></div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&larr; Back</button>
+</div>
+
+<!-- ===== COUNTDOWN OVERLAY ===== -->
+<div class="countdown-overlay" id="countdownOverlay" style="display:none">
+  <div class="countdown-num" id="countdownNum">3</div>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script type="module">
+import{initializeApp,getApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import{getFirestore,doc,getDoc,setDoc,updateDoc,onSnapshot,deleteDoc,increment,collection,query,where,orderBy,limit,getDocs}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+const cfg=ODA_CONFIG.firebase;
+let app;try{app=getApp()}catch(e){app=initializeApp(cfg)}
+const db=getFirestore(app);
+
+// ===== SESSION =====
+const studentId=sessionStorage.getItem('studentId')||'anon_'+Math.random().toString(36).slice(2,8);
+const studentName=sessionStorage.getItem('studentName')||'Player';
+const classCode=sessionStorage.getItem('classCode')||'';
+
+// Teacher/student back link detection
+const isTeacher=!sessionStorage.getItem('studentId')&&(sessionStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher');
+if(isTeacher){
+  document.getElementById('backLink').href='../../teacher.html';
+  document.getElementById('resultBackLink').href='../../teacher.html';
+}
+
+// ===== CONSTANTS =====
+const EMOJI={rock:'\u{1FAA8}',paper:'\u{1F4C4}',scissors:'\u2702\uFE0F'};
+const EMOJI_HAND={rock:'\u270A',paper:'\u270B',scissors:'\u270C\uFE0F'};
+const CHOICE_NAMES={rock:'Rock',paper:'Paper',scissors:'Scissors'};
+const WINS_OVER={rock:'scissors',paper:'rock',scissors:'paper'};
+
+// ===== STATE =====
+let bestOf=3;
+let gameMode=null; // 'ai','mp'
+let aiDifficulty='medium';
+let myScore=0,oppScore=0;
+let currentRound=1;
+let history=[]; // [{round,myChoice,oppChoice,result}]
+let myChoice=null;
+let matchOver=false;
+let coinsAwarded=false;
+let roomCode=null;
+let myPlayer=0; // 1 or 2
+let unsub=null;
+
+// AI pattern tracking
+let playerHistory=[];
+
+// ===== AUDIO (Web Audio API) =====
+let audioCtx=null;
+function getAudio(){
+  if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  return audioCtx;
+}
+function playTone(freq,dur,type='sine',vol=0.15){
+  try{
+    const ctx=getAudio();
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+    osc.type=type;
+    osc.frequency.value=freq;
+    gain.gain.value=vol;
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime+dur);
+  }catch(e){}
+}
+function sfxCountdown(n){
+  const freqs=[440,554,659,880];
+  playTone(freqs[3-n]||880,0.2,'square',0.1);
+}
+function sfxReveal(){playTone(600,0.15,'sawtooth',0.08);setTimeout(()=>playTone(800,0.15,'sawtooth',0.08),80)}
+function sfxWin(){playTone(523,0.15,'sine',0.12);setTimeout(()=>playTone(659,0.15,'sine',0.12),120);setTimeout(()=>playTone(784,0.25,'sine',0.12),240)}
+function sfxLose(){playTone(300,0.3,'sawtooth',0.08);setTimeout(()=>playTone(220,0.4,'sawtooth',0.08),200)}
+function sfxDraw(){playTone(440,0.2,'triangle',0.1);setTimeout(()=>playTone(440,0.2,'triangle',0.1),250)}
+function sfxMatchWin(){
+  [523,587,659,698,784,880,988,1047].forEach((f,i)=>{
+    setTimeout(()=>playTone(f,0.2,'sine',0.12),i*80);
+  });
+}
+function sfxMatchLose(){
+  playTone(350,0.4,'sawtooth',0.1);
+  setTimeout(()=>playTone(280,0.4,'sawtooth',0.1),300);
+  setTimeout(()=>playTone(200,0.6,'sawtooth',0.1),600);
+}
+
+// ===== SCREEN MANAGEMENT =====
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+window.showScreen=showScreen;
+
+function genCode(){return String(Math.floor(1000+Math.random()*9000))}
+
+function showError(elId,msg){
+  const el=document.getElementById(elId);
+  el.textContent=msg;
+  setTimeout(()=>{el.textContent=''},3000);
+}
+
+// ===== BEST-OF SELECTOR =====
+window.setBestOf=function(n,btn){
+  bestOf=n;
+  const row=btn.parentElement;
+  row.querySelectorAll('.bestof-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+};
+
+// ===== HOME NAVIGATION =====
+window.showAiPicker=function(){showScreen('aiPickerScreen')};
+window.showMultiplayer=function(){showScreen('multiplayerScreen')};
+window.showTournamentLobby=function(){showScreen('tournamentLobbyScreen')};
+
+// ===== GAME INITIALIZATION =====
+function initGameState(){
+  myScore=0;oppScore=0;currentRound=1;history=[];myChoice=null;matchOver=false;coinsAwarded=false;
+}
+
+function setupGameUI(oppName){
+  document.getElementById('p1Name').textContent=studentName||'You';
+  document.getElementById('p2Name').textContent=oppName;
+  document.getElementById('p1Score').textContent='0';
+  document.getElementById('p2Score').textContent='0';
+  document.getElementById('gameBestOfLabel').textContent='Best of '+bestOf;
+  document.getElementById('arenaLeftLabel').textContent=studentName||'You';
+  document.getElementById('arenaRightLabel').textContent=oppName;
+  document.getElementById('arenaLeft').innerHTML='\u270A';
+  document.getElementById('arenaRight').innerHTML='\u2753';
+  document.getElementById('roundBanner').innerHTML='';
+  document.getElementById('roundBanner').className='round-banner';
+  document.getElementById('statusText').textContent='Choose your move!';
+  enableChoices(true);
+  renderRoundHistory();
+}
+
+// ===== AI GAME =====
+window.startAiGame=function(diff){
+  gameMode='ai';
+  aiDifficulty=diff;
+  playerHistory=[];
+  initGameState();
+  setupGameUI(diff.charAt(0).toUpperCase()+diff.slice(1)+' AI');
+  showScreen('gameScreen');
+};
+
+function getAiChoice(diff){
+  if(diff==='easy'){
+    return ['rock','paper','scissors'][Math.floor(Math.random()*3)];
+  }
+  if(diff==='medium'){
+    if(playerHistory.length<2||Math.random()>0.4){
+      return ['rock','paper','scissors'][Math.floor(Math.random()*3)];
+    }
+    const last5=playerHistory.slice(-5);
+    const counts={rock:0,paper:0,scissors:0};
+    last5.forEach(m=>counts[m]++);
+    let mostPlayed='rock',maxC=0;
+    for(const m in counts){if(counts[m]>maxC){maxC=counts[m];mostPlayed=m}}
+    return WINS_OVER[WINS_OVER[mostPlayed]]||['rock','paper','scissors'][Math.floor(Math.random()*3)];
+  }
+  // Hard: strong pattern detection
+  if(playerHistory.length<3||Math.random()>0.7){
+    // Even hard has 30% random to not be impossible
+    if(playerHistory.length>=3){
+      // Still try to counter on the random path sometimes
+    }
+    // Try frequency bias
+    if(playerHistory.length>=5){
+      const counts={rock:0,paper:0,scissors:0};
+      playerHistory.slice(-10).forEach(m=>counts[m]++);
+      let mostPlayed='rock',maxC=0;
+      for(const m in counts){if(counts[m]>maxC){maxC=counts[m];mostPlayed=m}}
+      // Counter the most played
+      return WINS_OVER[WINS_OVER[mostPlayed]];
+    }
+    return ['rock','paper','scissors'][Math.floor(Math.random()*3)];
+  }
+  // 70%: detect patterns
+  const last=playerHistory.slice(-10);
+  const counts={rock:0,paper:0,scissors:0};
+  last.forEach(m=>counts[m]++);
+
+  // Check for sequences (if player alternates, predict next)
+  if(last.length>=3){
+    const l1=last[last.length-1],l2=last[last.length-2];
+    // If last two same, they might switch
+    if(l1===l2){
+      // Predict they'll play something else - counter the most likely switch
+      const others=['rock','paper','scissors'].filter(m=>m!==l1);
+      const predicted=others[Math.floor(Math.random()*others.length)];
+      return WINS_OVER[WINS_OVER[predicted]];
+    }
+    // If alternating between two, predict continuation
+    if(last.length>=4&&last[last.length-3]===l1&&last[last.length-4]===l2){
+      return WINS_OVER[WINS_OVER[l1]]; // counter the next in alternation
+    }
+  }
+
+  // Frequency bias counter
+  let mostPlayed='rock',maxC=0;
+  for(const m in counts){if(counts[m]>maxC){maxC=counts[m];mostPlayed=m}}
+  return WINS_OVER[WINS_OVER[mostPlayed]];
+}
+
+function determineWinner(c1,c2){
+  if(c1===c2)return 'draw';
+  if(WINS_OVER[c1]===c2)return 'win';
+  return 'lose';
+}
+
+// ===== MAKE CHOICE (shared entry point) =====
+window.makeChoice=function(choice){
+  if(matchOver||myChoice)return;
+  myChoice=choice;
+
+  if(gameMode==='ai'){
+    processAiRound(choice);
+  }else if(gameMode==='mp'){
+    submitMpChoice(choice);
+  }
+};
+
+async function processAiRound(choice){
+  playerHistory.push(choice);
+  enableChoices(false);
+  highlightChoice(choice);
+  const oppChoice=getAiChoice(aiDifficulty);
+
+  // Set shake animation
+  document.getElementById('arenaLeft').innerHTML='\u270A';
+  document.getElementById('arenaLeft').className='arena-emoji shake';
+  document.getElementById('arenaRight').innerHTML='\u270A';
+  document.getElementById('arenaRight').className='arena-emoji shake';
+  document.getElementById('statusText').textContent='';
+  document.getElementById('roundBanner').innerHTML='';
+  document.getElementById('roundBanner').className='round-banner';
+
+  // Countdown
+  await runCountdown();
+
+  // Reveal
+  revealChoices(choice,oppChoice);
+}
+
+async function runCountdown(){
+  const overlay=document.getElementById('countdownOverlay');
+  const numEl=document.getElementById('countdownNum');
+  overlay.style.display='flex';
+
+  for(let i=3;i>=1;i--){
+    numEl.textContent=i;
+    numEl.className='countdown-num';
+    sfxCountdown(i);
+    void numEl.offsetWidth; // force reflow
+    numEl.className='countdown-num';
+    await sleep(600);
+  }
+  numEl.textContent='GO!';
+  numEl.className='countdown-num go';
+  sfxCountdown(0);
+  await sleep(400);
+  overlay.style.display='none';
+}
+
+function revealChoices(myC,oppC){
+  sfxReveal();
+  const leftEl=document.getElementById('arenaLeft');
+  const rightEl=document.getElementById('arenaRight');
+
+  leftEl.innerHTML=EMOJI[myC];
+  leftEl.className='arena-emoji reveal-left';
+  rightEl.innerHTML=EMOJI[oppC];
+  rightEl.className='arena-emoji reveal-right';
+
+  const result=determineWinner(myC,oppC);
+
+  setTimeout(()=>{
+    // Apply winner/loser styling
+    if(result==='win'){
+      leftEl.classList.add('winner');
+      rightEl.classList.add('loser');
+      myScore++;
+      sfxWin();
+    }else if(result==='lose'){
+      leftEl.classList.add('loser');
+      rightEl.classList.add('winner');
+      oppScore++;
+      sfxLose();
+    }else{
+      leftEl.classList.add('draw-result');
+      rightEl.classList.add('draw-result');
+      sfxDraw();
+    }
+
+    document.getElementById('p1Score').textContent=myScore;
+    document.getElementById('p2Score').textContent=oppScore;
+
+    // Round banner
+    const banner=document.getElementById('roundBanner');
+    if(result==='win'){
+      banner.textContent=CHOICE_NAMES[myC]+' beats '+CHOICE_NAMES[oppC]+' - YOU WIN!';
+      banner.className='round-banner win';
+    }else if(result==='lose'){
+      banner.textContent=CHOICE_NAMES[oppC]+' beats '+CHOICE_NAMES[myC]+' - YOU LOSE!';
+      banner.className='round-banner lose';
+    }else{
+      banner.textContent='Both chose '+CHOICE_NAMES[myC]+' - DRAW!';
+      banner.className='round-banner draw';
+    }
+
+    history.push({round:currentRound,myChoice:myC,oppChoice:oppC,result});
+    currentRound++;
+    renderRoundHistory();
+
+    // Check match over
+    const winsNeeded=Math.ceil(bestOf/2);
+    if(myScore>=winsNeeded||oppScore>=winsNeeded){
+      matchOver=true;
+      setTimeout(()=>showMatchResult(),1500);
+    }else{
+      document.getElementById('statusText').textContent='Next round - choose your move!';
+      setTimeout(()=>{
+        myChoice=null;
+        enableChoices(true);
+        resetArena();
+      },1800);
+    }
+  },500);
+}
+
+function resetArena(){
+  document.getElementById('arenaLeft').innerHTML='\u270A';
+  document.getElementById('arenaLeft').className='arena-emoji';
+  document.getElementById('arenaRight').innerHTML='\u2753';
+  document.getElementById('arenaRight').className='arena-emoji';
+  document.getElementById('roundBanner').innerHTML='';
+  document.getElementById('roundBanner').className='round-banner';
+  document.querySelectorAll('.choice-btn').forEach(b=>b.classList.remove('selected'));
+}
+
+function enableChoices(enable){
+  document.querySelectorAll('.choice-btn').forEach(b=>{
+    if(enable){b.classList.remove('disabled')}
+    else{b.classList.add('disabled')}
+  });
+}
+
+function highlightChoice(choice){
+  document.querySelectorAll('.choice-btn').forEach(b=>{
+    b.classList.remove('selected');
+    if(b.classList.contains(choice))b.classList.add('selected');
+  });
+}
+
+function renderRoundHistory(){
+  const el=document.getElementById('roundHistory');
+  const totalRounds=bestOf;
+  let html='';
+  for(let i=0;i<totalRounds;i++){
+    if(i<history.length){
+      const h=history[i];
+      html+='<div class="rh-dot '+h.result+'" title="R'+(i+1)+': '+CHOICE_NAMES[h.myChoice]+' vs '+CHOICE_NAMES[h.oppChoice]+'">';
+      html+=h.result==='win'?'W':h.result==='lose'?'L':'D';
+      html+='</div>';
+    }else{
+      html+='<div class="rh-dot pending">'+(i+1)+'</div>';
+    }
+  }
+  el.innerHTML=html;
+}
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+
+// ===== MATCH RESULT =====
+function showMatchResult(){
+  showScreen('resultScreen');
+  const titleEl=document.getElementById('resultTitle');
+  const scoreEl=document.getElementById('finalScore');
+  const subEl=document.getElementById('resultSub');
+  const coinsEl=document.getElementById('coinsDisplay');
+
+  const iWon=myScore>oppScore;
+  const isDraw=myScore===oppScore;
+
+  scoreEl.innerHTML='<span class="fs-win">'+myScore+'</span> - <span class="fs-lose">'+oppScore+'</span>';
+
+  let coins=0;
+  if(gameMode==='ai'){
+    if(iWon){
+      titleEl.textContent='You Win!';
+      titleEl.style.color='var(--accent)';
+      coins=aiDifficulty==='hard'?15:aiDifficulty==='medium'?10:5;
+      subEl.textContent='Defeated '+aiDifficulty+' AI';
+      sfxMatchWin();
+      launchConfetti();
+    }else{
+      titleEl.textContent='AI Wins!';
+      titleEl.style.color='var(--accent3)';
+      coins=2;
+      subEl.textContent='Better luck next time!';
+      sfxMatchLose();
+    }
+  }else{
+    if(iWon){
+      titleEl.textContent='You Win!';
+      titleEl.style.color='var(--accent)';
+      coins=15;
+      subEl.textContent='Great match!';
+      sfxMatchWin();
+      launchConfetti();
+    }else if(isDraw){
+      titleEl.textContent='Draw!';
+      titleEl.style.color='var(--gold)';
+      coins=3;
+      subEl.textContent='Evenly matched!';
+    }else{
+      titleEl.textContent='You Lose!';
+      titleEl.style.color='var(--accent3)';
+      coins=2;
+      subEl.textContent='Better luck next time!';
+      sfxMatchLose();
+    }
+  }
+
+  coinsEl.innerHTML='\u{1FA99} +'+coins+' Coins';
+
+  if(!coinsAwarded){
+    coinsAwarded=true;
+    awardCoins(coins);
+    updateRecord(iWon,isDraw);
+  }
+}
+
+window.playAgain=function(){
+  if(unsub){unsub();unsub=null}
+  roomCode=null;myPlayer=0;
+  showScreen('homeScreen');
+};
+
+// ===== COINS & RECORDS =====
+async function awardCoins(coins){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    await updateDoc(doc(db,'students',studentId),{coins:increment(coins)});
+  }catch(e){console.warn('Coin award failed:',e)}
+}
+
+async function updateRecord(won,draw){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  const ref=doc(db,'rpsRecords',studentId);
+  try{
+    const snap=await getDoc(ref);
+    if(snap.exists()){
+      const d=snap.data();
+      const upd={gamesPlayed:increment(1)};
+      if(won){
+        upd.wins=increment(1);
+        const newStreak=(d.winStreak||0)+1;
+        upd.winStreak=newStreak;
+        if(newStreak>(d.bestStreak||0))upd.bestStreak=newStreak;
+      }else if(draw){
+        upd.draws=increment(1);
+        upd.winStreak=0;
+      }else{
+        upd.losses=increment(1);
+        upd.winStreak=0;
+      }
+      await updateDoc(ref,upd);
+    }else{
+      await setDoc(ref,{
+        studentId,studentName,classCode,
+        wins:won?1:0,losses:(!won&&!draw)?1:0,draws:draw?1:0,
+        gamesPlayed:1,winStreak:won?1:0,bestStreak:won?1:0
+      });
+    }
+  }catch(e){console.warn('Record update failed:',e)}
+}
+
+// ===== RECORDS SCREEN =====
+window.showRecords=async function(){
+  showScreen('recordsScreen');
+  const grid=document.getElementById('recordsGrid');
+  const lb=document.getElementById('leaderboard');
+
+  // Load personal stats
+  if(!studentId||studentId.startsWith('anon_')){
+    grid.innerHTML='<div class="no-records">Sign in to track records</div>';
+  }else{
+    try{
+      const snap=await getDoc(doc(db,'rpsRecords',studentId));
+      if(snap.exists()){
+        const d=snap.data();
+        const winRate=d.gamesPlayed>0?Math.round((d.wins/d.gamesPlayed)*100):0;
+        grid.innerHTML=`
+          <div class="stat-row"><span class="sr-label">Games Played</span><span class="sr-val">${d.gamesPlayed||0}</span></div>
+          <div class="stat-row"><span class="sr-label">Wins</span><span class="sr-val" style="color:var(--accent)">${d.wins||0}</span></div>
+          <div class="stat-row"><span class="sr-label">Losses</span><span class="sr-val" style="color:var(--accent3)">${d.losses||0}</span></div>
+          <div class="stat-row"><span class="sr-label">Draws</span><span class="sr-val" style="color:var(--gold)">${d.draws||0}</span></div>
+          <div class="stat-row"><span class="sr-label">Win Rate</span><span class="sr-val">${winRate}%</span></div>
+          <div class="stat-row"><span class="sr-label">Current Streak</span><span class="sr-val">${d.winStreak||0}</span></div>
+          <div class="stat-row"><span class="sr-label">Best Streak</span><span class="sr-val" style="color:var(--gold)">${d.bestStreak||0}</span></div>
+        `;
+      }else{
+        grid.innerHTML='<div class="no-records">No games played yet - get started!</div>';
+      }
+    }catch(e){
+      grid.innerHTML='<div class="no-records">Could not load records</div>';
+    }
+  }
+
+  // Load leaderboard
+  try{
+    const q2=query(collection(db,'rpsRecords'),orderBy('wins','desc'),limit(10));
+    const snap2=await getDocs(q2);
+    if(snap2.empty){
+      lb.innerHTML='<div class="no-records">No records yet</div>';
+    }else{
+      let html='';
+      let rank=0;
+      snap2.forEach(d=>{
+        rank++;
+        const data=d.data();
+        const rankClass=rank===1?'gold':rank===2?'silver':rank===3?'bronze':'';
+        const medal=rank===1?'\u{1F947}':rank===2?'\u{1F948}':rank===3?'\u{1F949}':'';
+        html+=`<div class="lb-entry">
+          <span class="lb-rank ${rankClass}">${medal||rank}</span>
+          <span class="lb-name">${esc(data.studentName||'Player')}</span>
+          <span class="lb-stat">${data.wins||0}W - ${data.losses||0}L</span>
+        </div>`;
+      });
+      lb.innerHTML=html;
+    }
+  }catch(e){
+    lb.innerHTML='<div class="no-records">Could not load leaderboard</div>';
+  }
+};
+
+// ===== MULTIPLAYER =====
+window.createRoom=async function(){
+  try{
+    gameMode='mp';
+    initGameState();
+    roomCode=genCode();
+    let ref=doc(db,'rpsGames',roomCode);
+    let snap=await getDoc(ref);
+    if(snap.exists()){roomCode=genCode();ref=doc(db,'rpsGames',roomCode)}
+    await setDoc(ref,{
+      gameCode:roomCode,
+      player1:studentId,
+      player1Name:studentName,
+      player2:null,
+      player2Name:null,
+      status:'waiting',
+      bestOf,
+      round:1,
+      player1Score:0,
+      player2Score:0,
+      player1Choice:null,
+      player2Choice:null,
+      history:{},
+      winner:null
+    });
+    document.getElementById('roomCodeDisplay').textContent=roomCode;
+    myPlayer=1;
+    showScreen('waitingScreen');
+    listenToGame();
+  }catch(e){
+    console.error('createRoom error:',e);
+    showError('lobbyError','Failed to create room. Try again.');
+  }
+};
+
+window.joinRoom=async function(){
+  const code=document.getElementById('codeInput').value.trim().toUpperCase();
+  if(code.length!==4){showError('lobbyError','Enter a 4-digit code');return}
+  try{
+    const ref=doc(db,'rpsGames',code);
+    const snap=await getDoc(ref);
+    if(!snap.exists()){showError('lobbyError','Room not found');return}
+    const data=snap.data();
+    if(data.status!=='waiting'){showError('lobbyError','Game already in progress');return}
+    if(data.player1===studentId){showError('lobbyError','You can\'t join your own game');return}
+
+    gameMode='mp';
+    initGameState();
+    roomCode=code;
+    myPlayer=2;
+    bestOf=data.bestOf||3;
+    await updateDoc(ref,{player2:studentId,player2Name:studentName,status:'playing'});
+    listenToGame();
+  }catch(e){
+    showError('lobbyError','Error joining room');
+  }
+};
+
+window.cancelRoom=async function(){
+  if(roomCode){
+    try{await deleteDoc(doc(db,'rpsGames',roomCode))}catch(e){}
+  }
+  if(unsub){unsub();unsub=null}
+  roomCode=null;
+  showScreen('homeScreen');
+};
+
+window.leaveGame=function(){
+  if(unsub){unsub();unsub=null}
+  if(roomCode&&!matchOver){
+    try{deleteDoc(doc(db,'rpsGames',roomCode))}catch(e){}
+  }
+  roomCode=null;gameMode=null;
+  showScreen('homeScreen');
+};
+
+function listenToGame(){
+  const ref=doc(db,'rpsGames',roomCode);
+  unsub=onSnapshot(ref,snap=>{
+    if(!snap.exists()){
+      if(!matchOver){showScreen('homeScreen')}
+      if(unsub){unsub();unsub=null}
+      return;
+    }
+    const data=snap.data();
+
+    if(data.status==='waiting')return;
+
+    if(data.status==='playing'){
+      showScreen('gameScreen');
+      const oppName=myPlayer===1?(data.player2Name||'Opponent'):(data.player1Name||'Opponent');
+      document.getElementById('p1Name').textContent=studentName||'You';
+      document.getElementById('p2Name').textContent=oppName;
+      document.getElementById('arenaLeftLabel').textContent=studentName||'You';
+      document.getElementById('arenaRightLabel').textContent=oppName;
+      document.getElementById('gameBestOfLabel').textContent='Best of '+(data.bestOf||3);
+
+      const ms=myPlayer===1?data.player1Score:data.player2Score;
+      const os=myPlayer===1?data.player2Score:data.player1Score;
+      document.getElementById('p1Score').textContent=ms;
+      document.getElementById('p2Score').textContent=os;
+      myScore=ms;oppScore=os;
+
+      // Rebuild history
+      history=[];
+      if(data.history){
+        const keys=Object.keys(data.history).sort((a,b)=>parseInt(a)-parseInt(b));
+        keys.forEach(k=>{
+          const h=data.history[k];
+          const myC=myPlayer===1?h.p1:h.p2;
+          const oppC=myPlayer===1?h.p2:h.p1;
+          const res=h.winner==='draw'?'draw':((myPlayer===1&&h.winner==='p1')||(myPlayer===2&&h.winner==='p2'))?'win':'lose';
+          history.push({round:parseInt(k),myChoice:myC,oppChoice:oppC,result:res});
+        });
+      }
+      bestOf=data.bestOf||3;
+      renderRoundHistory();
+
+      // Check if both have chosen
+      const myC=myPlayer===1?data.player1Choice:data.player2Choice;
+      const oppC=myPlayer===1?data.player2Choice:data.player1Choice;
+
+      if(myC&&!oppC){
+        // I've chosen, waiting for opponent
+        enableChoices(false);
+        highlightChoice(myC);
+        document.getElementById('arenaLeft').innerHTML=EMOJI[myC];
+        document.getElementById('arenaLeft').className='arena-emoji';
+        document.getElementById('arenaRight').innerHTML='\u2753';
+        document.getElementById('arenaRight').className='arena-emoji';
+        document.getElementById('statusText').textContent='Waiting for opponent...';
+        document.getElementById('roundBanner').innerHTML='';
+        document.getElementById('roundBanner').className='round-banner';
+      }else if(!myC&&!oppC){
+        // Neither has chosen (new round)
+        if(!matchOver){
+          myChoice=null;
+          enableChoices(true);
+          resetArena();
+          document.getElementById('statusText').textContent='Choose your move! Round '+(data.round||1);
+          document.querySelectorAll('.choice-btn').forEach(b=>b.classList.remove('selected'));
+        }
+      }else if(myC&&oppC){
+        // Both chosen - reveal! (process only once)
+        enableChoices(false);
+        if(!myChoice||myChoice==='_revealed'){
+          // We see both choices - run the reveal
+          myChoice='_revealed';
+          runMpReveal(myC,oppC,data);
+        }
+      }else if(!myC&&oppC){
+        // Opponent chose but we haven't
+        if(!matchOver){
+          myChoice=null;
+          enableChoices(true);
+          document.getElementById('arenaRight').innerHTML='\u2753';
+          document.getElementById('arenaRight').className='arena-emoji';
+          document.getElementById('statusText').textContent='Opponent is ready - choose your move!';
+        }
+      }
+    }
+
+    if(data.status==='finished'&&!matchOver){
+      matchOver=true;
+      const ms=myPlayer===1?data.player1Score:data.player2Score;
+      const os=myPlayer===1?data.player2Score:data.player1Score;
+      myScore=ms;oppScore=os;
+      showMatchResult();
+    }
+  });
+}
+
+let mpRevealRunning=false;
+async function runMpReveal(myC,oppC,data){
+  if(mpRevealRunning)return;
+  mpRevealRunning=true;
+
+  // Shake
+  document.getElementById('arenaLeft').innerHTML='\u270A';
+  document.getElementById('arenaLeft').className='arena-emoji shake';
+  document.getElementById('arenaRight').innerHTML='\u270A';
+  document.getElementById('arenaRight').className='arena-emoji shake';
+  document.getElementById('statusText').textContent='';
+
+  await runCountdown();
+
+  // Reveal
+  sfxReveal();
+  const leftEl=document.getElementById('arenaLeft');
+  const rightEl=document.getElementById('arenaRight');
+  leftEl.innerHTML=EMOJI[myC];
+  leftEl.className='arena-emoji reveal-left';
+  rightEl.innerHTML=EMOJI[oppC];
+  rightEl.className='arena-emoji reveal-right';
+
+  const result=determineWinner(myC,oppC);
+
+  await sleep(500);
+
+  if(result==='win'){
+    leftEl.classList.add('winner');
+    rightEl.classList.add('loser');
+    sfxWin();
+  }else if(result==='lose'){
+    leftEl.classList.add('loser');
+    rightEl.classList.add('winner');
+    sfxLose();
+  }else{
+    leftEl.classList.add('draw-result');
+    rightEl.classList.add('draw-result');
+    sfxDraw();
+  }
+
+  const banner=document.getElementById('roundBanner');
+  if(result==='win'){
+    banner.textContent=CHOICE_NAMES[myC]+' beats '+CHOICE_NAMES[oppC]+' - YOU WIN!';
+    banner.className='round-banner win';
+  }else if(result==='lose'){
+    banner.textContent=CHOICE_NAMES[oppC]+' beats '+CHOICE_NAMES[myC]+' - YOU LOSE!';
+    banner.className='round-banner lose';
+  }else{
+    banner.textContent='Both chose '+CHOICE_NAMES[myC]+' - DRAW!';
+    banner.className='round-banner draw';
+  }
+
+  // Wait then advance round (only player 1 writes)
+  await sleep(1800);
+  mpRevealRunning=false;
+
+  if(myPlayer===1&&roomCode){
+    try{
+      const ref=doc(db,'rpsGames',roomCode);
+      const snap=await getDoc(ref);
+      if(!snap.exists())return;
+      const d=snap.data();
+
+      let p1s=d.player1Score||0,p2s=d.player2Score||0;
+      const winnerStr=result==='draw'?'draw':(
+        (myPlayer===1&&result==='win')||(myPlayer===2&&result==='lose')?'p1':'p2'
+      );
+      if(winnerStr==='p1')p1s++;
+      else if(winnerStr==='p2')p2s++;
+
+      const hist=d.history||{};
+      hist[String(d.round||1)]={p1:myPlayer===1?myC:oppC,p2:myPlayer===1?oppC:myC,winner:winnerStr};
+
+      const winsNeeded=Math.ceil((d.bestOf||3)/2);
+      const isOver=p1s>=winsNeeded||p2s>=winsNeeded;
+
+      const upd={
+        player1Choice:null,
+        player2Choice:null,
+        player1Score:p1s,
+        player2Score:p2s,
+        history:hist,
+        round:(d.round||1)+1
+      };
+      if(isOver){
+        upd.status='finished';
+        upd.winner=p1s>p2s?'p1':'p2';
+      }
+      await updateDoc(ref,upd);
+    }catch(e){console.error('advance round error:',e)}
+  }
+}
+
+async function submitMpChoice(choice){
+  if(!roomCode)return;
+  myChoice=choice;
+  enableChoices(false);
+  highlightChoice(choice);
+  document.getElementById('arenaLeft').innerHTML=EMOJI[choice];
+  document.getElementById('arenaLeft').className='arena-emoji';
+  document.getElementById('statusText').textContent='Waiting for opponent...';
+
+  try{
+    const field=myPlayer===1?'player1Choice':'player2Choice';
+    await updateDoc(doc(db,'rpsGames',roomCode),{[field]:choice});
+  }catch(e){
+    console.error('submitChoice error:',e);
+    myChoice=null;
+    enableChoices(true);
+    document.getElementById('statusText').textContent='Error - try again!';
+  }
+}
+
+// ===== TOURNAMENT =====
+let tourneyCode=null,tourneyUnsub=null,isTourneyHost=false;
+
+window.createTournament=async function(){
+  try{
+    tourneyCode=genCode();
+    let ref=doc(db,'rpsTournaments',tourneyCode);
+    let snap=await getDoc(ref);
+    if(snap.exists()){tourneyCode=genCode();ref=doc(db,'rpsTournaments',tourneyCode)}
+    isTourneyHost=true;
+    await setDoc(ref,{
+      code:tourneyCode,
+      host:studentId,
+      status:'waiting',
+      players:[{id:studentId,name:studentName}],
+      bracket:null,
+      bestOf:3,
+      createdAt:Date.now()
+    });
+    document.getElementById('tourneyCodeDisplay').textContent=tourneyCode;
+    showScreen('tournamentWaitingScreen');
+    listenToTournament();
+  }catch(e){
+    showError('tourneyError','Failed to create tournament');
+  }
+};
+
+window.joinTournament=async function(){
+  const code=document.getElementById('tourneyCodeInput').value.trim().toUpperCase();
+  if(code.length!==4){showError('tourneyError','Enter a 4-digit code');return}
+  try{
+    const ref=doc(db,'rpsTournaments',code);
+    const snap=await getDoc(ref);
+    if(!snap.exists()){showError('tourneyError','Tournament not found');return}
+    const data=snap.data();
+    if(data.status!=='waiting'){showError('tourneyError','Tournament already started');return}
+    if(data.players.some(p=>p.id===studentId)){showError('tourneyError','Already joined');return}
+    if(data.players.length>=8){showError('tourneyError','Tournament full (max 8)');return}
+
+    tourneyCode=code;
+    isTourneyHost=data.host===studentId;
+    const players=[...data.players,{id:studentId,name:studentName}];
+    await updateDoc(ref,{players});
+    document.getElementById('tourneyCodeDisplay').textContent=tourneyCode;
+    showScreen('tournamentWaitingScreen');
+    listenToTournament();
+  }catch(e){
+    showError('tourneyError','Error joining tournament');
+  }
+};
+
+function listenToTournament(){
+  if(tourneyUnsub)tourneyUnsub();
+  const ref=doc(db,'rpsTournaments',tourneyCode);
+  tourneyUnsub=onSnapshot(ref,snap=>{
+    if(!snap.exists()){
+      showScreen('homeScreen');
+      if(tourneyUnsub){tourneyUnsub();tourneyUnsub=null}
+      return;
+    }
+    const data=snap.data();
+
+    if(data.status==='waiting'){
+      // Update players list
+      const list=document.getElementById('tourneyPlayersList');
+      list.innerHTML=data.players.map((p,i)=>
+        `<div class="pl-entry"><span class="pl-name">${esc(p.name)}</span><span class="pl-status">${p.id===data.host?'Host':'Ready'}</span></div>`
+      ).join('');
+      document.getElementById('tourneyStatus').textContent=data.players.length+' player(s) in lobby - need at least 2';
+      const startBtn=document.getElementById('startTourneyBtn');
+      startBtn.disabled=data.players.length<2||data.host!==studentId;
+      isTourneyHost=data.host===studentId;
+    }
+
+    if(data.status==='active'){
+      showScreen('tournamentBracketScreen');
+      renderBracket(data);
+    }
+
+    if(data.status==='finished'){
+      showScreen('tournamentBracketScreen');
+      renderBracket(data);
+      document.getElementById('bracketStatus').textContent='Tournament Complete!';
+    }
+  });
+}
+
+window.startTournament=async function(){
+  if(!isTourneyHost)return;
+  const ref=doc(db,'rpsTournaments',tourneyCode);
+  const snap=await getDoc(ref);
+  if(!snap.exists())return;
+  const data=snap.data();
+  if(data.players.length<2)return;
+
+  // Build bracket
+  const players=[...data.players];
+  // Shuffle
+  for(let i=players.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [players[i],players[j]]=[players[j],players[i]];
+  }
+
+  // Pad to next power of 2
+  const size=Math.pow(2,Math.ceil(Math.log2(players.length)));
+  while(players.length<size)players.push({id:'bye',name:'BYE'});
+
+  const rounds=Math.log2(size);
+  const bracket={rounds,matches:{}};
+
+  // First round
+  for(let i=0;i<size/2;i++){
+    const matchId='1-'+i;
+    bracket.matches[matchId]={
+      round:1,
+      index:i,
+      p1:players[i*2],
+      p2:players[i*2+1],
+      winner:null,
+      status:players[i*2+1].id==='bye'?'bye':'pending'
+    };
+    // Auto-advance byes
+    if(players[i*2+1].id==='bye'){
+      bracket.matches[matchId].winner=players[i*2];
+    }
+    if(players[i*2].id==='bye'){
+      bracket.matches[matchId].winner=players[i*2+1];
+    }
+  }
+
+  // Create placeholder matches for later rounds
+  for(let r=2;r<=rounds;r++){
+    const matchCount=size/Math.pow(2,r);
+    for(let i=0;i<matchCount;i++){
+      bracket.matches[r+'-'+i]={
+        round:r,index:i,p1:null,p2:null,winner:null,status:'pending'
+      };
+    }
+  }
+
+  await updateDoc(ref,{status:'active',bracket});
+
+  // Advance byes to next rounds
+  await advanceByes(ref,bracket,rounds);
+};
+
+async function advanceByes(ref,bracket,rounds){
+  let changed=false;
+  for(let r=1;r<rounds;r++){
+    const matchCount=Math.pow(2,rounds-r)/2;
+    for(let i=0;i<matchCount;i++){
+      const match=bracket.matches[r+'-'+i];
+      if(match&&match.winner){
+        const nextMatchId=(r+1)+'-'+Math.floor(i/2);
+        const nextMatch=bracket.matches[nextMatchId];
+        if(nextMatch){
+          if(i%2===0)nextMatch.p1=match.winner;
+          else nextMatch.p2=match.winner;
+          changed=true;
+          // Check if next match has a bye
+          if(nextMatch.p1&&nextMatch.p2){
+            if(nextMatch.p1.id==='bye'){nextMatch.winner=nextMatch.p2;nextMatch.status='bye'}
+            if(nextMatch.p2.id==='bye'){nextMatch.winner=nextMatch.p1;nextMatch.status='bye'}
+          }
+        }
+      }
+    }
+  }
+  if(changed){
+    await updateDoc(ref,{bracket});
+  }
+}
+
+function renderBracket(data){
+  const area=document.getElementById('bracketArea');
+  const bracket=data.bracket;
+  if(!bracket){area.innerHTML='<div class="no-records">No bracket data</div>';return}
+
+  let html='<div style="display:flex;gap:24px;overflow-x:auto;padding:8px 0">';
+  for(let r=1;r<=bracket.rounds;r++){
+    const roundName=r===bracket.rounds?'Final':r===bracket.rounds-1?'Semi-Final':'Round '+r;
+    html+='<div class="bracket-round"><div style="text-align:center;font-weight:700;color:var(--gold);margin-bottom:8px;font-size:13px">'+roundName+'</div>';
+    const matchKeys=Object.keys(bracket.matches).filter(k=>k.startsWith(r+'-')).sort((a,b)=>parseInt(a.split('-')[1])-parseInt(b.split('-')[1]));
+    matchKeys.forEach(key=>{
+      const m=bracket.matches[key];
+      const p1Name=m.p1?esc(m.p1.name):'TBD';
+      const p2Name=m.p2?esc(m.p2.name):'TBD';
+      const p1Class=m.winner?(m.winner.id===m.p1?.id?'winner':'loser'):'';
+      const p2Class=m.winner?(m.winner.id===m.p2?.id?'winner':'loser'):'';
+      const isMyMatch=m.p1?.id===studentId||m.p2?.id===studentId;
+      const canPlay=isMyMatch&&m.status==='pending'&&m.p1&&m.p2&&m.p1.id!=='bye'&&m.p2.id!=='bye'&&!m.winner;
+      html+='<div class="bracket-match" style="'+(isMyMatch?'border-color:var(--accent)':'')+'">';
+      html+='<div class="bm-player '+p1Class+'">'+p1Name+'</div>';
+      html+='<div class="bm-vs">vs</div>';
+      html+='<div class="bm-player '+p2Class+'">'+p2Name+'</div>';
+      if(canPlay){
+        html+='<button class="btn btn-accent btn-small" style="width:100%;margin-top:6px" onclick="playTourneyMatch(\''+key+'\')">Play Match</button>';
+      }else if(m.winner){
+        html+='<div style="text-align:center;font-size:11px;color:var(--accent);margin-top:4px">Winner: '+esc(m.winner.name)+'</div>';
+      }
+      html+='</div>';
+    });
+    html+='</div>';
+  }
+  html+='</div>';
+  area.innerHTML=html;
+
+  // Check if tournament is complete
+  const finalKey=bracket.rounds+'-0';
+  const finalMatch=bracket.matches[finalKey];
+  if(finalMatch&&finalMatch.winner){
+    document.getElementById('bracketStatus').textContent='Champion: '+finalMatch.winner.name+'!';
+    // Award tournament coins
+    awardTourneyCoins(data,finalMatch.winner);
+  }
+}
+
+let tourneyCoinsAwarded=false;
+function awardTourneyCoins(data,champion){
+  if(tourneyCoinsAwarded)return;
+  tourneyCoinsAwarded=true;
+  if(!studentId||studentId.startsWith('anon_'))return;
+
+  let coins=5; // participation
+  if(champion.id===studentId)coins=75; // 1st
+  else{
+    // Check if in final (2nd place)
+    const finalKey=data.bracket.rounds+'-0';
+    const finalMatch=data.bracket.matches[finalKey];
+    if(finalMatch&&(finalMatch.p1?.id===studentId||finalMatch.p2?.id===studentId)){
+      coins=40; // 2nd
+    }else{
+      // Check semi-finals (3rd place)
+      const semiKeys=Object.keys(data.bracket.matches).filter(k=>k.startsWith((data.bracket.rounds-1)+'-'));
+      const inSemi=semiKeys.some(k=>{
+        const m=data.bracket.matches[k];
+        return m.p1?.id===studentId||m.p2?.id===studentId;
+      });
+      if(inSemi)coins=20; // 3rd/4th
+    }
+  }
+  awardCoins(coins);
+}
+
+window.playTourneyMatch=function(matchKey){
+  // For tournament matches, we use a simplified version -
+  // create a temporary rpsGames room and resolve the bracket when done
+  // Store the match key for later resolution
+  alert('Tournament match: '+matchKey+'\nFor now, use Quick Match to play, then update the bracket manually.\n\nFull tournament auto-play coming soon!');
+};
+
+window.leaveTournament=function(){
+  if(tourneyUnsub){tourneyUnsub();tourneyUnsub=null}
+  tourneyCode=null;
+  showScreen('homeScreen');
+};
+
+// ===== CONFETTI =====
+function launchConfetti(){
+  const canvas=document.getElementById('confettiCanvas');
+  const ctx=canvas.getContext('2d');
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+
+  const colors=['#06d6a0','#118ab2','#ef476f','#ffd166','#f0f4ff'];
+  const particles=[];
+  for(let i=0;i<120;i++){
+    particles.push({
+      x:canvas.width/2+(Math.random()-.5)*200,
+      y:canvas.height/2,
+      vx:(Math.random()-.5)*18,
+      vy:Math.random()*-18-4,
+      w:Math.random()*10+4,
+      h:Math.random()*6+3,
+      color:colors[Math.floor(Math.random()*colors.length)],
+      rot:Math.random()*360,
+      rotV:(Math.random()-.5)*12,
+      gravity:0.35+Math.random()*0.15
+    });
+  }
+
+  let frame=0;
+  function animate(){
+    frame++;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    let alive=false;
+    particles.forEach(p=>{
+      p.x+=p.vx;
+      p.vy+=p.gravity;
+      p.y+=p.vy;
+      p.rot+=p.rotV;
+      p.vx*=0.99;
+      if(p.y<canvas.height+50){
+        alive=true;
+        ctx.save();
+        ctx.translate(p.x,p.y);
+        ctx.rotate(p.rot*Math.PI/180);
+        ctx.fillStyle=p.color;
+        ctx.globalAlpha=Math.max(0,1-frame/120);
+        ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+        ctx.restore();
+      }
+    });
+    if(alive&&frame<150)requestAnimationFrame(animate);
+    else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  animate();
+}
+
+// ===== INIT =====
+document.getElementById('codeInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter')window.joinRoom();
+});
+document.getElementById('tourneyCodeInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter')window.joinTournament();
+});
+
+</script>
+</body>
+</html>

@@ -1210,6 +1210,13 @@ function showCreateDeck(deck) {
     '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:16px">' +
     '<input type="checkbox" id="deckPublic" ' + (deck && deck.isPublic ? 'checked' : '') + ' style="width:18px;height:18px;accent-color:var(--accent)">' +
     '<span class="text-muted" style="font-weight:600">Share to community library (public)</span></label>' +
+    '<div style="margin-bottom:16px">' +
+    '<label class="label">&#x1F4E5; Import Content</label>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+    '<button class="btn btn-ghost btn-sm" onclick="importFromSpelling()">&#x1F41D; From Spelling Bee</button>' +
+    '</div>' +
+    '<div id="importArea" style="display:none;margin-top:8px"></div>' +
+    '</div>' +
     '<div class="separator"></div>' +
     '<div class="panel-title" style="font-size:18px">&#x1F0CF; Cards (' + editingCards.length + ')</div>' +
     '<div class="card-list" id="cardList"></div>' +
@@ -1369,6 +1376,62 @@ window.aiGenerateDeck = async function() {
 
   btn.disabled = false;
   btn.textContent = '\uD83E\uDD16 Generate with AI';
+};
+
+// ============================================
+// IMPORT: From Spelling Bee
+// ============================================
+window._importedSpellingLists = [];
+window.importFromSpelling = async function() {
+  var area = $('importArea');
+  area.style.display = 'block';
+  area.innerHTML = '<div style="color:var(--text2);font-size:14px"><span style="display:inline-block;width:14px;height:14px;border:2px solid var(--accent2);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px"></span> Loading spelling lists...</div>';
+  try {
+    var fb = await getFirebaseDB();
+    var fs = fb.fsMod;
+    var tid = '';
+    try { var authData = await getFirebaseAuth(); if (authData.auth.currentUser) tid = authData.auth.currentUser.uid; } catch(e) {}
+    if (!tid) { area.innerHTML = '<div style="color:var(--accent3);font-size:13px">Could not determine teacher ID.</div>'; return; }
+    var q = fs.query(fs.collection(fb.db, 'spellingLists'), fs.where('teacherId', '==', tid));
+    var snap = await fs.getDocs(q);
+    var lists = [];
+    snap.forEach(function(d) { lists.push(Object.assign({id: d.id}, d.data())); });
+    if (lists.length === 0) {
+      area.innerHTML = '<div style="color:var(--text2);font-size:13px">No spelling lists found. Create one in Spelling Bee first!</div>';
+      return;
+    }
+    var html = '<select class="input" style="max-width:300px;padding:10px;font-size:14px" onchange="applySpellingImportToFlashcards(this.value)">';
+    html += '<option value="">-- Select a list --</option>';
+    lists.forEach(function(l, i) {
+      html += '<option value="' + i + '">' + esc(l.name || l.title || 'List') + ' (' + (l.words || []).length + ' words)</option>';
+    });
+    html += '</select>';
+    area.innerHTML = html;
+    window._importedSpellingLists = lists;
+  } catch(e) {
+    area.innerHTML = '<div style="color:var(--accent3);font-size:13px">Error loading: ' + esc(e.message) + '</div>';
+  }
+};
+
+window.applySpellingImportToFlashcards = function(idx) {
+  if (idx === '') return;
+  var list = window._importedSpellingLists[parseInt(idx)];
+  if (!list || !list.words) return;
+  var added = 0;
+  list.words.forEach(function(w) {
+    var word = typeof w === 'string' ? w : (w.word || w);
+    var def = typeof w === 'object' ? (w.definition || '') : '';
+    if (!def) def = 'Spell and define: ' + word;
+    if (word) {
+      editingCards.push({ id: genId(), front: word, back: def });
+      added++;
+    }
+  });
+  renderCardList();
+  var area = $('importArea');
+  area.innerHTML = '<div style="color:var(--accent);font-size:13px;font-weight:600">&#x2705; Imported ' + added + ' cards from spelling list!</div>';
+  setTimeout(function() { area.style.display = 'none'; }, 3000);
+  odaToast('Imported ' + added + ' cards from Spelling Bee!', 'success');
 };
 
 // Drag & Drop reorder

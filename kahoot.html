@@ -517,6 +517,16 @@ function showCreateQuiz(editQuiz){
   html += '<div class="form-row"><label class="label">Quiz Title</label><input class="input" id="quizTitle" placeholder="e.g. Chapter 5 Review" value="' + title + '"></div>';
   html += '<div class="form-row"><label class="label">Class Code (optional)</label><input class="input" id="quizClassCode" placeholder="e.g. MATH5A" value="' + (editQuiz ? esc(editQuiz.classCode||'') : esc(classCode)) + '"></div>';
 
+  // Import Content
+  html += '<div style="margin-bottom:16px;margin-top:16px">';
+  html += '<label class="label">&#x1F4E5; Import Content</label>';
+  html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+  html += '<button class="btn btn-surface btn-sm" onclick="importFromSpellingToQuiz()">&#x1F41D; From Spelling Bee</button>';
+  html += '<button class="btn btn-surface btn-sm" onclick="importFromFlashcardsToQuiz()">&#x1F5C2;&#xFE0F; From Flashcards</button>';
+  html += '</div>';
+  html += '<div id="importArea" style="display:none;margin-top:8px"></div>';
+  html += '</div>';
+
   // AI Generator
   html += '<div class="card" style="background:var(--surface2);border-color:var(--accent2);margin-top:16px">';
   html += '<div class="card-title" style="font-size:16px">\uD83E\uDD16 AI Quiz Generator</div>';
@@ -584,6 +594,179 @@ function removeBuilderQ(i){
 function setCorrect(qi, oi){
   builderQuestions[qi].correct = oi;
   renderBuilderQuestions();
+}
+
+// ============================================
+// IMPORT: From Spelling Bee
+// ============================================
+var _importedSpellingLists = [];
+async function importFromSpellingToQuiz() {
+  var area = document.getElementById('importArea');
+  area.style.display = 'block';
+  area.innerHTML = '<div style="color:var(--text2);font-size:14px"><span style="display:inline-block;width:14px;height:14px;border:2px solid var(--accent2);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px"></span> Loading spelling lists...</div>';
+  try {
+    var fb = await getFirebaseDB();
+    var fs = fb.fsMod;
+    var tid = teacherId;
+    if (!tid) { try { var a = await getFirebaseAuth(); if(a.auth.currentUser) tid = a.auth.currentUser.uid; } catch(e){} }
+    if (!tid) { area.innerHTML = '<div style="color:var(--accent3);font-size:13px">Could not determine teacher ID.</div>'; return; }
+    var q = fs.query(fs.collection(fb.db, 'spellingLists'), fs.where('teacherId', '==', tid));
+    var snap = await fs.getDocs(q);
+    var lists = [];
+    snap.forEach(function(d) { lists.push(Object.assign({id: d.id}, d.data())); });
+    if (lists.length === 0) {
+      area.innerHTML = '<div style="color:var(--text2);font-size:13px">No spelling lists found. Create one in Spelling Bee first!</div>';
+      return;
+    }
+    var html = '<select class="input" style="max-width:300px;padding:10px;font-size:14px" onchange="applySpellingImportToQuiz(this.value)">';
+    html += '<option value="">-- Select a list --</option>';
+    lists.forEach(function(l, i) {
+      html += '<option value="' + i + '">' + esc(l.name || l.title || 'List') + ' (' + (l.words || []).length + ' words)</option>';
+    });
+    html += '</select>';
+    area.innerHTML = html;
+    _importedSpellingLists = lists;
+  } catch(e) {
+    area.innerHTML = '<div style="color:var(--accent3);font-size:13px">Error loading: ' + esc(e.message) + '</div>';
+  }
+}
+
+function generateMisspellings(word) {
+  var misspellings = [];
+  var w = word.toLowerCase();
+  // Swap adjacent letters
+  if (w.length > 2) { var s = w.split(''); var i = Math.floor(Math.random()*(w.length-1)); var tmp = s[i]; s[i] = s[i+1]; s[i+1] = tmp; misspellings.push(s.join('')); }
+  // Remove a letter
+  if (w.length > 3) { var ri = Math.floor(Math.random()*w.length); misspellings.push(w.slice(0,ri)+w.slice(ri+1)); }
+  // Double a letter
+  { var di = Math.floor(Math.random()*w.length); misspellings.push(w.slice(0,di)+w[di]+w.slice(di)); }
+  // Replace a vowel
+  var vowels = 'aeiou';
+  for (var vi = 0; vi < w.length && misspellings.length < 4; vi++) {
+    if (vowels.indexOf(w[vi]) > -1) {
+      var rv = vowels[Math.floor(Math.random()*5)];
+      if (rv !== w[vi]) { misspellings.push(w.slice(0,vi)+rv+w.slice(vi+1)); break; }
+    }
+  }
+  // Dedupe and remove the correct answer
+  var unique = [];
+  for (var ui = 0; ui < misspellings.length; ui++) {
+    if (misspellings[ui] !== w && unique.indexOf(misspellings[ui]) === -1) unique.push(misspellings[ui]);
+  }
+  while (unique.length < 3) unique.push(w + 's');
+  return unique.slice(0, 3);
+}
+
+function applySpellingImportToQuiz(idx) {
+  if (idx === '') return;
+  var list = _importedSpellingLists[parseInt(idx)];
+  if (!list || !list.words) return;
+  var added = 0;
+  list.words.forEach(function(w) {
+    var word = typeof w === 'string' ? w : (w.word || w);
+    if (!word) return;
+    var wrong = generateMisspellings(word);
+    var options = [word].concat(wrong);
+    // Correct answer is always index 0 (the real word), shuffle below
+    var correctIdx = 0;
+    // Shuffle options
+    for (var si = options.length - 1; si > 0; si--) {
+      var sj = Math.floor(Math.random() * (si + 1));
+      var tmp = options[si]; options[si] = options[sj]; options[sj] = tmp;
+    }
+    correctIdx = options.indexOf(word);
+    while (options.length < 4) options.push('');
+    builderQuestions.push({
+      text: 'How do you spell: ' + word + '?',
+      options: options.slice(0, 4),
+      correct: correctIdx,
+      timeLimit: 20
+    });
+    added++;
+  });
+  renderBuilderQuestions();
+  var area = document.getElementById('importArea');
+  area.innerHTML = '<div style="color:var(--accent);font-size:13px;font-weight:600">&#x2705; Imported ' + added + ' spelling questions!</div>';
+  setTimeout(function() { area.style.display = 'none'; }, 3000);
+  odaToast('Imported ' + added + ' questions from Spelling Bee!', 'success');
+}
+
+// ============================================
+// IMPORT: From Flashcards
+// ============================================
+var _importedFlashcardDecks = [];
+async function importFromFlashcardsToQuiz() {
+  var area = document.getElementById('importArea');
+  area.style.display = 'block';
+  area.innerHTML = '<div style="color:var(--text2);font-size:14px"><span style="display:inline-block;width:14px;height:14px;border:2px solid var(--accent2);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px"></span> Loading flashcard decks...</div>';
+  try {
+    var fb = await getFirebaseDB();
+    var fs = fb.fsMod;
+    var tid = teacherId;
+    if (!tid) { try { var a = await getFirebaseAuth(); if(a.auth.currentUser) tid = a.auth.currentUser.uid; } catch(e){} }
+    if (!tid) { area.innerHTML = '<div style="color:var(--accent3);font-size:13px">Could not determine teacher ID.</div>'; return; }
+    var q = fs.query(fs.collection(fb.db, 'flashcardDecks'), fs.where('teacherId', '==', tid));
+    var snap = await fs.getDocs(q);
+    var decks = [];
+    snap.forEach(function(d) { decks.push(Object.assign({id: d.id}, d.data())); });
+    if (decks.length === 0) {
+      area.innerHTML = '<div style="color:var(--text2);font-size:13px">No flashcard decks found. Create one in Flashcards first!</div>';
+      return;
+    }
+    var html = '<select class="input" style="max-width:300px;padding:10px;font-size:14px" onchange="applyFlashcardImportToQuiz(this.value)">';
+    html += '<option value="">-- Select a deck --</option>';
+    decks.forEach(function(d, i) {
+      html += '<option value="' + i + '">' + esc(d.title || 'Deck') + ' (' + (d.cards || []).length + ' cards)</option>';
+    });
+    html += '</select>';
+    area.innerHTML = html;
+    _importedFlashcardDecks = decks;
+  } catch(e) {
+    area.innerHTML = '<div style="color:var(--accent3);font-size:13px">Error loading: ' + esc(e.message) + '</div>';
+  }
+}
+
+function applyFlashcardImportToQuiz(idx) {
+  if (idx === '') return;
+  var deck = _importedFlashcardDecks[parseInt(idx)];
+  if (!deck || !deck.cards || deck.cards.length === 0) return;
+  var cards = deck.cards;
+  var allBacks = cards.map(function(c) { return (c.back || '').trim(); }).filter(function(b) { return b; });
+  var added = 0;
+  cards.forEach(function(c) {
+    var question = (c.front || '').trim();
+    var correctAnswer = (c.back || '').trim();
+    if (!question || !correctAnswer) return;
+    // Generate wrong answers from other cards' backs
+    var wrongAnswers = [];
+    var shuffledBacks = allBacks.slice().sort(function() { return Math.random() - 0.5; });
+    for (var wi = 0; wi < shuffledBacks.length && wrongAnswers.length < 3; wi++) {
+      if (shuffledBacks[wi] !== correctAnswer && wrongAnswers.indexOf(shuffledBacks[wi]) === -1) {
+        wrongAnswers.push(shuffledBacks[wi]);
+      }
+    }
+    while (wrongAnswers.length < 3) wrongAnswers.push('N/A');
+    var options = [correctAnswer].concat(wrongAnswers);
+    // Shuffle
+    for (var si = options.length - 1; si > 0; si--) {
+      var sj = Math.floor(Math.random() * (si + 1));
+      var tmp = options[si]; options[si] = options[sj]; options[sj] = tmp;
+    }
+    var correctIdx = options.indexOf(correctAnswer);
+    while (options.length < 4) options.push('');
+    builderQuestions.push({
+      text: question,
+      options: options.slice(0, 4),
+      correct: correctIdx,
+      timeLimit: 20
+    });
+    added++;
+  });
+  renderBuilderQuestions();
+  var area = document.getElementById('importArea');
+  area.innerHTML = '<div style="color:var(--accent);font-size:13px;font-weight:600">&#x2705; Imported ' + added + ' questions from flashcards!</div>';
+  setTimeout(function() { area.style.display = 'none'; }, 3000);
+  odaToast('Imported ' + added + ' questions from Flashcards!', 'success');
 }
 
 // AI Generate

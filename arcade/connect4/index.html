@@ -3,297 +3,864 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Connect 4 - ODA Hub</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<title>Connect 4 - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#a8b2c8}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0e1a;color:#f0f4ff;font-family:'Outfit',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;user-select:none}
-.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.8);border:1px solid #2a3450;border-radius:10px;padding:8px 16px;color:#8892a8;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:10;text-decoration:none;transition:all .2s}
-.back-btn:hover{border-color:#06d6a0;color:#f0f4ff}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden;user-select:none;
+  background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);
+  background-size:60px 60px}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 
-/* Lobby */
-.lobby{text-align:center;animation:fadeUp .3s ease}
-.lobby h1{font-size:36px;font-weight:900;margin-bottom:8px;letter-spacing:-1px}
-.lobby h1 span{color:#06d6a0}
-.lobby p{color:#8892a8;font-size:14px;margin-bottom:24px}
-.lobby-buttons{display:flex;flex-direction:column;gap:12px;align-items:center}
-.btn{padding:14px 32px;border:none;border-radius:12px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:220px}
+/* Back Button */
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* Screen System */
+.screen{display:none;width:100%;min-height:100vh;animation:fadeUp .35s ease}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* Shared Components */
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
 .btn:active{transform:scale(.96)}
-.btn-accent{background:#06d6a0;color:#0a0e1a}
-.btn-blue{background:#118ab2;color:#fff}
-.btn-red{background:#ef476f;color:#fff}
-.btn-gold{background:#ffd166;color:#0a0e1a}
-.btn-outline{background:none;border:2px solid #2a3450;color:#8892a8}
-.btn-outline:hover{border-color:#06d6a0;color:#f0f4ff}
-.btn-small{padding:10px 20px;font-size:14px;min-width:auto}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-blue{background:var(--accent2);color:#fff}
+.btn-blue:hover{box-shadow:0 0 24px rgba(17,138,178,.3)}
+.btn-red{background:var(--accent3);color:#fff}
+.btn-red:hover{box-shadow:0 0 24px rgba(239,71,111,.3)}
+.btn-gold{background:var(--gold);color:var(--bg)}
+.btn-gold:hover{box-shadow:0 0 24px rgba(255,209,102,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+.btn-icon{min-width:auto;padding:10px 14px}
 
-.section-divider{display:flex;align-items:center;gap:12px;width:260px;margin:8px 0}
-.section-divider::before,.section-divider::after{content:'';flex:1;height:1px;background:#2a3450}
-.section-divider span{color:#8892a8;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:2px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;transition:all .2s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
 
-.code-input{background:#111827;border:2px solid #2a3450;border-radius:12px;padding:14px 20px;color:#f0f4ff;font-family:'Outfit',sans-serif;font-size:24px;font-weight:800;text-align:center;width:180px;letter-spacing:8px;outline:none;transition:border-color .2s}
-.code-input:focus{border-color:#06d6a0}
-.code-input::placeholder{color:#2a3450;letter-spacing:4px}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.badge-accent{background:rgba(6,214,160,.15);color:var(--accent)}
+.badge-gold{background:rgba(255,209,102,.15);color:var(--gold)}
+.badge-red{background:rgba(239,71,111,.15);color:var(--accent3)}
+.badge-blue{background:rgba(17,138,178,.15);color:var(--accent2)}
 
-.room-code-display{font-size:48px;font-weight:900;color:#ffd166;letter-spacing:12px;margin:16px 0}
-.waiting-text{color:#8892a8;font-size:14px;animation:blink 2s ease-in-out infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.section-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px}
 
+.code-input{background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:14px 20px;color:var(--text);font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;text-align:center;width:200px;letter-spacing:8px;outline:none;transition:border-color .2s}
+.code-input:focus{border-color:var(--accent)}
+.code-input::placeholder{color:var(--border);letter-spacing:4px;font-size:20px}
+
+.error-text{color:var(--accent3);font-size:13px;font-weight:600;margin-top:8px;min-height:20px}
+
+.stat-box{text-align:center;padding:12px 16px}
+.stat-box .stat-val{font-size:28px;font-weight:900;font-family:'Fredoka',sans-serif}
+.stat-box .stat-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+.divider{width:100%;height:1px;background:var(--border);margin:16px 0}
+
+/* ======================== */
+/* HOME SCREEN              */
+/* ======================== */
+#homeScreen{padding-top:60px;padding-bottom:40px}
+.home-header{text-align:center;margin-bottom:36px}
+.home-header h1{font-size:clamp(36px,8vw,52px);font-weight:700;margin-bottom:4px}
+.home-header h1 .num{color:var(--accent3);position:relative}
+.home-header h1 .num::after{content:'';position:absolute;bottom:-2px;left:0;width:100%;height:4px;background:var(--accent3);border-radius:2px}
+.home-header p{color:var(--text2);font-size:15px}
+
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:700px;width:90%;margin:0 auto}
+.mode-card{cursor:pointer;text-align:center;padding:28px 20px}
+.mode-card .mode-icon{font-size:40px;margin-bottom:12px;display:block}
+.mode-card h3{font-size:18px;margin-bottom:6px}
+.mode-card p{font-size:13px;color:var(--text2);line-height:1.4}
+.mode-card.teacher-card{border-color:var(--gold);background:rgba(255,209,102,.05)}
+.mode-card.teacher-card:hover{border-color:var(--gold);box-shadow:0 0 24px rgba(255,209,102,.15)}
+
+.quick-stats{display:flex;gap:12px;justify-content:center;margin-top:28px;flex-wrap:wrap}
+.quick-stats .stat-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:8px 16px;font-size:13px;font-weight:600}
+.quick-stats .stat-pill .stat-num{color:var(--accent);font-weight:800}
+
+/* ======================== */
+/* AI DIFFICULTY PICKER     */
+/* ======================== */
+#aiScreen{padding-top:80px}
+.diff-grid{display:flex;flex-direction:column;gap:14px;max-width:360px;width:90%;margin:24px auto 0}
+.diff-card{cursor:pointer;display:flex;align-items:center;gap:16px;padding:20px 24px}
+.diff-card .diff-icon{font-size:32px;flex-shrink:0}
+.diff-card h3{font-size:17px;margin-bottom:2px}
+.diff-card p{font-size:13px;color:var(--text2)}
+.diff-card.easy{border-color:var(--accent)}
+.diff-card.easy:hover{box-shadow:0 0 20px rgba(6,214,160,.2)}
+.diff-card.medium{border-color:var(--gold)}
+.diff-card.medium:hover{box-shadow:0 0 20px rgba(255,209,102,.2)}
+.diff-card.hard{border-color:var(--accent3)}
+.diff-card.hard:hover{box-shadow:0 0 20px rgba(239,71,111,.2)}
+
+/* ======================== */
+/* QUICK MATCH SCREEN       */
+/* ======================== */
+#quickMatchScreen{padding-top:80px}
+.qm-container{text-align:center;max-width:400px;width:90%}
+.qm-container h2{font-size:28px;margin-bottom:8px}
+.qm-container .sub{color:var(--text2);font-size:14px;margin-bottom:24px}
+.qm-actions{display:flex;flex-direction:column;gap:14px;align-items:center}
+.qm-divider{display:flex;align-items:center;gap:14px;width:100%;margin:4px 0}
+.qm-divider::before,.qm-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.qm-divider span{color:var(--text2);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px}
 .join-row{display:flex;gap:12px;align-items:center;justify-content:center}
 
-.error-text{color:#ef476f;font-size:13px;margin-top:8px;min-height:20px}
+/* ======================== */
+/* WAITING SCREEN           */
+/* ======================== */
+#waitingScreen{padding-top:100px}
+.waiting-container{text-align:center}
+.waiting-container h2{font-size:28px;margin-bottom:12px}
+.room-code-big{font-size:clamp(48px,12vw,72px);font-weight:900;font-family:'Fredoka',sans-serif;color:var(--gold);letter-spacing:16px;margin:20px 0;text-shadow:0 0 40px rgba(255,209,102,.3)}
+.waiting-pulse{color:var(--text2);font-size:14px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
-/* Difficulty picker */
-.diff-buttons{display:flex;flex-direction:column;gap:10px;align-items:center;margin-top:8px}
-.diff-label{color:#8892a8;font-size:12px;font-weight:600;margin-top:4px}
+/* ======================== */
+/* GAME SCREEN (FULLSCREEN) */
+/* ======================== */
+#gameScreen{padding:0;min-height:100vh;justify-content:center;position:relative}
+.game-layout{display:flex;align-items:center;justify-content:center;gap:clamp(12px,3vw,40px);width:100%;max-width:1200px;padding:20px;min-height:100vh}
 
-/* Game */
-.game{text-align:center;animation:fadeUp .3s ease}
-.turn-indicator{font-size:18px;font-weight:700;margin-bottom:12px;min-height:28px}
+/* Player Panels */
+.player-panel{flex:0 0 180px;border-radius:20px;padding:20px;text-align:center;transition:all .3s;opacity:.7}
+.player-panel.active-turn{opacity:1;transform:scale(1.02)}
+.player-panel .pp-avatar{width:56px;height:56px;border-radius:50%;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;font-family:'Fredoka',sans-serif}
+.player-panel.p1 .pp-avatar{background:var(--accent3);color:#fff;box-shadow:0 0 20px rgba(239,71,111,.3)}
+.player-panel.p2 .pp-avatar{background:var(--gold);color:var(--bg);box-shadow:0 0 20px rgba(255,209,102,.3)}
+.player-panel .pp-name{font-size:15px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player-panel .pp-record{font-size:12px;color:var(--text2)}
+.player-panel.active-turn{border-color:var(--accent);box-shadow:0 0 30px rgba(6,214,160,.15)}
+.player-panel .turn-badge{margin-top:10px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;background:rgba(6,214,160,.15);color:var(--accent);display:none}
+.player-panel.active-turn .turn-badge{display:inline-block;animation:pulse 1.5s ease-in-out infinite}
 
-.board-wrapper{position:relative;display:inline-block}
-.board{background:#111827;border:3px solid #2a3450;border-radius:16px;padding:8px;display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.cell{width:52px;height:52px;background:#1a2235;border-radius:50%;cursor:pointer;transition:all .15s;position:relative;border:2px solid #2a3450}
-.cell:hover{border-color:#06d6a0}
-.cell.disabled{cursor:default}
-.cell.disabled:hover{border-color:#2a3450}
-.cell.p1{background:#ef476f;border-color:#ef476f;box-shadow:inset 0 -4px 8px rgba(0,0,0,.3),0 0 12px rgba(239,71,111,.3)}
-.cell.p2{background:#ffd166;border-color:#ffd166;box-shadow:inset 0 -4px 8px rgba(0,0,0,.2),0 0 12px rgba(255,209,102,.3)}
-.cell.win-cell{animation:winPulse 0.6s ease-in-out infinite alternate}
-@keyframes winPulse{from{transform:scale(1);filter:brightness(1)}to{transform:scale(1.1);filter:brightness(1.3)}}
+/* Board */
+.board-area{flex:0 0 auto;position:relative}
+.board-frame{background:var(--surface);border:3px solid var(--border);border-radius:20px;padding:clamp(6px,1.2vw,14px);display:inline-block;position:relative;box-shadow:0 8px 40px rgba(0,0,0,.4)}
 
-.drop-anim{animation:dropIn .35s cubic-bezier(.4,0,.2,1)}
-@keyframes dropIn{from{transform:translateY(-300px);opacity:0}to{transform:translateY(0);opacity:1}}
+/* Column hover zones */
+.col-hover-zone{position:absolute;top:0;cursor:pointer;z-index:5;transition:background .15s}
+.col-hover-zone:hover{background:rgba(6,214,160,.06)}
+.col-hover-zone.disabled{cursor:default;pointer-events:none}
+.col-hover-zone.disabled:hover{background:none}
 
-/* Result */
-.result{text-align:center;animation:fadeUp .3s ease}
-.result h2{font-size:32px;font-weight:900;margin-bottom:8px}
-.result .coins-earned{color:#ffd166;font-size:20px;font-weight:700;margin-bottom:20px}
-.result-buttons{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+/* Ghost preview piece */
+.ghost-piece{position:absolute;border-radius:50%;opacity:0;transition:opacity .15s;pointer-events:none;z-index:4}
+.ghost-piece.p1{background:rgba(239,71,111,.25);border:2px dashed rgba(239,71,111,.4)}
+.ghost-piece.p2{background:rgba(255,209,102,.25);border:2px dashed rgba(255,209,102,.4)}
+.col-hover-zone:hover .ghost-piece{opacity:1}
 
-.player-label{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:14px}
-.player-dot{width:14px;height:14px;border-radius:50%;display:inline-block}
-.player-dot.p1{background:#ef476f}
-.player-dot.p2{background:#ffd166}
+.board-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:clamp(3px,0.6vw,6px);position:relative;z-index:3}
+.cell{width:clamp(44px,10vw,90px);height:clamp(44px,10vw,90px);background:var(--surface2);border-radius:50%;position:relative;border:2px solid var(--border);transition:border-color .15s}
+.cell.p1{background:var(--accent3);border-color:var(--accent3);box-shadow:inset 0 -4px 10px rgba(0,0,0,.3),0 0 16px rgba(239,71,111,.35)}
+.cell.p2{background:var(--gold);border-color:var(--gold);box-shadow:inset 0 -4px 10px rgba(0,0,0,.2),0 0 16px rgba(255,209,102,.35)}
+.cell.p1::after,.cell.p2::after{content:'';position:absolute;top:15%;left:20%;width:25%;height:25%;border-radius:50%;background:rgba(255,255,255,.2)}
 
-.players-bar{display:flex;justify-content:center;gap:24px;margin-bottom:16px}
+/* Drop animation with bounce */
+.cell.drop-anim{animation:dropBounce .55s cubic-bezier(.22,.68,.31,1.2)}
+@keyframes dropBounce{
+  0%{transform:translateY(-500px);opacity:0}
+  50%{transform:translateY(0);opacity:1}
+  65%{transform:translateY(-12px)}
+  80%{transform:translateY(0)}
+  90%{transform:translateY(-4px)}
+  100%{transform:translateY(0)}
+}
 
-.screen{display:none}
-.screen.active{display:block}
+/* Win cells */
+.cell.win-cell{animation:winGlow .7s ease-in-out infinite alternate;z-index:6}
+@keyframes winGlow{
+  from{transform:scale(1);filter:brightness(1);box-shadow:0 0 16px rgba(6,214,160,.3)}
+  to{transform:scale(1.1);filter:brightness(1.3);box-shadow:0 0 36px rgba(6,214,160,.6)}
+}
 
-@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+/* Win line connector */
+.win-line{position:absolute;z-index:5;pointer-events:none}
+.win-line-inner{height:6px;background:var(--accent);border-radius:3px;box-shadow:0 0 20px var(--accent);animation:lineGlow 1s ease-in-out infinite alternate}
+@keyframes lineGlow{from{box-shadow:0 0 20px var(--accent)}to{box-shadow:0 0 40px var(--accent),0 0 60px rgba(6,214,160,.3)}}
 
-@media(max-width:450px){
-  .cell{width:42px;height:42px}
-  .room-code-display{font-size:36px;letter-spacing:8px}
+/* Board shake */
+.board-frame.shake{animation:boardShake .4s ease}
+@keyframes boardShake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-6px) rotate(-.5deg)}
+  40%{transform:translateX(6px) rotate(.5deg)}
+  60%{transform:translateX(-4px) rotate(-.3deg)}
+  80%{transform:translateX(4px) rotate(.3deg)}
+}
+
+/* Spectator badge */
+.spectate-badge{position:fixed;top:16px;right:16px;z-index:100}
+
+/* Turn indicator (mobile) */
+.mobile-turn{display:none;text-align:center;padding:12px;font-weight:700;font-size:15px;position:fixed;top:0;left:0;right:0;z-index:50;background:rgba(10,14,26,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+
+/* ======================== */
+/* RESULT SCREEN            */
+/* ======================== */
+#resultScreen{padding-top:80px}
+.result-container{text-align:center;max-width:500px;width:90%}
+.result-container h2{font-size:clamp(32px,8vw,48px);font-weight:700;margin-bottom:8px}
+.result-container .result-sub{font-size:16px;color:var(--text2);margin-bottom:8px}
+.coins-display{display:inline-flex;align-items:center;gap:8px;font-size:24px;font-weight:800;color:var(--gold);margin:16px 0 8px;font-family:'Fredoka',sans-serif}
+.record-update{display:flex;justify-content:center;gap:24px;margin:20px 0;flex-wrap:wrap}
+.result-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+
+/* ======================== */
+/* RECORDS SCREEN           */
+/* ======================== */
+#recordsScreen{padding-top:60px;padding-bottom:40px}
+.records-container{max-width:700px;width:90%}
+.records-container h2{font-size:28px;text-align:center;margin-bottom:24px}
+.my-record-card{margin-bottom:24px}
+.my-record-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:8px}
+.leaderboard-table{width:100%;border-collapse:separate;border-spacing:0 6px}
+.leaderboard-table th{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;padding:8px 12px;text-align:left}
+.leaderboard-table td{padding:10px 12px;background:var(--surface);font-size:14px;font-weight:600}
+.leaderboard-table tr td:first-child{border-radius:10px 0 0 10px}
+.leaderboard-table tr td:last-child{border-radius:0 10px 10px 0}
+.leaderboard-table tr:hover td{background:var(--surface2)}
+.rank-1{color:var(--gold)}
+.rank-2{color:#c0c0c0}
+.rank-3{color:#cd7f32}
+
+/* ======================== */
+/* TOURNAMENT SCREENS       */
+/* ======================== */
+#tourneyLobbyScreen,#tourneyBracketScreen{padding-top:60px;padding-bottom:40px}
+.tourney-container{max-width:800px;width:90%}
+.tourney-header{text-align:center;margin-bottom:24px}
+.tourney-header h2{font-size:28px;margin-bottom:6px}
+.tourney-header .tourney-code{font-size:36px;font-weight:900;font-family:'Fredoka',sans-serif;color:var(--gold);letter-spacing:8px;text-shadow:0 0 20px rgba(255,209,102,.2)}
+
+.players-lobby{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin:20px 0}
+.player-lobby-card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center;font-weight:600;font-size:14px}
+.player-lobby-card .seed{font-size:11px;color:var(--text2);margin-top:4px}
+
+/* Bracket */
+.bracket-wrap{overflow-x:auto;padding:20px 0}
+.bracket{display:flex;gap:40px;align-items:center;min-width:max-content}
+.bracket-round{display:flex;flex-direction:column;gap:20px;min-width:200px}
+.bracket-round-title{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;text-align:center;margin-bottom:12px;font-weight:700}
+.match-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;min-width:180px}
+.match-player{padding:10px 14px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:default}
+.match-player:first-child{border-bottom:1px solid var(--border)}
+.match-player.winner{background:rgba(6,214,160,.1);color:var(--accent)}
+.match-player.loser{opacity:.5}
+.match-player .mp-seed{color:var(--text2);font-size:11px;min-width:18px}
+.match-player .mp-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.match-player .mp-score{font-weight:800}
+.match-status{text-align:center;padding:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.match-status.playing{background:rgba(6,214,160,.1);color:var(--accent)}
+.match-status.upcoming{background:rgba(168,178,200,.1);color:var(--text2)}
+.match-status.completed{background:rgba(255,209,102,.1);color:var(--gold)}
+.match-card.spectatable{cursor:pointer;transition:all .2s}
+.match-card.spectatable:hover{border-color:var(--accent);box-shadow:0 0 16px rgba(6,214,160,.15)}
+
+/* ======================== */
+/* TEACHER DASHBOARD        */
+/* ======================== */
+#teacherScreen{padding-top:60px;padding-bottom:40px}
+.teacher-container{max-width:900px;width:93%}
+.teacher-container h2{font-size:28px;margin-bottom:6px}
+.teacher-container .sub{color:var(--text2);font-size:14px;margin-bottom:24px}
+.teacher-tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--surface);border-radius:14px;padding:4px;border:1px solid var(--border)}
+.teacher-tab{flex:1;padding:10px 16px;border:none;background:none;color:var(--text2);font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border-radius:10px;transition:all .2s;text-align:center}
+.teacher-tab.active{background:var(--accent);color:var(--bg)}
+.teacher-tab:hover:not(.active){color:var(--text)}
+.teacher-panel{display:none}
+.teacher-panel.active{display:block}
+
+.assign-form{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:20px}
+.assign-form label{font-size:13px;color:var(--text2);display:block;margin-bottom:4px}
+.assign-form select,.assign-form input[type="text"]{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;outline:none;min-width:160px}
+.assign-form select:focus,.assign-form input[type="text"]:focus{border-color:var(--accent)}
+
+.tourney-create-form{display:flex;flex-direction:column;gap:14px;max-width:400px}
+.tourney-create-form label{font-size:13px;color:var(--text2)}
+.tourney-create-form select,.tourney-create-form input{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;outline:none}
+.history-list{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.history-item{display:flex;justify-content:space-between;align-items:center;padding:14px 18px}
+
+/* ======================== */
+/* MOBILE RESPONSIVE        */
+/* ======================== */
+@media(max-width:900px){
+  .player-panel{display:none}
+  .mobile-turn{display:block}
+  .game-layout{padding:60px 8px 8px}
+}
+@media(max-width:500px){
+  .mode-grid{grid-template-columns:1fr}
+  .cell{width:clamp(42px,12.5vw,52px)!important;height:clamp(42px,12.5vw,52px)!important}
+  .board-frame{padding:5px}
+  .board-grid{gap:3px}
+  .home-header{padding:0 16px}
+  .bracket-round{min-width:160px}
 }
 </style>
 </head>
 <body>
-<a class="back-btn" href="../../student.html">&larr; Back to Hub</a>
 
-<!-- LOBBY: Mode selection -->
-<div class="screen active" id="lobbyScreen">
-<div class="lobby">
-  <h1>Connect <span>4</span></h1>
-  <p>Play vs AI or challenge a friend!</p>
-  <div class="lobby-buttons">
-    <button class="btn btn-accent" onclick="showAiPicker()">VS Computer</button>
-    <div class="section-divider"><span>or</span></div>
-    <button class="btn btn-blue" onclick="createGame()">Create Room</button>
-    <div class="join-row">
-      <input class="code-input" id="codeInput" type="text" maxlength="4" placeholder="CODE" inputmode="numeric">
-      <button class="btn btn-blue btn-small" onclick="joinGame()">Join</button>
+<a class="back-btn" id="backBtn" href="../../student.html">&larr; Back to Hub</a>
+
+<!-- ======================== -->
+<!-- HOME SCREEN              -->
+<!-- ======================== -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1>Connect <span class="num">4</span></h1>
+    <p>Drop, connect, conquer.</p>
+  </div>
+  <div class="mode-grid" id="modeGrid">
+    <div class="card mode-card" onclick="C4.showScreen('aiScreen')">
+      <span class="mode-icon">&#129302;</span>
+      <h3>VS Computer</h3>
+      <p>Test your skills against AI opponents</p>
     </div>
-    <div class="error-text" id="lobbyError"></div>
+    <div class="card mode-card" onclick="C4.showScreen('quickMatchScreen')">
+      <span class="mode-icon">&#9889;</span>
+      <h3>Quick Match</h3>
+      <p>Play a friend with a room code</p>
+    </div>
+    <div class="card mode-card" onclick="C4.showTourneyJoin()">
+      <span class="mode-icon">&#127942;</span>
+      <h3>Tournament</h3>
+      <p>Compete in bracket-style competitions</p>
+    </div>
+    <div class="card mode-card" onclick="C4.showScreen('recordsScreen');C4.loadRecords()">
+      <span class="mode-icon">&#128202;</span>
+      <h3>Records</h3>
+      <p>View your stats and class leaderboard</p>
+    </div>
   </div>
-</div>
+  <div class="quick-stats" id="quickStats"></div>
 </div>
 
-<!-- AI DIFFICULTY PICKER -->
-<div class="screen" id="aiPickerScreen">
-<div class="lobby">
-  <h1>Pick <span>Difficulty</span></h1>
-  <p>How tough do you want the AI?</p>
-  <div class="diff-buttons">
-    <button class="btn btn-accent" onclick="startAiGame('easy')">Easy</button>
-    <div class="diff-label">Random moves, great for learning</div>
-    <button class="btn btn-gold" onclick="startAiGame('medium')">Medium</button>
-    <div class="diff-label">Thinks a few moves ahead</div>
-    <button class="btn btn-red" onclick="startAiGame('hard')">Hard</button>
-    <div class="diff-label">Good luck beating this one</div>
-    <button class="btn btn-outline btn-small" onclick="showScreen('lobbyScreen')" style="margin-top:12px">Back</button>
+<!-- ======================== -->
+<!-- AI DIFFICULTY PICKER     -->
+<!-- ======================== -->
+<div class="screen" id="aiScreen">
+  <div style="text-align:center;margin-bottom:8px">
+    <h2 style="font-size:28px">Choose Difficulty</h2>
+    <p style="color:var(--text2);font-size:14px;margin-top:4px">How smart should the AI be?</p>
+  </div>
+  <div class="diff-grid">
+    <div class="card diff-card easy" onclick="C4.startAiGame('easy')">
+      <span class="diff-icon">&#128578;</span>
+      <div>
+        <h3>Easy</h3>
+        <p>Random moves, great for learning the ropes</p>
+      </div>
+    </div>
+    <div class="card diff-card medium" onclick="C4.startAiGame('medium')">
+      <span class="diff-icon">&#129488;</span>
+      <div>
+        <h3>Medium</h3>
+        <p>Thinks a few moves ahead, a fair challenge</p>
+      </div>
+    </div>
+    <div class="card diff-card hard" onclick="C4.startAiGame('hard')">
+      <span class="diff-icon">&#128520;</span>
+      <div>
+        <h3>Hard</h3>
+        <p>Deep minimax search, good luck beating this one</p>
+      </div>
+    </div>
+    <button class="btn btn-outline btn-small" onclick="C4.showScreen('homeScreen')" style="margin-top:8px;align-self:center">&larr; Back</button>
   </div>
 </div>
+
+<!-- ======================== -->
+<!-- QUICK MATCH SCREEN       -->
+<!-- ======================== -->
+<div class="screen" id="quickMatchScreen">
+  <div class="qm-container">
+    <h2>Quick Match</h2>
+    <p class="sub">Create a room or join with a code</p>
+    <div class="qm-actions">
+      <button class="btn btn-accent" onclick="C4.createGame()">Create Room</button>
+      <div class="qm-divider"><span>or join</span></div>
+      <div class="join-row">
+        <input class="code-input" id="codeInput" type="text" maxlength="4" placeholder="CODE" inputmode="numeric">
+        <button class="btn btn-blue btn-small" onclick="C4.joinGame()">Join</button>
+      </div>
+      <div class="error-text" id="lobbyError"></div>
+      <button class="btn btn-outline btn-small" onclick="C4.showScreen('homeScreen')" style="margin-top:8px">&larr; Back</button>
+    </div>
+  </div>
 </div>
 
-<!-- WAITING: Show room code -->
+<!-- ======================== -->
+<!-- WAITING SCREEN           -->
+<!-- ======================== -->
 <div class="screen" id="waitingScreen">
-<div class="lobby">
-  <h1>Room Created!</h1>
-  <p>Share this code with your opponent:</p>
-  <div class="room-code-display" id="roomCodeDisplay"></div>
-  <p class="waiting-text">Waiting for opponent to join...</p>
-  <button class="btn btn-outline btn-small" onclick="cancelGame()" style="margin-top:16px">Cancel</button>
-</div>
+  <div class="waiting-container">
+    <h2>Room Created!</h2>
+    <p style="color:var(--text2);font-size:14px;margin-top:4px">Share this code with your opponent:</p>
+    <div class="room-code-big" id="roomCodeDisplay"></div>
+    <p class="waiting-pulse">Waiting for opponent to join...</p>
+    <button class="btn btn-outline btn-small" onclick="C4.cancelGame()" style="margin-top:20px">Cancel</button>
+  </div>
 </div>
 
-<!-- GAME: The board -->
+<!-- ======================== -->
+<!-- GAME SCREEN (FULLSCREEN) -->
+<!-- ======================== -->
 <div class="screen" id="gameScreen">
-<div class="game">
-  <div class="players-bar">
-    <div class="player-label"><span class="player-dot p1"></span> <span id="p1Label">You (Red)</span></div>
-    <div class="player-label"><span class="player-dot p2"></span> <span id="p2Label">Opponent (Yellow)</span></div>
+  <div class="mobile-turn" id="mobileTurn"></div>
+  <div class="game-layout">
+    <div class="card-static player-panel p1" id="panelP1">
+      <div class="pp-avatar">R</div>
+      <div class="pp-name" id="p1Name">Player 1</div>
+      <div class="pp-record" id="p1Record">-</div>
+      <div class="turn-badge">Your Turn</div>
+    </div>
+    <div class="board-area">
+      <div class="board-frame" id="boardFrame">
+        <div class="board-grid" id="board"></div>
+      </div>
+    </div>
+    <div class="card-static player-panel p2" id="panelP2">
+      <div class="pp-avatar">Y</div>
+      <div class="pp-name" id="p2Name">Player 2</div>
+      <div class="pp-record" id="p2Record">-</div>
+      <div class="turn-badge">Your Turn</div>
+    </div>
   </div>
-  <div class="turn-indicator" id="turnIndicator"></div>
-  <div class="board-wrapper">
-    <div class="board" id="board"></div>
-  </div>
-</div>
 </div>
 
-<!-- RESULT -->
+<!-- ======================== -->
+<!-- RESULT SCREEN            -->
+<!-- ======================== -->
 <div class="screen" id="resultScreen">
-<div class="result">
-  <h2 id="resultTitle"></h2>
-  <div class="coins-earned" id="coinsEarned"></div>
-  <div class="result-buttons">
-    <button class="btn btn-accent" onclick="playAgain()">Play Again</button>
-    <a class="btn btn-outline" href="../../student.html">Back to Hub</a>
+  <div class="result-container">
+    <h2 id="resultTitle">You Win!</h2>
+    <p class="result-sub" id="resultSub"></p>
+    <div class="coins-display" id="coinsDisplay"></div>
+    <div class="record-update" id="recordUpdate"></div>
+    <div class="result-actions" id="resultActions">
+      <button class="btn btn-accent" onclick="C4.playAgain()">Play Again</button>
+      <button class="btn btn-outline" onclick="C4.goHome()">Home</button>
+    </div>
   </div>
 </div>
+
+<!-- ======================== -->
+<!-- RECORDS SCREEN           -->
+<!-- ======================== -->
+<div class="screen" id="recordsScreen">
+  <div class="records-container">
+    <h2>Records &amp; Leaderboard</h2>
+    <div class="card-static my-record-card" id="myRecordCard">
+      <h3 style="margin-bottom:12px;font-size:16px">My Stats</h3>
+      <div class="my-record-stats" id="myRecordStats">
+        <div class="stat-box"><div class="stat-val" style="color:var(--accent)">-</div><div class="stat-label">Wins</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--accent3)">-</div><div class="stat-label">Losses</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--text2)">-</div><div class="stat-label">Draws</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--gold)">-</div><div class="stat-label">Streak</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--accent2)">-</div><div class="stat-label">Best</div></div>
+      </div>
+    </div>
+    <h3 class="section-title">Class Leaderboard</h3>
+    <div id="leaderboardWrap"><p style="color:var(--text2);font-size:14px;text-align:center;padding:20px">Loading...</p></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="C4.showScreen('homeScreen')">&larr; Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- TOURNAMENT LOBBY         -->
+<!-- ======================== -->
+<div class="screen" id="tourneyLobbyScreen">
+  <div class="tourney-container">
+    <div class="tourney-header">
+      <h2 id="tourneyLobbyTitle">Tournament Lobby</h2>
+      <div class="tourney-code" id="tourneyLobbyCode"></div>
+      <p style="color:var(--text2);font-size:14px;margin-top:4px" id="tourneyLobbyStatus">Waiting for players...</p>
+    </div>
+    <h3 class="section-title">Players (<span id="tourneyPlayerCount">0</span>)</h3>
+    <div class="players-lobby" id="tourneyPlayersList"></div>
+    <div id="tourneyLobbyActions" style="text-align:center;margin-top:20px"></div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- TOURNAMENT BRACKET       -->
+<!-- ======================== -->
+<div class="screen" id="tourneyBracketScreen">
+  <div class="tourney-container">
+    <div class="tourney-header">
+      <h2 id="tourneyBracketTitle">Tournament Bracket</h2>
+      <div class="tourney-code" id="tourneyBracketCode"></div>
+      <div id="tourneyBracketInfo" style="margin-top:8px"></div>
+    </div>
+    <div class="bracket-wrap" id="bracketWrap"></div>
+    <div id="tourneyBracketActions" style="text-align:center;margin-top:16px">
+      <button class="btn btn-outline btn-small" onclick="C4.leaveTourney()">&larr; Leave</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- TOURNAMENT JOIN          -->
+<!-- ======================== -->
+<div class="screen" id="tourneyJoinScreen">
+  <div class="qm-container">
+    <h2>Tournament</h2>
+    <p class="sub">Enter a tournament code from your teacher</p>
+    <div class="qm-actions">
+      <div class="join-row">
+        <input class="code-input" id="tourneyCodeInput" type="text" maxlength="6" placeholder="CODE" inputmode="numeric">
+        <button class="btn btn-accent btn-small" onclick="C4.joinTourney()">Join</button>
+      </div>
+      <div class="error-text" id="tourneyJoinError"></div>
+      <button class="btn btn-outline btn-small" onclick="C4.showScreen('homeScreen')" style="margin-top:8px">&larr; Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- TEACHER DASHBOARD        -->
+<!-- ======================== -->
+<div class="screen" id="teacherScreen">
+  <div class="teacher-container">
+    <h2>Connect 4 Dashboard</h2>
+    <p class="sub">Manage games, tournaments, and view student records</p>
+    <div class="teacher-tabs">
+      <button class="teacher-tab active" onclick="C4.teacherTab('records')">Records</button>
+      <button class="teacher-tab" onclick="C4.teacherTab('tournaments')">Tournaments</button>
+      <button class="teacher-tab" onclick="C4.teacherTab('assign')">Assign</button>
+    </div>
+    <div class="teacher-panel active" id="teacherRecordsPanel">
+      <div id="teacherLeaderboard"><p style="color:var(--text2);font-size:14px">Loading records...</p></div>
+    </div>
+    <div class="teacher-panel" id="teacherTournamentsPanel">
+      <h3 class="section-title">Create Tournament</h3>
+      <div class="tourney-create-form" id="tourneyCreateForm">
+        <div><label>Time Limit per Move (seconds, 0 = none)</label><input type="number" id="tcTimeLimit" value="0" min="0" max="120"></div>
+        <button class="btn btn-accent" onclick="C4.teacherCreateTourney()">Create Tournament</button>
+      </div>
+      <div class="divider"></div>
+      <h3 class="section-title">Active &amp; Past Tournaments</h3>
+      <div class="history-list" id="tourneyHistoryList"><p style="color:var(--text2);font-size:14px">Loading...</p></div>
+    </div>
+    <div class="teacher-panel" id="teacherAssignPanel">
+      <h3 class="section-title">Assign a Match</h3>
+      <p style="color:var(--text2);font-size:13px;margin-bottom:16px">Create a match between two specific students</p>
+      <div class="assign-form" id="assignForm">
+        <div><label>Player 1</label><select id="assignP1"><option value="">Select student...</option></select></div>
+        <div><label>Player 2</label><select id="assignP2"><option value="">Select student...</option></select></div>
+        <button class="btn btn-accent btn-small" onclick="C4.assignMatch()">Create Match</button>
+      </div>
+      <div class="error-text" id="assignError"></div>
+      <div class="divider"></div>
+      <h3 class="section-title">Assigned Matches</h3>
+      <div id="assignedMatchesList"><p style="color:var(--text2);font-size:14px">Loading...</p></div>
+    </div>
+  </div>
 </div>
 
 <script src="../../js/oda-core.js"></script>
 <script type="module">
 import{initializeApp,getApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-import{getFirestore,doc,getDoc,setDoc,updateDoc,onSnapshot,deleteDoc,increment}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+import{getFirestore,doc,getDoc,getDocs,setDoc,updateDoc,onSnapshot,deleteDoc,increment,collection,query,where,orderBy,limit,serverTimestamp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 
 const cfg=ODA_CONFIG.firebase;
 let app;try{app=getApp()}catch(e){app=initializeApp(cfg)}
 const db=getFirestore(app);
 
+/* ===================== */
+/* CONSTANTS & STATE     */
+/* ===================== */
 const ROWS=6,COLS=7;
-let roomCode=null,myPlayer=0,unsub=null;
-let aiMode=false,aiDifficulty='medium',aiBoard=null,aiTurn=1,aiWinner=null,aiThinking=false;
 const studentId=sessionStorage.getItem('studentId')||'anon_'+Math.random().toString(36).slice(2,8);
+const studentName=sessionStorage.getItem('studentName')||'Player';
+const classCode=sessionStorage.getItem('classCode')||'';
+const isTeacher=sessionStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher';
 
+let roomCode=null,myPlayer=0,unsub=null,unsubTourney=null;
+let aiMode=false,aiDifficulty='medium',aiBoard=null,aiTurn=1,aiWinner=null,aiThinking=false;
+let coinsAwarded=false,lastBoard=null;
+let spectateMode=false;
+let currentTourneyCode=null,currentTourneyData=null;
+let opponentRecord=null;
+
+/* ===================== */
+/* AUDIO ENGINE          */
+/* ===================== */
+const AudioEngine=(()=>{
+  let ctx=null;
+  function getCtx(){if(!ctx)ctx=new(window.AudioContext||window.webkitAudioContext)();return ctx}
+  function play(type){
+    try{
+      const c=getCtx();
+      const now=c.currentTime;
+      const g=c.createGain();
+      g.connect(c.destination);
+      if(type==='drop'){
+        const o=c.createOscillator();o.type='triangle';o.frequency.setValueAtTime(200,now);o.frequency.exponentialRampToValueAtTime(80,now+.12);
+        g.gain.setValueAtTime(.35,now);g.gain.exponentialRampToValueAtTime(.01,now+.15);
+        o.connect(g);o.start(now);o.stop(now+.15);
+      }else if(type==='hover'){
+        const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(600,now);
+        g.gain.setValueAtTime(.06,now);g.gain.exponentialRampToValueAtTime(.01,now+.06);
+        o.connect(g);o.start(now);o.stop(now+.06);
+      }else if(type==='win'){
+        [0,.12,.24,.36,.48].forEach((t,i)=>{
+          const o=c.createOscillator();const gn=c.createGain();
+          o.type='square';o.frequency.setValueAtTime([523,659,784,1047,1319][i],now+t);
+          gn.gain.setValueAtTime(.15,now+t);gn.gain.exponentialRampToValueAtTime(.01,now+t+.15);
+          o.connect(gn);gn.connect(c.destination);o.start(now+t);o.stop(now+t+.15);
+        });
+      }else if(type==='lose'){
+        [0,.2,.4].forEach((t,i)=>{
+          const o=c.createOscillator();const gn=c.createGain();
+          o.type='sawtooth';o.frequency.setValueAtTime([294,262,220][i],now+t);
+          gn.gain.setValueAtTime(.12,now+t);gn.gain.exponentialRampToValueAtTime(.01,now+t+.25);
+          o.connect(gn);gn.connect(c.destination);o.start(now+t);o.stop(now+t+.3);
+        });
+      }else if(type==='advance'){
+        [0,.08,.16,.24,.32,.4].forEach((t,i)=>{
+          const o=c.createOscillator();const gn=c.createGain();
+          o.type='square';o.frequency.setValueAtTime([392,494,587,659,784,1047][i],now+t);
+          gn.gain.setValueAtTime(.12,now+t);gn.gain.exponentialRampToValueAtTime(.01,now+t+.12);
+          o.connect(gn);gn.connect(c.destination);o.start(now+t);o.stop(now+t+.14);
+        });
+      }
+    }catch(e){}
+  }
+  return{play};
+})();
+
+/* ===================== */
+/* HELPERS               */
+/* ===================== */
 function emptyBoard(){return Array.from({length:COLS},()=>Array(ROWS).fill(0))}
 function cloneBoard(b){return b.map(c=>[...c])}
+function genCode(){return String(Math.floor(1000+Math.random()*9000))}
+function genTourneyCode(){return String(Math.floor(100000+Math.random()*900000))}
+function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
 
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  if(id==='gameScreen'){document.body.style.overflow='hidden'}
+  else{document.body.style.overflow=''}
 }
-window.showScreen=showScreen;
 
-function genCode(){return String(Math.floor(1000+Math.random()*9000))}
+/* ===================== */
+/* BACK LINK SETUP       */
+/* ===================== */
+(function(){
+  const backBtn=document.getElementById('backBtn');
+  if(isTeacher){backBtn.href='../../teacher.html'}
+  else{backBtn.href='../../student.html'}
+})();
 
-// ===== AI DIFFICULTY PICKER =====
-window.showAiPicker=function(){showScreen('aiPickerScreen')};
+/* ===================== */
+/* TEACHER MODE INIT     */
+/* ===================== */
+(function(){
+  if(isTeacher){
+    const grid=document.getElementById('modeGrid');
+    const teacherCard=document.createElement('div');
+    teacherCard.className='card mode-card teacher-card';
+    teacherCard.setAttribute('onclick','C4.showTeacherDashboard()');
+    teacherCard.innerHTML='<span class="mode-icon">&#128218;</span><h3>Teacher Dashboard</h3><p>Manage records, tournaments & assignments</p>';
+    grid.appendChild(teacherCard);
+  }
+})();
 
-// ===== AI GAME =====
-window.startAiGame=function(diff){
-  aiMode=true;
+/* ===================== */
+/* HOME QUICK STATS      */
+/* ===================== */
+async function loadQuickStats(){
+  if(studentId.startsWith('anon_'))return;
+  try{
+    const snap=await getDoc(doc(db,'connect4Records',studentId));
+    if(snap.exists()){
+      const d=snap.data();
+      document.getElementById('quickStats').innerHTML=`
+        <div class="stat-pill"><span>Wins:</span><span class="stat-num">${d.wins||0}</span></div>
+        <div class="stat-pill"><span>W/L:</span><span class="stat-num">${d.losses?((d.wins||0)/d.losses).toFixed(1):(d.wins||0).toFixed(1)}</span></div>
+        <div class="stat-pill"><span>Streak:</span><span class="stat-num">${d.winStreak||0}</span></div>`;
+    }
+  }catch(e){}
+}
+loadQuickStats();
+
+/* ===================== */
+/* RECORDS SYSTEM        */
+/* ===================== */
+async function getRecord(sid){
+  try{
+    const snap=await getDoc(doc(db,'connect4Records',sid));
+    if(snap.exists())return snap.data();
+  }catch(e){}
+  return null;
+}
+
+async function ensureRecord(sid,sName,cc){
+  const ref=doc(db,'connect4Records',sid);
+  const snap=await getDoc(ref);
+  if(!snap.exists()){
+    await setDoc(ref,{studentId:sid,studentName:sName||'Player',classCode:cc||'',wins:0,losses:0,draws:0,gamesPlayed:0,winStreak:0,bestStreak:0,lastPlayed:new Date().toISOString()});
+  }
+}
+
+async function updateRecordAfterGame(result){
+  if(studentId.startsWith('anon_'))return;
+  try{
+    await ensureRecord(studentId,studentName,classCode);
+    const ref=doc(db,'connect4Records',studentId);
+    if(result==='win'){
+      const snap=await getDoc(ref);
+      const d=snap.data();
+      const newStreak=(d.winStreak||0)+1;
+      const best=Math.max(newStreak,d.bestStreak||0);
+      await updateDoc(ref,{wins:increment(1),gamesPlayed:increment(1),winStreak:newStreak,bestStreak:best,lastPlayed:new Date().toISOString()});
+    }else if(result==='loss'){
+      await updateDoc(ref,{losses:increment(1),gamesPlayed:increment(1),winStreak:0,lastPlayed:new Date().toISOString()});
+    }else{
+      await updateDoc(ref,{draws:increment(1),gamesPlayed:increment(1),lastPlayed:new Date().toISOString()});
+    }
+  }catch(e){console.warn('Record update failed:',e)}
+}
+
+async function loadRecords(){
+  if(!studentId.startsWith('anon_')){
+    const rec=await getRecord(studentId);
+    if(rec){
+      document.getElementById('myRecordStats').innerHTML=`
+        <div class="stat-box"><div class="stat-val" style="color:var(--accent)">${rec.wins||0}</div><div class="stat-label">Wins</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--accent3)">${rec.losses||0}</div><div class="stat-label">Losses</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--text2)">${rec.draws||0}</div><div class="stat-label">Draws</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--gold)">${rec.winStreak||0}</div><div class="stat-label">Streak</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--accent2)">${rec.bestStreak||0}</div><div class="stat-label">Best</div></div>`;
+    }
+  }
+  // Leaderboard
+  try{
+    let q;
+    if(classCode){
+      q=query(collection(db,'connect4Records'),where('classCode','==',classCode),orderBy('wins','desc'),limit(30));
+    }else{
+      q=query(collection(db,'connect4Records'),orderBy('wins','desc'),limit(30));
+    }
+    const snap=await getDocs(q);
+    if(snap.empty){
+      document.getElementById('leaderboardWrap').innerHTML='<p style="color:var(--text2);font-size:14px;text-align:center;padding:20px">No records yet. Play some games!</p>';
+      return;
+    }
+    let html='<table class="leaderboard-table"><thead><tr><th>#</th><th>Player</th><th>W</th><th>L</th><th>D</th><th>Streak</th></tr></thead><tbody>';
+    let rank=0;
+    snap.forEach(d=>{
+      rank++;
+      const r=d.data();
+      const rankClass=rank<=3?`rank-${rank}`:'';
+      const me=d.id===studentId?'style="background:rgba(6,214,160,.08)"':'';
+      html+=`<tr ${me}><td class="${rankClass}" style="font-weight:800">${rank}</td><td>${esc(r.studentName||'Unknown')}</td><td style="color:var(--accent);font-weight:800">${r.wins||0}</td><td>${r.losses||0}</td><td>${r.draws||0}</td><td style="color:var(--gold)">${r.bestStreak||0}</td></tr>`;
+    });
+    html+='</tbody></table>';
+    document.getElementById('leaderboardWrap').innerHTML=html;
+  }catch(e){
+    document.getElementById('leaderboardWrap').innerHTML='<p style="color:var(--text2);font-size:14px;text-align:center;padding:20px">Could not load leaderboard.</p>';
+  }
+}
+
+/* ===================== */
+/* AI GAME               */
+/* ===================== */
+function startAiGame(diff){
+  aiMode=true;spectateMode=false;
   aiDifficulty=diff;
   aiBoard=emptyBoard();
-  aiTurn=1;
-  aiWinner=null;
-  aiThinking=false;
-  myPlayer=1;
-  coinsAwarded=false;
-  lastBoard=null;
-  document.getElementById('p1Label').textContent='You (Red)';
-  document.getElementById('p2Label').textContent='AI (Yellow)';
+  aiTurn=1;aiWinner=null;aiThinking=false;
+  myPlayer=1;coinsAwarded=false;lastBoard=null;
+  document.getElementById('p1Name').textContent=studentName||'You';
+  document.getElementById('p2Name').textContent='AI ('+diff.charAt(0).toUpperCase()+diff.slice(1)+')';
+  document.getElementById('p1Record').textContent='';
+  document.getElementById('p2Record').textContent='';
   showScreen('gameScreen');
   renderBoard(aiBoard,aiTurn,null);
-  updateTurnIndicator(aiTurn);
-};
+  updateTurnUI(aiTurn);
+}
 
 function aiDropLocal(col){
-  if(aiWinner!==null)return;
+  if(aiWinner!==null||aiThinking)return;
   let row=-1;
-  for(let r=ROWS-1;r>=0;r--){
-    if(aiBoard[col][r]===0){row=r;break}
-  }
+  for(let r=ROWS-1;r>=0;r--){if(aiBoard[col][r]===0){row=r;break}}
   if(row===-1)return;
   aiBoard[col][row]=aiTurn;
+  AudioEngine.play('drop');
 
   if(checkWin(aiBoard,aiTurn)){
     aiWinner=aiTurn;
     renderBoard(aiBoard,aiTurn,aiWinner);
-    showResult({winner:aiWinner===1?1:2,isAi:true});
+    const frame=document.getElementById('boardFrame');
+    frame.classList.add('shake');
+    setTimeout(()=>frame.classList.remove('shake'),500);
+    setTimeout(()=>showResult({winner:aiWinner===1?1:2,isAi:true}),800);
     return;
   }
   if(aiBoard.every(c=>c.every(v=>v!==0))){
     aiWinner=0;
     renderBoard(aiBoard,aiTurn,0);
-    showResult({winner:0,isAi:true});
+    setTimeout(()=>showResult({winner:0,isAi:true}),500);
     return;
   }
-
   aiTurn=aiTurn===1?2:1;
   renderBoard(aiBoard,aiTurn,null);
-  updateTurnIndicator(aiTurn);
+  updateTurnUI(aiTurn);
 
-  // AI's turn
   if(aiTurn===2&&aiWinner===null){
     aiThinking=true;
-    renderBoard(aiBoard,aiTurn,null); // re-render to disable clicks
+    updateTurnUI(aiTurn);
     setTimeout(()=>{
       const aiCol=getAiMove(aiBoard,aiDifficulty);
       aiThinking=false;
       aiDropLocal(aiCol);
-    },400+Math.random()*300);
+    },350+Math.random()*300);
   }
 }
 
 function getAiMove(board,difficulty){
   const valid=[];
-  for(let c=0;c<COLS;c++){
-    if(board[c][0]===0)valid.push(c);
-  }
+  for(let c=0;c<COLS;c++){if(board[c][0]===0)valid.push(c)}
   if(valid.length===0)return 0;
-
   if(difficulty==='easy'){
-    // 70% random, 30% block/win
     if(Math.random()<0.7)return valid[Math.floor(Math.random()*valid.length)];
     return bestMoveMinmax(board,2,1);
   }
-  if(difficulty==='medium'){
-    return bestMoveMinmax(board,2,4);
-  }
-  // hard
+  if(difficulty==='medium')return bestMoveMinmax(board,2,4);
   return bestMoveMinmax(board,2,7);
 }
 
 function bestMoveMinmax(board,player,depth){
   const valid=[];
-  for(let c=0;c<COLS;c++){
-    if(board[c][0]===0)valid.push(c);
-  }
+  for(let c=0;c<COLS;c++){if(board[c][0]===0)valid.push(c)}
   if(valid.length===0)return 0;
-
-  // Check for immediate win
-  for(const c of valid){
-    const b=cloneBoard(board);
-    const r=dropInBoard(b,c,player);
-    if(r!==-1&&checkWin(b,player))return c;
-  }
-  // Check for immediate block
+  for(const c of valid){const b=cloneBoard(board);const r=dropInBoard(b,c,player);if(r!==-1&&checkWin(b,player))return c}
   const opp=player===1?2:1;
-  for(const c of valid){
-    const b=cloneBoard(board);
-    const r=dropInBoard(b,c,opp);
-    if(r!==-1&&checkWin(b,opp))return c;
-  }
-
+  for(const c of valid){const b=cloneBoard(board);const r=dropInBoard(b,c,opp);if(r!==-1&&checkWin(b,opp))return c}
   if(depth<=1)return valid[Math.floor(Math.random()*valid.length)];
-
   let bestScore=-Infinity,bestCol=valid[Math.floor(Math.random()*valid.length)];
   for(const c of valid){
-    const b=cloneBoard(board);
-    dropInBoard(b,c,player);
+    const b=cloneBoard(board);dropInBoard(b,c,player);
     const score=minimax(b,depth-1,false,player,-Infinity,Infinity);
     if(score>bestScore){bestScore=score;bestCol=c}
   }
@@ -301,9 +868,7 @@ function bestMoveMinmax(board,player,depth){
 }
 
 function dropInBoard(board,col,player){
-  for(let r=ROWS-1;r>=0;r--){
-    if(board[col][r]===0){board[col][r]=player;return r}
-  }
+  for(let r=ROWS-1;r>=0;r--){if(board[col][r]===0){board[col][r]=player;return r}}
   return -1;
 }
 
@@ -313,55 +878,44 @@ function minimax(board,depth,isMax,aiPlayer,alpha,beta){
   if(checkWin(board,opp))return -10000-depth;
   if(board.every(c=>c.every(v=>v!==0)))return 0;
   if(depth===0)return evaluateBoard(board,aiPlayer);
-
   const valid=[];
   for(let c=0;c<COLS;c++){if(board[c][0]===0)valid.push(c)}
-  // Prefer center columns
   valid.sort((a,b)=>Math.abs(a-3)-Math.abs(b-3));
-
   if(isMax){
     let best=-Infinity;
     for(const c of valid){
-      const b=cloneBoard(board);
-      dropInBoard(b,c,aiPlayer);
+      const b=cloneBoard(board);dropInBoard(b,c,aiPlayer);
       const score=minimax(b,depth-1,false,aiPlayer,alpha,beta);
-      best=Math.max(best,score);
-      alpha=Math.max(alpha,best);
-      if(beta<=alpha)break;
+      best=Math.max(best,score);alpha=Math.max(alpha,best);if(beta<=alpha)break;
     }
     return best;
   }else{
     let best=Infinity;
     for(const c of valid){
-      const b=cloneBoard(board);
-      dropInBoard(b,c,opp);
+      const b=cloneBoard(board);dropInBoard(b,c,opp);
       const score=minimax(b,depth-1,true,aiPlayer,alpha,beta);
-      best=Math.min(best,score);
-      beta=Math.min(beta,best);
-      if(beta<=alpha)break;
+      best=Math.min(best,score);beta=Math.min(beta,best);if(beta<=alpha)break;
     }
     return best;
   }
 }
 
 function evaluateBoard(board,player){
-  const opp=player===1?2:1;
-  let score=0;
-  // Score all windows of 4
+  const opp=player===1?2:1;let score=0;
   const dirs=[[1,0],[0,1],[1,1],[1,-1]];
   for(let c=0;c<COLS;c++){
     for(let r=0;r<ROWS;r++){
       for(const[dc,dr]of dirs){
-        const window=[];
+        const w=[];
         for(let i=0;i<4;i++){
           const nc=c+dc*i,nr=r+dr*i;
-          if(nc<0||nc>=COLS||nr<0||nr>=ROWS){window.length=0;break}
-          window.push(board[nc][nr]);
+          if(nc<0||nc>=COLS||nr<0||nr>=ROWS){w.length=0;break}
+          w.push(board[nc][nr]);
         }
-        if(window.length===4){
-          const mine=window.filter(v=>v===player).length;
-          const theirs=window.filter(v=>v===opp).length;
-          const empty=window.filter(v=>v===0).length;
+        if(w.length===4){
+          const mine=w.filter(v=>v===player).length;
+          const theirs=w.filter(v=>v===opp).length;
+          const empty=w.filter(v=>v===0).length;
           if(mine===3&&empty===1)score+=50;
           else if(mine===2&&empty===2)score+=10;
           if(theirs===3&&empty===1)score-=80;
@@ -369,178 +923,13 @@ function evaluateBoard(board,player){
       }
     }
   }
-  // Center column preference
-  for(let r=0;r<ROWS;r++){
-    if(board[3][r]===player)score+=6;
-  }
+  for(let r=0;r<ROWS;r++){if(board[3][r]===player)score+=6}
   return score;
 }
 
-// ===== MULTIPLAYER =====
-window.createGame=async function(){
-  try{
-    aiMode=false;coinsAwarded=false;lastBoard=null;
-    roomCode=genCode();
-    let ref=doc(db,'connect4games',roomCode);
-    let snap=await getDoc(ref);
-    if(snap.exists()){roomCode=genCode();ref=doc(db,'connect4games',roomCode)}
-    await setDoc(ref,{
-      board:JSON.stringify(emptyBoard()),turn:1,player1:studentId,player2:null,status:'waiting',winner:null
-    });
-    document.getElementById('roomCodeDisplay').textContent=roomCode;
-    myPlayer=1;
-    showScreen('waitingScreen');
-    listenToGame();
-  }catch(e){
-    console.error('createGame error:',e);
-    showError('Failed to create game. Try again.');
-  }
-};
-
-window.joinGame=async function(){
-  aiMode=false;coinsAwarded=false;lastBoard=null;
-  const code=document.getElementById('codeInput').value.trim();
-  if(code.length!==4){showError('Enter a 4-digit code');return}
-  const ref=doc(db,'connect4games',code);
-  const snap=await getDoc(ref);
-  if(!snap.exists()){showError('Room not found');return}
-  const data=snap.data();
-  if(data.status!=='waiting'){showError('Game already in progress');return}
-  if(data.player1===studentId){showError('You can\'t join your own game');return}
-  roomCode=code;
-  myPlayer=2;
-  await updateDoc(ref,{player2:studentId,status:'playing'});
-  listenToGame();
-};
-
-window.cancelGame=async function(){
-  if(roomCode){
-    try{await deleteDoc(doc(db,'connect4games',roomCode))}catch(e){}
-  }
-  if(unsub)unsub();
-  roomCode=null;
-  showScreen('lobbyScreen');
-};
-
-window.playAgain=function(){
-  if(unsub)unsub();
-  roomCode=null;myPlayer=0;coinsAwarded=false;lastBoard=null;
-  showScreen('lobbyScreen');
-};
-
-function showError(msg){
-  const el=document.getElementById('lobbyError');
-  el.textContent=msg;
-  setTimeout(()=>{el.textContent=''},3000);
-}
-
-function listenToGame(){
-  document.getElementById('p1Label').textContent='You (Red)';
-  document.getElementById('p2Label').textContent='Opponent (Yellow)';
-  const ref=doc(db,'connect4games',roomCode);
-  unsub=onSnapshot(ref,snap=>{
-    if(!snap.exists()){
-      showScreen('lobbyScreen');
-      if(unsub)unsub();
-      return;
-    }
-    const data=snap.data();
-    if(data.status==='waiting')return;
-    const board=typeof data.board==='string'?JSON.parse(data.board):data.board;
-    if(data.status==='playing'){
-      showScreen('gameScreen');
-      renderBoard(board,data.turn,data.winner);
-      updateTurnIndicator(data.turn);
-    }
-    if(data.status==='finished'){
-      renderBoard(board,data.turn,data.winner);
-      showResult(data);
-    }
-  });
-}
-
-// ===== SHARED RENDERING =====
-let lastBoard=null;
-function renderBoard(board,turn,winner){
-  const el=document.getElementById('board');
-  const winCells=winner?getWinCells(board,winner):[];
-  const isMyTurn=aiMode?(turn===1&&!winner&&!aiThinking):(turn===myPlayer&&!winner);
-  const prevBoard=lastBoard;
-  lastBoard=board.map(c=>[...c]);
-
-  el.innerHTML='';
-  for(let r=0;r<ROWS;r++){
-    for(let c=0;c<COLS;c++){
-      const cell=document.createElement('div');
-      cell.className='cell';
-      const val=board[c][r];
-      if(val===1)cell.classList.add('p1');
-      if(val===2)cell.classList.add('p2');
-      if(!isMyTurn||val!==0)cell.classList.add('disabled');
-
-      if(val!==0&&prevBoard&&prevBoard[c][r]===0){
-        cell.classList.add('drop-anim');
-      }
-      if(winCells.some(w=>w[0]===c&&w[1]===r)){
-        cell.classList.add('win-cell');
-      }
-
-      if(isMyTurn&&val===0){
-        const col=c;
-        cell.addEventListener('click',()=>{
-          if(aiMode){aiDropLocal(col)}else{dropPiece(col)}
-        });
-      }
-      el.appendChild(cell);
-    }
-  }
-}
-
-function updateTurnIndicator(turn){
-  const el=document.getElementById('turnIndicator');
-  if(aiMode){
-    if(aiWinner!==null)return;
-    if(aiThinking){
-      el.innerHTML='<span style="color:#ffd166">AI is thinking...</span>';
-    }else{
-      el.innerHTML='<span style="color:#06d6a0">Your turn!</span>';
-    }
-    return;
-  }
-  if(turn===myPlayer){
-    el.innerHTML='<span style="color:#06d6a0">Your turn!</span>';
-  }else{
-    el.innerHTML='<span style="color:#8892a8">Opponent\'s turn...</span>';
-  }
-}
-
-// ===== MULTIPLAYER DROP =====
-async function dropPiece(col){
-  const ref=doc(db,'connect4games',roomCode);
-  const snap=await getDoc(ref);
-  if(!snap.exists())return;
-  const data=snap.data();
-  if(data.turn!==myPlayer||data.status!=='playing')return;
-
-  const board=typeof data.board==='string'?JSON.parse(data.board):data.board;
-  let row=-1;
-  for(let r=ROWS-1;r>=0;r--){
-    if(board[col][r]===0){row=r;break}
-  }
-  if(row===-1)return;
-
-  board[col][row]=myPlayer;
-
-  const won=checkWin(board,myPlayer);
-  const draw=!won&&board.every(c=>c.every(v=>v!==0));
-
-  const update={board:JSON.stringify(board),turn:myPlayer===1?2:1};
-  if(won){update.status='finished';update.winner=myPlayer}
-  else if(draw){update.status='finished';update.winner=0}
-  await updateDoc(ref,update);
-}
-
-// ===== WIN DETECTION =====
+/* ===================== */
+/* WIN DETECTION         */
+/* ===================== */
 function checkWin(board,player){
   const dirs=[[1,0],[0,1],[1,1],[1,-1]];
   for(let c=0;c<COLS;c++){
@@ -580,53 +969,927 @@ function getWinCells(board,winner){
   return[];
 }
 
-// ===== RESULTS & COINS =====
-let coinsAwarded=false;
+/* ===================== */
+/* BOARD RENDERING       */
+/* ===================== */
+function getLowestEmptyRow(board,col){
+  for(let r=ROWS-1;r>=0;r--){if(board[col][r]===0)return r}
+  return -1;
+}
+
+function renderBoard(board,turn,winner){
+  const el=document.getElementById('board');
+  const winCells=winner?getWinCells(board,winner):[];
+  const isMyTurn=spectateMode?false:(aiMode?(turn===1&&!winner&&!aiThinking):(turn===myPlayer&&!winner));
+  const prevBoard=lastBoard;
+  lastBoard=board.map(c=>[...c]);
+
+  el.innerHTML='';
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const cell=document.createElement('div');
+      cell.className='cell';
+      cell.dataset.col=c;
+      cell.dataset.row=r;
+      const val=board[c][r];
+      if(val===1)cell.classList.add('p1');
+      if(val===2)cell.classList.add('p2');
+      if(val!==0&&prevBoard&&prevBoard[c][r]===0){cell.classList.add('drop-anim')}
+      if(winCells.some(w=>w[0]===c&&w[1]===r)){cell.classList.add('win-cell')}
+      el.appendChild(cell);
+    }
+  }
+
+  // Create column hover zones
+  const frame=document.getElementById('boardFrame');
+  frame.querySelectorAll('.col-hover-zone').forEach(z=>z.remove());
+  frame.querySelectorAll('.ghost-piece').forEach(z=>z.remove());
+
+  if(isMyTurn){
+    const boardRect=el.getBoundingClientRect();
+    const firstCell=el.querySelector('.cell');
+    if(!firstCell)return;
+    const cellSize=firstCell.offsetWidth;
+    const gap=parseFloat(getComputedStyle(el).gap)||4;
+    const padLeft=parseFloat(getComputedStyle(frame).paddingLeft)||8;
+    const padTop=parseFloat(getComputedStyle(frame).paddingTop)||8;
+
+    for(let c=0;c<COLS;c++){
+      const zone=document.createElement('div');
+      zone.className='col-hover-zone';
+      const left=padLeft+c*(cellSize+gap);
+      zone.style.cssText=`left:${left}px;width:${cellSize}px;height:100%;border-radius:${c===0?'20px 0 0 20px':c===6?'0 20px 20px 0':'0'}`;
+
+      const lowestRow=getLowestEmptyRow(board,c);
+      if(lowestRow===-1){zone.classList.add('disabled')}
+      else{
+        // Ghost piece
+        const ghost=document.createElement('div');
+        ghost.className=`ghost-piece p${turn}`;
+        const top=padTop+lowestRow*(cellSize+gap);
+        ghost.style.cssText=`left:${left}px;top:${top}px;width:${cellSize}px;height:${cellSize}px`;
+        frame.appendChild(ghost);
+
+        // Hover effects
+        const ghostRef=ghost;
+        zone.addEventListener('mouseenter',()=>{
+          ghostRef.style.opacity='1';
+          AudioEngine.play('hover');
+        });
+        zone.addEventListener('mouseleave',()=>{ghostRef.style.opacity='0'});
+
+        zone.addEventListener('click',()=>{
+          if(aiMode){aiDropLocal(c)}else{dropPiece(c)}
+        });
+      }
+      frame.appendChild(zone);
+    }
+  }
+}
+
+function updateTurnUI(turn){
+  const p1=document.getElementById('panelP1');
+  const p2=document.getElementById('panelP2');
+  const mobile=document.getElementById('mobileTurn');
+
+  p1.classList.toggle('active-turn',turn===1);
+  p2.classList.toggle('active-turn',turn===2);
+
+  if(spectateMode){
+    const name=turn===1?document.getElementById('p1Name').textContent:document.getElementById('p2Name').textContent;
+    mobile.innerHTML=`<span class="badge badge-blue">Spectating</span> <span style="margin-left:8px">${esc(name)}'s turn</span>`;
+    return;
+  }
+
+  if(aiMode){
+    if(aiWinner!==null){mobile.textContent='Game Over';return}
+    if(aiThinking){mobile.innerHTML='<span style="color:var(--gold)">AI is thinking...</span>'}
+    else{mobile.innerHTML='<span style="color:var(--accent)">Your turn!</span>'}
+  }else{
+    if(turn===myPlayer){mobile.innerHTML='<span style="color:var(--accent)">Your turn!</span>'}
+    else{mobile.innerHTML='<span style="color:var(--text2)">Opponent\'s turn...</span>'}
+  }
+}
+
+/* ===================== */
+/* MULTIPLAYER           */
+/* ===================== */
+async function createGame(){
+  try{
+    aiMode=false;spectateMode=false;coinsAwarded=false;lastBoard=null;
+    roomCode=genCode();
+    let ref=doc(db,'connect4games',roomCode);
+    let snap=await getDoc(ref);
+    if(snap.exists()){roomCode=genCode();ref=doc(db,'connect4games',roomCode)}
+    await setDoc(ref,{
+      board:JSON.stringify(emptyBoard()),turn:1,
+      player1:studentId,player1Name:studentName,
+      player2:null,player2Name:null,
+      status:'waiting',winner:null,classCode:classCode||null
+    });
+    document.getElementById('roomCodeDisplay').textContent=roomCode;
+    myPlayer=1;
+    showScreen('waitingScreen');
+    listenToGame();
+  }catch(e){
+    console.error('createGame error:',e);
+    showError('Failed to create game. Try again.');
+  }
+}
+
+async function joinGame(){
+  aiMode=false;spectateMode=false;coinsAwarded=false;lastBoard=null;
+  const code=document.getElementById('codeInput').value.trim();
+  if(code.length!==4){showError('Enter a 4-digit code');return}
+  try{
+    const ref=doc(db,'connect4games',code);
+    const snap=await getDoc(ref);
+    if(!snap.exists()){showError('Room not found');return}
+    const data=snap.data();
+    if(data.status!=='waiting'){showError('Game already in progress');return}
+    if(data.player1===studentId){showError("You can't join your own game");return}
+    roomCode=code;myPlayer=2;
+    await updateDoc(ref,{player2:studentId,player2Name:studentName,status:'playing'});
+    listenToGame();
+  }catch(e){showError('Failed to join. Try again.')}
+}
+
+async function cancelGame(){
+  if(roomCode){try{await deleteDoc(doc(db,'connect4games',roomCode))}catch(e){}}
+  if(unsub)unsub();
+  roomCode=null;
+  showScreen('homeScreen');
+}
+
+function listenToGame(){
+  const ref=doc(db,'connect4games',roomCode);
+  unsub=onSnapshot(ref,async snap=>{
+    if(!snap.exists()){
+      showScreen('homeScreen');
+      if(unsub)unsub();
+      return;
+    }
+    const data=snap.data();
+    if(data.status==='waiting')return;
+    const board=typeof data.board==='string'?JSON.parse(data.board):data.board;
+
+    // Set player names
+    document.getElementById('p1Name').textContent=data.player1Name||'Player 1';
+    document.getElementById('p2Name').textContent=data.player2Name||'Player 2';
+
+    // Load opponent record
+    if(!spectateMode){
+      const oppId=myPlayer===1?data.player2:data.player1;
+      if(oppId&&!opponentRecord){
+        opponentRecord=await getRecord(oppId);
+        if(opponentRecord){
+          const el=myPlayer===1?document.getElementById('p2Record'):document.getElementById('p1Record');
+          el.textContent=`${opponentRecord.wins||0}W ${opponentRecord.losses||0}L`;
+        }
+      }
+    }
+
+    if(data.status==='playing'){
+      showScreen('gameScreen');
+      renderBoard(board,data.turn,data.winner);
+      updateTurnUI(data.turn);
+    }
+    if(data.status==='finished'){
+      renderBoard(board,data.turn,data.winner);
+      if(!spectateMode){
+        const frame=document.getElementById('boardFrame');
+        frame.classList.add('shake');
+        setTimeout(()=>frame.classList.remove('shake'),500);
+        setTimeout(()=>showResult(data),800);
+      }
+    }
+  });
+}
+
+function spectateGame(code){
+  roomCode=code;
+  spectateMode=true;
+  myPlayer=0;
+  coinsAwarded=false;lastBoard=null;
+  listenToGame();
+  showScreen('gameScreen');
+}
+
+async function dropPiece(col){
+  const ref=doc(db,'connect4games',roomCode);
+  const snap=await getDoc(ref);
+  if(!snap.exists())return;
+  const data=snap.data();
+  if(data.turn!==myPlayer||data.status!=='playing')return;
+  const board=typeof data.board==='string'?JSON.parse(data.board):data.board;
+  let row=-1;
+  for(let r=ROWS-1;r>=0;r--){if(board[col][r]===0){row=r;break}}
+  if(row===-1)return;
+  board[col][row]=myPlayer;
+  AudioEngine.play('drop');
+  const won=checkWin(board,myPlayer);
+  const draw=!won&&board.every(c=>c.every(v=>v!==0));
+  const update={board:JSON.stringify(board),turn:myPlayer===1?2:1};
+  if(won){update.status='finished';update.winner=myPlayer}
+  else if(draw){update.status='finished';update.winner=0}
+  await updateDoc(ref,update);
+}
+
+function showError(msg){
+  const el=document.getElementById('lobbyError');
+  if(el){el.textContent=msg;setTimeout(()=>{el.textContent=''},3000)}
+}
+
+/* ===================== */
+/* RESULTS & COINS       */
+/* ===================== */
 function showResult(data){
   showScreen('resultScreen');
   const titleEl=document.getElementById('resultTitle');
-  const coinsEl=document.getElementById('coinsEarned');
+  const subEl=document.getElementById('resultSub');
+  const coinsEl=document.getElementById('coinsDisplay');
+  const recordEl=document.getElementById('recordUpdate');
+  const actionsEl=document.getElementById('resultActions');
 
   let coins=0;
+  let recordResult='draw';
+
   if(data.winner===0){
-    titleEl.textContent='It\'s a Draw!';
-    titleEl.style.color='#8892a8';
-    coins=5;
+    titleEl.textContent="It's a Draw!";
+    titleEl.style.color='var(--text2)';
+    subEl.textContent='Neither player connected four';
+    coins=5;recordResult='draw';
   }else if(aiMode){
     if(data.winner===1){
       titleEl.textContent='You Win!';
-      titleEl.style.color='#06d6a0';
+      titleEl.style.color='var(--accent)';
+      subEl.textContent='You defeated the AI on '+aiDifficulty+'!';
       coins=aiDifficulty==='hard'?30:aiDifficulty==='medium'?20:10;
+      recordResult='win';
+      AudioEngine.play('win');
+      if(typeof odaConfetti==='function')odaConfetti();
     }else{
       titleEl.textContent='AI Wins!';
-      titleEl.style.color='#ef476f';
-      coins=3;
+      titleEl.style.color='var(--accent3)';
+      subEl.textContent='The AI outsmarted you this time';
+      coins=3;recordResult='loss';
+      AudioEngine.play('lose');
     }
   }else{
     if(data.winner===myPlayer){
       titleEl.textContent='You Win!';
-      titleEl.style.color='#06d6a0';
-      coins=20;
+      titleEl.style.color='var(--accent)';
+      subEl.textContent='Great game!';
+      coins=20;recordResult='win';
+      AudioEngine.play('win');
+      if(typeof odaConfetti==='function')odaConfetti();
     }else{
       titleEl.textContent='You Lose!';
-      titleEl.style.color='#ef476f';
-      coins=5;
+      titleEl.style.color='var(--accent3)';
+      subEl.textContent='Better luck next time';
+      coins=5;recordResult='loss';
+      AudioEngine.play('lose');
     }
   }
-  coinsEl.textContent='\u{1FA99} +'+coins+' Coins';
+
+  coinsEl.innerHTML=`<svg width="22" height="22" viewBox="0 0 24 24" fill="var(--gold)"><circle cx="12" cy="12" r="10" stroke="var(--gold)" stroke-width="2" fill="rgba(255,209,102,.2)"/><text x="12" y="16" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--gold)">$</text></svg> +${coins} Coins`;
 
   if(!coinsAwarded){
     coinsAwarded=true;
     awardCoins(coins);
+    updateRecordAfterGame(recordResult);
   }
+
+  // Show record update
+  recordEl.innerHTML='';
+  if(!studentId.startsWith('anon_')){
+    getRecord(studentId).then(rec=>{
+      if(rec){
+        recordEl.innerHTML=`
+          <div class="stat-box"><div class="stat-val" style="color:var(--accent)">${rec.wins||0}</div><div class="stat-label">Wins</div></div>
+          <div class="stat-box"><div class="stat-val" style="color:var(--accent3)">${rec.losses||0}</div><div class="stat-label">Losses</div></div>
+          <div class="stat-box"><div class="stat-val" style="color:var(--gold)">${rec.winStreak||0}</div><div class="stat-label">Streak</div></div>`;
+      }
+    });
+  }
+
+  // Actions depend on context
+  let actionsHTML='<button class="btn btn-accent" onclick="C4.playAgain()">Play Again</button>';
+  if(currentTourneyCode){
+    actionsHTML='<button class="btn btn-accent" onclick="C4.backToTourney()">Back to Bracket</button>';
+  }
+  actionsHTML+='<button class="btn btn-outline" onclick="C4.goHome()">Home</button>';
+  actionsEl.innerHTML=actionsHTML;
 }
 
 async function awardCoins(coins){
   if(!studentId||studentId.startsWith('anon_'))return;
-  try{
-    await updateDoc(doc(db,'students',studentId),{coins:increment(coins)});
-  }catch(e){console.warn('Coin award failed:',e)}
+  try{await updateDoc(doc(db,'students',studentId),{coins:increment(coins)})}catch(e){console.warn('Coin award failed:',e)}
 }
+
+function playAgain(){
+  if(unsub)unsub();
+  roomCode=null;myPlayer=0;coinsAwarded=false;lastBoard=null;opponentRecord=null;spectateMode=false;
+  showScreen('homeScreen');
+}
+
+function goHome(){
+  if(unsub)unsub();
+  if(unsubTourney)unsubTourney();
+  roomCode=null;myPlayer=0;coinsAwarded=false;lastBoard=null;opponentRecord=null;spectateMode=false;
+  currentTourneyCode=null;currentTourneyData=null;
+  showScreen('homeScreen');
+  loadQuickStats();
+}
+
+/* ===================== */
+/* TOURNAMENT SYSTEM     */
+/* ===================== */
+function showTourneyJoin(){
+  showScreen('tourneyJoinScreen');
+}
+
+async function joinTourney(){
+  const code=document.getElementById('tourneyCodeInput').value.trim();
+  if(code.length<4){
+    document.getElementById('tourneyJoinError').textContent='Enter a valid tournament code';
+    setTimeout(()=>{document.getElementById('tourneyJoinError').textContent=''},3000);
+    return;
+  }
+  try{
+    const ref=doc(db,'connect4Tournaments',code);
+    const snap=await getDoc(ref);
+    if(!snap.exists()){
+      document.getElementById('tourneyJoinError').textContent='Tournament not found';
+      setTimeout(()=>{document.getElementById('tourneyJoinError').textContent=''},3000);
+      return;
+    }
+    const data=snap.data();
+    if(data.status==='finished'){
+      document.getElementById('tourneyJoinError').textContent='Tournament has ended';
+      setTimeout(()=>{document.getElementById('tourneyJoinError').textContent=''},3000);
+      return;
+    }
+
+    // Add player if in lobby
+    if(data.status==='lobby'){
+      const players=data.players||{};
+      if(!players[studentId]){
+        const seed=Object.keys(players).length+1;
+        players[studentId]={name:studentName,seed:seed};
+        await updateDoc(ref,{players:players});
+      }
+    }
+
+    currentTourneyCode=code;
+    await ensureRecord(studentId,studentName,classCode);
+    listenToTourney(code);
+  }catch(e){
+    document.getElementById('tourneyJoinError').textContent='Failed to join tournament';
+    setTimeout(()=>{document.getElementById('tourneyJoinError').textContent=''},3000);
+  }
+}
+
+function listenToTourney(code){
+  if(unsubTourney)unsubTourney();
+  const ref=doc(db,'connect4Tournaments',code);
+  unsubTourney=onSnapshot(ref,snap=>{
+    if(!snap.exists()){
+      if(typeof odaToast==='function')odaToast('Tournament deleted','error');
+      goHome();
+      return;
+    }
+    currentTourneyData=snap.data();
+    currentTourneyData.code=code;
+
+    if(currentTourneyData.status==='lobby'){
+      renderTourneyLobby(currentTourneyData);
+      showScreen('tourneyLobbyScreen');
+    }else if(currentTourneyData.status==='active'||currentTourneyData.status==='finished'){
+      renderTourneyBracket(currentTourneyData);
+      showScreen('tourneyBracketScreen');
+
+      // Check if I have an active match
+      if(currentTourneyData.status==='active'){
+        checkMyTourneyMatch(currentTourneyData);
+      }
+    }
+  });
+}
+
+function renderTourneyLobby(data){
+  document.getElementById('tourneyLobbyCode').textContent=data.code||currentTourneyCode;
+  const players=data.players||{};
+  const count=Object.keys(players).length;
+  document.getElementById('tourneyPlayerCount').textContent=count;
+  document.getElementById('tourneyLobbyTitle').textContent='Tournament Lobby';
+  document.getElementById('tourneyLobbyStatus').textContent=`Waiting for players... (${count} joined)`;
+
+  const list=document.getElementById('tourneyPlayersList');
+  list.innerHTML='';
+  Object.entries(players).sort((a,b)=>a[1].seed-b[1].seed).forEach(([id,p])=>{
+    const card=document.createElement('div');
+    card.className='player-lobby-card';
+    card.innerHTML=`${esc(p.name)}<div class="seed">Seed #${p.seed}</div>`;
+    if(id===studentId)card.style.borderColor='var(--accent)';
+    list.appendChild(card);
+  });
+
+  // Actions
+  const actions=document.getElementById('tourneyLobbyActions');
+  if(isTeacher){
+    actions.innerHTML=`
+      <button class="btn btn-accent" onclick="C4.teacherStartTourney('${data.code||currentTourneyCode}')" ${count<2?'disabled style="opacity:.5"':''}>Start Tournament (${count} players)</button>
+      <button class="btn btn-outline btn-small" onclick="C4.leaveTourney()" style="margin-top:8px">Cancel</button>`;
+  }else{
+    actions.innerHTML='<button class="btn btn-outline btn-small" onclick="C4.leaveTourney()">Leave</button>';
+  }
+}
+
+function renderTourneyBracket(data){
+  document.getElementById('tourneyBracketCode').textContent=data.code||currentTourneyCode;
+  document.getElementById('tourneyBracketTitle').textContent=data.status==='finished'?'Tournament Complete':'Tournament Bracket';
+
+  const info=document.getElementById('tourneyBracketInfo');
+  if(data.status==='finished'&&data.results){
+    const r=data.results;
+    let html='<div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:12px 0">';
+    if(r['1'])html+=`<div class="badge badge-gold">1st: ${esc(r['1'].name)}</div>`;
+    if(r['2'])html+=`<div class="badge badge-blue">2nd: ${esc(r['2'].name)}</div>`;
+    if(r['3'])html+=`<div class="badge badge-accent">3rd: ${esc(r['3'].name)}</div>`;
+    html+='</div>';
+    info.innerHTML=html;
+  }else{
+    info.innerHTML=`<span class="badge badge-accent">Round ${data.currentRound||1} of ${data.totalRounds||'?'}</span>`;
+  }
+
+  // Build bracket visualization
+  const bracket=data.bracket||{};
+  const totalRounds=data.totalRounds||1;
+  const players=data.players||{};
+  const wrap=document.getElementById('bracketWrap');
+  wrap.innerHTML='';
+
+  const bracketEl=document.createElement('div');
+  bracketEl.className='bracket';
+
+  const roundNames=['Round 1','Quarterfinals','Semifinals','Finals','Championship'];
+
+  for(let round=1;round<=totalRounds;round++){
+    const roundDiv=document.createElement('div');
+    roundDiv.className='bracket-round';
+    const roundTitle=document.createElement('div');
+    roundTitle.className='bracket-round-title';
+    if(totalRounds<=2){
+      roundTitle.textContent=round===totalRounds?'Finals':'Semifinals';
+    }else{
+      roundTitle.textContent=roundNames[Math.min(round-1,roundNames.length-1)]||`Round ${round}`;
+    }
+    roundDiv.appendChild(roundTitle);
+
+    // Get matches for this round
+    const roundMatches=Object.entries(bracket).filter(([,m])=>m.round===round).sort((a,b)=>a[0].localeCompare(b[0]));
+
+    roundMatches.forEach(([matchId,match])=>{
+      const card=document.createElement('div');
+      card.className='match-card';
+
+      const p1Name=match.player1?((players[match.player1]||{}).name||'TBD'):'TBD';
+      const p2Name=match.player2?((players[match.player2]||{}).name||'TBD'):'TBD';
+      const p1Seed=match.player1?((players[match.player1]||{}).seed||''):'';
+      const p2Seed=match.player2?((players[match.player2]||{}).seed||''):'';
+
+      let p1Class='',p2Class='',statusText='',statusClass='upcoming';
+      if(match.winner){
+        statusText='Completed';statusClass='completed';
+        p1Class=match.winner===match.player1?'winner':'loser';
+        p2Class=match.winner===match.player2?'winner':'loser';
+      }else if(match.gameCode){
+        statusText='Playing';statusClass='playing';
+        card.classList.add('spectatable');
+        card.addEventListener('click',()=>{spectateGame(match.gameCode)});
+      }else if(match.player1&&match.player2){
+        statusText='Upcoming';statusClass='upcoming';
+      }else{
+        statusText='Waiting';statusClass='upcoming';
+      }
+
+      card.innerHTML=`
+        <div class="match-player ${p1Class}">
+          <span class="mp-seed">${p1Seed}</span>
+          <span class="mp-name">${esc(p1Name)}</span>
+        </div>
+        <div class="match-player ${p2Class}">
+          <span class="mp-seed">${p2Seed}</span>
+          <span class="mp-name">${esc(p2Name)}</span>
+        </div>
+        <div class="match-status ${statusClass}">${statusText}</div>`;
+      roundDiv.appendChild(card);
+    });
+
+    bracketEl.appendChild(roundDiv);
+  }
+
+  wrap.appendChild(bracketEl);
+}
+
+function checkMyTourneyMatch(data){
+  const bracket=data.bracket||{};
+  for(const[matchId,match]of Object.entries(bracket)){
+    if(match.winner)continue;
+    if(match.gameCode&&(match.player1===studentId||match.player2===studentId)){
+      // I have an active match - join it
+      if(document.querySelector('#gameScreen.active'))return; // already in game
+      roomCode=match.gameCode;
+      myPlayer=match.player1===studentId?1:2;
+      spectateMode=false;coinsAwarded=false;lastBoard=null;
+      listenToGame();
+      return;
+    }
+  }
+}
+
+function leaveTourney(){
+  if(unsubTourney)unsubTourney();
+  currentTourneyCode=null;currentTourneyData=null;
+  showScreen('homeScreen');
+}
+
+function backToTourney(){
+  if(unsub)unsub();
+  roomCode=null;myPlayer=0;coinsAwarded=false;lastBoard=null;spectateMode=false;
+  if(currentTourneyCode){
+    listenToTourney(currentTourneyCode);
+  }else{
+    showScreen('homeScreen');
+  }
+}
+
+/* ===================== */
+/* TEACHER: TOURNAMENT   */
+/* ===================== */
+async function teacherCreateTourney(){
+  const timeLimit=parseInt(document.getElementById('tcTimeLimit').value)||0;
+  const code=genTourneyCode();
+  try{
+    await setDoc(doc(db,'connect4Tournaments',code),{
+      code:code,
+      status:'lobby',
+      teacherId:studentId,
+      classCode:classCode||'',
+      players:{},
+      bracket:{},
+      currentRound:0,
+      totalRounds:0,
+      settings:{timeLimit:timeLimit},
+      results:{},
+      createdAt:new Date().toISOString()
+    });
+    currentTourneyCode=code;
+    listenToTourney(code);
+    if(typeof odaToast==='function')odaToast('Tournament created! Code: '+code,'success');
+  }catch(e){
+    if(typeof odaToast==='function')odaToast('Failed to create tournament','error');
+  }
+}
+
+async function teacherStartTourney(code){
+  const ref=doc(db,'connect4Tournaments',code);
+  const snap=await getDoc(ref);
+  if(!snap.exists())return;
+  const data=snap.data();
+  const players=data.players||{};
+  const playerIds=Object.keys(players);
+  const count=playerIds.length;
+  if(count<2){if(typeof odaToast==='function')odaToast('Need at least 2 players','error');return}
+
+  // Calculate bracket size (next power of 2)
+  let bracketSize=2;
+  while(bracketSize<count)bracketSize*=2;
+  const totalRounds=Math.log2(bracketSize);
+
+  // Shuffle players
+  const shuffled=[...playerIds].sort(()=>Math.random()-.5);
+  // Re-seed
+  shuffled.forEach((id,i)=>{players[id].seed=i+1});
+
+  // Create first round matches
+  const bracket={};
+  let matchNum=1;
+  for(let i=0;i<bracketSize;i+=2){
+    const p1=shuffled[i]||null;
+    const p2=shuffled[i+1]||null;
+    const matchId=`r1_m${matchNum}`;
+
+    if(p1&&!p2){
+      // Bye - p1 auto-advances
+      bracket[matchId]={player1:p1,player2:null,winner:p1,gameCode:null,round:1};
+    }else if(!p1&&p2){
+      bracket[matchId]={player1:null,player2:p2,winner:p2,gameCode:null,round:1};
+    }else if(!p1&&!p2){
+      bracket[matchId]={player1:null,player2:null,winner:null,gameCode:null,round:1};
+    }else{
+      bracket[matchId]={player1:p1,player2:p2,winner:null,gameCode:null,round:1};
+    }
+    matchNum++;
+  }
+
+  // Create placeholder matches for subsequent rounds
+  for(let round=2;round<=totalRounds;round++){
+    const prevRoundMatches=Object.keys(bracket).filter(k=>bracket[k].round===round-1).length;
+    const thisRoundMatches=prevRoundMatches/2;
+    for(let m=1;m<=thisRoundMatches;m++){
+      bracket[`r${round}_m${m}`]={player1:null,player2:null,winner:null,gameCode:null,round:round};
+    }
+  }
+
+  await updateDoc(ref,{
+    status:'active',
+    players:players,
+    bracket:bracket,
+    currentRound:1,
+    totalRounds:totalRounds
+  });
+
+  // Start games for round 1
+  await startTourneyRoundGames(code,bracket,1);
+}
+
+async function startTourneyRoundGames(tourneyCode,bracket,round){
+  const ref=doc(db,'connect4Tournaments',tourneyCode);
+  const roundMatches=Object.entries(bracket).filter(([,m])=>m.round===round&&!m.winner&&m.player1&&m.player2);
+
+  for(const[matchId,match]of roundMatches){
+    const gameCode=genCode();
+    const gameRef=doc(db,'connect4games',gameCode);
+    await setDoc(gameRef,{
+      board:JSON.stringify(emptyBoard()),turn:1,
+      player1:match.player1,player1Name:(currentTourneyData?.players?.[match.player1]?.name)||'Player 1',
+      player2:match.player2,player2Name:(currentTourneyData?.players?.[match.player2]?.name)||'Player 2',
+      status:'playing',winner:null,
+      tourneyCode:tourneyCode,matchId:matchId,classCode:classCode||null
+    });
+    bracket[matchId].gameCode=gameCode;
+
+    // Listen for game completion
+    listenToTourneyGame(tourneyCode,matchId,gameCode);
+  }
+
+  await updateDoc(ref,{bracket:bracket});
+}
+
+function listenToTourneyGame(tourneyCode,matchId,gameCode){
+  const gameRef=doc(db,'connect4games',gameCode);
+  const gameUnsub=onSnapshot(gameRef,async snap=>{
+    if(!snap.exists())return;
+    const data=snap.data();
+    if(data.status!=='finished')return;
+    gameUnsub();
+
+    // Update bracket
+    const tourneyRef=doc(db,'connect4Tournaments',tourneyCode);
+    const tourneySnap=await getDoc(tourneyRef);
+    if(!tourneySnap.exists())return;
+    const tData=tourneySnap.data();
+    const bracket=tData.bracket||{};
+
+    if(data.winner===0){
+      // Draw = rematch (reset game)
+      await setDoc(gameRef,{
+        board:JSON.stringify(emptyBoard()),turn:1,
+        player1:data.player1,player1Name:data.player1Name,
+        player2:data.player2,player2Name:data.player2Name,
+        status:'playing',winner:null,
+        tourneyCode:tourneyCode,matchId:matchId,classCode:data.classCode||null
+      });
+      listenToTourneyGame(tourneyCode,matchId,gameCode);
+      return;
+    }
+
+    const winnerId=data.winner===1?data.player1:data.player2;
+    const loserId=data.winner===1?data.player2:data.player1;
+    bracket[matchId].winner=winnerId;
+
+    const currentRound=tData.currentRound||1;
+    const totalRounds=tData.totalRounds||1;
+
+    // Advance winner to next round
+    if(currentRound<totalRounds){
+      const matchNum=parseInt(matchId.split('_m')[1]);
+      const nextMatchNum=Math.ceil(matchNum/2);
+      const nextMatchId=`r${currentRound+1}_m${nextMatchNum}`;
+      if(bracket[nextMatchId]){
+        if(matchNum%2===1){bracket[nextMatchId].player1=winnerId}
+        else{bracket[nextMatchId].player2=winnerId}
+      }
+    }
+
+    // Check if round is complete
+    const roundMatches=Object.entries(bracket).filter(([,m])=>m.round===currentRound);
+    const allDone=roundMatches.every(([,m])=>m.winner);
+
+    if(allDone){
+      if(currentRound>=totalRounds){
+        // Tournament finished
+        const players=tData.players||{};
+        const results={};
+        // Winner of final match
+        const finalMatch=roundMatches[0];
+        if(finalMatch){
+          results['1']={id:finalMatch[1].winner,name:(players[finalMatch[1].winner]||{}).name||'Unknown'};
+          const finalist1=finalMatch[1].player1;
+          const finalist2=finalMatch[1].player2;
+          const second=finalMatch[1].winner===finalist1?finalist2:finalist1;
+          results['2']={id:second,name:(players[second]||{}).name||'Unknown'};
+        }
+
+        // Award tournament coins
+        const coinRewards={'1':100,'2':50,'3':25};
+        for(const[place,pData]of Object.entries(results)){
+          if(coinRewards[place]&&pData.id){
+            try{await updateDoc(doc(db,'students',pData.id),{coins:increment(coinRewards[place])})}catch(e){}
+          }
+        }
+        // Participation coins for everyone else
+        for(const pid of Object.keys(players)){
+          if(!Object.values(results).some(r=>r.id===pid)){
+            try{await updateDoc(doc(db,'students',pid),{coins:increment(10)})}catch(e){}
+          }
+        }
+
+        await updateDoc(tourneyRef,{bracket:bracket,status:'finished',results:results});
+      }else{
+        // Advance to next round
+        await updateDoc(tourneyRef,{bracket:bracket,currentRound:currentRound+1});
+        await startTourneyRoundGames(tourneyCode,bracket,currentRound+1);
+      }
+    }else{
+      await updateDoc(tourneyRef,{bracket:bracket});
+    }
+  });
+}
+
+/* ===================== */
+/* TEACHER DASHBOARD     */
+/* ===================== */
+function showTeacherDashboard(){
+  showScreen('teacherScreen');
+  loadTeacherRecords();
+  loadTourneyHistory();
+  loadStudentSelects();
+  loadAssignedMatches();
+}
+
+function teacherTab(tab){
+  document.querySelectorAll('.teacher-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.teacher-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector(`.teacher-tab:nth-child(${tab==='records'?1:tab==='tournaments'?2:3})`).classList.add('active');
+  document.getElementById(tab==='records'?'teacherRecordsPanel':tab==='tournaments'?'teacherTournamentsPanel':'teacherAssignPanel').classList.add('active');
+}
+
+async function loadTeacherRecords(){
+  try{
+    let q;
+    if(classCode){
+      q=query(collection(db,'connect4Records'),where('classCode','==',classCode),orderBy('wins','desc'),limit(50));
+    }else{
+      q=query(collection(db,'connect4Records'),orderBy('wins','desc'),limit(50));
+    }
+    const snap=await getDocs(q);
+    if(snap.empty){
+      document.getElementById('teacherLeaderboard').innerHTML='<p style="color:var(--text2)">No records yet.</p>';
+      return;
+    }
+    let html='<table class="leaderboard-table"><thead><tr><th>#</th><th>Student</th><th>W</th><th>L</th><th>D</th><th>Games</th><th>Best Streak</th></tr></thead><tbody>';
+    let rank=0;
+    snap.forEach(d=>{
+      rank++;
+      const r=d.data();
+      html+=`<tr><td style="font-weight:800" class="${rank<=3?'rank-'+rank:''}">${rank}</td><td>${esc(r.studentName||'Unknown')}</td><td style="color:var(--accent);font-weight:800">${r.wins||0}</td><td>${r.losses||0}</td><td>${r.draws||0}</td><td>${r.gamesPlayed||0}</td><td style="color:var(--gold)">${r.bestStreak||0}</td></tr>`;
+    });
+    html+='</tbody></table>';
+    document.getElementById('teacherLeaderboard').innerHTML=html;
+  }catch(e){
+    document.getElementById('teacherLeaderboard').innerHTML='<p style="color:var(--text2)">Failed to load records.</p>';
+  }
+}
+
+async function loadTourneyHistory(){
+  try{
+    let q;
+    if(classCode){
+      q=query(collection(db,'connect4Tournaments'),where('classCode','==',classCode),orderBy('createdAt','desc'),limit(20));
+    }else{
+      q=query(collection(db,'connect4Tournaments'),where('teacherId','==',studentId),orderBy('createdAt','desc'),limit(20));
+    }
+    const snap=await getDocs(q);
+    const list=document.getElementById('tourneyHistoryList');
+    if(snap.empty){list.innerHTML='<p style="color:var(--text2)">No tournaments yet.</p>';return}
+    list.innerHTML='';
+    snap.forEach(d=>{
+      const t=d.data();
+      const item=document.createElement('div');
+      item.className='card-static history-item';
+      const playerCount=Object.keys(t.players||{}).length;
+      const statusBadge=t.status==='finished'?'<span class="badge badge-gold">Finished</span>':t.status==='active'?'<span class="badge badge-accent">Active</span>':'<span class="badge badge-blue">Lobby</span>';
+      let winnerText='';
+      if(t.results&&t.results['1']){winnerText=`<span style="color:var(--gold);font-size:13px">Winner: ${esc(t.results['1'].name)}</span>`}
+      item.innerHTML=`<div><strong>Code: ${esc(t.code)}</strong><br><span style="color:var(--text2);font-size:13px">${playerCount} players</span> ${winnerText}</div><div style="display:flex;gap:8px;align-items:center">${statusBadge}${t.status!=='finished'?`<button class="btn btn-outline btn-small" onclick="C4.teacherViewTourney('${d.id}')">View</button>`:''}</div>`;
+      list.appendChild(item);
+    });
+  }catch(e){
+    document.getElementById('tourneyHistoryList').innerHTML='<p style="color:var(--text2)">Failed to load tournaments.</p>';
+  }
+}
+
+async function teacherViewTourney(code){
+  currentTourneyCode=code;
+  listenToTourney(code);
+}
+
+async function loadStudentSelects(){
+  try{
+    let q;
+    if(classCode){
+      q=query(collection(db,'students'),where('classCode','==',classCode),orderBy('name'),limit(100));
+    }else{
+      q=query(collection(db,'students'),orderBy('name'),limit(100));
+    }
+    const snap=await getDocs(q);
+    const sel1=document.getElementById('assignP1');
+    const sel2=document.getElementById('assignP2');
+    sel1.innerHTML='<option value="">Select student...</option>';
+    sel2.innerHTML='<option value="">Select student...</option>';
+    snap.forEach(d=>{
+      const s=d.data();
+      sel1.innerHTML+=`<option value="${d.id}">${esc(s.name||d.id)}</option>`;
+      sel2.innerHTML+=`<option value="${d.id}">${esc(s.name||d.id)}</option>`;
+    });
+  }catch(e){}
+}
+
+async function assignMatch(){
+  const p1=document.getElementById('assignP1').value;
+  const p2=document.getElementById('assignP2').value;
+  if(!p1||!p2){document.getElementById('assignError').textContent='Select both players';setTimeout(()=>{document.getElementById('assignError').textContent=''},3000);return}
+  if(p1===p2){document.getElementById('assignError').textContent='Must be different players';setTimeout(()=>{document.getElementById('assignError').textContent=''},3000);return}
+
+  try{
+    const p1Snap=await getDoc(doc(db,'students',p1));
+    const p2Snap=await getDoc(doc(db,'students',p2));
+    const p1Name=p1Snap.exists()?(p1Snap.data().name||'Player 1'):'Player 1';
+    const p2Name=p2Snap.exists()?(p2Snap.data().name||'Player 2'):'Player 2';
+
+    const code=genCode();
+    await setDoc(doc(db,'connect4games',code),{
+      board:JSON.stringify(emptyBoard()),turn:1,
+      player1:p1,player1Name:p1Name,
+      player2:p2,player2Name:p2Name,
+      status:'playing',winner:null,
+      assigned:true,assignedBy:studentId,classCode:classCode||null
+    });
+    if(typeof odaToast==='function')odaToast(`Match assigned: ${p1Name} vs ${p2Name} (Code: ${code})`,'success');
+    loadAssignedMatches();
+  }catch(e){
+    document.getElementById('assignError').textContent='Failed to create match';
+    setTimeout(()=>{document.getElementById('assignError').textContent=''},3000);
+  }
+}
+
+async function loadAssignedMatches(){
+  try{
+    const q=query(collection(db,'connect4games'),where('assigned','==',true),where('assignedBy','==',studentId),orderBy('__name__'),limit(20));
+    const snap=await getDocs(q);
+    const list=document.getElementById('assignedMatchesList');
+    if(snap.empty){list.innerHTML='<p style="color:var(--text2)">No assigned matches.</p>';return}
+    list.innerHTML='';
+    snap.forEach(d=>{
+      const g=d.data();
+      const item=document.createElement('div');
+      item.className='card-static history-item';
+      const statusBadge=g.status==='finished'?'<span class="badge badge-gold">Done</span>':'<span class="badge badge-accent">Active</span>';
+      let winnerText='';
+      if(g.status==='finished'&&g.winner){
+        const wName=g.winner===1?(g.player1Name||'P1'):(g.winner===2?(g.player2Name||'P2'):'Draw');
+        winnerText=`<span style="font-size:13px;color:var(--gold)">Winner: ${esc(wName)}</span>`;
+      }
+      item.innerHTML=`<div><strong>${esc(g.player1Name||'P1')} vs ${esc(g.player2Name||'P2')}</strong><br><span style="color:var(--text2);font-size:13px">Code: ${d.id}</span> ${winnerText}</div>${statusBadge}`;
+      list.appendChild(item);
+    });
+  }catch(e){
+    document.getElementById('assignedMatchesList').innerHTML='<p style="color:var(--text2)">Could not load matches.</p>';
+  }
+}
+
+/* ===================== */
+/* EXPOSE PUBLIC API     */
+/* ===================== */
+window.C4={
+  showScreen,startAiGame,createGame,joinGame,cancelGame,playAgain,goHome,
+  showTourneyJoin,joinTourney,leaveTourney,backToTourney,
+  showTeacherDashboard,teacherTab,teacherCreateTourney,teacherStartTourney,teacherViewTourney,
+  assignMatch,loadRecords,spectateGame
+};
 </script>
 </body>
 </html>

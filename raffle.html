@@ -96,21 +96,21 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5}
 .toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s}
 .toggle.on::after{transform:translateX(22px)}
 
-/* Wheel overlay */
-.wheel-overlay{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center}
+/* Wheel overlay - full screen dark backdrop */
+.wheel-overlay{position:fixed;inset:0;background:rgba(0,0,0,.97);z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;overflow-y:auto;padding:20px}
 .wheel-overlay.show{display:flex}
-.wheel-container{position:relative;display:flex;align-items:center;justify-content:center}
-.wheel-canvas-wrap{position:relative}
-.wheel-pointer{position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:18px solid transparent;border-right:18px solid transparent;border-top:36px solid var(--gold);z-index:5;filter:drop-shadow(0 4px 8px rgba(255,209,102,.5))}
-.wheel-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#f0b830);border:4px solid var(--bg);z-index:4;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:var(--bg);box-shadow:0 0 20px rgba(255,209,102,.3)}
-.spin-btn{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;padding:20px 60px;border:none;border-radius:24px;cursor:pointer;background:linear-gradient(135deg,var(--accent3),#d63384);color:#fff;box-shadow:0 8px 0 rgba(239,71,111,.4),0 0 40px rgba(239,71,111,.2);transition:all .15s;margin-top:24px;letter-spacing:1px}
+.wheel-container{position:relative;display:flex;align-items:center;justify-content:center;margin:10px 0}
+.wheel-canvas-wrap{position:relative;display:flex;align-items:center;justify-content:center}
+.wheel-close{position:absolute;top:20px;right:24px;background:none;border:none;color:var(--text2);font-size:32px;cursor:pointer;z-index:10;padding:8px}
+.wheel-close:hover{color:var(--text)}
+.wheel-title{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;color:var(--gold);margin-bottom:4px;text-align:center}
+.wheel-subtitle{font-size:15px;color:var(--text2);margin-bottom:12px;text-align:center;font-weight:500}
+
+/* Spin button */
+.spin-btn{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;padding:20px 60px;border:none;border-radius:24px;cursor:pointer;background:linear-gradient(135deg,var(--accent3),#d63384);color:#fff;box-shadow:0 8px 0 rgba(239,71,111,.4),0 0 40px rgba(239,71,111,.2);transition:all .15s;margin-top:16px;letter-spacing:1px}
 .spin-btn:hover{transform:translateY(-2px);box-shadow:0 10px 0 rgba(239,71,111,.4),0 0 50px rgba(239,71,111,.3)}
 .spin-btn:active{transform:translateY(6px);box-shadow:0 2px 0 rgba(239,71,111,.4)}
 .spin-btn:disabled{background:#333;box-shadow:0 4px 0 rgba(51,51,51,.5);cursor:not-allowed}
-.wheel-close{position:absolute;top:20px;right:24px;background:none;border:none;color:var(--text2);font-size:32px;cursor:pointer;z-index:10;padding:8px}
-.wheel-close:hover{color:var(--text)}
-.wheel-title{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;color:var(--gold);margin-bottom:8px;text-align:center}
-.wheel-subtitle{font-size:15px;color:var(--text2);margin-bottom:20px;text-align:center;font-weight:500}
 
 /* Winner reveal */
 .winner-reveal{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.96);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px}
@@ -122,6 +122,10 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5}
 @keyframes winnerPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.3)}}
 .winner-prize{font-size:20px;color:var(--text);font-weight:600;margin-bottom:24px}
 .winner-place{font-size:72px;margin-bottom:8px}
+
+/* Winner name zoom animation */
+.winner-name-zoom{animation:nameZoomIn 0.6s cubic-bezier(0.18,1.2,0.4,1) forwards}
+@keyframes nameZoomIn{0%{opacity:0;transform:scale(0.2)}60%{opacity:1;transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}
 
 /* Spotlight effect */
 .spotlight{position:fixed;inset:0;z-index:199;pointer-events:none;background:radial-gradient(circle at 50% 50%,transparent 100px,rgba(0,0,0,.85) 300px)}
@@ -176,9 +180,9 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5}
 .header h1{font-size:24px}
 .header .emoji{font-size:40px}
 .header p{font-size:13px}
-.wheel-canvas-wrap canvas{width:280px!important;height:280px!important}
 .winner-name{font-size:36px}
 .podium-block{min-width:80px;padding:10px 14px}
+.spin-btn{font-size:22px;padding:16px 40px}
 }
 </style>
 </head>
@@ -206,9 +210,7 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5}
   <div class="wheel-subtitle" id="wheelSubtitle">Click SPIN to find the winner!</div>
   <div class="wheel-container">
     <div class="wheel-canvas-wrap">
-      <div class="wheel-pointer"></div>
-      <canvas id="wheelCanvas" width="420" height="420"></canvas>
-      <div class="wheel-center">&#x1F3B0;</div>
+      <canvas id="wheelCanvas" width="600" height="600"></canvas>
     </div>
   </div>
   <button class="spin-btn" id="spinBtn">SPIN!</button>
@@ -230,7 +232,7 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5}
 <script src="js/oda-core.js"></script>
 <script>
 // ============================================================
-// ODA RAFFLE - Complete Implementation
+// ODA RAFFLE - Complete Implementation (Wheel of Names Inspired)
 // ============================================================
 
 // --- User Detection ---
@@ -251,6 +253,26 @@ var wheelVelocity = 0;
 var wheelSegments = [];
 var wheelAnimId = null;
 var audioCtx = null;
+var hasSpunOnce = false;
+
+// --- Vibrant Color Palette ---
+var WHEEL_COLORS = [
+  '#e6194b', // red
+  '#3cb44b', // green
+  '#4363d8', // blue
+  '#f58231', // orange
+  '#f032e6', // magenta
+  '#42d4f4', // cyan
+  '#fabed4', // pink
+  '#dcbeff', // lavender
+  '#ffe119', // yellow
+  '#aaffc3', // mint
+  '#9A6324', // brown
+  '#800000', // maroon
+  '#469990', // teal
+  '#000075', // navy
+  '#bfef45'  // lime
+];
 
 // --- Audio ---
 function getAudioCtx() {
@@ -258,6 +280,23 @@ function getAudioCtx() {
     try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
   }
   return audioCtx;
+}
+
+function playTickSound() {
+  var ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'triangle';
+    osc.frequency.value = 1800 + Math.random() * 400;
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.05);
+  } catch(e) {}
 }
 
 function playTick(freq, dur) {
@@ -292,7 +331,6 @@ function playCoinSound() {
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.2);
-    // Second ding
     setTimeout(function() {
       var osc2 = ctx.createOscillator();
       var gain2 = ctx.createGain();
@@ -312,7 +350,6 @@ function playDrumroll(duration, callback) {
   var ctx = getAudioCtx();
   if (!ctx) { if (callback) callback(); return; }
   var startTime = ctx.currentTime;
-  var endTime = startTime + duration;
   var interval = 30;
   var count = 0;
   var maxCount = Math.floor(duration * 1000 / interval);
@@ -381,19 +418,19 @@ function launchConfetti() {
   var ctx2d = canvas.getContext('2d');
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  var colors = ['#06d6a0','#ffd166','#118ab2','#ef476f','#f0f4ff','#7C3AED','#ff6b6b','#4ecdc4'];
+  var colors = ['#06d6a0','#ffd166','#118ab2','#ef476f','#f0f4ff','#7C3AED','#ff6b6b','#4ecdc4','#fabed4','#ffe119'];
   var pieces = [];
-  for (var i = 0; i < 200; i++) {
+  for (var i = 0; i < 250; i++) {
     pieces.push({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height * -1 - 50,
-      w: 6 + Math.random() * 8,
+      w: 6 + Math.random() * 10,
       h: 4 + Math.random() * 6,
       color: colors[Math.floor(Math.random() * colors.length)],
-      vx: (Math.random() - 0.5) * 6,
-      vy: 2 + Math.random() * 5,
+      vx: (Math.random() - 0.5) * 8,
+      vy: 2 + Math.random() * 6,
       rot: Math.random() * 360,
-      rotV: (Math.random() - 0.5) * 12,
+      rotV: (Math.random() - 0.5) * 14,
       shape: Math.random() > 0.5 ? 'rect' : 'circle',
       opacity: 1
     });
@@ -979,7 +1016,27 @@ async function doBuyEntry(raffleId, cost, count) {
   }
 }
 
-// ===================== WHEEL DRAWING =====================
+// ===================== WHEEL DRAWING (Wheel of Names Inspired) =====================
+
+// Compute wheel size to fill viewport
+function getWheelSize() {
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+  // Use the smaller of width/height, leaving room for title, subtitle, spin button
+  var available = Math.min(vw - 40, vh - 240);
+  // Clamp between 300 and 700
+  return Math.max(300, Math.min(700, available));
+}
+
+function resizeWheelCanvas() {
+  var canvas = document.getElementById('wheelCanvas');
+  var size = getWheelSize();
+  canvas.width = size * (window.devicePixelRatio || 1);
+  canvas.height = size * (window.devicePixelRatio || 1);
+  canvas.style.width = size + 'px';
+  canvas.style.height = size + 'px';
+}
+
 function openDraw(raffleId) {
   var r = raffles.find(function(x) { return x.id === raffleId; });
   if (!r || !r.entries || r.entries.length === 0) {
@@ -991,6 +1048,7 @@ function openDraw(raffleId) {
   drawWinners = [];
   drawPrizeIndex = 0;
   wheelSpinning = false;
+  hasSpunOnce = false;
 
   var overlay = document.getElementById('wheelOverlay');
   overlay.classList.add('show');
@@ -1003,7 +1061,9 @@ function openDraw(raffleId) {
   var spinBtn = document.getElementById('spinBtn');
   spinBtn.disabled = false;
   spinBtn.textContent = 'SPIN!';
+  spinBtn.style.display = '';
 
+  resizeWheelCanvas();
   buildWheel(r.entries, []);
 }
 
@@ -1012,24 +1072,27 @@ function ordinal(n) {
 }
 
 function buildWheel(entries, excludeIds) {
-  // Build segments
+  // Build weighted segments - group by student, segment size proportional to entry count
   wheelSegments = [];
-  var colors = ['#ef476f','#ffd166','#06d6a0','#118ab2','#7C3AED','#ff6b6b','#4ecdc4','#45b7d1','#f093fb','#96ceb4','#feca57','#ff9ff3','#54a0ff','#5f27cd','#01a3a4','#e17055'];
-  var colorIdx = 0;
   var filtered = entries.filter(function(e) { return excludeIds.indexOf(e.studentId) === -1; });
 
+  // Calculate total entries for weighting
+  var totalEntries = 0;
+  filtered.forEach(function(e) { totalEntries += e.count; });
+
+  var colorIdx = 0;
   filtered.forEach(function(entry) {
-    for (var i = 0; i < entry.count; i++) {
-      wheelSegments.push({
-        studentId: entry.studentId,
-        studentName: entry.studentName,
-        color: colors[colorIdx % colors.length]
-      });
-      colorIdx++;
-    }
+    wheelSegments.push({
+      studentId: entry.studentId,
+      studentName: entry.studentName,
+      count: entry.count,
+      weight: entry.count / totalEntries,
+      color: WHEEL_COLORS[colorIdx % WHEEL_COLORS.length]
+    });
+    colorIdx++;
   });
 
-  // Shuffle
+  // Shuffle segments so adjacent colors vary
   for (var i = wheelSegments.length - 1; i > 0; i--) {
     var j = Math.floor(Math.random() * (i + 1));
     var tmp = wheelSegments[i];
@@ -1037,39 +1100,57 @@ function buildWheel(entries, excludeIds) {
     wheelSegments[j] = tmp;
   }
 
-  wheelAngle = 0;
+  // Reassign colors after shuffle to ensure good color distribution
+  wheelSegments.forEach(function(seg, i) {
+    seg.color = WHEEL_COLORS[i % WHEEL_COLORS.length];
+  });
+
+  wheelAngle = Math.random() * Math.PI * 2;
   drawWheel();
 }
 
 function drawWheel() {
   var canvas = document.getElementById('wheelCanvas');
   var ctx = canvas.getContext('2d');
-  var cx = canvas.width / 2;
-  var cy = canvas.height / 2;
-  var radius = Math.min(cx, cy) - 10;
+  var dpr = window.devicePixelRatio || 1;
+  var displaySize = parseInt(canvas.style.width) || 600;
+  var w = canvas.width;
+  var h = canvas.height;
+  var cx = w / 2;
+  var cy = h / 2;
+  var radius = Math.min(cx, cy) - 20 * dpr;
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, w, h);
+  ctx.save();
+  ctx.scale(1, 1);
 
-  if (wheelSegments.length === 0) return;
+  if (wheelSegments.length === 0) { ctx.restore(); return; }
 
   var totalSegs = wheelSegments.length;
-  var segAngle = (Math.PI * 2) / totalSegs;
 
-  // Draw glow behind wheel
+  // --- Outer shadow for 3D depth ---
   ctx.save();
-  ctx.shadowBlur = 40;
-  ctx.shadowColor = 'rgba(255,209,102,0.15)';
+  ctx.shadowBlur = 30 * dpr;
+  ctx.shadowColor = 'rgba(0,0,0,0.6)';
+  ctx.shadowOffsetX = 4 * dpr;
+  ctx.shadowOffsetY = 8 * dpr;
   ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255,209,102,0.02)';
+  ctx.arc(cx, cy, radius + 2 * dpr, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.01)';
   ctx.fill();
   ctx.restore();
 
+  // --- Draw segments ---
+  var angleOffset = wheelAngle;
   wheelSegments.forEach(function(seg, i) {
-    var startAngle = wheelAngle + i * segAngle;
-    var endAngle = startAngle + segAngle;
+    var startAngle = angleOffset;
+    for (var k = 0; k < i; k++) {
+      startAngle += wheelSegments[k].weight * Math.PI * 2;
+    }
+    var sweepAngle = seg.weight * Math.PI * 2;
+    var endAngle = startAngle + sweepAngle;
 
-    // Segment fill
+    // Fill segment
     ctx.beginPath();
     ctx.moveTo(cx, cy);
     ctx.arc(cx, cy, radius, startAngle, endAngle);
@@ -1077,132 +1158,293 @@ function drawWheel() {
     ctx.fillStyle = seg.color;
     ctx.fill();
 
-    // Segment border
-    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-    ctx.lineWidth = 1.5;
+    // Slight gradient overlay for depth
+    var grad = ctx.createRadialGradient(cx, cy, radius * 0.3, cx, cy, radius);
+    grad.addColorStop(0, 'rgba(255,255,255,0.08)');
+    grad.addColorStop(0.7, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.15)');
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radius, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Segment border / tick line
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(
+      cx + Math.cos(startAngle) * radius,
+      cy + Math.sin(startAngle) * radius
+    );
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+    ctx.lineWidth = 1.5 * dpr;
     ctx.stroke();
 
-    // Text
+    // --- Text along radius ---
     ctx.save();
     ctx.translate(cx, cy);
-    ctx.rotate(startAngle + segAngle / 2);
+    var midAngle = startAngle + sweepAngle / 2;
+    ctx.rotate(midAngle);
 
     var name = seg.studentName || 'Student';
-    // Truncate long names
-    var maxLen = totalSegs > 20 ? 6 : totalSegs > 10 ? 10 : 14;
-    if (name.length > maxLen) name = name.substring(0, maxLen - 1) + '..';
+    // Scale font based on segment count and sweep
+    var fontSize;
+    if (totalSegs <= 6) fontSize = 18 * dpr;
+    else if (totalSegs <= 10) fontSize = 16 * dpr;
+    else if (totalSegs <= 16) fontSize = 14 * dpr;
+    else if (totalSegs <= 24) fontSize = 12 * dpr;
+    else fontSize = 10 * dpr;
 
-    ctx.fillStyle = '#fff';
-    ctx.font = (totalSegs > 30 ? '10' : totalSegs > 20 ? '11' : totalSegs > 10 ? '13' : '15') + 'px Fredoka, sans-serif';
-    ctx.textAlign = 'left';
+    // Max chars based on available radial space
+    var maxChars = Math.floor((radius * 0.55) / (fontSize * 0.5));
+    if (maxChars < 3) maxChars = 3;
+    if (name.length > maxChars) name = name.substring(0, maxChars - 1) + '..';
+
+    // Check if segment is dark or light to pick text color
+    var textColor = getContrastColor(seg.color);
+
+    ctx.fillStyle = textColor;
+    ctx.font = 'bold ' + fontSize + 'px Fredoka, sans-serif';
+    ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(0,0,0,0.5)';
-    ctx.shadowBlur = 3;
-    ctx.fillText(name, radius * 0.25, 0);
+    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+    ctx.shadowBlur = 3 * dpr;
+    ctx.fillText(name, radius - 14 * dpr, 0);
     ctx.restore();
   });
 
-  // Center cover
-  ctx.beginPath();
-  ctx.arc(cx, cy, 30, 0, Math.PI * 2);
-  ctx.fillStyle = '#0a0e1a';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255,209,102,0.5)';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-
-  // Outer ring
+  // --- Outer ring border ---
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(255,209,102,0.3)';
-  ctx.lineWidth = 4;
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 3 * dpr;
   ctx.stroke();
 
-  // Tick marks
-  for (var i = 0; i < totalSegs; i++) {
-    var a = wheelAngle + i * segAngle;
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(a);
+  // --- Outer pegs / bumps (like Wheel of Names) ---
+  var pegCount = Math.max(totalSegs, 16);
+  if (pegCount > 48) pegCount = 48;
+  for (var p = 0; p < pegCount; p++) {
+    var pegAngle = (p / pegCount) * Math.PI * 2;
+    var px = cx + Math.cos(pegAngle) * (radius + 1 * dpr);
+    var py = cy + Math.sin(pegAngle) * (radius + 1 * dpr);
     ctx.beginPath();
-    ctx.moveTo(radius - 8, 0);
-    ctx.lineTo(radius + 2, 0);
-    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-    ctx.lineWidth = 2;
+    ctx.arc(px, py, 3.5 * dpr, 0, Math.PI * 2);
+    ctx.fillStyle = '#e8e8e8';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 0.8 * dpr;
     ctx.stroke();
+  }
+
+  // --- Center hub ---
+  // Shadow ring
+  ctx.save();
+  ctx.shadowBlur = 15 * dpr;
+  ctx.shadowColor = 'rgba(0,0,0,0.5)';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 32 * dpr, 0, Math.PI * 2);
+  ctx.fillStyle = '#f5f5f5';
+  ctx.fill();
+  ctx.restore();
+
+  // Inner hub gradient
+  var hubGrad = ctx.createRadialGradient(cx - 5 * dpr, cy - 5 * dpr, 2 * dpr, cx, cy, 32 * dpr);
+  hubGrad.addColorStop(0, '#ffffff');
+  hubGrad.addColorStop(0.5, '#e8e8e8');
+  hubGrad.addColorStop(1, '#c0c0c0');
+  ctx.beginPath();
+  ctx.arc(cx, cy, 30 * dpr, 0, Math.PI * 2);
+  ctx.fillStyle = hubGrad;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+  ctx.lineWidth = 2 * dpr;
+  ctx.stroke();
+
+  // Inner ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, 20 * dpr, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+  ctx.lineWidth = 1 * dpr;
+  ctx.stroke();
+
+  // "Click to Spin" text on center (only before first spin)
+  if (!hasSpunOnce && !wheelSpinning) {
+    ctx.save();
+    ctx.fillStyle = '#555';
+    ctx.font = 'bold ' + (10 * dpr) + 'px Fredoka, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('SPIN', cx, cy);
     ctx.restore();
   }
+
+  // --- Pointer / Arrow on the RIGHT side (like Wheel of Names) ---
+  var pointerX = cx + radius + 6 * dpr;
+  var pointerY = cy;
+  var pointerW = 28 * dpr;
+  var pointerH = 22 * dpr;
+
+  ctx.save();
+  ctx.shadowBlur = 8 * dpr;
+  ctx.shadowColor = 'rgba(0,0,0,0.4)';
+  ctx.shadowOffsetX = -2 * dpr;
+  ctx.beginPath();
+  // Triangle pointing left
+  ctx.moveTo(pointerX + pointerW, pointerY - pointerH);
+  ctx.lineTo(pointerX - 4 * dpr, pointerY);
+  ctx.lineTo(pointerX + pointerW, pointerY + pointerH);
+  ctx.closePath();
+  ctx.fillStyle = '#e6194b';
+  ctx.fill();
+  ctx.strokeStyle = '#b0102e';
+  ctx.lineWidth = 2 * dpr;
+  ctx.stroke();
+  ctx.restore();
+
+  // Small white dot on pointer tip
+  ctx.beginPath();
+  ctx.arc(pointerX + pointerW * 0.7, pointerY, 3 * dpr, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.fill();
+
+  ctx.restore();
 }
 
-document.getElementById('spinBtn').addEventListener('click', function() {
+// Helper: determine contrasting text color for a segment
+function getContrastColor(hex) {
+  var r = parseInt(hex.substr(1,2), 16);
+  var g = parseInt(hex.substr(3,2), 16);
+  var b = parseInt(hex.substr(5,2), 16);
+  var brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  return brightness > 140 ? '#1a1a2e' : '#ffffff';
+}
+
+// --- Get the segment index at the pointer (right side, angle = 0) ---
+function getSegmentAtPointer() {
+  // Pointer is at angle 0 (right side)
+  // We need to find which segment contains angle 0 given current wheelAngle
+  var pointerAngle = 0;
+  // Normalize: the "absolute" angle at the pointer
+  var checkAngle = (((-wheelAngle) % (Math.PI * 2)) + Math.PI * 4) % (Math.PI * 2);
+
+  var cumulative = 0;
+  for (var i = 0; i < wheelSegments.length; i++) {
+    cumulative += wheelSegments[i].weight * Math.PI * 2;
+    if (checkAngle < cumulative) return i;
+  }
+  return wheelSegments.length - 1;
+}
+
+// --- Spin the wheel ---
+function doSpin() {
   if (wheelSpinning) return;
   wheelSpinning = true;
-  this.disabled = true;
-  this.textContent = 'Spinning...';
+  hasSpunOnce = true;
+
+  var spinBtn = document.getElementById('spinBtn');
+  spinBtn.disabled = true;
+  spinBtn.textContent = 'Spinning...';
 
   // Initialize audio context on user interaction
   getAudioCtx();
 
-  // Random target
   var totalSegs = wheelSegments.length;
-  var segAngle = (Math.PI * 2) / totalSegs;
 
-  // Pick random winner
-  var winnerIdx = Math.floor(Math.random() * totalSegs);
-  // Calculate target angle so winner lands at top (pointer position)
-  // Pointer is at top = -PI/2 (or 3PI/2)
-  var targetSegCenter = winnerIdx * segAngle + segAngle / 2;
-  // We want this segment to be at -PI/2 after spinning
-  // So wheelAngle + targetSegCenter = -PI/2 + N*2PI (for some large N)
-  var spins = 5 + Math.floor(Math.random() * 4); // 5-8 full spins
-  var targetAngle = -(spins * Math.PI * 2) - targetSegCenter - Math.PI / 2;
+  // --- Pick weighted random winner ---
+  var rand = Math.random();
+  var cumWeight = 0;
+  var winnerIdx = 0;
+  for (var i = 0; i < totalSegs; i++) {
+    cumWeight += wheelSegments[i].weight;
+    if (rand <= cumWeight) {
+      winnerIdx = i;
+      break;
+    }
+  }
+
+  // --- Calculate target angle so winner lands at pointer (right side = angle 0) ---
+  // The segment starts at: sum of all previous segment weights * 2PI
+  var segStartAngle = 0;
+  for (var i = 0; i < winnerIdx; i++) {
+    segStartAngle += wheelSegments[i].weight * Math.PI * 2;
+  }
+  var segSweep = wheelSegments[winnerIdx].weight * Math.PI * 2;
+  // Random position within the winning segment (not dead center for realism)
+  var landAngle = segStartAngle + segSweep * (0.15 + Math.random() * 0.7);
+
+  // We want: wheelAngle + landAngle = 0 (mod 2PI), i.e. wheelAngle = -landAngle
+  // Plus N full rotations for spectacle
+  var spins = 6 + Math.floor(Math.random() * 4); // 6-9 full spins
+  var targetWheelAngle = -(spins * Math.PI * 2) - landAngle;
 
   var startAngle = wheelAngle;
-  var totalRotation = targetAngle - startAngle;
-  var duration = 6000 + Math.random() * 2000; // 6-8 seconds
-  var startTime = performance.now();
+  var totalRotation = targetWheelAngle - startAngle;
 
-  var lastTickSeg = -1;
+  // Physics-based spin: duration 5.5-7.5 seconds
+  var duration = 5500 + Math.random() * 2000;
+  var startTime = performance.now();
+  var lastTickSegIdx = -1;
+
+  // Drumroll at start
+  playDrumroll(0.8, function() {});
 
   function animate(now) {
     var elapsed = now - startTime;
     var progress = Math.min(elapsed / duration, 1);
 
-    // Easing: cubic ease-out with dramatic slowdown at end
+    // Easing: combination for realistic wheel physics
+    // Quick start, long deceleration, dramatic final slowdown
     var eased;
-    if (progress < 0.7) {
-      // Fast spinning phase
-      eased = progress / 0.7 * 0.85;
-    } else {
-      // Dramatic slowdown
-      var slowProgress = (progress - 0.7) / 0.3;
-      eased = 0.85 + 0.15 * (1 - Math.pow(1 - slowProgress, 4));
+    if (progress < 0.15) {
+      // Ramp up quickly
+      eased = (progress / 0.15) * 0.2;
+      eased = eased * eased * (3 - 2 * eased) * 0.2 / 0.2; // smoothstep for ramp
+      eased = progress / 0.15 * 0.2;
     }
+    // Use a single smooth cubic bezier-like curve
+    // t = 1 - (1 - progress)^3 gives nice deceleration
+    eased = 1 - Math.pow(1 - progress, 3.5);
 
     wheelAngle = startAngle + totalRotation * eased;
     drawWheel();
 
-    // Tick sound
-    var normalizedAngle = ((wheelAngle % (Math.PI * 2)) + Math.PI * 4) % (Math.PI * 2);
-    var currentSeg = Math.floor(normalizedAngle / segAngle) % totalSegs;
-    if (currentSeg !== lastTickSeg) {
-      lastTickSeg = currentSeg;
-      var freq = 600 + Math.random() * 400;
-      if (progress > 0.9) freq = 1000 + Math.random() * 200;
-      playTick(freq, 0.03 + (1 - progress) * 0.02);
+    // --- Tick sound when pointer crosses segment boundary ---
+    var currentSegIdx = getSegmentAtPointer();
+    if (currentSegIdx !== lastTickSegIdx) {
+      lastTickSegIdx = currentSegIdx;
+      if (progress > 0.05) { // Skip first few frames
+        playTickSound();
+      }
     }
 
     if (progress < 1) {
       wheelAnimId = requestAnimationFrame(animate);
     } else {
-      // Spin complete - reveal winner
+      // Spin complete
       wheelSpinning = false;
-      var winner = wheelSegments[winnerIdx];
-      revealWinner(winner);
+      // Dramatic pause before reveal
+      setTimeout(function() {
+        var winner = wheelSegments[winnerIdx];
+        revealWinner(winner);
+      }, 600);
     }
   }
 
   wheelAnimId = requestAnimationFrame(animate);
+}
+
+// Click on canvas to spin
+document.getElementById('wheelCanvas').addEventListener('click', function() {
+  if (!wheelSpinning && !hasSpunOnce) {
+    doSpin();
+  } else if (!wheelSpinning && hasSpunOnce && document.getElementById('spinBtn').disabled === false) {
+    doSpin();
+  }
+});
+
+document.getElementById('spinBtn').addEventListener('click', function() {
+  doSpin();
 });
 
 function revealWinner(winner) {
@@ -1217,13 +1459,16 @@ function revealWinner(winner) {
   });
 
   // Drumroll then reveal
-  playDrumroll(1.5, function() {
+  playDrumroll(1.2, function() {
     // Show winner reveal
     var reveal = document.getElementById('winnerReveal');
     var placeEmoji = place === 1 ? '&#x1F947;' : place === 2 ? '&#x1F948;' : '&#x1F949;';
     document.getElementById('winnerEmoji').innerHTML = placeEmoji;
     document.getElementById('winnerLabel').innerHTML = '&#x1F389; ' + ordinal(place) + ' PLACE! &#x1F389;';
-    document.getElementById('winnerNameDisplay').textContent = winner.studentName;
+
+    var nameEl = document.getElementById('winnerNameDisplay');
+    nameEl.textContent = winner.studentName;
+    nameEl.className = 'winner-name winner-name-zoom';
     document.getElementById('winnerPrizeDisplay').textContent = currentPrize ? currentPrize.description : 'Winner!';
 
     reveal.classList.add('show');
@@ -1235,7 +1480,7 @@ function revealWinner(winner) {
     var nextBtn = document.getElementById('winnerNextBtn');
     if (drawPrizeIndex < prizes.length - 1) {
       nextBtn.style.display = '';
-      nextBtn.textContent = 'Next: ' + ordinal(prizes[drawPrizeIndex + 1].place) + ' Place →';
+      nextBtn.textContent = 'Next: ' + ordinal(prizes[drawPrizeIndex + 1].place) + ' Place \u2192';
     } else {
       nextBtn.style.display = 'none';
     }
@@ -1250,6 +1495,9 @@ document.getElementById('winnerNextBtn').addEventListener('click', function() {
   if (drawPrizeIndex < prizes.length) {
     // Exclude previous winners
     var excludeIds = drawWinners.map(function(w) { return w.studentId; });
+
+    hasSpunOnce = false;
+    resizeWheelCanvas();
     buildWheel(currentDrawRaffle.entries, excludeIds);
 
     var spinBtn = document.getElementById('spinBtn');
@@ -1316,6 +1564,7 @@ function closeWheel() {
   document.getElementById('winnerReveal').classList.remove('show');
   if (wheelAnimId) cancelAnimationFrame(wheelAnimId);
   wheelSpinning = false;
+  hasSpunOnce = false;
 
   var spinBtn = document.getElementById('spinBtn');
   spinBtn.style.display = '';
@@ -1329,6 +1578,14 @@ function closeWheel() {
 }
 
 document.getElementById('wheelClose').addEventListener('click', closeWheel);
+
+// Handle window resize for wheel
+window.addEventListener('resize', function() {
+  if (document.getElementById('wheelOverlay').classList.contains('show')) {
+    resizeWheelCanvas();
+    drawWheel();
+  }
+});
 
 // Fix back link
 if (isTeacher) {
