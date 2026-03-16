@@ -141,7 +141,7 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5}
 .builder-cat-input:focus{border-color:var(--jgold)}
 .builder-cat-input::placeholder{color:#3a4560;font-size:12px}
 .builder-q-grid{display:grid;gap:8px;margin-bottom:16px}
-.builder-q-row{display:grid;grid-template-columns:60px 1fr 1fr 40px;gap:8px;align-items:center}
+.builder-q-row{display:grid;grid-template-columns:60px 1fr 40px;gap:8px;align-items:start}
 @media(max-width:600px){.builder-q-row{grid-template-columns:50px 1fr;gap:6px}.builder-q-row .bq-pts{grid-column:1}.builder-q-row .bq-clue,.builder-q-row .bq-ans{grid-column:2}.builder-q-row .bq-dd{grid-column:1/-1;justify-self:end}}
 .bq-pts{font-family:'Fredoka',sans-serif;font-size:16px;font-weight:700;color:var(--jgold);text-align:center}
 .bq-input{padding:10px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;outline:none;width:100%;transition:border-color .2s}
@@ -211,6 +211,15 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5}
 .desktop-toggle:hover{border-color:var(--accent);color:var(--text)}
 .desktop-toggle.active{border-color:var(--accent);color:var(--accent);background:rgba(6,214,160,.1)}
 @media(min-width:900px){.desktop-toggle{display:inline-flex}}
+
+/* Image drop zones */
+.bq-img-zone{position:relative;min-height:48px;border:2px dashed var(--border);border-radius:10px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;margin-top:6px;overflow:hidden;gap:8px;padding:4px}
+.bq-img-zone:hover,.bq-img-zone.drag-over{border-color:var(--accent);background:rgba(6,214,160,.05)}
+.bq-img-zone.has-image{border-style:solid;border-color:var(--accent2);min-height:auto}
+.bq-img-placeholder{font-size:12px;color:var(--text2);padding:8px;text-align:center;pointer-events:none}
+.bq-img-preview{max-height:80px;border-radius:8px;object-fit:contain;display:block}
+.bq-img-remove{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:var(--accent3);color:#fff;border:none;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;line-height:1}
+.bq-img-zone:hover .bq-img-remove{opacity:1}
 
 /* Responsive board */
 @media(max-width:700px){
@@ -361,15 +370,93 @@ var TIMER_SECONDS = 20;
 var FJ_TIMER_SECONDS = 30;
 var boardsCache = [];
 
-// Normalize questions from Firestore (handles both array and map formats)
+// Normalize questions from Firestore (handles array, old numeric keys, new prefixed keys)
 function normalizeQuestions(q) {
   if (!q) return [[],[],[],[],[]];
   // If already an array of arrays, return as-is
   if (Array.isArray(q)) return q;
-  // If it's an object map like {"0":[...],"1":[...]}, convert to array
+  // Check for new prefixed keys like {cat0: {q0:{...}, q1:{...}}, cat1: ...}
+  if (q.cat0 !== undefined) {
+    var arr = [];
+    for (var i = 0; i < 5; i++) {
+      var catMap = q['cat' + i];
+      var catArr = [];
+      if (catMap && typeof catMap === 'object' && !Array.isArray(catMap)) {
+        for (var j = 0; j < 5; j++) {
+          var qObj = catMap['q' + j];
+          if (qObj) {
+            catArr.push({ clue: qObj.clue || '', answer: qObj.answer || '', image: qObj.image || '', points: qObj.points || (j+1)*100 });
+          } else {
+            catArr.push({ clue: '', answer: '', image: '', points: (j+1)*100 });
+          }
+        }
+      } else if (Array.isArray(catMap)) {
+        catArr = catMap;
+      }
+      arr.push(catArr);
+    }
+    return arr;
+  }
+  // Old numeric string keys like {"0":[...],"1":[...]}
   var arr = [];
   for (var i = 0; i < 5; i++) {
-    arr.push(q['' + i] || q[i] || []);
+    var val = q['' + i] || q[i] || [];
+    // If val is an object map with q0, q1... (nested array auto-conversion edge case)
+    if (val && typeof val === 'object' && !Array.isArray(val) && val.q0 !== undefined) {
+      var catArr = [];
+      for (var j = 0; j < 5; j++) {
+        var qObj = val['q' + j];
+        if (qObj) {
+          catArr.push({ clue: qObj.clue || '', answer: qObj.answer || '', image: qObj.image || '', points: qObj.points || (j+1)*100 });
+        } else {
+          catArr.push({ clue: '', answer: '', image: '', points: (j+1)*100 });
+        }
+      }
+      arr.push(catArr);
+    } else {
+      arr.push(val);
+    }
+  }
+  return arr;
+}
+
+// Normalize categories from Firestore (handles array and map formats)
+function normalizeCategories(c) {
+  if (!c) return ['','','','',''];
+  if (Array.isArray(c)) return c;
+  // New prefixed keys {c0: "...", c1: "..."}
+  if (c.c0 !== undefined) {
+    var arr = [];
+    for (var i = 0; i < 5; i++) {
+      arr.push(c['c' + i] || '');
+    }
+    return arr;
+  }
+  // Old numeric keys {"0": "...", "1": "..."}
+  var arr = [];
+  for (var i = 0; i < 5; i++) {
+    arr.push(c['' + i] || c[i] || '');
+  }
+  return arr;
+}
+
+// Normalize dailyDoubles from Firestore (handles array and map formats)
+function normalizeDailyDoubles(dd) {
+  if (!dd) return [];
+  if (Array.isArray(dd)) return dd;
+  // Map format {dd0: {cat:0, row:2}, dd1: {...}}
+  var arr = [];
+  var i = 0;
+  while (dd['dd' + i] !== undefined) {
+    arr.push(dd['dd' + i]);
+    i++;
+  }
+  if (arr.length > 0) return arr;
+  // Fallback: try numeric keys
+  i = 0;
+  while (dd['' + i] !== undefined || dd[i] !== undefined) {
+    arr.push(dd['' + i] || dd[i]);
+    i++;
   }
   return arr;
 }
@@ -513,7 +600,7 @@ async function showBoardBrowser(mode) {
     }
     var snap = await fs.getDocs(q);
     boardsCache = [];
-    snap.forEach(function(d) { var bd = Object.assign({id: d.id}, d.data()); bd.questions = normalizeQuestions(bd.questions); boardsCache.push(bd); });
+    snap.forEach(function(d) { var bd = Object.assign({id: d.id}, d.data()); bd.questions = normalizeQuestions(bd.questions); bd.categories = normalizeCategories(bd.categories); bd.dailyDoubles = normalizeDailyDoubles(bd.dailyDoubles); boardsCache.push(bd); });
 
     // Also fetch public boards for students
     if (mode === 'play' && classCode) {
@@ -522,7 +609,7 @@ async function showBoardBrowser(mode) {
         var snap2 = await fs.getDocs(q2);
         snap2.forEach(function(d) {
           if (!boardsCache.find(function(b){ return b.id === d.id; })) {
-            var bd2 = Object.assign({id: d.id}, d.data()); bd2.questions = normalizeQuestions(bd2.questions); boardsCache.push(bd2);
+            var bd2 = Object.assign({id: d.id}, d.data()); bd2.questions = normalizeQuestions(bd2.questions); bd2.categories = normalizeCategories(bd2.categories); bd2.dailyDoubles = normalizeDailyDoubles(bd2.dailyDoubles); boardsCache.push(bd2);
           }
         });
       } catch(e) {}
@@ -684,9 +771,16 @@ function renderBuilder() {
         '<div style="flex:1;min-width:0">' +
           '<input type="text" class="bq-input bq-clue" id="bqClue' + i + '_' + j + '" placeholder="Clue / Question" value="' + esc(q.clue || '') + '">' +
           '<input type="text" class="bq-input bq-ans" id="bqAns' + i + '_' + j + '" placeholder="Answer" value="' + esc(q.answer || '') + '">' +
-          '<div style="display:flex;gap:6px;align-items:center;margin-top:4px">' +
-            '<input type="text" class="bq-input" id="bqImg' + i + '_' + j + '" placeholder="&#x1F5BC;&#xFE0F; Image URL (optional)" value="' + esc(q.image || '') + '" style="font-size:12px;padding:6px 10px;flex:1">' +
-            (q.image ? '<img src="' + esc(q.image) + '" style="width:32px;height:32px;border-radius:6px;object-fit:cover">' : '') +
+          '<div class="bq-img-zone' + (q.image ? ' has-image' : '') + '" id="bqImgZone' + i + '_' + j + '"' +
+            ' ondragover="event.preventDefault();this.classList.add(\'drag-over\')"' +
+            ' ondragleave="this.classList.remove(\'drag-over\')"' +
+            ' ondrop="handleImageDrop(event,' + i + ',' + j + ')"' +
+            ' onclick="imgZoneClick(event,' + i + ',' + j + ')">' +
+            (q.image
+              ? '<img src="' + esc(q.image) + '" class="bq-img-preview">' +
+                '<button class="bq-img-remove" onclick="event.stopPropagation();removeImage(' + i + ',' + j + ')" title="Remove">&times;</button>'
+              : '<div class="bq-img-placeholder">&#x1F4F7; Drop image or click to upload</div>') +
+            '<input type="file" accept="image/*" onchange="handleImageSelect(this,' + i + ',' + j + ')" style="display:none">' +
           '</div>' +
         '</div>' +
         '<button class="bq-dd' + (isDD?' active':'') + '" id="bqDD' + i + '_' + j + '" onclick="toggleDD(' + i + ',' + j + ')" title="Daily Double">&#x2B50;</button>' +
@@ -772,10 +866,9 @@ function collectBuilderData() {
     for (var j = 0; j < 5; j++) {
       var clueEl = document.getElementById('bqClue' + i + '_' + j);
       var ansEl = document.getElementById('bqAns' + i + '_' + j);
-      var imgEl = document.getElementById('bqImg' + i + '_' + j);
       if (clueEl) b.questions[i][j].clue = clueEl.value;
       if (ansEl) b.questions[i][j].answer = ansEl.value;
-      if (imgEl) b.questions[i][j].image = imgEl.value;
+      // Image is stored directly in builderBoard.questions by the upload handler
     }
   }
   var fjCat = document.getElementById('fjCat');
@@ -788,6 +881,90 @@ function collectBuilderData() {
   if (fjEnabledEl) b.enableFinalJeopardy = fjEnabledEl.checked;
   var pubEl = document.getElementById('boardPublic');
   if (pubEl) b.isPublic = pubEl.checked;
+}
+
+function compressImage(file) {
+  return new Promise(function(resolve, reject) {
+    if (!file || !file.type.startsWith('image/')) { reject('Not an image'); return; }
+    var reader = new FileReader();
+    reader.onerror = function() { reject('Read error'); };
+    reader.onload = function(e) {
+      var img = new Image();
+      img.onerror = function() { reject('Image load error'); };
+      img.onload = function() {
+        var canvas = document.createElement('canvas');
+        var MAX = 600;
+        var w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        canvas.width = w;
+        canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        var dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        resolve(dataUrl);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function handleImageDrop(evt, cat, row) {
+  evt.preventDefault();
+  evt.currentTarget.classList.remove('drag-over');
+  var files = evt.dataTransfer.files;
+  if (files.length > 0) processImageFile(files[0], cat, row);
+}
+
+function handleImageSelect(input, cat, row) {
+  if (input.files.length > 0) processImageFile(input.files[0], cat, row);
+}
+
+async function processImageFile(file, cat, row) {
+  if (!file.type.startsWith('image/')) { odaToast('Please drop an image file', 'warning'); return; }
+  var zone = document.getElementById('bqImgZone' + cat + '_' + row);
+  zone.innerHTML = '<div class="bq-img-placeholder">Compressing...</div>';
+  try {
+    var dataUrl = await compressImage(file);
+    builderBoard.questions[cat][row].image = dataUrl;
+    zone.classList.add('has-image');
+    zone.innerHTML = '<img src="' + dataUrl + '" class="bq-img-preview">' +
+      '<button class="bq-img-remove" onclick="event.stopPropagation();removeImage(' + cat + ',' + row + ')" title="Remove image">&times;</button>' +
+      '<input type="file" accept="image/*" onchange="handleImageSelect(this,' + cat + ',' + row + ')" style="display:none">';
+  } catch(err) {
+    odaToast('Error processing image: ' + err, 'error');
+    renderBuilderImageZone(cat, row);
+  }
+}
+
+function removeImage(cat, row) {
+  builderBoard.questions[cat][row].image = '';
+  renderBuilderImageZone(cat, row);
+}
+
+function renderBuilderImageZone(cat, row) {
+  var q = builderBoard.questions[cat][row];
+  var zone = document.getElementById('bqImgZone' + cat + '_' + row);
+  if (!zone) return;
+  if (q.image) {
+    zone.classList.add('has-image');
+    zone.innerHTML = '<img src="' + esc(q.image) + '" class="bq-img-preview">' +
+      '<button class="bq-img-remove" onclick="event.stopPropagation();removeImage(' + cat + ',' + row + ')" title="Remove image">&times;</button>' +
+      '<input type="file" accept="image/*" onchange="handleImageSelect(this,' + cat + ',' + row + ')" style="display:none">';
+  } else {
+    zone.classList.remove('has-image');
+    zone.innerHTML = '<div class="bq-img-placeholder">&#x1F4F7; Drop image or click to upload</div>' +
+      '<input type="file" accept="image/*" onchange="handleImageSelect(this,' + cat + ',' + row + ')" style="display:none">';
+  }
+}
+
+function imgZoneClick(evt, cat, row) {
+  if (evt.target.closest('.bq-img-remove')) return;
+  var fileInput = document.querySelector('#bqImgZone' + cat + '_' + row + ' input[type=file]');
+  if (fileInput) fileInput.click();
 }
 
 async function saveBoard() {
@@ -810,18 +987,49 @@ async function saveBoard() {
     var fb = await getFirebaseDB();
     var fs = fb.fsMod;
     var teacherId = sessionStorage.getItem('odaTeacherId') || localStorage.getItem('odaTeacherId') || 'unknown';
-    // Convert nested arrays to object map (Firestore doesn't allow nested arrays)
+
+    // Categories as map (no arrays for Firestore)
+    var categoriesMap = {};
+    for (var ci = 0; ci < 5; ci++) {
+      categoriesMap['c' + ci] = b.categories[ci] || '';
+    }
+
+    // Questions as double-nested map (no arrays at all!)
     var questionsMap = {};
     for (var qi = 0; qi < 5; qi++) {
-      questionsMap['' + qi] = b.questions[qi] || [];
+      var catMap = {};
+      var catArr = b.questions[qi] || [];
+      for (var qj = 0; qj < catArr.length; qj++) {
+        catMap['q' + qj] = {
+          clue: (catArr[qj] && catArr[qj].clue) || '',
+          answer: (catArr[qj] && catArr[qj].answer) || '',
+          image: (catArr[qj] && catArr[qj].image) || '',
+          points: (catArr[qj] && catArr[qj].points) || (qj+1)*100
+        };
+      }
+      questionsMap['cat' + qi] = catMap;
     }
+
+    // Daily doubles as map
+    var ddMap = {};
+    (b.dailyDoubles || []).forEach(function(d, i) {
+      ddMap['dd' + i] = { cat: d.cat, row: d.row };
+    });
+
+    // Final Jeopardy as plain map (already no arrays)
+    var fjData = {
+      category: (b.finalJeopardy && b.finalJeopardy.category) || '',
+      clue: (b.finalJeopardy && b.finalJeopardy.clue) || '',
+      answer: (b.finalJeopardy && b.finalJeopardy.answer) || ''
+    };
+
     var data = {
       title: b.title,
       topic: b.topic,
-      categories: b.categories,
+      categories: categoriesMap,
       questions: questionsMap,
-      finalJeopardy: b.finalJeopardy,
-      dailyDoubles: b.dailyDoubles || [],
+      finalJeopardy: fjData,
+      dailyDoubles: ddMap,
       enableFinalJeopardy: b.enableFinalJeopardy !== false,
       isPublic: b.isPublic,
       teacherId: teacherId,
@@ -1128,6 +1336,10 @@ function startGame(boardIdx) {
 
   // Reset game state
   gameState.board = JSON.parse(JSON.stringify(board));
+  // Normalize in case of Firestore map format remnants after deep clone
+  gameState.board.questions = normalizeQuestions(gameState.board.questions);
+  gameState.board.categories = normalizeCategories(gameState.board.categories);
+  gameState.board.dailyDoubles = normalizeDailyDoubles(gameState.board.dailyDoubles);
   gameState.answered = [];
   gameState.score = 0;
   gameState.questionsRight = 0;
@@ -1137,7 +1349,7 @@ function startGame(boardIdx) {
   gameState.gameStartTime = Date.now();
   for (var i = 0; i < 5; i++) {
     gameState.answered[i] = [];
-    var catName = board.categories[i] || 'Category ' + (i+1);
+    var catName = gameState.board.categories[i] || 'Category ' + (i+1);
     gameState.categoryScores[catName] = { right: 0, wrong: 0, points: 0 };
     for (var j = 0; j < 5; j++) {
       gameState.answered[i][j] = false;
