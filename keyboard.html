@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODA Hub - Keyboard Warriors</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#a8b2c8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:20px 16px}
+.back{display:inline-block;margin-bottom:16px;color:var(--text2);text-decoration:none;font-size:14px;font-weight:600}
+.back:hover{color:var(--text)}
+.header{text-align:center;margin-bottom:24px}
+.header .emoji{font-size:56px;margin-bottom:8px;display:block}
+.header h1{font-family:'Fredoka',sans-serif;font-size:32px;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--accent3),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header p{font-size:15px;color:var(--text2);margin-top:4px}
+
+/* Cards */
+.card{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:24px;margin-bottom:16px;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.card-title{font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:12px;text-align:center}
+
+/* Mode selection */
+.mode-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
+.mode-card{background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:20px 14px;text-align:center;cursor:pointer;transition:all .2s}
+.mode-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 8px 24px rgba(6,214,160,.1)}
+.mode-card.active{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.mode-card .mc-emoji{font-size:36px;margin-bottom:6px;display:block}
+.mode-card .mc-title{font-family:'Fredoka',sans-serif;font-size:16px;font-weight:700;color:var(--text)}
+.mode-card .mc-desc{font-size:12px;color:var(--text2);font-weight:500;margin-top:4px}
+
+/* Level select */
+.level-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:16px 0}
+.level-btn{padding:14px 8px;background:var(--surface2);border:2px solid var(--border);border-radius:14px;cursor:pointer;text-align:center;transition:all .2s;font-family:'Fredoka',sans-serif;font-weight:600;font-size:15px;color:var(--text);position:relative}
+.level-btn:hover{border-color:var(--accent);transform:translateY(-2px)}
+.level-btn.locked{opacity:.4;cursor:not-allowed}
+.level-btn.completed{border-color:var(--accent);background:rgba(6,214,160,.08)}
+.level-btn.current{border-color:var(--gold);background:rgba(255,209,102,.08);box-shadow:0 0 12px rgba(255,209,102,.15)}
+.level-stars{font-size:11px;margin-top:4px;letter-spacing:1px}
+.level-boss{position:absolute;top:-6px;right:-6px;font-size:14px}
+
+/* Buttons */
+.btn{padding:14px 28px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .2s;letter-spacing:.3px;display:inline-block;text-align:center}
+.btn:active{transform:scale(.97)}
+.btn-accent{background:linear-gradient(135deg,var(--accent),#04b890);color:var(--bg)}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#e6b800);color:var(--bg)}
+.btn-red{background:linear-gradient(135deg,var(--accent3),#d63b5e);color:#fff}
+.btn-blue{background:linear-gradient(135deg,var(--accent2),#0d7ea0);color:#fff}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--text2);color:var(--text)}
+.btn-wide{width:100%;display:block}
+.btn-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+
+/* Game canvas wrapper */
+.game-wrap{position:relative;width:100%;background:var(--surface);border:2px solid var(--border);border-radius:20px;overflow:hidden;margin-bottom:12px}
+#gameCanvas{display:block;width:100%;height:auto;image-rendering:auto}
+
+/* HUD */
+.hud{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--surface);border:2px solid var(--border);border-radius:14px;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.hud-item{text-align:center;min-width:70px}
+.hud-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;font-weight:700}
+.hud-val{font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700;color:var(--accent)}
+.hud-val.gold{color:var(--gold)}
+.hud-val.red{color:var(--accent3)}
+.hud-streak{position:relative}
+.hud-streak .hud-val{transition:all .2s}
+.hud-streak.on-fire .hud-val{color:var(--gold);text-shadow:0 0 12px rgba(255,209,102,.5);animation:fireGlow 1s ease-in-out infinite alternate}
+@keyframes fireGlow{from{text-shadow:0 0 8px rgba(255,209,102,.3)}to{text-shadow:0 0 18px rgba(255,209,102,.7)}}
+
+/* Typing input */
+.type-area{background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:16px 20px;margin-bottom:12px}
+.target-word{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;text-align:center;margin-bottom:10px;min-height:40px;letter-spacing:2px}
+.target-word .char{transition:color .1s}
+.target-word .char.correct{color:var(--accent)}
+.target-word .char.wrong{color:var(--accent3)}
+.target-word .char.pending{color:var(--text2)}
+.target-word .char.cursor{border-bottom:3px solid var(--accent);padding-bottom:2px}
+#typeInput{width:100%;padding:14px 18px;background:var(--bg);border:2px solid var(--border);border-radius:14px;color:var(--text);font-family:'Outfit',sans-serif;font-size:20px;font-weight:600;outline:none;text-align:center;letter-spacing:1px;transition:border-color .2s;caret-color:var(--accent)}
+#typeInput:focus{border-color:var(--accent)}
+#typeInput::placeholder{color:#3a4560;font-weight:400}
+#typeInput:disabled{opacity:.5;cursor:not-allowed}
+
+/* Practice mode virtual keyboard */
+.vkb-wrap{background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:16px;margin-bottom:12px}
+.vkb-row{display:flex;justify-content:center;gap:4px;margin-bottom:4px}
+.vkb-key{min-width:36px;height:40px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:var(--text2);transition:all .15s;text-transform:uppercase}
+.vkb-key.highlight{background:rgba(6,214,160,.15);border-color:var(--accent);color:var(--accent);box-shadow:0 0 8px rgba(6,214,160,.2)}
+.vkb-key.pressed{background:var(--accent);color:var(--bg);transform:scale(.92)}
+.vkb-key.home-key{border-color:var(--gold);color:var(--gold)}
+.vkb-space{min-width:200px}
+
+/* Post-game summary */
+.summary-card{background:var(--surface);border:2px solid var(--accent);border-radius:24px;padding:32px;text-align:center;animation:fadeUp .4s ease}
+.summary-emoji{font-size:64px;margin-bottom:8px;display:block}
+.summary-title{font-family:'Fredoka',sans-serif;font-size:32px;font-weight:700;color:var(--accent);margin-bottom:4px}
+.summary-sub{font-size:15px;color:var(--text2);margin-bottom:20px}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.stat-box{background:var(--surface2);border:1.5px solid var(--border);border-radius:14px;padding:14px 10px}
+.stat-val{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;color:var(--accent)}
+.stat-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-top:2px}
+.stars-display{font-size:36px;letter-spacing:4px;margin-bottom:16px}
+.coins-earned{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.1);border:2px solid rgba(255,209,102,.3);border-radius:14px;padding:10px 20px;font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:var(--gold);margin-bottom:16px}
+
+/* Achievements */
+.achievements-wrap{margin-top:20px}
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:12px}
+.ach-badge{background:var(--surface2);border:2px solid var(--border);border-radius:14px;padding:14px 10px;text-align:center;transition:all .2s;opacity:.4}
+.ach-badge.unlocked{opacity:1;border-color:var(--gold);background:rgba(255,209,102,.05)}
+.ach-badge .ach-icon{font-size:28px;margin-bottom:4px;display:block}
+.ach-badge .ach-name{font-family:'Fredoka',sans-serif;font-size:12px;font-weight:700;color:var(--text)}
+.ach-badge .ach-desc{font-size:10px;color:var(--text2);margin-top:2px}
+
+/* Story text */
+.story-card{background:linear-gradient(135deg,var(--surface),var(--surface2));border:2px solid var(--gold);border-radius:20px;padding:28px;text-align:center;margin-bottom:16px;animation:fadeUp .4s ease}
+.story-text{font-size:17px;line-height:1.8;color:var(--text);margin-bottom:16px;font-style:italic}
+.story-title{font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700;color:var(--gold);margin-bottom:8px}
+
+/* Practice lesson select */
+.lesson-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+.lesson-btn{padding:16px;background:var(--surface2);border:2px solid var(--border);border-radius:14px;cursor:pointer;text-align:center;transition:all .2s}
+.lesson-btn:hover{border-color:var(--accent2);transform:translateY(-2px)}
+.lesson-btn.active{border-color:var(--accent2);background:rgba(17,138,178,.08)}
+.lesson-btn .lb-emoji{font-size:24px;margin-bottom:4px;display:block}
+.lesson-btn .lb-title{font-family:'Fredoka',sans-serif;font-size:14px;font-weight:700;color:var(--text)}
+.lesson-btn .lb-desc{font-size:11px;color:var(--text2);margin-top:2px}
+
+/* Live stats bar for practice */
+.live-stats{display:flex;justify-content:center;gap:24px;padding:10px;background:var(--surface);border:2px solid var(--border);border-radius:14px;margin-bottom:12px}
+.ls-item{text-align:center}
+.ls-val{font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;color:var(--accent2)}
+.ls-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+
+/* High scores */
+.hs-list{margin-top:12px}
+.hs-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;margin-bottom:6px;font-size:14px}
+.hs-row:first-child{border-color:var(--gold);background:rgba(255,209,102,.05)}
+.hs-rank{font-family:'Fredoka',sans-serif;font-weight:700;color:var(--gold);min-width:30px}
+.hs-score{font-family:'Fredoka',sans-serif;font-weight:700;color:var(--accent)}
+
+/* Damage flash */
+.damage-flash{position:absolute;inset:0;background:rgba(239,71,111,.3);pointer-events:none;opacity:0;transition:opacity .1s;border-radius:18px;z-index:5}
+.damage-flash.active{opacity:1}
+
+/* Pause overlay */
+.pause-overlay{position:absolute;inset:0;background:rgba(10,14,26,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;border-radius:18px;display:none}
+.pause-overlay.show{display:flex}
+.pause-text{font-family:'Fredoka',sans-serif;font-size:36px;font-weight:700;color:var(--gold);margin-bottom:16px}
+
+/* Screen sections */
+.screen{display:none}
+.screen.active{display:block}
+
+@media(max-width:600px){
+.mode-grid{grid-template-columns:1fr}
+.level-grid{grid-template-columns:repeat(5,1fr)}
+.stats-grid{grid-template-columns:repeat(2,1fr)}
+.vkb-key{min-width:26px;height:34px;font-size:11px}
+.vkb-space{min-width:120px}
+.lesson-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="app">
+<a href="student.html" class="back">&#8592; Back to Hub</a>
+<div class="header">
+<span class="emoji">&#9000;&#65039;</span>
+<h1>Keyboard Warriors</h1>
+<p>Type to fight &#8212; Master the keyboard!</p>
+</div>
+
+<!-- ===== MENU SCREEN ===== -->
+<div id="menuScreen" class="screen active">
+<div class="mode-grid">
+<div class="mode-card" onclick="showCampaign()">
+<span class="mc-emoji">&#9876;&#65039;</span>
+<div class="mc-title">Campaign</div>
+<div class="mc-desc">10 levels of battle</div>
+</div>
+<div class="mode-card" onclick="showSurvival()">
+<span class="mc-emoji">&#9760;&#65039;</span>
+<div class="mc-title">Survival</div>
+<div class="mc-desc">Endless typing war</div>
+</div>
+<div class="mode-card" onclick="showPractice()">
+<span class="mc-emoji">&#128218;</span>
+<div class="mc-title">Practice</div>
+<div class="mc-desc">Learn to type</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">&#127942; Your Stats</div>
+<div class="stats-grid" id="menuStats">
+<div class="stat-box"><div class="stat-val" id="msBestWpm">0</div><div class="stat-label">Best WPM</div></div>
+<div class="stat-box"><div class="stat-val" id="msTotalWords">0</div><div class="stat-label">Words Typed</div></div>
+<div class="stat-box"><div class="stat-val" id="msTimePlayed">0m</div><div class="stat-label">Time Played</div></div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">&#127941; Achievements</div>
+<div class="ach-grid" id="achGrid"></div>
+</div>
+</div>
+
+<!-- ===== CAMPAIGN SCREEN ===== -->
+<div id="campaignScreen" class="screen">
+<div class="card">
+<div class="card-title">&#9876;&#65039; Campaign Mode</div>
+<p style="text-align:center;color:var(--text2);font-size:14px;margin-bottom:12px">Defeat enemies level by level. Each victory brings harder foes!</p>
+<div class="level-grid" id="levelGrid"></div>
+<div class="btn-row">
+<button class="btn btn-outline" onclick="showScreen('menuScreen')">&#8592; Back</button>
+</div>
+</div>
+</div>
+
+<!-- ===== STORY SCREEN ===== -->
+<div id="storyScreen" class="screen">
+<div class="story-card">
+<div class="story-title" id="storyTitle"></div>
+<div class="story-text" id="storyText"></div>
+<button class="btn btn-gold" onclick="startLevel()">Begin Battle &#9876;&#65039;</button>
+</div>
+</div>
+
+<!-- ===== GAME SCREEN ===== -->
+<div id="gameScreen" class="screen">
+<div class="hud" id="gameHud">
+<div class="hud-item"><div class="hud-label">Score</div><div class="hud-val" id="hudScore">0</div></div>
+<div class="hud-item"><div class="hud-label">WPM</div><div class="hud-val gold" id="hudWpm">0</div></div>
+<div class="hud-item"><div class="hud-label">Accuracy</div><div class="hud-val" id="hudAcc">100%</div></div>
+<div class="hud-item hud-streak" id="hudStreakWrap"><div class="hud-label">Streak</div><div class="hud-val" id="hudStreak">0</div></div>
+<div class="hud-item"><div class="hud-label" id="hudExtraLabel">Level</div><div class="hud-val gold" id="hudExtra">1</div></div>
+</div>
+<div class="game-wrap">
+<canvas id="gameCanvas" width="868" height="400"></canvas>
+<div class="damage-flash" id="damageFlash"></div>
+<div class="pause-overlay" id="pauseOverlay">
+<div class="pause-text">PAUSED</div>
+<button class="btn btn-accent" onclick="togglePause()">Resume</button>
+</div>
+</div>
+<div class="type-area">
+<div class="target-word" id="targetWord"></div>
+<input type="text" id="typeInput" placeholder="Type the word to attack!" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+</div>
+<div class="btn-row">
+<button class="btn btn-outline" onclick="togglePause()">&#10073;&#10073; Pause</button>
+<button class="btn btn-red" onclick="quitGame()">Quit</button>
+</div>
+</div>
+
+<!-- ===== SUMMARY SCREEN ===== -->
+<div id="summaryScreen" class="screen">
+<div class="summary-card" id="summaryCard"></div>
+</div>
+
+<!-- ===== SURVIVAL SCREEN ===== -->
+<div id="survivalScreen" class="screen">
+<div class="card">
+<div class="card-title">&#9760;&#65039; Survival Mode</div>
+<p style="text-align:center;color:var(--text2);font-size:14px;margin-bottom:16px">Enemies never stop. How long can you last?</p>
+<div id="highScores" class="hs-list"></div>
+<div class="btn-row">
+<button class="btn btn-accent" onclick="startSurvival()">Start Battle</button>
+<button class="btn btn-outline" onclick="showScreen('menuScreen')">&#8592; Back</button>
+</div>
+</div>
+</div>
+
+<!-- ===== PRACTICE SCREEN ===== -->
+<div id="practiceScreen" class="screen">
+<div class="card">
+<div class="card-title">&#128218; Practice Mode</div>
+<p style="text-align:center;color:var(--text2);font-size:14px;margin-bottom:12px">Learn to type properly with guided lessons</p>
+<div class="lesson-grid" id="lessonGrid"></div>
+<div class="btn-row">
+<button class="btn btn-outline" onclick="showScreen('menuScreen')">&#8592; Back</button>
+</div>
+</div>
+</div>
+
+<!-- ===== PRACTICE GAME SCREEN ===== -->
+<div id="practiceGameScreen" class="screen">
+<div class="live-stats">
+<div class="ls-item"><div class="ls-val" id="pWpm">0</div><div class="ls-label">WPM</div></div>
+<div class="ls-item"><div class="ls-val" id="pAcc">100%</div><div class="ls-label">Accuracy</div></div>
+<div class="ls-item"><div class="ls-val" id="pWords">0</div><div class="ls-label">Words</div></div>
+</div>
+<div class="type-area">
+<div class="target-word" id="pTargetWord"></div>
+<input type="text" id="pTypeInput" placeholder="Type here..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+</div>
+<div class="vkb-wrap" id="vkbWrap"></div>
+<div class="btn-row">
+<button class="btn btn-outline" onclick="endPractice()">&#8592; Done</button>
+</div>
+</div>
+
+</div><!-- end .app -->
+
+<script src="js/oda-core.js"></script>
+<script>
+/* ============================================================
+   KEYBOARD WARRIORS - Complete Typing Battle Game
+   ============================================================ */
+
+/* ---- Word Lists ---- */
+var WORD_LISTS = {
+  easy: ['the','and','cat','dog','run','big','red','sun','hat','map','cup','box','sit','top','fun','hot','let','go','up','did','can','him','her','get','was','but','not','you','all','had','one','our','out','day','use','way','may','say','she','two','how','its','has','old','see','now','new','any','few','set','try','ask','own','put','end','too','us','man','air','off','boy','did','oil','old','far','low','yes','lot','add','age','ago','mix','art','act','arm','bed','bit','bar','bat','bug','bus','cap','car','cut','cry','dug','ear','eat','egg','end','eye','fan','fit','fix','fly','for','fox','gas','got','gun','gum','gut','gym','hid','hit','hop','hug','ice','ill','ink','jam','jar','jaw','jet','jog','joy','key','kid','lap','lip','lit','log','mad','met','mop','mud','nap','net','nod','nor','nut','odd','pad','pan','pay','pen','pet','pie','pig','pin','pit','pop','pot','pub','rag','ram','ran','rat','raw','ray','rib','rid','rip','rob','rod','row','rub','rug','sad','saw','sir','sip','sob','sow','spy','sum','tab','tag','tan','tap','tax','tea','ten','tie','tin','tip','toe','ton','toy','tub','tug','van','vet','vow','war','web','wet','wig','win','wit','woke','won','zoo'],
+  medium: ['planet','school','garden','yellow','purple','friend','castle','dragon','bridge','forest','rocket','basket','golden','winter','summer','silver','window','wonder','button','camera','circle','dancer','energy','frozen','gentle','hidden','island','jungle','kitten','ladder','magnet','nature','orange','pencil','rabbit','secret','temple','unique','valley','zombie','anchor','banner','candle','dinner','engine','finger','goblin','hammer','insect','jacket','knight','lemon','master','napkin','pepper','queen','river','spider','travel','under','velvet','wallet','battle','shield','trophy','puzzle','shadow','spirit','pirate','voyage'],
+  hard: ['adventure','beautiful','chocolate','dangerous','education','fantastic','government','hurricane','invisible','knowledge','lightning','mountains','nightmare','orchestra','pineapple','questions','raspberry','snowflake','telescope','umbrella','wonderful','xylophone','alligator','butterfly','celebrate','delicious','elaborate','fireworks','gentleman','happiness','imaginary','jellyfish','landscape','mysterious','necessary','operation','passenger','recommend','surrender','telephone','underline','vegetable','waterfall','excellent'],
+  sentences: [
+    'The quick brown fox jumps over the lazy dog',
+    'Practice makes perfect every single day',
+    'Believe in yourself and your abilities',
+    'Knowledge is power and wisdom is strength',
+    'Champions never quit and quitters never win',
+    'Every expert was once a beginner too',
+    'Hard work beats talent every single time',
+    'The journey of a thousand miles begins here',
+    'Dream big and work hard to achieve it',
+    'Success comes to those who keep trying'
+  ]
+};
+
+/* ---- Practice Lessons ---- */
+var LESSONS = [
+  { id: 'home', emoji: '\u{1F3E0}', title: 'Home Row', desc: 'asdf jkl;', chars: 'asdf jkl;', words: ['dad','sad','fad','lad','ask','all','fall','flask','salad','adds','lass','alas','fall','shall','dads'] },
+  { id: 'top', emoji: '\u{2B06}\uFE0F', title: 'Top Row', desc: 'qwerty uiop', chars: 'qwertyuiop', words: ['quit','were','type','your','rope','trip','port','pour','riot','wipe','wire','ripe','poet','tower','power'] },
+  { id: 'bottom', emoji: '\u{2B07}\uFE0F', title: 'Bottom Row', desc: 'zxcvbnm', chars: 'zxcvbnm', words: ['van','can','ban','man','mix','box','zen','vim','cob','nab','mob','zap','cab','zinc','venom'] },
+  { id: 'common', emoji: '\u{1F4AC}', title: 'Common Words', desc: 'Everyday words', chars: '', words: ['the','and','for','are','but','not','you','all','can','had','her','was','one','our','out','day','get','has','him','his','how','its','may','new','now','old','see','way','who','any','few','got','let','say','she','too','use'] },
+  { id: 'sentences', emoji: '\u{1F4DD}', title: 'Sentences', desc: 'Full sentences', chars: '', words: null }
+];
+
+/* ---- Campaign Levels ---- */
+var CAMPAIGN_LEVELS = [
+  { level: 1, title: 'The Training Grounds', story: 'Welcome, warrior! Your journey begins with simple foes. Show us your typing speed!', difficulty: 'easy', wordCount: 8, speed: 0.3, maxEnemies: 2 },
+  { level: 2, title: 'Forest Skirmish', story: 'The forest is crawling with enemies. Type faster to clear a path!', difficulty: 'easy', wordCount: 10, speed: 0.35, maxEnemies: 3 },
+  { level: 3, title: 'River Crossing', story: 'Enemies block the bridge! Only swift fingers can cross safely.', difficulty: 'easy', wordCount: 12, speed: 0.4, maxEnemies: 3 },
+  { level: 4, title: 'Mountain Pass', story: 'The mountain pass is treacherous. Enemies grow stronger here.', difficulty: 'medium', wordCount: 10, speed: 0.35, maxEnemies: 3 },
+  { level: 5, title: 'The Dark Knight', story: 'A BOSS approaches! This mighty knight speaks in sentences. Type the full phrase to defeat him!', difficulty: 'medium', wordCount: 14, speed: 0.4, maxEnemies: 3, boss: true },
+  { level: 6, title: 'Cyber City', story: 'Welcome to the digital realm. Words fly faster here in the neon city.', difficulty: 'medium', wordCount: 14, speed: 0.5, maxEnemies: 4 },
+  { level: 7, title: 'Storm Fortress', story: 'Thunder crashes as enemies swarm the fortress. Hold your ground!', difficulty: 'medium', wordCount: 16, speed: 0.55, maxEnemies: 4 },
+  { level: 8, title: 'Lava Caverns', story: 'Deep underground, the hardest words lurk in the shadows.', difficulty: 'hard', wordCount: 12, speed: 0.45, maxEnemies: 4 },
+  { level: 9, title: 'Sky Battlefield', story: 'Flying enemies attack from all directions! Prepare for the final push.', difficulty: 'hard', wordCount: 14, speed: 0.55, maxEnemies: 5 },
+  { level: 10, title: 'The Overlord', story: 'The FINAL BOSS. The Typing Overlord commands full sentences. Defeat him to become a true Keyboard Warrior!', difficulty: 'hard', wordCount: 16, speed: 0.5, maxEnemies: 5, boss: true }
+];
+
+/* ---- Level Stories ---- */
+var BOSS_SENTENCES = [
+  'You shall not pass this gate warrior',
+  'Only the fastest fingers survive here',
+  'The keyboard is mightier than the sword',
+  'Type with the fury of a thousand storms',
+  'Your fingers must dance across the keys'
+];
+
+/* ---- Achievements ---- */
+var ACHIEVEMENTS = [
+  { id: 'speed30', icon: '\u{1F3CE}\uFE0F', name: 'Quick Start', desc: '30 WPM' },
+  { id: 'speed50', icon: '\u26A1', name: 'Speed Demon', desc: '50 WPM' },
+  { id: 'speed80', icon: '\u{1F525}', name: 'Blazing Fast', desc: '80 WPM' },
+  { id: 'perfect', icon: '\u{1F48E}', name: 'Perfectionist', desc: '100% accuracy on a level' },
+  { id: 'campaign', icon: '\u{1F3C6}', name: 'Warrior', desc: 'Complete campaign' },
+  { id: 'survive100', icon: '\u{1F480}', name: 'Survivor', desc: '100 words in survival' },
+  { id: 'streak10', icon: '\u{1F525}', name: 'On Fire', desc: '10 word streak' },
+  { id: 'streak20', icon: '\u{1F31F}', name: 'Streak Master', desc: '20 word streak' },
+  { id: 'words500', icon: '\u{1F4DA}', name: 'Bookworm', desc: '500 total words' },
+  { id: 'words1000', icon: '\u{1F393}', name: 'Scholar', desc: '1000 total words' }
+];
+
+/* ---- Sound Engine (Web Audio API) ---- */
+var audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+  return audioCtx;
+}
+
+function playSound(type) {
+  var ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    var o = ctx.createOscillator();
+    var g = ctx.createGain();
+    o.connect(g);
+    g.connect(ctx.destination);
+    var t = ctx.currentTime;
+
+    switch(type) {
+      case 'keypress':
+        o.type = 'sine'; o.frequency.setValueAtTime(800, t); g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05); o.start(t); o.stop(t + 0.05); break;
+      case 'correct':
+        o.type = 'sine'; o.frequency.setValueAtTime(523, t); o.frequency.setValueAtTime(659, t + 0.06); o.frequency.setValueAtTime(784, t + 0.12);
+        g.gain.setValueAtTime(0.15, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.25); o.start(t); o.stop(t + 0.25); break;
+      case 'wrong':
+        o.type = 'square'; o.frequency.setValueAtTime(200, t); g.gain.setValueAtTime(0.08, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.12); o.start(t); o.stop(t + 0.12); break;
+      case 'damage':
+        o.type = 'sawtooth'; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(50, t + 0.3);
+        g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.3); o.start(t); o.stop(t + 0.3); break;
+      case 'levelup':
+        o.type = 'sine';
+        o.frequency.setValueAtTime(523, t); o.frequency.setValueAtTime(659, t + 0.1); o.frequency.setValueAtTime(784, t + 0.2); o.frequency.setValueAtTime(1047, t + 0.3);
+        g.gain.setValueAtTime(0.15, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5); o.start(t); o.stop(t + 0.5); break;
+      case 'gameover':
+        o.type = 'sawtooth'; o.frequency.setValueAtTime(400, t); o.frequency.exponentialRampToValueAtTime(80, t + 0.8);
+        g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.8); o.start(t); o.stop(t + 0.8); break;
+      case 'boss':
+        o.type = 'square'; o.frequency.setValueAtTime(110, t); o.frequency.setValueAtTime(130, t + 0.15); o.frequency.setValueAtTime(110, t + 0.3);
+        g.gain.setValueAtTime(0.08, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5); o.start(t); o.stop(t + 0.5); break;
+      case 'streak':
+        o.type = 'sine'; o.frequency.setValueAtTime(880, t); o.frequency.setValueAtTime(1100, t + 0.05);
+        g.gain.setValueAtTime(0.08, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.15); o.start(t); o.stop(t + 0.15); break;
+      case 'blast':
+        o.type = 'sawtooth'; o.frequency.setValueAtTime(100, t); o.frequency.exponentialRampToValueAtTime(2000, t + 0.15); o.frequency.exponentialRampToValueAtTime(50, t + 0.5);
+        g.gain.setValueAtTime(0.15, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5); o.start(t); o.stop(t + 0.5); break;
+    }
+  } catch(e) {}
+}
+
+/* ---- State ---- */
+var G = {
+  mode: null, // 'campaign', 'survival', 'practice'
+  level: 1,
+  paused: false,
+  running: false,
+  score: 0,
+  health: 100,
+  maxHealth: 100,
+  streak: 0,
+  bestStreak: 0,
+  wordsTyped: 0,
+  correctChars: 0,
+  totalChars: 0,
+  startTime: 0,
+  enemies: [],
+  particles: [],
+  floatTexts: [],
+  targetEnemy: null,
+  bossHP: 0,
+  bossMaxHP: 0,
+  isBoss: false,
+  wordQueue: [],
+  spawnTimer: 0,
+  spawnInterval: 2500,
+  levelConfig: null,
+  wordsNeeded: 0,
+  playerAttacking: false,
+  attackTimer: 0,
+  shakeTimer: 0,
+  shakeIntensity: 0,
+  blastActive: false,
+  blastTimer: 0,
+  bgOffset: 0,
+  stars1: [],
+  stars2: [],
+  playerY: 0,
+  playerBob: 0
+};
+
+/* ---- Save/Load ---- */
+function getSave() {
+  try {
+    var d = JSON.parse(localStorage.getItem('kw_save') || '{}');
+    return {
+      campaignProgress: d.campaignProgress || {},
+      highScores: d.highScores || [],
+      achievements: d.achievements || [],
+      totalWords: d.totalWords || 0,
+      bestWpm: d.bestWpm || 0,
+      timePlayed: d.timePlayed || 0
+    };
+  } catch(e) { return { campaignProgress: {}, highScores: [], achievements: [], totalWords: 0, bestWpm: 0, timePlayed: 0 }; }
+}
+function putSave(s) { try { localStorage.setItem('kw_save', JSON.stringify(s)); } catch(e) {} }
+
+/* ---- Screen Management ---- */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  if (id === 'menuScreen') refreshMenu();
+}
+
+function refreshMenu() {
+  var s = getSave();
+  document.getElementById('msBestWpm').textContent = s.bestWpm;
+  document.getElementById('msTotalWords').textContent = s.totalWords;
+  var mins = Math.floor(s.timePlayed / 60);
+  document.getElementById('msTimePlayed').textContent = mins < 60 ? mins + 'm' : Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm';
+  renderAchievements(s);
+}
+
+function renderAchievements(s) {
+  var html = '';
+  ACHIEVEMENTS.forEach(function(a) {
+    var unlocked = s.achievements.indexOf(a.id) > -1;
+    html += '<div class="ach-badge ' + (unlocked ? 'unlocked' : '') + '"><span class="ach-icon">' + a.icon + '</span><div class="ach-name">' + a.name + '</div><div class="ach-desc">' + a.desc + '</div></div>';
+  });
+  document.getElementById('achGrid').innerHTML = html;
+}
+
+/* ---- Campaign ---- */
+function showCampaign() {
+  showScreen('campaignScreen');
+  var s = getSave();
+  var html = '';
+  for (var i = 0; i < CAMPAIGN_LEVELS.length; i++) {
+    var lv = CAMPAIGN_LEVELS[i];
+    var prog = s.campaignProgress[lv.level];
+    var prev = i === 0 || s.campaignProgress[CAMPAIGN_LEVELS[i - 1].level];
+    var locked = !prev;
+    var completed = !!prog;
+    var stars = prog ? prog.stars : 0;
+    var cls = locked ? 'locked' : (completed ? 'completed' : (prev ? 'current' : ''));
+    html += '<div class="level-btn ' + cls + '" ' + (locked ? '' : 'onclick="selectLevel(' + lv.level + ')"') + '>';
+    html += lv.level;
+    if (lv.boss) html += '<span class="level-boss">\u{1F451}</span>';
+    html += '<div class="level-stars">' + (completed ? renderStars(stars) : '') + '</div>';
+    html += '</div>';
+  }
+  document.getElementById('levelGrid').innerHTML = html;
+}
+
+function renderStars(n) {
+  var s = '';
+  for (var i = 0; i < 3; i++) s += i < n ? '\u2B50' : '\u2606';
+  return s;
+}
+
+function selectLevel(lv) {
+  G.level = lv;
+  G.mode = 'campaign';
+  var cfg = CAMPAIGN_LEVELS[lv - 1];
+  document.getElementById('storyTitle').textContent = 'Level ' + lv + ': ' + cfg.title;
+  document.getElementById('storyText').textContent = cfg.story;
+  showScreen('storyScreen');
+}
+
+/* ---- Survival ---- */
+function showSurvival() {
+  showScreen('survivalScreen');
+  var s = getSave();
+  var html = '';
+  if (s.highScores.length === 0) {
+    html = '<div style="text-align:center;color:var(--text2);padding:16px;font-size:14px">No high scores yet. Start a battle!</div>';
+  } else {
+    s.highScores.slice(0, 10).forEach(function(hs, i) {
+      html += '<div class="hs-row"><span class="hs-rank">#' + (i + 1) + '</span><span>' + hs.words + ' words / ' + hs.wpm + ' WPM</span><span class="hs-score">' + hs.score + ' pts</span></div>';
+    });
+  }
+  document.getElementById('highScores').innerHTML = html;
+}
+
+function startSurvival() {
+  G.mode = 'survival';
+  G.level = 0;
+  startGame({
+    difficulty: 'easy',
+    wordCount: 9999,
+    speed: 0.3,
+    maxEnemies: 3,
+    boss: false
+  });
+}
+
+/* ---- Practice ---- */
+function showPractice() {
+  showScreen('practiceScreen');
+  var html = '';
+  LESSONS.forEach(function(l) {
+    html += '<div class="lesson-btn" onclick="startPracticeLesson(\'' + l.id + '\')"><span class="lb-emoji">' + l.emoji + '</span><div class="lb-title">' + l.title + '</div><div class="lb-desc">' + l.desc + '</div></div>';
+  });
+  document.getElementById('lessonGrid').innerHTML = html;
+}
+
+var practiceState = { lesson: null, words: [], idx: 0, correctChars: 0, totalChars: 0, wordsTyped: 0, startTime: 0 };
+
+function startPracticeLesson(lessonId) {
+  var lesson = LESSONS.find(function(l) { return l.id === lessonId; });
+  if (!lesson) return;
+  practiceState.lesson = lesson;
+  practiceState.idx = 0;
+  practiceState.correctChars = 0;
+  practiceState.totalChars = 0;
+  practiceState.wordsTyped = 0;
+  practiceState.startTime = Date.now();
+
+  if (lesson.id === 'sentences') {
+    practiceState.words = shuffleArray(WORD_LISTS.sentences.slice());
+  } else {
+    practiceState.words = shuffleArray(lesson.words.slice());
+  }
+
+  showScreen('practiceGameScreen');
+  renderVirtualKeyboard(lesson);
+  updatePracticeTarget();
+  var inp = document.getElementById('pTypeInput');
+  inp.value = '';
+  inp.disabled = false;
+  inp.focus();
+}
+
+function renderVirtualKeyboard(lesson) {
+  var rows = [
+    ['q','w','e','r','t','y','u','i','o','p'],
+    ['a','s','d','f','g','h','j','k','l',';'],
+    ['z','x','c','v','b','n','m']
+  ];
+  var homeKeys = ['a','s','d','f','j','k','l',';'];
+  var html = '';
+  rows.forEach(function(row, ri) {
+    html += '<div class="vkb-row">';
+    if (ri === 2) html += '<div class="vkb-key" style="min-width:50px;font-size:11px">shift</div>';
+    row.forEach(function(k) {
+      var isHome = homeKeys.indexOf(k) > -1;
+      html += '<div class="vkb-key' + (isHome ? ' home-key' : '') + '" data-key="' + k + '">' + k + '</div>';
+    });
+    if (ri === 2) html += '<div class="vkb-key" style="min-width:50px;font-size:11px">shift</div>';
+    html += '</div>';
+  });
+  html += '<div class="vkb-row"><div class="vkb-key vkb-space" data-key=" ">space</div></div>';
+  document.getElementById('vkbWrap').innerHTML = html;
+}
+
+function updatePracticeTarget() {
+  if (practiceState.idx >= practiceState.words.length) {
+    practiceState.words = shuffleArray(practiceState.words.slice());
+    practiceState.idx = 0;
+  }
+  var word = practiceState.words[practiceState.idx];
+  var html = '';
+  for (var i = 0; i < word.length; i++) {
+    html += '<span class="char pending' + (i === 0 ? ' cursor' : '') + '">' + escChar(word[i]) + '</span>';
+  }
+  document.getElementById('pTargetWord').innerHTML = html;
+  highlightVKBKey(word[0]);
+}
+
+function highlightVKBKey(ch) {
+  document.querySelectorAll('.vkb-key').forEach(function(k) { k.classList.remove('highlight'); });
+  if (!ch) return;
+  var key = ch.toLowerCase();
+  if (key === ' ') key = ' ';
+  var el = document.querySelector('.vkb-key[data-key="' + key + '"]');
+  if (el) el.classList.add('highlight');
+}
+
+function escChar(c) {
+  if (c === ' ') return '&nbsp;';
+  if (c === '<') return '&lt;';
+  if (c === '>') return '&gt;';
+  if (c === '&') return '&amp;';
+  return c;
+}
+
+document.getElementById('pTypeInput').addEventListener('input', function(e) {
+  var inp = this;
+  var word = practiceState.words[practiceState.idx];
+  var val = inp.value;
+  var chars = document.querySelectorAll('#pTargetWord .char');
+
+  // flash vkb key
+  if (val.length > 0) {
+    var lastChar = val[val.length - 1].toLowerCase();
+    var kEl = document.querySelector('.vkb-key[data-key="' + (lastChar === ' ' ? ' ' : lastChar) + '"]');
+    if (kEl) { kEl.classList.add('pressed'); setTimeout(function() { kEl.classList.remove('pressed'); }, 100); }
+  }
+
+  practiceState.totalChars++;
+  var allCorrect = true;
+  for (var i = 0; i < word.length; i++) {
+    chars[i].classList.remove('correct', 'wrong', 'cursor', 'pending');
+    if (i < val.length) {
+      if (val[i] === word[i]) {
+        chars[i].classList.add('correct');
+      } else {
+        chars[i].classList.add('wrong');
+        allCorrect = false;
+        playSound('wrong');
+      }
+    } else {
+      chars[i].classList.add('pending');
+      if (i === val.length) chars[i].classList.add('cursor');
+    }
+  }
+
+  if (val.length < word.length) {
+    highlightVKBKey(word[val.length]);
+  }
+
+  if (val.length > 0 && val[val.length - 1] === word[val.length - 1]) {
+    practiceState.correctChars++;
+    playSound('keypress');
+  }
+
+  if (val.length >= word.length) {
+    if (allCorrect) {
+      playSound('correct');
+      practiceState.wordsTyped++;
+      practiceState.idx++;
+      inp.value = '';
+      updatePracticeTarget();
+    }
+  }
+
+  // Update live stats
+  var elapsed = (Date.now() - practiceState.startTime) / 60000;
+  var wpm = elapsed > 0 ? Math.round(practiceState.wordsTyped / elapsed) : 0;
+  var acc = practiceState.totalChars > 0 ? Math.round((practiceState.correctChars / practiceState.totalChars) * 100) : 100;
+  document.getElementById('pWpm').textContent = wpm;
+  document.getElementById('pAcc').textContent = acc + '%';
+  document.getElementById('pWords').textContent = practiceState.wordsTyped;
+});
+
+function endPractice() {
+  var s = getSave();
+  s.totalWords += practiceState.wordsTyped;
+  var elapsed = (Date.now() - practiceState.startTime) / 60000;
+  var wpm = elapsed > 0 ? Math.round(practiceState.wordsTyped / elapsed) : 0;
+  if (wpm > s.bestWpm) s.bestWpm = wpm;
+  s.timePlayed += Math.round((Date.now() - practiceState.startTime) / 1000);
+  checkAchievements(s, wpm, 100, 0);
+  putSave(s);
+  showScreen('practiceScreen');
+}
+
+/* ---- Canvas Setup ---- */
+var canvas = document.getElementById('gameCanvas');
+var ctx = canvas.getContext('2d');
+var CW = 868, CH = 400;
+
+function resizeCanvas() {
+  var wrap = canvas.parentElement;
+  var w = wrap.clientWidth - 4;
+  canvas.style.width = w + 'px';
+  canvas.style.height = Math.round(w * CH / CW) + 'px';
+}
+window.addEventListener('resize', resizeCanvas);
+
+/* ---- Background Stars ---- */
+function initStars() {
+  G.stars1 = [];
+  G.stars2 = [];
+  for (var i = 0; i < 50; i++) G.stars1.push({ x: Math.random() * CW, y: Math.random() * CH, s: Math.random() * 1.5 + 0.5, b: Math.random() });
+  for (var i = 0; i < 30; i++) G.stars2.push({ x: Math.random() * CW, y: Math.random() * CH, s: Math.random() * 2 + 1, b: Math.random() });
+}
+initStars();
+
+/* ---- Game Start ---- */
+function startLevel() {
+  var cfg = CAMPAIGN_LEVELS[G.level - 1];
+  startGame(cfg);
+}
+
+function startGame(config) {
+  G.levelConfig = config;
+  G.running = true;
+  G.paused = false;
+  G.score = 0;
+  G.health = 100;
+  G.maxHealth = 100;
+  G.streak = 0;
+  G.bestStreak = 0;
+  G.wordsTyped = 0;
+  G.correctChars = 0;
+  G.totalChars = 0;
+  G.startTime = Date.now();
+  G.enemies = [];
+  G.particles = [];
+  G.floatTexts = [];
+  G.targetEnemy = null;
+  G.wordQueue = buildWordQueue(config);
+  G.wordsNeeded = config.wordCount;
+  G.spawnTimer = 0;
+  G.spawnInterval = G.mode === 'survival' ? 2800 : 2200;
+  G.playerAttacking = false;
+  G.attackTimer = 0;
+  G.shakeTimer = 0;
+  G.bgOffset = 0;
+  G.blastActive = false;
+  G.blastTimer = 0;
+  G.isBoss = !!config.boss;
+  G.bossHP = 0;
+  G.bossMaxHP = 0;
+  G.playerBob = 0;
+
+  if (G.isBoss) {
+    var bossSentence = BOSS_SENTENCES[Math.floor(Math.random() * BOSS_SENTENCES.length)];
+    G.bossHP = bossSentence.length;
+    G.bossMaxHP = bossSentence.length;
+    G.wordQueue = bossSentence.split(' ');
+    G.wordsNeeded = G.wordQueue.length;
+    playSound('boss');
+  }
+
+  showScreen('gameScreen');
+  resizeCanvas();
+
+  if (G.mode === 'campaign') {
+    document.getElementById('hudExtraLabel').textContent = 'Level';
+    document.getElementById('hudExtra').textContent = G.level;
+  } else {
+    document.getElementById('hudExtraLabel').textContent = 'Words';
+    document.getElementById('hudExtra').textContent = '0';
+  }
+
+  document.getElementById('hudScore').textContent = '0';
+  document.getElementById('hudWpm').textContent = '0';
+  document.getElementById('hudAcc').textContent = '100%';
+  document.getElementById('hudStreak').textContent = '0';
+  document.getElementById('pauseOverlay').classList.remove('show');
+
+  var inp = document.getElementById('typeInput');
+  inp.value = '';
+  inp.disabled = false;
+  inp.focus();
+
+  spawnEnemy();
+  requestAnimationFrame(gameLoop);
+}
+
+function buildWordQueue(config) {
+  var pool = [];
+  var diff = config.difficulty || 'easy';
+  pool = pool.concat(WORD_LISTS[diff]);
+  if (diff === 'medium') pool = pool.concat(WORD_LISTS.easy);
+  if (diff === 'hard') pool = pool.concat(WORD_LISTS.medium);
+  pool = shuffleArray(pool);
+  return pool.slice(0, Math.max(config.wordCount * 3, 60));
+}
+
+function shuffleArray(arr) {
+  for (var i = arr.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  }
+  return arr;
+}
+
+/* ---- Enemy Spawning ---- */
+var wordIdx = 0;
+function getNextWord() {
+  if (wordIdx >= G.wordQueue.length) {
+    if (G.mode === 'survival') {
+      G.wordQueue = G.wordQueue.concat(shuffleArray(buildWordQueue({ difficulty: getSurvivalDifficulty(), wordCount: 30 })));
+    } else {
+      wordIdx = 0;
+    }
+  }
+  return G.wordQueue[wordIdx++];
+}
+
+function getSurvivalDifficulty() {
+  if (G.wordsTyped < 20) return 'easy';
+  if (G.wordsTyped < 50) return 'medium';
+  return 'hard';
+}
+
+function spawnEnemy() {
+  if (!G.running || G.paused) return;
+  if (G.mode === 'campaign' && G.wordsTyped >= G.wordsNeeded && !G.isBoss) return;
+
+  var maxE = G.levelConfig ? G.levelConfig.maxEnemies : 3;
+  if (G.enemies.length >= maxE) return;
+
+  var word = getNextWord();
+  if (!word) return;
+
+  var speed = G.levelConfig ? G.levelConfig.speed : 0.3;
+  if (G.mode === 'survival') {
+    speed = 0.3 + Math.min(G.wordsTyped * 0.004, 0.5);
+  }
+
+  var len = word.length;
+  var difficulty = len <= 4 ? 'easy' : (len <= 7 ? 'medium' : 'hard');
+  var colors = { easy: '#06d6a0', medium: '#ffd166', hard: '#ef476f' };
+
+  var enemy = {
+    word: word,
+    x: CW + 20,
+    y: 60 + Math.random() * (CH - 160),
+    speed: speed * (0.8 + Math.random() * 0.4),
+    color: colors[difficulty],
+    size: Math.max(14, Math.min(20, 18 - (len - 5) * 0.5)),
+    alpha: 1,
+    dying: false,
+    deathTimer: 0,
+    isBoss: false
+  };
+
+  G.enemies.push(enemy);
+
+  if (!G.targetEnemy || G.targetEnemy.dying) {
+    G.targetEnemy = enemy;
+    updateTargetDisplay();
+  }
+}
+
+/* ---- Target Display ---- */
+function updateTargetDisplay() {
+  var el = document.getElementById('targetWord');
+  if (!G.targetEnemy) {
+    el.innerHTML = '<span style="color:var(--text2);font-size:18px">Waiting for enemies...</span>';
+    return;
+  }
+  var word = G.targetEnemy.word;
+  var inp = document.getElementById('typeInput').value;
+  var html = '';
+  for (var i = 0; i < word.length; i++) {
+    var cls = 'pending';
+    if (i < inp.length) {
+      cls = inp[i] === word[i] ? 'correct' : 'wrong';
+    } else if (i === inp.length) {
+      cls = 'pending cursor';
+    }
+    html += '<span class="char ' + cls + '">' + escChar(word[i]) + '</span>';
+  }
+  el.innerHTML = html;
+}
+
+/* ---- Typing Input ---- */
+document.getElementById('typeInput').addEventListener('input', function() {
+  if (!G.running || G.paused) return;
+  var inp = this;
+  var val = inp.value;
+
+  if (!G.targetEnemy) return;
+  var word = G.targetEnemy.word;
+
+  G.totalChars++;
+  if (val.length > 0 && val[val.length - 1] === word[val.length - 1]) {
+    G.correctChars++;
+    playSound('keypress');
+  } else if (val.length > 0 && val[val.length - 1] !== word[val.length - 1]) {
+    playSound('wrong');
+  }
+
+  updateTargetDisplay();
+
+  // Check if word completed
+  if (val === word) {
+    wordCompleted();
+    inp.value = '';
+  }
+});
+
+document.getElementById('typeInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') togglePause();
+});
+
+function wordCompleted() {
+  if (!G.targetEnemy) return;
+
+  playSound('correct');
+  G.wordsTyped++;
+  G.streak++;
+  if (G.streak > G.bestStreak) G.bestStreak = G.streak;
+
+  // Streak sound
+  if (G.streak >= 5) playSound('streak');
+
+  // Score
+  var word = G.targetEnemy.word;
+  var pts = word.length * 10 + G.streak * 5;
+  G.score += pts;
+  addFloatText('+' + pts, G.targetEnemy.x, G.targetEnemy.y - 20, '#06d6a0');
+
+  // Kill enemy
+  killEnemy(G.targetEnemy);
+
+  // Check for blast (10 streak)
+  if (G.streak > 0 && G.streak % 10 === 0) {
+    triggerBlast();
+  }
+
+  // Boss damage
+  if (G.isBoss) {
+    G.bossHP = Math.max(0, G.bossHP - word.length);
+  }
+
+  // Player attack animation
+  G.playerAttacking = true;
+  G.attackTimer = 12;
+
+  // Update HUD
+  updateHUD();
+
+  // Check win condition
+  if (G.mode === 'campaign') {
+    if (G.isBoss && G.bossHP <= 0) {
+      setTimeout(function() { endGame(true); }, 500);
+      return;
+    }
+    if (!G.isBoss && G.wordsTyped >= G.wordsNeeded && G.enemies.filter(function(e) { return !e.dying; }).length === 0) {
+      setTimeout(function() { endGame(true); }, 500);
+      return;
+    }
+  }
+
+  if (G.mode === 'survival') {
+    document.getElementById('hudExtra').textContent = G.wordsTyped;
+    // Increase difficulty
+    if (G.wordsTyped % 10 === 0) {
+      G.spawnInterval = Math.max(800, G.spawnInterval - 150);
+      if (G.levelConfig) G.levelConfig.maxEnemies = Math.min(6, (G.levelConfig.maxEnemies || 3) + 1);
+    }
+  }
+
+  // Find next target
+  selectNextTarget();
+}
+
+function selectNextTarget() {
+  var alive = G.enemies.filter(function(e) { return !e.dying; });
+  if (alive.length > 0) {
+    // Pick leftmost enemy (closest to player)
+    alive.sort(function(a, b) { return a.x - b.x; });
+    G.targetEnemy = alive[0];
+  } else {
+    G.targetEnemy = null;
+  }
+  updateTargetDisplay();
+  document.getElementById('typeInput').value = '';
+}
+
+function killEnemy(enemy) {
+  enemy.dying = true;
+  enemy.deathTimer = 20;
+  // Spawn particles
+  for (var i = 0; i < 12; i++) {
+    G.particles.push({
+      x: enemy.x,
+      y: enemy.y,
+      vx: (Math.random() - 0.5) * 6,
+      vy: (Math.random() - 0.5) * 6,
+      life: 30 + Math.random() * 20,
+      maxLife: 50,
+      color: enemy.color,
+      size: 2 + Math.random() * 4
+    });
+  }
+}
+
+function triggerBlast() {
+  G.blastActive = true;
+  G.blastTimer = 30;
+  playSound('blast');
+  // Kill all enemies
+  G.enemies.forEach(function(e) {
+    if (!e.dying) {
+      killEnemy(e);
+      G.score += e.word.length * 5;
+      addFloatText('BLAST!', e.x, e.y, '#ffd166');
+    }
+  });
+  addFloatText('\u26A1 10 STREAK BLAST! \u26A1', CW / 2, CH / 2, '#ffd166');
+}
+
+/* ---- Damage ---- */
+function damagePlayer(amount) {
+  G.health -= amount;
+  G.streak = 0;
+  G.shakeTimer = 15;
+  G.shakeIntensity = 8;
+  playSound('damage');
+
+  var flash = document.getElementById('damageFlash');
+  flash.classList.add('active');
+  setTimeout(function() { flash.classList.remove('active'); }, 200);
+
+  updateHUD();
+
+  if (G.health <= 0) {
+    G.health = 0;
+    endGame(false);
+  }
+}
+
+/* ---- Float Text ---- */
+function addFloatText(text, x, y, color) {
+  G.floatTexts.push({ text: text, x: x, y: y, color: color || '#fff', life: 50, maxLife: 50 });
+}
+
+/* ---- HUD Update ---- */
+function updateHUD() {
+  document.getElementById('hudScore').textContent = G.score;
+  var elapsed = (Date.now() - G.startTime) / 60000;
+  var wpm = elapsed > 0.05 ? Math.round(G.wordsTyped / elapsed) : 0;
+  document.getElementById('hudWpm').textContent = wpm;
+  var acc = G.totalChars > 0 ? Math.round((G.correctChars / G.totalChars) * 100) : 100;
+  document.getElementById('hudAcc').textContent = acc + '%';
+  document.getElementById('hudStreak').textContent = G.streak;
+
+  var streakWrap = document.getElementById('hudStreakWrap');
+  if (G.streak >= 5) streakWrap.classList.add('on-fire');
+  else streakWrap.classList.remove('on-fire');
+}
+
+/* ---- Pause ---- */
+function togglePause() {
+  if (!G.running) return;
+  G.paused = !G.paused;
+  document.getElementById('pauseOverlay').classList.toggle('show', G.paused);
+  if (!G.paused) {
+    document.getElementById('typeInput').focus();
+    requestAnimationFrame(gameLoop);
+  }
+}
+
+function quitGame() {
+  G.running = false;
+  G.paused = false;
+  document.getElementById('typeInput').disabled = true;
+  if (G.mode === 'campaign') showCampaign();
+  else if (G.mode === 'survival') showSurvival();
+  else showScreen('menuScreen');
+}
+
+/* ---- Game Loop ---- */
+var lastTime = 0;
+function gameLoop(ts) {
+  if (!G.running || G.paused) return;
+
+  var dt = Math.min(ts - lastTime, 33.33);
+  lastTime = ts;
+  var dtFactor = dt / 16.67;
+
+  update(dtFactor);
+  render();
+
+  requestAnimationFrame(gameLoop);
+}
+
+function update(dt) {
+  G.bgOffset += 0.3 * dt;
+  G.playerBob += 0.04 * dt;
+
+  // Spawn timer
+  G.spawnTimer += dt;
+  var spawnThreshold = G.spawnInterval / 16.67;
+  if (G.spawnTimer >= spawnThreshold) {
+    G.spawnTimer = 0;
+    var aliveEnemies = G.enemies.filter(function(e) { return !e.dying; });
+    var canSpawn = true;
+    if (G.mode === 'campaign' && !G.isBoss) {
+      var totalSpawned = G.wordsTyped + aliveEnemies.length;
+      if (totalSpawned >= G.wordsNeeded) canSpawn = false;
+    }
+    if (G.mode === 'campaign' && G.isBoss) {
+      if (wordIdx >= G.wordQueue.length && aliveEnemies.length > 0) canSpawn = false;
+    }
+    if (canSpawn) spawnEnemy();
+  }
+
+  // Player attack timer
+  if (G.attackTimer > 0) G.attackTimer -= dt;
+  else G.playerAttacking = false;
+
+  // Shake timer
+  if (G.shakeTimer > 0) G.shakeTimer -= dt;
+
+  // Blast timer
+  if (G.blastTimer > 0) G.blastTimer -= dt;
+  else G.blastActive = false;
+
+  // Update enemies
+  for (var i = G.enemies.length - 1; i >= 0; i--) {
+    var e = G.enemies[i];
+    if (e.dying) {
+      e.deathTimer -= dt;
+      e.alpha = Math.max(0, e.deathTimer / 20);
+      if (e.deathTimer <= 0) {
+        G.enemies.splice(i, 1);
+        if (G.targetEnemy === e) selectNextTarget();
+      }
+      continue;
+    }
+    e.x -= e.speed * dt;
+    // Check if reached player
+    if (e.x < 130) {
+      damagePlayer(10 + Math.floor(e.word.length / 2));
+      e.dying = true;
+      e.deathTimer = 10;
+      if (G.targetEnemy === e) selectNextTarget();
+    }
+  }
+
+  // Auto-target closest alive enemy if no target
+  if (!G.targetEnemy || G.targetEnemy.dying) {
+    selectNextTarget();
+  }
+
+  // Update particles
+  for (var i = G.particles.length - 1; i >= 0; i--) {
+    var p = G.particles[i];
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life -= dt;
+    if (p.life <= 0) G.particles.splice(i, 1);
+  }
+
+  // Update float texts
+  for (var i = G.floatTexts.length - 1; i >= 0; i--) {
+    var f = G.floatTexts[i];
+    f.y -= 0.8 * dt;
+    f.life -= dt;
+    if (f.life <= 0) G.floatTexts.splice(i, 1);
+  }
+
+  // Campaign: check if all done
+  if (G.mode === 'campaign' && !G.isBoss) {
+    var alive = G.enemies.filter(function(e) { return !e.dying; });
+    if (G.wordsTyped >= G.wordsNeeded && alive.length === 0) {
+      endGame(true);
+    }
+  }
+}
+
+/* ---- Render ---- */
+function render() {
+  ctx.save();
+
+  // Screen shake
+  var sx = 0, sy = 0;
+  if (G.shakeTimer > 0) {
+    sx = (Math.random() - 0.5) * G.shakeIntensity * (G.shakeTimer / 15);
+    sy = (Math.random() - 0.5) * G.shakeIntensity * (G.shakeTimer / 15);
+  }
+  ctx.translate(sx, sy);
+
+  // Background
+  ctx.fillStyle = '#080c16';
+  ctx.fillRect(-10, -10, CW + 20, CH + 20);
+
+  // Stars layer 1 (slow)
+  ctx.fillStyle = 'rgba(160,180,220,0.4)';
+  G.stars1.forEach(function(s) {
+    var x = (s.x - G.bgOffset * 0.2) % CW;
+    if (x < 0) x += CW;
+    var alpha = 0.3 + Math.sin(s.b + G.playerBob * 2) * 0.3;
+    ctx.globalAlpha = alpha;
+    ctx.fillRect(x, s.y, s.s, s.s);
+  });
+
+  // Stars layer 2 (faster)
+  ctx.fillStyle = 'rgba(200,210,240,0.6)';
+  G.stars2.forEach(function(s) {
+    var x = (s.x - G.bgOffset * 0.5) % CW;
+    if (x < 0) x += CW;
+    var alpha = 0.4 + Math.sin(s.b + G.playerBob * 3) * 0.3;
+    ctx.globalAlpha = alpha;
+    ctx.fillRect(x, s.y, s.s, s.s);
+  });
+  ctx.globalAlpha = 1;
+
+  // Ground line
+  var gy = CH - 40;
+  ctx.strokeStyle = '#1a2540';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, gy);
+  ctx.lineTo(CW, gy);
+  ctx.stroke();
+
+  // Grid lines on ground
+  ctx.strokeStyle = 'rgba(6,214,160,0.06)';
+  ctx.lineWidth = 1;
+  for (var gx = (-G.bgOffset * 1.5) % 60; gx < CW; gx += 60) {
+    ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx + 20, CH); ctx.stroke();
+  }
+
+  // Player
+  drawPlayer(80, gy - 10);
+
+  // Health bar
+  var hbW = 70, hbH = 8, hbX = 45, hbY = gy - 90;
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(hbX, hbY, hbW, hbH);
+  var hpFrac = G.health / G.maxHealth;
+  ctx.fillStyle = hpFrac > 0.5 ? '#06d6a0' : (hpFrac > 0.25 ? '#ffd166' : '#ef476f');
+  ctx.fillRect(hbX, hbY, hbW * hpFrac, hbH);
+  ctx.strokeStyle = '#2a3450';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(hbX, hbY, hbW, hbH);
+
+  // Boss HP bar
+  if (G.isBoss && G.bossMaxHP > 0) {
+    var bbW = 300, bbH = 14, bbX = (CW - bbW) / 2, bbY = 20;
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(bbX, bbY, bbW, bbH);
+    ctx.fillStyle = '#ef476f';
+    ctx.fillRect(bbX, bbY, bbW * (G.bossHP / G.bossMaxHP), bbH);
+    ctx.strokeStyle = '#ef476f';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(bbX, bbY, bbW, bbH);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px Outfit';
+    ctx.textAlign = 'center';
+    ctx.fillText('BOSS HP', CW / 2, bbY - 5);
+  }
+
+  // Attack beam
+  if (G.playerAttacking && G.targetEnemy) {
+    ctx.save();
+    ctx.globalAlpha = G.attackTimer / 12;
+    ctx.strokeStyle = '#06d6a0';
+    ctx.lineWidth = 3;
+    ctx.shadowColor = '#06d6a0';
+    ctx.shadowBlur = 15;
+    ctx.beginPath();
+    ctx.moveTo(115, gy - 45);
+    ctx.lineTo(G.targetEnemy.x, G.targetEnemy.y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Enemies
+  G.enemies.forEach(function(e) {
+    if (e.alpha <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = e.alpha;
+
+    var isTarget = (e === G.targetEnemy);
+    var w = ctx.measureText(e.word).width;
+    ctx.font = 'bold ' + e.size + 'px Outfit';
+    w = ctx.measureText(e.word).width;
+    var boxW = w + 24;
+    var boxH = e.size + 18;
+    var bx = e.x - boxW / 2;
+    var by = e.y - boxH / 2;
+
+    // Glow
+    if (isTarget) {
+      ctx.shadowColor = e.color;
+      ctx.shadowBlur = 20;
+    }
+
+    // Box
+    ctx.fillStyle = isTarget ? 'rgba(26,34,53,0.95)' : 'rgba(17,24,39,0.85)';
+    ctx.beginPath();
+    roundRect(ctx, bx, by, boxW, boxH, 10);
+    ctx.fill();
+
+    ctx.strokeStyle = isTarget ? '#fff' : e.color;
+    ctx.lineWidth = isTarget ? 2.5 : 1.5;
+    ctx.beginPath();
+    roundRect(ctx, bx, by, boxW, boxH, 10);
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+
+    // Word
+    ctx.fillStyle = isTarget ? '#fff' : e.color;
+    ctx.font = 'bold ' + e.size + 'px Outfit';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(e.word, e.x, e.y);
+
+    // Enemy "legs" (small robot body)
+    if (!e.dying) {
+      ctx.fillStyle = e.color;
+      ctx.globalAlpha = e.alpha * 0.3;
+      // two small "antenna" on top
+      ctx.fillRect(e.x - 3, by - 6, 2, 6);
+      ctx.fillRect(e.x + 1, by - 8, 2, 8);
+      // dots on antenna
+      ctx.globalAlpha = e.alpha * 0.6;
+      ctx.beginPath();
+      ctx.arc(e.x - 2, by - 8, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(e.x + 2, by - 10, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  });
+
+  // Particles
+  G.particles.forEach(function(p) {
+    ctx.save();
+    ctx.globalAlpha = p.life / p.maxLife;
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * (p.life / p.maxLife), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+
+  // Float texts
+  G.floatTexts.forEach(function(f) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, f.life / 15);
+    ctx.fillStyle = f.color;
+    ctx.font = 'bold 18px Fredoka';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = f.color;
+    ctx.shadowBlur = 10;
+    ctx.fillText(f.text, f.x, f.y);
+    ctx.restore();
+  });
+
+  // Blast effect
+  if (G.blastActive) {
+    ctx.save();
+    var blastAlpha = G.blastTimer / 30;
+    ctx.globalAlpha = blastAlpha * 0.3;
+    ctx.fillStyle = '#ffd166';
+    ctx.fillRect(0, 0, CW, CH);
+    // Expanding ring
+    ctx.globalAlpha = blastAlpha * 0.6;
+    ctx.strokeStyle = '#ffd166';
+    ctx.lineWidth = 4;
+    var ringR = (1 - G.blastTimer / 30) * CW;
+    ctx.beginPath();
+    ctx.arc(80, CH - 50, ringR, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+function drawPlayer(x, baseY) {
+  var bob = Math.sin(G.playerBob) * 3;
+  var y = baseY + bob;
+  var attacking = G.playerAttacking;
+
+  ctx.save();
+
+  // Body (rectangle)
+  ctx.fillStyle = '#118ab2';
+  ctx.shadowColor = '#118ab2';
+  ctx.shadowBlur = attacking ? 20 : 8;
+  roundRectFill(ctx, x - 18, y - 55, 36, 40, 6);
+
+  // Head (circle)
+  ctx.fillStyle = '#06d6a0';
+  ctx.shadowColor = '#06d6a0';
+  ctx.shadowBlur = attacking ? 25 : 10;
+  ctx.beginPath();
+  ctx.arc(x, y - 65, 16, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Visor
+  ctx.fillStyle = '#0a0e1a';
+  ctx.beginPath();
+  ctx.ellipse(x, y - 66, 12, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Eye glow
+  ctx.fillStyle = attacking ? '#ffd166' : '#06d6a0';
+  ctx.shadowColor = ctx.fillStyle;
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  ctx.arc(x - 4, y - 66, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + 4, y - 66, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.shadowBlur = 0;
+
+  // Arms
+  ctx.strokeStyle = '#118ab2';
+  ctx.lineWidth = 5;
+  ctx.lineCap = 'round';
+  // Left arm
+  ctx.beginPath();
+  ctx.moveTo(x - 18, y - 48);
+  ctx.lineTo(x - 30, y - 35 + (attacking ? -10 : 0));
+  ctx.stroke();
+  // Right arm (sword arm)
+  ctx.beginPath();
+  ctx.moveTo(x + 18, y - 48);
+  if (attacking) {
+    ctx.lineTo(x + 40, y - 60);
+  } else {
+    ctx.lineTo(x + 28, y - 35);
+  }
+  ctx.stroke();
+
+  // Sword
+  if (attacking) {
+    ctx.strokeStyle = '#ffd166';
+    ctx.lineWidth = 3;
+    ctx.shadowColor = '#ffd166';
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.moveTo(x + 40, y - 60);
+    ctx.lineTo(x + 60, y - 80);
+    ctx.stroke();
+    // Sword tip glow
+    ctx.fillStyle = '#ffd166';
+    ctx.beginPath();
+    ctx.arc(x + 60, y - 80, 3, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // Resting sword
+    ctx.strokeStyle = '#a8b2c8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x + 28, y - 35);
+    ctx.lineTo(x + 28, y - 10);
+    ctx.stroke();
+  }
+
+  ctx.shadowBlur = 0;
+
+  // Legs
+  ctx.strokeStyle = '#118ab2';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(x - 8, y - 15);
+  ctx.lineTo(x - 12, y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x + 8, y - 15);
+  ctx.lineTo(x + 12, y);
+  ctx.stroke();
+
+  // Boots
+  ctx.fillStyle = '#0d7ea0';
+  roundRectFill(ctx, x - 17, y - 2, 12, 5, 2);
+  roundRectFill(ctx, x + 5, y - 2, 12, 5, 2);
+
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+}
+
+function roundRectFill(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  roundRect(ctx, x, y, w, h, r);
+  ctx.fill();
+}
+
+/* ---- End Game ---- */
+function endGame(won) {
+  if (!G.running) return;
+  G.running = false;
+  document.getElementById('typeInput').disabled = true;
+
+  var elapsed = (Date.now() - G.startTime) / 60000;
+  var wpm = elapsed > 0.05 ? Math.round(G.wordsTyped / elapsed) : 0;
+  var acc = G.totalChars > 0 ? Math.round((G.correctChars / G.totalChars) * 100) : 100;
+  var elapsedSec = Math.round((Date.now() - G.startTime) / 1000);
+
+  if (won) playSound('levelup');
+  else playSound('gameover');
+
+  // Calculate stars (campaign)
+  var stars = 0;
+  if (won && G.mode === 'campaign') {
+    if (acc >= 60) stars = 1;
+    if (acc >= 80 && wpm >= 20) stars = 2;
+    if (acc >= 95 && wpm >= 35) stars = 3;
+  }
+
+  // Calculate coins
+  var coins = 0;
+  if (G.mode === 'campaign' && won) {
+    coins = 10 + stars * 5;
+    if (acc === 100) coins += 10;
+    if (stars === 3) coins += 15;
+  } else if (G.mode === 'survival') {
+    coins = Math.floor(G.wordsTyped / 10);
+    if (acc === 100 && G.wordsTyped >= 10) coins += 10;
+  }
+
+  // Save progress
+  var s = getSave();
+  s.totalWords += G.wordsTyped;
+  if (wpm > s.bestWpm) s.bestWpm = wpm;
+  s.timePlayed += elapsedSec;
+
+  if (G.mode === 'campaign' && won) {
+    var prev = s.campaignProgress[G.level];
+    if (!prev || stars > prev.stars) {
+      s.campaignProgress[G.level] = { stars: stars, wpm: wpm, accuracy: acc };
+    }
+  }
+
+  if (G.mode === 'survival') {
+    s.highScores.push({ score: G.score, words: G.wordsTyped, wpm: wpm });
+    s.highScores.sort(function(a, b) { return b.score - a.score; });
+    s.highScores = s.highScores.slice(0, 10);
+  }
+
+  checkAchievements(s, wpm, acc, G.bestStreak);
+  putSave(s);
+
+  // Award coins via Firebase
+  if (coins > 0) awardCoins(coins);
+
+  // Show summary
+  var emoji = won ? '\u{1F3C6}' : '\u{1F480}';
+  var title = won ? (G.mode === 'campaign' ? 'Level ' + G.level + ' Complete!' : 'Game Over!') : 'Defeated!';
+  var sub = won ? 'Great battle, warrior!' : 'The enemies were too strong this time.';
+
+  var html = '<span class="summary-emoji">' + emoji + '</span>';
+  html += '<div class="summary-title">' + title + '</div>';
+  html += '<div class="summary-sub">' + sub + '</div>';
+
+  if (G.mode === 'campaign' && won) {
+    html += '<div class="stars-display">' + renderStars(stars) + '</div>';
+  }
+
+  if (coins > 0) {
+    html += '<div class="coins-earned">\u{1FA99} +' + coins + ' coins earned!</div>';
+  }
+
+  html += '<div class="stats-grid">';
+  html += '<div class="stat-box"><div class="stat-val">' + G.score + '</div><div class="stat-label">Score</div></div>';
+  html += '<div class="stat-box"><div class="stat-val">' + wpm + '</div><div class="stat-label">WPM</div></div>';
+  html += '<div class="stat-box"><div class="stat-val">' + acc + '%</div><div class="stat-label">Accuracy</div></div>';
+  html += '<div class="stat-box"><div class="stat-val">' + G.wordsTyped + '</div><div class="stat-label">Words</div></div>';
+  html += '<div class="stat-box"><div class="stat-val">' + G.bestStreak + '</div><div class="stat-label">Best Streak</div></div>';
+  html += '<div class="stat-box"><div class="stat-val">' + elapsedSec + 's</div><div class="stat-label">Time</div></div>';
+  html += '</div>';
+
+  html += '<div class="btn-row">';
+  if (G.mode === 'campaign') {
+    if (won && G.level < 10) {
+      html += '<button class="btn btn-accent" onclick="nextLevel()">Next Level \u2192</button>';
+    }
+    html += '<button class="btn btn-gold" onclick="retryLevel()">Retry</button>';
+    html += '<button class="btn btn-outline" onclick="showCampaign()">Levels</button>';
+  } else if (G.mode === 'survival') {
+    html += '<button class="btn btn-accent" onclick="startSurvival()">Play Again</button>';
+    html += '<button class="btn btn-outline" onclick="showSurvival()">High Scores</button>';
+  }
+  html += '<button class="btn btn-outline" onclick="showScreen(\'menuScreen\')">Menu</button>';
+  html += '</div>';
+
+  document.getElementById('summaryCard').innerHTML = html;
+  showScreen('summaryScreen');
+
+  if (won) {
+    if (typeof odaConfetti === 'function') odaConfetti();
+  }
+}
+
+function nextLevel() {
+  G.level++;
+  selectLevel(G.level);
+}
+
+function retryLevel() {
+  selectLevel(G.level);
+}
+
+/* ---- Achievements ---- */
+function checkAchievements(s, wpm, acc, bestStreak) {
+  var newAch = [];
+  function unlock(id) {
+    if (s.achievements.indexOf(id) === -1) {
+      s.achievements.push(id);
+      newAch.push(id);
+    }
+  }
+  if (wpm >= 30) unlock('speed30');
+  if (wpm >= 50) unlock('speed50');
+  if (wpm >= 80) unlock('speed80');
+  if (acc === 100 && G.wordsTyped >= 5) unlock('perfect');
+  if (bestStreak >= 10) unlock('streak10');
+  if (bestStreak >= 20) unlock('streak20');
+  if (s.totalWords >= 500) unlock('words500');
+  if (s.totalWords >= 1000) unlock('words1000');
+  if (G.mode === 'survival' && G.wordsTyped >= 100) unlock('survive100');
+
+  // Check campaign complete
+  var allDone = true;
+  for (var i = 1; i <= 10; i++) { if (!s.campaignProgress[i]) { allDone = false; break; } }
+  if (allDone) unlock('campaign');
+
+  // Show toast for new achievements
+  newAch.forEach(function(id) {
+    var a = ACHIEVEMENTS.find(function(ach) { return ach.id === id; });
+    if (a && typeof odaToast === 'function') {
+      odaToast(a.icon + ' Achievement: ' + a.name + '!', 'success');
+    }
+  });
+}
+
+/* ---- Coins ---- */
+function awardCoins(coins) {
+  if (sessionStorage.getItem('studentId')) {
+    getFirebaseDB().then(function(fb) {
+      fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'students', sessionStorage.getItem('studentId')), {
+        coins: fb.fsMod.increment(coins)
+      });
+    }).catch(function(e) { console.log('[KW] Coin save error:', e); });
+  }
+}
+
+/* ---- Init ---- */
+wordIdx = 0;
+refreshMenu();
+
+// Focus input when game screen is visible
+document.addEventListener('click', function() {
+  var inp = document.getElementById('typeInput');
+  if (document.getElementById('gameScreen').classList.contains('active') && !inp.disabled) {
+    inp.focus();
+  }
+});
+
+// Keep focus on game input
+document.getElementById('typeInput').addEventListener('blur', function() {
+  var self = this;
+  if (G.running && !G.paused && !self.disabled) {
+    setTimeout(function() { self.focus(); }, 100);
+  }
+});
+
+console.log('[ODA] Keyboard Warriors loaded');
+</script>
+</body>
+</html>

@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODA Library</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#a8b2c8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;-webkit-tap-highlight-color:transparent}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+.back{display:inline-block;margin-bottom:16px;color:var(--text2);text-decoration:none;font-size:14px;font-weight:600;transition:color .15s}
+.back:hover{color:var(--text)}
+
+/* Header */
+.header{text-align:center;margin-bottom:28px}
+.header .emoji{font-size:56px;margin-bottom:8px;display:block}
+.header h1{font-family:'Fredoka',sans-serif;font-size:32px;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header p{font-size:15px;color:var(--text2);margin-top:4px}
+
+/* Cards */
+.card{background:var(--surface);border:2px solid var(--border);border-radius:24px;padding:28px 24px;margin-bottom:16px;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.card-title{font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+
+/* Buttons */
+.btn{padding:14px 28px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;letter-spacing:.3px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.btn-accent{background:linear-gradient(135deg,var(--accent),#04b890);color:var(--bg)}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#f0b830);color:var(--bg)}
+.btn-blue{background:linear-gradient(135deg,var(--accent2),#0d7ea0);color:#fff}
+.btn-red{background:linear-gradient(135deg,var(--accent3),#d63a5e);color:#fff}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--text2);color:var(--text)}
+.btn-sm{padding:10px 18px;font-size:14px;border-radius:10px}
+.btn-xs{padding:6px 14px;font-size:13px;border-radius:8px}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.btn-wide{width:100%}
+
+/* Inputs */
+.input{width:100%;padding:14px;background:var(--bg);border:2px solid var(--border);border-radius:14px;color:var(--text);font-family:'Outfit',sans-serif;font-size:16px;font-weight:500;outline:none;transition:border-color .2s}
+.input:focus{border-color:var(--accent)}
+.input::placeholder{color:#3a4560}
+textarea.input{resize:vertical;min-height:100px;line-height:1.6}
+select.input{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23a8b2c8' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 5.5l6.5 6.5 6.5-6.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px}
+.label{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:6px;display:block}
+
+/* Sections toggle */
+.section{display:none}
+.section.show{display:block}
+
+/* ============== TAB BAR ============== */
+.tab-bar{display:flex;gap:6px;margin-bottom:20px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{padding:10px 18px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;border:2px solid var(--border);background:var(--surface);color:var(--text2);white-space:nowrap;transition:all .15s;font-family:'Fredoka',sans-serif}
+.tab.active{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.tab:hover:not(.active){border-color:var(--text2);color:var(--text)}
+
+/* ============== BROWSE / BOOKSHELF ============== */
+.filters{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.filters .input{width:auto;flex:1;min-width:180px;padding:10px 14px;font-size:14px}
+.filters select.input{flex:none;width:auto;min-width:130px;padding:10px 14px;font-size:14px}
+.assigned-banner{background:linear-gradient(135deg,rgba(6,214,160,.08),rgba(17,138,178,.08));border:2px solid rgba(6,214,160,.2);border-radius:18px;padding:16px 20px;margin-bottom:20px}
+.assigned-banner h3{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.book-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.book-card{background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:20px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.book-card:hover{border-color:var(--accent2);transform:translateY(-3px);box-shadow:0 8px 24px rgba(17,138,178,.12)}
+.book-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:6px;border-radius:3px 0 0 3px}
+.book-card.subj-science::before{background:var(--accent)}
+.book-card.subj-history::before{background:var(--gold)}
+.book-card.subj-ela::before{background:var(--accent2)}
+.book-card.subj-math::before{background:var(--accent3)}
+.book-card.subj-social::before{background:#a78bfa}
+.book-card.subj-other::before{background:var(--text2)}
+.book-title{font-family:'Fredoka',sans-serif;font-size:17px;font-weight:700;margin-bottom:6px;line-height:1.3}
+.book-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.book-tag{padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;background:rgba(255,255,255,.06);color:var(--text2)}
+.book-tag.grade-tag{background:rgba(6,214,160,.1);color:var(--accent)}
+.book-tag.time-tag{background:rgba(255,209,102,.1);color:var(--gold)}
+.book-tag.words-tag{background:rgba(17,138,178,.1);color:var(--accent2)}
+.book-progress{margin-top:10px;height:4px;background:var(--bg);border-radius:4px;overflow:hidden}
+.book-progress-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .3s}
+.book-completed{position:absolute;top:12px;right:12px;font-size:11px;font-weight:700;color:var(--accent);background:rgba(6,214,160,.1);padding:3px 8px;border-radius:6px}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text2)}
+.empty-state .es-emoji{font-size:48px;display:block;margin-bottom:12px}
+.empty-state .es-text{font-size:16px;font-weight:600}
+
+/* ============== READING VIEW ============== */
+.reading-overlay{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;transition:opacity .3s}
+.reading-overlay.show{display:flex}
+
+/* Reading progress bar */
+.reading-progress{position:fixed;top:0;left:0;right:0;height:4px;z-index:110;background:rgba(255,255,255,.05)}
+.reading-progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0;transition:width .15s}
+
+/* Reading topbar */
+.reading-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;flex-shrink:0;z-index:105}
+.reading-topbar .rt-back{background:none;border:none;color:var(--text2);font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px}
+.reading-topbar .rt-back:hover{color:var(--text)}
+.reading-topbar .rt-title{font-family:'Fredoka',sans-serif;font-size:16px;font-weight:600;color:var(--text);max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reading-topbar .rt-controls{display:flex;gap:6px;align-items:center}
+
+/* Font size buttons */
+.font-btn{width:32px;height:32px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif}
+.font-btn:hover{border-color:var(--text2);color:var(--text)}
+.font-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(6,214,160,.06)}
+
+/* Reading mode buttons */
+.mode-btn{padding:4px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;font-family:'Outfit',sans-serif}
+.mode-btn:hover{border-color:var(--text2)}
+.mode-btn.active{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.mode-btn.m-dark{color:var(--text);background:var(--surface)}
+.mode-btn.m-sepia{color:#5b4636;background:#f4ecd8}
+.mode-btn.m-light{color:#1a1a1a;background:#f5f5f5}
+
+/* Reading body area */
+.reading-body{flex:1;overflow-y:auto;display:flex;justify-content:center;padding:20px 16px 120px}
+.reading-content{max-width:700px;width:100%;transition:font-size .3s ease,color .3s ease,background .3s ease}
+.reading-content .passage-title{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;margin-bottom:6px;line-height:1.3}
+.reading-content .passage-meta{font-size:13px;color:var(--text2);margin-bottom:24px;display:flex;gap:12px;flex-wrap:wrap}
+.reading-content .passage-text{line-height:1.8;font-size:18px;white-space:pre-wrap;word-wrap:break-word}
+.reading-content .passage-text .word{cursor:pointer;transition:background .15s;border-radius:3px;padding:0 1px}
+.reading-content .passage-text .word:hover{background:rgba(6,214,160,.1)}
+.reading-content .passage-text .word.highlight{background:rgba(255,209,102,.25);color:var(--gold)}
+.reading-content .passage-text .word.tts-highlight{background:rgba(17,138,178,.25);color:#fff}
+
+/* Reading modes applied */
+.read-mode-dark{background:var(--bg);color:var(--text)}
+.read-mode-sepia{background:#f4ecd8;color:#5b4636}
+.read-mode-sepia .passage-meta{color:#8b7355}
+.read-mode-sepia .word:hover{background:rgba(91,70,54,.1)}
+.read-mode-light{background:#ffffff;color:#1a1a1a}
+.read-mode-light .passage-meta{color:#666}
+.read-mode-light .word:hover{background:rgba(0,0,0,.06)}
+
+/* Font sizes */
+.fs-small .passage-text{font-size:15px}
+.fs-medium .passage-text{font-size:18px}
+.fs-large .passage-text{font-size:22px}
+.fs-xl .passage-text{font-size:26px}
+
+/* Quiz / end of passage button */
+.take-quiz-banner{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:106;animation:fadeUp .4s ease}
+.take-quiz-banner .btn{box-shadow:0 4px 20px rgba(6,214,160,.3);font-size:18px;padding:16px 32px}
+
+/* TTS floating bar */
+.tts-bar{position:fixed;bottom:0;left:0;right:0;z-index:106;padding:12px 20px;display:none;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+.tts-bar.show{display:flex}
+.tts-bar-inner{display:flex;align-items:center;gap:10px;background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:10px 18px;box-shadow:0 -4px 20px rgba(0,0,0,.3)}
+.tts-btn{width:36px;height:36px;border-radius:10px;border:none;background:rgba(255,255,255,.06);color:var(--text);font-size:16px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.tts-btn:hover{background:rgba(255,255,255,.12)}
+.tts-btn.playing{background:var(--accent);color:var(--bg)}
+.tts-speed{font-size:13px;font-weight:700;color:var(--text2);cursor:pointer;padding:4px 10px;border-radius:8px;border:1.5px solid var(--border);background:none;font-family:'Outfit',sans-serif;transition:all .15s}
+.tts-speed:hover{border-color:var(--text2);color:var(--text)}
+.tts-label{font-size:12px;color:var(--text2);font-weight:600}
+
+/* Word lookup popup */
+.word-popup{position:fixed;z-index:120;background:var(--surface);border:2px solid var(--accent2);border-radius:16px;padding:16px;max-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.4);animation:fadeUp .2s ease;pointer-events:auto}
+.word-popup .wp-word{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:var(--accent2);margin-bottom:6px}
+.word-popup .wp-def{font-size:14px;line-height:1.6;color:var(--text)}
+.word-popup .wp-loading{font-size:13px;color:var(--text2);font-weight:600}
+.word-popup .wp-close{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;line-height:1}
+.word-popup .wp-close:hover{color:var(--text)}
+
+/* ============== QUIZ VIEW ============== */
+.quiz-overlay{position:fixed;inset:0;z-index:100;background:var(--bg);display:none;flex-direction:column;overflow-y:auto}
+.quiz-overlay.show{display:flex}
+.quiz-wrap{max-width:600px;width:100%;margin:0 auto;padding:30px 20px}
+.quiz-header{text-align:center;margin-bottom:24px}
+.quiz-header h2{font-family:'Fredoka',sans-serif;font-size:26px;font-weight:700}
+.quiz-header p{font-size:14px;color:var(--text2);margin-top:4px}
+.quiz-progress-dots{display:flex;gap:6px;justify-content:center;margin-bottom:24px;flex-wrap:wrap}
+.q-dot{width:14px;height:14px;border-radius:50%;background:var(--border);transition:all .2s}
+.q-dot.current{background:var(--accent2);box-shadow:0 0 10px rgba(17,138,178,.4)}
+.q-dot.correct{background:var(--accent)}
+.q-dot.wrong{background:var(--accent3)}
+.quiz-card{background:var(--surface);border:2px solid var(--border);border-radius:24px;padding:32px 28px;animation:fadeUp .3s ease}
+.quiz-q-num{font-size:13px;font-weight:700;color:var(--accent2);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.quiz-q-text{font-size:19px;font-weight:600;line-height:1.6;margin-bottom:20px}
+.quiz-options{display:grid;gap:10px}
+.quiz-opt{padding:14px 18px;background:var(--bg);border:2px solid var(--border);border-radius:14px;font-size:16px;font-weight:600;cursor:pointer;transition:all .15s;text-align:left;font-family:'Outfit',sans-serif;color:var(--text)}
+.quiz-opt:hover:not(.selected):not(.disabled){border-color:var(--accent2);background:rgba(17,138,178,.06)}
+.quiz-opt.selected{border-color:var(--accent2);background:rgba(17,138,178,.1)}
+.quiz-opt.correct-answer{border-color:var(--accent);background:rgba(6,214,160,.1);color:var(--accent)}
+.quiz-opt.wrong-answer{border-color:var(--accent3);background:rgba(239,71,111,.1);color:var(--accent3)}
+.quiz-opt.disabled{cursor:default;opacity:.6}
+.quiz-tf-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.quiz-short-input{width:100%;padding:14px;background:var(--bg);border:2px solid var(--border);border-radius:14px;color:var(--text);font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;outline:none}
+.quiz-short-input:focus{border-color:var(--accent2)}
+.quiz-feedback{margin-top:16px;padding:14px 18px;border-radius:14px;font-size:15px;font-weight:600;line-height:1.5;animation:fadeUp .2s ease}
+.quiz-feedback.correct{background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.2);color:var(--accent)}
+.quiz-feedback.wrong{background:rgba(239,71,111,.08);border:1px solid rgba(239,71,111,.2);color:var(--accent3)}
+.quiz-next-btn{margin-top:16px;text-align:center}
+
+/* Quiz results */
+.quiz-results{text-align:center;animation:fadeUp .4s ease}
+.qr-emoji{font-size:64px;display:block;margin-bottom:12px}
+.qr-score{font-family:'Fredoka',sans-serif;font-size:56px;font-weight:700;color:var(--accent)}
+.qr-label{font-size:16px;color:var(--text2);font-weight:600;margin-bottom:8px}
+.qr-coins{font-family:'Fredoka',sans-serif;font-size:20px;color:var(--gold);margin-bottom:20px}
+.qr-breakdown{text-align:left;margin-top:20px}
+.qr-item{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-radius:12px;margin-bottom:6px;font-size:14px}
+.qr-item.qr-correct{background:rgba(6,214,160,.06);color:var(--accent)}
+.qr-item.qr-wrong{background:rgba(239,71,111,.06);color:var(--accent3)}
+.qr-item .qr-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.qr-item .qr-text{flex:1;line-height:1.5}
+
+/* ============== READING LOG ============== */
+.log-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.log-stat{background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:18px;text-align:center}
+.log-stat .ls-value{font-family:'Fredoka',sans-serif;font-size:32px;font-weight:700;color:var(--accent)}
+.log-stat .ls-label{font-size:12px;font-weight:700;color:var(--text2);margin-top:4px;text-transform:uppercase;letter-spacing:1px}
+.log-stat.streak .ls-value{color:var(--gold)}
+.log-stat.score .ls-value{color:var(--accent2)}
+
+/* Streak display */
+.streak-display{background:linear-gradient(135deg,rgba(255,209,102,.08),rgba(255,209,102,.03));border:2px solid rgba(255,209,102,.2);border-radius:18px;padding:20px;text-align:center;margin-bottom:20px}
+.streak-display .sd-emoji{font-size:36px;display:block;margin-bottom:6px}
+.streak-display .sd-text{font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700;color:var(--gold)}
+.streak-display .sd-sub{font-size:13px;color:var(--text2);font-weight:600;margin-top:4px}
+
+/* Goal progress */
+.goal-card{background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:20px;margin-bottom:20px}
+.goal-card h3{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.goal-bar{height:12px;background:var(--bg);border-radius:8px;overflow:hidden;margin-bottom:6px}
+.goal-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:8px;transition:width .5s ease}
+.goal-text{font-size:13px;color:var(--text2);font-weight:600}
+
+/* Heatmap */
+.heatmap{margin-bottom:20px}
+.heatmap h3{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.heatmap-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:320px}
+.hm-day{width:100%;aspect-ratio:1;border-radius:6px;background:var(--bg);border:1px solid var(--border);position:relative;cursor:default}
+.hm-day.l1{background:rgba(6,214,160,.15)}
+.hm-day.l2{background:rgba(6,214,160,.3)}
+.hm-day.l3{background:rgba(6,214,160,.5)}
+.hm-day.l4{background:rgba(6,214,160,.7)}
+.hm-day-label{font-size:9px;color:var(--text2);text-align:center;font-weight:600}
+
+/* Completed passages list */
+.completed-list{margin-top:16px}
+.completed-item{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:8px}
+.completed-item .ci-title{font-weight:700;font-size:15px}
+.completed-item .ci-meta{font-size:12px;color:var(--text2);margin-top:2px}
+.completed-item .ci-score{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:var(--accent)}
+
+/* ============== TEACHER CREATE ============== */
+.create-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.create-grid .input{margin-bottom:0}
+.ai-gen-row{display:flex;gap:10px;margin-bottom:14px}
+.ai-gen-row .input{flex:1;margin-bottom:0}
+.ai-btn{padding:14px 20px;border:none;border-radius:14px;background:linear-gradient(135deg,rgba(17,138,178,.15),rgba(17,138,178,.08));border:2px solid rgba(17,138,178,.3);color:var(--accent2);font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.ai-btn:hover{border-color:var(--accent2);background:rgba(17,138,178,.2)}
+.ai-btn:disabled{opacity:.5;cursor:not-allowed}
+.ai-loading{text-align:center;padding:12px;color:var(--text2);font-size:13px;font-weight:600}
+.ai-loading::after{content:'';display:inline-block;width:12px;height:12px;border:2px solid var(--accent2);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;margin-left:6px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Questions list */
+.q-list{margin-top:12px}
+.q-item{background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:8px}
+.q-item-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.q-item-type{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:1px}
+.q-item-type.mc{background:rgba(17,138,178,.1);color:var(--accent2)}
+.q-item-type.tf{background:rgba(255,209,102,.1);color:var(--gold)}
+.q-item-type.short{background:rgba(6,214,160,.1);color:var(--accent)}
+.q-item-del{background:none;border:none;color:var(--accent3);font-size:16px;cursor:pointer;opacity:.6}
+.q-item-del:hover{opacity:1}
+.q-item-text{font-size:14px;font-weight:600;line-height:1.5}
+
+/* Teacher passage list */
+.t-passage{background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.t-passage .tp-info{flex:1;min-width:200px}
+.t-passage .tp-title{font-family:'Fredoka',sans-serif;font-size:17px;font-weight:700}
+.t-passage .tp-meta{font-size:12px;color:var(--text2);margin-top:3px}
+.t-passage .tp-btns{display:flex;gap:6px;flex-wrap:wrap}
+
+/* Student results table */
+.sr-card{background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:14px;margin-bottom:8px}
+.sr-top{display:flex;justify-content:space-between;align-items:center}
+.sr-name{font-family:'Fredoka',sans-serif;font-size:15px;font-weight:700}
+.sr-score{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:var(--accent)}
+.sr-meta{font-size:12px;color:var(--text2);margin-top:4px}
+
+/* Assign modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.show{display:flex}
+.modal{background:var(--surface);border:2px solid var(--border);border-radius:24px;padding:28px;max-width:460px;width:100%;max-height:80vh;overflow-y:auto;animation:fadeUp .3s ease}
+.modal h3{font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;margin-bottom:14px}
+.modal .close-modal{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer}
+
+/* Confetti */
+.confetti-piece{position:fixed;top:-20px;z-index:9999;pointer-events:none;animation:confettiFall 3s ease-in forwards}
+@keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+
+/* Responsive */
+@media(max-width:600px){
+.book-grid{grid-template-columns:1fr}
+.create-grid{grid-template-columns:1fr}
+.filters{flex-direction:column}
+.filters .input,.filters select.input{width:100%;min-width:0}
+.reading-topbar .rt-title{max-width:30%;font-size:14px}
+.log-stats{grid-template-columns:1fr 1fr}
+.tab{padding:8px 14px;font-size:13px}
+}
+@media(min-width:768px){
+.app{padding:28px 32px 60px}
+.card{padding:32px 28px}
+.reading-topbar{padding:12px 32px}
+}
+@media(min-width:1024px){
+.app{max-width:1200px}
+}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<!-- ============ MAIN APP ============ -->
+<div class="app" id="mainApp">
+<a href="student.html" class="back" id="backLink">&#8592; Back to Hub</a>
+<div class="header">
+<span class="emoji">&#x1F4D6;</span>
+<h1>ODA Library</h1>
+<p id="headerSub">Explore, read, and grow your mind</p>
+</div>
+
+<div class="tab-bar" id="tabBar"></div>
+
+<!-- ===== BROWSE SECTION ===== -->
+<div class="section show" id="secBrowse">
+<div class="filters">
+<input type="text" class="input" id="searchInput" placeholder="Search by title or topic..." oninput="filterPassages()">
+<select class="input" id="filterSubject" onchange="filterPassages()">
+<option value="">All Subjects</option>
+<option value="Science">Science</option>
+<option value="History">History</option>
+<option value="ELA">ELA</option>
+<option value="Math">Math</option>
+<option value="Social Studies">Social Studies</option>
+<option value="Other">Other</option>
+</select>
+<select class="input" id="filterGrade" onchange="filterPassages()">
+<option value="">All Grades</option>
+</select>
+</div>
+<div id="assignedSection"></div>
+<div class="book-grid" id="bookGrid"></div>
+</div>
+
+<!-- ===== READING LOG SECTION ===== -->
+<div class="section" id="secLog">
+<div id="logContent"></div>
+</div>
+
+<!-- ===== TEACHER CREATE SECTION ===== -->
+<div class="section" id="secCreate">
+<div class="card">
+<div class="card-title">&#x270F;&#xFE0F; Create New Passage</div>
+<div class="create-grid">
+<div>
+<label class="label">Title</label>
+<input type="text" class="input" id="passTitle" placeholder="Passage title">
+</div>
+<div>
+<label class="label">Subject</label>
+<select class="input" id="passSubject">
+<option value="Science">Science</option>
+<option value="History">History</option>
+<option value="ELA">ELA</option>
+<option value="Math">Math</option>
+<option value="Social Studies">Social Studies</option>
+<option value="Other">Other</option>
+</select>
+</div>
+</div>
+<div class="create-grid">
+<div>
+<label class="label">Grade Level</label>
+<select class="input" id="passGrade">
+<option value="K">Kindergarten</option>
+<option value="1">1st Grade</option>
+<option value="2">2nd Grade</option>
+<option value="3" selected>3rd Grade</option>
+<option value="4">4th Grade</option>
+<option value="5">5th Grade</option>
+<option value="6">6th Grade</option>
+<option value="7">7th Grade</option>
+<option value="8">8th Grade</option>
+<option value="9">9th Grade</option>
+<option value="10">10th Grade</option>
+<option value="11">11th Grade</option>
+<option value="12">12th Grade</option>
+</select>
+</div>
+<div>
+<label class="label">Word Count Target</label>
+<input type="number" class="input" id="passWords" value="200" min="50" max="2000">
+</div>
+</div>
+
+<label class="label" style="margin-top:8px">AI Generate Passage</label>
+<div class="ai-gen-row">
+<input type="text" class="input" id="passTopic" placeholder="Topic (e.g. dolphins, volcanoes, ancient Egypt)">
+<button class="ai-btn" id="aiGenBtn" onclick="aiGeneratePassage()">&#x1F916; Generate</button>
+</div>
+
+<label class="label">Passage Text</label>
+<textarea class="input" id="passText" rows="10" placeholder="Paste or type your reading passage here..."></textarea>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;flex-wrap:wrap;gap:10px">
+<div class="card-title" style="margin-bottom:0;font-size:18px">&#x2753; Comprehension Questions</div>
+<button class="ai-btn" id="aiQBtn" onclick="aiGenerateQuestions()">&#x1F916; Auto-Generate Questions</button>
+</div>
+<div class="q-list" id="questionList"></div>
+
+<div class="card" style="margin-top:12px;padding:16px;background:var(--bg)">
+<div class="label" style="margin-bottom:8px">Add Question Manually</div>
+<select class="input" id="addQType" style="margin-bottom:8px">
+<option value="mc">Multiple Choice</option>
+<option value="tf">True / False</option>
+<option value="short">Short Answer</option>
+</select>
+<input class="input" id="addQText" placeholder="Question text" style="margin-bottom:8px">
+<div id="addQOptions">
+<input class="input" id="addQA" placeholder="Option A" style="margin-bottom:4px">
+<input class="input" id="addQB" placeholder="Option B" style="margin-bottom:4px">
+<input class="input" id="addQC" placeholder="Option C" style="margin-bottom:4px">
+<input class="input" id="addQD" placeholder="Option D" style="margin-bottom:4px">
+<label class="label">Correct Answer (0=A, 1=B, 2=C, 3=D)</label>
+<input class="input" id="addQCorrect" placeholder="0" type="number" min="0" max="3">
+</div>
+<div id="addQTFOptions" style="display:none">
+<label class="label">Correct Answer</label>
+<select class="input" id="addQTF">
+<option value="true">True</option>
+<option value="false">False</option>
+</select>
+</div>
+<div id="addQShortOptions" style="display:none">
+<label class="label">Expected Answer</label>
+<input class="input" id="addQShortAns" placeholder="Expected answer">
+</div>
+<button class="btn btn-sm btn-blue" onclick="addManualQuestion()" style="margin-top:8px">Add Question</button>
+</div>
+
+<div class="btn-row" style="margin-top:20px">
+<button class="btn btn-accent btn-wide" onclick="savePassage()" id="savePassBtn">&#x1F4BE; Save Passage</button>
+</div>
+</div>
+
+<!-- Teacher Passages List -->
+<div class="card" style="margin-top:8px">
+<div class="card-title">&#x1F4DA; My Passages</div>
+<div id="teacherPassageList"></div>
+</div>
+
+<!-- Student Results -->
+<div class="card" style="margin-top:8px">
+<div class="card-title">&#x1F4CA; Student Results</div>
+<div id="studentResultsList"></div>
+</div>
+</div>
+</div>
+
+<!-- ============ READING OVERLAY ============ -->
+<div class="reading-overlay" id="readingOverlay">
+<div class="reading-progress"><div class="reading-progress-fill" id="readingProgressFill"></div></div>
+<div class="reading-topbar" id="readingTopbar">
+<button class="rt-back" onclick="closeReading()">&#8592; Back</button>
+<div class="rt-title" id="readingTitle"></div>
+<div class="rt-controls">
+<button class="font-btn" onclick="setFontSize('small')" title="Small" id="fsSmall">A</button>
+<button class="font-btn active" onclick="setFontSize('medium')" title="Medium" id="fsMedium" style="font-size:16px">A</button>
+<button class="font-btn" onclick="setFontSize('large')" title="Large" id="fsLarge" style="font-size:19px">A</button>
+<button class="font-btn" onclick="setFontSize('xl')" title="Extra Large" id="fsXL" style="font-size:22px">A</button>
+<span style="width:1px;height:20px;background:var(--border);margin:0 4px"></span>
+<button class="mode-btn m-dark active" onclick="setReadMode('dark')" id="modeDark">Dark</button>
+<button class="mode-btn m-sepia" onclick="setReadMode('sepia')" id="modeSepia">Sepia</button>
+<button class="mode-btn m-light" onclick="setReadMode('light')" id="modeLight">Light</button>
+</div>
+</div>
+<div class="reading-body" id="readingBody">
+<div class="reading-content fs-medium read-mode-dark" id="readingContent">
+<div class="passage-title" id="rPassTitle"></div>
+<div class="passage-meta" id="rPassMeta"></div>
+<div class="passage-text" id="rPassText"></div>
+</div>
+</div>
+<div class="tts-bar" id="ttsBar">
+<div class="tts-bar-inner">
+<span class="tts-label">Read Aloud</span>
+<button class="tts-btn" id="ttsPlayBtn" onclick="ttsToggle()" title="Play / Pause">&#9654;&#xFE0F;</button>
+<button class="tts-btn" onclick="ttsStop()" title="Stop">&#x23F9;&#xFE0F;</button>
+<button class="tts-speed" id="ttsSpeedBtn" onclick="ttsNextSpeed()">1x</button>
+</div>
+</div>
+</div>
+
+<!-- ============ QUIZ OVERLAY ============ -->
+<div class="quiz-overlay" id="quizOverlay">
+<div class="quiz-wrap" id="quizWrap"></div>
+</div>
+
+<!-- ============ WORD POPUP ============ -->
+<div class="word-popup" id="wordPopup" style="display:none">
+<button class="wp-close" onclick="closeWordPopup()">&times;</button>
+<div class="wp-word" id="wpWord"></div>
+<div class="wp-def" id="wpDef"></div>
+</div>
+
+<!-- ============ ASSIGN MODAL ============ -->
+<div class="modal-bg" id="assignModal">
+<div class="modal">
+<h3>&#x1F4E4; Assign Passage</h3>
+<label class="label">Select students to assign to:</label>
+<div id="assignStudentList" style="margin-bottom:14px"></div>
+<div class="btn-row">
+<button class="btn btn-accent" onclick="confirmAssign()">Assign</button>
+<button class="btn btn-outline" onclick="closeModal('assignModal')">Cancel</button>
+</div>
+</div>
+</div>
+
+<script src="js/oda-core.js"></script>
+<script>
+// ============================================
+// GLOBALS
+// ============================================
+var studentId = sessionStorage.getItem('studentId');
+var studentName = sessionStorage.getItem('studentName');
+var isTeacher = !studentId && (sessionStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
+var classCode = sessionStorage.getItem('classCode') || localStorage.getItem('classCode') || '';
+
+var allPassages = [];
+var currentPassage = null;
+var currentQuestions = [];
+var editQuestions = [];
+var editPassageId = null;
+var readingStartTime = null;
+var readingTimer = null;
+var speechRate = 1;
+var ttsUtterance = null;
+var isTTSPlaying = false;
+var quizIndex = 0;
+var quizAnswers = [];
+var quizScore = 0;
+var currentFontSize = 'medium';
+var currentReadMode = 'dark';
+
+// ============================================
+// INIT
+// ============================================
+(function init(){
+  if(isTeacher){
+    document.getElementById('backLink').href='teacher.html';
+    document.getElementById('headerSub').textContent='Create passages, assign reading, track progress';
+    buildTabs(['Browse','Create']);
+  } else {
+    buildTabs(['Browse','My Log']);
+  }
+  populateGradeFilter();
+  loadPassages();
+})();
+
+function buildTabs(tabs){
+  var bar=document.getElementById('tabBar');
+  bar.innerHTML='';
+  tabs.forEach(function(t,i){
+    var d=document.createElement('div');
+    d.className='tab'+(i===0?' active':'');
+    d.textContent=t;
+    d.onclick=function(){switchTab(t,d)};
+    bar.appendChild(d);
+  });
+}
+
+function switchTab(name,el){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+  el.classList.add('active');
+  document.querySelectorAll('.section').forEach(function(s){s.classList.remove('show')});
+  if(name==='Browse') document.getElementById('secBrowse').classList.add('show');
+  else if(name==='My Log'){document.getElementById('secLog').classList.add('show');loadReadingLog();}
+  else if(name==='Create') document.getElementById('secCreate').classList.add('show');
+}
+
+function populateGradeFilter(){
+  var sel=document.getElementById('filterGrade');
+  var grades=['K','1','2','3','4','5','6','7','8','9','10','11','12'];
+  grades.forEach(function(g){
+    var o=document.createElement('option');
+    o.value=g;
+    o.textContent=g==='K'?'Kindergarten':'Grade '+g;
+    sel.appendChild(o);
+  });
+}
+
+// ============================================
+// FIREBASE HELPERS
+// ============================================
+async function getFB(){
+  var fb=await getFirebaseDB();
+  return fb;
+}
+
+// ============================================
+// LOAD PASSAGES
+// ============================================
+async function loadPassages(){
+  try{
+    var fb=await getFB();
+    var constraints=[];
+    if(isTeacher){
+      // Teacher sees own passages
+      var teacherId=sessionStorage.getItem('odaTeacherId')||localStorage.getItem('odaTeacherId')||'';
+      if(teacherId) constraints.push(fb.fsMod.where('teacherId','==',teacherId));
+    } else {
+      // Student sees passages from their class + public
+      if(classCode) constraints.push(fb.fsMod.where('classCode','==',classCode));
+    }
+    var ref=fb.fsMod.collection(fb.db,'libraryPassages');
+    var q;
+    if(constraints.length>0){
+      q=fb.fsMod.query(ref,constraints[0]);
+    } else {
+      q=fb.fsMod.query(ref);
+    }
+    var snap=await fb.fsMod.getDocs(q);
+    allPassages=[];
+    snap.forEach(function(d){
+      var data=d.data();
+      data.id=d.id;
+      allPassages.push(data);
+    });
+    // Sort newest first
+    allPassages.sort(function(a,b){
+      var ta=a.createdAt?a.createdAt.seconds||0:0;
+      var tb=b.createdAt?b.createdAt.seconds||0:0;
+      return tb-ta;
+    });
+    renderPassages();
+    if(isTeacher) renderTeacherPassages();
+  } catch(e){
+    console.error('Load passages error:',e);
+    renderPassages();
+  }
+}
+
+function renderPassages(){
+  var grid=document.getElementById('bookGrid');
+  var assignedDiv=document.getElementById('assignedSection');
+  var search=(document.getElementById('searchInput').value||'').toLowerCase();
+  var subj=document.getElementById('filterSubject').value;
+  var grade=document.getElementById('filterGrade').value;
+
+  var filtered=allPassages.filter(function(p){
+    if(search && (p.title||'').toLowerCase().indexOf(search)===-1 && (p.subject||'').toLowerCase().indexOf(search)===-1) return false;
+    if(subj && p.subject!==subj) return false;
+    if(grade && p.gradeLevel!==grade) return false;
+    return true;
+  });
+
+  // Separate assigned passages for students
+  var assigned=[];
+  var rest=[];
+  if(!isTeacher && studentId){
+    filtered.forEach(function(p){
+      if(p.assignedTo && p.assignedTo.indexOf(studentId)!==-1) assigned.push(p);
+      else rest.push(p);
+    });
+  } else {
+    rest=filtered;
+  }
+
+  // Render assigned section
+  if(assigned.length>0){
+    var ahtml='<div class="assigned-banner"><h3>&#x1F4CC; Assigned to You</h3><div class="book-grid">';
+    assigned.forEach(function(p){ahtml+=bookCardHTML(p)});
+    ahtml+='</div></div>';
+    assignedDiv.innerHTML=ahtml;
+  } else {
+    assignedDiv.innerHTML='';
+  }
+
+  // Render rest
+  if(rest.length===0 && assigned.length===0){
+    grid.innerHTML='<div class="empty-state"><span class="es-emoji">&#x1F4DA;</span><div class="es-text">No passages found yet.'+(isTeacher?' Create one above!':' Check back soon!')+'</div></div>';
+  } else if(rest.length===0){
+    grid.innerHTML='';
+  } else {
+    grid.innerHTML=rest.map(function(p){return bookCardHTML(p)}).join('');
+  }
+}
+
+function bookCardHTML(p){
+  var subjClass='subj-'+((p.subject||'other').toLowerCase().replace(/\s+/g,''));
+  if(subjClass.indexOf('social')!==-1) subjClass='subj-social';
+  if(['subj-science','subj-history','subj-ela','subj-math','subj-social'].indexOf(subjClass)===-1) subjClass='subj-other';
+  var wc=p.wordCount||countWords(p.text||'');
+  var rt=p.readingTime||Math.max(1,Math.round(wc/150));
+  var progress=getLocalProgress(p.id);
+  var html='<div class="book-card '+esc(subjClass)+'" onclick="openPassage(\''+esc(p.id)+'\')">';
+  if(progress&&progress.completed) html+='<div class="book-completed">&#x2705; Read</div>';
+  html+='<div class="book-title">'+esc(p.title||'Untitled')+'</div>';
+  html+='<div class="book-meta">';
+  html+='<span class="book-tag">'+esc(p.subject||'General')+'</span>';
+  html+='<span class="book-tag grade-tag">Grade '+esc(p.gradeLevel||'?')+'</span>';
+  html+='<span class="book-tag time-tag">'+rt+' min</span>';
+  html+='<span class="book-tag words-tag">'+wc+' words</span>';
+  html+='</div>';
+  if(progress&&!progress.completed&&progress.lastPosition>0){
+    var pct=Math.round(progress.lastPosition*100);
+    html+='<div class="book-progress"><div class="book-progress-fill" style="width:'+pct+'%"></div></div>';
+  }
+  html+='</div>';
+  return html;
+}
+
+function filterPassages(){renderPassages()}
+
+function countWords(txt){return (txt||'').trim().split(/\s+/).filter(function(w){return w.length>0}).length}
+
+// ============================================
+// LOCAL PROGRESS TRACKING
+// ============================================
+function getLocalProgress(passageId){
+  try{
+    var key='libProg_'+(studentId||'teacher')+'_'+passageId;
+    var d=localStorage.getItem(key);
+    return d?JSON.parse(d):null;
+  }catch(e){return null}
+}
+
+function saveLocalProgress(passageId,data){
+  try{
+    var key='libProg_'+(studentId||'teacher')+'_'+passageId;
+    var existing=getLocalProgress(passageId)||{};
+    Object.keys(data).forEach(function(k){existing[k]=data[k]});
+    localStorage.setItem(key,JSON.stringify(existing));
+  }catch(e){}
+}
+
+// ============================================
+// OPEN / READ PASSAGE
+// ============================================
+function openPassage(id){
+  currentPassage=allPassages.find(function(p){return p.id===id});
+  if(!currentPassage) return;
+  var overlay=document.getElementById('readingOverlay');
+  var content=document.getElementById('readingContent');
+
+  document.getElementById('readingTitle').textContent=currentPassage.title||'Reading';
+  document.getElementById('rPassTitle').textContent=currentPassage.title||'Untitled';
+
+  var wc=currentPassage.wordCount||countWords(currentPassage.text||'');
+  var rt=currentPassage.readingTime||Math.max(1,Math.round(wc/150));
+  document.getElementById('rPassMeta').innerHTML=esc(currentPassage.subject||'')+' &middot; Grade '+esc(currentPassage.gradeLevel||'?')+' &middot; '+wc+' words &middot; ~'+rt+' min read';
+
+  // Wrap each word for highlighting and lookup
+  var text=currentPassage.text||'';
+  var words=text.split(/(\s+)/);
+  var html='';
+  var charIdx=0;
+  words.forEach(function(w){
+    if(/^\s+$/.test(w)){
+      html+=w;
+    } else {
+      html+='<span class="word" data-ci="'+charIdx+'" data-len="'+w.length+'" onclick="lookupWord(this)">'+esc(w)+'</span>';
+    }
+    charIdx+=w.length;
+  });
+  document.getElementById('rPassText').innerHTML=html;
+
+  // Apply saved font/mode
+  setFontSize(currentFontSize);
+  setReadMode(currentReadMode);
+
+  // Show overlay
+  overlay.classList.add('show');
+  document.getElementById('mainApp').style.display='none';
+  document.getElementById('readingProgressFill').style.width='0%';
+
+  // Restore scroll position
+  var progress=getLocalProgress(id);
+  var body=document.getElementById('readingBody');
+  if(progress&&progress.lastPosition>0){
+    setTimeout(function(){
+      body.scrollTop=progress.lastPosition*body.scrollHeight;
+    },100);
+  } else {
+    body.scrollTop=0;
+  }
+
+  // Start tracking time
+  readingStartTime=Date.now();
+  if(readingTimer) clearInterval(readingTimer);
+  readingTimer=setInterval(function(){
+    saveReadingTime();
+  },15000); // Save every 15 seconds
+
+  // Scroll progress tracking
+  body.onscroll=function(){
+    var pct=body.scrollTop/(body.scrollHeight-body.clientHeight);
+    if(isNaN(pct)||!isFinite(pct)) pct=0;
+    pct=Math.max(0,Math.min(1,pct));
+    document.getElementById('readingProgressFill').style.width=(pct*100)+'%';
+    saveLocalProgress(id,{lastPosition:pct});
+
+    // Show quiz banner when near bottom
+    var quizBanner=document.getElementById('takeQuizBanner');
+    if(pct>0.9 && currentPassage.questions && currentPassage.questions.length>0){
+      if(!quizBanner){
+        var b=document.createElement('div');
+        b.className='take-quiz-banner';
+        b.id='takeQuizBanner';
+        b.innerHTML='<button class="btn btn-accent" onclick="startQuiz()">&#x1F4DD; Take Comprehension Quiz</button>';
+        overlay.appendChild(b);
+      }
+    }
+  };
+
+  // Show TTS bar
+  document.getElementById('ttsBar').classList.add('show');
+
+  // Log start to Firebase
+  logReadingStart(id);
+}
+
+function closeReading(){
+  ttsStop();
+  saveReadingTime();
+  if(readingTimer) clearInterval(readingTimer);
+  readingTimer=null;
+  document.getElementById('readingOverlay').classList.remove('show');
+  document.getElementById('mainApp').style.display='';
+  document.getElementById('ttsBar').classList.remove('show');
+  var qb=document.getElementById('takeQuizBanner');
+  if(qb) qb.remove();
+  closeWordPopup();
+  // Refresh browse
+  renderPassages();
+}
+
+function saveReadingTime(){
+  if(!readingStartTime||!currentPassage) return;
+  var elapsed=Math.round((Date.now()-readingStartTime)/1000);
+  if(elapsed<2) return;
+  var existing=getLocalProgress(currentPassage.id)||{};
+  var totalSec=(existing.totalSeconds||0)+elapsed;
+  saveLocalProgress(currentPassage.id,{totalSeconds:totalSec});
+  readingStartTime=Date.now(); // Reset for next interval
+
+  // Also save daily log locally
+  var today=new Date().toISOString().slice(0,10);
+  var logKey='libLog_'+(studentId||'teacher')+'_'+today;
+  try{
+    var log=JSON.parse(localStorage.getItem(logKey)||'{}');
+    log.minutesRead=(log.minutesRead||0)+elapsed/60;
+    localStorage.setItem(logKey,JSON.stringify(log));
+  }catch(e){}
+}
+
+async function logReadingStart(passageId){
+  if(!studentId) return;
+  try{
+    var fb=await getFB();
+    var ref=fb.fsMod.collection(fb.db,'readingProgress');
+    // Check if existing progress doc
+    var q=fb.fsMod.query(ref,
+      fb.fsMod.where('studentId','==',studentId),
+      fb.fsMod.where('passageId','==',passageId)
+    );
+    var snap=await fb.fsMod.getDocs(q);
+    if(snap.empty){
+      await fb.fsMod.addDoc(ref,{
+        studentId:studentId,
+        studentName:studentName||'',
+        passageId:passageId,
+        passageTitle:currentPassage.title||'',
+        minutesRead:0,
+        completed:false,
+        quizScore:null,
+        quizTotal:null,
+        startedAt:fb.fsMod.serverTimestamp(),
+        completedAt:null,
+        lastPosition:0,
+        classCode:classCode
+      });
+    }
+  }catch(e){console.error('Log start error:',e)}
+}
+
+// ============================================
+// FONT SIZE & READING MODES
+// ============================================
+function setFontSize(size){
+  currentFontSize=size;
+  var c=document.getElementById('readingContent');
+  c.classList.remove('fs-small','fs-medium','fs-large','fs-xl');
+  c.classList.add('fs-'+size);
+  document.querySelectorAll('.font-btn').forEach(function(b){b.classList.remove('active')});
+  var map={small:'fsSmall',medium:'fsMedium',large:'fsLarge',xl:'fsXL'};
+  var btn=document.getElementById(map[size]);
+  if(btn) btn.classList.add('active');
+}
+
+function setReadMode(mode){
+  currentReadMode=mode;
+  var overlay=document.getElementById('readingOverlay');
+  var c=document.getElementById('readingContent');
+  var topbar=document.getElementById('readingTopbar');
+  c.classList.remove('read-mode-dark','read-mode-sepia','read-mode-light');
+  c.classList.add('read-mode-'+mode);
+
+  // Set overlay and topbar background
+  if(mode==='dark'){
+    overlay.style.background='var(--bg)';
+    topbar.style.background='var(--surface)';
+  } else if(mode==='sepia'){
+    overlay.style.background='#f4ecd8';
+    topbar.style.background='#ede0c8';
+  } else {
+    overlay.style.background='#ffffff';
+    topbar.style.background='#f0f0f0';
+  }
+
+  // Update topbar text colors
+  var backBtn=topbar.querySelector('.rt-back');
+  var title=topbar.querySelector('.rt-title');
+  if(mode==='dark'){
+    backBtn.style.color='';title.style.color='';
+  } else {
+    backBtn.style.color='#333';title.style.color='#333';
+  }
+
+  document.querySelectorAll('.mode-btn').forEach(function(b){b.classList.remove('active')});
+  var map={dark:'modeDark',sepia:'modeSepia',light:'modeLight'};
+  document.getElementById(map[mode]).classList.add('active');
+}
+
+// ============================================
+// TEXT TO SPEECH
+// ============================================
+function ttsToggle(){
+  if(isTTSPlaying){
+    speechSynthesis.pause();
+    isTTSPlaying=false;
+    document.getElementById('ttsPlayBtn').innerHTML='&#9654;&#xFE0F;';
+    document.getElementById('ttsPlayBtn').classList.remove('playing');
+    return;
+  }
+  if(speechSynthesis.paused){
+    speechSynthesis.resume();
+    isTTSPlaying=true;
+    document.getElementById('ttsPlayBtn').innerHTML='&#x23F8;&#xFE0F;';
+    document.getElementById('ttsPlayBtn').classList.add('playing');
+    return;
+  }
+  // Start new
+  var text=currentPassage?currentPassage.text:'';
+  if(!text) return;
+  ttsUtterance=new SpeechSynthesisUtterance(text);
+  ttsUtterance.rate=speechRate;
+  ttsUtterance.onboundary=function(e){
+    if(e.name==='word'){
+      highlightTTSWord(e.charIndex,e.charLength||1);
+    }
+  };
+  ttsUtterance.onend=function(){
+    clearTTSHighlight();
+    isTTSPlaying=false;
+    document.getElementById('ttsPlayBtn').innerHTML='&#9654;&#xFE0F;';
+    document.getElementById('ttsPlayBtn').classList.remove('playing');
+  };
+  speechSynthesis.speak(ttsUtterance);
+  isTTSPlaying=true;
+  document.getElementById('ttsPlayBtn').innerHTML='&#x23F8;&#xFE0F;';
+  document.getElementById('ttsPlayBtn').classList.add('playing');
+}
+
+function ttsStop(){
+  speechSynthesis.cancel();
+  isTTSPlaying=false;
+  ttsUtterance=null;
+  clearTTSHighlight();
+  var btn=document.getElementById('ttsPlayBtn');
+  if(btn){btn.innerHTML='&#9654;&#xFE0F;';btn.classList.remove('playing')}
+}
+
+var speedOptions=[0.5,0.75,1,1.25,1.5];
+var speedIndex=2;
+function ttsNextSpeed(){
+  speedIndex=(speedIndex+1)%speedOptions.length;
+  speechRate=speedOptions[speedIndex];
+  document.getElementById('ttsSpeedBtn').textContent=speechRate+'x';
+  // If currently speaking, restart with new speed
+  if(isTTSPlaying||speechSynthesis.paused){
+    ttsStop();
+    setTimeout(function(){ttsToggle()},100);
+  }
+}
+
+function highlightTTSWord(charIndex,charLength){
+  clearTTSHighlight();
+  var words=document.querySelectorAll('#rPassText .word');
+  for(var i=0;i<words.length;i++){
+    var ci=parseInt(words[i].dataset.ci);
+    var len=parseInt(words[i].dataset.len);
+    if(ci<=charIndex && ci+len>charIndex){
+      words[i].classList.add('tts-highlight');
+      words[i].scrollIntoView({behavior:'smooth',block:'center'});
+      break;
+    }
+  }
+}
+
+function clearTTSHighlight(){
+  document.querySelectorAll('#rPassText .word.tts-highlight').forEach(function(w){
+    w.classList.remove('tts-highlight');
+  });
+}
+
+// ============================================
+// WORD LOOKUP
+// ============================================
+var wordPopupTimeout=null;
+function lookupWord(el){
+  var word=el.textContent.replace(/[^a-zA-Z'-]/g,'');
+  if(!word||word.length<2) return;
+  // Position popup near the word
+  var rect=el.getBoundingClientRect();
+  var popup=document.getElementById('wordPopup');
+  document.getElementById('wpWord').textContent=word;
+  document.getElementById('wpDef').innerHTML='<div class="ai-loading">Looking up...</div>';
+  popup.style.display='block';
+  // Position
+  var left=Math.min(rect.left,window.innerWidth-300);
+  var top=rect.bottom+8;
+  if(top+150>window.innerHeight) top=rect.top-160;
+  popup.style.left=Math.max(10,left)+'px';
+  popup.style.top=top+'px';
+
+  // AI lookup
+  odaAI('Define the word "'+word+'" simply for a child. One short sentence. Do not use markdown.',{max_tokens:100,temperature:0.5})
+  .then(function(def){
+    document.getElementById('wpDef').textContent=def;
+  })
+  .catch(function(){
+    document.getElementById('wpDef').textContent='Could not look up this word right now.';
+  });
+}
+
+function closeWordPopup(){
+  document.getElementById('wordPopup').style.display='none';
+}
+// Close popup on outside click
+document.addEventListener('click',function(e){
+  var popup=document.getElementById('wordPopup');
+  if(popup.style.display==='block' && !popup.contains(e.target) && !e.target.classList.contains('word')){
+    closeWordPopup();
+  }
+});
+
+// ============================================
+// COMPREHENSION QUIZ
+// ============================================
+function startQuiz(){
+  if(!currentPassage||!currentPassage.questions||currentPassage.questions.length===0) return;
+  currentQuestions=currentPassage.questions;
+  quizIndex=0;
+  quizAnswers=[];
+  quizScore=0;
+
+  // Mark passage as completed
+  saveLocalProgress(currentPassage.id,{completed:true});
+
+  // Close reading overlay
+  document.getElementById('readingOverlay').classList.remove('show');
+  ttsStop();
+  document.getElementById('ttsBar').classList.remove('show');
+  var qb=document.getElementById('takeQuizBanner');
+  if(qb) qb.remove();
+
+  // Show quiz
+  document.getElementById('quizOverlay').classList.add('show');
+  renderQuizQuestion();
+}
+
+function renderQuizQuestion(){
+  var wrap=document.getElementById('quizWrap');
+  if(quizIndex>=currentQuestions.length){
+    renderQuizResults();
+    return;
+  }
+  var q=currentQuestions[quizIndex];
+  var html='<div class="quiz-header"><h2>&#x1F4D6; Comprehension Quiz</h2><p>'+esc(currentPassage.title||'')+'</p></div>';
+
+  // Progress dots
+  html+='<div class="quiz-progress-dots">';
+  for(var i=0;i<currentQuestions.length;i++){
+    var cls='q-dot';
+    if(i<quizIndex) cls+=' '+(quizAnswers[i]&&quizAnswers[i].correct?'correct':'wrong');
+    if(i===quizIndex) cls+=' current';
+    html+='<div class="'+cls+'"></div>';
+  }
+  html+='</div>';
+
+  html+='<div class="quiz-card">';
+  html+='<div class="quiz-q-num">Question '+(quizIndex+1)+' of '+currentQuestions.length+'</div>';
+  html+='<div class="quiz-q-text">'+esc(q.question)+'</div>';
+
+  if(q.type==='mc'){
+    html+='<div class="quiz-options" id="quizOpts">';
+    var labels=['A','B','C','D'];
+    (q.options||[]).forEach(function(opt,idx){
+      html+='<button class="quiz-opt" onclick="answerMC('+idx+')"><strong>'+labels[idx]+'.</strong> '+esc(opt)+'</button>';
+    });
+    html+='</div>';
+  } else if(q.type==='tf'){
+    html+='<div class="quiz-tf-row" id="quizOpts">';
+    html+='<button class="quiz-opt" onclick="answerTF(true)">&#x2705; True</button>';
+    html+='<button class="quiz-opt" onclick="answerTF(false)">&#x274C; False</button>';
+    html+='</div>';
+  } else if(q.type==='short'){
+    html+='<input class="quiz-short-input" id="quizShortInput" placeholder="Type your answer..." onkeydown="if(event.key===\'Enter\')answerShort()">';
+    html+='<div class="btn-row"><button class="btn btn-accent" onclick="answerShort()">Submit Answer</button></div>';
+  }
+
+  html+='<div id="quizFeedback"></div>';
+  html+='<div class="quiz-next-btn" id="quizNextBtn" style="display:none"><button class="btn btn-blue" onclick="nextQuizQuestion()">Next Question &#8594;</button></div>';
+  html+='</div>';
+
+  wrap.innerHTML=html;
+  if(q.type==='short'){
+    setTimeout(function(){var inp=document.getElementById('quizShortInput');if(inp)inp.focus()},100);
+  }
+}
+
+function answerMC(idx){
+  var q=currentQuestions[quizIndex];
+  var correct=idx===q.correct;
+  var opts=document.querySelectorAll('#quizOpts .quiz-opt');
+  opts.forEach(function(o,i){
+    o.classList.add('disabled');
+    o.onclick=null;
+    if(i===q.correct) o.classList.add('correct-answer');
+    if(i===idx&&!correct) o.classList.add('wrong-answer');
+  });
+  showQuizFeedback(correct,q.options?q.options[q.correct]:'');
+  quizAnswers.push({correct:correct,question:q.question,given:idx,expected:q.correct});
+  if(correct) quizScore++;
+}
+
+function answerTF(val){
+  var q=currentQuestions[quizIndex];
+  var correct=val===q.correct;
+  var opts=document.querySelectorAll('#quizOpts .quiz-opt');
+  opts.forEach(function(o,i){
+    o.classList.add('disabled');
+    o.onclick=null;
+    if((i===0&&q.correct===true)||(i===1&&q.correct===false)) o.classList.add('correct-answer');
+    if(((i===0&&val===true)||(i===1&&val===false))&&!correct) o.classList.add('wrong-answer');
+  });
+  showQuizFeedback(correct,q.correct?'True':'False');
+  quizAnswers.push({correct:correct,question:q.question,given:val,expected:q.correct});
+  if(correct) quizScore++;
+}
+
+function answerShort(){
+  var inp=document.getElementById('quizShortInput');
+  if(!inp) return;
+  var val=inp.value.trim();
+  if(!val) return;
+  inp.disabled=true;
+  var q=currentQuestions[quizIndex];
+  var expected=(q.answer||'').toLowerCase().trim();
+  var given=val.toLowerCase().trim();
+  // Fuzzy match: check if given contains expected or vice versa, or similarity > 0.7
+  var correct=given===expected||expected.indexOf(given)!==-1||given.indexOf(expected)!==-1||similarity(given,expected)>0.65;
+  showQuizFeedback(correct,q.answer||'');
+  quizAnswers.push({correct:correct,question:q.question,given:val,expected:q.answer});
+  if(correct) quizScore++;
+}
+
+function similarity(a,b){
+  if(a===b) return 1;
+  if(!a||!b) return 0;
+  var longer=a.length>b.length?a:b;
+  var shorter=a.length>b.length?b:a;
+  if(longer.length===0) return 1;
+  var costs=[];
+  for(var i=0;i<=longer.length;i++){
+    var lastVal=i;
+    for(var j=0;j<=shorter.length;j++){
+      if(i===0) costs[j]=j;
+      else if(j>0){
+        var newVal=costs[j-1];
+        if(longer.charAt(i-1)!==shorter.charAt(j-1))
+          newVal=Math.min(Math.min(newVal,lastVal),costs[j])+1;
+        costs[j-1]=lastVal;
+        lastVal=newVal;
+      }
+    }
+    if(i>0) costs[shorter.length]=lastVal;
+  }
+  return (longer.length-costs[shorter.length])/longer.length;
+}
+
+function showQuizFeedback(correct,answer){
+  var fb=document.getElementById('quizFeedback');
+  if(correct){
+    fb.innerHTML='<div class="quiz-feedback correct">&#x2705; Correct! Great job!</div>';
+  } else {
+    fb.innerHTML='<div class="quiz-feedback wrong">&#x274C; Not quite. The correct answer is: '+esc(String(answer))+'</div>';
+  }
+  document.getElementById('quizNextBtn').style.display='';
+}
+
+function nextQuizQuestion(){
+  quizIndex++;
+  renderQuizQuestion();
+}
+
+function renderQuizResults(){
+  var wrap=document.getElementById('quizWrap');
+  var pct=currentQuestions.length>0?Math.round(quizScore/currentQuestions.length*100):0;
+  var emoji=pct===100?'&#x1F31F;':pct>=80?'&#x1F389;':pct>=60?'&#x1F44D;':'&#x1F4AA;';
+
+  // Calculate coins
+  var coins=5; // Base for finishing
+  if(pct>=80) coins+=10;
+  if(pct===100) coins+=15;
+
+  var html='<div class="quiz-results">';
+  html+='<span class="qr-emoji">'+emoji+'</span>';
+  html+='<div class="qr-score">'+pct+'%</div>';
+  html+='<div class="qr-label">'+quizScore+' of '+currentQuestions.length+' correct</div>';
+  html+='<div class="qr-coins">+'+coins+' coins earned! &#x1FA99;</div>';
+
+  html+='<div class="qr-breakdown">';
+  quizAnswers.forEach(function(a,i){
+    html+='<div class="qr-item '+(a.correct?'qr-correct':'qr-wrong')+'">';
+    html+='<span class="qr-icon">'+(a.correct?'&#x2705;':'&#x274C;')+'</span>';
+    html+='<div class="qr-text"><strong>Q'+(i+1)+':</strong> '+esc(a.question)+'</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+
+  html+='<div class="btn-row" style="margin-top:24px;justify-content:center">';
+  html+='<button class="btn btn-accent" onclick="closeQuiz()">&#x1F4DA; Back to Library</button>';
+  html+='<button class="btn btn-blue" onclick="retryQuiz()">&#x1F504; Try Again</button>';
+  html+='</div>';
+  html+='</div>';
+
+  wrap.innerHTML=html;
+
+  // Award coins
+  addCoins(coins);
+
+  // Save to Firebase
+  saveQuizResults(pct,coins);
+
+  // Confetti on good score
+  if(pct>=80 && typeof odaConfetti==='function') odaConfetti();
+
+  // Update streak
+  updateStreak();
+}
+
+function retryQuiz(){
+  quizIndex=0;
+  quizAnswers=[];
+  quizScore=0;
+  renderQuizQuestion();
+}
+
+function closeQuiz(){
+  document.getElementById('quizOverlay').classList.remove('show');
+  document.getElementById('mainApp').style.display='';
+  closeReading();
+  loadPassages();
+}
+
+async function saveQuizResults(pct,coins){
+  if(!studentId||!currentPassage) return;
+  try{
+    var fb=await getFB();
+    // Update readingProgress
+    var ref=fb.fsMod.collection(fb.db,'readingProgress');
+    var q=fb.fsMod.query(ref,
+      fb.fsMod.where('studentId','==',studentId),
+      fb.fsMod.where('passageId','==',currentPassage.id)
+    );
+    var snap=await fb.fsMod.getDocs(q);
+    if(!snap.empty){
+      var docRef=snap.docs[0].ref;
+      await fb.fsMod.updateDoc(docRef,{
+        completed:true,
+        quizScore:quizScore,
+        quizTotal:currentQuestions.length,
+        completedAt:fb.fsMod.serverTimestamp(),
+        minutesRead:Math.round((getLocalProgress(currentPassage.id)||{}).totalSeconds||0)/60
+      });
+    }
+
+    // Save/update daily log
+    var today=new Date().toISOString().slice(0,10);
+    var logRef=fb.fsMod.doc(fb.db,'readingLogs',studentId+'_'+today);
+    var logSnap=await fb.fsMod.getDoc(logRef);
+    var logData=logSnap.exists()?logSnap.data():{studentId:studentId,date:today,minutesRead:0,passagesCompleted:0,avgScore:0,scores:[]};
+    logData.passagesCompleted=(logData.passagesCompleted||0)+1;
+    var scores=logData.scores||[];
+    scores.push(pct);
+    logData.scores=scores;
+    logData.avgScore=Math.round(scores.reduce(function(a,b){return a+b},0)/scores.length);
+    logData.classCode=classCode;
+    logData.studentName=studentName||'';
+    await fb.fsMod.setDoc(logRef,logData,{merge:true});
+  }catch(e){console.error('Save quiz error:',e)}
+}
+
+// ============================================
+// COIN SYSTEM
+// ============================================
+function getCoinBalance(){
+  var key=studentId?'odaCoins_'+studentId:'odaCoins_teacher';
+  return parseInt(localStorage.getItem(key)||'0');
+}
+function addCoins(n){
+  var key=studentId?'odaCoins_'+studentId:'odaCoins_teacher';
+  var bal=getCoinBalance()+n;
+  localStorage.setItem(key,String(bal));
+  if(typeof odaToast==='function') odaToast('+'+n+' coins!','success');
+}
+
+// ============================================
+// READING LOG
+// ============================================
+function loadReadingLog(){
+  var content=document.getElementById('logContent');
+  if(isTeacher){
+    content.innerHTML='<div class="empty-state"><span class="es-emoji">&#x1F4CA;</span><div class="es-text">Student results are in the Create tab.</div></div>';
+    return;
+  }
+
+  // Gather local stats
+  var totalMinutes=0;
+  var passagesCompleted=0;
+  var scores=[];
+  var dailyData={};
+
+  // Scan local storage for reading progress
+  for(var i=0;i<localStorage.length;i++){
+    var k=localStorage.key(i);
+    if(k&&k.indexOf('libProg_'+(studentId||'teacher')+'_')===0){
+      try{
+        var d=JSON.parse(localStorage.getItem(k));
+        if(d.totalSeconds) totalMinutes+=d.totalSeconds/60;
+        if(d.completed) passagesCompleted++;
+      }catch(e){}
+    }
+    if(k&&k.indexOf('libLog_'+(studentId||'teacher')+'_')===0){
+      try{
+        var ld=JSON.parse(localStorage.getItem(k));
+        var date=k.split('_').pop();
+        dailyData[date]=(ld.minutesRead||0);
+      }catch(e){}
+    }
+  }
+
+  totalMinutes=Math.round(totalMinutes);
+
+  // Calculate streak
+  var streak=calculateStreak(dailyData);
+
+  // Avg score from local quiz answers
+  var avgScore=scores.length>0?Math.round(scores.reduce(function(a,b){return a+b},0)/scores.length):0;
+
+  var html='';
+
+  // Stats row
+  html+='<div class="log-stats">';
+  html+='<div class="log-stat"><div class="ls-value">'+passagesCompleted+'</div><div class="ls-label">Passages Read</div></div>';
+  html+='<div class="log-stat"><div class="ls-value">'+totalMinutes+'</div><div class="ls-label">Minutes Read</div></div>';
+  html+='<div class="log-stat streak"><div class="ls-value">'+streak+'</div><div class="ls-label">Day Streak</div></div>';
+  html+='</div>';
+
+  // Streak display
+  if(streak>=3){
+    var streakEmoji=streak>=7?'&#x1F525;&#x1F525;&#x1F525;':streak>=5?'&#x1F525;&#x1F525;':'&#x1F525;';
+    html+='<div class="streak-display"><span class="sd-emoji">'+streakEmoji+'</span>';
+    html+='<div class="sd-text">'+streak+' day reading streak!</div>';
+    html+='<div class="sd-sub">Keep it going! Read today to continue your streak.</div></div>';
+  }
+
+  // Daily goal
+  var todayKey='libLog_'+(studentId||'teacher')+'_'+new Date().toISOString().slice(0,10);
+  var todayMin=0;
+  try{var td=JSON.parse(localStorage.getItem(todayKey)||'{}');todayMin=Math.round(td.minutesRead||0)}catch(e){}
+  var goalMin=20;
+  var goalPct=Math.min(100,Math.round(todayMin/goalMin*100));
+
+  html+='<div class="goal-card"><h3>&#x1F3AF; Daily Reading Goal</h3>';
+  html+='<div class="goal-bar"><div class="goal-fill" style="width:'+goalPct+'%"></div></div>';
+  html+='<div class="goal-text">'+todayMin+' / '+goalMin+' minutes today'+(goalPct>=100?' &#x2705; Goal reached!':'')+'</div></div>';
+
+  // Heatmap (last 28 days)
+  html+='<div class="heatmap"><h3>&#x1F4C5; Reading Activity</h3>';
+  html+='<div style="display:flex;gap:4px;margin-bottom:6px">';
+  ['S','M','T','W','T','F','S'].forEach(function(d){
+    html+='<div class="hm-day-label" style="width:calc((100% - 24px)/7);text-align:center">'+d+'</div>';
+  });
+  html+='</div>';
+  html+='<div class="heatmap-grid">';
+  var now=new Date();
+  // Start from 4 weeks ago, align to Sunday
+  var start=new Date(now);
+  start.setDate(start.getDate()-27);
+  // Align to Sunday
+  start.setDate(start.getDate()-start.getDay());
+  for(var d=0;d<28;d++){
+    var dt=new Date(start);
+    dt.setDate(start.getDate()+d);
+    var ds=dt.toISOString().slice(0,10);
+    var mins=dailyData[ds]||0;
+    var lvl='';
+    if(mins>0&&mins<5) lvl='l1';
+    else if(mins>=5&&mins<15) lvl='l2';
+    else if(mins>=15&&mins<30) lvl='l3';
+    else if(mins>=30) lvl='l4';
+    html+='<div class="hm-day '+lvl+'" title="'+ds+': '+Math.round(mins)+' min"></div>';
+  }
+  html+='</div></div>';
+
+  // Completed passages list
+  html+='<div class="card"><div class="card-title">&#x2705; Completed Passages</div><div class="completed-list">';
+  var completedItems=[];
+  for(var j=0;j<localStorage.length;j++){
+    var key2=localStorage.key(j);
+    if(key2&&key2.indexOf('libProg_'+(studentId||'teacher')+'_')===0){
+      try{
+        var pd=JSON.parse(localStorage.getItem(key2));
+        if(pd.completed){
+          var pid=key2.replace('libProg_'+(studentId||'teacher')+'_','');
+          var psg=allPassages.find(function(p){return p.id===pid});
+          completedItems.push({title:psg?psg.title:'Passage',id:pid,seconds:pd.totalSeconds||0});
+        }
+      }catch(e){}
+    }
+  }
+  if(completedItems.length===0){
+    html+='<div class="empty-state" style="padding:20px"><div class="es-text">No completed passages yet. Start reading!</div></div>';
+  } else {
+    completedItems.forEach(function(ci){
+      html+='<div class="completed-item"><div><div class="ci-title">'+esc(ci.title)+'</div><div class="ci-meta">'+Math.round(ci.seconds/60)+' min read</div></div></div>';
+    });
+  }
+  html+='</div></div>';
+
+  content.innerHTML=html;
+}
+
+function calculateStreak(dailyData){
+  var streak=0;
+  var today=new Date();
+  for(var i=0;i<365;i++){
+    var d=new Date(today);
+    d.setDate(d.getDate()-i);
+    var ds=d.toISOString().slice(0,10);
+    if(dailyData[ds]&&dailyData[ds]>0){
+      streak++;
+    } else {
+      if(i===0) continue; // Today doesn't count against if not yet read
+      break;
+    }
+  }
+  return streak;
+}
+
+function updateStreak(){
+  // Check for streak bonuses
+  var dailyData={};
+  for(var i=0;i<localStorage.length;i++){
+    var k=localStorage.key(i);
+    if(k&&k.indexOf('libLog_'+(studentId||'teacher')+'_')===0){
+      try{
+        var ld=JSON.parse(localStorage.getItem(k));
+        var date=k.split('_').pop();
+        dailyData[date]=(ld.minutesRead||0);
+      }catch(e){}
+    }
+  }
+  // Add today
+  var today=new Date().toISOString().slice(0,10);
+  if(!dailyData[today]) dailyData[today]=1;
+
+  var streak=calculateStreak(dailyData);
+  var bonusKey='libStreakBonus_'+(studentId||'teacher');
+  var lastBonus=parseInt(localStorage.getItem(bonusKey)||'0');
+
+  if(streak>=7&&lastBonus<7){addCoins(50);localStorage.setItem(bonusKey,'7');odaToast('7-day streak bonus: +50 coins!','success')}
+  else if(streak>=5&&lastBonus<5){addCoins(25);localStorage.setItem(bonusKey,'5');odaToast('5-day streak bonus: +25 coins!','success')}
+  else if(streak>=3&&lastBonus<3){addCoins(10);localStorage.setItem(bonusKey,'3');odaToast('3-day streak bonus: +10 coins!','success')}
+}
+
+// ============================================
+// TEACHER: AI GENERATE PASSAGE
+// ============================================
+async function aiGeneratePassage(){
+  var topic=document.getElementById('passTopic').value.trim();
+  if(!topic){odaToast('Enter a topic first','warning');return}
+  var grade=document.getElementById('passGrade').value;
+  var words=document.getElementById('passWords').value||200;
+  var btn=document.getElementById('aiGenBtn');
+  btnLoading(btn,'Generating...');
+  try{
+    var result=await odaAI(
+      'Write a reading passage about '+topic+' at a grade '+grade+' reading level. Approximately '+words+' words. Make it engaging and educational. Use plain text only, no markdown formatting, no headers, no bullet points.',
+      {system:'You are an educational content writer. Write clear, engaging passages appropriate for the specified grade level. Use plain text only, no markdown. Write in paragraph form.',max_tokens:1500,temperature:0.8}
+    );
+    document.getElementById('passText').value=result;
+    if(!document.getElementById('passTitle').value){
+      document.getElementById('passTitle').value=topic.charAt(0).toUpperCase()+topic.slice(1);
+    }
+    odaToast('Passage generated!','success');
+  }catch(e){
+    console.error(e);
+    odaToast('Error generating passage','error');
+  }
+  btnReset(btn,'&#x1F916; Generate');
+}
+
+// ============================================
+// TEACHER: AI GENERATE QUESTIONS
+// ============================================
+async function aiGenerateQuestions(){
+  var passage=document.getElementById('passText').value.trim();
+  if(!passage){odaToast('Add a passage first','warning');return}
+  var btn=document.getElementById('aiQBtn');
+  btnLoading(btn,'Generating...');
+  try{
+    var result=await odaAI(
+      'Read this passage and create 5 comprehension questions. Mix question types: 2 multiple choice, 1 true/false, 2 short answer. Return as JSON array: [{"question":"...","type":"mc","options":["A","B","C","D"],"correct":0},{"question":"...","type":"tf","correct":true},{"question":"...","type":"short","answer":"..."}]\n\nPassage:\n'+passage,
+      {system:'You are a reading comprehension test creator. Return ONLY valid JSON array. No markdown, no code fences, just the JSON array.',max_tokens:2000,temperature:0.7}
+    );
+    // Parse JSON from response
+    var json=result;
+    // Try to extract JSON if wrapped in markdown
+    var match=json.match(/\[[\s\S]*\]/);
+    if(match) json=match[0];
+    var questions=JSON.parse(json);
+    editQuestions=questions;
+    renderEditQuestions();
+    odaToast('Questions generated!','success');
+  }catch(e){
+    console.error('AI questions error:',e);
+    odaToast('Error generating questions. Try again.','error');
+  }
+  btnReset(btn,'&#x1F916; Auto-Generate Questions');
+}
+
+// ============================================
+// TEACHER: MANUAL QUESTIONS
+// ============================================
+document.getElementById('addQType').addEventListener('change',function(){
+  var t=this.value;
+  document.getElementById('addQOptions').style.display=t==='mc'?'':'none';
+  document.getElementById('addQTFOptions').style.display=t==='tf'?'':'none';
+  document.getElementById('addQShortOptions').style.display=t==='short'?'':'none';
+});
+
+function addManualQuestion(){
+  var type=document.getElementById('addQType').value;
+  var text=document.getElementById('addQText').value.trim();
+  if(!text){odaToast('Enter question text','warning');return}
+  var q={question:text,type:type};
+  if(type==='mc'){
+    q.options=[
+      document.getElementById('addQA').value.trim()||'Option A',
+      document.getElementById('addQB').value.trim()||'Option B',
+      document.getElementById('addQC').value.trim()||'Option C',
+      document.getElementById('addQD').value.trim()||'Option D'
+    ];
+    q.correct=parseInt(document.getElementById('addQCorrect').value)||0;
+  } else if(type==='tf'){
+    q.correct=document.getElementById('addQTF').value==='true';
+  } else {
+    q.answer=document.getElementById('addQShortAns').value.trim()||'';
+  }
+  editQuestions.push(q);
+  renderEditQuestions();
+  // Clear inputs
+  document.getElementById('addQText').value='';
+  document.getElementById('addQA').value='';
+  document.getElementById('addQB').value='';
+  document.getElementById('addQC').value='';
+  document.getElementById('addQD').value='';
+  document.getElementById('addQCorrect').value='0';
+  document.getElementById('addQShortAns').value='';
+  odaToast('Question added','success');
+}
+
+function renderEditQuestions(){
+  var list=document.getElementById('questionList');
+  if(editQuestions.length===0){
+    list.innerHTML='<div style="text-align:center;padding:12px;color:var(--text2);font-size:14px">No questions yet. Add manually or auto-generate with AI.</div>';
+    return;
+  }
+  var html='';
+  editQuestions.forEach(function(q,i){
+    html+='<div class="q-item"><div class="q-item-head"><span class="q-item-type '+q.type+'">'+q.type.toUpperCase()+'</span><button class="q-item-del" onclick="removeQuestion('+i+')">&times;</button></div>';
+    html+='<div class="q-item-text">'+esc(q.question)+'</div>';
+    if(q.type==='mc'&&q.options){
+      html+='<div style="margin-top:6px;font-size:13px;color:var(--text2)">';
+      var labels=['A','B','C','D'];
+      q.options.forEach(function(o,j){
+        html+='<div style="'+(j===q.correct?'color:var(--accent);font-weight:700':'')+'">'+labels[j]+'. '+esc(o)+'</div>';
+      });
+      html+='</div>';
+    } else if(q.type==='tf'){
+      html+='<div style="margin-top:6px;font-size:13px;color:var(--accent)">Answer: '+(q.correct?'True':'False')+'</div>';
+    } else if(q.type==='short'){
+      html+='<div style="margin-top:6px;font-size:13px;color:var(--accent)">Answer: '+esc(q.answer||'')+'</div>';
+    }
+    html+='</div>';
+  });
+  list.innerHTML=html;
+}
+
+function removeQuestion(idx){
+  editQuestions.splice(idx,1);
+  renderEditQuestions();
+}
+
+// ============================================
+// TEACHER: SAVE PASSAGE
+// ============================================
+async function savePassage(){
+  var title=document.getElementById('passTitle').value.trim();
+  var text=document.getElementById('passText').value.trim();
+  if(!title){odaToast('Enter a title','warning');return}
+  if(!text){odaToast('Enter passage text','warning');return}
+
+  var btn=document.getElementById('savePassBtn');
+  btnLoading(btn,'Saving...');
+
+  var data={
+    title:title,
+    text:text,
+    subject:document.getElementById('passSubject').value,
+    gradeLevel:document.getElementById('passGrade').value,
+    wordCount:countWords(text),
+    readingTime:Math.max(1,Math.round(countWords(text)/150)),
+    questions:editQuestions,
+    teacherId:sessionStorage.getItem('odaTeacherId')||localStorage.getItem('odaTeacherId')||'anonymous',
+    classCode:classCode,
+    isPublic:true,
+    assignedTo:[],
+    createdAt:null
+  };
+
+  try{
+    var fb=await getFB();
+    data.createdAt=fb.fsMod.serverTimestamp();
+    if(editPassageId){
+      var ref=fb.fsMod.doc(fb.db,'libraryPassages',editPassageId);
+      await fb.fsMod.updateDoc(ref,data);
+      odaToast('Passage updated!','success');
+    } else {
+      await fb.fsMod.addDoc(fb.fsMod.collection(fb.db,'libraryPassages'),data);
+      odaToast('Passage saved!','success');
+    }
+    // Clear form
+    clearCreateForm();
+    editPassageId=null;
+    loadPassages();
+  }catch(e){
+    console.error('Save error:',e);
+    odaToast('Error saving passage','error');
+  }
+  btnReset(btn,'&#x1F4BE; Save Passage');
+}
+
+function clearCreateForm(){
+  document.getElementById('passTitle').value='';
+  document.getElementById('passText').value='';
+  document.getElementById('passTopic').value='';
+  document.getElementById('passWords').value='200';
+  editQuestions=[];
+  renderEditQuestions();
+}
+
+// ============================================
+// TEACHER: PASSAGE LIST & MANAGEMENT
+// ============================================
+function renderTeacherPassages(){
+  var list=document.getElementById('teacherPassageList');
+  if(allPassages.length===0){
+    list.innerHTML='<div class="empty-state" style="padding:16px"><div class="es-text">No passages created yet.</div></div>';
+    return;
+  }
+  var html='';
+  allPassages.forEach(function(p){
+    html+='<div class="t-passage">';
+    html+='<div class="tp-info"><div class="tp-title">'+esc(p.title||'Untitled')+'</div>';
+    html+='<div class="tp-meta">'+esc(p.subject||'')+' | Grade '+esc(p.gradeLevel||'?')+' | '+countWords(p.text||'')+' words | '+(p.questions?p.questions.length:0)+' questions</div></div>';
+    html+='<div class="tp-btns">';
+    html+='<button class="btn btn-xs btn-blue" onclick="editPassage(\''+p.id+'\')">Edit</button>';
+    html+='<button class="btn btn-xs btn-accent" onclick="openAssignModal(\''+p.id+'\')">Assign</button>';
+    html+='<button class="btn btn-xs btn-red" onclick="deletePassage(\''+p.id+'\')">Delete</button>';
+    html+='</div></div>';
+  });
+  list.innerHTML=html;
+
+  // Load student results
+  loadStudentResults();
+}
+
+function editPassage(id){
+  var p=allPassages.find(function(x){return x.id===id});
+  if(!p) return;
+  editPassageId=id;
+  document.getElementById('passTitle').value=p.title||'';
+  document.getElementById('passText').value=p.text||'';
+  document.getElementById('passSubject').value=p.subject||'Science';
+  document.getElementById('passGrade').value=p.gradeLevel||'3';
+  document.getElementById('passWords').value=p.wordCount||200;
+  editQuestions=p.questions?JSON.parse(JSON.stringify(p.questions)):[];
+  renderEditQuestions();
+  // Scroll to top
+  window.scrollTo({top:0,behavior:'smooth'});
+  odaToast('Editing: '+p.title,'info');
+}
+
+async function deletePassage(id){
+  if(!confirm('Delete this passage? This cannot be undone.')) return;
+  try{
+    var fb=await getFB();
+    await fb.fsMod.deleteDoc(fb.fsMod.doc(fb.db,'libraryPassages',id));
+    odaToast('Passage deleted','success');
+    loadPassages();
+  }catch(e){
+    console.error(e);
+    odaToast('Error deleting','error');
+  }
+}
+
+// ============================================
+// TEACHER: ASSIGN PASSAGE
+// ============================================
+var assignPassageId=null;
+function openAssignModal(id){
+  assignPassageId=id;
+  document.getElementById('assignModal').classList.add('show');
+  loadStudentsForAssign();
+}
+function closeModal(id){
+  document.getElementById(id).classList.remove('show');
+}
+
+async function loadStudentsForAssign(){
+  var list=document.getElementById('assignStudentList');
+  list.innerHTML='<div class="ai-loading">Loading students...</div>';
+  try{
+    var fb=await getFB();
+    var ref=fb.fsMod.collection(fb.db,'students');
+    var q;
+    if(classCode){
+      q=fb.fsMod.query(ref,fb.fsMod.where('classCode','==',classCode));
+    } else {
+      q=fb.fsMod.query(ref);
+    }
+    var snap=await fb.fsMod.getDocs(q);
+    if(snap.empty){
+      list.innerHTML='<div style="color:var(--text2);font-size:14px">No students found in your class.</div>';
+      return;
+    }
+    var html='<div style="max-height:300px;overflow-y:auto">';
+    html+='<label style="display:flex;align-items:center;gap:8px;padding:8px;cursor:pointer;font-weight:700;color:var(--accent)"><input type="checkbox" id="assignAll" onchange="toggleAssignAll()"> Select All</label>';
+    snap.forEach(function(d){
+      var s=d.data();
+      html+='<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;cursor:pointer;font-size:14px"><input type="checkbox" class="assign-cb" value="'+d.id+'"> '+esc(s.name||d.id)+'</label>';
+    });
+    html+='</div>';
+    list.innerHTML=html;
+  }catch(e){
+    console.error(e);
+    list.innerHTML='<div style="color:var(--accent3)">Error loading students</div>';
+  }
+}
+
+function toggleAssignAll(){
+  var all=document.getElementById('assignAll').checked;
+  document.querySelectorAll('.assign-cb').forEach(function(cb){cb.checked=all});
+}
+
+async function confirmAssign(){
+  var selected=[];
+  document.querySelectorAll('.assign-cb:checked').forEach(function(cb){selected.push(cb.value)});
+  if(selected.length===0){odaToast('Select at least one student','warning');return}
+  try{
+    var fb=await getFB();
+    var ref=fb.fsMod.doc(fb.db,'libraryPassages',assignPassageId);
+    var snap=await fb.fsMod.getDoc(ref);
+    var existing=snap.exists()?(snap.data().assignedTo||[]):[];
+    // Merge unique
+    selected.forEach(function(s){if(existing.indexOf(s)===-1) existing.push(s)});
+    await fb.fsMod.updateDoc(ref,{assignedTo:existing});
+    odaToast('Assigned to '+selected.length+' students!','success');
+    closeModal('assignModal');
+    loadPassages();
+  }catch(e){
+    console.error(e);
+    odaToast('Error assigning','error');
+  }
+}
+
+// ============================================
+// TEACHER: STUDENT RESULTS
+// ============================================
+async function loadStudentResults(){
+  var list=document.getElementById('studentResultsList');
+  if(!list) return;
+  list.innerHTML='<div class="ai-loading">Loading results...</div>';
+  try{
+    var fb=await getFB();
+    var ref=fb.fsMod.collection(fb.db,'readingProgress');
+    var constraints=[];
+    if(classCode) constraints.push(fb.fsMod.where('classCode','==',classCode));
+    var q=constraints.length>0?fb.fsMod.query(ref,constraints[0]):fb.fsMod.query(ref);
+    var snap=await fb.fsMod.getDocs(q);
+    if(snap.empty){
+      list.innerHTML='<div style="text-align:center;padding:16px;color:var(--text2);font-size:14px">No reading activity yet.</div>';
+      return;
+    }
+    var html='';
+    var results=[];
+    snap.forEach(function(d){results.push(d.data())});
+    // Sort by most recent
+    results.sort(function(a,b){
+      var ta=a.completedAt?a.completedAt.seconds||0:a.startedAt?a.startedAt.seconds||0:0;
+      var tb=b.completedAt?b.completedAt.seconds||0:b.startedAt?b.startedAt.seconds||0:0;
+      return tb-ta;
+    });
+    results.forEach(function(r){
+      html+='<div class="sr-card"><div class="sr-top"><div class="sr-name">'+esc(r.studentName||r.studentId||'Student')+'</div>';
+      if(r.quizScore!==null&&r.quizScore!==undefined){
+        var pct=r.quizTotal?Math.round(r.quizScore/r.quizTotal*100):0;
+        html+='<div class="sr-score">'+pct+'%</div>';
+      } else {
+        html+='<div class="sr-score" style="color:var(--text2)">'+(r.completed?'Read':'Reading...')+'</div>';
+      }
+      html+='</div><div class="sr-meta">'+esc(r.passageTitle||'Passage')+' &middot; '+Math.round(r.minutesRead||0)+' min read</div></div>';
+    });
+    list.innerHTML=html;
+  }catch(e){
+    console.error(e);
+    list.innerHTML='<div style="color:var(--accent3);text-align:center;padding:16px">Error loading results</div>';
+  }
+}
+
+// ============================================
+// INIT EDIT QUESTIONS DISPLAY
+// ============================================
+renderEditQuestions();
+
+</script>
+</body>
+</html>

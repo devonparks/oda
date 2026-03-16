@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODA Flashcards</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#a8b2c8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:20px 16px 60px}
+.back{display:inline-block;margin-bottom:16px;color:var(--text2);text-decoration:none;font-size:14px;font-weight:600;transition:color .2s}
+.back:hover{color:var(--text)}
+
+.header{text-align:center;margin-bottom:28px}
+.header .emoji{font-size:56px;margin-bottom:8px;display:block}
+.header h1{font-family:'Fredoka',sans-serif;font-size:32px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header p{font-size:15px;color:var(--text2);margin-top:4px}
+
+/* Cards / Panels */
+.panel{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:28px 24px;margin-bottom:20px;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.panel-title{font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.panel-title .pt-icon{font-size:26px}
+
+/* Buttons */
+.btn{font-family:'Outfit',sans-serif;font-weight:700;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;font-size:15px;padding:12px 24px;letter-spacing:.3px}
+.btn:active{transform:scale(.96)}
+.btn:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
+.btn-accent{background:linear-gradient(135deg,var(--accent),#04b890);color:var(--bg)}
+.btn-accent2{background:linear-gradient(135deg,var(--accent2),#0d7ea0);color:#fff}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#f0b830);color:var(--bg)}
+.btn-danger{background:linear-gradient(135deg,var(--accent3),#d63060);color:#fff}
+.btn-ghost{background:var(--surface2);border:1.5px solid var(--border);color:var(--text2)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--text)}
+.btn-sm{padding:8px 16px;font-size:13px;border-radius:10px}
+.btn-lg{padding:16px 32px;font-size:18px;border-radius:16px}
+.btn-wide{width:100%}
+.btn-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+
+/* Inputs */
+.input{width:100%;padding:14px;background:var(--bg);border:2px solid var(--border);border-radius:12px;color:var(--text);font-family:'Outfit',sans-serif;font-size:16px;font-weight:500;outline:none;transition:border-color .2s;margin-bottom:12px}
+.input:focus{border-color:var(--accent)}
+.input::placeholder{color:#3a4560}
+textarea.input{resize:vertical;min-height:90px;line-height:1.5}
+select.input{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23a8b2c8' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 5.5l6.5 6.5 6.5-6.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px}
+.label{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:6px;display:block}
+.form-row{margin-bottom:16px}
+
+/* Mode selector grid */
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px}
+.mode-card{background:var(--surface2);border:2px solid var(--border);border-radius:16px;padding:20px 14px;text-align:center;cursor:pointer;transition:all .2s}
+.mode-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 8px 24px rgba(6,214,160,.1)}
+.mode-card.active{border-color:var(--accent);background:rgba(6,214,160,.08)}
+.mode-card .mc-emoji{font-size:32px;margin-bottom:6px;display:block}
+.mode-card .mc-title{font-family:'Fredoka',sans-serif;font-size:15px;font-weight:600;color:var(--text)}
+.mode-card .mc-desc{font-size:12px;color:var(--text2);margin-top:3px}
+
+/* Deck browser grid */
+.deck-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+.deck-card{background:var(--surface2);border:2px solid var(--border);border-radius:18px;padding:20px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.deck-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 30px rgba(6,214,160,.08)}
+.deck-card .dc-emoji{font-size:28px;margin-bottom:8px;display:block}
+.deck-card .dc-title{font-family:'Fredoka',sans-serif;font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.3}
+.deck-card .dc-meta{font-size:12px;color:var(--text2);margin-bottom:8px}
+.deck-card .dc-meta span{margin-right:10px}
+.deck-card .dc-bar{height:4px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:10px}
+.deck-card .dc-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:4px;transition:width .4s}
+.deck-card .dc-star{position:absolute;top:12px;right:12px;font-size:20px;cursor:pointer;opacity:.4;transition:all .2s}
+.deck-card .dc-star:hover,.deck-card .dc-star.starred{opacity:1}
+.deck-card .dc-badge{position:absolute;top:12px;left:12px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.5px}
+.dc-badge-public{background:rgba(17,138,178,.15);color:var(--accent2)}
+.dc-badge-assigned{background:rgba(6,214,160,.15);color:var(--accent)}
+
+/* Search */
+.search-bar{display:flex;gap:10px;margin-bottom:16px;align-items:center}
+.search-bar .input{margin-bottom:0;flex:1}
+.filter-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{padding:6px 14px;border-radius:10px;font-size:13px;font-weight:600;background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);cursor:pointer;transition:all .15s}
+.chip:hover{border-color:var(--accent2);color:var(--text)}
+.chip.active{border-color:var(--accent);color:var(--accent);background:rgba(6,214,160,.08)}
+
+/* ===== FLASHCARD 3D FLIP ===== */
+.fc-container{perspective:1200px;margin:20px auto;max-width:500px}
+.fc-inner{position:relative;width:100%;min-height:300px;transition:transform .6s cubic-bezier(.4,.2,.2,1);transform-style:preserve-3d;cursor:pointer}
+.fc-inner.flipped{transform:rotateY(180deg)}
+.fc-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.fc-front{background:linear-gradient(145deg,#1a2540,#162035);border:2px solid var(--accent);z-index:2}
+.fc-front .fc-label{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px}
+.fc-front .fc-term{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;color:var(--text);line-height:1.4;word-break:break-word}
+.fc-front .fc-tap{position:absolute;bottom:16px;font-size:12px;color:var(--text2);opacity:.6}
+.fc-back{background:linear-gradient(145deg,#1a2040,#12192e);border:2px solid var(--accent2);transform:rotateY(180deg)}
+.fc-back .fc-label{font-size:12px;font-weight:700;color:var(--accent2);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px}
+.fc-back .fc-def{font-size:20px;font-weight:500;color:var(--text);line-height:1.6;word-break:break-word}
+.fc-back .fc-tap{position:absolute;bottom:16px;font-size:12px;color:var(--text2);opacity:.6}
+
+/* Card number glow */
+.fc-num{position:absolute;top:16px;right:20px;font-size:13px;font-weight:700;color:var(--text2)}
+
+/* Navigation */
+.fc-nav{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:20px}
+.fc-nav-btn{width:48px;height:48px;border-radius:50%;background:var(--surface2);border:2px solid var(--border);color:var(--text);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s}
+.fc-nav-btn:hover{border-color:var(--accent);color:var(--accent)}
+.fc-nav-btn:disabled{opacity:.3;cursor:not-allowed}
+.fc-progress{font-family:'Fredoka',sans-serif;font-size:15px;color:var(--text2);min-width:80px;text-align:center}
+
+/* Know / Learning buttons */
+.fc-sort-btns{display:flex;gap:12px;justify-content:center;margin-top:16px}
+.fc-know{padding:12px 28px;border-radius:14px;font-weight:700;font-size:15px;cursor:pointer;transition:all .15s;border:none;font-family:'Outfit',sans-serif}
+.fc-know:active{transform:scale(.95)}
+.fc-know-yes{background:rgba(6,214,160,.15);color:var(--accent);border:2px solid rgba(6,214,160,.3)}
+.fc-know-yes:hover{background:rgba(6,214,160,.25)}
+.fc-know-no{background:rgba(239,71,111,.15);color:var(--accent3);border:2px solid rgba(239,71,111,.3)}
+.fc-know-no:hover{background:rgba(239,71,111,.25)}
+
+/* Progress dots */
+.fc-dots{display:flex;gap:4px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+.fc-dot{width:10px;height:10px;border-radius:50%;background:var(--border);transition:all .3s}
+.fc-dot.current{background:var(--gold);box-shadow:0 0 8px rgba(255,209,102,.4)}
+.fc-dot.mastered{background:var(--accent)}
+.fc-dot.learning{background:var(--accent3)}
+
+/* ===== QUIZ MODE ===== */
+.quiz-area{max-width:500px;margin:0 auto}
+.quiz-prompt{background:var(--surface2);border:2px solid var(--accent2);border-radius:20px;padding:32px;text-align:center;margin-bottom:20px}
+.quiz-prompt .qp-label{font-size:12px;font-weight:700;color:var(--accent2);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+.quiz-prompt .qp-term{font-family:'Fredoka',sans-serif;font-size:26px;font-weight:700;color:var(--text);line-height:1.4}
+.quiz-input-row{display:flex;gap:10px;margin-bottom:16px}
+.quiz-input-row .input{margin-bottom:0;flex:1;font-size:18px;text-align:center}
+.quiz-feedback{text-align:center;padding:16px;border-radius:14px;font-weight:700;font-size:16px;margin-bottom:16px;animation:fadeUp .3s ease}
+.quiz-feedback.correct{background:rgba(6,214,160,.12);color:var(--accent);border:1.5px solid rgba(6,214,160,.3)}
+.quiz-feedback.wrong{background:rgba(239,71,111,.12);color:var(--accent3);border:1.5px solid rgba(239,71,111,.3)}
+.quiz-score{text-align:center;font-family:'Fredoka',sans-serif;font-size:18px;color:var(--text2);margin-bottom:12px}
+.quiz-score span{color:var(--accent);font-size:24px}
+
+/* ===== MATCH MODE ===== */
+.match-area{max-width:600px;margin:0 auto}
+.match-timer{text-align:center;font-family:'Fredoka',sans-serif;font-size:20px;color:var(--gold);margin-bottom:16px}
+.match-timer span{font-size:28px;font-weight:700}
+.match-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:20px}
+.match-tile{background:var(--surface2);border:2px solid var(--border);border-radius:14px;padding:14px 10px;text-align:center;cursor:pointer;transition:all .2s;font-size:14px;font-weight:600;color:var(--text);min-height:60px;display:flex;align-items:center;justify-content:center;word-break:break-word;line-height:1.3;user-select:none}
+.match-tile:hover{border-color:var(--accent);transform:scale(1.03)}
+.match-tile.selected{border-color:var(--gold);background:rgba(255,209,102,.1);box-shadow:0 0 16px rgba(255,209,102,.15)}
+.match-tile.matched{opacity:0;transform:scale(.8);pointer-events:none;transition:all .4s}
+.match-tile.wrong{border-color:var(--accent3);background:rgba(239,71,111,.15);animation:shake .4s}
+.match-tile.term-tile{border-left:3px solid var(--accent)}
+.match-tile.def-tile{border-left:3px solid var(--accent2)}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+/* ===== SPEED ROUND ===== */
+.speed-area{max-width:500px;margin:0 auto;text-align:center}
+.speed-timer-bar{height:8px;background:var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px}
+.speed-timer-fill{height:100%;background:linear-gradient(90deg,var(--accent3),var(--gold),var(--accent));border-radius:8px;transition:width .1s linear}
+.speed-streak{font-family:'Fredoka',sans-serif;font-size:16px;color:var(--gold);margin-bottom:12px}
+.speed-streak span{font-size:24px;font-weight:700}
+.speed-card{background:var(--surface2);border:2px solid var(--gold);border-radius:20px;padding:32px;margin-bottom:20px}
+.speed-card .sp-term{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;color:var(--text)}
+.speed-input{width:100%;padding:16px;background:var(--bg);border:2px solid var(--border);border-radius:14px;color:var(--text);font-family:'Outfit',sans-serif;font-size:20px;font-weight:600;text-align:center;outline:none;margin-bottom:12px}
+.speed-input:focus{border-color:var(--gold)}
+.speed-score{font-family:'Fredoka',sans-serif;font-size:48px;font-weight:700;color:var(--accent);margin-bottom:8px}
+
+/* ===== LEARN MODE (Spaced Rep) ===== */
+.learn-area{max-width:500px;margin:0 auto}
+.learn-progress{margin-bottom:20px}
+.learn-bar{height:10px;background:var(--border);border-radius:10px;overflow:hidden}
+.learn-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:10px;transition:width .5s cubic-bezier(.34,1.56,.64,1)}
+.learn-text{text-align:center;font-size:14px;color:var(--text2);margin-top:6px;font-weight:600}
+.learn-btns{display:flex;gap:12px;justify-content:center;margin-top:20px}
+.learn-btn{padding:14px 24px;border-radius:14px;font-weight:700;font-size:15px;cursor:pointer;border:none;font-family:'Outfit',sans-serif;transition:all .15s}
+.learn-btn:active{transform:scale(.95)}
+.learn-btn-hard{background:rgba(239,71,111,.15);color:var(--accent3);border:2px solid rgba(239,71,111,.3)}
+.learn-btn-med{background:rgba(255,209,102,.15);color:var(--gold);border:2px solid rgba(255,209,102,.3)}
+.learn-btn-easy{background:rgba(6,214,160,.15);color:var(--accent);border:2px solid rgba(6,214,160,.3)}
+
+/* ===== RESULTS ===== */
+.result-panel{background:var(--surface);border:2px solid var(--accent);border-radius:24px;padding:36px;text-align:center;animation:fadeUp .4s ease}
+.result-emoji{font-size:64px;margin-bottom:12px;display:block}
+.result-score{font-family:'Fredoka',sans-serif;font-size:56px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.result-label{font-size:16px;color:var(--text2);font-weight:600;margin-bottom:20px}
+.result-details{text-align:left;margin-top:20px}
+.rd-item{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:10px;margin-bottom:6px;font-size:14px;font-weight:600}
+.rd-correct{background:rgba(6,214,160,.08);color:var(--accent)}
+.rd-wrong{background:rgba(239,71,111,.08);color:var(--accent3)}
+.rd-answer{font-size:12px;color:var(--text2);margin-left:8px}
+
+/* ===== TEACHER ===== */
+.teacher-tabs{display:flex;gap:6px;margin-bottom:20px;overflow-x:auto;padding-bottom:4px}
+.t-tab{padding:10px 20px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;border:2px solid var(--border);background:var(--surface2);color:var(--text2);white-space:nowrap;transition:all .15s;font-family:'Fredoka',sans-serif}
+.t-tab.active{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.t-section{display:none}
+.t-section.show{display:block}
+
+.card-list{display:grid;gap:8px;margin:16px 0}
+.card-item{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface2);border:1.5px solid var(--border);border-radius:14px;transition:all .15s}
+.card-item:hover{border-color:var(--accent)}
+.card-item .ci-num{font-family:'Fredoka',sans-serif;font-size:14px;color:var(--text2);min-width:28px}
+.card-item .ci-front{font-weight:700;color:var(--text);flex:1}
+.card-item .ci-back{font-weight:500;color:var(--text2);flex:1;font-size:14px}
+.card-item .ci-btns{display:flex;gap:6px}
+.card-item .ci-btn{padding:4px 10px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:'Outfit',sans-serif}
+.ci-edit{background:rgba(17,138,178,.15);color:var(--accent2)}
+.ci-del{background:rgba(239,71,111,.15);color:var(--accent3)}
+.ci-drag{cursor:grab;color:var(--text2);font-size:16px;padding:0 4px}
+.ci-drag:active{cursor:grabbing}
+
+/* AI button */
+.ai-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:linear-gradient(135deg,rgba(17,138,178,.1),rgba(17,138,178,.05));border:2px solid rgba(17,138,178,.25);border-radius:12px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;color:var(--accent2);transition:all .2s}
+.ai-btn:hover{border-color:var(--accent2);background:rgba(17,138,178,.15)}
+.ai-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Student progress table */
+.progress-table{width:100%;border-collapse:collapse;font-size:14px}
+.progress-table th{text-align:left;padding:10px 12px;border-bottom:2px solid var(--border);color:var(--text2);font-weight:700;font-size:13px}
+.progress-table td{padding:10px 12px;border-bottom:1px solid var(--border)}
+.progress-table tr:hover td{background:var(--surface2)}
+.prog-badge{display:inline-block;padding:3px 10px;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.prog-new{background:rgba(168,178,200,.15);color:var(--text2)}
+.prog-learning{background:rgba(255,209,102,.15);color:var(--gold)}
+.prog-mastered{background:rgba(6,214,160,.15);color:var(--accent)}
+
+/* Star animation */
+@keyframes starPop{0%{transform:scale(0) rotate(-30deg);opacity:0}60%{transform:scale(1.3) rotate(10deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+.star-anim{animation:starPop .5s ease}
+
+/* Leaderboard */
+.lb-list{max-width:400px;margin:0 auto}
+.lb-item{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;margin-bottom:8px}
+.lb-rank{font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700;color:var(--gold);min-width:32px}
+.lb-name{flex:1;font-weight:600}
+.lb-score{font-family:'Fredoka',sans-serif;font-weight:700;color:var(--accent)}
+.lb-item:first-child{border-color:var(--gold);background:rgba(255,209,102,.05)}
+
+/* Confetti */
+.confetti-piece{position:fixed;top:-20px;z-index:9999;pointer-events:none}
+
+/* Empty state */
+.empty{text-align:center;padding:40px 20px;color:var(--text2)}
+.empty .empty-emoji{font-size:48px;margin-bottom:12px;display:block}
+.empty .empty-text{font-size:16px;font-weight:600}
+
+/* Responsive */
+@media(max-width:500px){
+  .mode-grid{grid-template-columns:1fr 1fr}
+  .deck-grid{grid-template-columns:1fr}
+  .match-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr))}
+  .fc-front .fc-term{font-size:22px}
+  .fc-back .fc-def{font-size:17px}
+  .speed-card .sp-term{font-size:22px}
+  .header h1{font-size:26px}
+}
+
+/* Utility */
+.hidden{display:none!important}
+.mt-12{margin-top:12px}
+.mt-20{margin-top:20px}
+.mb-12{margin-bottom:12px}
+.mb-20{margin-bottom:20px}
+.text-center{text-align:center}
+.text-accent{color:var(--accent)}
+.text-gold{color:var(--gold)}
+.text-muted{color:var(--text2)}
+.separator{height:1px;background:var(--border);margin:20px 0}
+
+/* Drag & Drop ghost */
+.drag-ghost{opacity:.5}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px}
+::-webkit-scrollbar-thumb:hover{background:var(--text2)}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="app" id="app">
+<a href="student.html" class="back">&larr; Back to Hub</a>
+<div class="header">
+  <span class="emoji">&#x1F4DA;</span>
+  <h1>ODA Flashcards</h1>
+  <p id="headerSub">Study smarter, not harder</p>
+</div>
+<div id="mainContent"></div>
+</div>
+
+<script>
+// ===== GLOBALS =====
+var studentId = sessionStorage.getItem('studentId');
+var studentName = sessionStorage.getItem('studentName');
+var isTeacher = !studentId && (sessionStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
+var classCode = sessionStorage.getItem('classCode') || localStorage.getItem('odaClassCode') || '';
+
+var currentDeck = null;
+var currentCards = [];
+var currentIndex = 0;
+var cardStatuses = {};
+var studyStartTime = 0;
+
+// ===== INIT =====
+function init() {
+  if (isTeacher) {
+    document.querySelector('.back').href = 'teacher.html';
+    document.getElementById('headerSub').textContent = 'Create & manage flashcard decks';
+    showTeacherView();
+  } else {
+    showDeckBrowser();
+  }
+}
+
+// ===== UTILITY =====
+function $(id) { return document.getElementById(id); }
+function el(tag, cls, html) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (html !== undefined) e.innerHTML = html;
+  return e;
+}
+function genId() { return Date.now().toString(36) + Math.random().toString(36).substr(2, 6); }
+
+function shuffleArray(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function fuzzyMatch(a, b) {
+  var clean = function(s) { return s.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim(); };
+  var ca = clean(a), cb = clean(b);
+  if (ca === cb) return true;
+  if (ca.includes(cb) || cb.includes(ca)) return true;
+  // Levenshtein for close matches
+  var dist = levenshtein(ca, cb);
+  var maxLen = Math.max(ca.length, cb.length);
+  return maxLen > 0 && (dist / maxLen) < 0.25;
+}
+
+function levenshtein(a, b) {
+  var m = a.length, n = b.length;
+  var d = [];
+  for (var i = 0; i <= m; i++) { d[i] = [i]; }
+  for (var j = 0; j <= n; j++) { d[0][j] = j; }
+  for (var i = 1; i <= m; i++) {
+    for (var j = 1; j <= n; j++) {
+      var cost = a[i-1] === b[j-1] ? 0 : 1;
+      d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + cost);
+    }
+  }
+  return d[m][n];
+}
+
+function formatTime(sec) {
+  var m = Math.floor(sec / 60);
+  var s = sec % 60;
+  return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function awardCoins(amount) {
+  if (studentId && amount > 0) {
+    getFirebaseDB().then(function(fb) {
+      fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'students', studentId), {
+        coins: fb.fsMod.increment(amount)
+      });
+    }).catch(function(e) { console.error('Coin award error:', e); });
+    odaToast('+' + amount + ' coins!', 'success');
+  }
+}
+
+function saveProgress(deckId, data) {
+  if (!studentId) return;
+  getFirebaseDB().then(function(fb) {
+    var docRef = fb.fsMod.doc(fb.db, 'flashcardProgress', studentId + '_' + deckId);
+    fb.fsMod.setDoc(docRef, Object.assign({ studentId: studentId, deckId: deckId }, data), { merge: true });
+  }).catch(function(e) { console.error('Save progress error:', e); });
+}
+
+async function loadProgress(deckId) {
+  if (!studentId) return null;
+  try {
+    var fb = await getFirebaseDB();
+    var docRef = fb.fsMod.doc(fb.db, 'flashcardProgress', studentId + '_' + deckId);
+    var snap = await fb.fsMod.getDoc(docRef);
+    return snap.exists() ? snap.data() : null;
+  } catch(e) { console.error('Load progress error:', e); return null; }
+}
+
+// ======================================================
+//  DECK BROWSER (Student)
+// ======================================================
+async function showDeckBrowser() {
+  var mc = $('mainContent');
+  mc.innerHTML = '<div class="text-center text-muted" style="padding:40px"><div style="display:inline-block;width:24px;height:24px;border:3px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite"></div><p style="margin-top:12px;font-weight:600">Loading decks...</p></div>';
+
+  var decks = [];
+  try {
+    var fb = await getFirebaseDB();
+    // Assigned decks
+    if (classCode) {
+      var q1 = fb.fsMod.query(fb.fsMod.collection(fb.db, 'flashcardDecks'), fb.fsMod.where('classCode', '==', classCode));
+      var snap1 = await fb.fsMod.getDocs(q1);
+      snap1.forEach(function(d) { var data = d.data(); data.id = d.id; data._source = 'assigned'; decks.push(data); });
+    }
+    // Public / community decks
+    var q2 = fb.fsMod.query(fb.fsMod.collection(fb.db, 'flashcardDecks'), fb.fsMod.where('isPublic', '==', true));
+    var snap2 = await fb.fsMod.getDocs(q2);
+    snap2.forEach(function(d) {
+      if (!decks.find(function(x) { return x.id === d.id; })) {
+        var data = d.data(); data.id = d.id; data._source = 'community'; decks.push(data);
+      }
+    });
+  } catch(e) { console.error('Load decks error:', e); }
+
+  renderDeckBrowser(decks);
+}
+
+function renderDeckBrowser(decks, filterSubject, filterGrade, searchQ) {
+  var filtered = decks.filter(function(d) {
+    if (filterSubject && d.subject !== filterSubject) return false;
+    if (filterGrade && d.gradeLevel !== filterGrade) return false;
+    if (searchQ) {
+      var q = searchQ.toLowerCase();
+      return (d.title || '').toLowerCase().includes(q) || (d.subject || '').toLowerCase().includes(q);
+    }
+    return true;
+  });
+
+  var subjects = [];
+  decks.forEach(function(d) { if (d.subject && subjects.indexOf(d.subject) === -1) subjects.push(d.subject); });
+
+  var html = '<div class="search-bar">' +
+    '<input class="input" id="deckSearch" placeholder="Search decks..." oninput="filterDecks()">' +
+    '</div>' +
+    '<div class="filter-chips" id="filterChips">' +
+    '<span class="chip ' + (!filterSubject ? 'active' : '') + '" onclick="setSubjectFilter(\'\')">All</span>';
+  subjects.forEach(function(s) {
+    html += '<span class="chip ' + (filterSubject === s ? 'active' : '') + '" onclick="setSubjectFilter(\'' + esc(s) + '\')">' + esc(s) + '</span>';
+  });
+  html += '</div>';
+
+  if (filtered.length === 0) {
+    html += '<div class="empty"><span class="empty-emoji">&#x1F4DA;</span><div class="empty-text">No decks found</div><p style="color:var(--text2);margin-top:8px;font-size:14px">Ask your teacher to assign some flashcard decks!</p></div>';
+  } else {
+    html += '<div class="deck-grid">';
+    filtered.forEach(function(d) {
+      var cardCount = (d.cards || []).length;
+      var badge = d._source === 'assigned' ? '<span class="dc-badge dc-badge-assigned">Assigned</span>' : (d.isPublic ? '<span class="dc-badge dc-badge-public">Community</span>' : '');
+      var subjectEmojis = { Math: '\u2795', Science: '\uD83E\uDDEA', English: '\uD83D\uDCDA', History: '\uD83C\uDFF0', 'Social Studies': '\uD83C\uDF0E', Art: '\uD83C\uDFA8', Music: '\uD83C\uDFB5', 'Foreign Language': '\uD83C\uDF10', default: '\uD83D\uDCC7' };
+      var emojiChar = subjectEmojis[d.subject] || subjectEmojis.default;
+      html += '<div class="deck-card" onclick="selectDeck(\'' + d.id + '\')">' +
+        badge +
+        '<span class="dc-emoji">' + emojiChar + '</span>' +
+        '<div class="dc-title">' + esc(d.title) + '</div>' +
+        '<div class="dc-meta"><span>' + cardCount + ' cards</span><span>' + esc(d.subject || '') + '</span><span>' + esc(d.gradeLevel || '') + '</span></div>' +
+        '<div class="dc-bar"><div class="dc-bar-fill" style="width:0%"></div></div>' +
+        '</div>';
+    });
+    html += '</div>';
+  }
+
+  $('mainContent').innerHTML = html;
+  window._allDecks = decks;
+  window._currentFilter = { subject: filterSubject || '', grade: filterGrade || '' };
+
+  // Load progress for bars
+  if (studentId) {
+    filtered.forEach(function(d) {
+      loadProgress(d.id).then(function(prog) {
+        if (!prog || !prog.cardProgress) return;
+        var mastered = prog.cardProgress.filter(function(c) { return c.status === 'mastered'; }).length;
+        var total = (d.cards || []).length;
+        var pct = total > 0 ? Math.round((mastered / total) * 100) : 0;
+        var cards = document.querySelectorAll('.deck-card');
+        cards.forEach(function(card) {
+          if (card.querySelector('.dc-title').textContent === d.title) {
+            var bar = card.querySelector('.dc-bar-fill');
+            if (bar) bar.style.width = pct + '%';
+          }
+        });
+      });
+    });
+  }
+}
+
+window.setSubjectFilter = function(s) {
+  var q = $('deckSearch') ? $('deckSearch').value : '';
+  renderDeckBrowser(window._allDecks || [], s, '', q);
+};
+
+window.filterDecks = function() {
+  var q = $('deckSearch') ? $('deckSearch').value : '';
+  renderDeckBrowser(window._allDecks || [], window._currentFilter ? window._currentFilter.subject : '', '', q);
+};
+
+// ======================================================
+//  SELECT DECK -> Mode chooser
+// ======================================================
+async function selectDeck(deckId) {
+  try {
+    var fb = await getFirebaseDB();
+    var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'flashcardDecks', deckId));
+    if (!snap.exists()) { odaToast('Deck not found', 'error'); return; }
+    currentDeck = snap.data();
+    currentDeck.id = deckId;
+    currentCards = (currentDeck.cards || []).slice();
+    showModeChooser();
+  } catch(e) { odaToast('Error loading deck', 'error'); console.error(e); }
+}
+window.selectDeck = selectDeck;
+
+function showModeChooser() {
+  var d = currentDeck;
+  var html = '<div class="panel">' +
+    '<div class="panel-title"><span class="pt-icon">&#x1F4DA;</span>' + esc(d.title) + '</div>' +
+    '<p class="text-muted mb-12">' + esc(d.subject || '') + ' &bull; ' + esc(d.gradeLevel || '') + ' &bull; ' + (d.cards || []).length + ' cards</p>' +
+    '<div class="separator"></div>' +
+    '<p class="text-muted mb-12" style="font-weight:700">Choose a study mode:</p>' +
+    '<div class="mode-grid">' +
+    '<div class="mode-card" onclick="startMode(\'browse\')"><span class="mc-emoji">&#x1F4D6;</span><div class="mc-title">Browse</div><div class="mc-desc">Flip through cards</div></div>' +
+    '<div class="mode-card" onclick="startMode(\'quiz\')"><span class="mc-emoji">&#x270D;&#xFE0F;</span><div class="mc-title">Quiz</div><div class="mc-desc">Type the answer</div></div>' +
+    '<div class="mode-card" onclick="startMode(\'match\')"><span class="mc-emoji">&#x1F9E9;</span><div class="mc-title">Match</div><div class="mc-desc">Pair terms & defs</div></div>' +
+    '<div class="mode-card" onclick="startMode(\'speed\')"><span class="mc-emoji">&#x26A1;</span><div class="mc-title">Speed Round</div><div class="mc-desc">Beat the clock</div></div>' +
+    '<div class="mode-card" onclick="startMode(\'learn\')"><span class="mc-emoji">&#x1F9E0;</span><div class="mc-title">Learn</div><div class="mc-desc">Spaced repetition</div></div>' +
+    '</div>' +
+    '<div class="btn-row"><button class="btn btn-ghost" onclick="showDeckBrowser()">&larr; Back to Decks</button></div>' +
+    '</div>';
+  $('mainContent').innerHTML = html;
+}
+
+window.startMode = function(mode) {
+  studyStartTime = Date.now();
+  currentIndex = 0;
+  cardStatuses = {};
+  currentCards.forEach(function(c) { cardStatuses[c.id] = 'new'; });
+  if (mode === 'browse') startBrowse();
+  else if (mode === 'quiz') startQuiz();
+  else if (mode === 'match') startMatch();
+  else if (mode === 'speed') startSpeed();
+  else if (mode === 'learn') startLearn();
+};
+
+// ======================================================
+//  BROWSE MODE
+// ======================================================
+function startBrowse() {
+  currentIndex = 0;
+  var html = '<div class="panel" style="background:transparent;border:none;padding:0">' +
+    '<div class="text-center mb-12"><button class="btn btn-ghost btn-sm" onclick="showModeChooser()">&larr; Back</button></div>' +
+    '<div class="fc-container" id="fcContainer">' +
+    '<div class="fc-inner" id="fcInner" onclick="flipCard()">' +
+    '<div class="fc-face fc-front"><span class="fc-label">TERM</span><div class="fc-term" id="fcFront"></div><span class="fc-num" id="fcNum"></span><span class="fc-tap">tap to flip</span></div>' +
+    '<div class="fc-face fc-back"><span class="fc-label">DEFINITION</span><div class="fc-def" id="fcBack"></div><span class="fc-num" id="fcNumB"></span><span class="fc-tap">tap to flip</span></div>' +
+    '</div></div>' +
+    '<div class="fc-nav">' +
+    '<button class="fc-nav-btn" id="btnPrev" onclick="prevCard()">&#x276E;</button>' +
+    '<span class="fc-progress" id="fcProgress"></span>' +
+    '<button class="fc-nav-btn" id="btnNext" onclick="nextCard()">&#x276F;</button>' +
+    '</div>' +
+    '<div class="fc-sort-btns">' +
+    '<button class="fc-know fc-know-no" onclick="markCard(\'learning\')">&#x274C; Still Learning</button>' +
+    '<button class="fc-know fc-know-yes" onclick="markCard(\'mastered\')">&#x2705; Know It</button>' +
+    '</div>' +
+    '<div class="fc-dots" id="fcDots"></div>' +
+    '</div>';
+  $('mainContent').innerHTML = html;
+  renderBrowseCard();
+}
+
+function renderBrowseCard() {
+  if (!currentCards.length) return;
+  var c = currentCards[currentIndex];
+  $('fcFront').textContent = c.front;
+  $('fcBack').textContent = c.back;
+  var numStr = (currentIndex + 1) + '/' + currentCards.length;
+  $('fcNum').textContent = numStr;
+  $('fcNumB').textContent = numStr;
+  $('fcProgress').textContent = 'Card ' + (currentIndex + 1) + ' of ' + currentCards.length;
+  $('fcInner').classList.remove('flipped');
+  $('btnPrev').disabled = currentIndex === 0;
+  $('btnNext').disabled = currentIndex >= currentCards.length - 1;
+
+  // Dots
+  var dots = '';
+  currentCards.forEach(function(card, i) {
+    var cls = 'fc-dot';
+    if (i === currentIndex) cls += ' current';
+    if (cardStatuses[card.id] === 'mastered') cls += ' mastered';
+    else if (cardStatuses[card.id] === 'learning') cls += ' learning';
+    dots += '<span class="' + cls + '"></span>';
+  });
+  $('fcDots').innerHTML = dots;
+}
+
+window.flipCard = function() {
+  $('fcInner').classList.toggle('flipped');
+};
+
+window.prevCard = function() {
+  if (currentIndex > 0) { currentIndex--; renderBrowseCard(); }
+};
+
+window.nextCard = function() {
+  if (currentIndex < currentCards.length - 1) { currentIndex++; renderBrowseCard(); }
+  else { finishBrowse(); }
+};
+
+window.markCard = function(status) {
+  var c = currentCards[currentIndex];
+  cardStatuses[c.id] = status;
+  renderBrowseCard();
+  // Auto advance
+  if (currentIndex < currentCards.length - 1) {
+    setTimeout(function() { currentIndex++; renderBrowseCard(); }, 300);
+  } else {
+    setTimeout(finishBrowse, 500);
+  }
+};
+
+function finishBrowse() {
+  var mastered = 0, learning = 0;
+  currentCards.forEach(function(c) {
+    if (cardStatuses[c.id] === 'mastered') mastered++;
+    else if (cardStatuses[c.id] === 'learning') learning++;
+  });
+  var total = currentCards.length;
+  var allMastered = mastered === total;
+
+  var studyMin = Math.max(1, Math.round((Date.now() - studyStartTime) / 60000));
+  var coinReward = allMastered ? 20 : 5;
+
+  // Save progress
+  var cardProg = currentCards.map(function(c) {
+    return { cardId: c.id, status: cardStatuses[c.id] || 'new', lastSeen: new Date().toISOString(), ease: cardStatuses[c.id] === 'mastered' ? 3 : 1 };
+  });
+  saveProgress(currentDeck.id, { cardProgress: cardProg, studyTime: studyMin });
+  awardCoins(coinReward);
+  if (allMastered && typeof odaConfetti === 'function') odaConfetti();
+
+  var html = '<div class="result-panel">' +
+    '<span class="result-emoji">' + (allMastered ? '&#x1F3C6;' : '&#x1F4DA;') + '</span>' +
+    '<div class="result-score">' + mastered + '/' + total + '</div>' +
+    '<div class="result-label">cards mastered</div>' +
+    (learning > 0 ? '<p class="text-muted">' + learning + ' cards still learning</p>' : '') +
+    '<p class="text-muted mt-12">Study time: ' + studyMin + ' min</p>' +
+    '<div class="btn-row">' +
+    '<button class="btn btn-accent" onclick="startBrowse()">&#x1F504; Study Again</button>' +
+    '<button class="btn btn-ghost" onclick="showModeChooser()">Other Modes</button>' +
+    '</div></div>';
+  $('mainContent').innerHTML = html;
+}
+window.startBrowse = startBrowse;
+
+// ======================================================
+//  QUIZ MODE
+// ======================================================
+var quizQueue = [];
+var quizScore = 0;
+var quizTotal = 0;
+var quizResults = [];
+var quizShowingFeedback = false;
+
+function startQuiz() {
+  quizQueue = shuffleArray(currentCards.slice());
+  quizScore = 0;
+  quizTotal = currentCards.length;
+  quizResults = [];
+  quizShowingFeedback = false;
+  renderQuiz();
+}
+window.startQuiz = startQuiz;
+
+function renderQuiz() {
+  if (quizQueue.length === 0) { finishQuiz(); return; }
+  var c = quizQueue[0];
+  var answered = quizResults.length;
+  var html = '<div class="quiz-area">' +
+    '<div class="text-center mb-12"><button class="btn btn-ghost btn-sm" onclick="showModeChooser()">&larr; Back</button></div>' +
+    '<div class="quiz-score">Score: <span>' + quizScore + '/' + quizTotal + '</span></div>' +
+    '<p class="text-muted text-center mb-12">Question ' + (answered + 1) + ' of ' + quizTotal + '</p>' +
+    '<div class="quiz-prompt"><span class="qp-label">What is the definition?</span><div class="qp-term">' + esc(c.front) + '</div></div>' +
+    '<div class="quiz-input-row"><input class="input" id="quizAnswer" placeholder="Type your answer..." autofocus></div>' +
+    '<div id="quizFeedback"></div>' +
+    '<div class="btn-row"><button class="btn btn-accent btn-wide" id="quizSubmit" onclick="submitQuiz()">Check Answer</button></div>' +
+    '<div class="fc-dots mt-20" id="quizDots"></div>' +
+    '</div>';
+  $('mainContent').innerHTML = html;
+  $('quizAnswer').addEventListener('keydown', function(e) { if (e.key === 'Enter') submitQuiz(); });
+  $('quizAnswer').focus();
+  renderQuizDots();
+}
+
+function renderQuizDots() {
+  var dots = '';
+  for (var i = 0; i < quizTotal; i++) {
+    var cls = 'fc-dot';
+    if (i < quizResults.length) cls += quizResults[i].correct ? ' mastered' : ' learning';
+    else if (i === quizResults.length) cls += ' current';
+    dots += '<span class="' + cls + '"></span>';
+  }
+  if ($('quizDots')) $('quizDots').innerHTML = dots;
+}
+
+window.submitQuiz = function() {
+  if (quizShowingFeedback) { quizQueue.shift(); quizShowingFeedback = false; renderQuiz(); return; }
+  var answer = $('quizAnswer').value.trim();
+  if (!answer) return;
+  var c = quizQueue[0];
+  var correct = fuzzyMatch(answer, c.back);
+
+  quizResults.push({ front: c.front, back: c.back, answer: answer, correct: correct });
+  if (correct) quizScore++;
+
+  var fb = $('quizFeedback');
+  if (correct) {
+    fb.innerHTML = '<div class="quiz-feedback correct">&#x2705; Correct!</div>';
+  } else {
+    fb.innerHTML = '<div class="quiz-feedback wrong">&#x274C; Incorrect<br><span style="font-size:14px;font-weight:500">Answer: ' + esc(c.back) + '</span></div>';
+    // Queue wrong answer for retry at end
+    quizQueue.push(c);
+  }
+
+  $('quizSubmit').textContent = 'Next \u2192';
+  $('quizAnswer').disabled = true;
+  quizShowingFeedback = true;
+  $('quiz-score') || null;
+  var scoreEl = document.querySelector('.quiz-score span');
+  if (scoreEl) scoreEl.textContent = quizScore + '/' + quizTotal;
+  renderQuizDots();
+};
+
+function finishQuiz() {
+  var pct = quizTotal > 0 ? Math.round((quizScore / quizTotal) * 100) : 0;
+  var coinReward = 10;
+  awardCoins(coinReward);
+
+  var cardProg = currentCards.map(function(c) {
+    var r = quizResults.find(function(x) { return x.front === c.front && x.correct; });
+    return { cardId: c.id, status: r ? 'mastered' : 'learning', lastSeen: new Date().toISOString(), ease: r ? 3 : 1 };
+  });
+  saveProgress(currentDeck.id, {
+    cardProgress: cardProg,
+    quizScores: [{ date: new Date().toISOString(), score: quizScore, total: quizTotal }]
+  });
+
+  if (pct >= 80 && typeof odaConfetti === 'function') odaConfetti();
+
+  var html = '<div class="result-panel">' +
+    '<span class="result-emoji">' + (pct >= 80 ? '&#x1F31F;' : pct >= 50 ? '&#x1F44D;' : '&#x1F4AA;') + '</span>' +
+    '<div class="result-score">' + pct + '%</div>' +
+    '<div class="result-label">' + quizScore + ' of ' + quizTotal + ' correct</div>' +
+    '<div class="result-details">';
+  quizResults.forEach(function(r) {
+    if (r.correct) {
+      html += '<div class="rd-item rd-correct"><span>' + esc(r.front) + '</span><span>&#x2705;</span></div>';
+    } else {
+      html += '<div class="rd-item rd-wrong"><span>' + esc(r.front) + '<span class="rd-answer">Your answer: ' + esc(r.answer) + '</span></span><span>&#x274C;</span></div>';
+    }
+  });
+  html += '</div><div class="btn-row">' +
+    '<button class="btn btn-accent" onclick="startQuiz()">&#x1F504; Retry</button>' +
+    '<button class="btn btn-ghost" onclick="showModeChooser()">Other Modes</button>' +
+    '</div></div>';
+  $('mainContent').innerHTML = html;
+}
+
+// ======================================================
+//  MATCH MODE
+// ======================================================
+var matchPairs = [];
+var matchSelected = null;
+var matchMatched = 0;
+var matchTimer = 0;
+var matchInterval = null;
+var matchWrong = 0;
+
+function startMatch() {
+  var cards = currentCards.slice(0, 8); // Max 8 pairs for playability
+  matchPairs = cards.slice();
+  matchSelected = null;
+  matchMatched = 0;
+  matchTimer = 0;
+  matchWrong = 0;
+  if (matchInterval) clearInterval(matchInterval);
+  matchInterval = setInterval(function() { matchTimer++; updateMatchTimer(); }, 1000);
+
+  var terms = shuffleArray(cards.map(function(c, i) { return { id: c.id, text: c.front, type: 'term', pairIdx: i }; }));
+  var defs = shuffleArray(cards.map(function(c, i) { return { id: c.id, text: c.back, type: 'def', pairIdx: i }; }));
+  var allTiles = [];
+  terms.forEach(function(t) { allTiles.push(t); });
+  defs.forEach(function(d) { allTiles.push(d); });
+  allTiles = shuffleArray(allTiles);
+
+  var html = '<div class="match-area">' +
+    '<div class="text-center mb-12"><button class="btn btn-ghost btn-sm" onclick="endMatch();showModeChooser()">&larr; Back</button></div>' +
+    '<div class="match-timer">&#x23F1;&#xFE0F; <span id="matchTime">0:00</span></div>' +
+    '<p class="text-muted text-center mb-12">Match each term with its definition</p>' +
+    '<div class="match-grid" id="matchGrid">';
+  allTiles.forEach(function(t, i) {
+    var cls = 'match-tile ' + (t.type === 'term' ? 'term-tile' : 'def-tile');
+    html += '<div class="' + cls + '" data-id="' + t.id + '" data-type="' + t.type + '" data-idx="' + i + '" onclick="clickMatchTile(this)">' + esc(t.text) + '</div>';
+  });
+  html += '</div></div>';
+  $('mainContent').innerHTML = html;
+}
+window.startMatch = startMatch;
+
+function updateMatchTimer() {
+  var el = $('matchTime');
+  if (el) el.textContent = formatTime(matchTimer);
+}
+
+function endMatch() {
+  if (matchInterval) { clearInterval(matchInterval); matchInterval = null; }
+}
+
+window.clickMatchTile = function(tile) {
+  if (tile.classList.contains('matched')) return;
+  var id = tile.dataset.id;
+  var type = tile.dataset.type;
+
+  if (matchSelected === null) {
+    matchSelected = { el: tile, id: id, type: type };
+    tile.classList.add('selected');
+    return;
+  }
+
+  if (matchSelected.el === tile) {
+    tile.classList.remove('selected');
+    matchSelected = null;
+    return;
+  }
+
+  // Must pick one term and one definition
+  if (matchSelected.type === type) {
+    matchSelected.el.classList.remove('selected');
+    matchSelected = { el: tile, id: id, type: type };
+    tile.classList.add('selected');
+    return;
+  }
+
+  // Check match
+  if (matchSelected.id === id) {
+    // Correct match
+    matchSelected.el.classList.remove('selected');
+    matchSelected.el.classList.add('matched');
+    tile.classList.add('matched');
+    matchMatched++;
+    matchSelected = null;
+
+    if (matchMatched >= matchPairs.length) {
+      endMatch();
+      setTimeout(finishMatch, 500);
+    }
+  } else {
+    // Wrong match
+    matchWrong++;
+    var prevEl = matchSelected.el;
+    tile.classList.add('wrong');
+    prevEl.classList.add('wrong');
+    prevEl.classList.remove('selected');
+    matchSelected = null;
+    setTimeout(function() {
+      tile.classList.remove('wrong');
+      prevEl.classList.remove('wrong');
+    }, 500);
+  }
+};
+
+function finishMatch() {
+  var coinReward = Math.max(5, 15 - matchWrong * 2);
+  awardCoins(coinReward);
+  if (typeof odaConfetti === 'function') odaConfetti();
+
+  var html = '<div class="result-panel">' +
+    '<span class="result-emoji">&#x1F389;</span>' +
+    '<div class="result-score">' + formatTime(matchTimer) + '</div>' +
+    '<div class="result-label">All ' + matchPairs.length + ' pairs matched!</div>' +
+    (matchWrong > 0 ? '<p class="text-muted">' + matchWrong + ' wrong attempts</p>' : '<p class="text-accent" style="font-weight:700">Perfect - no mistakes!</p>') +
+    '<div class="btn-row">' +
+    '<button class="btn btn-accent" onclick="startMatch()">&#x1F504; Play Again</button>' +
+    '<button class="btn btn-ghost" onclick="showModeChooser()">Other Modes</button>' +
+    '</div></div>';
+  $('mainContent').innerHTML = html;
+}
+
+// ======================================================
+//  SPEED ROUND
+// ======================================================
+var speedQueue = [];
+var speedScore = 0;
+var speedStreak = 0;
+var speedBestStreak = 0;
+var speedTimer = null;
+var speedTimeLeft = 5;
+var speedCorrect = 0;
+var speedTotal = 0;
+var speedResults = [];
+
+function startSpeed() {
+  speedQueue = shuffleArray(currentCards.slice());
+  speedScore = 0;
+  speedStreak = 0;
+  speedBestStreak = 0;
+  speedCorrect = 0;
+  speedTotal = speedQueue.length;
+  speedResults = [];
+  renderSpeedCard();
+}
+window.startSpeed = startSpeed;
+
+function renderSpeedCard() {
+  if (speedQueue.length === 0) { finishSpeed(); return; }
+  var c = speedQueue[0];
+  var html = '<div class="speed-area">' +
+    '<div class="text-center mb-12"><button class="btn btn-ghost btn-sm" onclick="clearSpeedTimer();showModeChooser()">&larr; Back</button></div>' +
+    '<div class="speed-timer-bar"><div class="speed-timer-fill" id="speedBar" style="width:100%"></div></div>' +
+    '<div class="speed-streak">&#x1F525; Streak: <span id="speedStreak">' + speedStreak + '</span></div>' +
+    '<p class="text-muted text-center mb-12">Card ' + (speedTotal - speedQueue.length + 1) + ' of ' + speedTotal + '</p>' +
+    '<div class="speed-card"><div class="sp-term">' + esc(c.front) + '</div></div>' +
+    '<input class="speed-input" id="speedInput" placeholder="Type answer..." autofocus>' +
+    '<div id="speedFeedback"></div>' +
+    '<div class="btn-row"><button class="btn btn-gold btn-wide" id="speedSubmit" onclick="submitSpeed()">Submit &#x26A1;</button></div>' +
+    '</div>';
+  $('mainContent').innerHTML = html;
+  $('speedInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') submitSpeed(); });
+  $('speedInput').focus();
+  startSpeedTimer();
+}
+
+function startSpeedTimer() {
+  speedTimeLeft = 5000;
+  clearSpeedTimer();
+  speedTimer = setInterval(function() {
+    speedTimeLeft -= 100;
+    var pct = Math.max(0, (speedTimeLeft / 5000) * 100);
+    var bar = $('speedBar');
+    if (bar) bar.style.width = pct + '%';
+    if (speedTimeLeft <= 0) {
+      clearSpeedTimer();
+      speedTimeout();
+    }
+  }, 100);
+}
+
+function clearSpeedTimer() {
+  if (speedTimer) { clearInterval(speedTimer); speedTimer = null; }
+}
+window.clearSpeedTimer = clearSpeedTimer;
+
+function speedTimeout() {
+  var c = speedQueue.shift();
+  speedResults.push({ front: c.front, back: c.back, answer: '(time up)', correct: false });
+  speedStreak = 0;
+  if ($('speedStreak')) $('speedStreak').textContent = speedStreak;
+  var fb = $('speedFeedback');
+  if (fb) fb.innerHTML = '<div class="quiz-feedback wrong">&#x23F0; Time\'s up! Answer: ' + esc(c.back) + '</div>';
+  setTimeout(renderSpeedCard, 1200);
+}
+
+window.submitSpeed = function() {
+  clearSpeedTimer();
+  var answer = $('speedInput').value.trim();
+  if (!answer) { startSpeedTimer(); return; }
+  var c = speedQueue.shift();
+  var correct = fuzzyMatch(answer, c.back);
+  speedResults.push({ front: c.front, back: c.back, answer: answer, correct: correct });
+
+  if (correct) {
+    speedCorrect++;
+    speedStreak++;
+    if (speedStreak > speedBestStreak) speedBestStreak = speedStreak;
+    var timeBonus = Math.ceil(speedTimeLeft / 1000);
+    speedScore += 10 + (timeBonus * 2) + (speedStreak > 1 ? speedStreak * 3 : 0);
+    var fb = $('speedFeedback');
+    if (fb) fb.innerHTML = '<div class="quiz-feedback correct">&#x2705; Correct! +' + (10 + timeBonus * 2) + ' pts</div>';
+  } else {
+    speedStreak = 0;
+    var fb = $('speedFeedback');
+    if (fb) fb.innerHTML = '<div class="quiz-feedback wrong">&#x274C; Answer: ' + esc(c.back) + '</div>';
+  }
+  if ($('speedStreak')) $('speedStreak').textContent = speedStreak;
+  setTimeout(renderSpeedCard, 1000);
+};
+
+function finishSpeed() {
+  clearSpeedTimer();
+  var coinReward = Math.max(5, Math.floor(speedScore / 10));
+  awardCoins(coinReward);
+  if (speedCorrect === speedTotal && typeof odaConfetti === 'function') odaConfetti();
+
+  // Save to leaderboard
+  if (studentId) {
+    getFirebaseDB().then(function(fb) {
+      fb.fsMod.addDoc(fb.fsMod.collection(fb.db, 'flashcardLeaderboard'), {
+        studentId: studentId, studentName: studentName || 'Student',
+        deckId: currentDeck.id, deckTitle: currentDeck.title,
+        score: speedScore, correct: speedCorrect, total: speedTotal,
+        bestStreak: speedBestStreak, date: new Date().toISOString()
+      });
+    }).catch(function(e) { console.error(e); });
+  }
+
+  var html = '<div class="result-panel">' +
+    '<span class="result-emoji">&#x26A1;</span>' +
+    '<div class="speed-score">' + speedScore + '</div>' +
+    '<div class="result-label">points scored</div>' +
+    '<p class="text-muted">' + speedCorrect + '/' + speedTotal + ' correct &bull; Best streak: ' + speedBestStreak + '</p>' +
+    '<div class="separator"></div>' +
+    '<div id="speedLeaderboard"><p class="text-muted">Loading leaderboard...</p></div>' +
+    '<div class="btn-row">' +
+    '<button class="btn btn-gold" onclick="startSpeed()">&#x1F504; Play Again</button>' +
+    '<button class="btn btn-ghost" onclick="showModeChooser()">Other Modes</button>' +
+    '</div></div>';
+  $('mainContent').innerHTML = html;
+  loadLeaderboard();
+}
+
+async function loadLeaderboard() {
+  try {
+    var fb = await getFirebaseDB();
+    var q = fb.fsMod.query(
+      fb.fsMod.collection(fb.db, 'flashcardLeaderboard'),
+      fb.fsMod.where('deckId', '==', currentDeck.id),
+      fb.fsMod.orderBy('score', 'desc'),
+      fb.fsMod.limit(5)
+    );
+    var snap = await fb.fsMod.getDocs(q);
+    var entries = [];
+    snap.forEach(function(d) { entries.push(d.data()); });
+    var lbEl = $('speedLeaderboard');
+    if (!lbEl) return;
+    if (entries.length === 0) { lbEl.innerHTML = '<p class="text-muted text-center">No scores yet - you could be #1!</p>'; return; }
+    var html = '<h3 style="font-family:Fredoka;font-weight:700;text-align:center;margin-bottom:12px;color:var(--gold)">&#x1F3C6; Leaderboard</h3><div class="lb-list">';
+    entries.forEach(function(e, i) {
+      var medals = ['&#x1F947;', '&#x1F948;', '&#x1F949;'];
+      html += '<div class="lb-item"><span class="lb-rank">' + (medals[i] || (i + 1)) + '</span><span class="lb-name">' + esc(e.studentName) + '</span><span class="lb-score">' + e.score + ' pts</span></div>';
+    });
+    html += '</div>';
+    lbEl.innerHTML = html;
+  } catch(e) { console.error(e); }
+}
+
+// ======================================================
+//  LEARN MODE (Spaced Repetition)
+// ======================================================
+var learnCards = [];
+var learnIndex = 0;
+var learnMastered = 0;
+var learnFlipped = false;
+
+function startLearn() {
+  // Initialize with ease levels
+  learnCards = currentCards.map(function(c) {
+    return { id: c.id, front: c.front, back: c.back, ease: 1, interval: 1, reps: 0 };
+  });
+  learnIndex = 0;
+  learnMastered = 0;
+  learnFlipped = false;
+  renderLearnCard();
+}
+window.startLearn = startLearn;
+
+function getNextLearnCard() {
+  // Prioritize cards with lower ease
+  var available = learnCards.filter(function(c) { return c.ease < 4; });
+  if (available.length === 0) return null;
+  // Weight towards harder cards
+  available.sort(function(a, b) { return a.ease - b.ease; });
+  // Pick from top 3 (hardest) randomly
+  var pool = available.slice(0, Math.min(3, available.length));
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function renderLearnCard() {
+  learnMastered = learnCards.filter(function(c) { return c.ease >= 4; }).length;
+  var total = learnCards.length;
+  var pct = total > 0 ? Math.round((learnMastered / total) * 100) : 0;
+
+  if (learnMastered >= total) { finishLearn(); return; }
+
+  var card = getNextLearnCard();
+  if (!card) { finishLearn(); return; }
+  learnFlipped = false;
+
+  var html = '<div class="learn-area">' +
+    '<div class="text-center mb-12"><button class="btn btn-ghost btn-sm" onclick="showModeChooser()">&larr; Back</button></div>' +
+    '<div class="learn-progress"><div class="learn-bar"><div class="learn-bar-fill" style="width:' + pct + '%"></div></div>' +
+    '<div class="learn-text">&#x1F9E0; You know ' + learnMastered + ' of ' + total + ' cards (' + pct + '%)</div></div>' +
+    '<div class="fc-container"><div class="fc-inner" id="learnInner" onclick="flipLearnCard()">' +
+    '<div class="fc-face fc-front"><span class="fc-label">TERM</span><div class="fc-term">' + esc(card.front) + '</div><span class="fc-tap">tap to reveal answer</span></div>' +
+    '<div class="fc-face fc-back"><span class="fc-label">DEFINITION</span><div class="fc-def">' + esc(card.back) + '</div><span class="fc-tap">rate your confidence below</span></div>' +
+    '</div></div>' +
+    '<div class="learn-btns hidden" id="learnBtns">' +
+    '<button class="learn-btn learn-btn-hard" onclick="rateLearn(\'' + card.id + '\', \'hard\')">&#x1F6D1; Hard</button>' +
+    '<button class="learn-btn learn-btn-med" onclick="rateLearn(\'' + card.id + '\', \'medium\')">&#x1F914; Medium</button>' +
+    '<button class="learn-btn learn-btn-easy" onclick="rateLearn(\'' + card.id + '\', \'easy\')">&#x1F4A1; Easy</button>' +
+    '</div></div>';
+  $('mainContent').innerHTML = html;
+  window._currentLearnCardId = card.id;
+}
+
+window.flipLearnCard = function() {
+  var inner = $('learnInner');
+  if (!inner) return;
+  if (!learnFlipped) {
+    inner.classList.add('flipped');
+    learnFlipped = true;
+    $('learnBtns').classList.remove('hidden');
+  } else {
+    inner.classList.remove('flipped');
+    learnFlipped = false;
+    $('learnBtns').classList.add('hidden');
+  }
+};
+
+window.rateLearn = function(cardId, rating) {
+  var card = learnCards.find(function(c) { return c.id === cardId; });
+  if (!card) return;
+  card.reps++;
+  if (rating === 'easy') {
+    card.ease = Math.min(5, card.ease + 2);
+    card.interval *= 3;
+  } else if (rating === 'medium') {
+    card.ease = Math.min(5, card.ease + 1);
+    card.interval *= 1.5;
+  } else {
+    card.ease = Math.max(0, card.ease - 1);
+    card.interval = 1;
+  }
+  renderLearnCard();
+};
+
+function finishLearn() {
+  var total = learnCards.length;
+  var coinReward = 20;
+  awardCoins(coinReward);
+  if (typeof odaConfetti === 'function') odaConfetti();
+
+  var cardProg = learnCards.map(function(c) {
+    return { cardId: c.id, status: c.ease >= 4 ? 'mastered' : 'learning', lastSeen: new Date().toISOString(), ease: c.ease };
+  });
+  var studyMin = Math.max(1, Math.round((Date.now() - studyStartTime) / 60000));
+  saveProgress(currentDeck.id, { cardProgress: cardProg, studyTime: studyMin });
+
+  var html = '<div class="result-panel">' +
+    '<span class="result-emoji">&#x1F9E0;</span>' +
+    '<div class="result-score">100%</div>' +
+    '<div class="result-label">All ' + total + ' cards mastered!</div>' +
+    '<p class="text-muted">Great job! You\'ve completed this deck with spaced repetition.</p>' +
+    '<div class="btn-row">' +
+    '<button class="btn btn-accent" onclick="startLearn()">&#x1F504; Review Again</button>' +
+    '<button class="btn btn-ghost" onclick="showModeChooser()">Other Modes</button>' +
+    '</div></div>';
+  $('mainContent').innerHTML = html;
+}
+
+// ======================================================
+//  TEACHER VIEW
+// ======================================================
+var teacherDecks = [];
+var editingDeck = null;
+var editingCards = [];
+
+function showTeacherView() {
+  var html = '<div class="teacher-tabs">' +
+    '<div class="t-tab active" onclick="switchTeacherTab(\'create\')">&#x2795; Create Deck</div>' +
+    '<div class="t-tab" onclick="switchTeacherTab(\'manage\')">&#x1F4CB; My Decks</div>' +
+    '<div class="t-tab" onclick="switchTeacherTab(\'progress\')">&#x1F4CA; Progress</div>' +
+    '</div>' +
+    '<div id="tCreate" class="t-section show"></div>' +
+    '<div id="tManage" class="t-section"></div>' +
+    '<div id="tProgress" class="t-section"></div>';
+  $('mainContent').innerHTML = html;
+  showCreateDeck();
+  loadTeacherDecks();
+}
+
+window.switchTeacherTab = function(tab) {
+  document.querySelectorAll('.t-tab').forEach(function(t, i) {
+    t.classList.toggle('active', (tab === 'create' && i === 0) || (tab === 'manage' && i === 1) || (tab === 'progress' && i === 2));
+  });
+  document.querySelectorAll('.t-section').forEach(function(s) { s.classList.remove('show'); });
+  if (tab === 'create') { $('tCreate').classList.add('show'); showCreateDeck(); }
+  else if (tab === 'manage') { $('tManage').classList.add('show'); renderTeacherDecks(); }
+  else if (tab === 'progress') { $('tProgress').classList.add('show'); loadStudentProgress(); }
+};
+
+function showCreateDeck(deck) {
+  editingDeck = deck || null;
+  editingCards = deck ? (deck.cards || []).slice() : [];
+
+  var grades = '<option value="">Select Grade</option>';
+  ['K','1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th','11th','12th'].forEach(function(g) {
+    var sel = (deck && deck.gradeLevel === g) ? ' selected' : '';
+    grades += '<option value="' + g + '"' + sel + '>' + g + ' Grade</option>';
+  });
+
+  var html = '<div class="panel">' +
+    '<div class="panel-title"><span class="pt-icon">' + (deck ? '&#x270F;&#xFE0F;' : '&#x2795;') + '</span>' + (deck ? 'Edit Deck' : 'Create New Deck') + '</div>' +
+    '<div class="form-row"><label class="label">Deck Title</label><input class="input" id="deckTitle" placeholder="e.g. Science Vocabulary Ch. 5" value="' + esc(deck ? deck.title : '') + '"></div>' +
+    '<div class="form-row"><label class="label">Subject</label><input class="input" id="deckSubject" placeholder="e.g. Science, Math, English" value="' + esc(deck ? deck.subject : '') + '"></div>' +
+    '<div class="form-row"><label class="label">Grade Level</label><select class="input" id="deckGrade">' + grades + '</select></div>' +
+    '<div class="form-row"><label class="label">Class Code (for assigning)</label><input class="input" id="deckClassCode" placeholder="e.g. MRS-SMITH-5A" value="' + esc(deck ? (deck.classCode || '') : classCode) + '"></div>' +
+    '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:16px">' +
+    '<input type="checkbox" id="deckPublic" ' + (deck && deck.isPublic ? 'checked' : '') + ' style="width:18px;height:18px;accent-color:var(--accent)">' +
+    '<span class="text-muted" style="font-weight:600">Share to community library (public)</span></label>' +
+    '<div class="separator"></div>' +
+    '<div class="panel-title" style="font-size:18px">&#x1F0CF; Cards (' + editingCards.length + ')</div>' +
+    '<div class="card-list" id="cardList"></div>' +
+    '<div class="separator" style="margin:12px 0"></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">' +
+    '<input class="input" id="newFront" placeholder="Term / Question" style="margin:0">' +
+    '<input class="input" id="newBack" placeholder="Definition / Answer" style="margin:0">' +
+    '</div>' +
+    '<div class="btn-row" style="margin-top:0;justify-content:flex-start;gap:8px">' +
+    '<button class="btn btn-accent btn-sm" onclick="addCard()">+ Add Card</button>' +
+    '<button class="btn btn-ghost btn-sm" onclick="toggleBulkAdd()">&#x1F4CB; Bulk Add</button>' +
+    '<button class="ai-btn" onclick="showAIGenerate()">&#x1F916; AI Generate</button>' +
+    '</div>' +
+    '<div id="bulkArea" class="hidden mt-12">' +
+    '<label class="label">Paste cards (one per line, use : to separate term and definition)</label>' +
+    '<textarea class="input" id="bulkInput" placeholder="photosynthesis : process by which plants make food\nmitosis : cell division\nchlorophyll : green pigment in plants" rows="6"></textarea>' +
+    '<button class="btn btn-accent2 btn-sm" onclick="parseBulk()">Import Cards</button>' +
+    '</div>' +
+    '<div id="aiArea" class="hidden mt-12">' +
+    '<label class="label">Describe what cards to generate</label>' +
+    '<input class="input" id="aiTopic" placeholder="e.g. 5th grade science vocabulary about ecosystems">' +
+    '<button class="btn btn-accent2 btn-sm" id="aiGenBtn" onclick="aiGenerateDeck()">&#x1F916; Generate with AI</button>' +
+    '<div id="aiStatus"></div>' +
+    '</div>' +
+    '<div class="separator"></div>' +
+    '<div class="btn-row">' +
+    '<button class="btn btn-accent btn-lg btn-wide" onclick="saveDeck()">' + (deck ? '&#x1F4BE; Update Deck' : '&#x1F4BE; Save Deck') + '</button>' +
+    '</div>' +
+    '</div>';
+  $('tCreate').innerHTML = html;
+  renderCardList();
+  // Keyboard shortcut for adding cards
+  $('newBack').addEventListener('keydown', function(e) { if (e.key === 'Enter') { addCard(); $('newFront').focus(); } });
+}
+
+function renderCardList() {
+  var list = $('cardList');
+  if (!list) return;
+  if (editingCards.length === 0) {
+    list.innerHTML = '<div class="empty" style="padding:20px"><span class="empty-emoji">&#x1F0CF;</span><div class="empty-text">No cards yet - add some below!</div></div>';
+    return;
+  }
+  var html = '';
+  editingCards.forEach(function(c, i) {
+    html += '<div class="card-item" draggable="true" data-idx="' + i + '" ondragstart="dragCardStart(event,' + i + ')" ondragover="dragCardOver(event)" ondrop="dropCard(event,' + i + ')">' +
+      '<span class="ci-drag" title="Drag to reorder">&#x2630;</span>' +
+      '<span class="ci-num">' + (i + 1) + '.</span>' +
+      '<span class="ci-front">' + esc(c.front) + '</span>' +
+      '<span class="ci-back">' + esc(c.back) + '</span>' +
+      '<span class="ci-btns">' +
+      '<button class="ci-btn ci-edit" onclick="editCard(' + i + ')">Edit</button>' +
+      '<button class="ci-btn ci-del" onclick="deleteCard(' + i + ')">&#x2716;</button>' +
+      '</span></div>';
+  });
+  list.innerHTML = html;
+  // Update count
+  var countEl = document.querySelector('.panel-title[style*="18px"]');
+  if (countEl) countEl.innerHTML = '&#x1F0CF; Cards (' + editingCards.length + ')';
+}
+
+window.addCard = function() {
+  var front = $('newFront').value.trim();
+  var back = $('newBack').value.trim();
+  if (!front || !back) { odaToast('Enter both term and definition', 'warning'); return; }
+  editingCards.push({ id: genId(), front: front, back: back });
+  $('newFront').value = '';
+  $('newBack').value = '';
+  renderCardList();
+  $('newFront').focus();
+};
+
+window.editCard = function(idx) {
+  var c = editingCards[idx];
+  var newFront = prompt('Edit term:', c.front);
+  if (newFront === null) return;
+  var newBack = prompt('Edit definition:', c.back);
+  if (newBack === null) return;
+  editingCards[idx].front = newFront;
+  editingCards[idx].back = newBack;
+  renderCardList();
+};
+
+window.deleteCard = function(idx) {
+  editingCards.splice(idx, 1);
+  renderCardList();
+};
+
+window.toggleBulkAdd = function() {
+  $('bulkArea').classList.toggle('hidden');
+  $('aiArea').classList.add('hidden');
+};
+
+window.showAIGenerate = function() {
+  $('aiArea').classList.toggle('hidden');
+  $('bulkArea').classList.add('hidden');
+};
+
+window.parseBulk = function() {
+  var text = $('bulkInput').value.trim();
+  if (!text) return;
+  var lines = text.split('\n');
+  var added = 0;
+  lines.forEach(function(line) {
+    var parts = line.split(/\s*[:\-\|]\s*/);
+    if (parts.length >= 2) {
+      var front = parts[0].trim();
+      var back = parts.slice(1).join(' - ').trim();
+      if (front && back) {
+        editingCards.push({ id: genId(), front: front, back: back });
+        added++;
+      }
+    }
+  });
+  $('bulkInput').value = '';
+  $('bulkArea').classList.add('hidden');
+  renderCardList();
+  odaToast('Added ' + added + ' cards!', 'success');
+};
+
+window.aiGenerateDeck = async function() {
+  var topic = $('aiTopic').value.trim();
+  var grade = $('deckGrade').value || '5th';
+  if (!topic) { odaToast('Enter a topic first', 'warning'); return; }
+
+  var btn = $('aiGenBtn');
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+  $('aiStatus').innerHTML = '<p class="text-muted" style="font-size:14px;margin-top:8px"><span style="display:inline-block;width:14px;height:14px;border:2px solid var(--accent2);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px"></span> AI is creating flashcards...</p>';
+
+  try {
+    var result = await odaAI(
+      'Generate 15 flashcards for grade ' + grade + ' on the topic: ' + topic + '. Return as JSON array: [{"front":"term","back":"definition"},...]',
+      { system: 'You are an educational flashcard creator. Return ONLY valid JSON array, no other text. Each card should have a clear, concise term and a student-friendly definition.', temperature: 0.7 }
+    );
+
+    // Parse JSON from response
+    var jsonStr = result;
+    var match = result.match(/\[[\s\S]*\]/);
+    if (match) jsonStr = match[0];
+    var cards = JSON.parse(jsonStr);
+
+    if (Array.isArray(cards)) {
+      cards.forEach(function(c) {
+        if (c.front && c.back) {
+          editingCards.push({ id: genId(), front: c.front.trim(), back: c.back.trim() });
+        }
+      });
+      renderCardList();
+      $('aiArea').classList.add('hidden');
+      odaToast('Generated ' + cards.length + ' cards!', 'success');
+    }
+  } catch(e) {
+    console.error('AI generate error:', e);
+    odaToast('AI generation failed - try again', 'error');
+    $('aiStatus').innerHTML = '<p style="color:var(--accent3);font-size:14px;margin-top:8px">Error: ' + esc(e.message) + '</p>';
+  }
+
+  btn.disabled = false;
+  btn.textContent = '\uD83E\uDD16 Generate with AI';
+};
+
+// Drag & Drop reorder
+var dragIdx = null;
+window.dragCardStart = function(e, idx) {
+  dragIdx = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  e.target.classList.add('drag-ghost');
+};
+window.dragCardOver = function(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
+window.dropCard = function(e, dropIdx) {
+  e.preventDefault();
+  if (dragIdx === null || dragIdx === dropIdx) return;
+  var card = editingCards.splice(dragIdx, 1)[0];
+  editingCards.splice(dropIdx, 0, card);
+  dragIdx = null;
+  renderCardList();
+};
+
+window.saveDeck = async function() {
+  var title = $('deckTitle').value.trim();
+  var subject = $('deckSubject').value.trim();
+  var grade = $('deckGrade').value;
+  var classCodeVal = $('deckClassCode').value.trim();
+  var isPublic = $('deckPublic').checked;
+
+  if (!title) { odaToast('Enter a deck title', 'warning'); return; }
+  if (editingCards.length === 0) { odaToast('Add at least one card', 'warning'); return; }
+
+  try {
+    var fb = await getFirebaseDB();
+    var teacherId = '';
+    try {
+      var authData = await getFirebaseAuth();
+      if (authData.auth.currentUser) teacherId = authData.auth.currentUser.uid;
+    } catch(e) {}
+
+    var deckData = {
+      title: title,
+      subject: subject,
+      gradeLevel: grade,
+      classCode: classCodeVal,
+      teacherId: teacherId,
+      isPublic: isPublic,
+      cards: editingCards,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (editingDeck && editingDeck.id) {
+      await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'flashcardDecks', editingDeck.id), deckData);
+      odaToast('Deck updated!', 'success');
+    } else {
+      deckData.createdAt = new Date().toISOString();
+      await fb.fsMod.addDoc(fb.fsMod.collection(fb.db, 'flashcardDecks'), deckData);
+      odaToast('Deck saved!', 'success');
+    }
+    editingDeck = null;
+    editingCards = [];
+    showCreateDeck();
+    loadTeacherDecks();
+  } catch(e) {
+    console.error('Save error:', e);
+    odaToast('Error saving deck: ' + e.message, 'error');
+  }
+};
+
+async function loadTeacherDecks() {
+  try {
+    var fb = await getFirebaseDB();
+    var teacherId = '';
+    try {
+      var authData = await getFirebaseAuth();
+      if (authData.auth.currentUser) teacherId = authData.auth.currentUser.uid;
+    } catch(e) {}
+
+    var results = [];
+    if (teacherId) {
+      var q = fb.fsMod.query(fb.fsMod.collection(fb.db, 'flashcardDecks'), fb.fsMod.where('teacherId', '==', teacherId));
+      var snap = await fb.fsMod.getDocs(q);
+      snap.forEach(function(d) { var data = d.data(); data.id = d.id; results.push(data); });
+    }
+    // Also load by class code
+    if (classCode) {
+      var q2 = fb.fsMod.query(fb.fsMod.collection(fb.db, 'flashcardDecks'), fb.fsMod.where('classCode', '==', classCode));
+      var snap2 = await fb.fsMod.getDocs(q2);
+      snap2.forEach(function(d) {
+        if (!results.find(function(r) { return r.id === d.id; })) {
+          var data = d.data(); data.id = d.id; results.push(data);
+        }
+      });
+    }
+    teacherDecks = results;
+    renderTeacherDecks();
+  } catch(e) { console.error('Load decks error:', e); }
+}
+
+function renderTeacherDecks() {
+  var el = $('tManage');
+  if (!el) return;
+  if (teacherDecks.length === 0) {
+    el.innerHTML = '<div class="empty"><span class="empty-emoji">&#x1F4DA;</span><div class="empty-text">No decks yet - create one!</div></div>';
+    return;
+  }
+  var html = '<div class="panel"><div class="panel-title"><span class="pt-icon">&#x1F4CB;</span>My Decks (' + teacherDecks.length + ')</div>';
+  teacherDecks.forEach(function(d) {
+    var cardCount = (d.cards || []).length;
+    html += '<div class="card-item" style="flex-wrap:wrap">' +
+      '<div style="flex:1;min-width:0">' +
+      '<div style="font-weight:700;font-size:16px">' + esc(d.title) + '</div>' +
+      '<div class="text-muted" style="font-size:13px">' + esc(d.subject || 'No subject') + ' &bull; ' + esc(d.gradeLevel || '') + ' &bull; ' + cardCount + ' cards' +
+      (d.isPublic ? ' &bull; <span style="color:var(--accent2)">Public</span>' : '') +
+      (d.classCode ? ' &bull; Code: ' + esc(d.classCode) : '') + '</div></div>' +
+      '<span class="ci-btns">' +
+      '<button class="ci-btn ci-edit" onclick="editDeck(\'' + d.id + '\')">Edit</button>' +
+      '<button class="ci-btn ci-del" onclick="deleteDeck(\'' + d.id + '\')">Delete</button>' +
+      '</span></div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+window.editDeck = function(deckId) {
+  var deck = teacherDecks.find(function(d) { return d.id === deckId; });
+  if (!deck) return;
+  switchTeacherTab('create');
+  showCreateDeck(deck);
+};
+
+window.deleteDeck = async function(deckId) {
+  if (!confirm('Delete this deck? This cannot be undone.')) return;
+  try {
+    var fb = await getFirebaseDB();
+    await fb.fsMod.deleteDoc(fb.fsMod.doc(fb.db, 'flashcardDecks', deckId));
+    teacherDecks = teacherDecks.filter(function(d) { return d.id !== deckId; });
+    renderTeacherDecks();
+    odaToast('Deck deleted', 'success');
+  } catch(e) { odaToast('Error deleting deck', 'error'); console.error(e); }
+};
+
+// ======================================================
+//  TEACHER: Student Progress
+// ======================================================
+async function loadStudentProgress() {
+  var el = $('tProgress');
+  if (!el) return;
+  el.innerHTML = '<div class="text-center text-muted" style="padding:40px"><div style="display:inline-block;width:24px;height:24px;border:3px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite"></div><p style="margin-top:12px;font-weight:600">Loading progress...</p></div>';
+
+  try {
+    var fb = await getFirebaseDB();
+    // Get all progress for teacher's decks
+    var allProgress = [];
+    for (var i = 0; i < teacherDecks.length; i++) {
+      var q = fb.fsMod.query(fb.fsMod.collection(fb.db, 'flashcardProgress'), fb.fsMod.where('deckId', '==', teacherDecks[i].id));
+      var snap = await fb.fsMod.getDocs(q);
+      snap.forEach(function(d) { var data = d.data(); data._deckTitle = teacherDecks[i].title; data._totalCards = (teacherDecks[i].cards || []).length; allProgress.push(data); });
+    }
+
+    if (allProgress.length === 0) {
+      el.innerHTML = '<div class="empty"><span class="empty-emoji">&#x1F4CA;</span><div class="empty-text">No student activity yet</div><p class="text-muted" style="margin-top:8px;font-size:14px">Progress will appear here once students start studying your decks.</p></div>';
+      return;
+    }
+
+    // Load student names
+    var studentIds = [];
+    allProgress.forEach(function(p) { if (p.studentId && studentIds.indexOf(p.studentId) === -1) studentIds.push(p.studentId); });
+    var studentNames = {};
+    for (var s = 0; s < studentIds.length; s++) {
+      try {
+        var sSnap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'students', studentIds[s]));
+        if (sSnap.exists()) studentNames[studentIds[s]] = sSnap.data().name || 'Student';
+        else studentNames[studentIds[s]] = 'Student';
+      } catch(e) { studentNames[studentIds[s]] = 'Student'; }
+    }
+
+    var html = '<div class="panel"><div class="panel-title"><span class="pt-icon">&#x1F4CA;</span>Student Progress</div>' +
+      '<div style="overflow-x:auto"><table class="progress-table"><thead><tr>' +
+      '<th>Student</th><th>Deck</th><th>Mastered</th><th>Status</th><th>Time</th>' +
+      '</tr></thead><tbody>';
+    allProgress.forEach(function(p) {
+      var mastered = (p.cardProgress || []).filter(function(c) { return c.status === 'mastered'; }).length;
+      var total = p._totalCards || 0;
+      var pct = total > 0 ? Math.round((mastered / total) * 100) : 0;
+      var statusCls = pct >= 80 ? 'prog-mastered' : pct >= 30 ? 'prog-learning' : 'prog-new';
+      var statusText = pct >= 80 ? 'Mastered' : pct >= 30 ? 'Learning' : 'Started';
+      html += '<tr>' +
+        '<td style="font-weight:700">' + esc(studentNames[p.studentId] || 'Student') + '</td>' +
+        '<td>' + esc(p._deckTitle) + '</td>' +
+        '<td>' + mastered + '/' + total + ' (' + pct + '%)</td>' +
+        '<td><span class="prog-badge ' + statusCls + '">' + statusText + '</span></td>' +
+        '<td>' + (p.studyTime || 0) + ' min</td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div></div>';
+    el.innerHTML = html;
+  } catch(e) {
+    console.error('Progress error:', e);
+    el.innerHTML = '<div class="empty"><span class="empty-emoji">&#x26A0;&#xFE0F;</span><div class="empty-text">Error loading progress</div></div>';
+  }
+}
+
+// ======================================================
+//  KEYBOARD SHORTCUTS
+// ======================================================
+document.addEventListener('keydown', function(e) {
+  // Browse mode shortcuts
+  if ($('fcInner') && !$('quizAnswer') && !$('speedInput')) {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipCard(); }
+    else if (e.key === 'ArrowLeft') prevCard();
+    else if (e.key === 'ArrowRight') nextCard();
+  }
+  // Learn mode
+  if ($('learnInner') && !$('quizAnswer') && !$('speedInput')) {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipLearnCard(); }
+    if (learnFlipped && window._currentLearnCardId) {
+      if (e.key === '1') rateLearn(window._currentLearnCardId, 'hard');
+      else if (e.key === '2') rateLearn(window._currentLearnCardId, 'medium');
+      else if (e.key === '3') rateLearn(window._currentLearnCardId, 'easy');
+    }
+  }
+});
+
+// ======================================================
+//  SWIPE SUPPORT (mobile)
+// ======================================================
+(function() {
+  var startX = 0, startY = 0;
+  document.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchend', function(e) {
+    var dx = e.changedTouches[0].clientX - startX;
+    var dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if ($('fcInner') && !$('quizAnswer') && !$('speedInput')) {
+        if (dx > 0) prevCard();
+        else nextCard();
+      }
+    }
+  }, { passive: true });
+})();
+
+// ======================================================
+//  SPIN ANIMATION (for loading spinners)
+// ======================================================
+(function() {
+  var s = document.createElement('style');
+  s.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+  document.head.appendChild(s);
+})();
+
+// ===== START =====
+init();
+</script>
+<script src="js/oda-core.js"></script>
+</body>
+</html>

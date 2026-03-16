@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODA Jeopardy</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#a8b2c8;--jblue:#1a3a8a;--jblue2:#0f2466;--jblue3:#0a1a4d;--jgold:#ffcc00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:20px 16px}
+.back{display:inline-block;margin-bottom:16px;color:var(--text2);text-decoration:none;font-size:14px;font-weight:600}
+.back:hover{color:var(--text)}
+
+.header{text-align:center;margin-bottom:24px}
+.header .emoji{font-size:56px;margin-bottom:8px;display:block}
+.header h1{font-family:'Fredoka',sans-serif;font-size:36px;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--accent3),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.header p{font-size:15px;color:var(--text2);margin-top:4px}
+
+/* Shared card */
+.card{background:var(--surface);border:2px solid var(--border);border-radius:24px;padding:28px 24px;margin-bottom:16px;animation:fadeUp .3s ease}
+.card-title{font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:16px;text-align:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Buttons */
+.btn{padding:14px 28px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .2s;letter-spacing:.3px;display:inline-flex;align-items:center;gap:8px;justify-content:center}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-accent{background:linear-gradient(135deg,var(--accent),#04b890);color:var(--bg)}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#e6b800);color:var(--bg)}
+.btn-blue{background:linear-gradient(135deg,var(--accent2),#0d7ea0);color:#fff}
+.btn-red{background:linear-gradient(135deg,var(--accent3),#d63060);color:#fff}
+.btn-surface{background:var(--surface2);border:1.5px solid var(--border);color:var(--text2)}
+.btn-surface:hover{border-color:var(--accent);color:var(--text)}
+.btn-sm{padding:10px 18px;font-size:14px;border-radius:10px}
+.btn-wide{width:100%;display:block}
+.btn-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+
+/* Inputs */
+.input{width:100%;padding:14px 16px;background:var(--bg);border:2px solid var(--border);border-radius:14px;color:var(--text);font-family:'Outfit',sans-serif;font-size:16px;font-weight:500;outline:none;transition:border-color .2s}
+.input:focus{border-color:var(--accent)}
+.input::placeholder{color:#3a4560}
+textarea.input{resize:vertical;min-height:80px;line-height:1.5}
+.input-label{font-family:'Fredoka',sans-serif;font-size:14px;color:var(--text2);font-weight:600;margin-bottom:6px;display:block}
+
+/* Score bar */
+.score-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:linear-gradient(180deg,transparent,rgba(10,14,26,.95) 30%);padding:12px 20px 16px;display:none;pointer-events:none}
+.score-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;pointer-events:auto}
+.score-left{display:flex;align-items:center;gap:16px}
+.score-amount{font-family:'Fredoka',sans-serif;font-size:36px;font-weight:700;color:var(--jgold);text-shadow:0 0 20px rgba(255,204,0,.3)}
+.score-label{font-size:13px;color:var(--text2);font-weight:600}
+.score-stats{display:flex;gap:16px}
+.score-stat{text-align:center}
+.score-stat-num{font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700}
+.score-stat-num.green{color:var(--accent)}
+.score-stat-num.red{color:var(--accent3)}
+.score-stat-label{font-size:11px;color:var(--text2);font-weight:600}
+
+/* ============= JEOPARDY BOARD ============= */
+.board-wrap{margin:0 auto;max-width:1100px}
+.j-board{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;border-radius:16px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.5),0 0 80px rgba(26,58,138,.2);border:3px solid rgba(255,204,0,.15)}
+.j-cat{background:linear-gradient(180deg,#0d1f5c,var(--jblue3));padding:16px 8px;text-align:center;font-family:'Fredoka',sans-serif;font-size:15px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.5px;line-height:1.3;display:flex;align-items:center;justify-content:center;min-height:70px;text-shadow:1px 1px 3px rgba(0,0,0,.5);border-bottom:2px solid rgba(255,204,0,.15)}
+.j-cell{background:linear-gradient(180deg,var(--jblue),var(--jblue2));padding:16px 8px;text-align:center;font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;color:var(--jgold);cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;min-height:70px;text-shadow:1px 2px 4px rgba(0,0,0,.5);position:relative;user-select:none}
+.j-cell:hover{background:linear-gradient(180deg,#2350b0,#1a3a8a);transform:scale(1.03);z-index:2;box-shadow:0 0 20px rgba(255,204,0,.2)}
+.j-cell.answered{background:var(--jblue3);color:transparent;cursor:default;text-shadow:none;opacity:.3}
+.j-cell.answered:hover{transform:none;box-shadow:none;background:var(--jblue3)}
+.j-cell .dd-star{display:none}
+
+/* ============= QUESTION MODAL ============= */
+.q-overlay{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);padding:20px}
+.q-overlay.show{display:flex}
+.q-modal{width:100%;max-width:700px;animation:qZoom .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes qZoom{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+.q-modal-inner{background:linear-gradient(180deg,#0f2466,#0a1a4d);border:3px solid rgba(255,204,0,.25);border-radius:24px;padding:40px 32px;text-align:center;box-shadow:0 0 60px rgba(26,58,138,.5),0 0 120px rgba(26,58,138,.2)}
+.q-points{font-family:'Fredoka',sans-serif;font-size:20px;color:var(--jgold);margin-bottom:8px;text-transform:uppercase;letter-spacing:2px}
+.q-category{font-size:14px;color:rgba(255,255,255,.5);font-weight:600;margin-bottom:20px;text-transform:uppercase;letter-spacing:1px}
+.q-clue{font-family:'Fredoka',sans-serif;font-size:26px;font-weight:600;color:#fff;line-height:1.5;margin-bottom:28px;text-shadow:0 2px 8px rgba(0,0,0,.3)}
+.q-timer-wrap{margin-bottom:20px}
+.q-timer-bar{height:6px;background:rgba(255,255,255,.1);border-radius:6px;overflow:hidden}
+.q-timer-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:6px;transition:width .1s linear}
+.q-timer-fill.warn{background:linear-gradient(90deg,var(--gold),#e6a000)}
+.q-timer-fill.danger{background:linear-gradient(90deg,var(--accent3),#d63060)}
+.q-timer-text{font-family:'Outfit',sans-serif;font-size:14px;color:var(--text2);margin-top:6px;font-weight:600}
+.q-answer-input{width:100%;max-width:400px;padding:16px 20px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.2);border-radius:14px;color:#fff;font-family:'Outfit',sans-serif;font-size:20px;font-weight:600;text-align:center;outline:none;transition:border-color .2s;margin:0 auto 16px}
+.q-answer-input:focus{border-color:var(--jgold)}
+.q-answer-input::placeholder{color:rgba(255,255,255,.3)}
+.q-result{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;margin:16px 0;min-height:40px}
+.q-correct-answer{font-size:16px;color:rgba(255,255,255,.6);margin-bottom:16px;min-height:24px}
+.q-floating-pts{position:fixed;font-family:'Fredoka',sans-serif;font-size:36px;font-weight:700;pointer-events:none;z-index:300;animation:floatUp 1.5s ease forwards}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-80px) scale(1.3)}}
+
+/* Daily Double */
+.dd-overlay{position:fixed;inset:0;z-index:250;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.95);padding:20px}
+.dd-overlay.show{display:flex}
+.dd-content{text-align:center;animation:ddZoom .6s cubic-bezier(.34,1.56,.64,1)}
+@keyframes ddZoom{from{opacity:0;transform:scale(.3) rotate(-10deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+.dd-title{font-family:'Fredoka',sans-serif;font-size:56px;font-weight:700;color:var(--jgold);text-shadow:0 0 40px rgba(255,204,0,.5),0 0 80px rgba(255,204,0,.2);margin-bottom:24px;letter-spacing:2px}
+.dd-stars{font-size:48px;margin-bottom:16px;display:block}
+.dd-wager-section{margin-top:20px}
+.dd-wager-label{font-size:16px;color:var(--text2);margin-bottom:12px;font-weight:600}
+.dd-wager-input{width:200px;padding:16px;background:rgba(255,255,255,.08);border:2px solid var(--jgold);border-radius:14px;color:var(--jgold);font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;text-align:center;outline:none}
+.dd-wager-input::placeholder{color:rgba(255,204,0,.3)}
+.dd-wager-max{font-size:13px;color:var(--text2);margin-top:8px;font-weight:600}
+
+/* Final Jeopardy */
+.fj-overlay{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.95);padding:20px}
+.fj-overlay.show{display:flex}
+.fj-content{width:100%;max-width:600px;text-align:center;animation:fadeUp .5s ease}
+.fj-title{font-family:'Fredoka',sans-serif;font-size:40px;font-weight:700;color:var(--jgold);margin-bottom:8px;text-shadow:0 0 30px rgba(255,204,0,.3)}
+.fj-category{font-family:'Fredoka',sans-serif;font-size:22px;color:#fff;margin-bottom:24px;padding:12px 24px;background:rgba(255,204,0,.1);border:2px solid rgba(255,204,0,.2);border-radius:14px;display:inline-block}
+.fj-clue{font-family:'Fredoka',sans-serif;font-size:24px;color:#fff;line-height:1.6;margin-bottom:28px}
+
+/* Game Over */
+.go-overlay{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.95);padding:20px;overflow-y:auto}
+.go-overlay.show{display:flex}
+.go-content{width:100%;max-width:500px;text-align:center;animation:fadeUp .5s ease;padding:20px 0}
+.go-emoji{font-size:72px;margin-bottom:12px;display:block}
+.go-title{font-family:'Fredoka',sans-serif;font-size:36px;font-weight:700;color:var(--jgold);margin-bottom:8px}
+.go-score{font-family:'Fredoka',sans-serif;font-size:64px;font-weight:700;color:var(--jgold);text-shadow:0 0 30px rgba(255,204,0,.4);margin:16px 0}
+.go-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0}
+.go-stat{background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:16px}
+.go-stat-num{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700}
+.go-stat-label{font-size:13px;color:var(--text2);font-weight:600;margin-top:4px}
+.go-coins{background:linear-gradient(135deg,rgba(255,209,102,.1),rgba(255,209,102,.05));border:2px solid rgba(255,209,102,.25);border-radius:16px;padding:16px;margin:16px 0;font-family:'Fredoka',sans-serif;font-size:20px;color:var(--gold)}
+.go-cat-breakdown{text-align:left;margin:16px 0}
+.go-cat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:10px;margin-bottom:4px;font-size:14px;font-weight:600}
+.go-cat-ok{background:rgba(6,214,160,.1);color:var(--accent)}
+.go-cat-bad{background:rgba(239,71,111,.1);color:var(--accent3)}
+.go-cat-mid{background:rgba(255,209,102,.1);color:var(--gold)}
+
+/* ============= TEACHER BUILDER ============= */
+.builder-section{margin-bottom:20px}
+.builder-cats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+@media(max-width:700px){.builder-cats{grid-template-columns:1fr 1fr;gap:6px}}
+.builder-cat-input{padding:12px;background:var(--bg);border:2px solid var(--border);border-radius:12px;color:var(--jgold);font-family:'Fredoka',sans-serif;font-size:14px;font-weight:600;text-align:center;outline:none;width:100%;transition:border-color .2s}
+.builder-cat-input:focus{border-color:var(--jgold)}
+.builder-cat-input::placeholder{color:#3a4560;font-size:12px}
+.builder-q-grid{display:grid;gap:8px;margin-bottom:16px}
+.builder-q-row{display:grid;grid-template-columns:60px 1fr 1fr 40px;gap:8px;align-items:center}
+@media(max-width:600px){.builder-q-row{grid-template-columns:50px 1fr;gap:6px}.builder-q-row .bq-pts{grid-column:1}.builder-q-row .bq-clue,.builder-q-row .bq-ans{grid-column:2}.builder-q-row .bq-dd{grid-column:1/-1;justify-self:end}}
+.bq-pts{font-family:'Fredoka',sans-serif;font-size:16px;font-weight:700;color:var(--jgold);text-align:center}
+.bq-input{padding:10px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;outline:none;width:100%;transition:border-color .2s}
+.bq-input:focus{border-color:var(--accent2)}
+.bq-input::placeholder{color:#3a4560;font-size:12px}
+.bq-dd{width:32px;height:32px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s}
+.bq-dd.active{background:rgba(255,204,0,.15);border-color:var(--jgold);color:var(--jgold)}
+.bq-dd:hover{border-color:var(--jgold)}
+.builder-fj{display:grid;gap:10px;margin-top:12px}
+.builder-tab-bar{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px}
+.builder-tab{padding:10px 18px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;border:2px solid var(--border);background:var(--surface);color:var(--text2);white-space:nowrap;transition:all .15s;font-family:'Fredoka',sans-serif}
+.builder-tab.active{background:var(--jblue);color:#fff;border-color:var(--jblue)}
+
+/* Board browser */
+.board-list{display:grid;gap:12px}
+.board-item{background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:18px;display:flex;justify-content:space-between;align-items:center;transition:all .2s;flex-wrap:wrap;gap:10px}
+.board-item:hover{border-color:var(--accent2);transform:translateY(-2px)}
+.board-info{flex:1;min-width:200px}
+.board-name{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:var(--text)}
+.board-meta{font-size:13px;color:var(--text2);margin-top:4px;font-weight:500}
+.board-cats{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.board-cat-tag{font-size:11px;padding:3px 10px;background:rgba(26,58,138,.3);border:1px solid rgba(26,58,138,.5);border-radius:8px;color:var(--jgold);font-weight:600}
+.board-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Teacher Dashboard */
+.td-wrap{max-width:1100px;margin:0 auto;padding:20px 16px;position:relative;z-index:1}
+.td-stats{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.td-stat{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:12px 18px;flex:1;min-width:110px;text-align:center}
+.td-stat-num{font-family:'Fredoka',sans-serif;font-size:24px;font-weight:700;color:var(--accent)}
+.td-stat-label{font-size:12px;color:var(--text2);font-weight:600;margin-top:2px}
+.result-card{background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.result-name{font-family:'Fredoka',sans-serif;font-size:16px;font-weight:700;color:var(--text)}
+.result-info{font-size:13px;color:var(--text2);font-weight:500}
+.result-score-val{font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;color:var(--jgold)}
+
+/* Board select screen */
+.board-select-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.bs-card{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:24px;cursor:pointer;transition:all .2s;text-align:center}
+.bs-card:hover{border-color:var(--accent2);transform:translateY(-4px);box-shadow:0 8px 30px rgba(0,0,0,.3)}
+.bs-emoji{font-size:40px;margin-bottom:8px;display:block}
+.bs-name{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px}
+.bs-topic{font-size:13px;color:var(--text2);margin-bottom:8px}
+.bs-cats{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
+
+/* Loading spinner */
+.loading{text-align:center;padding:40px;color:var(--text2);font-size:15px;font-weight:600}
+.loading::after{content:'';display:inline-block;width:14px;height:14px;border:2px solid var(--accent2);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;margin-left:8px;vertical-align:middle}
+
+/* Mode selector */
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0}
+@media(max-width:500px){.mode-grid{grid-template-columns:1fr}}
+.mode-card{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s}
+.mode-card:hover{border-color:var(--accent2);transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.mode-card .mc-emoji{font-size:48px;margin-bottom:8px;display:block}
+.mode-card .mc-title{font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700;color:var(--text);margin-bottom:4px}
+.mode-card .mc-desc{font-size:13px;color:var(--text2);font-weight:500}
+
+/* AI generate */
+.ai-gen-wrap{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.ai-gen-wrap .input{flex:1;min-width:200px;margin-bottom:0}
+.ai-loading-text{text-align:center;padding:20px;color:var(--accent2);font-size:15px;font-weight:600}
+.ai-loading-text::after{content:'';display:inline-block;width:14px;height:14px;border:2px solid var(--accent2);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;margin-left:8px;vertical-align:middle}
+
+/* Desktop mode */
+@media(min-width:900px){body.desktop-mode .app{max-width:1400px}}
+.desktop-toggle{position:fixed;bottom:20px;right:20px;z-index:100;background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);padding:10px 16px;border-radius:12px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;display:none;align-items:center;gap:6px;transition:all .15s;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.desktop-toggle:hover{border-color:var(--accent);color:var(--text)}
+.desktop-toggle.active{border-color:var(--accent);color:var(--accent);background:rgba(6,214,160,.1)}
+@media(min-width:900px){.desktop-toggle{display:inline-flex}}
+
+/* Responsive board */
+@media(max-width:700px){
+.j-cat{font-size:11px;padding:10px 4px;min-height:50px}
+.j-cell{font-size:18px;min-height:50px;padding:10px 4px}
+.q-clue{font-size:20px}
+.dd-title{font-size:36px}
+.score-amount{font-size:28px}
+.go-score{font-size:48px}
+.builder-q-row{grid-template-columns:40px 1fr}
+}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<div class="app">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+<a href="student.html" class="back" id="backLink">&#8592; Back to Hub</a>
+<button class="btn btn-sm btn-surface" id="teacherModeBtn" onclick="showTeacherDash()" style="display:none">&#x1F469;&#x200D;&#x1F3EB; Teacher Dashboard</button>
+</div>
+<div class="header">
+<span class="emoji">&#x1F3AF;</span>
+<h1>ODA Jeopardy</h1>
+<p id="headerSub">Test your knowledge game-show style!</p>
+</div>
+<div id="content"></div>
+</div>
+
+<!-- Score Bar -->
+<div class="score-bar" id="scoreBar">
+<div class="score-inner">
+<div class="score-left">
+<div>
+<div class="score-amount" id="scoreDisplay">$0</div>
+<div class="score-label">Score</div>
+</div>
+</div>
+<div class="score-stats">
+<div class="score-stat">
+<div class="score-stat-num green" id="rightCount">0</div>
+<div class="score-stat-label">Correct</div>
+</div>
+<div class="score-stat">
+<div class="score-stat-num red" id="wrongCount">0</div>
+<div class="score-stat-label">Wrong</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Question Modal -->
+<div class="q-overlay" id="qOverlay">
+<div class="q-modal">
+<div class="q-modal-inner">
+<div class="q-points" id="qPoints"></div>
+<div class="q-category" id="qCategory"></div>
+<div class="q-clue" id="qClue"></div>
+<div class="q-timer-wrap">
+<div class="q-timer-bar"><div class="q-timer-fill" id="qTimerFill"></div></div>
+<div class="q-timer-text" id="qTimerText"></div>
+</div>
+<input type="text" class="q-answer-input" id="qAnswerInput" placeholder="Type your answer..." autocomplete="off">
+<div class="q-result" id="qResult"></div>
+<div class="q-correct-answer" id="qCorrectAnswer"></div>
+<div class="btn-row">
+<button class="btn btn-gold" id="qSubmitBtn" onclick="submitAnswer()">Submit Answer</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Daily Double Overlay -->
+<div class="dd-overlay" id="ddOverlay">
+<div class="dd-content">
+<div class="dd-stars">&#x2B50;&#x2B50;&#x2B50;</div>
+<div class="dd-title">DAILY DOUBLE!</div>
+<div class="dd-wager-section">
+<div class="dd-wager-label">How much will you wager?</div>
+<input type="number" class="dd-wager-input" id="ddWagerInput" placeholder="$" min="0">
+<div class="dd-wager-max" id="ddWagerMax"></div>
+<div class="btn-row">
+<button class="btn btn-gold" onclick="confirmWager()">Lock In Wager</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Final Jeopardy Overlay -->
+<div class="fj-overlay" id="fjOverlay">
+<div class="fj-content" id="fjContent"></div>
+</div>
+
+<!-- Game Over Overlay -->
+<div class="go-overlay" id="goOverlay">
+<div class="go-content" id="goContent"></div>
+</div>
+
+<button class="desktop-toggle" id="desktopToggle" onclick="toggleDesktopMode()">&#x1F4BB; Desktop Mode</button>
+
+<script src="js/oda-core.js"></script>
+<script>
+/* ============================
+   ODA JEOPARDY - MAIN SCRIPT
+   ============================ */
+
+// --- Session detection ---
+var studentId = sessionStorage.getItem('studentId');
+var studentName = sessionStorage.getItem('studentName');
+var classCode = sessionStorage.getItem('classCode') || localStorage.getItem('classCode') || '';
+var isTeacher = !studentId && (sessionStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
+
+// --- Fix back link ---
+(function(){
+  var b = document.getElementById('backLink');
+  if(isTeacher){ b.href='teacher.html'; b.textContent='\u2190 Back to Teacher Hub'; }
+  else if(studentId){ b.href='student.html'; }
+  if(isTeacher) document.getElementById('teacherModeBtn').style.display='inline-flex';
+})();
+
+// --- Game State ---
+var gameState = {
+  board: null,
+  answered: [],
+  score: 0,
+  questionsRight: 0,
+  questionsWrong: 0,
+  currentQuestion: null,
+  currentCat: -1,
+  currentRow: -1,
+  isDailyDouble: false,
+  wager: 0,
+  timerInterval: null,
+  timerSeconds: 0,
+  totalTime: 0,
+  gameStartTime: 0,
+  categoryScores: {},
+  fjDone: false,
+  thinkingOsc: null,
+  thinkingGain: null
+};
+
+var TIMER_SECONDS = 20;
+var FJ_TIMER_SECONDS = 30;
+var boardsCache = [];
+
+// ===========================
+// SOUND EFFECTS (Web Audio API)
+// ===========================
+var audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playNote(freq, duration, type, vol) {
+  try {
+    var ctx = getAudio();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    gain.gain.value = vol || 0.15;
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration);
+  } catch(e) {}
+}
+
+function soundBoardReveal() {
+  var notes = [262, 330, 392, 523, 659];
+  notes.forEach(function(n, i) {
+    setTimeout(function(){ playNote(n, 0.3, 'sine', 0.1); }, i * 100);
+  });
+}
+
+function soundClick() { playNote(800, 0.08, 'sine', 0.1); }
+
+function soundCorrect() {
+  playNote(523, 0.15, 'sine', 0.15);
+  setTimeout(function(){ playNote(659, 0.15, 'sine', 0.15); }, 100);
+  setTimeout(function(){ playNote(784, 0.3, 'sine', 0.15); }, 200);
+}
+
+function soundWrong() {
+  playNote(200, 0.3, 'sawtooth', 0.08);
+  setTimeout(function(){ playNote(180, 0.4, 'sawtooth', 0.08); }, 150);
+}
+
+function soundDailyDouble() {
+  var notes = [392, 494, 587, 784, 587, 784];
+  notes.forEach(function(n, i) {
+    setTimeout(function(){ playNote(n, 0.2, 'triangle', 0.12); }, i * 120);
+  });
+}
+
+function soundTick() { playNote(1000, 0.03, 'sine', 0.05); }
+
+function soundVictory() {
+  var notes = [523, 587, 659, 784, 659, 784, 1047];
+  notes.forEach(function(n, i) {
+    setTimeout(function(){ playNote(n, 0.25, 'sine', 0.12); }, i * 150);
+  });
+}
+
+function startThinkingMusic() {
+  try {
+    var ctx = getAudio();
+    var melody = [392, 440, 494, 440]; // G A B A
+    var noteIndex = 0;
+    gameState.thinkingInterval = setInterval(function() {
+      playNote(melody[noteIndex % melody.length], 0.4, 'triangle', 0.06);
+      noteIndex++;
+    }, 500);
+  } catch(e) {}
+}
+
+function stopThinkingMusic() {
+  if (gameState.thinkingInterval) {
+    clearInterval(gameState.thinkingInterval);
+    gameState.thinkingInterval = null;
+  }
+}
+
+// ===========================
+// INITIAL SCREEN
+// ===========================
+function showHome() {
+  hideScoreBar();
+  var c = document.getElementById('content');
+  if (isTeacher) {
+    c.innerHTML =
+      '<div class="mode-grid">' +
+        '<div class="mode-card" onclick="showBoardBuilder()">' +
+          '<span class="mc-emoji">&#x1F3D7;&#xFE0F;</span>' +
+          '<div class="mc-title">Build a Board</div>' +
+          '<div class="mc-desc">Create Jeopardy boards for your class</div>' +
+        '</div>' +
+        '<div class="mode-card" onclick="showBoardBrowser(\'teacher\')">' +
+          '<span class="mc-emoji">&#x1F4CB;</span>' +
+          '<div class="mc-title">My Boards</div>' +
+          '<div class="mc-desc">Manage and edit saved boards</div>' +
+        '</div>' +
+        '<div class="mode-card" onclick="showBoardBrowser(\'play\')">' +
+          '<span class="mc-emoji">&#x1F3AE;</span>' +
+          '<div class="mc-title">Play a Board</div>' +
+          '<div class="mc-desc">Test play any saved board</div>' +
+        '</div>' +
+        '<div class="mode-card" onclick="showTeacherDash()">' +
+          '<span class="mc-emoji">&#x1F4CA;</span>' +
+          '<div class="mc-title">Dashboard</div>' +
+          '<div class="mc-desc">View student results &amp; stats</div>' +
+        '</div>' +
+      '</div>';
+  } else {
+    showBoardBrowser('play');
+  }
+}
+
+// ===========================
+// BOARD BROWSER
+// ===========================
+async function showBoardBrowser(mode) {
+  var c = document.getElementById('content');
+  c.innerHTML = '<div class="loading">Loading boards</div>';
+  try {
+    var fb = await getFirebaseDB();
+    var fs = fb.fsMod;
+    var q;
+    if (mode === 'teacher') {
+      var teacherId = sessionStorage.getItem('odaTeacherId') || localStorage.getItem('odaTeacherId') || '';
+      q = fs.query(fs.collection(fb.db, 'jeopardyBoards'), fs.where('teacherId','==',teacherId), fs.orderBy('createdAt','desc'));
+    } else {
+      // Students see boards for their class code + public boards
+      var constraints = [];
+      if (classCode) {
+        q = fs.query(fs.collection(fb.db, 'jeopardyBoards'), fs.where('classCode','==',classCode), fs.orderBy('createdAt','desc'));
+      } else {
+        q = fs.query(fs.collection(fb.db, 'jeopardyBoards'), fs.where('isPublic','==',true), fs.orderBy('createdAt','desc'));
+      }
+    }
+    var snap = await fs.getDocs(q);
+    boardsCache = [];
+    snap.forEach(function(d) { boardsCache.push(Object.assign({id: d.id}, d.data())); });
+
+    // Also fetch public boards for students
+    if (mode === 'play' && classCode) {
+      try {
+        var q2 = fs.query(fs.collection(fb.db, 'jeopardyBoards'), fs.where('isPublic','==',true), fs.orderBy('createdAt','desc'));
+        var snap2 = await fs.getDocs(q2);
+        snap2.forEach(function(d) {
+          if (!boardsCache.find(function(b){ return b.id === d.id; })) {
+            boardsCache.push(Object.assign({id: d.id}, d.data()));
+          }
+        });
+      } catch(e) {}
+    }
+
+    renderBoardList(mode);
+  } catch(e) {
+    console.error(e);
+    c.innerHTML = '<div class="card" style="text-align:center"><p style="color:var(--text2)">Could not load boards. ' + esc(e.message) + '</p>' +
+      '<div class="btn-row"><button class="btn btn-accent" onclick="showHome()">Back</button></div></div>';
+  }
+}
+
+function renderBoardList(mode) {
+  var c = document.getElementById('content');
+  if (boardsCache.length === 0) {
+    c.innerHTML = '<div class="card" style="text-align:center">' +
+      '<div style="font-size:48px;margin-bottom:12px">&#x1F3AF;</div>' +
+      '<p style="font-size:18px;font-weight:700;margin-bottom:8px">' + (mode==='teacher' ? 'No boards yet' : 'No boards available') + '</p>' +
+      '<p style="color:var(--text2);margin-bottom:16px">' + (mode==='teacher' ? 'Create your first Jeopardy board!' : 'Ask your teacher to create a board.') + '</p>' +
+      (mode==='teacher' ? '<div class="btn-row"><button class="btn btn-accent" onclick="showBoardBuilder()">&#x1F3D7;&#xFE0F; Build a Board</button></div>' : '') +
+      (isTeacher ? '<div class="btn-row" style="margin-top:8px"><button class="btn btn-surface btn-sm" onclick="showHome()">Back</button></div>' : '') +
+      '</div>';
+    return;
+  }
+
+  var html = '';
+  if (isTeacher) html += '<div class="btn-row" style="margin-bottom:16px;justify-content:flex-start"><button class="btn btn-surface btn-sm" onclick="showHome()">&#8592; Back</button></div>';
+
+  if (mode === 'play') {
+    html += '<div class="card-title" style="margin-bottom:16px">Choose a Board to Play</div>';
+    html += '<div class="board-select-grid">';
+    boardsCache.forEach(function(b, i) {
+      var cats = (b.categories || []).map(function(c){ return '<span class="board-cat-tag">' + esc(c) + '</span>'; }).join('');
+      html += '<div class="bs-card" onclick="startGame(' + i + ')">' +
+        '<span class="bs-emoji">&#x1F3AF;</span>' +
+        '<div class="bs-name">' + esc(b.title || 'Untitled Board') + '</div>' +
+        '<div class="bs-topic">' + esc(b.topic || '') + '</div>' +
+        '<div class="bs-cats">' + cats + '</div>' +
+      '</div>';
+    });
+    html += '</div>';
+  } else {
+    html += '<div class="card-title" style="margin-bottom:16px">Your Boards</div>';
+    html += '<div class="board-list">';
+    boardsCache.forEach(function(b, i) {
+      var cats = (b.categories || []).map(function(c){ return '<span class="board-cat-tag">' + esc(c) + '</span>'; }).join('');
+      var dateStr = b.createdAt ? new Date(b.createdAt.seconds ? b.createdAt.seconds * 1000 : b.createdAt).toLocaleDateString() : '';
+      html += '<div class="board-item">' +
+        '<div class="board-info">' +
+          '<div class="board-name">' + esc(b.title || 'Untitled') + '</div>' +
+          '<div class="board-meta">' + esc(b.topic || '') + (dateStr ? ' &middot; ' + dateStr : '') + (b.isPublic ? ' &middot; &#x1F310; Public' : ' &middot; &#x1F512; Class only') + '</div>' +
+          '<div class="board-cats">' + cats + '</div>' +
+        '</div>' +
+        '<div class="board-actions">' +
+          '<button class="btn btn-sm btn-accent" onclick="startGame(' + i + ')">&#x25B6; Play</button>' +
+          '<button class="btn btn-sm btn-blue" onclick="editBoard(' + i + ')">&#x270F;&#xFE0F; Edit</button>' +
+          '<button class="btn btn-sm btn-red" onclick="deleteBoard(\'' + b.id + '\')">&#x1F5D1;</button>' +
+        '</div>' +
+      '</div>';
+    });
+    html += '</div>';
+  }
+  c.innerHTML = html;
+}
+
+// ===========================
+// BOARD BUILDER
+// ===========================
+var builderBoard = null;
+var builderEditId = null;
+
+function showBoardBuilder(existingBoard, editId) {
+  builderEditId = editId || null;
+  if (existingBoard) {
+    builderBoard = JSON.parse(JSON.stringify(existingBoard));
+  } else {
+    builderBoard = {
+      title: '',
+      topic: '',
+      categories: ['', '', '', '', ''],
+      questions: [[], [], [], [], []],
+      finalJeopardy: { category: '', clue: '', answer: '' },
+      dailyDoubles: [],
+      isPublic: false
+    };
+    for (var i = 0; i < 5; i++) {
+      builderBoard.questions[i] = [];
+      for (var j = 0; j < 5; j++) {
+        builderBoard.questions[i].push({ clue: '', answer: '', points: (j+1)*100 });
+      }
+    }
+  }
+  renderBuilder();
+}
+
+function renderBuilder() {
+  var b = builderBoard;
+  var c = document.getElementById('content');
+  var ddSet = {};
+  (b.dailyDoubles || []).forEach(function(d) { ddSet[d.cat + '-' + d.row] = true; });
+
+  var html = '<div class="btn-row" style="margin-bottom:16px;justify-content:flex-start"><button class="btn btn-surface btn-sm" onclick="showHome()">&#8592; Back</button></div>';
+  html += '<div class="card"><div class="card-title">' + (builderEditId ? '&#x270F;&#xFE0F; Edit Board' : '&#x1F3D7;&#xFE0F; Build a Jeopardy Board') + '</div>';
+
+  // AI Generate
+  html += '<div style="margin-bottom:16px"><div class="input-label">&#x1F916; AI Board Generator</div>' +
+    '<div class="ai-gen-wrap">' +
+      '<input type="text" class="input" id="boardTopic" placeholder="Enter a topic (e.g., US Presidents, Space, Fractions)" value="' + esc(b.topic || '') + '">' +
+      '<button class="btn btn-accent" onclick="aiGenerateBoard()" id="aiGenBtn">&#x2728; Generate Board</button>' +
+    '</div>' +
+    '<div id="aiGenStatus"></div>' +
+  '</div>';
+
+  // Title
+  html += '<div style="margin-bottom:12px"><div class="input-label">Board Title</div>' +
+    '<input type="text" class="input" id="boardTitle" placeholder="Give your board a title" value="' + esc(b.title || '') + '"></div>';
+
+  // Categories
+  html += '<div class="input-label">Categories</div>';
+  html += '<div class="builder-cats">';
+  for (var i = 0; i < 5; i++) {
+    html += '<input type="text" class="builder-cat-input" id="cat' + i + '" placeholder="Category ' + (i+1) + '" value="' + esc(b.categories[i] || '') + '" onchange="builderBoard.categories[' + i + ']=this.value">';
+  }
+  html += '</div>';
+
+  // Questions by category tabs
+  html += '<div class="builder-tab-bar" id="builderTabs">';
+  for (var i = 0; i < 5; i++) {
+    html += '<button class="builder-tab' + (i===0?' active':'') + '" onclick="switchBuilderTab(' + i + ')" id="btab' + i + '">' + (b.categories[i] || 'Cat ' + (i+1)) + '</button>';
+  }
+  html += '</div>';
+
+  for (var i = 0; i < 5; i++) {
+    html += '<div class="builder-q-grid" id="bqGrid' + i + '" style="' + (i>0?'display:none':'') + '">';
+    for (var j = 0; j < 5; j++) {
+      var q = b.questions[i][j];
+      var isDD = ddSet[i + '-' + j] || false;
+      html += '<div class="builder-q-row">' +
+        '<div class="bq-pts">$' + ((j+1)*100) + '</div>' +
+        '<input type="text" class="bq-input bq-clue" id="bqClue' + i + '_' + j + '" placeholder="Clue / Question" value="' + esc(q.clue || '') + '">' +
+        '<input type="text" class="bq-input bq-ans" id="bqAns' + i + '_' + j + '" placeholder="Answer" value="' + esc(q.answer || '') + '">' +
+        '<button class="bq-dd' + (isDD?' active':'') + '" id="bqDD' + i + '_' + j + '" onclick="toggleDD(' + i + ',' + j + ')" title="Daily Double">&#x2B50;</button>' +
+      '</div>';
+    }
+    html += '</div>';
+  }
+
+  // Final Jeopardy
+  html += '<div class="input-label" style="margin-top:16px">&#x1F3C6; Final Jeopardy</div>';
+  html += '<div class="builder-fj">' +
+    '<input type="text" class="bq-input" id="fjCat" placeholder="Final Jeopardy Category" value="' + esc(b.finalJeopardy.category || '') + '">' +
+    '<input type="text" class="bq-input" id="fjClue" placeholder="Final Jeopardy Clue" value="' + esc(b.finalJeopardy.clue || '') + '">' +
+    '<input type="text" class="bq-input" id="fjAnswer" placeholder="Final Jeopardy Answer" value="' + esc(b.finalJeopardy.answer || '') + '">' +
+  '</div>';
+
+  // Options
+  html += '<div style="margin-top:16px;display:flex;align-items:center;gap:12px">' +
+    '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;font-weight:600;color:var(--text2)">' +
+      '<input type="checkbox" id="boardPublic"' + (b.isPublic ? ' checked' : '') + '> &#x1F310; Share to community library</label>' +
+  '</div>';
+
+  // Save
+  html += '<div class="btn-row" style="margin-top:20px">' +
+    '<button class="btn btn-gold" onclick="saveBoard()" id="saveBoardBtn">&#x1F4BE; ' + (builderEditId ? 'Update Board' : 'Save Board') + '</button>' +
+  '</div>';
+
+  html += '</div>';
+  c.innerHTML = html;
+}
+
+var activeBuilderTab = 0;
+function switchBuilderTab(idx) {
+  collectBuilderData();
+  activeBuilderTab = idx;
+  for (var i = 0; i < 5; i++) {
+    var g = document.getElementById('bqGrid' + i);
+    var t = document.getElementById('btab' + i);
+    if (g) g.style.display = (i === idx) ? '' : 'none';
+    if (t) t.classList.toggle('active', i === idx);
+  }
+}
+
+function toggleDD(cat, row) {
+  var key = cat + '-' + row;
+  var btn = document.getElementById('bqDD' + cat + '_' + row);
+  if (!builderBoard.dailyDoubles) builderBoard.dailyDoubles = [];
+  var idx = builderBoard.dailyDoubles.findIndex(function(d) { return d.cat === cat && d.row === row; });
+  if (idx >= 0) {
+    builderBoard.dailyDoubles.splice(idx, 1);
+    btn.classList.remove('active');
+  } else {
+    if (builderBoard.dailyDoubles.length >= 2) {
+      odaToast('Maximum 2 Daily Doubles allowed', 'warning');
+      return;
+    }
+    builderBoard.dailyDoubles.push({ cat: cat, row: row });
+    btn.classList.add('active');
+  }
+}
+
+function collectBuilderData() {
+  var b = builderBoard;
+  var titleEl = document.getElementById('boardTitle');
+  if (titleEl) b.title = titleEl.value;
+  var topicEl = document.getElementById('boardTopic');
+  if (topicEl) b.topic = topicEl.value;
+  for (var i = 0; i < 5; i++) {
+    var catEl = document.getElementById('cat' + i);
+    if (catEl) b.categories[i] = catEl.value;
+    for (var j = 0; j < 5; j++) {
+      var clueEl = document.getElementById('bqClue' + i + '_' + j);
+      var ansEl = document.getElementById('bqAns' + i + '_' + j);
+      if (clueEl) b.questions[i][j].clue = clueEl.value;
+      if (ansEl) b.questions[i][j].answer = ansEl.value;
+    }
+  }
+  var fjCat = document.getElementById('fjCat');
+  var fjClue = document.getElementById('fjClue');
+  var fjAns = document.getElementById('fjAnswer');
+  if (fjCat) b.finalJeopardy.category = fjCat.value;
+  if (fjClue) b.finalJeopardy.clue = fjClue.value;
+  if (fjAns) b.finalJeopardy.answer = fjAns.value;
+  var pubEl = document.getElementById('boardPublic');
+  if (pubEl) b.isPublic = pubEl.checked;
+}
+
+async function saveBoard() {
+  collectBuilderData();
+  var b = builderBoard;
+  if (!b.title.trim()) { odaToast('Please enter a board title', 'warning'); return; }
+  // Validate at least some questions
+  var hasQ = false;
+  for (var i = 0; i < 5; i++) {
+    for (var j = 0; j < 5; j++) {
+      if (b.questions[i][j].clue && b.questions[i][j].answer) hasQ = true;
+    }
+  }
+  if (!hasQ) { odaToast('Add at least one question with clue and answer', 'warning'); return; }
+
+  var btn = document.getElementById('saveBoardBtn');
+  btnLoading(btn, '&#x1F4BE; Saving...');
+
+  try {
+    var fb = await getFirebaseDB();
+    var fs = fb.fsMod;
+    var teacherId = sessionStorage.getItem('odaTeacherId') || localStorage.getItem('odaTeacherId') || 'unknown';
+    var data = {
+      title: b.title,
+      topic: b.topic,
+      categories: b.categories,
+      questions: b.questions,
+      finalJeopardy: b.finalJeopardy,
+      dailyDoubles: b.dailyDoubles || [],
+      isPublic: b.isPublic,
+      teacherId: teacherId,
+      classCode: classCode,
+      createdAt: fs.serverTimestamp()
+    };
+    if (builderEditId) {
+      await fs.updateDoc(fs.doc(fb.db, 'jeopardyBoards', builderEditId), data);
+      odaToast('Board updated!', 'success');
+    } else {
+      await fs.addDoc(fs.collection(fb.db, 'jeopardyBoards'), data);
+      odaToast('Board saved!', 'success');
+    }
+    showHome();
+  } catch(e) {
+    console.error(e);
+    odaToast('Error saving: ' + e.message, 'error');
+    btnReset(btn, '&#x1F4BE; Save Board');
+  }
+}
+
+function editBoard(idx) {
+  var b = boardsCache[idx];
+  showBoardBuilder(b, b.id);
+}
+
+async function deleteBoard(id) {
+  if (!confirm('Delete this board? This cannot be undone.')) return;
+  try {
+    var fb = await getFirebaseDB();
+    var fs = fb.fsMod;
+    await fs.deleteDoc(fs.doc(fb.db, 'jeopardyBoards', id));
+    odaToast('Board deleted', 'success');
+    showBoardBrowser('teacher');
+  } catch(e) {
+    odaToast('Error: ' + e.message, 'error');
+  }
+}
+
+// ===========================
+// AI BOARD GENERATION
+// ===========================
+async function aiGenerateBoard() {
+  var topicEl = document.getElementById('boardTopic');
+  var topic = topicEl ? topicEl.value.trim() : '';
+  if (!topic) { odaToast('Enter a topic first!', 'warning'); return; }
+
+  var btn = document.getElementById('aiGenBtn');
+  btnLoading(btn, '&#x1F916; Generating...');
+  document.getElementById('aiGenStatus').innerHTML = '<div class="ai-loading-text">Mr. ODA is creating 25 questions about "' + esc(topic) + '"</div>';
+
+  try {
+    var result = await odaAI(
+      'Create a complete Jeopardy board on the topic: ' + topic + '. Return as JSON with this EXACT structure: {"categories":["Cat1","Cat2","Cat3","Cat4","Cat5"],"questions":[[{"clue":"...","answer":"...","points":100},{"clue":"...","answer":"...","points":200},{"clue":"...","answer":"...","points":300},{"clue":"...","answer":"...","points":400},{"clue":"...","answer":"...","points":500}],[same for cat2],[same for cat3],[same for cat4],[same for cat5]],"finalJeopardy":{"category":"...","clue":"...","answer":"..."}}. Each category array must have exactly 5 question objects. Easier questions at lower points, harder at higher points.',
+      { system: 'You are a Jeopardy game creator for K-8 students. Make questions age-appropriate, educational, and fun. Answers should be short (1-3 words ideally). Return ONLY valid JSON, no markdown, no code blocks, no explanation.', max_tokens: 3000, temperature: 0.8 }
+    );
+
+    // Parse JSON from response
+    var jsonStr = result.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    var data = JSON.parse(jsonStr);
+
+    // Populate builder
+    builderBoard.categories = data.categories || builderBoard.categories;
+    builderBoard.topic = topic;
+    builderBoard.title = topic + ' Jeopardy';
+    if (data.questions && data.questions.length === 5) {
+      for (var i = 0; i < 5; i++) {
+        if (data.questions[i] && data.questions[i].length === 5) {
+          builderBoard.questions[i] = data.questions[i];
+        }
+      }
+    }
+    if (data.finalJeopardy) {
+      builderBoard.finalJeopardy = data.finalJeopardy;
+    }
+    // Set random daily doubles
+    builderBoard.dailyDoubles = [
+      { cat: Math.floor(Math.random()*5), row: 2 + Math.floor(Math.random()*3) },
+      { cat: Math.floor(Math.random()*5), row: 2 + Math.floor(Math.random()*3) }
+    ];
+    // Ensure they aren't the same cell
+    if (builderBoard.dailyDoubles[0].cat === builderBoard.dailyDoubles[1].cat && builderBoard.dailyDoubles[0].row === builderBoard.dailyDoubles[1].row) {
+      builderBoard.dailyDoubles[1].cat = (builderBoard.dailyDoubles[0].cat + 2) % 5;
+    }
+
+    document.getElementById('aiGenStatus').innerHTML = '';
+    odaToast('Board generated! Review and save.', 'success');
+    renderBuilder();
+  } catch(e) {
+    console.error(e);
+    document.getElementById('aiGenStatus').innerHTML = '';
+    odaToast('AI generation failed. Try again!', 'error');
+    btnReset(btn, '&#x2728; Generate Board');
+  }
+}
+
+// ===========================
+// START GAME
+// ===========================
+function startGame(boardIdx) {
+  var board = boardsCache[boardIdx];
+  if (!board) { odaToast('Board not found', 'error'); return; }
+
+  // Validate board has enough data
+  var qCount = 0;
+  for (var i = 0; i < 5; i++) {
+    if (!board.questions[i]) continue;
+    for (var j = 0; j < 5; j++) {
+      if (board.questions[i][j] && board.questions[i][j].clue && board.questions[i][j].answer) qCount++;
+    }
+  }
+  if (qCount < 5) { odaToast('This board needs more questions to play', 'warning'); return; }
+
+  // Reset game state
+  gameState.board = JSON.parse(JSON.stringify(board));
+  gameState.answered = [];
+  gameState.score = 0;
+  gameState.questionsRight = 0;
+  gameState.questionsWrong = 0;
+  gameState.categoryScores = {};
+  gameState.fjDone = false;
+  gameState.gameStartTime = Date.now();
+  for (var i = 0; i < 5; i++) {
+    gameState.answered[i] = [];
+    var catName = board.categories[i] || 'Category ' + (i+1);
+    gameState.categoryScores[catName] = { right: 0, wrong: 0, points: 0 };
+    for (var j = 0; j < 5; j++) {
+      gameState.answered[i][j] = false;
+    }
+  }
+
+  renderBoard();
+  showScoreBar();
+  updateScoreDisplay();
+  soundBoardReveal();
+}
+
+// ===========================
+// RENDER JEOPARDY BOARD
+// ===========================
+function renderBoard() {
+  var b = gameState.board;
+  var c = document.getElementById('content');
+  var ddSet = {};
+  (b.dailyDoubles || []).forEach(function(d) { ddSet[d.cat + '-' + d.row] = true; });
+
+  var html = '<div class="btn-row" style="margin-bottom:12px;justify-content:flex-start"><button class="btn btn-surface btn-sm" onclick="confirmQuit()">&#8592; Quit Game</button></div>';
+  html += '<div class="board-wrap"><div class="j-board">';
+
+  // Category headers
+  for (var i = 0; i < 5; i++) {
+    html += '<div class="j-cat">' + esc(b.categories[i] || 'Category ' + (i+1)) + '</div>';
+  }
+
+  // Question cells
+  for (var row = 0; row < 5; row++) {
+    for (var cat = 0; cat < 5; cat++) {
+      var pts = (row + 1) * 100;
+      var isAnswered = gameState.answered[cat][row];
+      var hasQ = b.questions[cat] && b.questions[cat][row] && b.questions[cat][row].clue;
+      html += '<div class="j-cell' + (isAnswered ? ' answered' : '') + '"' +
+        (!isAnswered && hasQ ? ' onclick="selectQuestion(' + cat + ',' + row + ')"' : '') +
+        ' id="cell' + cat + '_' + row + '">$' + pts + '</div>';
+    }
+  }
+
+  html += '</div></div>';
+  c.innerHTML = html;
+}
+
+function confirmQuit() {
+  if (gameState.questionsRight + gameState.questionsWrong > 0) {
+    if (!confirm('Quit the game? Your progress will be lost.')) return;
+  }
+  stopTimer();
+  stopThinkingMusic();
+  hideAllOverlays();
+  hideScoreBar();
+  showHome();
+}
+
+// ===========================
+// SELECT QUESTION
+// ===========================
+function selectQuestion(cat, row) {
+  var b = gameState.board;
+  if (gameState.answered[cat][row]) return;
+  if (!b.questions[cat] || !b.questions[cat][row]) return;
+
+  var q = b.questions[cat][row];
+  if (!q.clue || !q.answer) return;
+
+  gameState.currentCat = cat;
+  gameState.currentRow = row;
+  gameState.currentQuestion = q;
+
+  // Check Daily Double
+  var isDD = false;
+  (b.dailyDoubles || []).forEach(function(d) {
+    if (d.cat === cat && d.row === row) isDD = true;
+  });
+
+  soundClick();
+
+  if (isDD) {
+    gameState.isDailyDouble = true;
+    showDailyDouble(cat, row);
+  } else {
+    gameState.isDailyDouble = false;
+    gameState.wager = 0;
+    showQuestion(cat, row);
+  }
+}
+
+// ===========================
+// DAILY DOUBLE
+// ===========================
+function showDailyDouble(cat, row) {
+  soundDailyDouble();
+  var overlay = document.getElementById('ddOverlay');
+  overlay.classList.add('show');
+  var maxWager = Math.max(gameState.score, (gameState.currentQuestion.points || 500));
+  document.getElementById('ddWagerMax').textContent = 'Max wager: $' + maxWager;
+  document.getElementById('ddWagerInput').value = '';
+  document.getElementById('ddWagerInput').max = maxWager;
+  document.getElementById('ddWagerInput').focus();
+}
+
+function confirmWager() {
+  var input = document.getElementById('ddWagerInput');
+  var val = parseInt(input.value) || 0;
+  var maxWager = Math.max(gameState.score, (gameState.currentQuestion.points || 500));
+  if (val < 0) val = 0;
+  if (val > maxWager) val = maxWager;
+  gameState.wager = val;
+  document.getElementById('ddOverlay').classList.remove('show');
+  showQuestion(gameState.currentCat, gameState.currentRow);
+}
+
+// ===========================
+// SHOW QUESTION MODAL
+// ===========================
+function showQuestion(cat, row) {
+  var q = gameState.currentQuestion;
+  var pts = gameState.isDailyDouble ? gameState.wager : q.points;
+  var catName = gameState.board.categories[cat] || 'Category';
+
+  document.getElementById('qPoints').textContent = (gameState.isDailyDouble ? '&#x2B50; Daily Double &#x2B50; ' : '') + '$' + pts;
+  document.getElementById('qPoints').innerHTML = (gameState.isDailyDouble ? '&#x2B50; Daily Double &#x2B50; ' : '') + '$' + pts;
+  document.getElementById('qCategory').textContent = catName;
+  document.getElementById('qClue').textContent = q.clue;
+  document.getElementById('qResult').textContent = '';
+  document.getElementById('qCorrectAnswer').textContent = '';
+  document.getElementById('qAnswerInput').value = '';
+  document.getElementById('qAnswerInput').style.display = '';
+  document.getElementById('qSubmitBtn').style.display = '';
+  document.getElementById('qSubmitBtn').textContent = 'Submit Answer';
+  document.getElementById('qSubmitBtn').onclick = submitAnswer;
+
+  document.getElementById('qOverlay').classList.add('show');
+  setTimeout(function(){ document.getElementById('qAnswerInput').focus(); }, 100);
+
+  startTimer(TIMER_SECONDS);
+}
+
+// ===========================
+// TIMER
+// ===========================
+function startTimer(seconds) {
+  gameState.timerSeconds = seconds;
+  var total = seconds;
+  updateTimerUI(seconds, total);
+  if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+  gameState.timerInterval = setInterval(function() {
+    gameState.timerSeconds--;
+    updateTimerUI(gameState.timerSeconds, total);
+    if (gameState.timerSeconds <= 10 && gameState.timerSeconds > 0) soundTick();
+    if (gameState.timerSeconds <= 0) {
+      stopTimer();
+      timeUp();
+    }
+  }, 1000);
+}
+
+function updateTimerUI(remaining, total) {
+  var pct = (remaining / total) * 100;
+  var fill = document.getElementById('qTimerFill');
+  if (!fill) return;
+  fill.style.width = pct + '%';
+  fill.className = 'q-timer-fill' + (pct < 20 ? ' danger' : pct < 40 ? ' warn' : '');
+  var text = document.getElementById('qTimerText');
+  if (text) text.textContent = remaining + 's remaining';
+}
+
+function stopTimer() {
+  if (gameState.timerInterval) {
+    clearInterval(gameState.timerInterval);
+    gameState.timerInterval = null;
+  }
+}
+
+function timeUp() {
+  processAnswer(false);
+}
+
+// ===========================
+// SUBMIT / VALIDATE ANSWER
+// ===========================
+function submitAnswer() {
+  stopTimer();
+  var input = document.getElementById('qAnswerInput');
+  var userAnswer = (input.value || '').trim();
+  if (!userAnswer) { odaToast('Type an answer!', 'warning'); startTimer(gameState.timerSeconds || 5); return; }
+  var correct = checkAnswer(userAnswer, gameState.currentQuestion.answer);
+  processAnswer(correct);
+}
+
+function checkAnswer(userAns, correctAns) {
+  // Normalize both
+  function normalize(s) {
+    return s.toLowerCase()
+      .replace(/^(what|who|where|when|why|how)\s+(is|are|was|were)\s+/i, '')
+      .replace(/^(the|a|an)\s+/i, '')
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  var u = normalize(userAns);
+  var c = normalize(correctAns);
+  if (u === c) return true;
+  // Check if one contains the other
+  if (u.length > 2 && c.includes(u)) return true;
+  if (c.length > 2 && u.includes(c)) return true;
+  // Levenshtein distance for close matches
+  if (u.length > 3 && c.length > 3) {
+    var dist = levenshtein(u, c);
+    var maxLen = Math.max(u.length, c.length);
+    if (dist / maxLen < 0.25) return true;
+  }
+  return false;
+}
+
+function levenshtein(a, b) {
+  var m = a.length, n = b.length;
+  var dp = [];
+  for (var i = 0; i <= m; i++) { dp[i] = [i]; }
+  for (var j = 0; j <= n; j++) { dp[0][j] = j; }
+  for (var i = 1; i <= m; i++) {
+    for (var j = 1; j <= n; j++) {
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    }
+  }
+  return dp[m][n];
+}
+
+function processAnswer(correct) {
+  var q = gameState.currentQuestion;
+  var pts = gameState.isDailyDouble ? gameState.wager : q.points;
+  var catName = gameState.board.categories[gameState.currentCat] || 'Category';
+
+  document.getElementById('qAnswerInput').style.display = 'none';
+  document.getElementById('qSubmitBtn').textContent = 'Continue';
+  document.getElementById('qSubmitBtn').onclick = closeQuestion;
+
+  if (correct) {
+    gameState.score += pts;
+    gameState.questionsRight++;
+    gameState.categoryScores[catName].right++;
+    gameState.categoryScores[catName].points += pts;
+    document.getElementById('qResult').innerHTML = '<span style="color:var(--accent)">&#x2705; Correct!</span>';
+    soundCorrect();
+    showFloatingPoints('+$' + pts, true);
+  } else {
+    gameState.score -= pts;
+    gameState.questionsWrong++;
+    gameState.categoryScores[catName].wrong++;
+    gameState.categoryScores[catName].points -= pts;
+    document.getElementById('qResult').innerHTML = '<span style="color:var(--accent3)">&#x274C; Incorrect</span>';
+    document.getElementById('qCorrectAnswer').textContent = 'Correct answer: ' + q.answer;
+    soundWrong();
+    showFloatingPoints('-$' + pts, false);
+  }
+
+  gameState.answered[gameState.currentCat][gameState.currentRow] = true;
+  updateScoreDisplay();
+
+  // Update the board cell
+  var cell = document.getElementById('cell' + gameState.currentCat + '_' + gameState.currentRow);
+  if (cell) { cell.classList.add('answered'); cell.onclick = null; }
+}
+
+function closeQuestion() {
+  document.getElementById('qOverlay').classList.remove('show');
+  gameState.currentQuestion = null;
+
+  // Check if all questions answered
+  if (allAnswered()) {
+    setTimeout(function() { showFinalJeopardy(); }, 500);
+  }
+}
+
+function allAnswered() {
+  for (var i = 0; i < 5; i++) {
+    for (var j = 0; j < 5; j++) {
+      if (!gameState.answered[i][j]) {
+        // Check if question actually exists
+        if (gameState.board.questions[i] && gameState.board.questions[i][j] && gameState.board.questions[i][j].clue) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
+function showFloatingPoints(text, isPositive) {
+  var el = document.createElement('div');
+  el.className = 'q-floating-pts';
+  el.textContent = text;
+  el.style.color = isPositive ? 'var(--accent)' : 'var(--accent3)';
+  el.style.left = '50%';
+  el.style.top = '40%';
+  el.style.transform = 'translateX(-50%)';
+  document.body.appendChild(el);
+  setTimeout(function() { el.remove(); }, 1500);
+}
+
+function showScoreBar() { document.getElementById('scoreBar').style.display = 'block'; }
+function hideScoreBar() { document.getElementById('scoreBar').style.display = 'none'; }
+
+function updateScoreDisplay() {
+  document.getElementById('scoreDisplay').textContent = '$' + gameState.score;
+  document.getElementById('rightCount').textContent = gameState.questionsRight;
+  document.getElementById('wrongCount').textContent = gameState.questionsWrong;
+}
+
+// ===========================
+// FINAL JEOPARDY
+// ===========================
+var fjStage = 0;
+function showFinalJeopardy() {
+  var fj = gameState.board.finalJeopardy;
+  if (!fj || !fj.clue || !fj.answer) {
+    showGameOver();
+    return;
+  }
+  fjStage = 0;
+  var overlay = document.getElementById('fjOverlay');
+  overlay.classList.add('show');
+  // Stage 0: Show category + wager
+  renderFJStage();
+}
+
+function renderFJStage() {
+  var fj = gameState.board.finalJeopardy;
+  var fc = document.getElementById('fjContent');
+
+  if (fjStage === 0) {
+    // Category reveal + wager
+    fc.innerHTML =
+      '<div class="fj-title">&#x1F3C6; Final Jeopardy &#x1F3C6;</div>' +
+      '<div class="fj-category">' + esc(fj.category) + '</div>' +
+      '<div style="margin-top:20px">' +
+        '<div style="font-size:16px;color:var(--text2);margin-bottom:12px;font-weight:600">How much will you wager? (You have $' + gameState.score + ')</div>' +
+        '<input type="number" class="dd-wager-input" id="fjWagerInput" placeholder="$" min="0" max="' + Math.max(gameState.score, 0) + '">' +
+        '<div class="btn-row"><button class="btn btn-gold" onclick="fjConfirmWager()">Lock In Wager</button></div>' +
+      '</div>';
+    setTimeout(function(){ var w = document.getElementById('fjWagerInput'); if(w) w.focus(); }, 200);
+  } else if (fjStage === 1) {
+    // Show clue + timer + answer
+    startThinkingMusic();
+    fc.innerHTML =
+      '<div class="fj-title">&#x1F3C6; Final Jeopardy &#x1F3C6;</div>' +
+      '<div class="fj-category">' + esc(fj.category) + '</div>' +
+      '<div class="fj-clue">' + esc(fj.clue) + '</div>' +
+      '<div class="q-timer-wrap"><div class="q-timer-bar"><div class="q-timer-fill" id="qTimerFill"></div></div>' +
+      '<div class="q-timer-text" id="qTimerText"></div></div>' +
+      '<input type="text" class="q-answer-input" id="fjAnswerInput" placeholder="Your answer...">' +
+      '<div class="btn-row"><button class="btn btn-gold" onclick="fjSubmitAnswer()" id="fjSubmitBtn">Submit Final Answer</button></div>' +
+      '<div class="q-result" id="fjResult"></div>' +
+      '<div class="q-correct-answer" id="fjCorrectAnswer"></div>';
+    setTimeout(function(){ var a = document.getElementById('fjAnswerInput'); if(a) a.focus(); }, 200);
+    startTimer(FJ_TIMER_SECONDS);
+  }
+}
+
+function fjConfirmWager() {
+  var input = document.getElementById('fjWagerInput');
+  var val = parseInt(input.value) || 0;
+  if (val < 0) val = 0;
+  if (val > Math.max(gameState.score, 0)) val = Math.max(gameState.score, 0);
+  gameState.wager = val;
+  fjStage = 1;
+  renderFJStage();
+}
+
+function fjSubmitAnswer() {
+  stopTimer();
+  stopThinkingMusic();
+  var input = document.getElementById('fjAnswerInput');
+  var userAnswer = (input ? input.value : '').trim();
+  var fj = gameState.board.finalJeopardy;
+  var correct = userAnswer ? checkAnswer(userAnswer, fj.answer) : false;
+
+  if (input) input.style.display = 'none';
+  var submitBtn = document.getElementById('fjSubmitBtn');
+  if (submitBtn) submitBtn.style.display = 'none';
+
+  if (correct) {
+    gameState.score += gameState.wager;
+    gameState.questionsRight++;
+    document.getElementById('fjResult').innerHTML = '<span style="color:var(--accent)">&#x2705; Correct! +$' + gameState.wager + '</span>';
+    soundCorrect();
+  } else {
+    gameState.score -= gameState.wager;
+    gameState.questionsWrong++;
+    document.getElementById('fjResult').innerHTML = '<span style="color:var(--accent3)">&#x274C; Incorrect</span>';
+    document.getElementById('fjCorrectAnswer').textContent = 'Correct answer: ' + fj.answer;
+    soundWrong();
+  }
+
+  updateScoreDisplay();
+  gameState.fjDone = true;
+
+  // Show continue button
+  var fc = document.getElementById('fjContent');
+  fc.innerHTML += '<div class="btn-row" style="margin-top:16px"><button class="btn btn-gold" onclick="closeFJ()">See Final Results</button></div>';
+}
+
+// Handle FJ time up
+var origTimeUp = timeUp;
+timeUp = function() {
+  if (fjStage === 1 && document.getElementById('fjOverlay').classList.contains('show')) {
+    fjSubmitAnswer();
+  } else {
+    processAnswer(false);
+  }
+};
+
+function closeFJ() {
+  document.getElementById('fjOverlay').classList.remove('show');
+  showGameOver();
+}
+
+// ===========================
+// GAME OVER
+// ===========================
+async function showGameOver() {
+  stopThinkingMusic();
+  hideScoreBar();
+  soundVictory();
+  if (typeof odaConfetti === 'function' && gameState.score > 0) odaConfetti();
+
+  var totalQ = gameState.questionsRight + gameState.questionsWrong;
+  var pct = totalQ > 0 ? Math.round((gameState.questionsRight / totalQ) * 100) : 0;
+  var timeSec = Math.round((Date.now() - gameState.gameStartTime) / 1000);
+  var timeStr = Math.floor(timeSec/60) + ':' + String(timeSec%60).padStart(2,'0');
+
+  // Coin rewards
+  var coins = 10;
+  if (pct >= 100) coins = 50;
+  else if (pct >= 80) coins = 30;
+  else if (pct >= 60) coins = 20;
+
+  // Category breakdown
+  var catHtml = '';
+  var bestCat = '', worstCat = '', bestPct = -1, worstPct = 101;
+  Object.keys(gameState.categoryScores).forEach(function(cat) {
+    var s = gameState.categoryScores[cat];
+    var total = s.right + s.wrong;
+    if (total === 0) return;
+    var p = Math.round((s.right / total) * 100);
+    var cls = p >= 80 ? 'go-cat-ok' : p >= 50 ? 'go-cat-mid' : 'go-cat-bad';
+    catHtml += '<div class="go-cat-row ' + cls + '"><span>' + esc(cat) + '</span><span>' + s.right + '/' + total + ' (' + p + '%)</span></div>';
+    if (p > bestPct) { bestPct = p; bestCat = cat; }
+    if (p < worstPct) { worstPct = p; worstCat = cat; }
+  });
+
+  var emoji = pct >= 80 ? '&#x1F3C6;' : pct >= 60 ? '&#x1F31F;' : '&#x1F4AA;';
+  var message = pct >= 80 ? 'Outstanding!' : pct >= 60 ? 'Great effort!' : 'Keep practicing!';
+
+  var gc = document.getElementById('goContent');
+  gc.innerHTML =
+    '<div class="go-emoji">' + emoji + '</div>' +
+    '<div class="go-title">' + message + '</div>' +
+    '<div class="go-score">$' + gameState.score + '</div>' +
+    '<div class="go-stats">' +
+      '<div class="go-stat"><div class="go-stat-num" style="color:var(--accent)">' + gameState.questionsRight + '</div><div class="go-stat-label">Correct</div></div>' +
+      '<div class="go-stat"><div class="go-stat-num" style="color:var(--accent3)">' + gameState.questionsWrong + '</div><div class="go-stat-label">Wrong</div></div>' +
+      '<div class="go-stat"><div class="go-stat-num" style="color:var(--accent2)">' + pct + '%</div><div class="go-stat-label">Accuracy</div></div>' +
+      '<div class="go-stat"><div class="go-stat-num" style="color:var(--text)">' + timeStr + '</div><div class="go-stat-label">Time</div></div>' +
+    '</div>' +
+    '<div class="go-coins">&#x1FA99; +' + coins + ' coins earned!</div>' +
+    (catHtml ? '<div class="go-cat-breakdown"><div style="font-size:14px;color:var(--text2);font-weight:700;margin-bottom:8px">Category Breakdown</div>' + catHtml + '</div>' : '') +
+    (bestCat ? '<div style="font-size:13px;color:var(--text2);margin:8px 0">Best: <span style="color:var(--accent);font-weight:700">' + esc(bestCat) + '</span>' + (worstCat && worstCat !== bestCat ? ' &middot; Needs work: <span style="color:var(--accent3);font-weight:700">' + esc(worstCat) + '</span>' : '') + '</div>' : '') +
+    '<div class="btn-row">' +
+      '<button class="btn btn-gold" onclick="closeGameOver(); showHome();">&#x1F3E0; Home</button>' +
+      '<button class="btn btn-accent" onclick="closeGameOver(); startGame(boardsCache.indexOf(boardsCache.find(function(b){return b.id===gameState.board.id})))">&#x1F504; Play Again</button>' +
+    '</div>';
+
+  document.getElementById('goOverlay').classList.add('show');
+
+  // Save result to Firebase
+  try {
+    var fb = await getFirebaseDB();
+    var fs = fb.fsMod;
+    await fs.addDoc(fs.collection(fb.db, 'jeopardyResults'), {
+      boardId: gameState.board.id || '',
+      boardTitle: gameState.board.title || '',
+      studentId: studentId || '',
+      studentName: studentName || 'Guest',
+      classCode: classCode,
+      score: gameState.score,
+      questionsRight: gameState.questionsRight,
+      questionsWrong: gameState.questionsWrong,
+      accuracy: pct,
+      categoryScores: gameState.categoryScores,
+      timeSeconds: timeSec,
+      coinsEarned: coins,
+      completedAt: fs.serverTimestamp()
+    });
+
+    // Award coins
+    if (studentId && coins > 0) {
+      try {
+        var studentRef = fs.doc(fb.db, 'students', studentId);
+        var studentSnap = await fs.getDoc(studentRef);
+        if (studentSnap.exists()) {
+          var currentCoins = studentSnap.data().coins || 0;
+          await fs.updateDoc(studentRef, { coins: currentCoins + coins });
+        }
+      } catch(e) { console.log('Coin award error:', e); }
+    }
+  } catch(e) { console.log('Save result error:', e); }
+}
+
+function closeGameOver() {
+  document.getElementById('goOverlay').classList.remove('show');
+}
+
+function hideAllOverlays() {
+  document.getElementById('qOverlay').classList.remove('show');
+  document.getElementById('ddOverlay').classList.remove('show');
+  document.getElementById('fjOverlay').classList.remove('show');
+  document.getElementById('goOverlay').classList.remove('show');
+}
+
+// Enter key to submit
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    if (document.getElementById('qOverlay').classList.contains('show')) {
+      var inp = document.getElementById('qAnswerInput');
+      if (inp && inp.style.display !== 'none') {
+        submitAnswer();
+      } else {
+        closeQuestion();
+      }
+    }
+    if (document.getElementById('ddOverlay').classList.contains('show')) {
+      confirmWager();
+    }
+    if (document.getElementById('fjOverlay').classList.contains('show')) {
+      var fjInp = document.getElementById('fjAnswerInput');
+      if (fjInp && fjInp.style.display !== 'none') {
+        fjSubmitAnswer();
+      }
+      var fjWager = document.getElementById('fjWagerInput');
+      if (fjWager && fjWager.offsetParent !== null) {
+        fjConfirmWager();
+      }
+    }
+  }
+});
+
+// ===========================
+// TEACHER DASHBOARD
+// ===========================
+async function showTeacherDash() {
+  var c = document.getElementById('content');
+  c.innerHTML = '<div class="loading">Loading dashboard</div>';
+
+  try {
+    var fb = await getFirebaseDB();
+    var fs = fb.fsMod;
+    var teacherId = sessionStorage.getItem('odaTeacherId') || localStorage.getItem('odaTeacherId') || '';
+
+    // Load boards
+    var bq = fs.query(fs.collection(fb.db, 'jeopardyBoards'), fs.where('teacherId','==',teacherId));
+    var bSnap = await fs.getDocs(bq);
+    var boards = [];
+    bSnap.forEach(function(d) { boards.push(Object.assign({id: d.id}, d.data())); });
+
+    // Load results
+    var rq;
+    if (classCode) {
+      rq = fs.query(fs.collection(fb.db, 'jeopardyResults'), fs.where('classCode','==',classCode), fs.orderBy('completedAt','desc'));
+    } else {
+      rq = fs.query(fs.collection(fb.db, 'jeopardyResults'), fs.orderBy('completedAt','desc'));
+    }
+    var rSnap = await fs.getDocs(rq);
+    var results = [];
+    rSnap.forEach(function(d) { results.push(Object.assign({id: d.id}, d.data())); });
+
+    renderDashboard(boards, results);
+  } catch(e) {
+    console.error(e);
+    c.innerHTML = '<div class="card" style="text-align:center"><p style="color:var(--text2)">Error loading dashboard: ' + esc(e.message) + '</p>' +
+      '<div class="btn-row"><button class="btn btn-accent" onclick="showHome()">Back</button></div></div>';
+  }
+}
+
+function renderDashboard(boards, results) {
+  var c = document.getElementById('content');
+  var totalPlays = results.length;
+  var avgScore = 0;
+  var avgAccuracy = 0;
+  if (totalPlays > 0) {
+    var sumScore = 0, sumAcc = 0;
+    results.forEach(function(r) { sumScore += (r.score || 0); sumAcc += (r.accuracy || 0); });
+    avgScore = Math.round(sumScore / totalPlays);
+    avgAccuracy = Math.round(sumAcc / totalPlays);
+  }
+
+  // Find struggling categories
+  var catStats = {};
+  results.forEach(function(r) {
+    if (!r.categoryScores) return;
+    Object.keys(r.categoryScores).forEach(function(cat) {
+      if (!catStats[cat]) catStats[cat] = { right: 0, wrong: 0 };
+      catStats[cat].right += r.categoryScores[cat].right || 0;
+      catStats[cat].wrong += r.categoryScores[cat].wrong || 0;
+    });
+  });
+
+  var html = '<div class="btn-row" style="margin-bottom:16px;justify-content:flex-start"><button class="btn btn-surface btn-sm" onclick="showHome()">&#8592; Back</button></div>';
+  html += '<div class="card-title" style="margin-bottom:16px">&#x1F4CA; Jeopardy Dashboard</div>';
+
+  // Stats
+  html += '<div class="td-stats">' +
+    '<div class="td-stat"><div class="td-stat-num">' + boards.length + '</div><div class="td-stat-label">Boards</div></div>' +
+    '<div class="td-stat"><div class="td-stat-num">' + totalPlays + '</div><div class="td-stat-label">Games Played</div></div>' +
+    '<div class="td-stat"><div class="td-stat-num" style="color:var(--gold)">$' + avgScore + '</div><div class="td-stat-label">Avg Score</div></div>' +
+    '<div class="td-stat"><div class="td-stat-num">' + avgAccuracy + '%</div><div class="td-stat-label">Avg Accuracy</div></div>' +
+  '</div>';
+
+  // Struggling categories
+  var struggling = [];
+  Object.keys(catStats).forEach(function(cat) {
+    var s = catStats[cat];
+    var total = s.right + s.wrong;
+    if (total < 3) return;
+    var pct = Math.round((s.right / total) * 100);
+    if (pct < 60) struggling.push({ name: cat, pct: pct });
+  });
+  if (struggling.length > 0) {
+    html += '<div class="card" style="border-color:var(--accent3)"><div style="font-family:Fredoka,sans-serif;font-size:16px;font-weight:700;color:var(--accent3);margin-bottom:8px">&#x26A0;&#xFE0F; Categories Students Struggle With</div>';
+    struggling.forEach(function(s) {
+      html += '<div class="go-cat-row go-cat-bad"><span>' + esc(s.name) + '</span><span>' + s.pct + '% accuracy</span></div>';
+    });
+    html += '</div>';
+  }
+
+  // Recent results
+  html += '<div class="card"><div style="font-family:Fredoka,sans-serif;font-size:18px;font-weight:700;margin-bottom:12px">Recent Games</div>';
+  if (results.length === 0) {
+    html += '<p style="color:var(--text2);text-align:center;padding:20px">No games played yet</p>';
+  } else {
+    results.slice(0, 20).forEach(function(r) {
+      var dateStr = r.completedAt ? new Date(r.completedAt.seconds ? r.completedAt.seconds * 1000 : r.completedAt).toLocaleDateString() : '';
+      html += '<div class="result-card">' +
+        '<div><div class="result-name">' + esc(r.studentName || 'Unknown') + '</div>' +
+        '<div class="result-info">' + esc(r.boardTitle || '') + ' &middot; ' + (r.accuracy || 0) + '% &middot; ' + dateStr + '</div></div>' +
+        '<div class="result-score-val">$' + (r.score || 0) + '</div>' +
+      '</div>';
+    });
+  }
+  html += '</div>';
+
+  // Boards with play counts
+  window._dashBoards = boards;
+  html += '<div class="card"><div style="font-family:Fredoka,sans-serif;font-size:18px;font-weight:700;margin-bottom:12px">Your Boards</div>';
+  if (boards.length === 0) {
+    html += '<p style="color:var(--text2);text-align:center;padding:20px">No boards created yet</p>';
+  } else {
+    boards.forEach(function(b, idx) {
+      var plays = results.filter(function(r){ return r.boardId === b.id; }).length;
+      html += '<div class="result-card">' +
+        '<div><div class="result-name">' + esc(b.title || 'Untitled') + '</div>' +
+        '<div class="result-info">' + esc(b.topic || '') + ' &middot; ' + plays + ' plays</div></div>' +
+        '<div style="display:flex;gap:6px"><button class="btn btn-sm btn-accent" onclick="playDashBoard(' + idx + ')">&#x25B6;</button></div>' +
+      '</div>';
+    });
+  }
+  html += '</div>';
+
+  c.innerHTML = html;
+}
+
+function playDashBoard(idx) {
+  boardsCache = window._dashBoards || [];
+  if (boardsCache[idx]) startGame(idx);
+}
+
+// ===========================
+// DESKTOP MODE
+// ===========================
+function toggleDesktopMode() {
+  document.body.classList.toggle('desktop-mode');
+  document.getElementById('desktopToggle').classList.toggle('active');
+}
+
+// ===========================
+// INIT
+// ===========================
+showHome();
+
+</script>
+</body>
+</html>

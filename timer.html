@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODA Hub - Timer</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#a8b2c8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;max-width:640px;margin:0 auto;padding:20px 16px 80px}
+.back{display:inline-block;margin-bottom:16px;color:var(--text2);text-decoration:none;font-size:14px;font-weight:600;transition:color .2s}
+.back:hover{color:var(--text)}
+
+/* Header */
+.header{text-align:center;margin-bottom:24px}
+.header .emoji{font-size:56px;margin-bottom:8px;display:block}
+.header h1{font-family:'Fredoka',sans-serif;font-size:34px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.header p{font-size:15px;color:var(--text2);margin-top:4px}
+
+/* Top controls */
+.top-controls{display:flex;justify-content:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.top-btn{background:var(--surface);border:1.5px solid var(--border);color:var(--text2);padding:8px 14px;border-radius:12px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;transition:all .2s;display:flex;align-items:center;gap:6px}
+.top-btn:hover{border-color:var(--accent);color:var(--text)}
+.top-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(6,214,160,.08)}
+.top-btn svg{width:16px;height:16px;fill:currentColor}
+
+/* Mode tabs */
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:24px;background:var(--surface);padding:6px;border-radius:18px;border:1.5px solid var(--border)}
+.tab{padding:12px 8px;text-align:center;border-radius:14px;cursor:pointer;font-weight:700;font-size:14px;color:var(--text2);transition:all .25s;font-family:'Outfit',sans-serif;user-select:none}
+.tab:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.tab.active{background:linear-gradient(135deg,var(--accent),#04b890);color:var(--bg)}
+.tab .tab-icon{display:block;font-size:22px;margin-bottom:2px}
+
+/* Card */
+.card{background:var(--surface);border:2px solid var(--border);border-radius:24px;padding:32px 28px;margin-bottom:16px;animation:fadeUp .35s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* Pane visibility */
+.pane{display:none}
+.pane.active{display:block}
+
+/* ========== CLOCK MODE ========== */
+.clock-display{text-align:center;padding:20px 0}
+.clock-time{font-family:'Outfit',sans-serif;font-size:96px;font-weight:900;letter-spacing:-2px;color:var(--text);line-height:1;margin-bottom:8px;font-variant-numeric:tabular-nums;text-shadow:0 0 60px rgba(6,214,160,.15)}
+.clock-ampm{font-family:'Outfit',sans-serif;font-size:28px;font-weight:700;color:var(--accent);margin-left:4px;vertical-align:super}
+.clock-seconds{font-size:40px;color:var(--text2);font-weight:600}
+.clock-date{font-size:18px;color:var(--text2);font-weight:500;margin-top:12px}
+.clock-toggle{display:flex;justify-content:center;gap:6px;margin-top:20px}
+.clock-toggle-btn{padding:8px 20px;border-radius:12px;border:2px solid var(--border);background:none;color:var(--text2);font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s}
+.clock-toggle-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(6,214,160,.08)}
+
+/* ========== TIMER MODE ========== */
+.timer-presets{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:24px}
+.preset-btn{padding:10px 18px;border-radius:14px;border:2px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;min-width:54px}
+.preset-btn:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 16px rgba(6,214,160,.15)}
+.preset-btn:active{transform:translateY(0)}
+
+.custom-time-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:24px}
+.time-input{width:80px;padding:12px;background:var(--bg);border:2px solid var(--border);border-radius:14px;color:var(--text);font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;outline:none;transition:border-color .2s;font-variant-numeric:tabular-nums}
+.time-input:focus{border-color:var(--accent)}
+.time-input::placeholder{color:#2a3450}
+.time-sep{font-size:28px;font-weight:700;color:var(--text2)}
+.time-label{font-size:12px;color:var(--text2);font-weight:600;text-align:center;margin-top:2px}
+
+/* Circular progress */
+.timer-ring-wrap{display:flex;justify-content:center;align-items:center;margin:20px 0;position:relative}
+.timer-ring-container{position:relative;width:280px;height:280px}
+.timer-ring-svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--surface2);stroke-width:8}
+.ring-progress{fill:none;stroke:var(--accent);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .3s linear,stroke .5s ease;filter:drop-shadow(0 0 8px rgba(6,214,160,.4))}
+.ring-glow{fill:none;stroke:var(--accent);stroke-width:12;stroke-linecap:round;opacity:.15;filter:blur(6px)}
+.timer-ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.timer-ring-time{font-family:'Outfit',sans-serif;font-size:64px;font-weight:900;color:var(--text);font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-1px}
+.timer-ring-pct{font-size:16px;color:var(--text2);font-weight:600;margin-top:4px}
+.timer-ring-label{font-size:13px;color:var(--text2);font-weight:500;margin-top:2px}
+
+/* Timer states */
+.timer-ring-time.warn{color:var(--gold)}
+.timer-ring-time.danger{color:var(--accent3);animation:timerPulse 1s ease-in-out infinite}
+@keyframes timerPulse{0%,100%{opacity:1}50%{opacity:.5}}
+.ring-progress.warn{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(255,209,102,.4))}
+.ring-progress.danger{stroke:var(--accent3);filter:drop-shadow(0 0 8px rgba(239,71,111,.4))}
+.ring-glow.warn{stroke:var(--gold)}
+.ring-glow.danger{stroke:var(--accent3)}
+
+/* Times up */
+.times-up{display:none;text-align:center;padding:40px 20px;animation:fadeUp .4s ease}
+.times-up .tu-emoji{font-size:80px;display:block;margin-bottom:12px;animation:tuBounce .6s ease infinite alternate}
+@keyframes tuBounce{0%{transform:translateY(0) scale(1)}100%{transform:translateY(-12px) scale(1.05)}}
+.times-up h2{font-family:'Fredoka',sans-serif;font-size:36px;font-weight:700;color:var(--accent);margin-bottom:8px}
+.times-up p{font-size:16px;color:var(--text2)}
+
+/* Timer controls */
+.timer-controls{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+.ctrl-btn{padding:14px 32px;border:none;border-radius:16px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .2s;letter-spacing:.3px}
+.ctrl-btn:active{transform:scale(.95)}
+.ctrl-btn.start{background:linear-gradient(135deg,var(--accent),#04b890);color:var(--bg)}
+.ctrl-btn.pause{background:linear-gradient(135deg,var(--gold),#f0b830);color:var(--bg)}
+.ctrl-btn.reset{background:none;border:2px solid var(--border);color:var(--text2)}
+.ctrl-btn.reset:hover{border-color:var(--text2);color:var(--text)}
+.ctrl-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* ========== STOPWATCH MODE ========== */
+.sw-display{text-align:center;padding:30px 0 10px}
+.sw-time{font-family:'Outfit',sans-serif;font-size:80px;font-weight:900;color:var(--text);font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-1px}
+.sw-ms{font-size:48px;color:var(--accent);font-weight:700}
+
+.lap-table{width:100%;border-collapse:collapse;margin-top:16px}
+.lap-table th{font-size:13px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:10px 12px;border-bottom:2px solid var(--border);text-align:left}
+.lap-table td{padding:10px 12px;font-size:15px;font-weight:600;color:var(--text);border-bottom:1px solid rgba(42,52,80,.5);font-variant-numeric:tabular-nums}
+.lap-table tr:last-child td{border-bottom:none}
+.lap-table .lap-num{color:var(--accent2);font-weight:700}
+.lap-table .lap-best{color:var(--accent)}
+.lap-table .lap-worst{color:var(--accent3)}
+.lap-empty{text-align:center;color:var(--text2);font-size:14px;padding:20px}
+
+/* ========== ALARM MODE ========== */
+.alarm-form{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px}
+.alarm-field{flex:1;min-width:100px}
+.alarm-field label{display:block;font-size:12px;color:var(--text2);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px}
+.alarm-field input,.alarm-field select{width:100%;padding:12px;background:var(--bg);border:2px solid var(--border);border-radius:14px;color:var(--text);font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;outline:none;transition:border-color .2s}
+.alarm-field input:focus,.alarm-field select:focus{border-color:var(--accent)}
+.alarm-add-btn{padding:12px 24px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--accent),#04b890);color:var(--bg);font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.alarm-add-btn:active{transform:scale(.95)}
+
+.alarm-list{display:grid;gap:10px}
+.alarm-item{display:flex;align-items:center;gap:12px;padding:16px 20px;background:var(--surface2);border:1.5px solid var(--border);border-radius:18px;transition:all .2s}
+.alarm-item.ringing{border-color:var(--accent3);box-shadow:0 0 24px rgba(239,71,111,.2);animation:alarmPulse 1s ease-in-out infinite}
+@keyframes alarmPulse{0%,100%{box-shadow:0 0 24px rgba(239,71,111,.2)}50%{box-shadow:0 0 40px rgba(239,71,111,.4)}}
+.alarm-item .ai-time{font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;flex-shrink:0}
+.alarm-item .ai-ampm{font-size:14px;font-weight:700;color:var(--accent);margin-left:4px}
+.alarm-item .ai-label{font-size:14px;color:var(--text2);font-weight:500;flex:1;margin-left:4px}
+.alarm-item .ai-toggle{position:relative;width:48px;height:28px;flex-shrink:0}
+.alarm-item .ai-toggle input{opacity:0;width:0;height:0}
+.alarm-item .ai-toggle .slider{position:absolute;inset:0;background:var(--border);border-radius:14px;cursor:pointer;transition:all .3s}
+.alarm-item .ai-toggle .slider::before{content:'';position:absolute;width:22px;height:22px;left:3px;top:3px;background:var(--text);border-radius:50%;transition:all .3s}
+.alarm-item .ai-toggle input:checked+.slider{background:var(--accent)}
+.alarm-item .ai-toggle input:checked+.slider::before{transform:translateX(20px)}
+.alarm-delete{background:none;border:none;color:var(--accent3);cursor:pointer;font-size:20px;padding:4px 8px;border-radius:8px;transition:all .15s;flex-shrink:0;opacity:.6}
+.alarm-delete:hover{opacity:1;background:rgba(239,71,111,.1)}
+.alarm-empty{text-align:center;color:var(--text2);font-size:14px;padding:24px}
+
+/* ========== FULLSCREEN ========== */
+.fullscreen-wrap{display:none}
+body.fullscreen-mode .app{display:none}
+body.fullscreen-mode .fullscreen-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px;position:relative;z-index:2}
+body.fullscreen-mode .clock-time{font-size:min(20vw, 200px)}
+body.fullscreen-mode .clock-ampm{font-size:min(5vw, 60px)}
+body.fullscreen-mode .clock-seconds{font-size:min(8vw, 80px)}
+body.fullscreen-mode .clock-date{font-size:min(3vw, 32px)}
+body.fullscreen-mode .timer-ring-container{width:min(60vw, 500px);height:min(60vw, 500px)}
+body.fullscreen-mode .timer-ring-time{font-size:min(12vw, 120px)}
+body.fullscreen-mode .timer-ring-pct{font-size:min(3vw, 28px)}
+body.fullscreen-mode .sw-time{font-size:min(16vw, 160px)}
+body.fullscreen-mode .sw-ms{font-size:min(10vw, 100px)}
+body.fullscreen-mode .times-up h2{font-size:min(8vw, 72px)}
+body.fullscreen-mode .times-up .tu-emoji{font-size:min(12vw, 120px)}
+body.fullscreen-mode .fs-exit{position:fixed;top:20px;right:20px;z-index:100}
+
+.fs-exit{background:rgba(255,255,255,.1);border:1.5px solid var(--border);color:var(--text2);padding:10px 18px;border-radius:12px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;transition:all .2s;backdrop-filter:blur(8px)}
+.fs-exit:hover{background:rgba(255,255,255,.15);color:var(--text)}
+
+/* ========== WIDGET MODE ========== */
+.widget{display:none;position:fixed;bottom:20px;right:20px;background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:16px 22px;z-index:1000;cursor:move;box-shadow:0 8px 32px rgba(0,0,0,.4);min-width:180px;transition:border-color .3s}
+.widget.show{display:block;animation:fadeUp .3s ease}
+.widget-time{font-family:'Outfit',sans-serif;font-size:32px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;line-height:1;text-align:center}
+.widget-label{font-size:11px;color:var(--text2);text-align:center;margin-top:2px;font-weight:600}
+.widget-close{position:absolute;top:-8px;right:-8px;width:24px;height:24px;border-radius:50%;background:var(--accent3);color:#fff;border:none;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;transition:transform .15s}
+.widget-close:hover{transform:scale(1.1)}
+.widget.warn{border-color:var(--gold)}
+.widget.danger{border-color:var(--accent3)}
+
+/* ========== RESPONSIVE ========== */
+@media(max-width:500px){
+  .clock-time{font-size:64px}
+  .clock-seconds{font-size:28px}
+  .timer-ring-container{width:220px;height:220px}
+  .timer-ring-time{font-size:48px}
+  .sw-time{font-size:56px}
+  .sw-ms{font-size:32px}
+  .tabs{grid-template-columns:repeat(4,1fr);gap:4px;padding:4px}
+  .tab{padding:10px 4px;font-size:13px}
+  .tab .tab-icon{font-size:18px}
+  .app{padding:16px 12px 80px}
+  .card{padding:24px 18px}
+  .preset-btn{padding:8px 14px;font-size:14px}
+  .alarm-form{flex-direction:column}
+  .alarm-field{min-width:unset}
+  .alarm-item .ai-time{font-size:22px}
+}
+
+/* Animations */
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes glow{0%,100%{filter:drop-shadow(0 0 8px rgba(6,214,160,.4))}50%{filter:drop-shadow(0 0 16px rgba(6,214,160,.6))}}
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<div class="app">
+  <a href="student.html" class="back">&larr; Back to Hub</a>
+
+  <div class="header">
+    <span class="emoji">&#9202;</span>
+    <h1>Timer &amp; Clock</h1>
+    <p>Classroom clock, countdown timer, and stopwatch</p>
+  </div>
+
+  <!-- Top Controls -->
+  <div class="top-controls">
+    <button class="top-btn" id="btnFullscreen" onclick="toggleFullscreen()">
+      <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+      Projector
+    </button>
+    <button class="top-btn" id="btnWidget" onclick="toggleWidget()">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/><path d="M7 12h2v5H7zm4-3h2v8h-2zm4-3h2v11h-2z"/></svg>
+      Widget
+    </button>
+    <button class="top-btn" id="btnSound" onclick="toggleSound()">
+      <svg viewBox="0 0 24 24" id="soundIcon"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+      Sound
+    </button>
+  </div>
+
+  <!-- Mode Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchMode('clock')"><span class="tab-icon">&#128336;</span>Clock</div>
+    <div class="tab" onclick="switchMode('timer')"><span class="tab-icon">&#9203;</span>Timer</div>
+    <div class="tab" onclick="switchMode('stopwatch')"><span class="tab-icon">&#9201;</span>Stopwatch</div>
+    <div class="tab" onclick="switchMode('alarm')"><span class="tab-icon">&#128276;</span>Alarms</div>
+  </div>
+
+  <!-- ========== CLOCK PANE ========== -->
+  <div class="pane active" id="pane-clock">
+    <div class="card">
+      <div class="clock-display" id="clockDisplay">
+        <div id="clockTime" class="clock-time"></div>
+        <div id="clockDate" class="clock-date"></div>
+      </div>
+      <div class="clock-toggle">
+        <button class="clock-toggle-btn active" id="btn12h" onclick="setClockFormat(12)">12h</button>
+        <button class="clock-toggle-btn" id="btn24h" onclick="setClockFormat(24)">24h</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TIMER PANE ========== -->
+  <div class="pane" id="pane-timer">
+    <div class="card" id="timerSetup">
+      <div style="text-align:center;margin-bottom:16px">
+        <span style="font-size:13px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:1px">Quick Presets</span>
+      </div>
+      <div class="timer-presets">
+        <button class="preset-btn" onclick="setTimerPreset(1)">1m</button>
+        <button class="preset-btn" onclick="setTimerPreset(2)">2m</button>
+        <button class="preset-btn" onclick="setTimerPreset(5)">5m</button>
+        <button class="preset-btn" onclick="setTimerPreset(10)">10m</button>
+        <button class="preset-btn" onclick="setTimerPreset(15)">15m</button>
+        <button class="preset-btn" onclick="setTimerPreset(20)">20m</button>
+        <button class="preset-btn" onclick="setTimerPreset(30)">30m</button>
+      </div>
+      <div style="text-align:center;margin:16px 0 12px;font-size:13px;color:var(--text2);font-weight:600">or set custom time</div>
+      <div class="custom-time-row">
+        <div>
+          <input type="number" class="time-input" id="timerMins" min="0" max="99" placeholder="00" value="5">
+          <div class="time-label">minutes</div>
+        </div>
+        <span class="time-sep">:</span>
+        <div>
+          <input type="number" class="time-input" id="timerSecs" min="0" max="59" placeholder="00" value="00">
+          <div class="time-label">seconds</div>
+        </div>
+      </div>
+      <div class="timer-controls">
+        <button class="ctrl-btn start" onclick="startTimer()">Start</button>
+      </div>
+    </div>
+
+    <div class="card" id="timerActive" style="display:none">
+      <div class="timer-ring-wrap">
+        <div class="timer-ring-container">
+          <svg class="timer-ring-svg" viewBox="0 0 300 300">
+            <circle class="ring-bg" cx="150" cy="150" r="130"/>
+            <circle class="ring-glow" id="ringGlow" cx="150" cy="150" r="130" stroke-dasharray="816.81" stroke-dashoffset="0"/>
+            <circle class="ring-progress" id="ringProgress" cx="150" cy="150" r="130" stroke-dasharray="816.81" stroke-dashoffset="0"/>
+          </svg>
+          <div class="timer-ring-center">
+            <div class="timer-ring-time" id="timerDisplay">05:00</div>
+            <div class="timer-ring-pct" id="timerPct">100%</div>
+            <div class="timer-ring-label" id="timerLabel">remaining</div>
+          </div>
+        </div>
+      </div>
+      <div class="timer-controls">
+        <button class="ctrl-btn pause" id="timerPauseBtn" onclick="pauseTimer()">Pause</button>
+        <button class="ctrl-btn reset" onclick="resetTimer()">Reset</button>
+      </div>
+    </div>
+
+    <div class="times-up" id="timesUp">
+      <span class="tu-emoji">&#127881;</span>
+      <h2>Time's Up!</h2>
+      <p>The countdown has finished</p>
+      <div class="timer-controls" style="margin-top:20px">
+        <button class="ctrl-btn start" onclick="resetTimer()">New Timer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== STOPWATCH PANE ========== -->
+  <div class="pane" id="pane-stopwatch">
+    <div class="card">
+      <div class="sw-display">
+        <span class="sw-time" id="swTime">00:00</span><span class="sw-ms" id="swMs">.00</span>
+      </div>
+      <div class="timer-controls">
+        <button class="ctrl-btn start" id="swStartBtn" onclick="swToggle()">Start</button>
+        <button class="ctrl-btn reset" id="swLapBtn" onclick="swLap()" disabled>Lap</button>
+        <button class="ctrl-btn reset" id="swResetBtn" onclick="swReset()" disabled>Reset</button>
+      </div>
+    </div>
+    <div class="card" id="lapCard" style="display:none">
+      <div style="font-size:13px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;text-align:center">Lap Times</div>
+      <table class="lap-table">
+        <thead><tr><th>Lap</th><th>Lap Time</th><th>Total</th></tr></thead>
+        <tbody id="lapBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ========== ALARM PANE ========== -->
+  <div class="pane" id="pane-alarm">
+    <div class="card">
+      <div style="font-size:13px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;text-align:center">Add Alarm</div>
+      <div class="alarm-form">
+        <div class="alarm-field">
+          <label>Hour</label>
+          <input type="number" id="alarmHour" min="1" max="12" value="9" placeholder="9">
+        </div>
+        <div class="alarm-field">
+          <label>Min</label>
+          <input type="number" id="alarmMin" min="0" max="59" value="0" placeholder="00">
+        </div>
+        <div class="alarm-field">
+          <label>AM/PM</label>
+          <select id="alarmAmpm">
+            <option value="AM">AM</option>
+            <option value="PM">PM</option>
+          </select>
+        </div>
+        <div class="alarm-field">
+          <label>Label</label>
+          <input type="text" id="alarmLabel" placeholder="Class starts" maxlength="30" style="font-size:15px">
+        </div>
+        <button class="alarm-add-btn" onclick="addAlarm()">+ Add</button>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;text-align:center">Your Alarms</div>
+      <div class="alarm-list" id="alarmList">
+        <div class="alarm-empty">No alarms set yet. Add one above!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Fullscreen overlay -->
+<div class="fullscreen-wrap" id="fullscreenWrap">
+  <button class="fs-exit" onclick="toggleFullscreen()">&#10005; Exit Fullscreen</button>
+  <div id="fsContent"></div>
+  <div class="timer-controls" id="fsControls" style="margin-top:30px"></div>
+</div>
+
+<!-- Floating Widget -->
+<div class="widget" id="widget">
+  <button class="widget-close" onclick="toggleWidget()">&times;</button>
+  <div class="widget-time" id="widgetTime">--:--</div>
+  <div class="widget-label" id="widgetLabel">Timer</div>
+</div>
+
+<script src="js/oda-core.js"></script>
+<script>
+(function(){
+'use strict';
+
+// ============================================================
+// STATE
+// ============================================================
+var currentMode = 'clock';
+var clockFormat = 12;
+var soundEnabled = true;
+var clockInterval = null;
+
+// Timer state
+var timerTotal = 300;    // total seconds
+var timerRemaining = 300;
+var timerRunning = false;
+var timerPaused = false;
+var timerInterval = null;
+var timerDone = false;
+
+// Stopwatch state
+var swRunning = false;
+var swStart = 0;
+var swElapsed = 0;
+var swInterval = null;
+var laps = [];
+
+// Alarm state
+var alarms = [];
+var alarmInterval = null;
+var alarmAudioCtx = null;
+var ringingAlarms = {};
+
+// Widget
+var widgetVisible = false;
+var widgetDragging = false;
+var widgetOffX = 0, widgetOffY = 0;
+
+// Audio context (lazy init)
+var audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+// ============================================================
+// MODE SWITCHING
+// ============================================================
+window.switchMode = function(mode) {
+  currentMode = mode;
+  var tabs = document.querySelectorAll('.tab');
+  tabs.forEach(function(t, i) {
+    var modes = ['clock','timer','stopwatch','alarm'];
+    t.classList.toggle('active', modes[i] === mode);
+  });
+  document.querySelectorAll('.pane').forEach(function(p) {
+    p.classList.toggle('active', p.id === 'pane-' + mode);
+  });
+  updateFullscreenContent();
+};
+
+// ============================================================
+// CLOCK
+// ============================================================
+function updateClock() {
+  var now = new Date();
+  var h = now.getHours();
+  var m = now.getMinutes();
+  var s = now.getSeconds();
+  var ampm = '';
+
+  if (clockFormat === 12) {
+    ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    if (h === 0) h = 12;
+  }
+
+  var timeStr = pad(h) + ':' + pad(m);
+  var secStr = ':' + pad(s);
+  var ampmStr = clockFormat === 12 ? '<span class="clock-ampm">' + ampm + '</span>' : '';
+
+  var el = document.getElementById('clockTime');
+  if (el) el.innerHTML = timeStr + '<span class="clock-seconds">' + secStr + '</span>' + ampmStr;
+
+  var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var dateStr = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
+  var dateEl = document.getElementById('clockDate');
+  if (dateEl) dateEl.textContent = dateStr;
+
+  // Fullscreen clock
+  var fsEl = document.getElementById('fsClockTime');
+  if (fsEl) fsEl.innerHTML = timeStr + '<span class="clock-seconds">' + secStr + '</span>' + ampmStr;
+  var fsDate = document.getElementById('fsClockDate');
+  if (fsDate) fsDate.textContent = dateStr;
+
+  // Check alarms
+  checkAlarms(now);
+}
+
+window.setClockFormat = function(fmt) {
+  clockFormat = fmt;
+  document.getElementById('btn12h').classList.toggle('active', fmt === 12);
+  document.getElementById('btn24h').classList.toggle('active', fmt === 24);
+  updateClock();
+};
+
+function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+// ============================================================
+// TIMER (COUNTDOWN)
+// ============================================================
+window.setTimerPreset = function(mins) {
+  document.getElementById('timerMins').value = mins;
+  document.getElementById('timerSecs').value = 0;
+  timerTotal = mins * 60;
+  timerRemaining = timerTotal;
+  startTimer();
+};
+
+window.startTimer = function() {
+  if (timerRunning && !timerPaused) return;
+
+  if (timerPaused) {
+    // Resume
+    timerPaused = false;
+    timerRunning = true;
+    var pauseBtn = document.getElementById('timerPauseBtn');
+    pauseBtn.textContent = 'Pause';
+    pauseBtn.className = 'ctrl-btn pause';
+    timerInterval = setInterval(timerTick, 100);
+    return;
+  }
+
+  var mins = parseInt(document.getElementById('timerMins').value) || 0;
+  var secs = parseInt(document.getElementById('timerSecs').value) || 0;
+  var total = mins * 60 + secs;
+  if (total <= 0) return;
+
+  timerTotal = total;
+  timerRemaining = total;
+  timerRunning = true;
+  timerPaused = false;
+  timerDone = false;
+
+  document.getElementById('timerSetup').style.display = 'none';
+  document.getElementById('timerActive').style.display = '';
+  document.getElementById('timesUp').style.display = 'none';
+
+  updateTimerDisplay();
+  timerInterval = setInterval(timerTick, 100);
+  updateFullscreenContent();
+};
+
+var lastTickTime = 0;
+function timerTick() {
+  var now = Date.now();
+  if (lastTickTime === 0) lastTickTime = now;
+  var delta = (now - lastTickTime) / 1000;
+  lastTickTime = now;
+
+  timerRemaining -= delta;
+  if (timerRemaining <= 0) {
+    timerRemaining = 0;
+    timerRunning = false;
+    timerDone = true;
+    clearInterval(timerInterval);
+    timerInterval = null;
+    lastTickTime = 0;
+    updateTimerDisplay();
+    showTimesUp();
+    return;
+  }
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  var r = Math.ceil(timerRemaining);
+  var m = Math.floor(r / 60);
+  var s = r % 60;
+  var timeStr = pad(m) + ':' + pad(s);
+  var pct = timerTotal > 0 ? Math.round((timerRemaining / timerTotal) * 100) : 0;
+
+  // Determine state
+  var state = '';
+  if (timerRemaining <= 10 && timerRemaining > 0) state = 'danger';
+  else if (timerRemaining <= 30 && timerRemaining > 0) state = 'warn';
+
+  // Main display
+  var dispEl = document.getElementById('timerDisplay');
+  if (dispEl) {
+    dispEl.textContent = timeStr;
+    dispEl.className = 'timer-ring-time' + (state ? ' ' + state : '');
+  }
+  var pctEl = document.getElementById('timerPct');
+  if (pctEl) pctEl.textContent = pct + '%';
+
+  // Ring progress
+  var circumference = 2 * Math.PI * 130; // ~816.81
+  var offset = circumference * (1 - (timerRemaining / timerTotal));
+  var ring = document.getElementById('ringProgress');
+  var glow = document.getElementById('ringGlow');
+  if (ring) {
+    ring.style.strokeDashoffset = offset;
+    ring.className.baseVal = 'ring-progress' + (state ? ' ' + state : '');
+  }
+  if (glow) {
+    glow.style.strokeDashoffset = offset;
+    glow.className.baseVal = 'ring-glow' + (state ? ' ' + state : '');
+  }
+
+  // Fullscreen timer
+  var fsTd = document.getElementById('fsTimerDisplay');
+  if (fsTd) {
+    fsTd.textContent = timeStr;
+    fsTd.className = 'timer-ring-time' + (state ? ' ' + state : '');
+  }
+  var fsPct = document.getElementById('fsTimerPct');
+  if (fsPct) fsPct.textContent = pct + '%';
+  var fsRing = document.getElementById('fsRingProgress');
+  var fsGlow = document.getElementById('fsRingGlow');
+  if (fsRing) {
+    fsRing.style.strokeDashoffset = offset;
+    fsRing.className.baseVal = 'ring-progress' + (state ? ' ' + state : '');
+  }
+  if (fsGlow) {
+    fsGlow.style.strokeDashoffset = offset;
+    fsGlow.className.baseVal = 'ring-glow' + (state ? ' ' + state : '');
+  }
+
+  // Widget
+  updateWidget();
+}
+
+function showTimesUp() {
+  document.getElementById('timerActive').style.display = 'none';
+  var tu = document.getElementById('timesUp');
+  tu.style.display = 'block';
+  if (soundEnabled) playChime();
+  if (typeof odaConfetti === 'function') odaConfetti();
+  updateFullscreenContent();
+}
+
+window.pauseTimer = function() {
+  if (!timerRunning) return;
+  if (timerPaused) {
+    startTimer(); // resume
+    return;
+  }
+  timerPaused = true;
+  clearInterval(timerInterval);
+  timerInterval = null;
+  lastTickTime = 0;
+  var btn = document.getElementById('timerPauseBtn');
+  btn.textContent = 'Resume';
+  btn.className = 'ctrl-btn start';
+};
+
+window.resetTimer = function() {
+  timerRunning = false;
+  timerPaused = false;
+  timerDone = false;
+  clearInterval(timerInterval);
+  timerInterval = null;
+  lastTickTime = 0;
+  timerRemaining = timerTotal;
+
+  document.getElementById('timerSetup').style.display = '';
+  document.getElementById('timerActive').style.display = 'none';
+  document.getElementById('timesUp').style.display = 'none';
+
+  // Reset ring
+  var ring = document.getElementById('ringProgress');
+  var glow = document.getElementById('ringGlow');
+  if (ring) { ring.style.strokeDashoffset = 0; ring.className.baseVal = 'ring-progress'; }
+  if (glow) { glow.style.strokeDashoffset = 0; glow.className.baseVal = 'ring-glow'; }
+
+  updateFullscreenContent();
+  updateWidget();
+};
+
+// ============================================================
+// STOPWATCH
+// ============================================================
+window.swToggle = function() {
+  if (swRunning) {
+    // Stop
+    swRunning = false;
+    swElapsed += Date.now() - swStart;
+    clearInterval(swInterval);
+    swInterval = null;
+    document.getElementById('swStartBtn').textContent = 'Start';
+    document.getElementById('swStartBtn').className = 'ctrl-btn start';
+    document.getElementById('swLapBtn').disabled = true;
+    document.getElementById('swResetBtn').disabled = false;
+  } else {
+    // Start
+    swRunning = true;
+    swStart = Date.now();
+    swInterval = setInterval(updateSwDisplay, 30);
+    document.getElementById('swStartBtn').textContent = 'Stop';
+    document.getElementById('swStartBtn').className = 'ctrl-btn pause';
+    document.getElementById('swLapBtn').disabled = false;
+    document.getElementById('swResetBtn').disabled = false;
+  }
+};
+
+window.swLap = function() {
+  if (!swRunning) return;
+  var total = swElapsed + (Date.now() - swStart);
+  var prevTotal = laps.length > 0 ? laps[laps.length - 1].total : 0;
+  var lapTime = total - prevTotal;
+  laps.push({ total: total, lap: lapTime });
+  if (soundEnabled) playClick();
+  renderLaps();
+};
+
+window.swReset = function() {
+  swRunning = false;
+  swElapsed = 0;
+  clearInterval(swInterval);
+  swInterval = null;
+  laps = [];
+  document.getElementById('swTime').textContent = '00:00';
+  document.getElementById('swMs').textContent = '.00';
+  document.getElementById('swStartBtn').textContent = 'Start';
+  document.getElementById('swStartBtn').className = 'ctrl-btn start';
+  document.getElementById('swLapBtn').disabled = true;
+  document.getElementById('swResetBtn').disabled = true;
+  document.getElementById('lapCard').style.display = 'none';
+  updateWidget();
+};
+
+function updateSwDisplay() {
+  var total = swElapsed + (swRunning ? (Date.now() - swStart) : 0);
+  var totalSecs = Math.floor(total / 1000);
+  var ms = Math.floor((total % 1000) / 10);
+  var m = Math.floor(totalSecs / 60);
+  var s = totalSecs % 60;
+  document.getElementById('swTime').textContent = pad(m) + ':' + pad(s);
+  document.getElementById('swMs').textContent = '.' + pad(ms);
+
+  // Fullscreen
+  var fsSwTime = document.getElementById('fsSwTime');
+  var fsSwMs = document.getElementById('fsSwMs');
+  if (fsSwTime) fsSwTime.textContent = pad(m) + ':' + pad(s);
+  if (fsSwMs) fsSwMs.textContent = '.' + pad(ms);
+
+  updateWidget();
+}
+
+function renderLaps() {
+  var card = document.getElementById('lapCard');
+  card.style.display = '';
+  var body = document.getElementById('lapBody');
+
+  // Find best/worst
+  var best = Infinity, worst = 0;
+  laps.forEach(function(l) {
+    if (l.lap < best) best = l.lap;
+    if (l.lap > worst) worst = l.lap;
+  });
+
+  var html = '';
+  for (var i = laps.length - 1; i >= 0; i--) {
+    var l = laps[i];
+    var cls = '';
+    if (laps.length >= 2) {
+      if (l.lap === best) cls = ' class="lap-best"';
+      else if (l.lap === worst) cls = ' class="lap-worst"';
+    }
+    html += '<tr><td class="lap-num">#' + (i + 1) + '</td><td' + cls + '>' + formatMs(l.lap) + '</td><td>' + formatMs(l.total) + '</td></tr>';
+  }
+  body.innerHTML = html;
+}
+
+function formatMs(ms) {
+  var totalSecs = Math.floor(ms / 1000);
+  var centis = Math.floor((ms % 1000) / 10);
+  var m = Math.floor(totalSecs / 60);
+  var s = totalSecs % 60;
+  return pad(m) + ':' + pad(s) + '.' + pad(centis);
+}
+
+// ============================================================
+// ALARMS
+// ============================================================
+function loadAlarms() {
+  try {
+    var saved = localStorage.getItem('oda_alarms');
+    if (saved) alarms = JSON.parse(saved);
+  } catch(e) {}
+  renderAlarms();
+}
+
+function saveAlarms() {
+  try {
+    localStorage.setItem('oda_alarms', JSON.stringify(alarms));
+  } catch(e) {}
+}
+
+window.addAlarm = function() {
+  var h = parseInt(document.getElementById('alarmHour').value) || 12;
+  var m = parseInt(document.getElementById('alarmMin').value) || 0;
+  var ampm = document.getElementById('alarmAmpm').value;
+  var label = document.getElementById('alarmLabel').value.trim() || 'Alarm';
+
+  if (h < 1) h = 1; if (h > 12) h = 12;
+  if (m < 0) m = 0; if (m > 59) m = 59;
+
+  alarms.push({
+    id: Date.now(),
+    hour: h,
+    minute: m,
+    ampm: ampm,
+    label: label,
+    enabled: true
+  });
+  saveAlarms();
+  renderAlarms();
+  document.getElementById('alarmLabel').value = '';
+  if (typeof odaToast === 'function') odaToast('Alarm set for ' + h + ':' + pad(m) + ' ' + ampm, 'success');
+};
+
+window.toggleAlarm = function(id) {
+  alarms.forEach(function(a) {
+    if (a.id === id) a.enabled = !a.enabled;
+  });
+  saveAlarms();
+  renderAlarms();
+};
+
+window.deleteAlarm = function(id) {
+  alarms = alarms.filter(function(a) { return a.id !== id; });
+  delete ringingAlarms[id];
+  saveAlarms();
+  renderAlarms();
+};
+
+window.dismissAlarm = function(id) {
+  delete ringingAlarms[id];
+  renderAlarms();
+};
+
+function renderAlarms() {
+  var list = document.getElementById('alarmList');
+  if (alarms.length === 0) {
+    list.innerHTML = '<div class="alarm-empty">No alarms set yet. Add one above!</div>';
+    return;
+  }
+  var html = '';
+  alarms.forEach(function(a) {
+    var isRinging = ringingAlarms[a.id];
+    html += '<div class="alarm-item' + (isRinging ? ' ringing' : '') + '">';
+    html += '<span class="ai-time">' + a.hour + ':' + pad(a.minute) + '<span class="ai-ampm">' + a.ampm + '</span></span>';
+    html += '<span class="ai-label">' + esc(a.label) + '</span>';
+    if (isRinging) {
+      html += '<button class="ctrl-btn start" style="padding:8px 16px;font-size:13px" onclick="dismissAlarm(' + a.id + ')">Dismiss</button>';
+    } else {
+      html += '<label class="ai-toggle"><input type="checkbox"' + (a.enabled ? ' checked' : '') + ' onchange="toggleAlarm(' + a.id + ')"><span class="slider"></span></label>';
+    }
+    html += '<button class="alarm-delete" onclick="deleteAlarm(' + a.id + ')" title="Delete">&times;</button>';
+    html += '</div>';
+  });
+  list.innerHTML = html;
+}
+
+function checkAlarms(now) {
+  var h = now.getHours();
+  var m = now.getMinutes();
+  var s = now.getSeconds();
+
+  alarms.forEach(function(a) {
+    if (!a.enabled) return;
+    // Convert alarm to 24h
+    var ah = a.hour;
+    if (a.ampm === 'PM' && ah !== 12) ah += 12;
+    if (a.ampm === 'AM' && ah === 12) ah = 0;
+
+    if (h === ah && m === a.minute && s === 0 && !ringingAlarms[a.id]) {
+      ringingAlarms[a.id] = true;
+      if (soundEnabled) playAlarmTone();
+      renderAlarms();
+      if (typeof odaToast === 'function') odaToast('Alarm: ' + a.label, 'warning');
+    }
+  });
+}
+
+// ============================================================
+// SOUND (Web Audio API)
+// ============================================================
+function playChime() {
+  try {
+    var ctx = getAudioCtx();
+    var now = ctx.currentTime;
+
+    // Ascending chime: 3 notes
+    var freqs = [523.25, 659.25, 783.99]; // C5, E5, G5
+    freqs.forEach(function(freq, i) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, now + i * 0.2);
+      gain.gain.linearRampToValueAtTime(0.3, now + i * 0.2 + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.2 + 0.8);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + i * 0.2);
+      osc.stop(now + i * 0.2 + 0.8);
+    });
+
+    // Final high note
+    var osc2 = ctx.createOscillator();
+    var gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.value = 1046.5; // C6
+    gain2.gain.setValueAtTime(0, now + 0.7);
+    gain2.gain.linearRampToValueAtTime(0.25, now + 0.75);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.7);
+    osc2.stop(now + 2.0);
+  } catch(e) {}
+}
+
+function playClick() {
+  try {
+    var ctx = getAudioCtx();
+    var now = ctx.currentTime;
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 1200;
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.08);
+  } catch(e) {}
+}
+
+function playAlarmTone() {
+  try {
+    var ctx = getAudioCtx();
+    var now = ctx.currentTime;
+    // Gentle repeating tone (3 beeps)
+    for (var i = 0; i < 3; i++) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0, now + i * 0.4);
+      gain.gain.linearRampToValueAtTime(0.25, now + i * 0.4 + 0.05);
+      gain.gain.linearRampToValueAtTime(0.25, now + i * 0.4 + 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.4 + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + i * 0.4);
+      osc.stop(now + i * 0.4 + 0.35);
+    }
+  } catch(e) {}
+}
+
+// ============================================================
+// SOUND TOGGLE
+// ============================================================
+window.toggleSound = function() {
+  soundEnabled = !soundEnabled;
+  var btn = document.getElementById('btnSound');
+  var icon = document.getElementById('soundIcon');
+  btn.classList.toggle('active', soundEnabled);
+  if (soundEnabled) {
+    icon.innerHTML = '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>';
+  } else {
+    icon.innerHTML = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
+  }
+};
+
+// ============================================================
+// FULLSCREEN
+// ============================================================
+window.toggleFullscreen = function() {
+  var body = document.body;
+
+  if (body.classList.contains('fullscreen-mode')) {
+    body.classList.remove('fullscreen-mode');
+    document.getElementById('btnFullscreen').classList.remove('active');
+    if (document.exitFullscreen) document.exitFullscreen().catch(function(){});
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    return;
+  }
+
+  body.classList.add('fullscreen-mode');
+  document.getElementById('btnFullscreen').classList.add('active');
+
+  var el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen().catch(function(){});
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+
+  updateFullscreenContent();
+};
+
+// Listen for ESC exit
+document.addEventListener('fullscreenchange', function() {
+  if (!document.fullscreenElement && document.body.classList.contains('fullscreen-mode')) {
+    document.body.classList.remove('fullscreen-mode');
+    document.getElementById('btnFullscreen').classList.remove('active');
+  }
+});
+
+function updateFullscreenContent() {
+  var content = document.getElementById('fsContent');
+  var controls = document.getElementById('fsControls');
+  if (!content) return;
+
+  if (currentMode === 'clock') {
+    content.innerHTML = '<div class="clock-display"><div id="fsClockTime" class="clock-time"></div><div id="fsClockDate" class="clock-date"></div></div>';
+    controls.innerHTML = '';
+    updateClock();
+  } else if (currentMode === 'timer') {
+    if (timerDone) {
+      content.innerHTML = '<div class="times-up" style="display:block"><span class="tu-emoji">&#127881;</span><h2>Time\'s Up!</h2><p>The countdown has finished</p></div>';
+      controls.innerHTML = '<button class="ctrl-btn start" onclick="resetTimer()">New Timer</button>';
+    } else if (timerRunning || timerPaused) {
+      var circumference = 2 * Math.PI * 130;
+      content.innerHTML = '<div class="timer-ring-wrap"><div class="timer-ring-container"><svg class="timer-ring-svg" viewBox="0 0 300 300"><circle class="ring-bg" cx="150" cy="150" r="130"/><circle class="ring-glow" id="fsRingGlow" cx="150" cy="150" r="130" stroke-dasharray="' + circumference.toFixed(2) + '" stroke-dashoffset="0"/><circle class="ring-progress" id="fsRingProgress" cx="150" cy="150" r="130" stroke-dasharray="' + circumference.toFixed(2) + '" stroke-dashoffset="0"/></svg><div class="timer-ring-center"><div class="timer-ring-time" id="fsTimerDisplay">--:--</div><div class="timer-ring-pct" id="fsTimerPct">--%</div><div class="timer-ring-label">remaining</div></div></div></div>';
+      controls.innerHTML = '<button class="ctrl-btn ' + (timerPaused ? 'start' : 'pause') + '" onclick="pauseTimer()">' + (timerPaused ? 'Resume' : 'Pause') + '</button><button class="ctrl-btn reset" onclick="resetTimer()">Reset</button>';
+      updateTimerDisplay();
+    } else {
+      content.innerHTML = '<div style="text-align:center;color:var(--text2);font-size:24px;font-weight:600">Set a timer to begin</div>';
+      controls.innerHTML = '';
+    }
+  } else if (currentMode === 'stopwatch') {
+    content.innerHTML = '<div class="sw-display"><span class="sw-time" id="fsSwTime">00:00</span><span class="sw-ms" id="fsSwMs">.00</span></div>';
+    controls.innerHTML = '<button class="ctrl-btn ' + (swRunning ? 'pause' : 'start') + '" onclick="swToggle()">' + (swRunning ? 'Stop' : 'Start') + '</button>';
+    if (swRunning) controls.innerHTML += '<button class="ctrl-btn reset" onclick="swLap()">Lap</button>';
+    controls.innerHTML += '<button class="ctrl-btn reset" onclick="swReset()">Reset</button>';
+    updateSwDisplay();
+  } else if (currentMode === 'alarm') {
+    content.innerHTML = '<div class="clock-display"><div id="fsClockTime" class="clock-time"></div><div id="fsClockDate" class="clock-date"></div></div>';
+    controls.innerHTML = '';
+    updateClock();
+  }
+}
+
+// ============================================================
+// WIDGET
+// ============================================================
+window.toggleWidget = function() {
+  widgetVisible = !widgetVisible;
+  var w = document.getElementById('widget');
+  w.classList.toggle('show', widgetVisible);
+  document.getElementById('btnWidget').classList.toggle('active', widgetVisible);
+  if (widgetVisible) updateWidget();
+};
+
+function updateWidget() {
+  if (!widgetVisible) return;
+  var w = document.getElementById('widget');
+  var timeEl = document.getElementById('widgetTime');
+  var labelEl = document.getElementById('widgetLabel');
+
+  if (currentMode === 'timer' && (timerRunning || timerPaused)) {
+    var r = Math.ceil(timerRemaining);
+    var m = Math.floor(r / 60);
+    var s = r % 60;
+    timeEl.textContent = pad(m) + ':' + pad(s);
+    labelEl.textContent = timerPaused ? 'Paused' : 'Timer';
+
+    w.classList.toggle('warn', timerRemaining <= 30 && timerRemaining > 10);
+    w.classList.toggle('danger', timerRemaining <= 10);
+    if (timerRemaining > 30) { w.classList.remove('warn'); w.classList.remove('danger'); }
+  } else if (currentMode === 'stopwatch' && swRunning) {
+    var total = swElapsed + (Date.now() - swStart);
+    var totalSecs = Math.floor(total / 1000);
+    var mm = Math.floor(totalSecs / 60);
+    var ss = totalSecs % 60;
+    timeEl.textContent = pad(mm) + ':' + pad(ss);
+    labelEl.textContent = 'Stopwatch';
+    w.classList.remove('warn');
+    w.classList.remove('danger');
+  } else {
+    var now = new Date();
+    var h = now.getHours();
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; if (h === 0) h = 12;
+    timeEl.textContent = h + ':' + pad(now.getMinutes());
+    labelEl.textContent = ampm;
+    w.classList.remove('warn');
+    w.classList.remove('danger');
+  }
+}
+
+// Widget dragging
+(function() {
+  var widget = document.getElementById('widget');
+  widget.addEventListener('mousedown', function(e) {
+    if (e.target.classList.contains('widget-close')) return;
+    widgetDragging = true;
+    widgetOffX = e.clientX - widget.getBoundingClientRect().left;
+    widgetOffY = e.clientY - widget.getBoundingClientRect().top;
+    widget.style.transition = 'none';
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!widgetDragging) return;
+    var x = e.clientX - widgetOffX;
+    var y = e.clientY - widgetOffY;
+    widget.style.left = x + 'px';
+    widget.style.top = y + 'px';
+    widget.style.right = 'auto';
+    widget.style.bottom = 'auto';
+  });
+  document.addEventListener('mouseup', function() {
+    widgetDragging = false;
+    widget.style.transition = '';
+  });
+
+  // Touch dragging
+  widget.addEventListener('touchstart', function(e) {
+    if (e.target.classList.contains('widget-close')) return;
+    widgetDragging = true;
+    var t = e.touches[0];
+    widgetOffX = t.clientX - widget.getBoundingClientRect().left;
+    widgetOffY = t.clientY - widget.getBoundingClientRect().top;
+    widget.style.transition = 'none';
+  }, {passive: true});
+  document.addEventListener('touchmove', function(e) {
+    if (!widgetDragging) return;
+    var t = e.touches[0];
+    var x = t.clientX - widgetOffX;
+    var y = t.clientY - widgetOffY;
+    widget.style.left = x + 'px';
+    widget.style.top = y + 'px';
+    widget.style.right = 'auto';
+    widget.style.bottom = 'auto';
+  }, {passive: true});
+  document.addEventListener('touchend', function() {
+    widgetDragging = false;
+    widget.style.transition = '';
+  });
+})();
+
+// ============================================================
+// KEYBOARD SHORTCUTS
+// ============================================================
+document.addEventListener('keydown', function(e) {
+  // Space to start/pause timer or stopwatch
+  if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'SELECT') {
+    e.preventDefault();
+    if (currentMode === 'timer') {
+      if (timerRunning) pauseTimer();
+      else if (timerPaused) startTimer();
+    } else if (currentMode === 'stopwatch') {
+      swToggle();
+    }
+  }
+  // L for lap
+  if (e.code === 'KeyL' && currentMode === 'stopwatch' && swRunning && e.target.tagName !== 'INPUT') {
+    swLap();
+  }
+  // R for reset
+  if (e.code === 'KeyR' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+    if (currentMode === 'timer') resetTimer();
+    else if (currentMode === 'stopwatch') swReset();
+  }
+  // F for fullscreen
+  if (e.code === 'KeyF' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+    toggleFullscreen();
+  }
+  // 1-4 for mode switching
+  if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'SELECT') {
+    if (e.code === 'Digit1') switchMode('clock');
+    if (e.code === 'Digit2') switchMode('timer');
+    if (e.code === 'Digit3') switchMode('stopwatch');
+    if (e.code === 'Digit4') switchMode('alarm');
+  }
+});
+
+// ============================================================
+// INPUT HELPERS
+// ============================================================
+// Clamp time inputs
+document.getElementById('timerMins').addEventListener('input', function() {
+  var v = parseInt(this.value);
+  if (v > 99) this.value = 99;
+  if (v < 0) this.value = 0;
+});
+document.getElementById('timerSecs').addEventListener('input', function() {
+  var v = parseInt(this.value);
+  if (v > 59) this.value = 59;
+  if (v < 0) this.value = 0;
+});
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  // Start clock
+  updateClock();
+  clockInterval = setInterval(updateClock, 1000);
+
+  // Load alarms
+  loadAlarms();
+
+  // Alarm checker runs with clock
+
+  console.log('[ODA] Timer loaded');
+}
+
+init();
+
+})();
+</script>
+</body>
+</html>

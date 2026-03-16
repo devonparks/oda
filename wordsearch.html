@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ODA Word Search</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#a8b2c8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;-webkit-tap-highlight-color:transparent}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+.back{display:inline-block;margin-bottom:16px;color:var(--text2);text-decoration:none;font-size:14px;font-weight:600;transition:color .15s}
+.back:hover{color:var(--text)}
+
+/* Header */
+.header{text-align:center;margin-bottom:28px}
+.header .emoji{font-size:56px;margin-bottom:8px;display:block}
+.header h1{font-family:'Fredoka',sans-serif;font-size:32px;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header p{font-size:15px;color:var(--text2);margin-top:4px}
+
+/* Cards */
+.card{background:var(--surface);border:2px solid var(--border);border-radius:24px;padding:28px 24px;margin-bottom:16px;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.card-title{font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+
+/* Buttons */
+.btn{padding:14px 28px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;letter-spacing:.3px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.btn-accent{background:linear-gradient(135deg,var(--accent),#04b890);color:var(--bg)}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#f0b830);color:var(--bg)}
+.btn-blue{background:linear-gradient(135deg,var(--accent2),#0d7ea0);color:#fff}
+.btn-red{background:linear-gradient(135deg,var(--accent3),#d63a5e);color:#fff}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--text2);color:var(--text)}
+.btn-sm{padding:10px 18px;font-size:14px;border-radius:10px}
+.btn-xs{padding:6px 14px;font-size:13px;border-radius:8px}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.btn-wide{width:100%}
+
+/* Inputs */
+.input{width:100%;padding:14px;background:var(--bg);border:2px solid var(--border);border-radius:14px;color:var(--text);font-family:'Outfit',sans-serif;font-size:16px;font-weight:500;outline:none;transition:border-color .2s}
+.input:focus{border-color:var(--accent)}
+.input::placeholder{color:#3a4560}
+textarea.input{resize:vertical;min-height:100px;line-height:1.6}
+select.input{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23a8b2c8' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 5.5l6.5 6.5 6.5-6.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px}
+.label{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:6px;display:block}
+
+/* Mode cards */
+.opt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.opt-card{background:var(--bg);border:2px solid var(--border);border-radius:14px;padding:16px 12px;text-align:center;cursor:pointer;transition:all .2s}
+.opt-card:hover{border-color:var(--accent2);transform:translateY(-2px)}
+.opt-card.active{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.opt-card .oc-emoji{font-size:28px;display:block;margin-bottom:4px}
+.opt-card .oc-label{font-family:'Fredoka',sans-serif;font-size:15px;font-weight:600}
+.opt-card .oc-desc{font-size:12px;color:var(--text2);margin-top:2px}
+
+/* AI helper */
+.ai-row{display:flex;gap:10px;margin-bottom:14px}
+.ai-row .input{flex:1}
+.ai-btn{padding:14px 20px;border:none;border-radius:14px;background:linear-gradient(135deg,rgba(17,138,178,.15),rgba(17,138,178,.08));border:2px solid rgba(17,138,178,.3);color:var(--accent2);font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.ai-btn:hover{border-color:var(--accent2);background:rgba(17,138,178,.2)}
+.ai-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Word tags */
+.word-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;min-height:32px}
+.word-tag{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.2);border-radius:8px;font-size:13px;font-weight:600;color:var(--accent);animation:fadeUp .2s ease}
+.word-tag .tag-x{cursor:pointer;opacity:.6;font-size:16px;line-height:1}
+.word-tag .tag-x:hover{opacity:1;color:var(--accent3)}
+
+/* Preview grid */
+.preview-grid{display:flex;justify-content:center;margin:16px 0}
+.preview-grid table{border-collapse:collapse}
+.preview-grid td{width:28px;height:28px;text-align:center;font-family:'Outfit',monospace;font-size:14px;font-weight:700;color:var(--text2);border:1px solid var(--border);background:var(--bg)}
+.preview-grid td.placed{color:var(--accent);font-weight:800}
+
+/* ============= PLAY MODE ============= */
+.play-layout{display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start}
+@media(max-width:768px){.play-layout{grid-template-columns:1fr;}.wordlist-panel{order:-1}}
+
+/* Game grid */
+.game-grid-wrap{display:flex;justify-content:center;padding:8px;background:var(--surface);border:2px solid var(--border);border-radius:20px;overflow:auto;-webkit-overflow-scrolling:touch}
+.game-grid{display:inline-grid;gap:0;user-select:none;-webkit-user-select:none;touch-action:none}
+.game-cell{display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:var(--text);background:var(--bg);border:1px solid var(--border);cursor:pointer;transition:background .1s,color .1s,transform .1s;position:relative;z-index:1}
+.game-cell:hover{background:var(--surface2);z-index:2}
+.game-cell.selecting{background:rgba(17,138,178,.25);color:#fff;transform:scale(1.08);z-index:3}
+.game-cell.hint-pulse{animation:hintPulse 1s ease-in-out 3}
+@keyframes hintPulse{0%,100%{background:var(--bg);box-shadow:none}50%{background:rgba(255,209,102,.2);box-shadow:0 0 12px rgba(255,209,102,.4)}}
+
+/* Found word colors */
+.game-cell.found-0{background:rgba(6,214,160,.2);color:var(--accent)}
+.game-cell.found-1{background:rgba(17,138,178,.2);color:var(--accent2)}
+.game-cell.found-2{background:rgba(239,71,111,.15);color:var(--accent3)}
+.game-cell.found-3{background:rgba(255,209,102,.15);color:var(--gold)}
+.game-cell.found-4{background:rgba(139,92,246,.15);color:#a78bfa}
+.game-cell.found-5{background:rgba(236,72,153,.15);color:#f472b6}
+.game-cell.found-6{background:rgba(34,211,238,.15);color:#22d3ee}
+.game-cell.found-7{background:rgba(251,146,60,.15);color:#fb923c}
+
+/* Word list panel */
+.wordlist-panel{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:20px}
+.wl-title{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.wl-progress{font-size:13px;color:var(--text2);font-weight:500}
+.progress-bar{height:6px;background:var(--bg);border-radius:6px;overflow:hidden;margin-bottom:14px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:6px;transition:width .4s cubic-bezier(.34,1.56,.64,1);width:0}
+.wl-list{list-style:none;display:flex;flex-direction:column;gap:4px;max-height:400px;overflow-y:auto}
+.wl-item{padding:8px 12px;border-radius:10px;font-size:15px;font-weight:600;letter-spacing:1px;transition:all .2s;display:flex;align-items:center;gap:8px;text-transform:uppercase}
+.wl-item .wl-check{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;font-size:11px}
+.wl-item.found{color:var(--accent);text-decoration:line-through;text-decoration-color:rgba(6,214,160,.4)}
+.wl-item.found .wl-check{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+
+/* Game controls */
+.game-controls{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.timer-display{font-family:'Outfit',monospace;font-size:20px;font-weight:700;color:var(--accent2);background:var(--surface);border:2px solid var(--border);border-radius:12px;padding:8px 16px;min-width:90px;text-align:center}
+.coin-display{font-size:14px;font-weight:700;color:var(--gold);background:var(--surface);border:2px solid rgba(255,209,102,.2);border-radius:12px;padding:8px 16px;display:flex;align-items:center;gap:4px}
+
+/* Completion */
+.complete-card{background:linear-gradient(135deg,var(--surface),var(--surface2));border:2px solid var(--accent);border-radius:24px;padding:36px;text-align:center;margin-top:20px;animation:fadeUp .4s ease}
+.complete-emoji{font-size:72px;display:block;margin-bottom:12px}
+.complete-title{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;color:var(--accent);margin-bottom:8px}
+.complete-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}
+.stat-box{background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:14px}
+.stat-val{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;color:var(--gold)}
+.stat-label{font-size:12px;color:var(--text2);margin-top:2px}
+.def-list{text-align:left;margin-top:20px}
+.def-item{padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:12px;margin-bottom:6px}
+.def-word{font-family:'Fredoka',sans-serif;font-size:16px;font-weight:700;color:var(--accent)}
+.def-text{font-size:14px;color:var(--text2);margin-top:2px}
+
+/* Teacher dashboard */
+.dash-tabs{display:flex;gap:6px;margin-bottom:20px;overflow-x:auto;padding-bottom:4px}
+.dash-tab{padding:10px 18px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;border:2px solid var(--border);background:var(--surface);color:var(--text2);white-space:nowrap;transition:all .15s;font-family:'Fredoka',sans-serif}
+.dash-tab.active{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.dash-section{display:none}
+.dash-section.show{display:block}
+.puzzle-card{background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:18px;margin-bottom:12px;transition:all .15s}
+.puzzle-card:hover{border-color:var(--accent2);box-shadow:0 4px 16px rgba(17,138,178,.08)}
+.pc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.pc-title{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700}
+.pc-meta{font-size:13px;color:var(--text2)}
+.pc-words{font-size:13px;color:var(--text2);margin-top:4px;line-height:1.5}
+.pc-btns{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+
+/* Results table */
+.results-table{width:100%;border-collapse:collapse;margin-top:12px}
+.results-table th{text-align:left;padding:10px;font-size:13px;color:var(--text2);border-bottom:2px solid var(--border);font-weight:700}
+.results-table td{padding:10px;font-size:14px;border-bottom:1px solid var(--border)}
+.results-table tr:hover td{background:var(--surface2)}
+
+/* Puzzle browser (student) */
+.puzzle-browser{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.pb-card{background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:20px;cursor:pointer;transition:all .2s}
+.pb-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 6px 20px rgba(6,214,160,.08)}
+.pb-emoji{font-size:36px;margin-bottom:8px;display:block}
+.pb-title{font-family:'Fredoka',sans-serif;font-size:17px;font-weight:700;margin-bottom:4px}
+.pb-meta{font-size:13px;color:var(--text2)}
+.pb-badge{display:inline-block;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700;margin-top:8px}
+.pb-badge.completed{background:rgba(6,214,160,.12);color:var(--accent)}
+.pb-badge.new{background:rgba(255,209,102,.12);color:var(--gold)}
+
+/* Responsive */
+@media(max-width:600px){
+  .opt-grid{grid-template-columns:1fr 1fr}
+  .header h1{font-size:26px}
+  .game-cell{font-size:14px}
+  .complete-stats{grid-template-columns:1fr 1fr}
+  .ai-row{flex-direction:column}
+}
+
+/* Spinner */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+
+/* Sections */
+.section{display:none}
+.section.show{display:block}
+
+/* Scroll */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text2)}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="app">
+  <a href="student.html" class="back">&larr; Back to Hub</a>
+
+  <div class="header">
+    <span class="emoji">&#128270;</span>
+    <h1>ODA Word Search</h1>
+    <p id="headerSub">Find all the hidden words!</p>
+  </div>
+
+  <!-- ========== STUDENT: PUZZLE BROWSER ========== -->
+  <div id="secBrowse" class="section">
+    <div class="card">
+      <div class="card-title">&#128218; Available Puzzles</div>
+      <div id="puzzleBrowser" class="puzzle-browser">
+        <p style="color:var(--text2);grid-column:1/-1;text-align:center;padding:20px">Loading puzzles...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== STUDENT: PLAY MODE ========== -->
+  <div id="secPlay" class="section">
+    <div class="play-layout">
+      <div>
+        <div class="game-grid-wrap">
+          <div id="gameGrid" class="game-grid"></div>
+        </div>
+        <div class="game-controls">
+          <div id="timerBox" class="timer-display" style="display:none">0:00</div>
+          <button class="btn btn-sm btn-gold" onclick="useHint()">&#128161; Hint <span id="hintCost">(5 coins)</span></button>
+          <div class="coin-display">&#129689; <span id="coinCount">0</span></div>
+        </div>
+      </div>
+      <div class="wordlist-panel">
+        <div class="wl-title">Words to Find <span class="wl-progress" id="wlProgress">0 / 0</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <ul class="wl-list" id="wordList"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== STUDENT: COMPLETION ========== -->
+  <div id="secComplete" class="section">
+    <div class="complete-card">
+      <span class="complete-emoji">&#127881;</span>
+      <div class="complete-title">Puzzle Complete!</div>
+      <div class="complete-stats">
+        <div class="stat-box"><div class="stat-val" id="statWords">0/0</div><div class="stat-label">Words Found</div></div>
+        <div class="stat-box"><div class="stat-val" id="statTime">0:00</div><div class="stat-label">Time</div></div>
+        <div class="stat-box"><div class="stat-val" id="statCoins">0</div><div class="stat-label">Coins Earned</div></div>
+      </div>
+      <div class="def-list" id="defList"></div>
+      <div class="btn-row" style="justify-content:center;margin-top:24px">
+        <button class="btn btn-accent" onclick="backToBrowse()">&#128270; More Puzzles</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TEACHER: DASHBOARD ========== -->
+  <div id="secTeacher" class="section">
+    <div class="dash-tabs">
+      <div class="dash-tab active" onclick="showDashTab('create',this)">&#10133; Create</div>
+      <div class="dash-tab" onclick="showDashTab('mypuzzles',this)">&#128218; My Puzzles</div>
+      <div class="dash-tab" onclick="showDashTab('results',this)">&#128200; Results</div>
+    </div>
+
+    <!-- Create tab -->
+    <div id="tabCreate" class="dash-section show">
+      <div class="card">
+        <div class="card-title">&#9998;&#65039; Create a Word Search</div>
+
+        <label class="label">Generate words with AI</label>
+        <div class="ai-row">
+          <input id="aiTopic" class="input" placeholder="e.g. Solar System vocabulary, Water cycle terms...">
+          <button class="ai-btn" id="aiGenBtn" onclick="aiGenerateWords()">&#129302; Generate</button>
+        </div>
+
+        <label class="label">Or type words manually (one per line or comma-separated)</label>
+        <textarea id="manualWords" class="input" placeholder="PLANET&#10;ORBIT&#10;GRAVITY&#10;COMET"></textarea>
+        <button class="btn btn-sm btn-outline" style="margin-top:8px" onclick="parseManualWords()">Add Words</button>
+
+        <label class="label" style="margin-top:16px">Word List</label>
+        <div class="word-tags" id="wordTags"><span style="color:var(--text2);font-size:13px">No words added yet</span></div>
+
+        <label class="label" style="margin-top:18px">Puzzle Title</label>
+        <input id="puzzleTitle" class="input" placeholder="Solar System Word Search">
+
+        <label class="label" style="margin-top:14px">Grid Size</label>
+        <div class="opt-grid" id="sizeGrid">
+          <div class="opt-card" data-val="10" onclick="pickOpt('size',10,this)">
+            <span class="oc-emoji">&#128307;</span>
+            <span class="oc-label">Small</span>
+            <span class="oc-desc">10 &times; 10</span>
+          </div>
+          <div class="opt-card active" data-val="15" onclick="pickOpt('size',15,this)">
+            <span class="oc-emoji">&#128310;</span>
+            <span class="oc-label">Medium</span>
+            <span class="oc-desc">15 &times; 15</span>
+          </div>
+          <div class="opt-card" data-val="20" onclick="pickOpt('size',20,this)">
+            <span class="oc-emoji">&#128311;</span>
+            <span class="oc-label">Large</span>
+            <span class="oc-desc">20 &times; 20</span>
+          </div>
+        </div>
+
+        <label class="label">Difficulty</label>
+        <div class="opt-grid" id="diffGrid">
+          <div class="opt-card" data-val="easy" onclick="pickOpt('diff','easy',this)">
+            <span class="oc-emoji">&#127775;</span>
+            <span class="oc-label">Easy</span>
+            <span class="oc-desc">K-2: Left-Right</span>
+          </div>
+          <div class="opt-card active" data-val="medium" onclick="pickOpt('diff','medium',this)">
+            <span class="oc-emoji">&#128293;</span>
+            <span class="oc-label">Medium</span>
+            <span class="oc-desc">3-4: + Up-Down</span>
+          </div>
+          <div class="opt-card" data-val="hard" onclick="pickOpt('diff','hard',this)">
+            <span class="oc-emoji">&#9889;</span>
+            <span class="oc-label">Hard</span>
+            <span class="oc-desc">5-8: + Diagonal/Back</span>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-accent btn-wide" id="genBtn" onclick="generatePuzzle()">&#9881;&#65039; Generate Puzzle</button>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div id="previewCard" class="card" style="display:none">
+        <div class="card-title">&#128065;&#65039; Preview</div>
+        <div class="preview-grid" id="previewGrid"></div>
+        <div class="btn-row" style="justify-content:center">
+          <button class="btn btn-sm btn-outline" onclick="generatePuzzle()">&#128260; Regenerate</button>
+          <button class="btn btn-sm btn-accent" onclick="savePuzzle()">&#128190; Save &amp; Assign</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- My Puzzles tab -->
+    <div id="tabMypuzzles" class="dash-section">
+      <div class="card">
+        <div class="card-title">&#128218; My Puzzles</div>
+        <div id="myPuzzlesList"></div>
+      </div>
+    </div>
+
+    <!-- Results tab -->
+    <div id="tabResults" class="dash-section">
+      <div class="card">
+        <div class="card-title">&#128200; Student Results</div>
+        <div id="resultsArea"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================
+// GLOBALS
+// ============================================
+var studentId = sessionStorage.getItem('studentId');
+var isTeacher = !studentId && (sessionStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
+var classCode = sessionStorage.getItem('classCode') || localStorage.getItem('odaClassCode') || '';
+
+// Puzzle state
+var currentWords = []; // [{word, definition}]
+var gridSize = 15;
+var difficulty = 'medium';
+var generatedGrid = null;
+var generatedSolution = null;
+
+// Play state
+var playGrid = null;
+var playWords = [];
+var playSolution = [];
+var foundWords = [];
+var foundColorIdx = 0;
+var selectStart = null;
+var selectEnd = null;
+var selecting = false;
+var timerInterval = null;
+var timerSeconds = 0;
+var hintsUsed = 0;
+var currentPuzzleId = null;
+var currentPuzzleTitle = '';
+var hasTimer = true;
+
+// Audio context for sound effects
+var audioCtx = null;
+function getAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+
+function playSound(type){
+  try{
+    var ctx=getAudio();var o=ctx.createOscillator();var g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    if(type==='found'){
+      o.type='sine';o.frequency.setValueAtTime(523,ctx.currentTime);
+      o.frequency.setValueAtTime(659,ctx.currentTime+.08);
+      o.frequency.setValueAtTime(784,ctx.currentTime+.16);
+      g.gain.setValueAtTime(.15,ctx.currentTime);g.gain.exponentialValueTo&&g.gain.exponentialValueTo||g.gain.setValueAtTime(.15,ctx.currentTime);
+      g.gain.setTargetAtTime(0,.01,ctx.currentTime+.3);
+      o.start();o.stop(ctx.currentTime+.35);
+    } else if(type==='complete'){
+      o.type='sine';o.frequency.setValueAtTime(523,ctx.currentTime);
+      o.frequency.setValueAtTime(659,ctx.currentTime+.1);
+      o.frequency.setValueAtTime(784,ctx.currentTime+.2);
+      o.frequency.setValueAtTime(1047,ctx.currentTime+.3);
+      g.gain.setValueAtTime(.2,ctx.currentTime);
+      g.gain.setTargetAtTime(0,.01,ctx.currentTime+.5);
+      o.start();o.stop(ctx.currentTime+.6);
+    } else if(type==='hint'){
+      o.type='triangle';o.frequency.setValueAtTime(440,ctx.currentTime);
+      o.frequency.setValueAtTime(550,ctx.currentTime+.1);
+      g.gain.setValueAtTime(.1,ctx.currentTime);
+      g.gain.setTargetAtTime(0,.01,ctx.currentTime+.2);
+      o.start();o.stop(ctx.currentTime+.25);
+    } else {
+      o.type='sine';o.frequency.setValueAtTime(300,ctx.currentTime);
+      g.gain.setValueAtTime(.08,ctx.currentTime);
+      g.gain.setTargetAtTime(0,.01,ctx.currentTime+.15);
+      o.start();o.stop(ctx.currentTime+.2);
+    }
+  }catch(e){}
+}
+
+// ============================================
+// INIT
+// ============================================
+(function init(){
+  if(isTeacher){
+    showSection('secTeacher');
+    document.getElementById('headerSub').textContent='Create & assign word searches';
+    document.querySelector('.back').href='teacher.html';
+  } else {
+    showSection('secBrowse');
+    loadPuzzles();
+  }
+})();
+
+function showSection(id){
+  var all=document.querySelectorAll('.section');
+  for(var i=0;i<all.length;i++) all[i].classList.remove('show');
+  var el=document.getElementById(id);
+  if(el) el.classList.add('show');
+}
+
+// ============================================
+// TEACHER: OPTIONS
+// ============================================
+function pickOpt(type,val,el){
+  var parent=el.parentElement;
+  var cards=parent.querySelectorAll('.opt-card');
+  for(var i=0;i<cards.length;i++) cards[i].classList.remove('active');
+  el.classList.add('active');
+  if(type==='size') gridSize=val;
+  if(type==='diff') difficulty=val;
+}
+
+// ============================================
+// TEACHER: AI WORD GENERATION
+// ============================================
+async function aiGenerateWords(){
+  var topic=document.getElementById('aiTopic').value.trim();
+  if(!topic){if(window.odaToast)odaToast('Enter a topic first','warning');return;}
+  var btn=document.getElementById('aiGenBtn');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Generating...';
+  try{
+    var prompt='Generate 15 vocabulary words for a word search puzzle about: '+topic+'. Return ONLY valid JSON array: [{"word":"PLANET","definition":"A large body orbiting a star"},...] Words must be 3-12 letters, no spaces or hyphens, ALL UPPERCASE. Include brief kid-friendly definitions.';
+    var result=await odaAI(prompt,{system:'You are a vocabulary word generator for K-8 students. Return ONLY valid JSON, no markdown.',temperature:0.7,max_tokens:1500});
+    var match=result.match(/\[[\s\S]*\]/);
+    if(!match) throw new Error('No JSON array found');
+    var words=JSON.parse(match[0]);
+    currentWords=[];
+    for(var i=0;i<words.length;i++){
+      var w=String(words[i].word||'').toUpperCase().replace(/[^A-Z]/g,'');
+      if(w.length>=3&&w.length<=12){
+        currentWords.push({word:w,definition:words[i].definition||''});
+      }
+    }
+    renderWordTags();
+    if(window.odaToast)odaToast(currentWords.length+' words generated!','success');
+  }catch(e){
+    console.error(e);
+    if(window.odaToast)odaToast('AI generation failed. Try again or add words manually.','error');
+  }
+  btn.disabled=false;btn.textContent='🤖 Generate';
+}
+
+// ============================================
+// TEACHER: MANUAL WORDS
+// ============================================
+function parseManualWords(){
+  var raw=document.getElementById('manualWords').value.trim();
+  if(!raw) return;
+  var parts=raw.indexOf(',')>-1?raw.split(','):raw.split('\n');
+  for(var i=0;i<parts.length;i++){
+    var w=parts[i].trim().toUpperCase().replace(/[^A-Z]/g,'');
+    if(w.length>=2&&w.length<=20){
+      var exists=false;
+      for(var j=0;j<currentWords.length;j++){if(currentWords[j].word===w)exists=true;}
+      if(!exists) currentWords.push({word:w,definition:''});
+    }
+  }
+  document.getElementById('manualWords').value='';
+  renderWordTags();
+}
+
+function removeWord(idx){
+  currentWords.splice(idx,1);
+  renderWordTags();
+}
+
+function renderWordTags(){
+  var c=document.getElementById('wordTags');
+  if(!currentWords.length){c.innerHTML='<span style="color:var(--text2);font-size:13px">No words added yet</span>';return;}
+  var h='';
+  for(var i=0;i<currentWords.length;i++){
+    h+='<span class="word-tag">'+esc(currentWords[i].word)+'<span class="tag-x" onclick="removeWord('+i+')">&times;</span></span>';
+  }
+  c.innerHTML=h;
+}
+
+// ============================================
+// PUZZLE GENERATION ALGORITHM
+// ============================================
+function getDirections(diff){
+  if(diff==='easy') return [{dr:0,dc:1}]; // right only
+  if(diff==='medium') return [{dr:0,dc:1},{dr:1,dc:0}]; // right, down
+  // hard: right, down, diagonal, and backwards
+  return [
+    {dr:0,dc:1},{dr:0,dc:-1},  // right, left
+    {dr:1,dc:0},{dr:-1,dc:0},  // down, up
+    {dr:1,dc:1},{dr:1,dc:-1},  // diag down-right, down-left
+    {dr:-1,dc:1},{dr:-1,dc:-1} // diag up-right, up-left
+  ];
+}
+
+function generateGrid(words,size,diff){
+  var grid=[];
+  for(var r=0;r<size;r++){grid[r]=[];for(var c=0;c<size;c++) grid[r][c]='';}
+
+  var dirs=getDirections(diff);
+  var solution=[];
+  var unplaced=[];
+
+  // Sort words by length (longest first for better placement)
+  var sorted=words.slice().sort(function(a,b){return b.word.length-a.word.length;});
+
+  for(var wi=0;wi<sorted.length;wi++){
+    var word=sorted[wi].word;
+    var placed=false;
+    var attempts=0;
+    var maxAttempts=200;
+
+    while(!placed&&attempts<maxAttempts){
+      attempts++;
+      var dir=dirs[Math.floor(Math.random()*dirs.length)];
+      var sr=Math.floor(Math.random()*size);
+      var sc=Math.floor(Math.random()*size);
+
+      // Check bounds
+      var er=sr+dir.dr*(word.length-1);
+      var ec=sc+dir.dc*(word.length-1);
+      if(er<0||er>=size||ec<0||ec>=size) continue;
+
+      // Check conflicts
+      var conflict=false;
+      for(var li=0;li<word.length;li++){
+        var nr=sr+dir.dr*li;
+        var nc=sc+dir.dc*li;
+        if(grid[nr][nc]!==''&&grid[nr][nc]!==word[li]){conflict=true;break;}
+      }
+      if(conflict) continue;
+
+      // Place the word
+      for(var li=0;li<word.length;li++){
+        grid[sr+dir.dr*li][sc+dir.dc*li]=word[li];
+      }
+      var dirName='';
+      if(dir.dr===0&&dir.dc===1) dirName='right';
+      else if(dir.dr===0&&dir.dc===-1) dirName='left';
+      else if(dir.dr===1&&dir.dc===0) dirName='down';
+      else if(dir.dr===-1&&dir.dc===0) dirName='up';
+      else if(dir.dr===1&&dir.dc===1) dirName='down-right';
+      else if(dir.dr===1&&dir.dc===-1) dirName='down-left';
+      else if(dir.dr===-1&&dir.dc===1) dirName='up-right';
+      else if(dir.dr===-1&&dir.dc===-1) dirName='up-left';
+      solution.push({word:word,startRow:sr,startCol:sc,direction:dirName,dr:dir.dr,dc:dir.dc});
+      placed=true;
+    }
+    if(!placed) unplaced.push(word);
+  }
+
+  // Fill empty cells with random letters
+  var alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for(var r=0;r<size;r++){
+    for(var c=0;c<size;c++){
+      if(grid[r][c]==='') grid[r][c]=alphabet[Math.floor(Math.random()*26)];
+    }
+  }
+
+  return {grid:grid,solution:solution,unplaced:unplaced};
+}
+
+function generatePuzzle(){
+  if(currentWords.length<2){
+    if(window.odaToast)odaToast('Add at least 2 words first','warning');
+    return;
+  }
+  // Check word lengths vs grid size
+  var tooLong=[];
+  for(var i=0;i<currentWords.length;i++){
+    if(currentWords[i].word.length>gridSize) tooLong.push(currentWords[i].word);
+  }
+  if(tooLong.length){
+    if(window.odaToast)odaToast('Words too long for grid: '+tooLong.join(', ')+'. Increase grid size or shorten words.','warning');
+    return;
+  }
+
+  var result=generateGrid(currentWords,gridSize,difficulty);
+  generatedGrid=result.grid;
+  generatedSolution=result.solution;
+
+  if(result.unplaced.length){
+    if(window.odaToast)odaToast(result.unplaced.length+' words could not be placed: '+result.unplaced.join(', '),'warning');
+  }
+
+  renderPreview();
+  document.getElementById('previewCard').style.display='';
+  document.getElementById('previewCard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function renderPreview(){
+  if(!generatedGrid) return;
+  var size=generatedGrid.length;
+  var placedCells={};
+  for(var i=0;i<generatedSolution.length;i++){
+    var s=generatedSolution[i];
+    for(var li=0;li<s.word.length;li++){
+      placedCells[(s.startRow+s.dr*li)+','+(s.startCol+s.dc*li)]=true;
+    }
+  }
+  var h='<table>';
+  for(var r=0;r<size;r++){
+    h+='<tr>';
+    for(var c=0;c<size;c++){
+      var cls=placedCells[r+','+c]?' class="placed"':'';
+      h+='<td'+cls+'>'+esc(generatedGrid[r][c])+'</td>';
+    }
+    h+='</tr>';
+  }
+  h+='</table>';
+  document.getElementById('previewGrid').innerHTML=h;
+}
+
+// ============================================
+// TEACHER: SAVE PUZZLE
+// ============================================
+async function savePuzzle(){
+  if(!generatedGrid){if(window.odaToast)odaToast('Generate a puzzle first','warning');return;}
+  var title=document.getElementById('puzzleTitle').value.trim()||'Word Search';
+
+  try{
+    var fb=await getFirebaseDB();
+    var docRef=fb.fsMod.doc(fb.fsMod.collection(fb.db,'wordSearchPuzzles'));
+    var data={
+      title:title,
+      words:currentWords,
+      gridSize:gridSize,
+      difficulty:difficulty,
+      grid:generatedGrid,
+      solution:generatedSolution.map(function(s){return{word:s.word,startRow:s.startRow,startCol:s.startCol,direction:s.direction,dr:s.dr,dc:s.dc};}),
+      teacherId:sessionStorage.getItem('odaUID')||localStorage.getItem('odaUID')||'unknown',
+      classCode:classCode,
+      isPublic:true,
+      createdAt:new Date().toISOString()
+    };
+    await fb.fsMod.setDoc(docRef,data);
+    if(window.odaToast)odaToast('Puzzle saved and assigned!','success');
+    // Reset
+    document.getElementById('previewCard').style.display='none';
+    loadMyPuzzles();
+  }catch(e){
+    console.error(e);
+    if(window.odaToast)odaToast('Error saving puzzle: '+e.message,'error');
+  }
+}
+
+// ============================================
+// TEACHER: DASHBOARD TABS
+// ============================================
+function showDashTab(tab,el){
+  var tabs=document.querySelectorAll('.dash-tab');
+  for(var i=0;i<tabs.length;i++) tabs[i].classList.remove('active');
+  if(el) el.classList.add('active');
+  var sections=document.querySelectorAll('.dash-section');
+  for(var i=0;i<sections.length;i++) sections[i].classList.remove('show');
+  var sec=document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1));
+  if(sec) sec.classList.add('show');
+
+  if(tab==='mypuzzles') loadMyPuzzles();
+  if(tab==='results') loadResults();
+}
+
+async function loadMyPuzzles(){
+  var c=document.getElementById('myPuzzlesList');
+  c.innerHTML='<p style="color:var(--text2);text-align:center;padding:20px">Loading...</p>';
+  try{
+    var fb=await getFirebaseDB();
+    var q=fb.fsMod.query(
+      fb.fsMod.collection(fb.db,'wordSearchPuzzles'),
+      fb.fsMod.where('classCode','==',classCode),
+      fb.fsMod.orderBy('createdAt','desc')
+    );
+    var snap=await fb.fsMod.getDocs(q);
+    if(snap.empty){c.innerHTML='<p style="color:var(--text2);text-align:center;padding:20px">No puzzles created yet.</p>';return;}
+    var h='';
+    snap.forEach(function(doc){
+      var d=doc.data();
+      var wordList=d.words?d.words.map(function(w){return w.word;}).join(', '):'';
+      h+='<div class="puzzle-card"><div class="pc-top"><span class="pc-title">'+esc(d.title)+'</span><span class="pc-meta">'+esc(d.gridSize)+'x'+esc(d.gridSize)+' | '+esc(d.difficulty)+'</span></div>';
+      h+='<div class="pc-words">'+esc(wordList)+'</div>';
+      h+='<div class="pc-btns">';
+      h+='<button class="btn btn-xs btn-blue" onclick="teacherPlay(\''+doc.id+'\')">&#9654; Play</button>';
+      h+='<button class="btn btn-xs btn-red" onclick="deletePuzzle(\''+doc.id+'\')">&#128465; Delete</button>';
+      h+='</div></div>';
+    });
+    c.innerHTML=h;
+  }catch(e){
+    console.error(e);
+    c.innerHTML='<p style="color:var(--text2);text-align:center;padding:20px">Error loading puzzles.</p>';
+  }
+}
+
+async function deletePuzzle(id){
+  if(!confirm('Delete this puzzle?')) return;
+  try{
+    var fb=await getFirebaseDB();
+    await fb.fsMod.deleteDoc(fb.fsMod.doc(fb.db,'wordSearchPuzzles',id));
+    if(window.odaToast)odaToast('Puzzle deleted','success');
+    loadMyPuzzles();
+  }catch(e){
+    if(window.odaToast)odaToast('Error deleting','error');
+  }
+}
+
+async function teacherPlay(id){
+  await startPuzzle(id);
+}
+
+async function loadResults(){
+  var c=document.getElementById('resultsArea');
+  c.innerHTML='<p style="color:var(--text2);text-align:center;padding:20px">Loading...</p>';
+  try{
+    var fb=await getFirebaseDB();
+    var q=fb.fsMod.query(
+      fb.fsMod.collection(fb.db,'wordSearchResults'),
+      fb.fsMod.where('classCode','==',classCode),
+      fb.fsMod.orderBy('completedAt','desc'),
+      fb.fsMod.limit(50)
+    );
+    var snap=await fb.fsMod.getDocs(q);
+    if(snap.empty){c.innerHTML='<p style="color:var(--text2);text-align:center;padding:20px">No results yet.</p>';return;}
+    var h='<table class="results-table"><thead><tr><th>Student</th><th>Puzzle</th><th>Score</th><th>Time</th><th>Hints</th><th>Coins</th></tr></thead><tbody>';
+    snap.forEach(function(doc){
+      var d=doc.data();
+      var mins=Math.floor((d.timeSeconds||0)/60);
+      var secs=(d.timeSeconds||0)%60;
+      h+='<tr><td>'+esc(d.studentName||'--')+'</td><td>'+esc(d.puzzleTitle||'--')+'</td><td>'+esc(d.wordsFound)+'/'+esc(d.totalWords)+'</td><td>'+mins+':'+String(secs).padStart(2,'0')+'</td><td>'+esc(d.hintsUsed||0)+'</td><td>'+esc(d.coinsEarned||0)+'</td></tr>';
+    });
+    h+='</tbody></table>';
+    c.innerHTML=h;
+  }catch(e){
+    console.error(e);
+    c.innerHTML='<p style="color:var(--text2);text-align:center;padding:20px">Error loading results.</p>';
+  }
+}
+
+// ============================================
+// STUDENT: LOAD PUZZLES
+// ============================================
+async function loadPuzzles(){
+  var c=document.getElementById('puzzleBrowser');
+  try{
+    var fb=await getFirebaseDB();
+    var constraints=[fb.fsMod.where('isPublic','==',true),fb.fsMod.orderBy('createdAt','desc'),fb.fsMod.limit(30)];
+    if(classCode){
+      constraints=[fb.fsMod.where('classCode','==',classCode),fb.fsMod.where('isPublic','==',true),fb.fsMod.orderBy('createdAt','desc'),fb.fsMod.limit(30)];
+    }
+    var q=fb.fsMod.query(fb.fsMod.collection(fb.db,'wordSearchPuzzles'),...constraints);
+    var snap=await fb.fsMod.getDocs(q);
+
+    // Get completed puzzles
+    var completedIds={};
+    if(studentId){
+      try{
+        var rq=fb.fsMod.query(fb.fsMod.collection(fb.db,'wordSearchResults'),fb.fsMod.where('studentId','==',studentId));
+        var rs=await fb.fsMod.getDocs(rq);
+        rs.forEach(function(d){completedIds[d.data().puzzleId]=true;});
+      }catch(e){}
+    }
+
+    if(snap.empty){c.innerHTML='<p style="color:var(--text2);grid-column:1/-1;text-align:center;padding:40px">No puzzles available yet. Ask your teacher to create one!</p>';return;}
+    var h='';
+    snap.forEach(function(doc){
+      var d=doc.data();
+      var done=completedIds[doc.id];
+      var diffEmoji=d.difficulty==='easy'?'&#127775;':d.difficulty==='hard'?'&#9889;':'&#128293;';
+      h+='<div class="pb-card" onclick="startPuzzle(\''+doc.id+'\')">';
+      h+='<span class="pb-emoji">'+diffEmoji+'</span>';
+      h+='<div class="pb-title">'+esc(d.title)+'</div>';
+      h+='<div class="pb-meta">'+esc(d.gridSize)+'x'+esc(d.gridSize)+' &bull; '+esc(d.difficulty)+' &bull; '+esc((d.words||[]).length)+' words</div>';
+      h+='<span class="pb-badge '+(done?'completed':'new')+'">'+(done?'&#10003; Completed':'New')+'</span>';
+      h+='</div>';
+    });
+    c.innerHTML=h;
+  }catch(e){
+    console.error(e);
+    c.innerHTML='<p style="color:var(--text2);grid-column:1/-1;text-align:center;padding:40px">Error loading puzzles. Refresh to try again.</p>';
+  }
+}
+
+// ============================================
+// PLAY: START PUZZLE
+// ============================================
+async function startPuzzle(puzzleId){
+  try{
+    var fb=await getFirebaseDB();
+    var docSnap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'wordSearchPuzzles',puzzleId));
+    if(!docSnap.exists()){if(window.odaToast)odaToast('Puzzle not found','error');return;}
+    var d=docSnap.data();
+    currentPuzzleId=puzzleId;
+    currentPuzzleTitle=d.title||'Word Search';
+    playGrid=d.grid;
+    playWords=d.words||[];
+    playSolution=d.solution||[];
+    foundWords=[];
+    foundColorIdx=0;
+    selectStart=null;
+    selectEnd=null;
+    selecting=false;
+    hintsUsed=0;
+    timerSeconds=0;
+
+    showSection('secPlay');
+    renderGameGrid();
+    renderWordList();
+    updateProgress();
+    startTimer();
+    document.getElementById('coinCount').textContent=getCoinBalance();
+  }catch(e){
+    console.error(e);
+    if(window.odaToast)odaToast('Error loading puzzle','error');
+  }
+}
+
+// ============================================
+// PLAY: RENDER GAME GRID
+// ============================================
+function renderGameGrid(){
+  var g=document.getElementById('gameGrid');
+  if(!playGrid||!playGrid.length) return;
+  var size=playGrid.length;
+
+  // Calculate cell size based on viewport
+  var maxWidth=Math.min(window.innerWidth-80,600);
+  var cellSize=Math.max(Math.floor(maxWidth/size),28);
+  cellSize=Math.min(cellSize,44);
+
+  g.style.gridTemplateColumns='repeat('+size+','+cellSize+'px)';
+  g.style.gridTemplateRows='repeat('+size+','+cellSize+'px)';
+
+  var h='';
+  for(var r=0;r<size;r++){
+    for(var c=0;c<size;c++){
+      h+='<div class="game-cell" data-r="'+r+'" data-c="'+c+'" id="cell-'+r+'-'+c+'">'+esc(playGrid[r][c])+'</div>';
+    }
+  }
+  g.innerHTML=h;
+
+  // Event listeners
+  var cells=g.querySelectorAll('.game-cell');
+  for(var i=0;i<cells.length;i++){
+    cells[i].addEventListener('pointerdown',onCellDown);
+    cells[i].addEventListener('pointerenter',onCellEnter);
+    cells[i].addEventListener('pointerup',onCellUp);
+  }
+  // Prevent default touch behavior on the grid
+  g.addEventListener('touchmove',function(e){e.preventDefault();},{passive:false});
+  document.addEventListener('pointerup',onGlobalUp);
+}
+
+// ============================================
+// PLAY: SELECTION LOGIC
+// ============================================
+function onCellDown(e){
+  e.preventDefault();
+  // Release pointer capture so pointerenter fires on other cells
+  if(e.target.releasePointerCapture) try{e.target.releasePointerCapture(e.pointerId);}catch(x){}
+  selecting=true;
+  var r=parseInt(this.dataset.r);
+  var c=parseInt(this.dataset.c);
+  selectStart={r:r,c:c};
+  selectEnd={r:r,c:c};
+  highlightSelection();
+}
+
+function onCellEnter(e){
+  if(!selecting) return;
+  var r=parseInt(this.dataset.r);
+  var c=parseInt(this.dataset.c);
+  selectEnd={r:r,c:c};
+  highlightSelection();
+}
+
+function onCellUp(e){
+  if(!selecting) return;
+  selecting=false;
+  checkSelection();
+}
+
+function onGlobalUp(e){
+  if(!selecting) return;
+  selecting=false;
+  checkSelection();
+}
+
+function getCellsBetween(start,end){
+  // Snap to valid line (horizontal, vertical, or diagonal)
+  var dr=end.r-start.r;
+  var dc=end.c-start.c;
+
+  // Determine dominant direction
+  var absDr=Math.abs(dr);
+  var absDc=Math.abs(dc);
+
+  var stepR=0,stepC=0,len=0;
+
+  if(absDr===0&&absDc===0){
+    return [{r:start.r,c:start.c}];
+  } else if(absDr===0){
+    // Horizontal
+    stepR=0;stepC=dc>0?1:-1;len=absDc+1;
+  } else if(absDc===0){
+    // Vertical
+    stepR=dr>0?1:-1;stepC=0;len=absDr+1;
+  } else if(absDr===absDc){
+    // Perfect diagonal
+    stepR=dr>0?1:-1;stepC=dc>0?1:-1;len=absDr+1;
+  } else {
+    // Snap to closest valid direction
+    var angle=Math.atan2(dr,dc);
+    var snapAngles=[0,Math.PI/4,Math.PI/2,3*Math.PI/4,Math.PI,-Math.PI/4,-Math.PI/2,-3*Math.PI/4,-Math.PI];
+    var snapDirs=[{r:0,c:1},{r:1,c:1},{r:1,c:0},{r:1,c:-1},{r:0,c:-1},{r:-1,c:1},{r:-1,c:0},{r:-1,c:-1},{r:0,c:-1}];
+    var bestIdx=0;var bestDiff=999;
+    for(var i=0;i<snapAngles.length;i++){
+      var diff=Math.abs(angle-snapAngles[i]);
+      if(diff<bestDiff){bestDiff=diff;bestIdx=i;}
+    }
+    stepR=snapDirs[bestIdx].r;
+    stepC=snapDirs[bestIdx].c;
+    len=Math.max(absDr,absDc)+1;
+  }
+
+  var cells=[];
+  var size=playGrid.length;
+  for(var i=0;i<len;i++){
+    var nr=start.r+stepR*i;
+    var nc=start.c+stepC*i;
+    if(nr<0||nr>=size||nc<0||nc>=size) break;
+    cells.push({r:nr,c:nc});
+  }
+  return cells;
+}
+
+function highlightSelection(){
+  // Clear previous selection highlights (not found highlights)
+  var prev=document.querySelectorAll('.game-cell.selecting');
+  for(var i=0;i<prev.length;i++) prev[i].classList.remove('selecting');
+
+  if(!selectStart||!selectEnd) return;
+  var cells=getCellsBetween(selectStart,selectEnd);
+  for(var i=0;i<cells.length;i++){
+    var el=document.getElementById('cell-'+cells[i].r+'-'+cells[i].c);
+    if(el) el.classList.add('selecting');
+  }
+}
+
+function checkSelection(){
+  if(!selectStart||!selectEnd) return;
+  var cells=getCellsBetween(selectStart,selectEnd);
+  // Get the word from selected cells
+  var word='';
+  for(var i=0;i<cells.length;i++){
+    word+=playGrid[cells[i].r][cells[i].c];
+  }
+  var rev=word.split('').reverse().join('');
+
+  // Check against solution - match by word text and verify cells overlap the placed positions
+  var matched=false;
+  for(var si=0;si<playSolution.length;si++){
+    var s=playSolution[si];
+    if(isAlreadyFound(s.word)) continue;
+
+    // Build the expected cells for this solution word
+    var sLen=s.word.length;
+    var sCells=[];
+    for(var li=0;li<sLen;li++){
+      sCells.push({r:s.startRow+s.dr*li,c:s.startCol+s.dc*li});
+    }
+
+    if(cells.length!==sLen) continue;
+
+    // Check forward match
+    if(word===s.word){
+      var match=true;
+      for(var k=0;k<sLen;k++){
+        if(cells[k].r!==sCells[k].r||cells[k].c!==sCells[k].c){match=false;break;}
+      }
+      if(match){matched=true;markFound(s.word,cells);break;}
+    }
+
+    // Check reverse match (player dragged from end to start)
+    if(rev===s.word){
+      var match=true;
+      for(var k=0;k<sLen;k++){
+        if(cells[sLen-1-k].r!==sCells[k].r||cells[sLen-1-k].c!==sCells[k].c){match=false;break;}
+      }
+      if(match){matched=true;markFound(s.word,cells);break;}
+    }
+  }
+
+  // Clear selection
+  var sel=document.querySelectorAll('.game-cell.selecting');
+  for(var i=0;i<sel.length;i++) sel[i].classList.remove('selecting');
+  selectStart=null;
+  selectEnd=null;
+}
+
+function isAlreadyFound(word){
+  for(var i=0;i<foundWords.length;i++){if(foundWords[i]===word) return true;}
+  return false;
+}
+
+function markFound(word,cells){
+  foundWords.push(word);
+  var colorClass='found-'+(foundColorIdx%8);
+  foundColorIdx++;
+
+  // Highlight cells
+  for(var i=0;i<cells.length;i++){
+    var el=document.getElementById('cell-'+cells[i].r+'-'+cells[i].c);
+    if(el){
+      el.classList.remove('selecting');
+      el.classList.add(colorClass);
+      // Pop animation
+      el.style.transform='scale(1.15)';
+      (function(e){setTimeout(function(){e.style.transform='';},200);})(el);
+    }
+  }
+
+  // Update word list
+  var items=document.querySelectorAll('.wl-item');
+  for(var i=0;i<items.length;i++){
+    if(items[i].dataset.word===word) items[i].classList.add('found');
+  }
+
+  playSound('found');
+  updateProgress();
+
+  // Check completion
+  if(foundWords.length>=playSolution.length){
+    setTimeout(completePuzzle,600);
+  }
+}
+
+// ============================================
+// PLAY: WORD LIST
+// ============================================
+function renderWordList(){
+  var ul=document.getElementById('wordList');
+  var h='';
+  // Shuffle display order for variety
+  var display=playWords.slice();
+  for(var i=display.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=display[i];display[i]=display[j];display[j]=t;}
+  for(var i=0;i<display.length;i++){
+    h+='<li class="wl-item" data-word="'+esc(display[i].word)+'"><span class="wl-check">&#10003;</span>'+esc(display[i].word)+'</li>';
+  }
+  ul.innerHTML=h;
+}
+
+function updateProgress(){
+  var total=playSolution.length;
+  var found=foundWords.length;
+  document.getElementById('wlProgress').textContent=found+' / '+total;
+  document.getElementById('progressFill').style.width=(total?Math.round(found/total*100):0)+'%';
+}
+
+// ============================================
+// PLAY: TIMER
+// ============================================
+function startTimer(){
+  stopTimer();
+  timerSeconds=0;
+  var box=document.getElementById('timerBox');
+  box.style.display='';
+  box.textContent='0:00';
+  timerInterval=setInterval(function(){
+    timerSeconds++;
+    var m=Math.floor(timerSeconds/60);
+    var s=timerSeconds%60;
+    box.textContent=m+':'+String(s).padStart(2,'0');
+  },1000);
+}
+
+function stopTimer(){
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
+}
+
+// ============================================
+// PLAY: HINTS
+// ============================================
+function useHint(){
+  var balance=getCoinBalance();
+  if(balance<5){
+    if(window.odaToast)odaToast('Not enough coins! You need 5 coins for a hint.','warning');
+    return;
+  }
+
+  // Find an unfound word
+  var unfound=[];
+  for(var i=0;i<playSolution.length;i++){
+    if(!isAlreadyFound(playSolution[i].word)) unfound.push(playSolution[i]);
+  }
+  if(!unfound.length){if(window.odaToast)odaToast('All words already found!','info');return;}
+
+  var target=unfound[Math.floor(Math.random()*unfound.length)];
+  var el=document.getElementById('cell-'+target.startRow+'-'+target.startCol);
+  if(el){
+    el.classList.add('hint-pulse');
+    setTimeout(function(){el.classList.remove('hint-pulse');},3100);
+  }
+
+  hintsUsed++;
+  spendCoins(5);
+  document.getElementById('coinCount').textContent=getCoinBalance();
+  playSound('hint');
+}
+
+// ============================================
+// PLAY: COMPLETION
+// ============================================
+function completePuzzle(){
+  stopTimer();
+  playSound('complete');
+  if(window.odaConfetti)odaConfetti();
+
+  // Calculate coins
+  var coins=20;
+  if(hintsUsed>=1&&hintsUsed<=2) coins=10;
+  else if(hintsUsed>2) coins=5;
+
+  // Speed bonus
+  var playSize=playGrid?playGrid.length:15;
+  var expectedTime=playSize<=10?120:playSize<=15?180:300;
+  if(timerSeconds<expectedTime) coins+=10;
+
+  addCoins(coins);
+
+  // Show completion
+  showSection('secComplete');
+  document.getElementById('statWords').textContent=foundWords.length+'/'+playSolution.length;
+  var m=Math.floor(timerSeconds/60);var s=timerSeconds%60;
+  document.getElementById('statTime').textContent=m+':'+String(s).padStart(2,'0');
+  document.getElementById('statCoins').textContent=coins;
+
+  // Show definitions
+  var dh='';
+  for(var i=0;i<playWords.length;i++){
+    if(playWords[i].definition){
+      dh+='<div class="def-item"><div class="def-word">'+esc(playWords[i].word)+'</div><div class="def-text">'+esc(playWords[i].definition)+'</div></div>';
+    }
+  }
+  document.getElementById('defList').innerHTML=dh||'';
+
+  // Save result
+  saveResult(coins);
+}
+
+async function saveResult(coins){
+  if(!studentId) return;
+  try{
+    var fb=await getFirebaseDB();
+    var docRef=fb.fsMod.doc(fb.fsMod.collection(fb.db,'wordSearchResults'));
+    await fb.fsMod.setDoc(docRef,{
+      puzzleId:currentPuzzleId,
+      puzzleTitle:currentPuzzleTitle,
+      studentId:studentId,
+      studentName:sessionStorage.getItem('studentName')||'Student',
+      classCode:classCode,
+      wordsFound:foundWords.length,
+      totalWords:playSolution.length,
+      timeSeconds:timerSeconds,
+      hintsUsed:hintsUsed,
+      coinsEarned:coins,
+      completedAt:new Date().toISOString()
+    });
+  }catch(e){console.error('Error saving result:',e);}
+}
+
+function backToBrowse(){
+  if(isTeacher){
+    showSection('secTeacher');
+    showDashTab('mypuzzles',document.querySelectorAll('.dash-tab')[1]);
+  } else {
+    showSection('secBrowse');
+    loadPuzzles();
+  }
+}
+
+// ============================================
+// COIN SYSTEM (local storage)
+// ============================================
+function getCoinBalance(){
+  var key=studentId?'odaCoins_'+studentId:'odaCoins_teacher';
+  return parseInt(localStorage.getItem(key)||'0');
+}
+function addCoins(n){
+  var key=studentId?'odaCoins_'+studentId:'odaCoins_teacher';
+  var bal=getCoinBalance()+n;
+  localStorage.setItem(key,String(bal));
+}
+function spendCoins(n){
+  var key=studentId?'odaCoins_'+studentId:'odaCoins_teacher';
+  var bal=Math.max(0,getCoinBalance()-n);
+  localStorage.setItem(key,String(bal));
+}
+
+// ============================================
+// MOBILE TOUCH HANDLING (pointerenter alternative)
+// ============================================
+(function(){
+  var grid=document.getElementById('gameGrid');
+  grid.addEventListener('touchmove',function(e){
+    if(!selecting) return;
+    e.preventDefault();
+    var touch=e.touches[0];
+    var el=document.elementFromPoint(touch.clientX,touch.clientY);
+    if(el&&el.classList&&el.classList.contains('game-cell')){
+      var r=parseInt(el.dataset.r);
+      var c=parseInt(el.dataset.c);
+      if(!selectEnd||selectEnd.r!==r||selectEnd.c!==c){
+        selectEnd={r:r,c:c};
+        highlightSelection();
+      }
+    }
+  },{passive:false});
+
+  grid.addEventListener('touchend',function(e){
+    if(!selecting) return;
+    selecting=false;
+    checkSelection();
+  });
+})();
+</script>
+<script src="js/oda-core.js"></script>
+</body>
+</html>
