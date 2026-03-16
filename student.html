@@ -9,31 +9,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/oda-theme.css">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh}
-.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
 .app{position:relative;z-index:1;max-width:600px;margin:0 auto;padding:16px}
 
 .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
 .greeting{font-size:24px;font-weight:800;letter-spacing:-.5px}
 .greeting span{color:var(--accent)}
-.btn{padding:8px 16px;border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;cursor:pointer;transition:all .15s}
-.btn:active{transform:scale(.97)}
-.btn-outline{background:none;border:1px solid var(--border);color:var(--text2)}
-.btn-accent{background:var(--accent);color:var(--bg)}
-.btn-blue{background:var(--accent2);color:#fff}
 
-/* Tabs */
-.tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface);border-radius:12px;padding:4px;border:1px solid var(--border)}
-.tab{flex:1;padding:10px;text-align:center;border-radius:8px;cursor:pointer;font-weight:700;font-size:14px;color:var(--text2);transition:all .2s;position:relative}
-.tab:hover{color:var(--text)}
-.tab.active{background:var(--accent);color:var(--bg)}
+/* Student-specific tab badge */
+.tab{position:relative}
 .tab-badge{position:absolute;top:4px;right:8px;background:var(--accent3);color:#fff;font-size:10px;font-weight:800;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center}
 .tab-badge.zero{display:none}
-
-.section{display:none;animation:fadeUp .2s ease}
-.section.show{display:block}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 /* Unlock banner */
 .unlock{display:none;background:linear-gradient(135deg,var(--accent),#04b890);border-radius:16px;padding:20px;text-align:center;margin-bottom:16px;animation:pulse 2s ease-in-out infinite}
@@ -149,14 +134,14 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 <p>All work done — go play!</p>
 </div>
 
-<div class="tabs">
-<div class="tab active" onclick="switchTab('work')">&#x1F4DD; <span>My Work</span><span class="tab-badge zero" id="workBadge">0</span></div>
-<div class="tab" onclick="switchTab('tools')">&#x1F6E0;&#xFE0F; <span>My Tools</span></div>
-<div class="tab" onclick="switchTab('arcade')">&#x1F3AE; <span>Arcade</span></div>
+<div class="tabs" role="tablist" aria-label="Student dashboard sections">
+<div class="tab active" role="tab" tabindex="0" aria-selected="true" aria-controls="sec-work" id="tab-work" onclick="switchTab('work')" onkeydown="stuTabKeyNav(event,'work')">&#x1F4DD; <span>My Work</span><span class="tab-badge zero" id="workBadge">0</span></div>
+<div class="tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="sec-tools" id="tab-tools" onclick="switchTab('tools')" onkeydown="stuTabKeyNav(event,'tools')">&#x1F6E0;&#xFE0F; <span>My Tools</span></div>
+<div class="tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="sec-arcade" id="tab-arcade" onclick="switchTab('arcade')" onkeydown="stuTabKeyNav(event,'arcade')">&#x1F3AE; <span>Arcade</span></div>
 </div>
 
 <!-- MY WORK -->
-<div class="section show" id="sec-work">
+<div class="section show" id="sec-work" role="tabpanel" aria-labelledby="tab-work">
 <div class="encourage-banner" id="encourageBanner">
 <div class="encourage-label">&#x1F916; AI Study Buddy says...</div>
 <div class="encourage-text" id="encourageText"></div>
@@ -165,7 +150,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 </div>
 
 <!-- MY TOOLS -->
-<div class="section" id="sec-tools">
+<div class="section" id="sec-tools" role="tabpanel" aria-labelledby="tab-tools">
 <div class="tools-section-title">&#x1F680; ODA Tools <span class="ts-sub">&#x2014; Use these anytime to create, learn, and have fun!</span></div>
 <div class="tools-grid" id="toolsGrid"></div>
 <div class="tools-section-title" style="margin-top:20px">&#x1F3AE; Coming Soon</div>
@@ -179,7 +164,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 </div>
 
 <!-- ARCADE -->
-<div class="section" id="sec-arcade">
+<div class="section" id="sec-arcade" role="tabpanel" aria-labelledby="tab-arcade">
 <div class="game-grid" id="gameGrid"></div>
 </div>
 </div>
@@ -264,15 +249,27 @@ var WORD_BANKS={
 
 var activeQuiz=null; // {assignId, words, current, correct, type}
 
+var stuTabOrder=['work','tools','arcade'];
 function switchTab(id){
 var tabs=document.querySelectorAll('.tab');
 var secs=document.querySelectorAll('.section');
-for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');secs[i].classList.remove('show')}
+for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');tabs[i].setAttribute('aria-selected','false');tabs[i].setAttribute('tabindex','-1');secs[i].classList.remove('show')}
 document.getElementById('sec-'+id).classList.add('show');
 var m={work:0,tools:1,arcade:2};
-if(m[id]!==undefined)tabs[m[id]].classList.add('active');
+if(m[id]!==undefined){tabs[m[id]].classList.add('active');tabs[m[id]].setAttribute('aria-selected','true');tabs[m[id]].setAttribute('tabindex','0')}
 if(id==='tools')renderMyTools();
+odaAnnounce(id+' tab selected');
 }
+function stuTabKeyNav(e,current){
+var idx=stuTabOrder.indexOf(current);if(idx<0)return;
+if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
+e.preventDefault();
+var next=e.key==='ArrowRight'?(idx+1)%stuTabOrder.length:(idx-1+stuTabOrder.length)%stuTabOrder.length;
+switchTab(stuTabOrder[next]);
+document.getElementById('tab-'+stuTabOrder[next]).focus();
+}else if(e.key==='Enter'||e.key===' '){e.preventDefault();switchTab(current)}
+}
+window.stuTabKeyNav=stuTabKeyNav;
 
 function renderDashboard(){
 var assigns=window.myAssignments||[];
@@ -650,12 +647,7 @@ var prompt='You are a friendly AI study buddy for a K-12 student named '+(window
 'Give 1-2 specific tips they can use next time. Keep it to 3-4 sentences. Be warm and supportive.';
 
 try{
-var resp=await fetch(ODA_CONFIG.aiEndpoint,{
-method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
-});
-if(!resp.ok)throw new Error('Server error');
-var data=await resp.json();
-var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'I had trouble thinking! Try again.';
+var text=await odaAI(prompt);
 result.textContent=text;
 }catch(e){console.error(e);result.textContent='Oops! Something went wrong. Try again later.'}
 btn.classList.remove('loading');btn.innerHTML='&#x1F916; AI Study Buddy';
@@ -681,10 +673,7 @@ var prompt='You are a fun, encouraging AI buddy for a K-12 afterschool student n
 'Write a SHORT (1-2 sentences) motivational message to start their session. Be upbeat, use age-appropriate language, and reference their progress. '+
 'Do NOT use emojis. Keep it under 30 words.';
 
-fetch(ODA_CONFIG.aiEndpoint,{
-method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
-}).then(function(r){if(!r.ok)throw new Error('Server error');return r.json()}).then(function(data){
-var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'';
+odaAI(prompt).then(function(text){
 if(text){
 document.getElementById('encourageText').textContent=text;
 document.getElementById('encourageBanner').classList.add('show');
@@ -695,6 +684,7 @@ localStorage.setItem('encourageShown','1');
 setTimeout(generateEncouragement,2000);
 
 // ===== FEEDBACK SYSTEM =====
+var _feedbackTrapCleanup=null;
 function openFeedbackModal(type){
 var modal=document.getElementById('feedbackModal');
 var title=document.getElementById('feedbackTitle');
@@ -705,10 +695,12 @@ desc.value='';
 document.getElementById('feedbackPage').value='';
 modal.dataset.type=type;
 modal.style.display='flex';
+_feedbackTrapCleanup=odaTrapFocus(modal);
 }
 window.openFeedbackModal=openFeedbackModal;
 
 function closeFeedbackModal(){
+if(_feedbackTrapCleanup){_feedbackTrapCleanup();_feedbackTrapCleanup=null}
 document.getElementById('feedbackModal').style.display='none';
 }
 window.closeFeedbackModal=closeFeedbackModal;
@@ -740,6 +732,7 @@ closeFeedbackModal();
 btn.disabled=false;btn.textContent='Submit';
 }
 window.submitFeedback=submitFeedback;
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=document.getElementById('feedbackModal');if(m&&m.style.display==='flex')closeFeedbackModal()}});
 </script>
 
 <!-- FEEDBACK MODAL -->

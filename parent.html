@@ -7,34 +7,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/oda-theme.css">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh}
-.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(255,209,102,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,209,102,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+/* Parent-specific grid bg (gold tint) */
+.grid-bg{background-image:linear-gradient(rgba(255,209,102,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,209,102,.03) 1px,transparent 1px)}
 .app{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:16px}
 .topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 0;margin-bottom:16px;border-bottom:1px solid var(--border)}
 .topbar h1{font-size:22px;font-weight:800;letter-spacing:-1px}
 .topbar h1 span{color:var(--gold)}
-.btn{padding:8px 18px;border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;cursor:pointer;transition:all .15s}
-.btn:active{transform:scale(.97)}
-.btn-accent{background:var(--accent);color:var(--bg)}
-.btn-gold{background:var(--gold);color:var(--bg)}
-.btn-blue{background:var(--accent2);color:#fff}
-.btn-outline{background:none;border:1px solid var(--border);color:var(--text2)}
-.btn-outline:hover{border-color:var(--text2);color:var(--text)}
-.btn-sm{padding:6px 12px;font-size:13px;border-radius:8px}
-.btn-wide{width:100%;padding:14px;font-size:16px;border-radius:14px}
-.btn.loading{opacity:.6;pointer-events:none}
-.btn.loading::after{content:'';display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;margin-left:6px;vertical-align:middle}
-@keyframes spin{to{transform:rotate(360deg)}}
-.tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface);border-radius:14px;padding:4px;border:1px solid var(--border)}
-.tab{flex:1;padding:10px 6px;text-align:center;border-radius:10px;cursor:pointer;font-weight:700;font-size:14px;color:var(--text2);transition:all .2s}
-.tab:hover{color:var(--text)}
+/* Parent-specific: gold active tab */
 .tab.active{background:var(--gold);color:var(--bg)}
-.section{display:none;animation:fadeUp .2s ease}
-.section.show{display:block}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:14px}
-.card-title{font-size:16px;font-weight:800;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
 @media(max-width:500px){.stats{grid-template-columns:1fr 1fr}}
 .stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
@@ -95,18 +75,18 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 </div>
 </div>
 
-<div class="tabs">
-<div class="tab active" onclick="switchTab('overview')">&#x1F4CA; Overview</div>
-<div class="tab" onclick="switchTab('assignments')">&#x1F4CB; Assignments</div>
-<div class="tab" onclick="switchTab('work')">&#x1F4DD; Work</div>
+<div class="tabs" role="tablist" aria-label="Parent portal sections">
+<div class="tab active" role="tab" tabindex="0" aria-selected="true" aria-controls="sec-overview" id="tab-overview" onclick="switchTab('overview')" onkeydown="tabKeyNav(event,'overview')">&#x1F4CA; Overview</div>
+<div class="tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="sec-assignments" id="tab-assignments" onclick="switchTab('assignments')" onkeydown="tabKeyNav(event,'assignments')">&#x1F4CB; Assignments</div>
+<div class="tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="sec-work" id="tab-work" onclick="switchTab('work')" onkeydown="tabKeyNav(event,'work')">&#x1F4DD; Work</div>
 </div>
 
-<div id="offlineBanner" style="display:none;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:10px;padding:10px 14px;text-align:center;margin-bottom:12px">
+<div id="offlineBanner" role="alert" aria-live="polite" style="display:none;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:10px;padding:10px 14px;text-align:center;margin-bottom:12px">
 <span style="font-size:14px;font-weight:600;color:var(--gold)">&#x26A0;&#xFE0F; Connection issue — some data may be outdated</span>
 </div>
 
 <!-- OVERVIEW -->
-<div class="section show" id="sec-overview">
+<div class="section show" id="sec-overview" role="tabpanel" aria-labelledby="tab-overview">
 <div class="card">
 <div style="font-size:18px;font-weight:800;margin-bottom:2px">&#x1F44B; Welcome!</div>
 <div style="font-size:13px;color:var(--text2)">Here's how <strong id="overviewName">your child</strong> is doing.</div>
@@ -125,13 +105,13 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 </div>
 
 <!-- ASSIGNMENTS -->
-<div class="section" id="sec-assignments">
+<div class="section" id="sec-assignments" role="tabpanel" aria-labelledby="tab-assignments">
 <div style="font-size:16px;font-weight:800;margin-bottom:14px">&#x1F4CB; Assignments</div>
 <div id="parentAssignmentsList"><div class="skeleton skeleton-group"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
 </div>
 
 <!-- WORK -->
-<div class="section" id="sec-work">
+<div class="section" id="sec-work" role="tabpanel" aria-labelledby="tab-work">
 <div style="font-size:16px;font-weight:800;margin-bottom:14px">&#x1F4DD; Student Work</div>
 <div id="parentWorkList"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
 </div>
@@ -183,14 +163,26 @@ loadStudentWork();
 </script>
 
 <script>
+var parentTabOrder=['overview','assignments','work'];
 function switchTab(id){
 var tabs=document.querySelectorAll('.tab');
 var secs=document.querySelectorAll('.section');
-for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');secs[i].classList.remove('show')}
+for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');tabs[i].setAttribute('aria-selected','false');tabs[i].setAttribute('tabindex','-1');secs[i].classList.remove('show')}
 document.getElementById('sec-'+id).classList.add('show');
 var m={overview:0,assignments:1,work:2};
-if(m[id]!==undefined)tabs[m[id]].classList.add('active');
+if(m[id]!==undefined){tabs[m[id]].classList.add('active');tabs[m[id]].setAttribute('aria-selected','true');tabs[m[id]].setAttribute('tabindex','0')}
+odaAnnounce(id+' tab selected');
 }
+function tabKeyNav(e,current){
+var idx=parentTabOrder.indexOf(current);if(idx<0)return;
+if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
+e.preventDefault();
+var next=e.key==='ArrowRight'?(idx+1)%parentTabOrder.length:(idx-1+parentTabOrder.length)%parentTabOrder.length;
+switchTab(parentTabOrder[next]);
+document.getElementById('tab-'+parentTabOrder[next]).focus();
+}else if(e.key==='Enter'||e.key===' '){e.preventDefault();switchTab(current)}
+}
+window.tabKeyNav=tabKeyNav;
 
 function renderOverview(){
 var assigns=window.parentAssignments||[];
@@ -385,12 +377,7 @@ var types={};assigns.forEach(function(a){var t=a.toolType||a.type;types[t]=(type
 var typeSummary=Object.keys(types).map(function(k){return k+': '+types[k]}).join(', ')||'none yet';
 var prompt='You are a friendly education assistant writing a progress report for a parent about their child named '+(window.parentStudentName||'the student')+'. Here is their data: Total assignments: '+total+', Completed: '+completed+', Pending: '+pending+', Average score: '+avg+', Assignment types: '+typeSummary+'. Write a warm, encouraging 3-4 paragraph progress report for the parent. Highlight strengths, mention areas for improvement gently, and give 2-3 specific suggestions for how the parent can support learning at home. Keep it positive and supportive.';
 try{
-var resp=await fetch(ODA_CONFIG.aiEndpoint,{
-method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
-});
-if(!resp.ok)throw new Error('Server error ('+resp.status+')');
-var data=await resp.json();
-var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'Unable to generate report.';
+var text=await odaAI(prompt);
 result.textContent=text;result.style.display='block';
 }catch(e){console.error(e);result.textContent='Error generating report. Please try again.';result.style.display='block'}
 btn.classList.remove('loading');btn.textContent='Generate AI Progress Report';

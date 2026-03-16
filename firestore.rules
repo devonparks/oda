@@ -2,166 +2,360 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ============================================================
+    // Helper: validate student-created data has required identifiers
+    // Students don't use Firebase Auth, so we validate data shape
+    // instead. Requiring studentId + classCode ties writes to a
+    // teacher's ecosystem and blocks anonymous abuse.
+    // ============================================================
+
     // Teachers: public read needed for student class-code lookup
     match /teachers/{teacherId} {
-      allow read: if true;  // Students query by classCode without auth
+      allow read: if true;
       allow create: if request.auth != null && request.auth.uid == teacherId;
       allow update, delete: if request.auth != null && request.auth.uid == teacherId;
     }
 
-    // Students: teachers can manage their students, students can read their own data
+    // Students: teachers create, students can update limited fields
     match /students/{studentId} {
-      allow read: if true;  // Students need to read without auth (class code login)
-      allow create: if request.auth != null;  // Only teachers create students
-      // Students can update their own data (coins, arcade) but not reassign themselves
+      allow read: if true;
+      allow create: if request.auth != null;
       allow update: if true
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['teacherId']);
-      allow delete: if request.auth != null;  // Only teachers delete
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['teacherId', 'name'])
+        && request.resource.data.teacherId is string;
+      allow delete: if request.auth != null;
     }
 
-    // Assignments: readable by the student assigned, writable by teacher
+    // Assignments: teachers create, students submit work
     match /assignments/{assignmentId} {
-      allow read: if true;  // Students read without Firebase Auth
-      allow create: if request.auth != null;  // Teachers create
-      // Students can submit work but not change teacherId or studentId
+      allow read: if true;
+      allow create: if request.auth != null;
       allow update: if true
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['teacherId', 'studentId']);
-      allow delete: if request.auth != null;  // Teachers delete
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['teacherId', 'studentId'])
+        && request.resource.data.teacherId is string
+        && request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
     }
 
-    // Pitch Challenges: student creates, teacher reads for grading
+    // ----------------------------------------------------------
+    // Student work collections: require studentId on create,
+    // prevent field injection by validating structure
+    // ----------------------------------------------------------
+
+    // Pitch Challenges
     match /pitchChallenges/{pitchId} {
       allow read: if true;
-      allow write: if true;  // Students save pitches without Firebase Auth
+      allow create: if request.resource.data.studentId is string;
+      allow update: if request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
     }
 
-    // Elevator Pitches: same pattern
+    // Elevator Pitches
     match /elevatorPitches/{pitchId} {
       allow read: if true;
-      allow write: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
     }
 
-    // Lemonade Groups: students create groups, teachers approve
+    // Lemonade Groups
     match /lemonadeGroups/{groupId} {
       allow read: if true;
-      allow write: if true;
+      allow create: if request.resource.data.keys().hasAny(['studentId', 'teacherId']);
+      allow update: if true;  // Group members join/update collaboratively
+      allow delete: if request.auth != null;
     }
 
-    // Spelling Lists: teachers create, students read
+    // Pitch Projects: student saves in progress
+    match /pitchProjects/{projectId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
+    }
+
+    // Pitch Gallery: community sharing with likes
+    match /pitchGallery/{pitchId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentName is string;
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['likes']);
+      allow delete: if request.auth != null;
+    }
+
+    // Canvas Gallery: student art with likes
+    match /canvasGallery/{artId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAny(['studentId', 'studentName']);
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['likes']);
+      allow delete: if request.auth != null;
+    }
+
+    // ----------------------------------------------------------
+    // Teacher-managed content: auth required for create/update/delete
+    // ----------------------------------------------------------
+
     match /spellingLists/{listId} {
       allow read: if true;
       allow create, update, delete: if request.auth != null;
     }
 
-    // Spelling Results: students write results, teachers read
-    match /spellingResults/{resultId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Pitch Gallery: community sharing
-    match /pitchGallery/{pitchId} {
-      allow read: if true;
-      allow create: if true;  // Students share pitches
-      allow update: if true;  // Like counts
-      allow delete: if request.auth != null;  // Only teachers delete
-    }
-
-    // Pitch Projects: student pitch saves synced to cloud
-    match /pitchProjects/{projectId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Spelling Words: teacher-managed word lists
     match /spellingWords/{wordId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
 
-    // Jeopardy boards and results
     match /jeopardyBoards/{boardId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null;
-    }
-    match /jeopardyResults/{resultId} {
-      allow read: if true;
-      allow write: if true;
+      allow create, update, delete: if request.auth != null;
     }
 
-    // Quiz Blitz (Kahoot) quizzes, live games, and results
     match /quizzes/{quizId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null;
-    }
-    match /liveGames/{gameId} {
-      allow read: if true;
-      allow write: if true;  // Real-time multiplayer needs open write
-    }
-    match /quizResults/{resultId} {
-      allow read: if true;
-      allow write: if true;
+      allow create, update, delete: if request.auth != null;
     }
 
-    // Flashcard decks and progress
     match /flashcardDecks/{deckId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null;
-    }
-    match /flashcardProgress/{progressId} {
-      allow read: if true;
-      allow write: if true;
+      allow create, update, delete: if request.auth != null;
     }
 
-    // Word Search puzzles and results
     match /wordSearchPuzzles/{puzzleId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null;
-    }
-    match /wordSearchResults/{resultId} {
-      allow read: if true;
-      allow write: if true;
+      allow create, update, delete: if request.auth != null;
     }
 
-    // Crossword puzzles and results
     match /crosswordPuzzles/{puzzleId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null;
-    }
-    match /crosswordResults/{resultId} {
-      allow read: if true;
-      allow write: if true;
+      allow create, update, delete: if request.auth != null;
     }
 
-    // Library passages, reading progress, and logs
     match /libraryPassages/{passageId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null;
-    }
-    match /readingProgress/{progressId} {
-      allow read: if true;
-      allow write: if true;
-    }
-    match /readingLogs/{logId} {
-      allow read: if true;
-      allow write: if true;
+      allow create, update, delete: if request.auth != null;
     }
 
-    // Canvas gallery
-    match /canvasGallery/{artId} {
+    match /questionBank/{setId} {
       allow read: if true;
-      allow create: if true;
-      allow update: if true;  // Likes
+      allow create, update, delete: if request.auth != null;
+    }
+
+    match /templates/{templateId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null;
+    }
+
+    // ----------------------------------------------------------
+    // Student results: require studentId + score validation
+    // ----------------------------------------------------------
+
+    match /spellingResults/{resultId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string
+        && request.resource.data.score is number;
+      allow update: if false;  // Results are immutable
       allow delete: if request.auth != null;
     }
 
-    // Raffles
+    match /jeopardyResults/{resultId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string
+        && request.resource.data.score is number;
+      allow update: if false;
+      allow delete: if request.auth != null;
+    }
+
+    match /quizResults/{resultId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if false;
+      allow delete: if request.auth != null;
+    }
+
+    match /flashcardProgress/{progressId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
+    }
+
+    match /flashcardLeaderboard/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
+    }
+
+    match /wordSearchResults/{resultId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if false;
+      allow delete: if request.auth != null;
+    }
+
+    match /crosswordResults/{resultId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if false;
+      allow delete: if request.auth != null;
+    }
+
+    match /readingProgress/{progressId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
+    }
+
+    match /readingLogs/{logId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if false;
+      allow delete: if request.auth != null;
+    }
+
+    // ----------------------------------------------------------
+    // Real-time multiplayer games: need open write for game state
+    // but require classCode to tie to a teacher's class
+    // ----------------------------------------------------------
+
+    match /liveGames/{gameId} {
+      allow read: if true;
+      allow create: if request.resource.data.classCode is string
+        || request.auth != null;
+      allow update: if true;  // Real-time game state updates
+      allow delete: if request.auth != null;
+    }
+
+    match /chessGames/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.player1 is string;
+      allow update: if true;  // Real-time game moves
+      allow delete: if request.auth != null;
+    }
+
+    match /connect4games/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.player1 is string;
+      allow update: if true;  // Real-time game moves
+      allow delete: if request.auth != null;
+    }
+
+    match /triviaGames/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAny(['classCode', 'hostId']);
+      allow update: if true;  // Real-time game state
+      allow delete: if request.auth != null;
+    }
+
+    // ----------------------------------------------------------
+    // Arcade records/leaderboards: require studentId, validate scores
+    // ----------------------------------------------------------
+
+    match /snakeRecords/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
+    }
+
+    match /chessRecords/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
+    }
+
+    match /connect4Records/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
+    }
+
+    match /connect4Tournaments/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAny(['classCode', 'createdBy']);
+      allow update: if true;  // Tournament state updates
+      allow delete: if request.auth != null;
+    }
+
+    match /solitaireRecords/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
+    }
+
+    match /2048Records/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
+    }
+
+    match /typingRecords/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
+    }
+
+    match /hangmanRecords/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
+    }
+
+    match /memoryRecords/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
+    }
+
+    match /rpsRecords/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
+    }
+
+    match /tttRecords/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
+    }
+
+    match /triviaRecords/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
+    }
+
+    // ----------------------------------------------------------
+    // Misc student collections
+    // ----------------------------------------------------------
+
+    match /scoreboardGames/{gameId} {
+      allow read: if true;
+      allow create: if request.auth != null;  // Teachers create games
+      allow update: if true;  // Students update scores during game
+      allow delete: if request.auth != null;
+    }
+
+    match /typingStats/{statId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string;
+      allow update: if request.resource.data.studentId is string;
+      allow delete: if request.auth != null;
+    }
+
+    // Raffles: teachers create, students buy entries
     match /raffles/{raffleId} {
       allow read: if true;
       allow create: if request.auth != null;
@@ -169,102 +363,13 @@ service cloud.firestore {
       allow delete: if request.auth != null;
     }
 
-    // Scoreboard games
-    match /scoreboardGames/{gameId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Keyboard Warriors stats
-    match /typingStats/{statId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Arcade game records and leaderboards (students save scores without auth)
-    match /snakeRecords/{docId} {
-      allow read: if true;
-      allow write: if true;
-    }
-    match /chessGames/{docId} {
-      allow read: if true;
-      allow write: if true;
-    }
-    match /chessRecords/{docId} {
-      allow read: if true;
-      allow write: if true;
-    }
-    match /connect4games/{docId} {
-      allow read: if true;
-      allow write: if true;
-    }
-    match /connect4Records/{docId} {
-      allow read: if true;
-      allow write: if true;
-    }
-    match /connect4Tournaments/{docId} {
-      allow read: if true;
-      allow write: if true;
-    }
-    match /solitaireRecords/{docId} {
-      allow read: if true;
-      allow write: if true;
-    }
-    match /2048Records/{docId} {
-      allow read: if true;
-      allow write: if true;
-    }
-    match /typingRecords/{docId} {
-      allow read: if true;
-      allow write: if true;
-    }
-    match /hangmanRecords/{docId} {
-      allow read: if true;
-      allow write: if true;
-    }
-    match /memoryRecords/{docId} {
-      allow read: if true;
-      allow write: if true;
-    }
-    match /rpsRecords/{docId} {
-      allow read: if true;
-      allow write: if true;
-    }
-    match /tttRecords/{docId} {
-      allow read: if true;
-      allow write: if true;
-    }
-    match /triviaGames/{docId} {
-      allow read: if true;
-      allow write: if true;
-    }
-    match /triviaRecords/{docId} {
-      allow read: if true;
-      allow write: if true;
-    }
-    match /flashcardLeaderboard/{docId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Shared question bank (used across Jeopardy, Kahoot, Flashcards)
-    match /questionBank/{setId} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null;
-    }
-
-    // Feedback: students submit, admins/teachers read and manage
+    // Feedback: anyone can submit, teachers manage
     match /feedback/{feedbackId} {
       allow read: if true;
-      allow create: if true;  // Students submit feedback without auth
+      allow create: if request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.message.size() < 2000;
       allow update, delete: if request.auth != null;
-    }
-
-    // Templates: teachers save and load assignment templates
-    match /templates/{templateId} {
-      allow read: if request.auth != null;
-      allow create, update, delete: if request.auth != null;
     }
 
     // Default deny

@@ -9,9 +9,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/oda-theme.css">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh}
-.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
 .app{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:16px}
 
 /* Topbar */
@@ -439,7 +436,7 @@ select.settings-input{cursor:pointer}
 </div>
 <div class="class-tabs" id="classTabs"></div>
 <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
-<input type="text" class="search-input" id="rosterSearch" placeholder="Search students..." oninput="filterRoster()" style="margin-bottom:0;flex:1">
+<input type="text" class="search-input" id="rosterSearch" placeholder="Search students..." oninput="debouncedFilterRoster()" style="margin-bottom:0;flex:1">
 <button class="btn btn-accent btn-sm" onclick="openAddStudentModal()">+ Add Student</button>
 <button class="btn btn-blue btn-sm" onclick="openClassModal()">+ New Class</button>
 </div>
@@ -939,7 +936,7 @@ window.openClassModal=openClassModal;window.closeClassModal=closeClassModal;
 function openAddStudentModal(){
 var sel=document.getElementById('addStudentClass');
 var classes=window.teacherData&&window.teacherData.classes?window.teacherData.classes.filter(function(c){return c!=='All Students'}):[];
-if(!classes.length){alert('Create a class first before adding students.');openClassModal();return}
+if(!classes.length){showToast('Create a class first before adding students.','warning');openClassModal();return}
 var h='<option value="">Choose a class...</option>';
 for(var i=0;i<classes.length;i++){
 var isSelected=currentClass!=='All Students'&&classes[i]===currentClass;
@@ -1002,7 +999,7 @@ var school=document.getElementById('setSchool').value;
 var grades=document.getElementById('setGrades').value.trim();
 var team=document.getElementById('setTeam').value;
 var program=document.getElementById('setProgram').value;
-if(!name){alert('Name is required');return}
+if(!name){showToast('Name is required','warning');return}
 try{
 await window.fbUpdateDoc(window.fbDoc(window.fbDb,'teachers',window.currentTeacher.uid),{name:name,district:district,school:school,gradeLevels:grades,team:team,program:program});
 window.teacherData.name=name;
@@ -1014,7 +1011,7 @@ window.teacherData.program=program;
 document.getElementById('teacherName').textContent=name;
 document.getElementById('welcomeName').textContent=name.split(' ')[0];
 var msg=document.getElementById('profileSaveMsg');msg.style.display='block';setTimeout(function(){msg.style.display='none'},2000);
-}catch(e){console.error(e);alert('Error saving')}
+}catch(e){console.error(e);showToast('Error saving','error')}
 }
 window.saveProfile=saveProfile;
 
@@ -1038,7 +1035,7 @@ window.teacherData.classCode=code;
 document.getElementById('classCodeDisplay').textContent=code;
 document.getElementById('settingsClassCode').textContent=code;
 var msg=document.getElementById('codeSaveMsg');msg.style.display='block';setTimeout(function(){msg.style.display='none'},2000);
-}catch(e){console.error(e);alert('Error: '+e.message)}
+}catch(e){console.error(e);showToast('Error: '+e.message,'error')}
 }
 window.regenerateClassCode=regenerateClassCode;
 
@@ -1177,8 +1174,8 @@ var gradeSelect=document.getElementById('addStudentGrade').value;
 var grade=gradeSelect==='Other'?document.getElementById('addStudentGradeCustom').value.trim():gradeSelect;
 var className=document.getElementById('addStudentClass').value;
 if(!name)return;
-if(!grade){alert('Please select a grade.');return}
-if(!className){alert('Please select a class for this student.');return}
+if(!grade){showToast('Please select a grade.','warning');return}
+if(!className){showToast('Please select a class for this student.','warning');return}
 _addingStudent=true;
 var btn=document.querySelector('#addStudentModal .btn-accent');
 if(btn){btn.textContent='Adding...';btn.disabled=true}
@@ -1194,7 +1191,7 @@ createdAt:new Date().toISOString()
 });
 closeAddStudentModal();
 loadStudents();
-}catch(e){console.error(e);alert('Error: '+e.message)}
+}catch(e){console.error(e);showToast('Error: '+e.message,'error')}
 finally{_addingStudent=false;if(btn){btn.textContent='Add Student';btn.disabled=false}}
 }
 window.addStudent=addStudent;
@@ -1241,7 +1238,7 @@ await window.fbDeleteDoc(window.fbDoc(window.fbDb,'students',sId));
 closeProfile();
 await loadStudents();
 showToast('"'+sName+'" deleted','success');
-}catch(e){console.error(e);alert('Error deleting student: '+e.message)}
+}catch(e){console.error(e);showToast('Error deleting student: '+e.message,'error')}
 }
 window.deleteStudent=deleteStudent;
 
@@ -1312,7 +1309,7 @@ _selectedStudentIds=[];
 updateRosterBulkBar();
 await loadStudents();
 showToast(count+' student'+(count!==1?'s':'')+' deleted','success');
-}catch(e){console.error(e);alert('Error deleting students: '+e.message)}
+}catch(e){console.error(e);showToast('Error deleting students: '+e.message,'error')}
 }
 window.deleteSelectedStudents=deleteSelectedStudents;
 
@@ -1627,28 +1624,28 @@ reader.readAsDataURL(file);
 
 async function submitCreateAssignment(){
 var studentIds=getSelectedStudentIds();
-if(!studentIds.length){alert('Select at least one student');return}
+if(!studentIds.length){showToast('Select at least one student','warning');return}
 var dueDate=document.getElementById('createDueDate').value||null;
 var assignData={};
 
 if(createType==='tool'){
 var tool=document.getElementById('createToolSelect').value;
-if(!tool){alert('Select a tool');return}
+if(!tool){showToast('Select a tool','warning');return}
 var t=ASSIGN_TYPES[tool]||{title:tool};
 var isAutoGrade=tool.startsWith('spelling')||tool.startsWith('vocab');
 assignData={type:'tool',toolType:tool,title:t.title||tool,instructions:'',gradingType:isAutoGrade?'auto':'completion',fileData:null,linkUrl:null};
 }else if(createType==='assignment'){
 var aTitle=document.getElementById('createAssignTitle').value.trim();
-if(!aTitle){alert('Enter a title');return}
+if(!aTitle){showToast('Enter a title','warning');return}
 var aInstructions=document.getElementById('createAssignInstructions').value.trim();
-if(!aInstructions){alert('Enter instructions so students know what to do');return}
+if(!aInstructions){showToast('Enter instructions so students know what to do','warning');return}
 var aLink=document.getElementById('createAssignLink').value.trim()||null;
 var aGrading=document.getElementById('createAssignGrading').value;
 var fileInput=document.getElementById('createAssignFile');
 var fileUrl=null;
 if(fileInput.files.length>0){
 var file=fileInput.files[0];
-if(file.size>10*1024*1024){alert('File must be under 10MB');return}
+if(file.size>10*1024*1024){showToast('File must be under 10MB','warning');return}
 showLoading('Uploading file...');
 try{
 var ts=Date.now();
@@ -1657,7 +1654,7 @@ var path='assignments/'+window.currentTeacher.uid+'/'+ts+'_'+safeName;
 var sRef=window.fbStorageRef(window.fbStorage,path);
 await window.fbUploadBytes(sRef,file);
 fileUrl=await window.fbGetDownloadURL(sRef);
-}catch(e){hideLoading();console.error(e);alert('File upload failed: '+e.message);return}
+}catch(e){hideLoading();console.error(e);showToast('File upload failed: '+e.message,'error');return}
 }
 assignData={type:'assignment',toolType:null,title:aTitle,instructions:aInstructions,gradingType:aGrading,fileData:null,fileUrl:fileUrl,linkUrl:aLink};
 }
@@ -1676,10 +1673,9 @@ linkUrl:assignData.linkUrl,createdAt:new Date().toISOString()
 var td=window.teacherData||{};
 showLoading('Creating '+studentIds.length+' assignment(s)...');
 try{
-for(var i=0;i<studentIds.length;i++){
-var sid=studentIds[i];
+var _assignPromises=studentIds.map(function(sid){
 var student=students.find(function(s){return s.id===sid});
-await window.fbAddDoc(window.fbCollection(window.fbDb,'assignments'),{
+return window.fbAddDoc(window.fbCollection(window.fbDb,'assignments'),{
 studentId:sid,teacherId:window.currentTeacher.uid,
 type:assignData.type,toolType:assignData.toolType,title:assignData.title,
 instructions:assignData.instructions||'',status:'pending',gradingType:assignData.gradingType,
@@ -1690,14 +1686,15 @@ school:td.school||'',district:td.district||'',program:td.program||'',
 grade:student?student.grade:'',
 fileData:assignData.fileData||null,fileUrl:assignData.fileUrl||null,linkUrl:assignData.linkUrl,studentResponse:null,templateId:null
 });
-}
+});
+await Promise.all(_assignPromises);
 hideLoading();
 closeCreateAssignment();
 showToast(studentIds.length+' assignment(s) created','success');
 await loadStudents();
 renderAssignmentsList();
 if(selectedStudent)renderProfileAssignments();
-}catch(e){hideLoading();console.error(e);alert('Error creating assignments: '+e.message)}
+}catch(e){hideLoading();console.error(e);showToast('Error creating assignments: '+e.message,'error')}
 }
 window.submitCreateAssignment=submitCreateAssignment;
 
@@ -1949,9 +1946,9 @@ h+='<div class="grade-work" style="white-space:pre-wrap">'+esc(a.studentResponse
 if(a.fileUrl||a.fileData){
 if(a.fileUrl){
 if(a.fileUrl.match(/\.(png|jpg|jpeg|gif|webp)/i)){
-h+='<div class="grade-work" style="text-align:center"><img src="'+a.fileUrl+'" style="max-width:100%;border-radius:10px"></div>';
+h+='<div class="grade-work" style="text-align:center"><img src="'+esc(a.fileUrl)+'" style="max-width:100%;border-radius:10px"></div>';
 }else{
-h+='<div class="grade-work"><iframe src="'+a.fileUrl+'" style="width:100%;height:500px;border:none;border-radius:10px"></iframe><div style="margin-top:8px;text-align:center"><a href="'+a.fileUrl+'" target="_blank" style="color:var(--accent2);font-size:13px;font-weight:600">Open in new tab \u2197\uFE0F</a></div></div>';
+h+='<div class="grade-work"><iframe src="'+esc(a.fileUrl)+'" style="width:100%;height:500px;border:none;border-radius:10px"></iframe><div style="margin-top:8px;text-align:center"><a href="'+esc(a.fileUrl)+'" target="_blank" style="color:var(--accent2);font-size:13px;font-weight:600">Open in new tab \u2197\uFE0F</a></div></div>';
 }
 }else if(a.fileData){
 if(a.fileData.startsWith('data:image')){
@@ -2024,7 +2021,7 @@ async function gradeAssignment(){
 if(!gradingAssignment)return;
 var score=parseInt(document.getElementById('gradeScore').value);
 var feedback=document.getElementById('gradeFeedback').value.trim();
-if(isNaN(score)||score<0||score>100){alert('Enter a valid score (0-100)');return}
+if(isNaN(score)||score<0||score>100){showToast('Enter a valid score (0-100)','warning');return}
 try{
 await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',gradingAssignment.id),{status:'graded',score:score,feedback:feedback,gradedAt:new Date().toISOString()});
 closeGradePanel();
@@ -2039,14 +2036,14 @@ window.gradeAssignment=gradeAssignment;
 async function returnForRevision(){
 if(!gradingAssignment)return;
 var feedback=document.getElementById('gradeFeedback').value.trim();
-if(!feedback){alert('Please enter feedback for the student');return}
+if(!feedback){showToast('Please enter feedback for the student','warning');return}
 try{
 await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',gradingAssignment.id),{status:'returned',feedback:feedback});
 closeGradePanel();
 await loadStudents();
 renderAssignmentsList();
 if(selectedStudent)renderProfileAssignments();
-}catch(e){console.error(e);alert('Error: '+e.message)}
+}catch(e){console.error(e);showToast('Error: '+e.message,'error')}
 }
 window.returnForRevision=returnForRevision;
 
@@ -2058,7 +2055,7 @@ closeGradePanel();
 await loadStudents();
 renderAssignmentsList();
 if(selectedStudent)renderProfileAssignments();
-}catch(e){console.error(e);alert('Error: '+e.message)}
+}catch(e){console.error(e);showToast('Error: '+e.message,'error')}
 }
 window.markCompleteFromPanel=markCompleteFromPanel;
 
@@ -2070,7 +2067,7 @@ closeGradePanel();
 await loadStudents();
 renderAssignmentsList();
 if(selectedStudent)renderProfileAssignments();
-}catch(e){console.error(e);alert('Error: '+e.message)}
+}catch(e){console.error(e);showToast('Error: '+e.message,'error')}
 }
 window.deleteFromPanel=deleteFromPanel;
 
@@ -2096,8 +2093,8 @@ var parsed=JSON.parse(match[0]);
 document.getElementById('gradeScore').value=parsed.score||'';
 document.getElementById('gradeFeedback').value=parsed.feedback||'';
 await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',a.id),{aiSuggestedScore:parsed.score||null,aiSuggestedFeedback:parsed.feedback||null});
-}else{alert('AI response was not in expected format')}
-}catch(e){console.error(e);alert('AI grading failed: '+e.message)}
+}else{showToast('AI response was not in expected format','error')}
+}catch(e){console.error(e);showToast('AI grading failed: '+e.message,'error')}
 btn.textContent='\u{1F916} AI Suggest';btn.disabled=false;
 }
 window.aiSuggestGrade=aiSuggestGrade;
@@ -2146,7 +2143,7 @@ try{
 await window.fbDeleteDoc(window.fbDoc(window.fbDb,'templates',id));
 templates=templates.filter(function(t){return t.id!==id});
 loadTemplates();
-}catch(e){console.error(e);alert('Failed to delete template')}
+}catch(e){console.error(e);showToast('Failed to delete template','error')}
 }
 window.deleteTemplate=deleteTemplate;
 
@@ -2195,6 +2192,8 @@ type=type||'info';
 var container=document.getElementById('toastContainer');
 var t=document.createElement('div');
 t.className='toast '+type;
+t.setAttribute('role','alert');
+t.setAttribute('aria-live','assertive');
 t.textContent=msg;
 container.appendChild(t);
 setTimeout(function(){t.classList.add('show')},10);
@@ -2217,6 +2216,9 @@ if(badge){badge.textContent=review;badge.className='notif-badge'+(review===0?' z
 window.updateNotifBadge=updateNotifBadge;
 
 // ===== SEARCH: ROSTER =====
+var _rosterSearchTimer=null;
+function debouncedFilterRoster(){clearTimeout(_rosterSearchTimer);_rosterSearchTimer=setTimeout(filterRoster,150)}
+window.debouncedFilterRoster=debouncedFilterRoster;
 function filterRoster(){
 var term=(document.getElementById('rosterSearch').value||'').toLowerCase();
 var rows=document.querySelectorAll('#studentList .s-row');
@@ -2327,9 +2329,7 @@ if(!bulkSelected.length)return;
 if(!confirm('Mark '+bulkSelected.length+' assignment(s) as complete?'))return;
 showLoading('Completing assignments...');
 try{
-for(var i=0;i<bulkSelected.length;i++){
-await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',bulkSelected[i]),{status:'completed',completedAt:new Date().toISOString()});
-}
+await Promise.all(bulkSelected.map(function(id){return window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',id),{status:'completed',completedAt:new Date().toISOString()})}));
 showToast(bulkSelected.length+' assignments completed','success');
 }catch(e){console.error(e);showToast('Error completing assignments','error')}
 hideLoading();
@@ -2341,12 +2341,10 @@ if(!bulkSelected.length)return;
 var score=prompt('Enter score (0-100) for all selected assignments:');
 if(score===null)return;
 score=parseInt(score);
-if(isNaN(score)||score<0||score>100){alert('Enter a valid score (0-100)');return}
+if(isNaN(score)||score<0||score>100){showToast('Enter a valid score (0-100)','warning');return}
 showLoading('Grading assignments...');
 try{
-for(var i=0;i<bulkSelected.length;i++){
-await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',bulkSelected[i]),{status:'graded',score:score,gradedAt:new Date().toISOString()});
-}
+await Promise.all(bulkSelected.map(function(id){return window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',id),{status:'graded',score:score,gradedAt:new Date().toISOString()})}));
 showToast(bulkSelected.length+' assignments graded at '+score+'%','success');
 }catch(e){console.error(e);showToast('Error grading','error')}
 hideLoading();
@@ -2358,9 +2356,7 @@ if(!bulkSelected.length)return;
 if(!confirm('Delete '+bulkSelected.length+' assignment(s)? This cannot be undone.'))return;
 showLoading('Deleting assignments...');
 try{
-for(var i=0;i<bulkSelected.length;i++){
-await window.fbDeleteDoc(window.fbDoc(window.fbDb,'assignments',bulkSelected[i]));
-}
+await Promise.all(bulkSelected.map(function(id){return window.fbDeleteDoc(window.fbDoc(window.fbDb,'assignments',id))}));
 showToast(bulkSelected.length+' assignments deleted','success');
 }catch(e){console.error(e);showToast('Error deleting','error')}
 hideLoading();
@@ -2419,7 +2415,7 @@ var lastAiAssignment=null;
 
 async function generateAiAssignment(){
 var topic=document.getElementById('aiGenTopic').value.trim();
-if(!topic){alert('Enter a topic');return}
+if(!topic){showToast('Enter a topic','warning');return}
 var grade=document.getElementById('aiGenGrade').value;
 var btn=document.getElementById('aiGenBtn');
 var result=document.getElementById('aiGenResult');

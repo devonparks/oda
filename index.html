@@ -13,11 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/oda-theme.css">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden}
-
-/* Animated grid bg */
-.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+body{overflow-x:hidden}
 
 /* Floating orbs */
 .orbs{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
@@ -54,9 +50,10 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 .door:hover .door-emoji{transform:scale(1.15)}
 .door-title{font-family:'Fredoka',sans-serif;font-size:24px;font-weight:700;color:var(--text);margin-bottom:8px;letter-spacing:-.5px}
 .door-desc{font-size:15px;color:var(--text2);line-height:1.5;font-weight:400}
-.door.student:hover{border-color:var(--accent);box-shadow:0 0 30px rgba(6,214,160,.2)}
-.door.teacher:hover{border-color:var(--accent2);box-shadow:0 0 30px rgba(17,138,178,.2)}
-.door.parent:hover{border-color:var(--gold);box-shadow:0 0 30px rgba(255,209,102,.2)}
+.door:focus-visible{outline:3px solid var(--accent);outline-offset:4px;transform:translateY(-8px);border-color:var(--accent);box-shadow:var(--glow)}
+.door.student:hover,.door.student:focus-visible{border-color:var(--accent);box-shadow:0 0 30px rgba(6,214,160,.2)}
+.door.teacher:hover,.door.teacher:focus-visible{border-color:var(--accent2);box-shadow:0 0 30px rgba(17,138,178,.2)}
+.door.parent:hover,.door.parent:focus-visible{border-color:var(--gold);box-shadow:0 0 30px rgba(255,209,102,.2)}
 
 /* Features row */
 .features{display:flex;gap:16px;max-width:1000px;width:100%;margin-top:28px;animation:fadeUp .6s ease .2s both}
@@ -151,18 +148,18 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 
 <!-- DOOR SELECT -->
 <div class="doors" id="doors">
-<div class="door student" onclick="showPanel('student')">
-<span class="door-emoji">&#x1F393;</span>
+<div class="door student" role="button" tabindex="0" onclick="showPanel('student')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showPanel('student')}" aria-label="Student login — Enter your class code to start learning">
+<span class="door-emoji" aria-hidden="true">&#x1F393;</span>
 <div class="door-title">Student</div>
 <div class="door-desc">Enter your class code to start learning</div>
 </div>
-<div class="door teacher" onclick="showPanel('teacher')">
-<span class="door-emoji">&#x1F4CB;</span>
+<div class="door teacher" role="button" tabindex="0" onclick="showPanel('teacher')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showPanel('teacher')}" aria-label="Teacher login — Manage your roster and send assignments">
+<span class="door-emoji" aria-hidden="true">&#x1F4CB;</span>
 <div class="door-title">Teacher</div>
 <div class="door-desc">Manage your roster and send assignments</div>
 </div>
-<div class="door parent" onclick="showPanel('parent')">
-<span class="door-emoji">&#x1F46A;</span>
+<div class="door parent" role="button" tabindex="0" onclick="showPanel('parent')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showPanel('parent')}" aria-label="Parent login — Check your child's progress and scores">
+<span class="door-emoji" aria-hidden="true">&#x1F46A;</span>
 <div class="door-title">Parent</div>
 <div class="door-desc">Check your child's progress and scores</div>
 </div>
@@ -197,7 +194,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 <!-- Step 1: Class Code -->
 <div id="stuStep1">
 <div class="field">
-<label>Class Code</label>
+<label for="classCodeInput">Class Code</label>
 <input type="text" id="classCodeInput" class="code-input" placeholder="000000" maxlength="6" autocomplete="off" inputmode="numeric" pattern="[0-9]*">
 </div>
 <button class="submit-btn green" id="codeSubmit" onclick="checkClassCode()">Enter &#x2192;</button>
@@ -219,7 +216,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 <div id="nameButtons" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;margin-bottom:16px"></div>
 </div>
 
-<div class="error-msg" id="studentError"></div>
+<div class="error-msg" id="studentError" role="alert" aria-live="assertive"></div>
 </div>
 </div>
 
@@ -233,16 +230,16 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 <p>Sign in to manage your classroom</p>
 </div>
 <div class="field">
-<label>Email</label>
+<label for="teacherEmail">Email</label>
 <input type="email" id="teacherEmail" placeholder="you@odacle.org">
 </div>
 <div class="field">
-<label>Password</label>
+<label for="teacherPass">Password</label>
 <input type="password" id="teacherPass" placeholder="Your password">
 <div style="text-align:right;margin-top:6px"><a href="#" onclick="event.preventDefault();resetPassword()" style="color:var(--accent2);font-size:13px;font-weight:600;text-decoration:none">Forgot password?</a></div>
 </div>
-<div class="error-msg" id="teacherError"></div>
-<div class="success-msg" id="teacherSuccess"></div>
+<div class="error-msg" id="teacherError" role="alert" aria-live="assertive"></div>
+<div class="success-msg" id="teacherSuccess" role="status" aria-live="polite"></div>
 <button class="submit-btn blue" id="teacherSubmit" onclick="teacherLogin()">Sign In</button>
 <div class="divider">or</div>
 <button class="google-btn" onclick="googleLogin()">
@@ -265,15 +262,15 @@ Sign in with Google
 </div>
 <div class="signup-grid">
 <div class="field">
-<label>Your Full Name</label>
+<label for="signupName">Your Full Name</label>
 <input type="text" id="signupName" placeholder="Devon Parks">
 </div>
 <div class="field">
-<label>Email</label>
+<label for="signupEmail">Email</label>
 <input type="email" id="signupEmail" placeholder="you@odacle.org">
 </div>
 <div class="field">
-<label>District</label>
+<label for="signupDistrict">District</label>
 <select id="signupDistrict">
 <option value="">Select district...</option>
 <option value="Breakthrough Public Schools">Breakthrough Public Schools</option>
@@ -290,7 +287,7 @@ Sign in with Google
 </select>
 </div>
 <div class="field">
-<label>School / Site</label>
+<label for="signupSchool">School / Site</label>
 <select id="signupSchool">
 <option value="">Select school...</option>
 <option value="Anton Grdina Elementary">Anton Grdina Elementary School</option>
@@ -322,11 +319,11 @@ Sign in with Google
 </select>
 </div>
 <div class="field">
-<label>Grade Levels You Teach</label>
+<label for="signupGrades">Grade Levels You Teach</label>
 <input type="text" id="signupGrades" placeholder="e.g. K-2, 3rd-4th, 5th-8th">
 </div>
 <div class="field">
-<label>Team</label>
+<label for="signupTeam">Team</label>
 <select id="signupTeam">
 <option value="">Select team...</option>
 <option value="Elementary">Elementary</option>
@@ -335,7 +332,7 @@ Sign in with Google
 </select>
 </div>
 <div class="field field-full">
-<label>Program</label>
+<label for="signupProgram">Program</label>
 <select id="signupProgram">
 <option value="">Select program...</option>
 <option value="School Year - Elementary">School Year - Elementary School</option>
@@ -350,13 +347,13 @@ Sign in with Google
 </select>
 </div>
 <div class="field field-full">
-<label>Password</label>
+<label for="signupPass">Password</label>
 <input type="password" id="signupPass" placeholder="At least 6 characters">
 </div>
 </div>
 <button class="submit-btn blue" onclick="teacherSignup()">Create Account &#x1F680;</button>
-<div class="error-msg" id="signupError"></div>
-<div class="success-msg" id="signupSuccess"></div>
+<div class="error-msg" id="signupError" role="alert" aria-live="assertive"></div>
+<div class="success-msg" id="signupSuccess" role="status" aria-live="polite"></div>
 </div>
 </div>
 
@@ -370,15 +367,15 @@ Sign in with Google
 <p>See how your child is doing</p>
 </div>
 <div class="field">
-<label>Child's Name</label>
+<label for="parentChildName">Child's Name</label>
 <input type="text" id="parentChildName" placeholder="Full name (e.g. John Smith)">
 </div>
 <div class="field">
-<label>Parent Code</label>
+<label for="parentCode">Parent Code</label>
 <input type="text" id="parentCode" class="code-input" placeholder="0000" maxlength="4" autocomplete="off" inputmode="numeric">
 </div>
 <button class="submit-btn gold" onclick="parentLogin()">View Progress</button>
-<div class="error-msg" id="parentError"></div>
+<div class="error-msg" id="parentError" role="alert" aria-live="assertive"></div>
 </div>
 </div>
 
