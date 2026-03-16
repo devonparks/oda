@@ -1338,12 +1338,9 @@ async function saveCoinsFB(n){
   if(!studentId) return;
   try{
     var fb=await getFB();
-    var ref=fb.fsMod.doc(fb.db,'students',studentId);
-    var snap=await fb.fsMod.getDoc(ref);
-    if(snap.exists()){
-      var current=snap.data().coins||0;
-      await fb.fsMod.updateDoc(ref,{coins:current+n});
-    }
+    await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{
+      coins:fb.fsMod.increment(n)
+    });
   }catch(e){}
 }
 

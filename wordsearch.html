@@ -390,8 +390,8 @@ function playSound(type){
       o.type='sine';o.frequency.setValueAtTime(523,ctx.currentTime);
       o.frequency.setValueAtTime(659,ctx.currentTime+.08);
       o.frequency.setValueAtTime(784,ctx.currentTime+.16);
-      g.gain.setValueAtTime(.15,ctx.currentTime);g.gain.exponentialValueTo&&g.gain.exponentialValueTo||g.gain.setValueAtTime(.15,ctx.currentTime);
-      g.gain.setTargetAtTime(0,.01,ctx.currentTime+.3);
+      g.gain.setValueAtTime(.15,ctx.currentTime);
+      g.gain.setTargetAtTime(.001,ctx.currentTime+.2,.05);
       o.start();o.stop(ctx.currentTime+.35);
     } else if(type==='complete'){
       o.type='sine';o.frequency.setValueAtTime(523,ctx.currentTime);
@@ -399,13 +399,13 @@ function playSound(type){
       o.frequency.setValueAtTime(784,ctx.currentTime+.2);
       o.frequency.setValueAtTime(1047,ctx.currentTime+.3);
       g.gain.setValueAtTime(.2,ctx.currentTime);
-      g.gain.setTargetAtTime(0,.01,ctx.currentTime+.5);
+      g.gain.setTargetAtTime(.001,ctx.currentTime+.35,.05);
       o.start();o.stop(ctx.currentTime+.6);
     } else if(type==='hint'){
       o.type='triangle';o.frequency.setValueAtTime(440,ctx.currentTime);
       o.frequency.setValueAtTime(550,ctx.currentTime+.1);
       g.gain.setValueAtTime(.1,ctx.currentTime);
-      g.gain.setTargetAtTime(0,.01,ctx.currentTime+.2);
+      g.gain.setTargetAtTime(.001,ctx.currentTime+.1,.05);
       o.start();o.stop(ctx.currentTime+.25);
     } else {
       o.type='sine';o.frequency.setValueAtTime(300,ctx.currentTime);
@@ -1200,7 +1200,7 @@ async function saveResult(coins){
       timeSeconds:timerSeconds,
       hintsUsed:hintsUsed,
       coinsEarned:coins,
-      completedAt:new Date().toISOString()
+      completedAt:fb.fsMod.serverTimestamp()
     });
   }catch(e){console.error('Error saving result:',e);}
 }
@@ -1226,6 +1226,14 @@ function addCoins(n){
   var key=studentId?'odaCoins_'+studentId:'odaCoins_teacher';
   var bal=getCoinBalance()+n;
   localStorage.setItem(key,String(bal));
+  // Sync to Firebase
+  if(studentId){
+    getFirebaseDB().then(function(fb){
+      fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{
+        coins:fb.fsMod.increment(n)
+      }).catch(function(){});
+    }).catch(function(){});
+  }
 }
 function spendCoins(n){
   var key=studentId?'odaCoins_'+studentId:'odaCoins_teacher';

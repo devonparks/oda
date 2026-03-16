@@ -1382,15 +1382,12 @@ async function showGameOver() {
       completedAt: fs.serverTimestamp()
     });
 
-    // Award coins
+    // Award coins (atomic increment to prevent race conditions)
     if (studentId && coins > 0) {
       try {
-        var studentRef = fs.doc(fb.db, 'students', studentId);
-        var studentSnap = await fs.getDoc(studentRef);
-        if (studentSnap.exists()) {
-          var currentCoins = studentSnap.data().coins || 0;
-          await fs.updateDoc(studentRef, { coins: currentCoins + coins });
-        }
+        await fs.updateDoc(fs.doc(fb.db, 'students', studentId), {
+          coins: fs.increment(coins)
+        });
       } catch(e) { console.log('Coin award error:', e); }
     }
   } catch(e) { console.log('Save result error:', e); }

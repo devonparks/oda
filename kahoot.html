@@ -1075,15 +1075,12 @@ async function endSoloGame(){
       completedAt: fs.serverTimestamp()
     });
 
-    // Award coins to student
+    // Award coins (atomic increment to prevent race conditions)
     if(studentId && coins > 0){
       try{
-        var studentRef = fs.doc(fb.db, 'students', studentId);
-        var studentSnap = await fs.getDoc(studentRef);
-        if(studentSnap.exists()){
-          var currentCoins = studentSnap.data().coins || 0;
-          await fs.updateDoc(studentRef, { coins: currentCoins + coins });
-        }
+        await fs.updateDoc(fs.doc(fb.db, 'students', studentId), {
+          coins: fs.increment(coins)
+        });
       }catch(e){ console.log('Coin award error:', e); }
     }
   }catch(e){ console.log('Save result error:', e); }
@@ -1454,11 +1451,9 @@ async function hostShowFinalResults(){
       var pid = players[pi].id;
       if(pid && !pid.startsWith('guest_')){
         try{
-          var ref = fs.doc(fb.db, 'students', pid);
-          var pSnap = await fs.getDoc(ref);
-          if(pSnap.exists()){
-            await fs.updateDoc(ref, { coins: (pSnap.data().coins || 0) + coinAmt });
-          }
+          await fs.updateDoc(fs.doc(fb.db, 'students', pid), {
+            coins: fs.increment(coinAmt)
+          });
         }catch(e){}
         try{
           await fs.addDoc(fs.collection(fb.db, 'quizResults'), {

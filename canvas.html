@@ -479,10 +479,9 @@ var history = [];
 var historyIndex = -1;
 var MAX_HISTORY = 50;
 
-// Student info from URL
-var urlParams = new URLSearchParams(window.location.search);
-var studentId = urlParams.get('sid') || '';
-var studentName = urlParams.get('name') || 'Student';
+// Student info from sessionStorage (consistent with other tools)
+var studentId = sessionStorage.getItem('studentId') || '';
+var studentName = sessionStorage.getItem('studentName') || 'Student';
 
 // ===== TEMPLATES =====
 var templates = [
@@ -1411,13 +1410,14 @@ async function shareToGallery() {
       likes: 0
     });
 
-    // Award coins
-    try {
-      var coinRef = fb.fsMod.doc(fb.db, 'coins', studentId);
-      var coinDoc = await fb.fsMod.getDoc(coinRef);
-      var coins = coinDoc.exists() ? (coinDoc.data().total || 0) : 0;
-      await fb.fsMod.setDoc(coinRef, { total: coins + 5, lastEarned: new Date() }, { merge: true });
-    } catch(e) {}
+    // Award coins to student's Firestore balance
+    if (studentId) {
+      try {
+        await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'students', studentId), {
+          coins: fb.fsMod.increment(5)
+        });
+      } catch(e) {}
+    }
 
     odaToast('Shared to gallery! +5 coins', 'success');
     if (typeof odaConfetti === 'function') odaConfetti();
@@ -1551,13 +1551,12 @@ async function likeArt(docId, btn) {
     await fb.fsMod.updateDoc(ref, { likes: newLikes });
     btn.innerHTML = '&#x2764;&#xfe0f; ' + newLikes;
 
-    // Award coin to creator
+    // Award coin to creator's Firestore balance
     if (d.studentId) {
       try {
-        var coinRef = fb.fsMod.doc(fb.db, 'coins', d.studentId);
-        var coinDoc = await fb.fsMod.getDoc(coinRef);
-        var coins = coinDoc.exists() ? (coinDoc.data().total || 0) : 0;
-        await fb.fsMod.setDoc(coinRef, { total: coins + 1, lastEarned: new Date() }, { merge: true });
+        await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'students', d.studentId), {
+          coins: fb.fsMod.increment(1)
+        });
       } catch(e) {}
     }
   } catch(e) {
