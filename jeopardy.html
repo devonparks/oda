@@ -361,6 +361,19 @@ var TIMER_SECONDS = 20;
 var FJ_TIMER_SECONDS = 30;
 var boardsCache = [];
 
+// Normalize questions from Firestore (handles both array and map formats)
+function normalizeQuestions(q) {
+  if (!q) return [[],[],[],[],[]];
+  // If already an array of arrays, return as-is
+  if (Array.isArray(q)) return q;
+  // If it's an object map like {"0":[...],"1":[...]}, convert to array
+  var arr = [];
+  for (var i = 0; i < 5; i++) {
+    arr.push(q['' + i] || q[i] || []);
+  }
+  return arr;
+}
+
 // ===========================
 // SOUND EFFECTS (Web Audio API)
 // ===========================
@@ -500,7 +513,7 @@ async function showBoardBrowser(mode) {
     }
     var snap = await fs.getDocs(q);
     boardsCache = [];
-    snap.forEach(function(d) { boardsCache.push(Object.assign({id: d.id}, d.data())); });
+    snap.forEach(function(d) { var bd = Object.assign({id: d.id}, d.data()); bd.questions = normalizeQuestions(bd.questions); boardsCache.push(bd); });
 
     // Also fetch public boards for students
     if (mode === 'play' && classCode) {
@@ -509,7 +522,7 @@ async function showBoardBrowser(mode) {
         var snap2 = await fs.getDocs(q2);
         snap2.forEach(function(d) {
           if (!boardsCache.find(function(b){ return b.id === d.id; })) {
-            boardsCache.push(Object.assign({id: d.id}, d.data()));
+            var bd2 = Object.assign({id: d.id}, d.data()); bd2.questions = normalizeQuestions(bd2.questions); boardsCache.push(bd2);
           }
         });
       } catch(e) {}
@@ -797,11 +810,16 @@ async function saveBoard() {
     var fb = await getFirebaseDB();
     var fs = fb.fsMod;
     var teacherId = sessionStorage.getItem('odaTeacherId') || localStorage.getItem('odaTeacherId') || 'unknown';
+    // Convert nested arrays to object map (Firestore doesn't allow nested arrays)
+    var questionsMap = {};
+    for (var qi = 0; qi < 5; qi++) {
+      questionsMap['' + qi] = b.questions[qi] || [];
+    }
     var data = {
       title: b.title,
       topic: b.topic,
       categories: b.categories,
-      questions: b.questions,
+      questions: questionsMap,
       finalJeopardy: b.finalJeopardy,
       dailyDoubles: b.dailyDoubles || [],
       enableFinalJeopardy: b.enableFinalJeopardy !== false,
