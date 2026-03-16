@@ -161,6 +161,7 @@ window.odaToast = function(message, type) {
 
 // Confetti celebration
 window.odaConfetti = function() {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   var colors = ['#06d6a0', '#ffd166', '#118ab2', '#ef476f', '#f0f4ff'];
   for (var i = 0; i < 40; i++) {
     var c = document.createElement('div');
