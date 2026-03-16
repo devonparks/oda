@@ -376,7 +376,10 @@ Sign in with Google
 </div>
 </div>
 
-<div class="footer">ODA Hub Beta v1 &bull; Built by Mr. Devon &bull; Open Doors Academy</div>
+<div class="footer">
+<button onclick="hardRefresh()" style="background:none;border:1px solid var(--border);border-radius:10px;padding:6px 16px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:10px;transition:all .2s" onmouseover="this.style.borderColor='var(--text2)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'" aria-label="Hard refresh the page">&#x1F504; Refresh</button>
+<br>ODA Hub Beta v1 &bull; Built by Mr. Devon &bull; Open Doors Academy
+</div>
 </div>
 
 <!-- SHARED CORE -->
@@ -385,7 +388,7 @@ Sign in with Google
 <!-- FIREBASE -->
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-import{getAuth,signInWithEmailAndPassword,createUserWithEmailAndPassword,signInWithPopup,signInWithRedirect,GoogleAuthProvider,onAuthStateChanged,sendPasswordResetEmail,sendEmailVerification}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+import{getAuth,signInWithEmailAndPassword,createUserWithEmailAndPassword,signInWithPopup,signInWithRedirect,getRedirectResult,GoogleAuthProvider,onAuthStateChanged,sendPasswordResetEmail,sendEmailVerification}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
 import{getFirestore,doc,setDoc,getDoc,getDocs,collection,query,where}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 
 const firebaseConfig=ODA_CONFIG.firebase;
@@ -405,6 +408,7 @@ window.signInWithEmailAndPassword=signInWithEmailAndPassword;
 window.createUserWithEmailAndPassword=createUserWithEmailAndPassword;
 window.signInWithPopup=signInWithPopup;
 window.signInWithRedirect=signInWithRedirect;
+window.getRedirectResult=getRedirectResult;
 window.sendPasswordResetEmail=sendPasswordResetEmail;
 window.sendEmailVerification=sendEmailVerification;
 window.fbDoc=doc;
@@ -431,10 +435,44 @@ window.location.href="teacher.html";
 }
 });
 
+// Handle redirect result (for Chromebooks / popup-blocked browsers)
+getRedirectResult(auth).then(async function(result){
+if(!result||!result.user)return;
+var user=result.user;
+var teacherRef=doc(db,'teachers',user.uid);
+var teacherSnap=await getDoc(teacherRef);
+if(!teacherSnap.exists()){
+var classCode;
+for(var cc=0;cc<10;cc++){
+classCode=String(Math.floor(100000+Math.random()*900000));
+var ccQ=query(collection(db,'teachers'),where('classCode','==',classCode));
+var ccSnap=await getDocs(ccQ);
+if(ccSnap.empty)break;
+}
+await setDoc(teacherRef,{
+name:user.displayName||'',email:user.email||'',
+district:'',school:'',team:'',program:'',gradeLevels:'',
+classCode:classCode,classes:['All Students'],
+createdAt:new Date().toISOString()
+});
+}else if(!teacherSnap.data().classCode){
+var code=String(Math.floor(100000+Math.random()*900000));
+await setDoc(teacherRef,{classCode:code},{merge:true});
+}
+window.location.href='teacher.html';
+}).catch(function(e){console.warn('Redirect result:',e)});
+
 window.firebaseReady=true;
 </script>
 
 <script>
+// Hard refresh: clear SW caches + reload
+window.hardRefresh=async function(){
+if('caches' in window){var keys=await caches.keys();await Promise.all(keys.map(function(k){return caches.delete(k)}))}
+if(navigator.serviceWorker){var regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(function(r){return r.unregister()}))}
+location.href=location.pathname+'?v='+Date.now();
+};
+
 function showDoors(){
 document.getElementById('doors').style.display='';
 document.getElementById('features').style.display='';
@@ -575,11 +613,17 @@ showError('teacherError',msg);
 }
 };
 
-// GOOGLE LOGIN (popup with redirect fallback for school Chromebooks)
+// GOOGLE LOGIN — prefer redirect on mobile/CrOS; popup on desktop
 window.googleLogin=async function(){
+// Detect if popup is likely to be blocked (mobile, CrOS, iframe)
+var isMobile=/Mobi|Android|CrOS/i.test(navigator.userAgent);
+var inIframe=window!==window.top;
+if(isMobile||inIframe){
+try{await window.signInWithRedirect(window.firebaseAuth,window.googleProvider)}catch(e){showError('teacherError','Sign-in failed: '+e.message)}
+return;
+}
 try{
 var result=await window.signInWithPopup(window.firebaseAuth,window.googleProvider);
-// Check if teacher doc exists; create one for first-time Google sign-ins
 var user=result.user;
 var teacherRef=window.fbDoc(window.firebaseDb,'teachers',user.uid);
 var teacherSnap=await window.fbGetDoc(teacherRef);
