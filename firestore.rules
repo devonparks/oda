@@ -2,10 +2,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Teachers: only the teacher themselves can read/write their own doc
+    // Teachers: public read needed for student class-code lookup
     match /teachers/{teacherId} {
-      // Allow any authenticated user to read teacher docs (needed for class code lookup)
-      allow read: if request.auth != null;
+      allow read: if true;  // Students query by classCode without auth
       allow create: if request.auth != null && request.auth.uid == teacherId;
       allow update, delete: if request.auth != null && request.auth.uid == teacherId;
     }
