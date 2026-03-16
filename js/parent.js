@@ -1,4 +1,12 @@
+/**
+ * ODA Hub - Parent Portal
+ * Handles overview stats, assignment list (paginated), student work display, and AI progress reports.
+ * Dependencies: oda-core.js (esc, odaAI, odaAnnounce), Firebase (module import in HTML)
+ */
+
 var parentTabOrder=['overview','assignments','work'];
+
+/** Switch the active parent portal tab */
 function switchTab(id){
 var tabs=document.querySelectorAll('.tab');
 var secs=document.querySelectorAll('.section');

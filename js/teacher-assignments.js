@@ -363,6 +363,97 @@ function getAssignEmoji(a) {
 
 var gradingAssignment = null;
 
+/** Render pitch challenge work for the grade panel */
+function renderPitchWork(p) {
+  var h = '<div class="grade-work">';
+  h += '<div class="gw-biz-title gw-biz-accent">\u{1F3A4} ' + esc(p.businessName) + '</div>';
+  h += '<div class="gw-value"><div class="gw-label">Problem</div>' + esc(stripMd(p.problem || '')) + '</div>';
+  h += '<div class="gw-value"><div class="gw-label">Business Description</div>' + esc(stripMd(p.businessDesc || '')) + '</div>';
+  if (p.skills && p.skills.length) h += '<div class="gw-value"><div class="gw-label">Skills</div>' + esc(p.skills.join(', ')) + '</div>';
+  if (p.customers && p.customers.length) h += '<div class="gw-value"><div class="gw-label">Customers</div>' + esc(p.customers.join(', ')) + '</div>';
+  if (p.advantages && p.advantages.length) h += '<div class="gw-value"><div class="gw-label">Advantages</div>' + esc(stripMd(p.advantages.join(' \u2022 '))) + '</div>';
+  h += '<div class="gw-section"><div class="gw-label">Full Pitch</div><div class="gw-pitch">';
+  if (p.hook) h += esc(stripMd(p.hook)) + '<br><br>';
+  h += 'My business is called <strong>' + esc(p.businessName) + '</strong>. ' + esc(stripMd(p.businessDesc || '')) + '<br><br>';
+  if (p.advantages) { p.advantages.forEach(function (av) { h += '\u{1F3C6} ' + esc(stripMd(av)) + '<br>'; }); }
+  if (p.callToAction) h += '<br><strong>' + esc(stripMd(p.callToAction)) + '</strong>';
+  h += '</div></div>';
+  if (p.videoUrl) h += '<div class="gw-section"><div class="gw-label">\u{1F3AC} Video Recording</div><div class="gw-media"><video controls playsinline class="gw-video" src="' + esc(p.videoUrl) + '"></video></div></div>';
+  if (p.aiCoachFeedback) h += '<div class="gw-section"><div class="gw-label">\u{1F9E0} AI Coach Feedback</div><div class="gw-ai-box gw-ai-coach">' + esc(stripMd(p.aiCoachFeedback)) + '</div></div>';
+  if (p.polishedPitch) h += '<div class="gw-section"><div class="gw-label">\u2728 AI-Polished Pitch</div><div class="gw-ai-box gw-ai-polish">' + esc(stripMd(p.polishedPitch)) + '</div></div>';
+  if (p.score) h += '<div class="gw-section"><div class="gw-label">\u2B50 Scorecard</div><div class="gw-scorecard">' + (p.score.total || 0) + '/' + (p.score.max || 6) + ' Stars</div></div>';
+  h += '</div>';
+  return h;
+}
+
+/** Render elevator pitch work for the grade panel */
+function renderElevatorWork(p) {
+  var ans = p.answers;
+  var h = '<div class="grade-work">';
+  h += '<div class="gw-biz-title gw-biz-accent2">\u{1F3A4} ' + esc(ans.name || 'Student') + '\'s Elevator Pitch</div>';
+  h += '<div class="gw-subtitle">' + esc(ans.grade ? 'Grade ' + ans.grade : '') + ' ' + esc(ans.school ? ' \u2022 ' + ans.school : '') + ' ' + esc(ans.from ? ' \u2022 From ' + ans.from : '') + '</div>';
+  h += '<div class="gw-section"><div class="gw-label">\u{1F464} About Me</div>';
+  if (ans.age) h += '<div class="gw-value"><strong>Age:</strong> ' + esc(ans.age) + '</div>';
+  if (ans.dream) h += '<div class="gw-value gw-gap"><strong>Dream Job:</strong> ' + esc(ans.dream) + '</div>';
+  if (ans.why) h += '<div class="gw-value gw-gap"><strong>Why:</strong> ' + esc(ans.why) + '</div>';
+  if (ans.hobby) h += '<div class="gw-value gw-gap"><strong>Favorite Hobby:</strong> ' + esc(ans.hobby) + '</div>';
+  if (ans.fact) h += '<div class="gw-value gw-gap"><strong>Fun Fact:</strong> ' + esc(ans.fact) + '</div>';
+  if (ans.remember) h += '<div class="gw-value gw-gap"><strong>Remember Me For:</strong> ' + esc(ans.remember) + '</div>';
+  h += '</div>';
+  if (p.pitchText) {
+    h += '<div class="gw-section"><div class="gw-label">\u{1F4AC} Generated Pitch</div>';
+    h += '<div class="gw-ai-box gw-ai-pitch">' + esc(p.pitchText) + '</div></div>';
+  }
+  if (p.videoUrl) {
+    h += '<div class="gw-section"><div class="gw-label">\u{1F3AC} Video Recording</div>';
+    h += '<div class="gw-media"><video controls playsinline class="gw-video" src="' + esc(p.videoUrl) + '"></video></div></div>';
+  }
+  if (p.aiSummary) {
+    h += '<div class="gw-section"><div class="gw-label">\u2728 AI Personalized Summary</div>';
+    h += '<div class="gw-ai-box gw-ai-polish">' + esc(p.aiSummary) + '</div></div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+/** Render file/image attachments for the grade panel */
+function renderFileAttachments(a) {
+  var h = '';
+  if (a.fileUrl) {
+    if (a.fileUrl.match(/\.(png|jpg|jpeg|gif|webp)/i)) {
+      h += '<div class="grade-work gw-center"><img src="' + esc(a.fileUrl) + '" class="gw-img"></div>';
+    } else {
+      h += '<div class="grade-work"><iframe src="' + esc(a.fileUrl) + '" class="gw-iframe"></iframe><div class="gw-open-link"><a href="' + esc(a.fileUrl) + '" target="_blank" class="gw-ext-link">Open in new tab \u2197\uFE0F</a></div></div>';
+    }
+  } else if (a.fileData) {
+    if (a.fileData.startsWith('data:image')) {
+      h += '<div class="grade-work gw-center"><img src="' + esc(a.fileData) + '" class="gw-img"></div>';
+    } else {
+      var pdfUrl = dataUriToBlobUrl(a.id, a.fileData);
+      h += '<div class="grade-work"><iframe src="' + pdfUrl + '" class="gw-iframe"></iframe><div class="gw-open-link"><a href="#" onclick="openFileBlob(\'' + a.id + '\');return false" class="gw-ext-link">Open in new tab \u2197\uFE0F</a></div></div>';
+    }
+  }
+  return h;
+}
+
+/** Render the grading form (score, feedback, buttons) */
+function renderGradingForm(a) {
+  var h = '<div class="grade-actions">';
+  h += '<div class="ga-title">Grade This Assignment</div>';
+  h += '<div class="grade-score-row">';
+  h += '<div><div class="gw-field-label">Score (0-100)</div>';
+  h += '<input type="number" class="score-input" id="gradeScore" min="0" max="100" value="' + (a.aiSuggestedScore || '') + '"></div>';
+  h += '<button class="btn btn-blue btn-sm" onclick="aiSuggestGrade()" id="aiGradeBtn">&#x1F916; AI Suggest</button>';
+  h += '</div>';
+  h += '<div class="grade-feedback-area"><label>Feedback <button class="btn btn-outline btn-sm gw-ai-write-btn" onclick="aiWriteFeedback()" id="aiFeedbackBtn">&#x1F916; AI Write</button></label>';
+  h += '<textarea id="gradeFeedback">' + (a.aiSuggestedFeedback || a.feedback || '') + '</textarea></div>';
+  h += '<div class="grade-btn-row">';
+  h += '<button class="btn btn-accent" onclick="gradeAssignment()">&#x2705; Grade</button>';
+  h += '<button class="btn btn-gold" onclick="returnForRevision()">&#x1F504; Return for Revision</button>';
+  h += '</div></div>';
+  return h;
+}
+
 /** Open the grade/review panel for an assignment */
 function openGradePanel(assignId) {
   gradingAssignment = allAssignments.find(function (a) { return a.id === assignId; });
@@ -384,105 +475,35 @@ function openGradePanel(assignId) {
   h += '<strong>' + esc(student ? student.name : 'Unknown') + '</strong>';
   h += ' &bull; ' + (a.assignedAt ? new Date(a.assignedAt).toLocaleDateString() : '');
   h += ' &bull; <span class="ac-status ' + statusClass(a.status) + '">' + statusLabel(a.status) + '</span>';
-  if (a.score !== null && a.score !== undefined) h += ' &bull; <span style="font-family:Space Mono,monospace;color:var(--gold);font-weight:700">' + a.score + '%</span>';
+  if (a.score !== null && a.score !== undefined) h += ' &bull; <span class="ac-score">' + a.score + '%</span>';
   h += '</div>';
   if (a.instructions) h += '<div class="grade-instructions"><strong>Instructions:</strong> ' + esc(a.instructions) + '</div>';
-  if (a.feedback) h += '<div class="grade-instructions" style="border-left:3px solid var(--accent);margin-top:6px"><strong>Previous Feedback:</strong> ' + esc(a.feedback) + '</div>';
+  if (a.feedback) h += '<div class="grade-instructions gw-prev-feedback"><strong>Previous Feedback:</strong> ' + esc(a.feedback) + '</div>';
   h += '</div>';
 
-  // Student work
+  // Student work — delegate to focused helpers
   if (a.studentResponse) {
     var pitchParsed = null;
     try { pitchParsed = JSON.parse(a.studentResponse); } catch (e) { }
     if (pitchParsed && pitchParsed.businessName) {
-      h += '<div class="grade-work">';
-      h += '<div style="font-family:Fredoka,sans-serif;font-weight:700;font-size:18px;margin-bottom:14px;color:var(--accent)">\u{1F3A4} ' + esc(pitchParsed.businessName) + '</div>';
-      h += '<div class="gw-value"><div class="gw-label">Problem</div>' + esc(stripMd(pitchParsed.problem || '')) + '</div>';
-      h += '<div class="gw-value"><div class="gw-label">Business Description</div>' + esc(stripMd(pitchParsed.businessDesc || '')) + '</div>';
-      if (pitchParsed.skills && pitchParsed.skills.length) h += '<div class="gw-value"><div class="gw-label">Skills</div>' + esc(pitchParsed.skills.join(', ')) + '</div>';
-      if (pitchParsed.customers && pitchParsed.customers.length) h += '<div class="gw-value"><div class="gw-label">Customers</div>' + esc(pitchParsed.customers.join(', ')) + '</div>';
-      if (pitchParsed.advantages && pitchParsed.advantages.length) h += '<div class="gw-value"><div class="gw-label">Advantages</div>' + esc(stripMd(pitchParsed.advantages.join(' \u2022 '))) + '</div>';
-
-      h += '<div class="gw-section"><div class="gw-label">Full Pitch</div><div class="gw-pitch">';
-      if (pitchParsed.hook) h += esc(stripMd(pitchParsed.hook)) + '<br><br>';
-      h += 'My business is called <strong>' + esc(pitchParsed.businessName) + '</strong>. ' + esc(stripMd(pitchParsed.businessDesc || '')) + '<br><br>';
-      if (pitchParsed.advantages) { pitchParsed.advantages.forEach(function (av) { h += '\u{1F3C6} ' + esc(stripMd(av)) + '<br>'; }); }
-      if (pitchParsed.callToAction) h += '<br><strong>' + esc(stripMd(pitchParsed.callToAction)) + '</strong>';
-      h += '</div></div>';
-
-      if (pitchParsed.videoUrl) h += '<div class="gw-section"><div class="gw-label">\u{1F3AC} Video Recording</div><div style="margin-top:8px"><video controls playsinline style="width:100%;max-height:360px;border-radius:10px;background:#000" src="' + esc(pitchParsed.videoUrl) + '"></video></div></div>';
-      if (pitchParsed.aiCoachFeedback) h += '<div class="gw-section"><div class="gw-label">\u{1F9E0} AI Coach Feedback</div><div style="margin-top:6px;padding:12px;background:rgba(17,138,178,.08);border-radius:10px;font-size:14px;line-height:1.7">' + esc(stripMd(pitchParsed.aiCoachFeedback)) + '</div></div>';
-      if (pitchParsed.polishedPitch) h += '<div class="gw-section"><div class="gw-label">\u2728 AI-Polished Pitch</div><div style="margin-top:6px;padding:12px;background:rgba(6,214,160,.08);border-radius:10px;font-size:14px;font-style:italic;line-height:1.7">' + esc(stripMd(pitchParsed.polishedPitch)) + '</div></div>';
-      if (pitchParsed.score) h += '<div class="gw-section"><div class="gw-label">\u2B50 Scorecard</div><div style="font-size:18px;font-weight:700;color:var(--gold);margin-top:4px">' + (pitchParsed.score.total || 0) + '/' + (pitchParsed.score.max || 6) + ' Stars</div></div>';
-      h += '</div>';
+      h += renderPitchWork(pitchParsed);
     } else if (pitchParsed && pitchParsed.answers) {
-      var ans = pitchParsed.answers;
-      h += '<div class="grade-work">';
-      h += '<div style="font-family:Fredoka,sans-serif;font-weight:700;font-size:20px;margin-bottom:4px;color:var(--accent2)">\u{1F3A4} ' + esc(ans.name || 'Student') + '\'s Elevator Pitch</div>';
-      h += '<div style="font-size:13px;color:var(--text2);margin-bottom:16px">' + esc(ans.grade ? 'Grade ' + ans.grade : '') + ' ' + esc(ans.school ? ' \u2022 ' + ans.school : '') + ' ' + esc(ans.from ? ' \u2022 From ' + ans.from : '') + '</div>';
-      h += '<div class="gw-section"><div class="gw-label">\u{1F464} About Me</div>';
-      if (ans.age) h += '<div class="gw-value"><strong>Age:</strong> ' + esc(ans.age) + '</div>';
-      if (ans.dream) h += '<div class="gw-value" style="margin-top:4px"><strong>Dream Job:</strong> ' + esc(ans.dream) + '</div>';
-      if (ans.why) h += '<div class="gw-value" style="margin-top:4px"><strong>Why:</strong> ' + esc(ans.why) + '</div>';
-      if (ans.hobby) h += '<div class="gw-value" style="margin-top:4px"><strong>Favorite Hobby:</strong> ' + esc(ans.hobby) + '</div>';
-      if (ans.fact) h += '<div class="gw-value" style="margin-top:4px"><strong>Fun Fact:</strong> ' + esc(ans.fact) + '</div>';
-      if (ans.remember) h += '<div class="gw-value" style="margin-top:4px"><strong>Remember Me For:</strong> ' + esc(ans.remember) + '</div>';
-      h += '</div>';
-      if (pitchParsed.pitchText) {
-        h += '<div class="gw-section"><div class="gw-label">\u{1F4AC} Generated Pitch</div>';
-        h += '<div style="margin-top:8px;padding:16px;background:rgba(17,138,178,.06);border-radius:12px;border-left:3px solid var(--accent2);font-size:15px;line-height:1.8;font-style:italic">' + esc(pitchParsed.pitchText) + '</div>';
-        h += '</div>';
-      }
-      if (pitchParsed.videoUrl) {
-        h += '<div class="gw-section"><div class="gw-label">\u{1F3AC} Video Recording</div>';
-        h += '<div style="margin-top:8px"><video controls playsinline style="width:100%;max-height:360px;border-radius:10px;background:#000" src="' + esc(pitchParsed.videoUrl) + '"></video></div>';
-        h += '</div>';
-      }
-      if (pitchParsed.aiSummary) {
-        h += '<div class="gw-section"><div class="gw-label">\u2728 AI Personalized Summary</div>';
-        h += '<div style="margin-top:6px;padding:14px;background:rgba(6,214,160,.08);border-radius:12px;font-size:14px;line-height:1.7">' + esc(pitchParsed.aiSummary) + '</div>';
-        h += '</div>';
-      }
-      h += '</div>';
+      h += renderElevatorWork(pitchParsed);
     } else {
       h += '<div class="grade-work" style="white-space:pre-wrap">' + esc(a.studentResponse) + '</div>';
     }
   }
-  if (a.fileUrl || a.fileData) {
-    if (a.fileUrl) {
-      if (a.fileUrl.match(/\.(png|jpg|jpeg|gif|webp)/i)) {
-        h += '<div class="grade-work" style="text-align:center"><img src="' + esc(a.fileUrl) + '" style="max-width:100%;border-radius:10px"></div>';
-      } else {
-        h += '<div class="grade-work"><iframe src="' + esc(a.fileUrl) + '" style="width:100%;height:500px;border:none;border-radius:10px"></iframe><div style="margin-top:8px;text-align:center"><a href="' + esc(a.fileUrl) + '" target="_blank" style="color:var(--accent2);font-size:13px;font-weight:600">Open in new tab \u2197\uFE0F</a></div></div>';
-      }
-    } else if (a.fileData) {
-      if (a.fileData.startsWith('data:image')) {
-        h += '<div class="grade-work" style="text-align:center"><img src="' + esc(a.fileData) + '" style="max-width:100%;border-radius:10px"></div>';
-      } else {
-        var pdfUrl = dataUriToBlobUrl(a.id, a.fileData);
-        h += '<div class="grade-work"><iframe src="' + pdfUrl + '" style="width:100%;height:500px;border:none;border-radius:10px"></iframe><div style="margin-top:8px;text-align:center"><a href="#" onclick="openFileBlob(\'' + a.id + '\');return false" style="color:var(--accent2);font-size:13px;font-weight:600">Open in new tab \u2197\uFE0F</a></div></div>';
-      }
-    }
-  }
+
+  // File attachments
+  if (a.fileUrl || a.fileData) h += renderFileAttachments(a);
+
   if (a.linkUrl) {
     h += '<div style="margin-bottom:18px"><a href="' + esc(a.linkUrl) + '" target="_blank" class="btn btn-blue btn-sm">Open Link &#x1F517;</a></div>';
   }
 
   // Grading section
   if (a.status === 'submitted' || a.status === 'pending' || a.status === 'returned') {
-    h += '<div class="grade-actions">';
-    h += '<div class="ga-title">Grade This Assignment</div>';
-    h += '<div class="grade-score-row">';
-    h += '<div><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px">Score (0-100)</div>';
-    h += '<input type="number" class="score-input" id="gradeScore" min="0" max="100" value="' + (a.aiSuggestedScore || '') + '"></div>';
-    h += '<button class="btn btn-blue btn-sm" onclick="aiSuggestGrade()" id="aiGradeBtn">&#x1F916; AI Suggest</button>';
-    h += '</div>';
-    h += '<div class="grade-feedback-area"><label>Feedback <button class="btn btn-outline btn-sm" onclick="aiWriteFeedback()" id="aiFeedbackBtn" style="font-size:10px">&#x1F916; AI Write</button></label>';
-    h += '<textarea id="gradeFeedback">' + (a.aiSuggestedFeedback || a.feedback || '') + '</textarea></div>';
-    h += '<div class="grade-btn-row">';
-    h += '<button class="btn btn-accent" onclick="gradeAssignment()">&#x2705; Grade</button>';
-    h += '<button class="btn btn-gold" onclick="returnForRevision()">&#x1F504; Return for Revision</button>';
-    h += '</div></div>';
+    h += renderGradingForm(a);
   }
 
   h += '<div class="grade-footer">';

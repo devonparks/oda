@@ -1,4 +1,12 @@
+/**
+ * ODA Hub - Student Dashboard
+ * Handles assignments, quizzes (spelling/vocab), tools, arcade, and AI features.
+ * Dependencies: oda-core.js (esc, odaAI, odaToast, odaTrapFocus, odaConfetti, dataUriToBlobUrl)
+ */
+
 var ODA_VERSION='2026-03-14a';
+
+/** Check for app updates and reload if newer version found */
 function checkForUpdates(btn){
 btn.disabled=true;btn.innerHTML='&#x1F504;';
 fetch(location.href+'?_='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){
@@ -413,7 +421,8 @@ overlay.onclick=function(e){if(e.target===overlay)overlay.remove()};
 }
 window.studentLogout=studentLogout;
 
-function fireConfetti(){var co=["#06d6a0","#118ab2","#ffd166","#ef476f","#a855f7"];for(var i=0;i<50;i++){var p=document.createElement('div');p.className='confetti-piece';var sz=6+Math.random()*10;p.style.width=sz+'px';p.style.height=sz*(Math.random()>.5?1:.6)+'px';p.style.left=Math.random()*100+'%';p.style.backgroundColor=co[i%co.length];p.style.borderRadius=Math.random()>.5?'50%':'2px';p.style.animationDuration=(2+Math.random()*3)+'s';p.style.animationDelay=(Math.random()*2)+'s';document.body.appendChild(p);(function(el){setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},5000)})(p)}}
+/** Trigger confetti celebration — delegates to odaConfetti from oda-core.js */
+function fireConfetti(){ if(window.odaConfetti) odaConfetti(); }
 
 document.addEventListener('keydown',function(e){if(e.key==='Enter'&&document.activeElement&&document.activeElement.id==='qInput')checkSpelling()});
 
