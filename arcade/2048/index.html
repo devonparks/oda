@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>2048 - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#a8b2c8;--grid-gap:10px;--cell-size:80px;--grid-cols:4}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden;user-select:none;-webkit-user-select:none}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* Back Button */
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+/* Screen System */
+.screen{display:none;width:100%;min-height:100vh;animation:fadeUp .35s ease}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* Shared Buttons */
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-blue{background:var(--accent2);color:#fff}
+.btn-blue:hover{box-shadow:0 0 24px rgba(17,138,178,.3)}
+.btn-red{background:var(--accent3);color:#fff}
+.btn-red:hover{box-shadow:0 0 24px rgba(239,71,111,.3)}
+.btn-gold{background:var(--gold);color:var(--bg)}
+.btn-gold:hover{box-shadow:0 0 24px rgba(255,209,102,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;transition:all .2s;cursor:pointer}
+.card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+
+/* ======================== */
+/* HOME SCREEN              */
+/* ======================== */
+#homeScreen{padding-top:60px;padding-bottom:40px}
+.home-header{text-align:center;margin-bottom:24px}
+.home-header h1{font-size:clamp(48px,10vw,72px);font-weight:700;margin-bottom:4px;letter-spacing:-2px}
+.home-header h1 .hl{color:var(--accent);position:relative}
+.home-header h1 .hl::after{content:'';position:absolute;bottom:-2px;left:0;width:100%;height:4px;background:var(--accent);border-radius:2px}
+.home-header p{color:var(--text2);font-size:15px;margin-top:8px}
+
+.best-pill{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:10px 20px;font-size:15px;font-weight:600;margin-bottom:24px}
+.best-pill .bp-label{color:var(--text2)}
+.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:18px;font-family:'Fredoka',sans-serif}
+
+.mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:560px;width:90%;margin:0 auto 24px}
+.mode-card{text-align:center;padding:22px 14px}
+.mode-card .mode-icon{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;margin-bottom:8px;display:block;color:var(--accent2)}
+.mode-card h3{font-size:16px;margin-bottom:4px}
+.mode-card p{font-size:11px;color:var(--text2);line-height:1.4}
+.mode-card.selected{border-color:var(--accent);background:rgba(6,214,160,.08);box-shadow:0 0 20px rgba(6,214,160,.15)}
+.mode-card.selected .mode-icon{color:var(--accent)}
+
+.home-actions{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:24px}
+
+.how-to{max-width:420px;width:90%;margin:0 auto;text-align:center}
+.how-to h3{font-size:14px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px}
+.how-to p{font-size:13px;color:var(--text2);line-height:1.6}
+.how-to .keys{display:inline-flex;gap:4px;margin-top:8px}
+.how-to .key{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;color:var(--text)}
+
+/* ======================== */
+/* GAME SCREEN              */
+/* ======================== */
+#gameScreen{padding-top:16px;padding-bottom:30px;min-height:100vh;justify-content:flex-start}
+
+.game-top{display:flex;align-items:center;justify-content:center;gap:14px;width:90%;max-width:500px;margin-bottom:10px;flex-wrap:wrap}
+.game-title{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;color:var(--accent);letter-spacing:-1px}
+.game-mode-label{font-size:11px;font-weight:700;color:var(--text2);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 8px;text-transform:uppercase;letter-spacing:1px}
+
+.score-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 16px;text-align:center;min-width:80px;position:relative}
+.score-box .sb-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.score-box .sb-val{font-size:22px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--text);line-height:1.2}
+.score-box .sb-val.gold{color:var(--gold)}
+
+.score-add{position:absolute;top:-8px;right:-8px;font-size:14px;font-weight:800;color:var(--accent);animation:scoreFloat .9s ease forwards;pointer-events:none;z-index:5}
+@keyframes scoreFloat{0%{opacity:1;transform:translateY(0) scale(1)}60%{opacity:1;transform:translateY(-16px) scale(1.1)}100%{opacity:0;transform:translateY(-28px) scale(.8)}}
+
+.game-controls{display:flex;gap:8px;margin-bottom:12px}
+.ctrl-btn{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 16px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s}
+.ctrl-btn:hover{border-color:var(--accent);color:var(--text)}
+.ctrl-btn:active{transform:scale(.95)}
+.ctrl-btn:disabled{opacity:.3;cursor:not-allowed}
+.ctrl-btn:disabled:hover{border-color:var(--border);color:var(--text2)}
+
+/* Grid Container */
+.grid-wrapper{position:relative;background:var(--surface2);border:2px solid var(--border);border-radius:16px;padding:var(--grid-gap);touch-action:none}
+
+.grid-bg{display:grid;grid-template-columns:repeat(var(--grid-cols),var(--cell-size));grid-template-rows:repeat(var(--grid-cols),var(--cell-size));gap:var(--grid-gap)}
+.grid-cell{background:rgba(42,52,80,.4);border-radius:10px}
+
+.tile-layer{position:absolute;top:var(--grid-gap);left:var(--grid-gap);pointer-events:none}
+
+/* Tiles */
+.tile{position:absolute;width:var(--cell-size);height:var(--cell-size);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Fredoka',sans-serif;font-weight:700;transition:top .15s ease,left .15s ease;z-index:2;will-change:transform,top,left}
+.tile.merged{animation:tileMerge .25s ease;z-index:3}
+.tile.new{animation:tileNew .2s ease}
+
+@keyframes tileNew{0%{transform:scale(0);opacity:0}50%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+@keyframes tileMerge{0%{transform:scale(1)}35%{transform:scale(1.25)}100%{transform:scale(1)}}
+
+/* Tile Colors */
+.tile-2{background:#2a3450;color:var(--text);font-size:32px}
+.tile-4{background:#2d3a55;color:var(--text);font-size:32px}
+.tile-8{background:#e88a3a;color:#fff;font-size:32px}
+.tile-16{background:#e87c3a;color:#fff;font-size:30px}
+.tile-32{background:#ef6b4f;color:#fff;font-size:30px}
+.tile-64{background:#ef4f3a;color:#fff;font-size:30px}
+.tile-128{background:#f0d165;color:#3a2e00;font-size:26px;box-shadow:0 0 20px rgba(240,209,101,.35)}
+.tile-256{background:#f0cc57;color:#3a2e00;font-size:26px;box-shadow:0 0 22px rgba(240,204,87,.35)}
+.tile-512{background:#f0c840;color:#3a2e00;font-size:26px;box-shadow:0 0 26px rgba(240,200,64,.4)}
+.tile-1024{background:#f0c030;color:#3a2e00;font-size:22px;box-shadow:0 0 30px rgba(240,192,48,.45)}
+.tile-2048{background:var(--accent);color:var(--bg);font-size:22px;box-shadow:0 0 40px rgba(6,214,160,.55);animation:tile2048Glow 2s ease-in-out infinite}
+.tile-4096{background:var(--accent3);color:#fff;font-size:22px;animation:tilePulse 1.5s ease-in-out infinite;box-shadow:0 0 36px rgba(239,71,111,.4)}
+.tile-8192{background:#9b59b6;color:#fff;font-size:22px;animation:tilePulse 1.2s ease-in-out infinite;box-shadow:0 0 36px rgba(155,89,182,.4)}
+.tile-super{background:linear-gradient(135deg,var(--accent3),#9b59b6,var(--accent2));color:#fff;font-size:18px;animation:tilePulse 1s ease-in-out infinite;box-shadow:0 0 40px rgba(155,89,182,.5)}
+
+@keyframes tilePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@keyframes tile2048Glow{0%,100%{box-shadow:0 0 30px rgba(6,214,160,.4)}50%{box-shadow:0 0 50px rgba(6,214,160,.7)}}
+
+/* Game Over & Win Overlays */
+.game-overlay{position:absolute;inset:0;border-radius:14px;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:10;animation:overlayIn .4s ease;gap:12px;text-align:center;padding:20px}
+.game-overlay.active{display:flex}
+.game-overlay.over-bg{background:rgba(10,14,26,.88);backdrop-filter:blur(4px)}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+.game-overlay h2{font-size:28px;font-weight:700}
+.game-overlay .ov-score{font-size:14px;color:var(--text2)}
+.game-overlay .ov-score span{color:var(--gold);font-weight:800;font-size:20px;font-family:'Fredoka',sans-serif}
+.game-overlay .ov-tile{font-size:14px;color:var(--text2)}
+.game-overlay .ov-tile span{color:var(--accent);font-weight:800;font-size:18px;font-family:'Fredoka',sans-serif}
+.game-overlay .ov-coins{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:8px 18px;font-size:16px;font-weight:700;color:var(--gold);font-family:'Fredoka',sans-serif}
+.game-overlay .ov-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+.game-overlay .ov-new-best{font-size:13px;color:var(--accent);font-weight:700;animation:bestPulse 1s ease-in-out infinite}
+@keyframes bestPulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* ======================== */
+/* RECORDS SCREEN           */
+/* ======================== */
+#recordsScreen{padding-top:60px;padding-bottom:40px}
+.records-container{width:90%;max-width:420px}
+
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.stat-card .sv{font-size:24px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.stat-card .sv.gold{color:var(--gold)}
+.stat-card .sv.red{color:var(--accent3)}
+.stat-card .sl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-weight:600}
+
+.lb-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px;transition:all .15s}
+.lb-row:hover{border-color:var(--accent)}
+.lb-row.me{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.lb-rank{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text2);flex-shrink:0}
+.lb-rank.r1{background:rgba(255,209,102,.2);color:var(--gold)}
+.lb-rank.r2{background:rgba(192,192,192,.15);color:#c0c0c0}
+.lb-rank.r3{background:rgba(205,127,50,.15);color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-size:14px;font-weight:800;color:var(--gold);font-family:'Fredoka',sans-serif}
+.lb-tile{font-size:12px;font-weight:700;color:var(--accent);margin-left:4px}
+.lb-empty{text-align:center;color:var(--text2);font-size:14px;padding:24px;font-weight:600}
+
+/* Responsive: phones */
+@media(max-width:480px){
+  :root{--cell-size:65px;--grid-gap:8px}
+  .game-title{font-size:22px}
+  .score-box{padding:6px 12px;min-width:70px}
+  .score-box .sb-val{font-size:18px}
+  .tile-2,.tile-4,.tile-8{font-size:26px}
+  .tile-16,.tile-32,.tile-64{font-size:24px}
+  .tile-128,.tile-256,.tile-512{font-size:20px}
+  .tile-1024{font-size:18px}
+  .tile-2048,.tile-4096,.tile-8192{font-size:17px}
+  .tile-super{font-size:14px}
+  .home-header h1{font-size:52px}
+  .mode-grid{grid-template-columns:repeat(3,1fr);gap:8px}
+  .mode-card{padding:16px 8px}
+  .mode-card h3{font-size:14px}
+  .mode-card .mode-icon{font-size:22px}
+}
+@media(max-width:360px){
+  :root{--cell-size:58px;--grid-gap:6px}
+  .tile-2,.tile-4,.tile-8{font-size:22px}
+  .tile-16,.tile-32,.tile-64{font-size:20px}
+  .tile-128,.tile-256,.tile-512{font-size:17px}
+  .tile-1024,.tile-2048,.tile-4096,.tile-8192,.tile-super{font-size:14px}
+}
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../../student.html" id="backBtn">&#8592; Back</a>
+
+<!-- ======================== -->
+<!-- HOME SCREEN              -->
+<!-- ======================== -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1><span class="hl">2048</span></h1>
+    <p>Slide, merge, and reach the legendary tile</p>
+  </div>
+  <div class="best-pill">
+    <span class="bp-label">Best Score</span>
+    <span class="bp-val" id="homeBest">0</span>
+  </div>
+  <div class="mode-grid">
+    <div class="card mode-card selected" id="modeClassic" onclick="selectMode('classic')">
+      <div class="mode-icon">4x4</div>
+      <h3>Classic</h3>
+      <p>Standard 2048</p>
+    </div>
+    <div class="card mode-card" id="modeEasy" onclick="selectMode('easy')">
+      <div class="mode-icon">3x3</div>
+      <h3>Easy</h3>
+      <p>Faster to 2048</p>
+    </div>
+    <div class="card mode-card" id="modeChallenge" onclick="selectMode('challenge')">
+      <div class="mode-icon">5x5</div>
+      <h3>Challenge</h3>
+      <p>Aim for mega tiles</p>
+    </div>
+  </div>
+  <div class="home-actions">
+    <button class="btn btn-accent" onclick="startGame()">Play</button>
+    <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
+  </div>
+  <div class="how-to">
+    <h3>How to Play</h3>
+    <p>Slide tiles in any direction. When two tiles with the same number collide, they merge into one. Reach the 2048 tile to win, then keep going for a high score!</p>
+    <div class="keys">
+      <span class="key">&#8593;</span>
+      <span class="key">&#8595;</span>
+      <span class="key">&#8592;</span>
+      <span class="key">&#8594;</span>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- GAME SCREEN              -->
+<!-- ======================== -->
+<div class="screen" id="gameScreen">
+  <div class="game-top">
+    <div class="game-title">2048</div>
+    <div class="game-mode-label" id="modeLabel">Classic</div>
+    <div class="score-box" id="scoreBox">
+      <div class="sb-label">Score</div>
+      <div class="sb-val" id="scoreDisplay">0</div>
+    </div>
+    <div class="score-box">
+      <div class="sb-label">Best</div>
+      <div class="sb-val gold" id="bestDisplay">0</div>
+    </div>
+  </div>
+  <div class="game-controls">
+    <button class="ctrl-btn" id="undoBtn" onclick="undoMove()" disabled>&#8630; Undo</button>
+    <button class="ctrl-btn" onclick="confirmNewGame()">New Game</button>
+    <button class="ctrl-btn" onclick="showScreen('homeScreen')">Menu</button>
+  </div>
+  <div class="grid-wrapper" id="gridWrapper">
+    <div class="grid-bg" id="gridBg"></div>
+    <div class="tile-layer" id="tileLayer"></div>
+    <!-- Game Over Overlay -->
+    <div class="game-overlay over-bg" id="gameOverOverlay">
+      <h2 style="color:var(--accent3)">Game Over</h2>
+      <div class="ov-score">Final Score: <span id="overScore">0</span></div>
+      <div class="ov-tile">Highest Tile: <span id="overTile">0</span></div>
+      <div class="ov-new-best" id="overNewBest" style="display:none">New Personal Best!</div>
+      <div class="ov-coins" id="overCoins">+0 coins</div>
+      <div class="ov-btns">
+        <button class="btn btn-accent btn-small" onclick="startGame()">Play Again</button>
+        <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Menu</button>
+      </div>
+    </div>
+    <!-- Win Overlay -->
+    <div class="game-overlay over-bg" id="winOverlay">
+      <h2 style="color:var(--gold)">You reached 2048!</h2>
+      <div class="ov-score">Score: <span id="winScore">0</span></div>
+      <div class="ov-coins" id="winCoins">+20 coins</div>
+      <div class="ov-btns">
+        <button class="btn btn-accent btn-small" onclick="continueAfterWin()">Keep Going</button>
+        <button class="btn btn-outline btn-small" onclick="startGame()">New Game</button>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:10px;color:var(--text2);font-size:12px;text-align:center;opacity:.7">Arrow keys / WASD to move &middot; Swipe on mobile</div>
+</div>
+
+<!-- ======================== -->
+<!-- RECORDS SCREEN           -->
+<!-- ======================== -->
+<div class="screen" id="recordsScreen">
+  <h1>Your <span style="color:var(--accent)">Records</span></h1>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:20px">2048 stats &amp; leaderboard</p>
+  <div class="records-container">
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="sv gold" id="statBest">0</div><div class="sl">Best Score</div></div>
+      <div class="stat-card"><div class="sv" id="statPlayed">0</div><div class="sl">Games Played</div></div>
+      <div class="stat-card"><div class="sv" id="statTile">0</div><div class="sl">Highest Tile</div></div>
+      <div class="stat-card"><div class="sv" id="statMerges">0</div><div class="sl">Total Merges</div></div>
+    </div>
+    <div class="lb-title">Class Leaderboard</div>
+    <div class="lb-list" id="leaderboard"><div class="lb-empty">Loading...</div></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Back</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script type="module">
+import{initializeApp,getApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import{getFirestore,doc,getDoc,setDoc,updateDoc,increment,collection,query,where,orderBy,limit,getDocs}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+const cfg=ODA_CONFIG.firebase;
+let app;try{app=getApp()}catch(e){app=initializeApp(cfg)}
+const db=getFirestore(app);
+
+// ===========================
+// SESSION
+// ===========================
+const studentId=sessionStorage.getItem('studentId')||'anon_'+Math.random().toString(36).slice(2,8);
+const studentName=sessionStorage.getItem('studentName')||'Player';
+const classCode=sessionStorage.getItem('classCode')||'';
+
+// Teacher detection for back button
+(function(){
+  const isTeacher=sessionStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||sessionStorage.getItem('teacherId');
+  if(isTeacher)document.getElementById('backBtn').href='../../teacher.html';
+})();
+
+// ===========================
+// AUDIO ENGINE (Web Audio API)
+// ===========================
+let audioCtx=null;
+function getAudioCtx(){
+  if(!audioCtx){
+    try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}
+    catch(e){return null}
+  }
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  return audioCtx;
+}
+
+function playSlide(){
+  const ctx=getAudioCtx();if(!ctx)return;
+  try{
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+    const now=ctx.currentTime;
+    osc.type='sine';
+    osc.frequency.setValueAtTime(320,now);
+    osc.frequency.exponentialRampToValueAtTime(180,now+.09);
+    gain.gain.setValueAtTime(.05,now);
+    gain.gain.exponentialRampToValueAtTime(.001,now+.1);
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.start(now);osc.stop(now+.1);
+  }catch(e){}
+}
+
+function playMerge(tileVal){
+  const ctx=getAudioCtx();if(!ctx)return;
+  try{
+    const now=ctx.currentTime;
+    const baseFreq=280+Math.log2(tileVal)*55;
+    // Click tone
+    const osc1=ctx.createOscillator();
+    const g1=ctx.createGain();
+    osc1.type='triangle';
+    osc1.frequency.setValueAtTime(baseFreq,now);
+    osc1.frequency.exponentialRampToValueAtTime(baseFreq*1.4,now+.04);
+    g1.gain.setValueAtTime(.12,now);
+    g1.gain.exponentialRampToValueAtTime(.001,now+.12);
+    osc1.connect(g1);g1.connect(ctx.destination);
+    osc1.start(now);osc1.stop(now+.12);
+    // Harmonic
+    const osc2=ctx.createOscillator();
+    const g2=ctx.createGain();
+    osc2.type='sine';
+    osc2.frequency.setValueAtTime(baseFreq*2,now+.02);
+    g2.gain.setValueAtTime(.04,now+.02);
+    g2.gain.exponentialRampToValueAtTime(.001,now+.1);
+    osc2.connect(g2);g2.connect(ctx.destination);
+    osc2.start(now+.02);osc2.stop(now+.1);
+  }catch(e){}
+}
+
+function playNewTile(){
+  const ctx=getAudioCtx();if(!ctx)return;
+  try{
+    const now=ctx.currentTime;
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+    osc.type='sine';
+    osc.frequency.setValueAtTime(650,now);
+    osc.frequency.exponentialRampToValueAtTime(850,now+.04);
+    gain.gain.setValueAtTime(.03,now);
+    gain.gain.exponentialRampToValueAtTime(.001,now+.07);
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.start(now);osc.stop(now+.07);
+  }catch(e){}
+}
+
+function playWinFanfare(){
+  const ctx=getAudioCtx();if(!ctx)return;
+  try{
+    const now=ctx.currentTime;
+    const notes=[523.25,659.25,783.99,1046.50,1318.51];
+    notes.forEach((freq,i)=>{
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.type='triangle';
+      const t=now+i*.1;
+      osc.frequency.setValueAtTime(freq,t);
+      gain.gain.setValueAtTime(.12,t);
+      gain.gain.setValueAtTime(.12,t+.08);
+      gain.gain.exponentialRampToValueAtTime(.001,t+.3);
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.start(t);osc.stop(t+.3);
+    });
+  }catch(e){}
+}
+
+function playGameOverSound(){
+  const ctx=getAudioCtx();if(!ctx)return;
+  try{
+    const now=ctx.currentTime;
+    const notes=[440,370,311,261];
+    notes.forEach((freq,i)=>{
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.type='sine';
+      const t=now+i*.14;
+      osc.frequency.setValueAtTime(freq,t);
+      gain.gain.setValueAtTime(.07,t);
+      gain.gain.exponentialRampToValueAtTime(.001,t+.28);
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.start(t);osc.stop(t+.28);
+    });
+  }catch(e){}
+}
+
+function playUndoSound(){
+  const ctx=getAudioCtx();if(!ctx)return;
+  try{
+    const now=ctx.currentTime;
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+    osc.type='sine';
+    osc.frequency.setValueAtTime(520,now);
+    osc.frequency.exponentialRampToValueAtTime(340,now+.1);
+    gain.gain.setValueAtTime(.06,now);
+    gain.gain.exponentialRampToValueAtTime(.001,now+.12);
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.start(now);osc.stop(now+.12);
+  }catch(e){}
+}
+
+// ===========================
+// GAME STATE
+// ===========================
+let gridSize=4;
+let grid=[];
+let score=0;
+let bestScore=0;
+let previousBest=0;
+let gameMode='classic';
+let gameActive=false;
+let hasWon=false;
+let winShown=false;
+let totalMerges=0;
+let highestTile=0;
+let coinsAwarded=false;
+let undoState=null;
+let undoAvailable=false;
+let moveInProgress=false;
+let tileIdCounter=0;
+
+const modeMap={classic:4,easy:3,challenge:5};
+const modeNames={classic:'Classic',easy:'Easy 3x3',challenge:'Challenge 5x5'};
+const LS_KEY='oda2048';
+
+// ===========================
+// LOCAL DATA PERSISTENCE
+// ===========================
+function loadLocalData(){
+  try{
+    const d=JSON.parse(localStorage.getItem(LS_KEY)||'{}');
+    bestScore=d['best_'+gameMode]||d.bestScore||0;
+    previousBest=bestScore;
+    document.getElementById('homeBest').textContent=fmtNum(bestScore);
+    document.getElementById('bestDisplay').textContent=fmtNum(bestScore);
+  }catch(e){bestScore=0;previousBest=0}
+}
+
+function saveLocalData(){
+  try{
+    const d=JSON.parse(localStorage.getItem(LS_KEY)||'{}');
+    d['best_'+gameMode]=bestScore;
+    // keep overall best too
+    const overall=Math.max(bestScore,d.bestScore||0);
+    d.bestScore=overall;
+    localStorage.setItem(LS_KEY,JSON.stringify(d));
+  }catch(e){}
+}
+
+function fmtNum(n){return n.toLocaleString()}
+
+// ===========================
+// SCREEN NAVIGATION
+// ===========================
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id==='homeScreen')loadLocalData();
+}
+window.showScreen=showScreen;
+
+function selectMode(mode){
+  gameMode=mode;
+  document.querySelectorAll('.mode-card').forEach(c=>c.classList.remove('selected'));
+  const elId=mode==='classic'?'modeClassic':mode==='easy'?'modeEasy':'modeChallenge';
+  document.getElementById(elId).classList.add('selected');
+}
+window.selectMode=selectMode;
+
+// ===========================
+// GRID SETUP
+// ===========================
+function getCellSize(){
+  return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cell-size'))||80;
+}
+function getGapSize(){
+  return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--grid-gap'))||10;
+}
+
+function buildGrid(){
+  gridSize=modeMap[gameMode]||4;
+  document.documentElement.style.setProperty('--grid-cols',gridSize);
+
+  // Adjust cell size for 5x5 on smaller screens
+  const vw=window.innerWidth;
+  if(gridSize===5){
+    if(vw<=480)document.documentElement.style.setProperty('--cell-size','52px');
+    else if(vw<=600)document.documentElement.style.setProperty('--cell-size','62px');
+    else document.documentElement.style.setProperty('--cell-size','68px');
+  }else if(gridSize===3){
+    if(vw<=360)document.documentElement.style.setProperty('--cell-size','80px');
+    else document.documentElement.style.setProperty('--cell-size','90px');
+  }else{
+    // Reset to CSS default for 4x4
+    document.documentElement.style.removeProperty('--cell-size');
+  }
+
+  const bgEl=document.getElementById('gridBg');
+  bgEl.innerHTML='';
+  for(let i=0;i<gridSize*gridSize;i++){
+    const cell=document.createElement('div');
+    cell.className='grid-cell';
+    bgEl.appendChild(cell);
+  }
+  document.getElementById('tileLayer').innerHTML='';
+}
+
+function getTilePos(row,col){
+  const gap=getGapSize();
+  const cell=getCellSize();
+  return{top:row*(cell+gap),left:col*(cell+gap)};
+}
+
+// ===========================
+// TILE MANAGEMENT
+// ===========================
+function createTileObj(row,col,val){
+  return{id:++tileIdCounter,row,col,val,el:null,merged:false};
+}
+
+function getTileClass(val){
+  if(val<=8192)return'tile-'+val;
+  return'tile-super';
+}
+
+function renderTile(t,isNew){
+  const el=document.createElement('div');
+  el.className='tile '+getTileClass(t.val)+(isNew?' new':'');
+  el.textContent=t.val;
+  const pos=getTilePos(t.row,t.col);
+  el.style.top=pos.top+'px';
+  el.style.left=pos.left+'px';
+  document.getElementById('tileLayer').appendChild(el);
+  t.el=el;
+}
+
+function updateTilePosition(t){
+  if(!t.el)return;
+  const pos=getTilePos(t.row,t.col);
+  t.el.style.top=pos.top+'px';
+  t.el.style.left=pos.left+'px';
+}
+
+function updateTileAppearance(t){
+  if(!t.el)return;
+  t.el.className='tile '+getTileClass(t.val);
+  t.el.textContent=t.val;
+}
+
+// ===========================
+// CORE GAME LOGIC
+// ===========================
+function startGame(){
+  gridSize=modeMap[gameMode]||4;
+  grid=[];
+  for(let r=0;r<gridSize;r++){
+    grid[r]=[];
+    for(let c=0;c<gridSize;c++)grid[r][c]=null;
+  }
+  score=0;
+  totalMerges=0;
+  highestTile=0;
+  hasWon=false;
+  winShown=false;
+  coinsAwarded=false;
+  gameActive=true;
+  moveInProgress=false;
+  undoState=null;
+  undoAvailable=false;
+  tileIdCounter=0;
+
+  document.getElementById('scoreDisplay').textContent='0';
+  document.getElementById('modeLabel').textContent=modeNames[gameMode]||'Classic';
+  document.getElementById('gameOverOverlay').classList.remove('active');
+  document.getElementById('winOverlay').classList.remove('active');
+  document.getElementById('undoBtn').disabled=true;
+
+  loadLocalData();
+  buildGrid();
+
+  // Slight delay for grid to render before placing tiles
+  requestAnimationFrame(()=>{
+    addRandomTile();
+    addRandomTile();
+  });
+
+  showScreen('gameScreen');
+}
+window.startGame=startGame;
+
+function confirmNewGame(){
+  if(score>50){
+    if(!confirm('Start a new game? Current progress will be lost.'))return;
+  }
+  startGame();
+}
+window.confirmNewGame=confirmNewGame;
+
+function addRandomTile(){
+  const empty=[];
+  for(let r=0;r<gridSize;r++){
+    for(let c=0;c<gridSize;c++){
+      if(!grid[r][c])empty.push({r,c});
+    }
+  }
+  if(empty.length===0)return false;
+  const spot=empty[Math.floor(Math.random()*empty.length)];
+  const val=Math.random()<.9?2:4;
+  const t=createTileObj(spot.r,spot.c,val);
+  grid[spot.r][spot.c]=t;
+  renderTile(t,true);
+  if(val>highestTile)highestTile=val;
+  playNewTile();
+  return true;
+}
+
+// ===========================
+// UNDO SYSTEM
+// ===========================
+function saveUndo(){
+  undoState={
+    grid:grid.map(row=>row.map(cell=>cell?{row:cell.row,col:cell.col,val:cell.val}:null)),
+    score,totalMerges,highestTile
+  };
+  undoAvailable=true;
+  document.getElementById('undoBtn').disabled=false;
+}
+
+function undoMove(){
+  if(!undoAvailable||!undoState||!gameActive)return;
+  playUndoSound();
+
+  score=undoState.score;
+  totalMerges=undoState.totalMerges;
+  highestTile=undoState.highestTile;
+
+  // Clear all tile elements and rebuild from saved state
+  document.getElementById('tileLayer').innerHTML='';
+  for(let r=0;r<gridSize;r++){
+    for(let c=0;c<gridSize;c++){
+      const saved=undoState.grid[r][c];
+      if(saved){
+        const t=createTileObj(saved.row,saved.col,saved.val);
+        grid[r][c]=t;
+        renderTile(t,false);
+      }else{
+        grid[r][c]=null;
+      }
+    }
+  }
+
+  document.getElementById('scoreDisplay').textContent=fmtNum(score);
+  undoAvailable=false;
+  undoState=null;
+  document.getElementById('undoBtn').disabled=true;
+}
+window.undoMove=undoMove;
+
+function continueAfterWin(){
+  document.getElementById('winOverlay').classList.remove('active');
+  gameActive=true;
+}
+window.continueAfterWin=continueAfterWin;
+
+// ===========================
+// MOVE LOGIC
+// ===========================
+function move(dir){
+  if(!gameActive||moveInProgress)return;
+  moveInProgress=true;
+
+  saveUndo();
+
+  let moved=false;
+  let mergeScore=0;
+  const mergeTiles=[];
+
+  // Clear merged flags
+  for(let r=0;r<gridSize;r++)
+    for(let c=0;c<gridSize;c++)
+      if(grid[r][c])grid[r][c].merged=false;
+
+  const traversal=buildTraversal(dir);
+
+  traversal.rows.forEach(r=>{
+    traversal.cols.forEach(c=>{
+      const tile=grid[r][c];
+      if(!tile)return;
+
+      const result=findFarthestPosition(r,c,dir);
+      const nextR=result.nextR;
+      const nextC=result.nextC;
+
+      // Can we merge with the next tile?
+      if(nextR>=0&&nextR<gridSize&&nextC>=0&&nextC<gridSize){
+        const target=grid[nextR][nextC];
+        if(target&&target.val===tile.val&&!target.merged){
+          // Perform merge: move consumed tile to target position, then remove
+          tile.row=nextR;
+          tile.col=nextC;
+          updateTilePosition(tile);
+
+          // After slide transition, remove consumed tile and update target
+          target.val*=2;
+          target.merged=true;
+          mergeScore+=target.val;
+          totalMerges++;
+          if(target.val>highestTile)highestTile=target.val;
+          mergeTiles.push({target,consumed:tile});
+
+          grid[r][c]=null;
+          moved=true;
+
+          // Check win condition
+          if(target.val>=2048&&!hasWon){
+            hasWon=true;
+          }
+          return;
+        }
+      }
+
+      // No merge -- move to farthest empty position
+      if(result.row!==r||result.col!==c){
+        grid[result.row][result.col]=tile;
+        grid[r][c]=null;
+        tile.row=result.row;
+        tile.col=result.col;
+        updateTilePosition(tile);
+        moved=true;
+      }
+    });
+  });
+
+  if(!moved){
+    undoAvailable=false;
+    moveInProgress=false;
+    return;
+  }
+
+  playSlide();
+
+  // Update score display
+  if(mergeScore>0){
+    score+=mergeScore;
+    document.getElementById('scoreDisplay').textContent=fmtNum(score);
+    showScorePopup(mergeScore);
+
+    if(score>bestScore){
+      bestScore=score;
+      document.getElementById('bestDisplay').textContent=fmtNum(bestScore);
+      saveLocalData();
+    }
+  }
+
+  // Handle merge animations: remove consumed tiles, update target appearance
+  setTimeout(()=>{
+    mergeTiles.forEach(({target,consumed})=>{
+      if(consumed.el)consumed.el.remove();
+      updateTileAppearance(target);
+      if(target.el){
+        target.el.classList.add('merged');
+        setTimeout(()=>{if(target.el)target.el.classList.remove('merged')},250);
+      }
+      playMerge(target.val);
+    });
+  },80);
+
+  // Spawn new tile after animations settle
+  setTimeout(()=>{
+    addRandomTile();
+
+    if(hasWon&&!winShown){
+      winShown=true;
+      gameActive=false;
+      playWinFanfare();
+      if(window.odaConfetti)window.odaConfetti();
+      handleWin();
+    }else if(isGameOver()){
+      gameActive=false;
+      playGameOverSound();
+      handleGameOver();
+    }
+    moveInProgress=false;
+  },170);
+}
+
+function buildTraversal(dir){
+  const rows=[],cols=[];
+  for(let i=0;i<gridSize;i++){rows.push(i);cols.push(i)}
+  if(dir==='right')cols.reverse();
+  if(dir==='down')rows.reverse();
+  return{rows,cols};
+}
+
+function findFarthestPosition(row,col,dir){
+  const dR=dir==='up'?-1:dir==='down'?1:0;
+  const dC=dir==='left'?-1:dir==='right'?1:0;
+  let prevR=row,prevC=col;
+  let r=row+dR,c=col+dC;
+  while(r>=0&&r<gridSize&&c>=0&&c<gridSize){
+    if(grid[r][c])return{row:prevR,col:prevC,nextR:r,nextC:c};
+    prevR=r;prevC=c;
+    r+=dR;c+=dC;
+  }
+  return{row:prevR,col:prevC,nextR:r,nextC:c};
+}
+
+function isGameOver(){
+  for(let r=0;r<gridSize;r++){
+    for(let c=0;c<gridSize;c++){
+      if(!grid[r][c])return false;
+      const v=grid[r][c].val;
+      // Check right neighbor
+      if(c<gridSize-1&&grid[r][c+1]&&grid[r][c+1].val===v)return false;
+      // Check bottom neighbor
+      if(r<gridSize-1&&grid[r+1]&&grid[r+1][c]&&grid[r+1][c].val===v)return false;
+    }
+  }
+  return true;
+}
+
+function showScorePopup(pts){
+  const box=document.getElementById('scoreBox');
+  const el=document.createElement('div');
+  el.className='score-add';
+  el.textContent='+'+fmtNum(pts);
+  box.appendChild(el);
+  setTimeout(()=>el.remove(),900);
+}
+
+// ===========================
+// WIN / GAME OVER
+// ===========================
+function handleWin(){
+  const coins=20;
+  document.getElementById('winScore').textContent=fmtNum(score);
+  document.getElementById('winCoins').textContent='+'+coins+' coins';
+  document.getElementById('winOverlay').classList.add('active');
+  if(!coinsAwarded){
+    awardCoins(coins);
+    // Don't set coinsAwarded here -- will award score coins on game over too
+  }
+}
+
+function handleGameOver(){
+  // Calculate coins: 1 per 100 points
+  let coins=Math.floor(score/100);
+  const isNewBest=score>previousBest&&score>0;
+  if(isNewBest)coins+=5;
+
+  document.getElementById('overScore').textContent=fmtNum(score);
+  document.getElementById('overTile').textContent=fmtNum(highestTile);
+  document.getElementById('overCoins').textContent='+'+coins+' coins';
+
+  // Show "new best" badge
+  const newBestEl=document.getElementById('overNewBest');
+  if(isNewBest){
+    newBestEl.style.display='block';
+  }else{
+    newBestEl.style.display='none';
+  }
+
+  document.getElementById('gameOverOverlay').classList.add('active');
+
+  if(!coinsAwarded){
+    coinsAwarded=true;
+    if(coins>0)awardCoins(coins);
+    updateRecord();
+  }
+}
+
+// ===========================
+// INPUT: Keyboard
+// ===========================
+document.addEventListener('keydown',e=>{
+  if(!gameActive)return;
+  const map={
+    ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',
+    w:'up',W:'up',a:'left',A:'left',s:'down',S:'down',d:'right',D:'right'
+  };
+  const dir=map[e.key];
+  if(dir){
+    e.preventDefault();
+    move(dir);
+  }
+});
+
+// ===========================
+// INPUT: Touch swipe
+// ===========================
+let touchStartX=0,touchStartY=0,isTouching=false;
+const gridEl=document.getElementById('gridWrapper');
+
+gridEl.addEventListener('touchstart',e=>{
+  if(!gameActive)return;
+  isTouching=true;
+  const t=e.touches[0];
+  touchStartX=t.clientX;
+  touchStartY=t.clientY;
+},{passive:true});
+
+gridEl.addEventListener('touchmove',e=>{
+  if(isTouching)e.preventDefault();
+},{passive:false});
+
+gridEl.addEventListener('touchend',e=>{
+  if(!isTouching||!gameActive)return;
+  isTouching=false;
+  const t=e.changedTouches[0];
+  const dx=t.clientX-touchStartX;
+  const dy=t.clientY-touchStartY;
+  const threshold=30;
+  if(Math.abs(dx)<threshold&&Math.abs(dy)<threshold)return;
+  if(Math.abs(dx)>Math.abs(dy)){
+    move(dx>0?'right':'left');
+  }else{
+    move(dy>0?'down':'up');
+  }
+},{passive:true});
+
+// ===========================
+// INPUT: Mouse drag (desktop swipe)
+// ===========================
+let mouseDown=false,mStartX=0,mStartY=0;
+
+gridEl.addEventListener('mousedown',e=>{
+  if(!gameActive)return;
+  mouseDown=true;
+  mStartX=e.clientX;
+  mStartY=e.clientY;
+  e.preventDefault();
+});
+
+document.addEventListener('mousemove',e=>{
+  if(mouseDown)e.preventDefault();
+});
+
+document.addEventListener('mouseup',e=>{
+  if(!mouseDown||!gameActive)return;
+  mouseDown=false;
+  const dx=e.clientX-mStartX;
+  const dy=e.clientY-mStartY;
+  const threshold=30;
+  if(Math.abs(dx)<threshold&&Math.abs(dy)<threshold)return;
+  if(Math.abs(dx)>Math.abs(dy)){
+    move(dx>0?'right':'left');
+  }else{
+    move(dy>0?'down':'up');
+  }
+});
+
+// ===========================
+// COINS (Firestore)
+// ===========================
+async function awardCoins(coins){
+  if(!studentId||studentId.startsWith('anon_')||coins<=0)return;
+  try{
+    await updateDoc(doc(db,'students',studentId),{coins:increment(coins)});
+  }catch(e){console.warn('[2048] Coin award failed:',e)}
+}
+
+// ===========================
+// RECORDS (Firestore)
+// ===========================
+async function updateRecord(){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  const recRef=doc(db,'2048Records',studentId);
+  try{
+    const snap=await getDoc(recRef);
+    if(snap.exists()){
+      const d=snap.data();
+      const upd={
+        gamesPlayed:increment(1),
+        totalMerges:increment(totalMerges),
+        studentName:studentName,
+        classCode:classCode
+      };
+      if(score>(d.bestScore||0))upd.bestScore=score;
+      if(highestTile>(d.highestTile||0))upd.highestTile=highestTile;
+      await updateDoc(recRef,upd);
+    }else{
+      await setDoc(recRef,{
+        studentId,
+        studentName,
+        classCode,
+        bestScore:score,
+        gamesPlayed:1,
+        highestTile,
+        totalMerges
+      });
+    }
+  }catch(e){console.warn('[2048] Record update failed:',e)}
+}
+
+async function showRecords(){
+  showScreen('recordsScreen');
+
+  // Load personal stats
+  if(studentId&&!studentId.startsWith('anon_')){
+    try{
+      const snap=await getDoc(doc(db,'2048Records',studentId));
+      if(snap.exists()){
+        const d=snap.data();
+        document.getElementById('statBest').textContent=fmtNum(d.bestScore||0);
+        document.getElementById('statPlayed').textContent=fmtNum(d.gamesPlayed||0);
+        document.getElementById('statTile').textContent=fmtNum(d.highestTile||0);
+        document.getElementById('statMerges').textContent=fmtNum(d.totalMerges||0);
+      }
+    }catch(e){console.warn('[2048] Stats load failed:',e)}
+  }
+
+  // Class leaderboard
+  const lb=document.getElementById('leaderboard');
+  try{
+    let q;
+    if(classCode){
+      q=query(collection(db,'2048Records'),where('classCode','==',classCode),orderBy('bestScore','desc'),limit(10));
+    }else{
+      q=query(collection(db,'2048Records'),orderBy('bestScore','desc'),limit(10));
+    }
+    const snaps=await getDocs(q);
+    if(snaps.empty){
+      lb.innerHTML='<div class="lb-empty">No records yet. Play some games!</div>';
+      return;
+    }
+    lb.innerHTML='';
+    let rank=1;
+    snaps.forEach(s=>{
+      const d=s.data();
+      const row=document.createElement('div');
+      row.className='lb-row';
+      if(s.id===studentId)row.classList.add('me');
+      const rc=rank<=3?' r'+rank:'';
+      row.innerHTML=
+        '<div class="lb-rank'+rc+'">'+rank+'</div>'+
+        '<div class="lb-name">'+esc(d.studentName||'Player')+'</div>'+
+        '<div class="lb-score">'+fmtNum(d.bestScore||0)+'</div>'+
+        '<div class="lb-tile">'+fmtNum(d.highestTile||0)+'</div>';
+      lb.appendChild(row);
+      rank++;
+    });
+  }catch(e){
+    lb.innerHTML='<div class="lb-empty">Could not load leaderboard</div>';
+    console.warn('[2048] Leaderboard load failed:',e);
+  }
+}
+window.showRecords=showRecords;
+
+// ===========================
+// WINDOW RESIZE HANDLER
+// ===========================
+let resizeTimer=null;
+window.addEventListener('resize',()=>{
+  if(!gameActive)return;
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(()=>{
+    // Rebuild grid sizes for current mode
+    const vw=window.innerWidth;
+    if(gridSize===5){
+      if(vw<=480)document.documentElement.style.setProperty('--cell-size','52px');
+      else if(vw<=600)document.documentElement.style.setProperty('--cell-size','62px');
+      else document.documentElement.style.setProperty('--cell-size','68px');
+    }else if(gridSize===3){
+      if(vw<=360)document.documentElement.style.setProperty('--cell-size','80px');
+      else document.documentElement.style.setProperty('--cell-size','90px');
+    }else{
+      document.documentElement.style.removeProperty('--cell-size');
+    }
+    // Reposition all tiles
+    for(let r=0;r<gridSize;r++){
+      for(let c=0;c<gridSize;c++){
+        if(grid[r]&&grid[r][c])updateTilePosition(grid[r][c]);
+      }
+    }
+  },150);
+});
+
+// ===========================
+// INIT
+// ===========================
+loadLocalData();
+console.log('[ODA] 2048 loaded');
+
+</script>
+</body>
+</html>

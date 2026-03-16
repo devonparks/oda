@@ -1,0 +1,1784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Hangman - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#a8b2c8}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden;user-select:none}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* Back Button */
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+/* Screen System */
+.screen{display:none;width:100%;min-height:100vh;animation:fadeUp .35s ease}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* Shared Components */
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-blue{background:var(--accent2);color:#fff}
+.btn-blue:hover{box-shadow:0 0 24px rgba(17,138,178,.3)}
+.btn-red{background:var(--accent3);color:#fff}
+.btn-red:hover{box-shadow:0 0 24px rgba(239,71,111,.3)}
+.btn-gold{background:var(--gold);color:var(--bg)}
+.btn-gold:hover{box-shadow:0 0 24px rgba(255,209,102,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+.btn-icon{min-width:auto;padding:10px 14px}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;transition:all .2s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.badge-accent{background:rgba(6,214,160,.15);color:var(--accent)}
+.badge-gold{background:rgba(255,209,102,.15);color:var(--gold)}
+.badge-red{background:rgba(239,71,111,.15);color:var(--accent3)}
+.badge-blue{background:rgba(17,138,178,.15);color:var(--accent2)}
+
+.section-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px}
+
+.code-input{background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:14px 20px;color:var(--text);font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;text-align:center;width:200px;letter-spacing:8px;outline:none;transition:border-color .2s}
+.code-input:focus{border-color:var(--accent)}
+.code-input::placeholder{color:var(--border);letter-spacing:4px;font-size:20px}
+
+.error-text{color:var(--accent3);font-size:13px;font-weight:600;margin-top:8px;min-height:20px}
+
+.stat-box{text-align:center;padding:12px 16px}
+.stat-box .stat-val{font-size:28px;font-weight:900;font-family:'Fredoka',sans-serif}
+.stat-box .stat-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+.divider{width:100%;height:1px;background:var(--border);margin:16px 0}
+
+/* ======================== */
+/* HOME SCREEN              */
+/* ======================== */
+#homeScreen{padding-top:60px;padding-bottom:40px}
+.home-header{text-align:center;margin-bottom:36px}
+.home-header h1{font-size:clamp(36px,8vw,52px);font-weight:700;margin-bottom:4px}
+.home-header h1 .hang-icon{display:inline-block;animation:swing 3s ease-in-out infinite;transform-origin:top center}
+@keyframes swing{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.home-header p{color:var(--text2);font-size:15px}
+
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;max-width:700px;width:90%;margin:0 auto}
+.mode-card{cursor:pointer;text-align:center;padding:28px 20px}
+.mode-card .mode-icon{font-size:40px;margin-bottom:12px;display:block}
+.mode-card h3{font-size:18px;margin-bottom:6px}
+.mode-card p{font-size:13px;color:var(--text2);line-height:1.4}
+
+.import-section{margin-top:28px;text-align:center}
+.import-btn-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+#importArea{display:none;margin-top:14px;text-align:center}
+
+.quick-stats{display:flex;gap:12px;justify-content:center;margin-top:28px;flex-wrap:wrap}
+.quick-stats .stat-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:8px 16px;font-size:13px;font-weight:600}
+.quick-stats .stat-pill .stat-num{color:var(--accent);font-weight:800}
+
+/* ======================== */
+/* CATEGORY SCREEN          */
+/* ======================== */
+#categoryScreen{padding-top:80px;padding-bottom:40px}
+.cat-container{max-width:600px;width:90%;text-align:center}
+.cat-container h2{font-size:28px;margin-bottom:6px}
+.cat-container .sub{color:var(--text2);font-size:14px;margin-bottom:24px}
+
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:28px}
+.cat-card{cursor:pointer;padding:20px 12px;text-align:center;position:relative}
+.cat-card .cat-emoji{font-size:32px;display:block;margin-bottom:8px}
+.cat-card h4{font-size:14px}
+.cat-card p{font-size:11px;color:var(--text2);margin-top:2px}
+.cat-card.selected{border-color:var(--accent);background:rgba(6,214,160,.08);box-shadow:0 0 20px rgba(6,214,160,.15)}
+.cat-card.selected::after{content:'\2713';position:absolute;top:8px;right:10px;color:var(--accent);font-weight:900;font-size:16px}
+
+.diff-section{margin-top:8px}
+.diff-grid{display:flex;flex-direction:column;gap:14px;max-width:360px;width:100%;margin:16px auto 0}
+.diff-card{cursor:pointer;display:flex;align-items:center;gap:16px;padding:20px 24px}
+.diff-card .diff-icon{font-size:32px;flex-shrink:0}
+.diff-card h3{font-size:17px;margin-bottom:2px}
+.diff-card p{font-size:13px;color:var(--text2)}
+.diff-card.easy{border-color:var(--accent)}
+.diff-card.easy:hover{box-shadow:0 0 20px rgba(6,214,160,.2)}
+.diff-card.medium{border-color:var(--gold)}
+.diff-card.medium:hover{box-shadow:0 0 20px rgba(255,209,102,.2)}
+.diff-card.hard{border-color:var(--accent3)}
+.diff-card.hard:hover{box-shadow:0 0 20px rgba(239,71,111,.2)}
+
+/* ======================== */
+/* GAME SCREEN              */
+/* ======================== */
+#gameScreen{padding:60px 16px 40px;min-height:100vh;justify-content:flex-start}
+.game-container{max-width:700px;width:100%;display:flex;flex-direction:column;align-items:center;gap:20px}
+
+/* Game HUD */
+.game-hud{display:flex;justify-content:space-between;align-items:center;width:100%;flex-wrap:wrap;gap:8px}
+.hud-left,.hud-right{display:flex;align-items:center;gap:12px}
+.hud-stat{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 14px;font-size:13px;font-weight:700}
+.hud-stat .hud-val{color:var(--accent);font-weight:900}
+.hud-stat.danger .hud-val{color:var(--accent3)}
+.hud-category{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.hint-btn{background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:10px;padding:8px 14px;color:var(--gold);font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+.hint-btn:hover{background:rgba(255,209,102,.25);border-color:var(--gold)}
+.hint-btn:disabled{opacity:.4;cursor:default}
+
+/* Hangman Figure */
+.hangman-area{position:relative;width:240px;height:280px;margin:0 auto}
+.gallows{position:absolute;inset:0}
+.gallows-base{position:absolute;bottom:10px;left:20px;width:200px;height:6px;background:var(--text2);border-radius:3px}
+.gallows-pole{position:absolute;bottom:10px;left:50px;width:6px;height:240px;background:var(--text2);border-radius:3px}
+.gallows-top{position:absolute;top:20px;left:50px;width:120px;height:6px;background:var(--text2);border-radius:3px}
+.gallows-rope{position:absolute;top:26px;left:164px;width:4px;height:36px;background:var(--text2);border-radius:2px}
+
+/* Body Parts */
+.body-part{position:absolute;opacity:0;transition:opacity .4s ease,transform .4s ease;transform:scale(.5)}
+.body-part.show{opacity:1;transform:scale(1)}
+.head{top:60px;left:146px;width:40px;height:40px;border:4px solid var(--accent2);border-radius:50%;background:transparent}
+.torso{top:100px;left:163px;width:4px;height:52px;background:var(--accent2);border-radius:2px}
+.arm-l{top:108px;left:126px;width:40px;height:4px;background:var(--accent2);border-radius:2px;transform-origin:right center;transform:scale(.5) rotate(20deg)}
+.arm-l.show{transform:scale(1) rotate(20deg)}
+.arm-r{top:108px;left:166px;width:40px;height:4px;background:var(--accent2);border-radius:2px;transform-origin:left center;transform:scale(.5) rotate(-20deg)}
+.arm-r.show{transform:scale(1) rotate(-20deg)}
+.leg-l{top:148px;left:140px;width:4px;height:46px;background:var(--accent2);border-radius:2px;transform-origin:top center;transform:scale(.5) rotate(20deg)}
+.leg-l.show{transform:scale(1) rotate(20deg)}
+.leg-r{top:148px;left:166px;width:4px;height:46px;background:var(--accent2);border-radius:2px;transform-origin:top center;transform:scale(.5) rotate(-20deg)}
+.leg-r.show{transform:scale(1) rotate(-20deg)}
+
+/* Face details */
+.face{position:absolute;top:60px;left:146px;width:40px;height:40px;pointer-events:none}
+.eye{position:absolute;top:14px;width:5px;height:5px;border-radius:50%;background:var(--accent2)}
+.eye-l{left:10px}
+.eye-r{right:10px}
+.mouth-happy{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:14px;height:7px;border:none;border-bottom:3px solid var(--accent2);border-radius:0 0 10px 10px}
+.mouth-sad{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:14px;height:7px;border:none;border-top:3px solid var(--accent3);border-radius:10px 10px 0 0}
+.eye-x{position:absolute;top:12px;width:8px;height:8px;font-size:8px;font-weight:900;color:var(--accent3);text-align:center;line-height:8px}
+.eye-x-l{left:8px}
+.eye-x-r{right:8px}
+
+/* Hangman shake */
+.hangman-area.shake{animation:hmShake .5s ease}
+@keyframes hmShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+
+/* Word Display */
+.word-display{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:8px 0}
+.letter-slot{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:36px}
+.letter-char{font-family:'Fredoka',sans-serif;font-size:clamp(28px,6vw,40px);font-weight:700;height:48px;display:flex;align-items:center;justify-content:center;color:transparent;transition:all .3s}
+.letter-char.revealed{color:var(--text);animation:letterPop .4s ease}
+.letter-char.hint-reveal{color:var(--gold);animation:letterPop .4s ease}
+.letter-char.wrong-reveal{color:var(--accent3);animation:letterPop .4s ease}
+@keyframes letterPop{0%{transform:scale(0) rotateY(90deg)}50%{transform:scale(1.3) rotateY(0)}100%{transform:scale(1) rotateY(0)}}
+.letter-line{width:100%;height:4px;background:var(--border);border-radius:2px;transition:background .3s}
+.letter-line.revealed{background:var(--accent)}
+.letter-line.hint-reveal{background:var(--gold)}
+.letter-line.wrong-reveal{background:var(--accent3)}
+.letter-space{min-width:16px}
+
+/* Keyboard */
+.keyboard{display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;max-width:520px}
+.kb-row{display:flex;gap:6px;justify-content:center}
+.kb-key{width:clamp(32px,8vw,44px);height:clamp(38px,9vw,48px);border:2px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);font-family:'Fredoka',sans-serif;font-size:clamp(14px,3.5vw,18px);font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.kb-key:hover:not(.used){border-color:var(--accent);background:rgba(6,214,160,.1);transform:translateY(-2px)}
+.kb-key:active:not(.used){transform:scale(.92)}
+.kb-key.correct{background:rgba(6,214,160,.2);border-color:var(--accent);color:var(--accent)}
+.kb-key.wrong{background:rgba(239,71,111,.15);border-color:rgba(239,71,111,.4);color:var(--accent3);opacity:.5}
+.kb-key.used{cursor:default;pointer-events:none}
+
+/* ======================== */
+/* RESULT SCREEN            */
+/* ======================== */
+#resultScreen{padding-top:80px;padding-bottom:40px}
+.result-container{text-align:center;max-width:500px;width:90%}
+.result-container h2{font-size:clamp(32px,8vw,48px);font-weight:700;margin-bottom:8px}
+.result-container .result-sub{font-size:16px;color:var(--text2);margin-bottom:8px}
+.result-word{font-family:'Fredoka',sans-serif;font-size:clamp(28px,7vw,42px);font-weight:700;letter-spacing:6px;margin:16px 0}
+.result-word.win{color:var(--accent);animation:resultBounce .6s ease}
+.result-word.lose{color:var(--accent3)}
+@keyframes resultBounce{0%{transform:scale(0)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
+.coins-display{display:inline-flex;align-items:center;gap:8px;font-size:24px;font-weight:800;color:var(--gold);margin:16px 0 8px;font-family:'Fredoka',sans-serif}
+.record-update{display:flex;justify-content:center;gap:24px;margin:20px 0;flex-wrap:wrap}
+.result-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+
+/* Win celebration */
+.win-burst{position:fixed;inset:0;pointer-events:none;z-index:200;overflow:hidden}
+.win-particle{position:absolute;width:8px;height:8px;border-radius:50%;animation:particleFly 1.5s ease-out forwards}
+@keyframes particleFly{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(0)}}
+
+/* ======================== */
+/* QUICK MATCH SCREEN       */
+/* ======================== */
+#quickMatchScreen{padding-top:80px}
+.qm-container{text-align:center;max-width:400px;width:90%}
+.qm-container h2{font-size:28px;margin-bottom:8px}
+.qm-container .sub{color:var(--text2);font-size:14px;margin-bottom:24px}
+.qm-actions{display:flex;flex-direction:column;gap:14px;align-items:center}
+.qm-divider{display:flex;align-items:center;gap:14px;width:100%;margin:4px 0}
+.qm-divider::before,.qm-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.qm-divider span{color:var(--text2);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px}
+.join-row{display:flex;gap:12px;align-items:center;justify-content:center}
+
+/* Word entry for Quick Match host */
+.word-entry{max-width:360px;width:100%;margin:20px auto 0}
+.word-entry label{display:block;font-size:14px;color:var(--text2);margin-bottom:8px;font-weight:600}
+.word-input{width:100%;background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:14px 20px;color:var(--text);font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;text-align:center;letter-spacing:4px;text-transform:uppercase;outline:none;transition:border-color .2s}
+.word-input:focus{border-color:var(--accent)}
+
+/* ======================== */
+/* WAITING SCREEN           */
+/* ======================== */
+#waitingScreen{padding-top:100px}
+.waiting-container{text-align:center}
+.waiting-container h2{font-size:28px;margin-bottom:12px}
+.room-code-big{font-size:clamp(48px,12vw,72px);font-weight:900;font-family:'Fredoka',sans-serif;color:var(--gold);letter-spacing:16px;margin:20px 0;text-shadow:0 0 40px rgba(255,209,102,.3)}
+.waiting-pulse{color:var(--text2);font-size:14px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.waiting-info{margin-top:20px;color:var(--text2);font-size:13px}
+
+/* ======================== */
+/* RECORDS SCREEN           */
+/* ======================== */
+#recordsScreen{padding-top:60px;padding-bottom:40px}
+.records-container{max-width:700px;width:90%}
+.records-container h2{font-size:28px;text-align:center;margin-bottom:24px}
+.my-record-card{margin-bottom:24px}
+.my-record-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:8px}
+.leaderboard-table{width:100%;border-collapse:separate;border-spacing:0 6px}
+.leaderboard-table th{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;padding:8px 12px;text-align:left}
+.leaderboard-table td{padding:10px 12px;background:var(--surface);font-size:14px;font-weight:600}
+.leaderboard-table tr td:first-child{border-radius:10px 0 0 10px}
+.leaderboard-table tr td:last-child{border-radius:0 10px 10px 0}
+.leaderboard-table tr:hover td{background:var(--surface2)}
+.rank-1{color:var(--gold)}
+.rank-2{color:#c0c0c0}
+.rank-3{color:#cd7f32}
+
+/* ======================== */
+/* MULTIPLAYER GAME HUD     */
+/* ======================== */
+.mp-hud{display:flex;justify-content:space-between;align-items:center;width:100%;flex-wrap:wrap;gap:8px}
+.mp-player{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px 16px;flex:1;min-width:140px}
+.mp-player.active-player{border-color:var(--accent);box-shadow:0 0 16px rgba(6,214,160,.15)}
+.mp-player .mp-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;font-family:'Fredoka',sans-serif}
+.mp-player:first-child .mp-avatar{background:var(--accent2);color:#fff}
+.mp-player:last-child .mp-avatar{background:var(--gold);color:var(--bg)}
+.mp-player .mp-name{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px}
+.mp-player .mp-role{font-size:11px;color:var(--text2)}
+.mp-vs{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:var(--text2);flex-shrink:0}
+
+/* ======================== */
+/* MOBILE RESPONSIVE        */
+/* ======================== */
+@media(max-width:500px){
+  .mode-grid{grid-template-columns:1fr}
+  .cat-grid{grid-template-columns:repeat(2,1fr)}
+  .game-container{gap:14px}
+  .hangman-area{width:200px;height:240px;transform:scale(.85);margin:-10px auto}
+  .kb-key{width:30px;height:36px;font-size:13px;border-radius:8px}
+  .kb-row{gap:4px}
+  .letter-slot{min-width:28px}
+  .letter-char{font-size:24px;height:36px}
+  .hud-stat{padding:6px 10px;font-size:12px}
+  .mp-player{padding:8px 12px;min-width:110px}
+}
+@media(max-width:350px){
+  .kb-key{width:26px;height:32px;font-size:11px}
+  .kb-row{gap:3px}
+}
+</style>
+</head>
+<body>
+
+<a class="back-btn" id="backBtn" href="../../student.html">&larr; Back to Hub</a>
+
+<!-- ======================== -->
+<!-- HOME SCREEN              -->
+<!-- ======================== -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1><span class="hang-icon">&#128128;</span> Hangman</h1>
+    <p>Guess the word before time runs out!</p>
+  </div>
+  <div class="mode-grid">
+    <div class="card mode-card" onclick="HM.showCategories()">
+      <span class="mode-icon">&#127922;</span>
+      <h3>Solo Play</h3>
+      <p>Pick a category and guess the word</p>
+    </div>
+    <div class="card mode-card" onclick="HM.showQuickMatch()">
+      <span class="mode-icon">&#9876;&#65039;</span>
+      <h3>Quick Match</h3>
+      <p>Challenge a friend with your own word</p>
+    </div>
+    <div class="card mode-card" onclick="HM.loadRecords()">
+      <span class="mode-icon">&#127942;</span>
+      <h3>Records</h3>
+      <p>Stats and class leaderboard</p>
+    </div>
+  </div>
+  <div class="import-section">
+    <p class="section-title">Import Words</p>
+    <div class="import-btn-row">
+      <button class="btn btn-outline btn-small" onclick="HM.importFromSpelling()">&#128221; Spelling Bee</button>
+      <button class="btn btn-outline btn-small" onclick="HM.importFromFlashcards()">&#128196; Flashcards</button>
+    </div>
+    <div id="importArea"></div>
+    <div id="importedBadge" style="display:none;margin-top:10px">
+      <span class="badge badge-accent" id="importedLabel"></span>
+      <button class="btn btn-outline btn-small" style="margin-left:8px;padding:4px 12px;font-size:12px;min-width:auto" onclick="HM.clearImported()">&#10005; Clear</button>
+    </div>
+  </div>
+  <div class="quick-stats" id="homeStats"></div>
+</div>
+
+<!-- ======================== -->
+<!-- CATEGORY SCREEN          -->
+<!-- ======================== -->
+<div class="screen" id="categoryScreen">
+  <div class="cat-container">
+    <h2>Choose Your Challenge</h2>
+    <p class="sub" id="catSubtitle">Select a category, then pick difficulty</p>
+
+    <div class="cat-grid" id="catGrid"></div>
+
+    <div class="diff-section">
+      <p class="section-title">Difficulty</p>
+      <div class="diff-grid">
+        <div class="card diff-card easy" onclick="HM.startGame('easy')">
+          <span class="diff-icon">&#127807;</span>
+          <div>
+            <h3>Easy</h3>
+            <p>8 guesses, hint available, short words</p>
+          </div>
+        </div>
+        <div class="card diff-card medium" onclick="HM.startGame('medium')">
+          <span class="diff-icon">&#128293;</span>
+          <div>
+            <h3>Medium</h3>
+            <p>6 guesses, medium words</p>
+          </div>
+        </div>
+        <div class="card diff-card hard" onclick="HM.startGame('hard')">
+          <span class="diff-icon">&#128128;</span>
+          <div>
+            <h3>Hard</h3>
+            <p>5 guesses, long words, no hints</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-outline btn-small" style="margin-top:24px" onclick="HM.showScreen('homeScreen')">&#8592; Back</button>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- GAME SCREEN              -->
+<!-- ======================== -->
+<div class="screen" id="gameScreen">
+  <div class="game-container">
+    <!-- Solo HUD -->
+    <div class="game-hud" id="soloHud">
+      <div class="hud-left">
+        <div class="hud-stat" id="guessesLeftStat">
+          <span>&#10084;&#65039;</span> <span class="hud-val" id="guessesLeft">6</span>
+        </div>
+        <span class="hud-category" id="gameCategory">Animals</span>
+      </div>
+      <div class="hud-right">
+        <div class="hud-stat">
+          <span>&#128293;</span> <span class="hud-val" id="gameStreak">0</span>
+        </div>
+        <button class="hint-btn" id="hintBtn" onclick="HM.useHint()">
+          <span>&#128161;</span> Hint
+        </button>
+      </div>
+    </div>
+
+    <!-- Multiplayer HUD -->
+    <div class="mp-hud" id="mpHud" style="display:none">
+      <div class="mp-player" id="mpPicker">
+        <div class="mp-avatar" id="mpPickerAvatar">P</div>
+        <div>
+          <div class="mp-name" id="mpPickerName">Picker</div>
+          <div class="mp-role">Word Picker</div>
+        </div>
+      </div>
+      <span class="mp-vs">VS</span>
+      <div class="mp-player" id="mpGuesser">
+        <div class="mp-avatar" id="mpGuesserAvatar">G</div>
+        <div>
+          <div class="mp-name" id="mpGuesserName">Guesser</div>
+          <div class="mp-role">Guesser</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hangman Figure -->
+    <div class="hangman-area" id="hangmanArea">
+      <div class="gallows">
+        <div class="gallows-base"></div>
+        <div class="gallows-pole"></div>
+        <div class="gallows-top"></div>
+        <div class="gallows-rope"></div>
+      </div>
+      <div class="body-part head" id="bp-head"></div>
+      <div class="body-part torso" id="bp-torso"></div>
+      <div class="body-part arm-l" id="bp-arm-l"></div>
+      <div class="body-part arm-r" id="bp-arm-r"></div>
+      <div class="body-part leg-l" id="bp-leg-l"></div>
+      <div class="body-part leg-r" id="bp-leg-r"></div>
+      <div class="face" id="hangmanFace"></div>
+    </div>
+
+    <!-- Word Display -->
+    <div class="word-display" id="wordDisplay"></div>
+
+    <!-- Keyboard -->
+    <div class="keyboard" id="keyboard"></div>
+
+    <!-- Game footer -->
+    <button class="btn btn-outline btn-small" style="margin-top:8px" onclick="HM.quitGame()">Quit</button>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- RESULT SCREEN            -->
+<!-- ======================== -->
+<div class="screen" id="resultScreen">
+  <div class="result-container">
+    <h2 id="resultTitle">You Won!</h2>
+    <p class="result-sub" id="resultSub">Great job!</p>
+    <div class="result-word" id="resultWord"></div>
+    <div class="coins-display" id="coinsDisplay" style="display:none">
+      <span>&#129689;</span> +<span id="coinsAmount">0</span> coins
+    </div>
+    <div class="record-update" id="recordUpdate"></div>
+    <div class="result-actions">
+      <button class="btn btn-accent" onclick="HM.playAgain()">Play Again</button>
+      <button class="btn btn-outline" onclick="HM.goHome()">Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- QUICK MATCH SCREEN       -->
+<!-- ======================== -->
+<div class="screen" id="quickMatchScreen">
+  <div class="qm-container">
+    <h2>&#9876;&#65039; Quick Match</h2>
+    <p class="sub">Challenge a friend!</p>
+    <div class="qm-actions">
+      <button class="btn btn-accent" onclick="HM.createRoom()">Create Room</button>
+      <div class="qm-divider"><span>or</span></div>
+      <div class="join-row">
+        <input class="code-input" id="joinCodeInput" type="text" maxlength="4" placeholder="CODE" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+        <button class="btn btn-blue btn-small" onclick="HM.joinRoom()">Join</button>
+      </div>
+      <p class="error-text" id="joinError"></p>
+    </div>
+    <button class="btn btn-outline btn-small" style="margin-top:20px" onclick="HM.showScreen('homeScreen')">&#8592; Back</button>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- WAITING SCREEN           -->
+<!-- ======================== -->
+<div class="screen" id="waitingScreen">
+  <div class="waiting-container">
+    <h2>Waiting for Opponent</h2>
+    <div class="room-code-big" id="waitingCode">ABCD</div>
+    <p class="waiting-pulse">Share this code with a friend...</p>
+
+    <div class="word-entry" id="wordEntryArea" style="display:none">
+      <label>Enter a word for your opponent to guess:</label>
+      <input class="word-input" id="hostWordInput" type="text" maxlength="20" placeholder="TYPE A WORD" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z]/g,'')">
+      <button class="btn btn-accent btn-small" style="margin-top:12px" onclick="HM.submitWord()">Lock In Word</button>
+      <p class="error-text" id="wordError"></p>
+    </div>
+    <div class="waiting-info" id="waitingInfo"></div>
+    <button class="btn btn-outline btn-small" style="margin-top:24px" onclick="HM.cancelRoom()">Cancel</button>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- RECORDS SCREEN           -->
+<!-- ======================== -->
+<div class="screen" id="recordsScreen">
+  <div class="records-container">
+    <h2>&#127942; Hangman Records</h2>
+
+    <div class="card-static my-record-card" id="myRecordCard">
+      <p class="section-title">Your Stats</p>
+      <div class="my-record-stats" id="myStats">
+        <div class="stat-box"><div class="stat-val" style="color:var(--accent)" id="rWins">0</div><div class="stat-label">Wins</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--accent3)" id="rLosses">0</div><div class="stat-label">Losses</div></div>
+        <div class="stat-box"><div class="stat-val" id="rPlayed">0</div><div class="stat-label">Played</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--gold)" id="rStreak">0</div><div class="stat-label">Best Streak</div></div>
+      </div>
+    </div>
+
+    <p class="section-title">Class Leaderboard</p>
+    <div id="leaderboardArea"><p style="color:var(--text2)">Loading...</p></div>
+
+    <button class="btn btn-outline btn-small" style="margin-top:24px" onclick="HM.showScreen('homeScreen')">&#8592; Back</button>
+  </div>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script>
+/* ====================================================
+   HANGMAN - ODA Arcade
+   ==================================================== */
+(function(){
+'use strict';
+
+/* ===================== */
+/* SESSION & GLOBALS     */
+/* ===================== */
+const studentId = sessionStorage.getItem('studentId') || '';
+const studentName = sessionStorage.getItem('studentName') || 'Player';
+const classCode = sessionStorage.getItem('classCode') || '';
+const isTeacher = sessionStorage.getItem('userRole') === 'teacher' || localStorage.getItem('odaUserRole') === 'teacher';
+
+if (isTeacher) {
+  var bb = document.getElementById('backBtn');
+  if (bb) { bb.href = '../../teacher.html'; bb.textContent = '\u2190 Back to Dashboard'; }
+}
+
+let db, fsMod, collection, doc, getDoc, setDoc, updateDoc, addDoc, onSnapshot, query, where, orderBy, limit, increment, getDocs, deleteDoc, serverTimestamp;
+let fbReady = false;
+
+async function initFirebase() {
+  if (fbReady) return;
+  const fb = await getFirebaseDB();
+  db = fb.db; fsMod = fb.fsMod;
+  collection = fsMod.collection; doc = fsMod.doc; getDoc = fsMod.getDoc;
+  setDoc = fsMod.setDoc; updateDoc = fsMod.updateDoc; addDoc = fsMod.addDoc;
+  onSnapshot = fsMod.onSnapshot; query = fsMod.query; where = fsMod.where;
+  orderBy = fsMod.orderBy; limit = fsMod.limit; increment = fsMod.increment;
+  getDocs = fsMod.getDocs; serverTimestamp = fsMod.serverTimestamp;
+  if (fsMod.deleteDoc) deleteDoc = fsMod.deleteDoc;
+  fbReady = true;
+}
+
+/* ===================== */
+/* WORD BANK (~200 words)*/
+/* ===================== */
+const WORD_BANK = {
+  Animals: [
+    'ELEPHANT','GIRAFFE','PENGUIN','DOLPHIN','CHEETAH','GORILLA','HAMSTER','OCTOPUS','PANTHER','BUFFALO',
+    'LOBSTER','SPARROW','PARROT','RABBIT','FALCON','IGUANA','JAGUAR','MONKEY','TURTLE','SALMON',
+    'WALRUS','BADGER','BEAVER','PYTHON','TOUCAN','ALPACA','COYOTE','DONKEY','FERRET','MANTIS',
+    'OSPREY','PIGEON','CONDOR','HERMIT'
+  ],
+  Science: [
+    'GRAVITY','NUCLEUS','ELEMENT','NEUTRON','PROTON','VOLTAGE','CIRCUIT','FORMULA','PROTEIN','ELECTRON',
+    'MINERAL','CRYSTAL','SPECIES','HABITAT','CLIMATE','ECLIPSE','MAGNET','PHOTON','PLASMA','FUSION',
+    'FISSION','ENZYME','GENOME','PRISM','ENERGY','VOLUME','DENSITY','GALAXY','METEOR','QUARTZ',
+    'THEORY','THERMAL','ISOTOPE','ORGANIC'
+  ],
+  Geography: [
+    'VOLCANO','GLACIER','PLATEAU','CANYON','DESERT','ISLAND','TUNDRA','EQUATOR','PACIFIC','TROPICS',
+    'MONSOON','PRAIRIE','SAVANNA','WETLAND','VALLEY','HARBOR','SUMMIT','COUNTRY','CAPITAL','COMPASS',
+    'TERRAIN','EROSION','CURRENT','COASTAL','LAGOON','STREAM','DELTA','RIDGE','BASIN','JUNGLE',
+    'BAMBOO','OASIS','PENINSULA','CONTINENT'
+  ],
+  History: [
+    'EMPIRE','DYNASTY','PHARAOH','KNIGHT','CASTLE','TREATY','COLONY','KINGDOM','LIBERTY','CHARTER',
+    'ANCIENT','WARRIOR','PATRIOT','PIONEER','SENATOR','EMPEROR','VIKING','SAMURAI','CONQUER','REVOLT',
+    'MONARCH','CRUSADE','MISSION','COUNCIL','PILGRIM','TRIDENT','PALACE','THRONE','BRONZE','FEUDAL',
+    'TEMPLE','ARTIFACT','REPUBLIC','CENTURY'
+  ],
+  Food: [
+    'AVOCADO','BURRITO','PANCAKE','NOODLES','PRETZEL','BISCUIT','BROWNIE','COCONUT','GRANOLA','MUSTARD',
+    'POPCORN','SAUSAGE','WAFFLE','MUFFIN','COOKIE','YOGURT','PEPPER','TOMATO','BANANA','CHERRY',
+    'GINGER','GARLIC','PAPAYA','CELERY','TURNIP','RADISH','ALMOND','WALNUT','SALMON','PASTRY',
+    'QUINOA','LENTIL','BARLEY','CASHEW'
+  ],
+  Sports: [
+    'BASEBALL','FOOTBALL','SWIMMING','ARCHERY','BOWLING','CRICKET','FENCING','GYMNAST','LACROSSE','MARATHON',
+    'HURDLES','JAVELIN','RACQUET','SURFING','TENNIS','HOCKEY','BOXING','CYCLING','KARATE','ROWING',
+    'SOCCER','SPRINT','TACKLE','VOLLEY','DIVING','SKIING','GOALIE','TROPHY','LEAGUE','PLAYOFF',
+    'REFEREE','ATHLETE','STADIUM','CHAMPION'
+  ]
+};
+
+const ALL_CATEGORIES = Object.keys(WORD_BANK);
+
+/* Difficulty settings */
+const DIFFICULTY = {
+  easy:   { maxWrong: 8, hintAllowed: true, minLen: 3, maxLen: 6, coins: 5, label: 'Easy' },
+  medium: { maxWrong: 6, hintAllowed: true, minLen: 5, maxLen: 8, coins: 8, label: 'Medium' },
+  hard:   { maxWrong: 5, hintAllowed: false, minLen: 7, maxLen: 20, coins: 12, label: 'Hard' }
+};
+
+/* Body part order */
+const BODY_PARTS = ['bp-head','bp-torso','bp-arm-l','bp-arm-r','bp-leg-l','bp-leg-r'];
+/* Extended for easy mode (8 guesses) — add face details */
+const BODY_PARTS_EXT = ['bp-head','bp-torso','bp-arm-l','bp-arm-r','bp-leg-l','bp-leg-r','face-eyes','face-mouth'];
+
+/* ===================== */
+/* GAME STATE            */
+/* ===================== */
+let currentWord = '';
+let guessedLetters = new Set();
+let wrongCount = 0;
+let maxWrong = 6;
+let difficulty = 'medium';
+let selectedCategory = 'Random';
+let hintUsed = false;
+let hintAllowed = true;
+let gameActive = false;
+let currentStreak = 0;
+let importedWords = [];
+let coinsAwarded = false;
+
+/* Multiplayer state */
+let mpMode = false;
+let roomCode = null;
+let mpRole = null; // 'picker' or 'guesser'
+let unsubRoom = null;
+let mpRound = 0;
+
+/* ===================== */
+/* SOUND (Web Audio)     */
+/* ===================== */
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playSound(type) {
+  try {
+    const ctx = getAudio();
+    const now = ctx.currentTime;
+
+    if (type === 'click') {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = 600;
+      g.gain.setValueAtTime(0.08, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      o.connect(g); g.connect(ctx.destination); o.start(now); o.stop(now + 0.08);
+    }
+    else if (type === 'correct') {
+      [523, 659, 784].forEach((f, i) => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.12, now + i * 0.1);
+        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.25);
+        o.connect(g); g.connect(ctx.destination); o.start(now + i * 0.1); o.stop(now + i * 0.1 + 0.25);
+      });
+    }
+    else if (type === 'wrong') {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'square'; o.frequency.value = 150;
+      o.frequency.exponentialRampToValueAtTime(80, now + 0.3);
+      g.gain.setValueAtTime(0.1, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      o.connect(g); g.connect(ctx.destination); o.start(now); o.stop(now + 0.35);
+    }
+    else if (type === 'win') {
+      [523, 587, 659, 784, 880, 1047].forEach((f, i) => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.1, now + i * 0.12);
+        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.35);
+        o.connect(g); g.connect(ctx.destination); o.start(now + i * 0.12); o.stop(now + i * 0.12 + 0.35);
+      });
+    }
+    else if (type === 'lose') {
+      [440, 370, 311, 261, 196].forEach((f, i) => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'sawtooth'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.06, now + i * 0.2);
+        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.2 + 0.35);
+        o.connect(g); g.connect(ctx.destination); o.start(now + i * 0.2); o.stop(now + i * 0.2 + 0.4);
+      });
+    }
+  } catch (e) {}
+}
+
+/* ===================== */
+/* SCREEN NAVIGATION     */
+/* ===================== */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+
+/* ===================== */
+/* CATEGORY SCREEN       */
+/* ===================== */
+function showCategories() {
+  const grid = document.getElementById('catGrid');
+  const cats = importedWords.length > 0 ? ['Imported'] : ['Random', ...ALL_CATEGORIES];
+  const emojis = { Random: '&#127922;', Animals: '&#128054;', Science: '&#128300;', Geography: '&#127757;', History: '&#127984;', Food: '&#127829;', Sports: '&#9917;', Imported: '&#128230;' };
+  const counts = { Random: 'All words' };
+  ALL_CATEGORIES.forEach(c => counts[c] = WORD_BANK[c].length + ' words');
+  if (importedWords.length > 0) counts['Imported'] = importedWords.length + ' words';
+
+  grid.innerHTML = cats.map(c =>
+    `<div class="card cat-card ${c === selectedCategory ? 'selected' : ''}" onclick="HM.selectCategory('${c}')">
+      <span class="cat-emoji">${emojis[c] || '&#128218;'}</span>
+      <h4>${esc(c)}</h4>
+      <p>${counts[c] || ''}</p>
+    </div>`
+  ).join('');
+
+  if (importedWords.length > 0) {
+    selectedCategory = 'Imported';
+    document.getElementById('catSubtitle').textContent = 'Using imported words';
+  } else {
+    if (selectedCategory === 'Imported') selectedCategory = 'Random';
+    document.getElementById('catSubtitle').textContent = 'Select a category, then pick difficulty';
+  }
+
+  showScreen('categoryScreen');
+}
+
+function selectCategory(cat) {
+  selectedCategory = cat;
+  document.querySelectorAll('.cat-card').forEach(c => c.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+}
+
+/* ===================== */
+/* PICK A WORD           */
+/* ===================== */
+function pickWord(diff) {
+  const settings = DIFFICULTY[diff];
+  let pool = [];
+
+  if (importedWords.length > 0 && selectedCategory === 'Imported') {
+    pool = importedWords.filter(w => w.length >= settings.minLen && w.length <= settings.maxLen);
+    if (pool.length === 0) pool = importedWords.slice(); // fallback: all imported
+  } else if (selectedCategory === 'Random' || !WORD_BANK[selectedCategory]) {
+    const all = Object.values(WORD_BANK).flat();
+    pool = all.filter(w => w.length >= settings.minLen && w.length <= settings.maxLen);
+    if (pool.length === 0) pool = all;
+  } else {
+    pool = WORD_BANK[selectedCategory].filter(w => w.length >= settings.minLen && w.length <= settings.maxLen);
+    if (pool.length === 0) pool = WORD_BANK[selectedCategory];
+  }
+
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/* ===================== */
+/* START GAME            */
+/* ===================== */
+function startGame(diff) {
+  difficulty = diff;
+  const settings = DIFFICULTY[diff];
+  maxWrong = settings.maxWrong;
+  hintAllowed = settings.hintAllowed;
+  hintUsed = false;
+  wrongCount = 0;
+  guessedLetters = new Set();
+  gameActive = true;
+  coinsAwarded = false;
+  mpMode = false;
+  currentWord = pickWord(diff);
+
+  document.getElementById('soloHud').style.display = '';
+  document.getElementById('mpHud').style.display = 'none';
+
+  setupGameUI();
+  showScreen('gameScreen');
+}
+
+/* ===================== */
+/* SETUP GAME UI         */
+/* ===================== */
+function setupGameUI() {
+  // Update HUD
+  document.getElementById('guessesLeft').textContent = maxWrong - wrongCount;
+  document.getElementById('guessesLeftStat').classList.toggle('danger', false);
+  document.getElementById('gameCategory').textContent = mpMode ? 'Quick Match' : selectedCategory;
+  document.getElementById('gameStreak').textContent = currentStreak;
+
+  // Hint button
+  const hintBtn = document.getElementById('hintBtn');
+  hintBtn.style.display = (hintAllowed && !mpMode) ? '' : 'none';
+  hintBtn.disabled = false;
+
+  // Reset hangman figure
+  BODY_PARTS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('show');
+  });
+  document.getElementById('hangmanFace').innerHTML = '';
+  document.getElementById('hangmanArea').classList.remove('shake');
+
+  // Build word display
+  buildWordDisplay();
+
+  // Build keyboard
+  buildKeyboard();
+}
+
+function buildWordDisplay() {
+  const display = document.getElementById('wordDisplay');
+  display.innerHTML = '';
+  for (let i = 0; i < currentWord.length; i++) {
+    const ch = currentWord[i];
+    if (ch === ' ') {
+      display.innerHTML += '<div class="letter-space"></div>';
+    } else {
+      const revealed = guessedLetters.has(ch);
+      display.innerHTML += `<div class="letter-slot">
+        <span class="letter-char ${revealed ? 'revealed' : ''}" data-idx="${i}">${ch}</span>
+        <div class="letter-line ${revealed ? 'revealed' : ''}"></div>
+      </div>`;
+    }
+  }
+}
+
+function buildKeyboard() {
+  const kb = document.getElementById('keyboard');
+  const rows = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
+  kb.innerHTML = rows.map(row =>
+    `<div class="kb-row">${row.split('').map(l => {
+      let cls = 'kb-key';
+      if (guessedLetters.has(l)) {
+        cls += ' used';
+        cls += currentWord.includes(l) ? ' correct' : ' wrong';
+      }
+      return `<button class="${cls}" data-letter="${l}" onclick="HM.guessLetter('${l}')">${l}</button>`;
+    }).join('')}</div>`
+  ).join('');
+}
+
+/* ===================== */
+/* GUESS A LETTER        */
+/* ===================== */
+function guessLetter(letter) {
+  if (!gameActive || guessedLetters.has(letter)) return;
+
+  playSound('click');
+  guessedLetters.add(letter);
+
+  if (currentWord.includes(letter)) {
+    // Correct!
+    playSound('correct');
+    revealLetters(letter, 'revealed');
+
+    // Mark key correct
+    const key = document.querySelector(`.kb-key[data-letter="${letter}"]`);
+    if (key) { key.classList.add('used', 'correct'); }
+
+    // Check win
+    if (checkWin()) {
+      gameActive = false;
+      setTimeout(() => endGame(true), 500);
+    }
+  } else {
+    // Wrong!
+    wrongCount++;
+    playSound('wrong');
+    showBodyPart(wrongCount);
+
+    // Shake
+    const area = document.getElementById('hangmanArea');
+    area.classList.remove('shake');
+    void area.offsetWidth;
+    area.classList.add('shake');
+
+    // Update guesses left
+    const left = maxWrong - wrongCount;
+    document.getElementById('guessesLeft').textContent = left;
+    document.getElementById('guessesLeftStat').classList.toggle('danger', left <= 2);
+
+    // Mark key wrong
+    const key = document.querySelector(`.kb-key[data-letter="${letter}"]`);
+    if (key) { key.classList.add('used', 'wrong'); }
+
+    // Check lose
+    if (wrongCount >= maxWrong) {
+      gameActive = false;
+      showDeadFace();
+      setTimeout(() => endGame(false), 800);
+    }
+  }
+
+  // If multiplayer, sync
+  if (mpMode && roomCode) {
+    syncMPGuess(letter);
+  }
+}
+
+function revealLetters(letter, cls) {
+  for (let i = 0; i < currentWord.length; i++) {
+    if (currentWord[i] === letter) {
+      const chars = document.querySelectorAll('.letter-char');
+      const lines = document.querySelectorAll('.letter-line');
+      chars.forEach(c => {
+        if (parseInt(c.dataset.idx) === i) {
+          c.classList.add(cls);
+          c.style.color = '';
+        }
+      });
+      lines.forEach((l, idx) => {
+        // Find corresponding line
+      });
+    }
+  }
+  // Rebuild to ensure correct state
+  buildWordDisplay();
+}
+
+function checkWin() {
+  for (const ch of currentWord) {
+    if (ch !== ' ' && !guessedLetters.has(ch)) return false;
+  }
+  return true;
+}
+
+function showBodyPart(count) {
+  const parts = maxWrong <= 6 ? BODY_PARTS : BODY_PARTS_EXT;
+  // Map wrongCount to body part index
+  // For 5 guesses: skip some parts and combine
+  // For 6 guesses: standard parts
+  // For 8 guesses: extended parts
+
+  if (maxWrong === 8) {
+    // 8 parts: head, torso, arm-l, arm-r, leg-l, leg-r, eyes, mouth
+    if (count <= 6) {
+      const el = document.getElementById(BODY_PARTS[count - 1]);
+      if (el) el.classList.add('show');
+    } else if (count === 7) {
+      showFaceEyes();
+    } else if (count === 8) {
+      showSadMouth();
+    }
+  } else if (maxWrong === 6) {
+    if (count <= 6) {
+      const el = document.getElementById(BODY_PARTS[count - 1]);
+      if (el) el.classList.add('show');
+    }
+  } else if (maxWrong === 5) {
+    // 5 parts: head, torso, both-arms, leg-l, leg-r
+    const mapping = {
+      1: ['bp-head'],
+      2: ['bp-torso'],
+      3: ['bp-arm-l', 'bp-arm-r'],
+      4: ['bp-leg-l'],
+      5: ['bp-leg-r']
+    };
+    (mapping[count] || []).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('show');
+    });
+  }
+}
+
+function showFaceEyes() {
+  const face = document.getElementById('hangmanFace');
+  face.innerHTML += '<div class="eye eye-l"></div><div class="eye eye-r"></div>';
+}
+
+function showSadMouth() {
+  const face = document.getElementById('hangmanFace');
+  face.innerHTML += '<div class="mouth-sad"></div>';
+}
+
+function showDeadFace() {
+  const face = document.getElementById('hangmanFace');
+  face.innerHTML = '<div class="eye-x eye-x-l">&times;</div><div class="eye-x eye-x-r">&times;</div><div class="mouth-sad"></div>';
+}
+
+function showHappyFace() {
+  const face = document.getElementById('hangmanFace');
+  // Only add if head is visible
+  if (document.getElementById('bp-head').classList.contains('show')) {
+    face.innerHTML = '<div class="eye eye-l"></div><div class="eye eye-r"></div><div class="mouth-happy"></div>';
+  }
+}
+
+/* ===================== */
+/* HINT SYSTEM           */
+/* ===================== */
+function useHint() {
+  if (!gameActive || hintUsed || !hintAllowed || mpMode) return;
+  hintUsed = true;
+  document.getElementById('hintBtn').disabled = true;
+
+  // Find unrevealed letters
+  const unrevealed = [];
+  for (const ch of currentWord) {
+    if (ch !== ' ' && !guessedLetters.has(ch) && !unrevealed.includes(ch)) {
+      unrevealed.push(ch);
+    }
+  }
+  if (unrevealed.length === 0) return;
+
+  const hintLetter = unrevealed[Math.floor(Math.random() * unrevealed.length)];
+  guessedLetters.add(hintLetter);
+
+  // Costs 1 guess
+  wrongCount++;
+  showBodyPart(wrongCount);
+  const left = maxWrong - wrongCount;
+  document.getElementById('guessesLeft').textContent = left;
+  document.getElementById('guessesLeftStat').classList.toggle('danger', left <= 2);
+
+  // Reveal with hint color
+  playSound('correct');
+  buildWordDisplay();
+  // Mark the hint letter slots
+  document.querySelectorAll('.letter-char').forEach(c => {
+    if (currentWord[parseInt(c.dataset.idx)] === hintLetter) {
+      c.classList.remove('revealed');
+      c.classList.add('hint-reveal');
+    }
+  });
+  document.querySelectorAll('.letter-line').forEach((l, idx) => {});
+  // Rebuild word display to show hint-reveal properly
+  const display = document.getElementById('wordDisplay');
+  display.innerHTML = '';
+  for (let i = 0; i < currentWord.length; i++) {
+    const ch = currentWord[i];
+    if (ch === ' ') {
+      display.innerHTML += '<div class="letter-space"></div>';
+    } else {
+      const isGuessed = guessedLetters.has(ch);
+      const isHint = ch === hintLetter;
+      const cls = isHint ? 'hint-reveal' : (isGuessed ? 'revealed' : '');
+      display.innerHTML += `<div class="letter-slot">
+        <span class="letter-char ${cls}" data-idx="${i}">${ch}</span>
+        <div class="letter-line ${cls}"></div>
+      </div>`;
+    }
+  }
+
+  // Mark key
+  const key = document.querySelector(`.kb-key[data-letter="${hintLetter}"]`);
+  if (key) { key.classList.add('used', 'correct'); }
+
+  // Check win
+  if (checkWin()) {
+    gameActive = false;
+    setTimeout(() => endGame(true), 500);
+  }
+
+  if (typeof odaToast === 'function') odaToast('Hint revealed: ' + hintLetter, 'info');
+}
+
+/* ===================== */
+/* END GAME              */
+/* ===================== */
+async function endGame(won) {
+  gameActive = false;
+
+  if (won) {
+    playSound('win');
+    showHappyFace();
+    currentStreak++;
+    if (typeof odaConfetti === 'function') odaConfetti();
+    createWinBurst();
+  } else {
+    playSound('lose');
+    currentStreak = 0;
+    // Reveal remaining letters in red
+    for (const ch of currentWord) {
+      if (ch !== ' ') guessedLetters.add(ch);
+    }
+    const display = document.getElementById('wordDisplay');
+    display.innerHTML = '';
+    for (let i = 0; i < currentWord.length; i++) {
+      const ch = currentWord[i];
+      if (ch === ' ') {
+        display.innerHTML += '<div class="letter-space"></div>';
+      } else {
+        display.innerHTML += `<div class="letter-slot">
+          <span class="letter-char wrong-reveal" data-idx="${i}">${ch}</span>
+          <div class="letter-line wrong-reveal"></div>
+        </div>`;
+      }
+    }
+  }
+
+  // Show result
+  document.getElementById('resultTitle').textContent = won ? 'You Won!' : 'Game Over';
+  document.getElementById('resultTitle').style.color = won ? 'var(--accent)' : 'var(--accent3)';
+  document.getElementById('resultSub').textContent = won
+    ? (currentStreak > 1 ? currentStreak + ' win streak!' : 'Great job!')
+    : 'Better luck next time!';
+
+  const wordEl = document.getElementById('resultWord');
+  wordEl.textContent = currentWord;
+  wordEl.className = 'result-word ' + (won ? 'win' : 'lose');
+
+  // Coins
+  const coinsEl = document.getElementById('coinsDisplay');
+  if (won && studentId && !coinsAwarded) {
+    const coins = mpMode ? 10 : DIFFICULTY[difficulty].coins;
+    document.getElementById('coinsAmount').textContent = coins;
+    coinsEl.style.display = '';
+    awardCoins(coins);
+    coinsAwarded = true;
+  } else {
+    coinsEl.style.display = 'none';
+  }
+
+  // Update record
+  if (studentId) {
+    await updateRecord(won);
+  }
+
+  // Record update display
+  document.getElementById('recordUpdate').innerHTML = `
+    <div class="stat-box"><div class="stat-val" style="color:var(--accent)">${currentStreak}</div><div class="stat-label">Streak</div></div>
+    <div class="stat-box"><div class="stat-val">${DIFFICULTY[difficulty]?.label || 'N/A'}</div><div class="stat-label">Difficulty</div></div>
+  `;
+
+  setTimeout(() => showScreen('resultScreen'), mpMode ? 200 : 600);
+}
+
+function createWinBurst() {
+  const burst = document.createElement('div');
+  burst.className = 'win-burst';
+  const colors = ['#06d6a0', '#ffd166', '#118ab2', '#ef476f', '#f0f4ff'];
+  for (let i = 0; i < 30; i++) {
+    const p = document.createElement('div');
+    p.className = 'win-particle';
+    p.style.left = '50%';
+    p.style.top = '50%';
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.setProperty('--dx', (Math.random() - 0.5) * 600 + 'px');
+    p.style.setProperty('--dy', (Math.random() - 0.5) * 600 + 'px');
+    p.style.animationDelay = (Math.random() * 0.3) + 's';
+    burst.appendChild(p);
+  }
+  document.body.appendChild(burst);
+  setTimeout(() => burst.remove(), 2000);
+}
+
+/* ===================== */
+/* COINS                 */
+/* ===================== */
+async function awardCoins(coins) {
+  if (!studentId || !coins) return;
+  try {
+    await initFirebase();
+    await updateDoc(doc(db, 'students', studentId), { coins: increment(coins) });
+  } catch (e) { console.warn('Coin award failed:', e); }
+}
+
+/* ===================== */
+/* RECORDS               */
+/* ===================== */
+async function updateRecord(won) {
+  try {
+    await initFirebase();
+    const ref = doc(db, 'hangmanRecords', studentId);
+    const snap = await getDoc(ref);
+
+    if (snap.exists()) {
+      const data = snap.data();
+      const ws = won ? (data.winStreak || 0) + 1 : 0;
+      const best = Math.max(data.bestStreak || 0, ws);
+      if (won) {
+        await updateDoc(ref, { wins: increment(1), gamesPlayed: increment(1), winStreak: ws, bestStreak: best, lastPlayed: new Date().toISOString() });
+      } else {
+        await updateDoc(ref, { losses: increment(1), gamesPlayed: increment(1), winStreak: 0, lastPlayed: new Date().toISOString() });
+      }
+    } else {
+      await setDoc(ref, {
+        studentId: studentId,
+        studentName: studentName,
+        classCode: classCode,
+        wins: won ? 1 : 0,
+        losses: won ? 0 : 1,
+        gamesPlayed: 1,
+        winStreak: won ? 1 : 0,
+        bestStreak: won ? 1 : 0,
+        lastPlayed: new Date().toISOString()
+      });
+    }
+  } catch (e) { console.warn('Record update failed:', e); }
+}
+
+async function loadRecords() {
+  showScreen('recordsScreen');
+  await initFirebase();
+
+  // My stats
+  if (studentId) {
+    try {
+      const snap = await getDoc(doc(db, 'hangmanRecords', studentId));
+      if (snap.exists()) {
+        const d = snap.data();
+        document.getElementById('rWins').textContent = d.wins || 0;
+        document.getElementById('rLosses').textContent = d.losses || 0;
+        document.getElementById('rPlayed').textContent = d.gamesPlayed || 0;
+        document.getElementById('rStreak').textContent = d.bestStreak || 0;
+      }
+    } catch (e) {}
+  }
+
+  // Leaderboard
+  try {
+    let q;
+    if (classCode) {
+      q = query(collection(db, 'hangmanRecords'), where('classCode', '==', classCode), orderBy('wins', 'desc'), limit(50));
+    } else {
+      q = query(collection(db, 'hangmanRecords'), orderBy('wins', 'desc'), limit(50));
+    }
+    const snap = await getDocs(q);
+    if (snap.empty) {
+      document.getElementById('leaderboardArea').innerHTML = '<p style="color:var(--text2)">No records yet. Play some games!</p>';
+      return;
+    }
+    let html = '<table class="leaderboard-table"><thead><tr><th>#</th><th>Student</th><th>W</th><th>L</th><th>Played</th><th>Best Streak</th></tr></thead><tbody>';
+    let rank = 0;
+    snap.forEach(d => {
+      rank++;
+      const r = d.data();
+      const isMe = d.id === studentId;
+      html += `<tr ${isMe ? 'style="outline:2px solid var(--accent);border-radius:10px"' : ''}>
+        <td style="font-weight:800" class="${rank <= 3 ? 'rank-' + rank : ''}">${rank}</td>
+        <td>${esc(r.studentName || 'Unknown')}${isMe ? ' <span style="color:var(--accent);font-size:11px">(you)</span>' : ''}</td>
+        <td style="color:var(--accent);font-weight:800">${r.wins || 0}</td>
+        <td>${r.losses || 0}</td>
+        <td>${r.gamesPlayed || 0}</td>
+        <td style="color:var(--gold)">${r.bestStreak || 0}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('leaderboardArea').innerHTML = html;
+  } catch (e) {
+    document.getElementById('leaderboardArea').innerHTML = '<p style="color:var(--text2)">Failed to load leaderboard.</p>';
+  }
+}
+
+/* ===================== */
+/* HOME STATS            */
+/* ===================== */
+async function loadHomeStats() {
+  if (!studentId) return;
+  try {
+    await initFirebase();
+    const snap = await getDoc(doc(db, 'hangmanRecords', studentId));
+    if (snap.exists()) {
+      const d = snap.data();
+      currentStreak = d.winStreak || 0;
+      document.getElementById('homeStats').innerHTML = `
+        <div class="stat-pill"><span>Wins:</span> <span class="stat-num">${d.wins || 0}</span></div>
+        <div class="stat-pill"><span>Streak:</span> <span class="stat-num">${d.winStreak || 0}</span></div>
+        <div class="stat-pill"><span>Best:</span> <span class="stat-num">${d.bestStreak || 0}</span></div>
+      `;
+    }
+  } catch (e) {}
+}
+
+/* ===================== */
+/* IMPORT WORDS          */
+/* ===================== */
+async function resolveTeacherId() {
+  let tid = sessionStorage.getItem('teacherId') || '';
+  if (tid) return tid;
+
+  // Try auth
+  try {
+    const a = await getFirebaseAuth();
+    if (a.auth.currentUser) tid = a.auth.currentUser.uid;
+  } catch (e) {}
+  if (tid) return tid;
+
+  // Look up from classCode
+  if (classCode) {
+    try {
+      await initFirebase();
+      const q2 = query(collection(db, 'teachers'), where('classCode', '==', classCode));
+      const snap = await getDocs(q2);
+      if (!snap.empty) {
+        snap.forEach(d => { tid = d.id; });
+      }
+    } catch (e) {}
+  }
+  return tid;
+}
+
+let _importedSpellingLists = [];
+async function importFromSpelling() {
+  const area = document.getElementById('importArea');
+  area.style.display = 'block';
+  area.innerHTML = '<div style="color:var(--text2);font-size:13px">Loading spelling lists...</div>';
+  try {
+    await initFirebase();
+    const tid = await resolveTeacherId();
+    if (!tid) { area.innerHTML = '<div style="color:var(--accent3);font-size:13px">Could not determine teacher ID.</div>'; return; }
+    const q = query(collection(db, 'spellingLists'), where('teacherId', '==', tid));
+    const snap = await getDocs(q);
+    const lists = [];
+    snap.forEach(d => { lists.push(Object.assign({ id: d.id }, d.data())); });
+    if (lists.length === 0) {
+      area.innerHTML = '<div style="color:var(--text2);font-size:13px">No spelling lists found. Create one in Spelling Bee first!</div>';
+      return;
+    }
+    let html = '<select style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text);font-family:Outfit,sans-serif;font-size:14px;max-width:300px;outline:none" onchange="HM.applySpellingImport(this.value)">';
+    html += '<option value="">-- Select a list --</option>';
+    lists.forEach((l, i) => {
+      html += '<option value="' + i + '">' + esc(l.name || l.title || 'List') + ' (' + (l.words || []).length + ' words)</option>';
+    });
+    html += '</select>';
+    area.innerHTML = html;
+    _importedSpellingLists = lists;
+  } catch (e) {
+    area.innerHTML = '<div style="color:var(--accent3);font-size:13px">Error: ' + esc(e.message) + '</div>';
+  }
+}
+
+function applySpellingImport(idx) {
+  if (idx === '') return;
+  const list = _importedSpellingLists[parseInt(idx)];
+  if (!list || !list.words) return;
+  importedWords = [];
+  list.words.forEach(w => {
+    const word = (typeof w === 'string' ? w : (w.word || '')).toUpperCase().replace(/[^A-Z]/g, '');
+    if (word.length >= 2 && word.length <= 20 && !importedWords.includes(word)) {
+      importedWords.push(word);
+    }
+  });
+  showImportedBadge(importedWords.length, list.name || list.title || 'Spelling List');
+  document.getElementById('importArea').style.display = 'none';
+  if (typeof odaToast === 'function') odaToast('Imported ' + importedWords.length + ' words from Spelling Bee!', 'success');
+}
+
+let _importedFlashcardDecks = [];
+async function importFromFlashcards() {
+  const area = document.getElementById('importArea');
+  area.style.display = 'block';
+  area.innerHTML = '<div style="color:var(--text2);font-size:13px">Loading flashcard decks...</div>';
+  try {
+    await initFirebase();
+    const tid = await resolveTeacherId();
+    if (!tid) { area.innerHTML = '<div style="color:var(--accent3);font-size:13px">Could not determine teacher ID.</div>'; return; }
+    const q = query(collection(db, 'flashcardDecks'), where('teacherId', '==', tid));
+    const snap = await getDocs(q);
+    const decks = [];
+    snap.forEach(d => { decks.push(Object.assign({ id: d.id }, d.data())); });
+    if (decks.length === 0) {
+      area.innerHTML = '<div style="color:var(--text2);font-size:13px">No flashcard decks found. Create one in Flashcards first!</div>';
+      return;
+    }
+    let html = '<select style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text);font-family:Outfit,sans-serif;font-size:14px;max-width:300px;outline:none" onchange="HM.applyFlashcardImport(this.value)">';
+    html += '<option value="">-- Select a deck --</option>';
+    decks.forEach((d, i) => {
+      html += '<option value="' + i + '">' + esc(d.title || 'Deck') + ' (' + (d.cards || []).length + ' cards)</option>';
+    });
+    html += '</select>';
+    area.innerHTML = html;
+    _importedFlashcardDecks = decks;
+  } catch (e) {
+    area.innerHTML = '<div style="color:var(--accent3);font-size:13px">Error: ' + esc(e.message) + '</div>';
+  }
+}
+
+function applyFlashcardImport(idx) {
+  if (idx === '') return;
+  const deck = _importedFlashcardDecks[parseInt(idx)];
+  if (!deck || !deck.cards) return;
+  importedWords = [];
+  deck.cards.forEach(c => {
+    const word = (c.front || c.term || c.word || '').toUpperCase().replace(/[^A-Z ]/g, '').trim();
+    if (word.length >= 2 && word.length <= 20 && !importedWords.includes(word)) {
+      importedWords.push(word);
+    }
+  });
+  showImportedBadge(importedWords.length, deck.title || 'Flashcard Deck');
+  document.getElementById('importArea').style.display = 'none';
+  if (typeof odaToast === 'function') odaToast('Imported ' + importedWords.length + ' words from Flashcards!', 'success');
+}
+
+function showImportedBadge(count, source) {
+  const badge = document.getElementById('importedBadge');
+  badge.style.display = '';
+  document.getElementById('importedLabel').textContent = count + ' words from ' + source;
+}
+
+function clearImported() {
+  importedWords = [];
+  document.getElementById('importedBadge').style.display = 'none';
+  selectedCategory = 'Random';
+  if (typeof odaToast === 'function') odaToast('Imported words cleared', 'info');
+}
+
+/* ===================== */
+/* QUICK MATCH           */
+/* ===================== */
+function showQuickMatch() {
+  document.getElementById('joinError').textContent = '';
+  document.getElementById('joinCodeInput').value = '';
+  showScreen('quickMatchScreen');
+}
+
+function genCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let c = '';
+  for (let i = 0; i < 4; i++) c += chars[Math.floor(Math.random() * chars.length)];
+  return c;
+}
+
+async function createRoom() {
+  if (!studentId) { if (typeof odaToast === 'function') odaToast('Sign in to play multiplayer', 'error'); return; }
+  try {
+    await initFirebase();
+    roomCode = genCode();
+    await setDoc(doc(db, 'hangmanGames', roomCode), {
+      host: studentId,
+      hostName: studentName,
+      guest: null,
+      guestName: null,
+      word: '',
+      guessedLetters: '',
+      wrongCount: 0,
+      maxWrong: 6,
+      status: 'waiting', // waiting, picking, playing, finished
+      winner: null,
+      round: 1,
+      picker: studentId,
+      guesser: null,
+      classCode: classCode || '',
+      createdAt: new Date().toISOString()
+    });
+
+    document.getElementById('waitingCode').textContent = roomCode;
+    document.getElementById('wordEntryArea').style.display = 'none';
+    document.getElementById('waitingInfo').textContent = 'Waiting for another player to join...';
+    showScreen('waitingScreen');
+
+    listenToRoom();
+  } catch (e) {
+    if (typeof odaToast === 'function') odaToast('Failed to create room', 'error');
+  }
+}
+
+async function joinRoom() {
+  const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+  if (code.length !== 4) {
+    document.getElementById('joinError').textContent = 'Enter a 4-character code';
+    return;
+  }
+  if (!studentId) { if (typeof odaToast === 'function') odaToast('Sign in to play multiplayer', 'error'); return; }
+
+  try {
+    await initFirebase();
+    const ref = doc(db, 'hangmanGames', code);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      document.getElementById('joinError').textContent = 'Room not found';
+      return;
+    }
+    const data = snap.data();
+    if (data.guest && data.guest !== studentId) {
+      document.getElementById('joinError').textContent = 'Room is full';
+      return;
+    }
+    if (data.host === studentId) {
+      document.getElementById('joinError').textContent = 'Cannot join your own room';
+      return;
+    }
+
+    roomCode = code;
+    await updateDoc(ref, {
+      guest: studentId,
+      guestName: studentName,
+      guesser: studentId,
+      status: 'picking'
+    });
+
+    listenToRoom();
+  } catch (e) {
+    document.getElementById('joinError').textContent = 'Failed to join room';
+  }
+}
+
+function listenToRoom() {
+  if (unsubRoom) unsubRoom();
+  const ref = doc(db, 'hangmanGames', roomCode);
+  unsubRoom = onSnapshot(ref, snap => {
+    if (!snap.exists()) { cancelRoom(); return; }
+    const data = snap.data();
+
+    // Determine my role
+    mpRole = data.picker === studentId ? 'picker' : 'guesser';
+    mpRound = data.round || 1;
+
+    if (data.status === 'waiting') {
+      // Still waiting for guest
+      document.getElementById('waitingCode').textContent = roomCode;
+      document.getElementById('waitingInfo').textContent = 'Waiting for another player to join...';
+      document.getElementById('wordEntryArea').style.display = 'none';
+      showScreen('waitingScreen');
+    }
+    else if (data.status === 'picking') {
+      if (mpRole === 'picker') {
+        // I need to pick a word
+        document.getElementById('waitingCode').textContent = roomCode;
+        document.getElementById('wordEntryArea').style.display = '';
+        document.getElementById('waitingInfo').textContent = data.guestName ? (esc(data.guestName) + ' joined! Pick a word.') : 'Pick a word for your opponent.';
+        document.getElementById('hostWordInput').value = '';
+        document.getElementById('wordError').textContent = '';
+        showScreen('waitingScreen');
+      } else {
+        // I'm the guesser, waiting for word
+        document.getElementById('waitingCode').textContent = roomCode;
+        document.getElementById('wordEntryArea').style.display = 'none';
+        const pickerName = data.picker === data.host ? data.hostName : data.guestName;
+        document.getElementById('waitingInfo').textContent = esc(pickerName || 'Opponent') + ' is choosing a word...';
+        showScreen('waitingScreen');
+      }
+    }
+    else if (data.status === 'playing') {
+      // Game is active
+      currentWord = data.word.toUpperCase();
+      guessedLetters = new Set(data.guessedLetters ? data.guessedLetters.split(',').filter(Boolean) : []);
+      wrongCount = data.wrongCount || 0;
+      maxWrong = data.maxWrong || 6;
+      difficulty = 'medium';
+      hintAllowed = false;
+      hintUsed = true;
+      mpMode = true;
+      coinsAwarded = false;
+
+      // Set up HUD
+      document.getElementById('soloHud').style.display = 'none';
+      document.getElementById('mpHud').style.display = '';
+
+      const pickerName = data.picker === data.host ? data.hostName : data.guestName;
+      const guesserName = data.guesser === data.host ? data.hostName : data.guestName;
+      document.getElementById('mpPickerName').textContent = pickerName || 'Picker';
+      document.getElementById('mpGuesserName').textContent = guesserName || 'Guesser';
+      document.getElementById('mpPickerAvatar').textContent = (pickerName || 'P').charAt(0).toUpperCase();
+      document.getElementById('mpGuesserAvatar').textContent = (guesserName || 'G').charAt(0).toUpperCase();
+
+      if (mpRole === 'picker') {
+        document.getElementById('mpPicker').classList.add('active-player');
+        document.getElementById('mpGuesser').classList.remove('active-player');
+      } else {
+        document.getElementById('mpGuesser').classList.add('active-player');
+        document.getElementById('mpPicker').classList.remove('active-player');
+      }
+
+      gameActive = mpRole === 'guesser';
+      setupGameUI();
+
+      // If I'm picker, disable keyboard
+      if (mpRole === 'picker') {
+        document.querySelectorAll('.kb-key').forEach(k => {
+          if (!k.classList.contains('used')) {
+            k.style.opacity = '0.4';
+            k.style.pointerEvents = 'none';
+          }
+        });
+      }
+
+      showScreen('gameScreen');
+    }
+    else if (data.status === 'finished') {
+      // Game over
+      currentWord = data.word.toUpperCase();
+      guessedLetters = new Set(data.guessedLetters ? data.guessedLetters.split(',').filter(Boolean) : []);
+      wrongCount = data.wrongCount || 0;
+      const won = mpRole === 'guesser' && data.winner === 'guesser';
+      const lost = mpRole === 'guesser' && data.winner !== 'guesser';
+
+      if (mpRole === 'guesser') {
+        endGame(won);
+      } else {
+        // Picker sees the result
+        const guesserWon = data.winner === 'guesser';
+        document.getElementById('resultTitle').textContent = guesserWon ? 'They Got It!' : 'They Lost!';
+        document.getElementById('resultTitle').style.color = guesserWon ? 'var(--accent)' : 'var(--accent3)';
+        document.getElementById('resultSub').textContent = guesserWon ? 'Your opponent figured it out.' : 'Your word stumped them!';
+        document.getElementById('resultWord').textContent = currentWord;
+        document.getElementById('resultWord').className = 'result-word ' + (guesserWon ? 'win' : 'lose');
+        document.getElementById('coinsDisplay').style.display = 'none';
+
+        // Award coins to picker if guesser lost
+        if (!guesserWon && !coinsAwarded) {
+          document.getElementById('coinsDisplay').style.display = '';
+          document.getElementById('coinsAmount').textContent = '10';
+          awardCoins(10);
+          coinsAwarded = true;
+        }
+
+        document.getElementById('recordUpdate').innerHTML = '';
+        showScreen('resultScreen');
+      }
+
+      if (unsubRoom) unsubRoom();
+      unsubRoom = null;
+    }
+  });
+}
+
+async function submitWord() {
+  const word = document.getElementById('hostWordInput').value.trim().toUpperCase().replace(/[^A-Z]/g, '');
+  if (word.length < 2) {
+    document.getElementById('wordError').textContent = 'Word must be at least 2 letters';
+    return;
+  }
+  if (word.length > 20) {
+    document.getElementById('wordError').textContent = 'Word must be 20 letters or less';
+    return;
+  }
+
+  try {
+    await initFirebase();
+    await updateDoc(doc(db, 'hangmanGames', roomCode), {
+      word: word,
+      status: 'playing',
+      guessedLetters: '',
+      wrongCount: 0,
+      maxWrong: 6
+    });
+  } catch (e) {
+    document.getElementById('wordError').textContent = 'Failed to submit word';
+  }
+}
+
+async function syncMPGuess(letter) {
+  if (!roomCode) return;
+  try {
+    await initFirebase();
+    const ref = doc(db, 'hangmanGames', roomCode);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const data = snap.data();
+
+    const letters = data.guessedLetters ? data.guessedLetters.split(',').filter(Boolean) : [];
+    if (!letters.includes(letter)) letters.push(letter);
+
+    const word = data.word.toUpperCase();
+    const isWrong = !word.includes(letter);
+    const newWrongCount = isWrong ? (data.wrongCount || 0) + 1 : (data.wrongCount || 0);
+
+    // Check if game is over
+    const allGuessed = word.split('').every(ch => ch === ' ' || letters.includes(ch));
+    const lost = newWrongCount >= (data.maxWrong || 6);
+
+    const update = {
+      guessedLetters: letters.join(','),
+      wrongCount: newWrongCount
+    };
+
+    if (allGuessed) {
+      update.status = 'finished';
+      update.winner = 'guesser';
+    } else if (lost) {
+      update.status = 'finished';
+      update.winner = 'picker';
+    }
+
+    await updateDoc(ref, update);
+  } catch (e) { console.warn('MP sync failed:', e); }
+}
+
+async function cancelRoom() {
+  if (unsubRoom) { unsubRoom(); unsubRoom = null; }
+  if (roomCode) {
+    try {
+      await initFirebase();
+      if (deleteDoc) await deleteDoc(doc(db, 'hangmanGames', roomCode));
+    } catch (e) {}
+  }
+  roomCode = null;
+  mpMode = false;
+  mpRole = null;
+  showScreen('homeScreen');
+}
+
+/* ===================== */
+/* NAV ACTIONS           */
+/* ===================== */
+function playAgain() {
+  if (mpMode && roomCode) {
+    // Return to quick match
+    showQuickMatch();
+  } else if (importedWords.length > 0) {
+    startGame(difficulty);
+  } else {
+    showCategories();
+  }
+}
+
+function goHome() {
+  if (unsubRoom) { unsubRoom(); unsubRoom = null; }
+  roomCode = null;
+  mpMode = false;
+  showScreen('homeScreen');
+  loadHomeStats();
+}
+
+function quitGame() {
+  gameActive = false;
+  if (mpMode && roomCode) {
+    cancelRoom();
+  } else {
+    goHome();
+  }
+}
+
+/* ===================== */
+/* KEYBOARD HANDLER      */
+/* ===================== */
+document.addEventListener('keydown', function(e) {
+  if (!gameActive) return;
+  const letter = e.key.toUpperCase();
+  if (/^[A-Z]$/.test(letter)) {
+    guessLetter(letter);
+  }
+});
+
+/* ===================== */
+/* INIT                  */
+/* ===================== */
+loadHomeStats();
+
+/* ===================== */
+/* PUBLIC API            */
+/* ===================== */
+window.HM = {
+  showScreen,
+  showCategories,
+  selectCategory,
+  startGame,
+  guessLetter,
+  useHint,
+  showQuickMatch,
+  createRoom,
+  joinRoom,
+  cancelRoom,
+  submitWord,
+  loadRecords,
+  playAgain,
+  goHome,
+  quitGame,
+  importFromSpelling,
+  importFromFlashcards,
+  applySpellingImport,
+  applyFlashcardImport,
+  clearImported
+};
+
+})();
+</script>
+</body>
+</html>

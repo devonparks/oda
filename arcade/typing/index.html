@@ -1,0 +1,1786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Typing Race - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#a8b2c8}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden;user-select:none}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+/* Back Button */
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* Screen System */
+.screen{display:none;width:100%;min-height:100vh;animation:fadeUp .35s ease}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* Shared Components */
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-blue{background:var(--accent2);color:#fff}
+.btn-blue:hover{box-shadow:0 0 24px rgba(17,138,178,.3)}
+.btn-red{background:var(--accent3);color:#fff}
+.btn-red:hover{box-shadow:0 0 24px rgba(239,71,111,.3)}
+.btn-gold{background:var(--gold);color:var(--bg)}
+.btn-gold:hover{box-shadow:0 0 24px rgba(255,209,102,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+.btn-icon{min-width:auto;padding:10px 14px}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;transition:all .2s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.badge-accent{background:rgba(6,214,160,.15);color:var(--accent)}
+.badge-gold{background:rgba(255,209,102,.15);color:var(--gold)}
+.badge-red{background:rgba(239,71,111,.15);color:var(--accent3)}
+.badge-blue{background:rgba(17,138,178,.15);color:var(--accent2)}
+
+.section-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px}
+
+.code-input{background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:14px 20px;color:var(--text);font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;text-align:center;width:200px;letter-spacing:8px;outline:none;transition:border-color .2s}
+.code-input:focus{border-color:var(--accent)}
+.code-input::placeholder{color:var(--border);letter-spacing:4px;font-size:20px}
+
+.stat-box{text-align:center;padding:12px 16px}
+.stat-box .stat-val{font-size:28px;font-weight:900;font-family:'Fredoka',sans-serif}
+.stat-box .stat-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+.error-text{color:var(--accent3);font-size:13px;font-weight:600;margin-top:8px;min-height:20px}
+
+.divider{width:100%;height:1px;background:var(--border);margin:16px 0}
+
+/* ======================== */
+/* HOME SCREEN              */
+/* ======================== */
+#homeScreen{padding-top:60px;padding-bottom:40px}
+.home-header{text-align:center;margin-bottom:36px}
+.home-header h1{font-size:clamp(36px,8vw,52px);font-weight:700;margin-bottom:4px}
+.home-header p{color:var(--text2);font-size:15px}
+
+.best-wpm-display{display:flex;align-items:center;justify-content:center;gap:12px;margin:20px auto;padding:14px 28px;background:var(--surface);border:1px solid var(--border);border-radius:16px;max-width:300px}
+.best-wpm-display .wpm-num{font-size:36px;font-weight:900;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.best-wpm-display .wpm-label{font-size:13px;color:var(--text2);text-align:left;line-height:1.3}
+.best-wpm-display .wpm-label strong{color:var(--text);display:block}
+
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;max-width:700px;width:90%;margin:0 auto}
+.mode-card{cursor:pointer;text-align:center;padding:28px 20px}
+.mode-card .mode-icon{font-size:40px;margin-bottom:12px;display:block}
+.mode-card h3{font-size:18px;margin-bottom:6px}
+.mode-card p{font-size:13px;color:var(--text2);line-height:1.4}
+
+.import-row{text-align:center;margin-top:24px}
+
+/* ======================== */
+/* SETUP SCREEN             */
+/* ======================== */
+#setupScreen{padding-top:80px}
+.setup-container{max-width:440px;width:90%;text-align:center}
+.setup-container h2{font-size:28px;margin-bottom:24px}
+
+.setup-section{margin-bottom:24px;text-align:left}
+.setup-section .section-title{margin-bottom:12px}
+
+.option-grid{display:flex;flex-wrap:wrap;gap:10px}
+.option-card{flex:1;min-width:100px;cursor:pointer;padding:16px 12px;text-align:center;border-radius:14px;background:var(--surface);border:2px solid var(--border);transition:all .15s;font-weight:700;font-size:14px}
+.option-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.option-card.selected{border-color:var(--accent);background:rgba(6,214,160,.1);color:var(--accent)}
+.option-card .opt-icon{display:block;font-size:24px;margin-bottom:6px}
+.option-card .opt-sub{font-size:11px;color:var(--text2);font-weight:600;margin-top:2px}
+
+.option-card.easy{border-color:var(--accent)}
+.option-card.easy.selected{background:rgba(6,214,160,.15);color:var(--accent)}
+.option-card.medium{border-color:var(--gold)}
+.option-card.medium.selected{background:rgba(255,209,102,.15);color:var(--gold)}
+.option-card.hard{border-color:var(--accent3)}
+.option-card.hard.selected{background:rgba(239,71,111,.15);color:var(--accent3)}
+
+/* ======================== */
+/* GAME SCREEN              */
+/* ======================== */
+#gameScreen{padding:0;min-height:100vh;justify-content:flex-start}
+.game-container{width:100%;max-width:900px;padding:80px 20px 40px;margin:0 auto}
+
+.game-stats-bar{display:flex;justify-content:center;gap:24px;margin-bottom:20px;flex-wrap:wrap}
+.game-stat{text-align:center}
+.game-stat .gs-val{font-size:32px;font-weight:900;font-family:'Fredoka',sans-serif}
+.game-stat .gs-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.game-stat.wpm-stat .gs-val{color:var(--accent)}
+.game-stat.acc-stat .gs-val{color:var(--accent2)}
+.game-stat.time-stat .gs-val{color:var(--gold)}
+
+.progress-bar-wrap{width:100%;height:8px;background:var(--surface2);border-radius:4px;margin-bottom:24px;overflow:hidden}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:4px;transition:width .3s ease;width:0}
+
+.text-display{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 28px;font-family:'Courier New',Consolas,monospace;font-size:clamp(18px,2.5vw,24px);line-height:2;letter-spacing:.5px;min-height:200px;position:relative;cursor:text;user-select:none;overflow-wrap:break-word;word-break:break-word}
+.text-display:focus{outline:none;border-color:var(--accent);box-shadow:0 0 30px rgba(6,214,160,.1)}
+
+.char{display:inline;position:relative}
+.char.correct{color:var(--accent);opacity:.7}
+.char.incorrect{color:var(--accent3);background:rgba(239,71,111,.15);border-radius:2px;animation:charShake .3s ease}
+.char.current{color:var(--text);border-bottom:3px solid var(--accent);animation:cursorBlink 1s ease-in-out infinite}
+.char.upcoming{color:var(--text2)}
+.char.space-marker.correct{background:rgba(6,214,160,.08)}
+.char.space-marker.incorrect{background:rgba(239,71,111,.2)}
+
+@keyframes cursorBlink{0%,100%{border-bottom-color:var(--accent)}50%{border-bottom-color:transparent}}
+@keyframes charShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+
+.game-input{position:fixed;left:-9999px;opacity:0;pointer-events:none}
+
+.game-footer{display:flex;justify-content:center;gap:12px;margin-top:20px}
+
+.countdown-overlay{position:fixed;inset:0;background:rgba(10,14,26,.92);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(8px)}
+.countdown-num{font-size:clamp(100px,20vw,180px);font-weight:900;font-family:'Fredoka',sans-serif;color:var(--accent);animation:countPop .8s ease;text-shadow:0 0 80px rgba(6,214,160,.4)}
+.countdown-num.go{color:var(--gold);text-shadow:0 0 80px rgba(255,209,102,.4)}
+@keyframes countPop{0%{transform:scale(2);opacity:0}50%{transform:scale(.9);opacity:1}100%{transform:scale(1)}}
+
+/* ======================== */
+/* LOBBY SCREEN             */
+/* ======================== */
+#lobbyScreen{padding-top:80px}
+.lobby-container{max-width:500px;width:90%;text-align:center}
+.lobby-container h2{font-size:28px;margin-bottom:8px}
+.room-code-big{font-size:clamp(48px,12vw,72px);font-weight:900;font-family:'Fredoka',sans-serif;color:var(--gold);letter-spacing:16px;margin:20px 0;text-shadow:0 0 40px rgba(255,209,102,.3)}
+
+.player-list{display:flex;flex-direction:column;gap:8px;margin:20px 0}
+.player-slot{display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:14px;font-weight:700;font-size:15px}
+.player-slot .ps-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;font-family:'Fredoka',sans-serif;flex-shrink:0}
+.player-slot .ps-name{flex:1;text-align:left}
+.player-slot .ps-host{font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:1px}
+.player-slot.empty{opacity:.3;border-style:dashed}
+
+.lobby-settings{margin:20px 0}
+.lobby-settings .option-grid{justify-content:center}
+
+.waiting-pulse{color:var(--text2);font-size:14px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ======================== */
+/* RACE SCREEN              */
+/* ======================== */
+#raceScreen{padding:0;min-height:100vh;justify-content:flex-start}
+.race-container{width:100%;max-width:900px;padding:70px 20px 40px;margin:0 auto}
+
+.race-track{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 20px;margin-bottom:20px}
+.race-lane{display:flex;align-items:center;gap:10px;padding:8px 0;position:relative}
+.race-lane+.race-lane{border-top:1px solid var(--border)}
+.race-lane .lane-name{font-size:13px;font-weight:700;width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+.race-lane .lane-track{flex:1;height:32px;background:var(--surface2);border-radius:8px;position:relative;overflow:hidden}
+.race-lane .lane-car{position:absolute;top:50%;transform:translateY(-50%);left:0;font-size:22px;transition:left .4s ease;z-index:2}
+.race-lane .lane-fill{position:absolute;top:0;left:0;height:100%;border-radius:8px;transition:width .4s ease;opacity:.2}
+.race-lane .lane-wpm{font-size:12px;font-weight:800;width:60px;text-align:right;flex-shrink:0;color:var(--text2)}
+.race-lane.me .lane-name{color:var(--accent)}
+.race-lane.me .lane-fill{opacity:.3}
+
+.lane-colors{--c1:var(--accent);--c2:var(--accent2);--c3:var(--accent3);--c4:var(--gold);--c5:#9b5de5;--c6:#00f5d4}
+
+/* ======================== */
+/* IMPORT MODAL             */
+/* ======================== */
+.modal-overlay{position:fixed;inset:0;background:rgba(10,14,26,.85);display:none;align-items:center;justify-content:center;z-index:300;backdrop-filter:blur(6px)}
+.modal-overlay.active{display:flex}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;max-width:440px;width:90%;max-height:80vh;overflow-y:auto}
+.modal-box h3{font-size:22px;margin-bottom:16px}
+.modal-close{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer}
+.import-select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;outline:none}
+.import-select:focus{border-color:var(--accent)}
+.import-preview{margin-top:12px;padding:14px;background:var(--surface2);border-radius:10px;font-size:13px;color:var(--text2);line-height:1.6;max-height:200px;overflow-y:auto;display:none}
+
+/* ======================== */
+/* MULTIPLAYER JOIN         */
+/* ======================== */
+#multiScreen{padding-top:80px}
+.multi-container{text-align:center;max-width:400px;width:90%}
+.multi-container h2{font-size:28px;margin-bottom:8px}
+.multi-container .sub{color:var(--text2);font-size:14px;margin-bottom:24px}
+.multi-actions{display:flex;flex-direction:column;gap:14px;align-items:center}
+.multi-divider{display:flex;align-items:center;gap:14px;width:100%;margin:4px 0}
+.multi-divider::before,.multi-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.multi-divider span{color:var(--text2);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px}
+.join-row{display:flex;gap:12px;align-items:center;justify-content:center}
+
+/* ======================== */
+/* RESULT SCREEN            */
+/* ======================== */
+#resultScreen{padding-top:80px}
+.result-container{text-align:center;max-width:500px;width:90%}
+.result-container h2{font-size:clamp(32px,8vw,48px);font-weight:700;margin-bottom:8px}
+.result-container .result-sub{font-size:16px;color:var(--text2);margin-bottom:8px}
+.coins-display{display:inline-flex;align-items:center;gap:8px;font-size:24px;font-weight:800;color:var(--gold);margin:16px 0 8px;font-family:'Fredoka',sans-serif}
+.result-stats{display:flex;justify-content:center;gap:24px;margin:20px 0;flex-wrap:wrap}
+.new-record-badge{display:inline-block;padding:6px 16px;border-radius:20px;background:rgba(255,209,102,.15);color:var(--gold);font-size:14px;font-weight:800;margin:12px 0;animation:newRecordPulse 1.5s ease-in-out infinite}
+@keyframes newRecordPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,209,102,.3)}50%{box-shadow:0 0 20px 6px rgba(255,209,102,.15)}}
+.result-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+
+/* ======================== */
+/* RECORDS SCREEN           */
+/* ======================== */
+#recordsScreen{padding-top:60px;padding-bottom:40px}
+.records-container{max-width:700px;width:90%}
+.records-container h2{font-size:28px;text-align:center;margin-bottom:24px}
+.my-record-card{margin-bottom:24px}
+.my-record-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px}
+.leaderboard-table{width:100%;border-collapse:separate;border-spacing:0 6px}
+.leaderboard-table th{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;padding:8px 12px;text-align:left}
+.leaderboard-table td{padding:10px 12px;background:var(--surface);font-size:14px;font-weight:600}
+.leaderboard-table tr td:first-child{border-radius:10px 0 0 10px}
+.leaderboard-table tr td:last-child{border-radius:0 10px 10px 0}
+.leaderboard-table tr:hover td{background:var(--surface2)}
+.rank-1{color:var(--gold)}
+.rank-2{color:#c0c0c0}
+.rank-3{color:#cd7f32}
+
+/* ======================== */
+/* MOBILE RESPONSIVE        */
+/* ======================== */
+@media(max-width:600px){
+  .mode-grid{grid-template-columns:1fr}
+  .game-stats-bar{gap:14px}
+  .game-stat .gs-val{font-size:24px}
+  .text-display{padding:20px 16px;font-size:18px;line-height:1.9}
+  .option-grid{flex-direction:column}
+  .race-lane .lane-name{width:60px;font-size:11px}
+  .race-lane .lane-wpm{width:45px;font-size:11px}
+  .result-stats{gap:14px}
+  .home-header{padding:0 16px}
+}
+@media(max-width:400px){
+  .game-container{padding:70px 12px 30px}
+  .text-display{padding:16px 12px;font-size:16px}
+}
+
+/* Spin animation */
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<a class="back-btn" id="backBtn" href="../../student.html">&#8592; Back</a>
+
+<!-- ======================== -->
+<!-- HOME SCREEN              -->
+<!-- ======================== -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1>&#x2328;&#xFE0F; Typing Race</h1>
+    <p>Test your speed and accuracy</p>
+  </div>
+  <div class="best-wpm-display" id="bestWpmDisplay" style="display:none">
+    <div class="wpm-num" id="homeBestWpm">0</div>
+    <div class="wpm-label"><strong>Best WPM</strong>Personal Record</div>
+  </div>
+  <div class="mode-grid">
+    <div class="card mode-card" onclick="TR.showSetup('practice')">
+      <span class="mode-icon">&#127947;&#65039;</span>
+      <h3>Practice</h3>
+      <p>Solo typing practice with stats tracking</p>
+    </div>
+    <div class="card mode-card" onclick="TR.showMulti()">
+      <span class="mode-icon">&#127937;</span>
+      <h3>Multiplayer</h3>
+      <p>Race against friends in real-time</p>
+    </div>
+    <div class="card mode-card" onclick="TR.showRecords()">
+      <span class="mode-icon">&#127942;</span>
+      <h3>Records</h3>
+      <p>View your stats and class leaderboard</p>
+    </div>
+  </div>
+  <div class="import-row">
+    <button class="btn btn-outline btn-small" onclick="TR.openImportModal()">&#128218; Import Words</button>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- SETUP SCREEN             -->
+<!-- ======================== -->
+<div class="screen" id="setupScreen">
+  <div class="setup-container">
+    <h2>Game Setup</h2>
+
+    <div class="setup-section">
+      <div class="section-title">Difficulty</div>
+      <div class="option-grid" id="diffGrid">
+        <div class="option-card easy selected" data-diff="easy" onclick="TR.selectDiff(this)">
+          <span class="opt-icon">&#127807;</span>
+          Easy
+          <span class="opt-sub">Simple words</span>
+        </div>
+        <div class="option-card medium" data-diff="medium" onclick="TR.selectDiff(this)">
+          <span class="opt-icon">&#128293;</span>
+          Medium
+          <span class="opt-sub">Full sentences</span>
+        </div>
+        <div class="option-card hard" data-diff="hard" onclick="TR.selectDiff(this)">
+          <span class="opt-icon">&#9889;</span>
+          Hard
+          <span class="opt-sub">Numbers + symbols</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="setup-section" id="timerSection">
+      <div class="section-title">Time Limit</div>
+      <div class="option-grid" id="timeGrid">
+        <div class="option-card" data-time="30" onclick="TR.selectTime(this)">
+          <span class="opt-icon">&#9201;</span>
+          30s
+          <span class="opt-sub">Sprint</span>
+        </div>
+        <div class="option-card selected" data-time="60" onclick="TR.selectTime(this)">
+          <span class="opt-icon">&#9201;</span>
+          60s
+          <span class="opt-sub">Standard</span>
+        </div>
+        <div class="option-card" data-time="120" onclick="TR.selectTime(this)">
+          <span class="opt-icon">&#9201;</span>
+          120s
+          <span class="opt-sub">Marathon</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="importedWordsBadge" style="display:none;margin-bottom:16px">
+      <span class="badge badge-blue">&#128218; Using imported words</span>
+      <button class="btn btn-outline btn-small" onclick="TR.clearImport()" style="margin-left:8px;min-width:auto;padding:6px 14px;font-size:12px">Clear</button>
+    </div>
+
+    <button class="btn btn-accent" id="startBtn" onclick="TR.startGame()">Start Typing</button>
+    <button class="btn btn-outline btn-small" onclick="TR.showScreen('homeScreen')" style="margin-top:12px">Back</button>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- GAME SCREEN              -->
+<!-- ======================== -->
+<div class="screen" id="gameScreen">
+  <div class="game-container">
+    <div class="game-stats-bar">
+      <div class="game-stat wpm-stat"><div class="gs-val" id="liveWpm">0</div><div class="gs-label">WPM</div></div>
+      <div class="game-stat acc-stat"><div class="gs-val" id="liveAcc">100%</div><div class="gs-label">Accuracy</div></div>
+      <div class="game-stat time-stat"><div class="gs-val" id="liveTime">60</div><div class="gs-label">Time</div></div>
+      <div class="game-stat"><div class="gs-val" id="liveChars">0</div><div class="gs-label">Chars</div></div>
+    </div>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressFill"></div></div>
+    <div class="text-display" id="textDisplay" tabindex="0"></div>
+    <input class="game-input" id="gameInput" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <div class="game-footer">
+      <button class="btn btn-outline btn-small" onclick="TR.quitGame()">Quit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- MULTIPLAYER JOIN         -->
+<!-- ======================== -->
+<div class="screen" id="multiScreen">
+  <div class="multi-container">
+    <h2>Multiplayer Race</h2>
+    <p class="sub">Create a room or join with a code</p>
+    <div class="multi-actions">
+      <button class="btn btn-accent" onclick="TR.createRoom()">Create Room</button>
+      <div class="multi-divider"><span>or join</span></div>
+      <div class="join-row">
+        <input class="code-input" id="joinCodeInput" type="text" maxlength="4" placeholder="CODE" inputmode="numeric">
+        <button class="btn btn-blue btn-small" onclick="TR.joinRoom()">Join</button>
+      </div>
+      <div class="error-text" id="multiError"></div>
+      <button class="btn btn-outline btn-small" onclick="TR.showScreen('homeScreen')" style="margin-top:8px">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- LOBBY SCREEN             -->
+<!-- ======================== -->
+<div class="screen" id="lobbyScreen">
+  <div class="lobby-container">
+    <h2 id="lobbyTitle">Room Created!</h2>
+    <p style="color:var(--text2);font-size:14px;margin-top:4px">Share this code:</p>
+    <div class="room-code-big" id="lobbyCode"></div>
+    <div class="player-list" id="playerList"></div>
+
+    <div class="lobby-settings" id="lobbySettings" style="display:none">
+      <div class="section-title">Difficulty</div>
+      <div class="option-grid" id="lobbyDiffGrid">
+        <div class="option-card easy selected" data-diff="easy" onclick="TR.selectLobbyDiff(this)">Easy</div>
+        <div class="option-card medium" data-diff="medium" onclick="TR.selectLobbyDiff(this)">Medium</div>
+        <div class="option-card hard" data-diff="hard" onclick="TR.selectLobbyDiff(this)">Hard</div>
+      </div>
+      <div style="margin-top:16px">
+        <div class="section-title">Time</div>
+        <div class="option-grid" id="lobbyTimeGrid">
+          <div class="option-card" data-time="30" onclick="TR.selectLobbyTime(this)">30s</div>
+          <div class="option-card selected" data-time="60" onclick="TR.selectLobbyTime(this)">60s</div>
+          <div class="option-card" data-time="120" onclick="TR.selectLobbyTime(this)">120s</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="lobbyActions">
+      <button class="btn btn-accent" id="startRaceBtn" onclick="TR.startRace()" style="display:none">Start Race</button>
+      <p class="waiting-pulse" id="lobbyWaiting">Waiting for host to start...</p>
+    </div>
+    <button class="btn btn-outline btn-small" onclick="TR.leaveRoom()" style="margin-top:16px">Leave</button>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- RACE SCREEN              -->
+<!-- ======================== -->
+<div class="screen" id="raceScreen">
+  <div class="race-container">
+    <div class="game-stats-bar">
+      <div class="game-stat wpm-stat"><div class="gs-val" id="raceWpm">0</div><div class="gs-label">WPM</div></div>
+      <div class="game-stat acc-stat"><div class="gs-val" id="raceAcc">100%</div><div class="gs-label">Accuracy</div></div>
+      <div class="game-stat time-stat"><div class="gs-val" id="raceTime">60</div><div class="gs-label">Time</div></div>
+    </div>
+    <div class="race-track" id="raceTrack"></div>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="raceProgressFill"></div></div>
+    <div class="text-display" id="raceTextDisplay" tabindex="0"></div>
+    <input class="game-input" id="raceInput" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <div class="game-footer">
+      <button class="btn btn-outline btn-small" onclick="TR.quitRace()">Quit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- RESULT SCREEN            -->
+<!-- ======================== -->
+<div class="screen" id="resultScreen">
+  <div class="result-container">
+    <h2 id="resultTitle">Great Job!</h2>
+    <p class="result-sub" id="resultSub"></p>
+    <div id="newRecordArea"></div>
+    <div class="coins-display" id="resultCoins"></div>
+    <div class="result-stats" id="resultStats"></div>
+    <div id="raceResults"></div>
+    <div class="result-actions" id="resultActions"></div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- RECORDS SCREEN           -->
+<!-- ======================== -->
+<div class="screen" id="recordsScreen">
+  <div class="records-container">
+    <h2>&#127942; Records</h2>
+    <div class="card-static my-record-card" id="myRecordCard">
+      <div class="section-title">My Stats</div>
+      <div class="my-record-stats" id="myRecordStats">
+        <div class="stat-box"><div class="stat-val" style="color:var(--accent)" id="recBestWpm">--</div><div class="stat-label">Best WPM</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--accent2)" id="recAvgWpm">--</div><div class="stat-label">Avg WPM</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--gold)" id="recGames">--</div><div class="stat-label">Games</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--accent3)" id="recBestAcc">--</div><div class="stat-label">Best Acc</div></div>
+        <div class="stat-box"><div class="stat-val" id="recWords">--</div><div class="stat-label">Words</div></div>
+      </div>
+    </div>
+    <div class="card-static">
+      <div class="section-title">Class Leaderboard</div>
+      <div id="leaderboardArea"><p style="color:var(--text2);font-size:14px;text-align:center">Loading...</p></div>
+    </div>
+    <div style="text-align:center;margin-top:24px">
+      <button class="btn btn-outline btn-small" onclick="TR.showScreen('homeScreen')">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- IMPORT MODAL             -->
+<!-- ======================== -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal-box" style="position:relative">
+    <button class="modal-close" onclick="TR.closeImportModal()">&#10005;</button>
+    <h3>&#128218; Import from Spelling Bee</h3>
+    <p style="color:var(--text2);font-size:13px;margin-bottom:16px">Select a spelling list to use as typing content</p>
+    <div id="importContent"><p style="color:var(--text2);font-size:14px"><span style="display:inline-block;width:14px;height:14px;border:2px solid var(--accent2);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px"></span> Loading spelling lists...</p></div>
+  </div>
+</div>
+
+<!-- COUNTDOWN OVERLAY -->
+<div class="countdown-overlay" id="countdownOverlay" style="display:none">
+  <div class="countdown-num" id="countdownNum">3</div>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script>
+/* ===========================================================
+   TYPING RACE - ODA Arcade
+   =========================================================== */
+(function(){
+'use strict';
+
+// ============================================
+// Session / Identity
+// ============================================
+const studentId = sessionStorage.getItem('studentId') || 'anon_' + Math.random().toString(36).slice(2,8);
+const studentName = sessionStorage.getItem('studentName') || 'Player';
+const classCode = sessionStorage.getItem('classCode') || '';
+const isTeacher = sessionStorage.getItem('userRole') === 'teacher' || localStorage.getItem('odaUserRole') === 'teacher';
+
+if (isTeacher) {
+  var bb = document.getElementById('backBtn');
+  if (bb) { bb.href = '../../teacher.html'; bb.textContent = '\u2190 Back'; }
+}
+
+// ============================================
+// Firebase refs (lazy loaded)
+// ============================================
+let db = null, fsMod = null;
+let doc, getDoc, setDoc, updateDoc, addDoc, onSnapshot, query, where, orderBy, limit, increment, serverTimestamp, getDocs, collection, deleteDoc;
+
+async function initFB() {
+  if (db) return;
+  const fb = await window.getFirebaseDB();
+  db = fb.db; fsMod = fb.fsMod;
+  doc = fsMod.doc; getDoc = fsMod.getDoc; setDoc = fsMod.setDoc;
+  updateDoc = fsMod.updateDoc; addDoc = fsMod.addDoc;
+  onSnapshot = fsMod.onSnapshot; query = fsMod.query;
+  where = fsMod.where; orderBy = fsMod.orderBy; limit = fsMod.limit;
+  increment = fsMod.increment; serverTimestamp = fsMod.serverTimestamp;
+  getDocs = fsMod.getDocs; collection = fsMod.collection;
+  deleteDoc = fsMod.deleteDoc;
+}
+
+// ============================================
+// State
+// ============================================
+let gameMode = 'practice'; // 'practice' | 'multi'
+let difficulty = 'easy';
+let timeLimit = 60;
+let gameText = '';
+let charIndex = 0;
+let correctChars = 0;
+let incorrectChars = 0;
+let totalKeystrokes = 0;
+let wordsCompleted = 0;
+let gameStartTime = 0;
+let gameTimer = null;
+let gameActive = false;
+let timeLeft = 60;
+let personalBestWPM = 0;
+let importedWords = null;
+let importedSpellingLists = [];
+let coinsAwarded = false;
+
+// Multiplayer state
+let roomCode = null;
+let isHost = false;
+let myPlayerId = studentId;
+let unsub = null;
+let raceData = null;
+let raceFinished = false;
+
+// ============================================
+// Audio Engine (Web Audio API)
+// ============================================
+const Audio = {
+  ctx: null,
+  init() {
+    if (this.ctx) return;
+    try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  },
+  play(type) {
+    if (!this.ctx) this.init();
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      switch(type) {
+        case 'key': this._key(now); break;
+        case 'word': this._word(now); break;
+        case 'error': this._error(now); break;
+        case 'countdown': this._beep(now); break;
+        case 'go': this._go(now); break;
+        case 'finish': this._finish(now); break;
+        case 'record': this._record(now); break;
+      }
+    } catch(e) {}
+  },
+  _osc(freq, type, start, dur, vol) {
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, start);
+    g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+    o.connect(g); g.connect(this.ctx.destination);
+    o.start(start); o.stop(start + dur);
+  },
+  _key(t) {
+    const freq = 800 + Math.random() * 400;
+    this._osc(freq, 'square', t, 0.03, 0.04);
+  },
+  _word(t) {
+    this._osc(880, 'sine', t, 0.1, 0.08);
+    this._osc(1100, 'sine', t + 0.05, 0.1, 0.06);
+  },
+  _error(t) {
+    this._osc(200, 'sawtooth', t, 0.12, 0.06);
+  },
+  _beep(t) {
+    this._osc(660, 'sine', t, 0.15, 0.12);
+  },
+  _go(t) {
+    this._osc(880, 'sine', t, 0.12, 0.15);
+    this._osc(1100, 'sine', t + 0.1, 0.12, 0.15);
+    this._osc(1320, 'sine', t + 0.2, 0.2, 0.15);
+  },
+  _finish(t) {
+    [523, 659, 784, 1047].forEach((f, i) => {
+      this._osc(f, 'sine', t + i * 0.12, 0.3, 0.1);
+    });
+  },
+  _record(t) {
+    [523, 659, 784, 1047, 1319].forEach((f, i) => {
+      this._osc(f, 'sine', t + i * 0.1, 0.4, 0.12);
+      this._osc(f * 1.5, 'triangle', t + i * 0.1 + 0.05, 0.3, 0.06);
+    });
+  }
+};
+
+// ============================================
+// Word Banks
+// ============================================
+const EASY_WORDS = [
+  'the','and','for','are','but','not','you','all','can','her','was','one','our','out','day','get','has','him','his','how',
+  'its','may','new','now','old','see','two','way','who','boy','did','let','put','say','she','too','use','run','big','end',
+  'set','try','ask','men','own','car','red','cut','hot','sit','top','dog','eat','far','fun','got','hat','job','let','low',
+  'map','net','oil','pay','ran','sat','sun','ten','top','war','win','yes','ago','air','bed','bit','box','cup','dry','eye',
+  'fix','gap','hit','ice','jam','key','lay','mix','nod','odd','pen','raw','sir','sky','tip','van','wet','yet','zip','arm',
+  'bat','cat','dip','ear','fig','gum','hen','ink','jar','kit','log','mud','nut','oak','pie','rag','sea','tan','urn','vet',
+  'web','axe','bag','cab','dam','elf','fan','gas','hug','ivy','jog','kid','lip','mop','nap','ore','paw','quiz','rod','sap',
+  'tap','ant','bee','cow','den','eel','fly','gem','hop','icy','jet','keg','leg','mat','nip','owl','pig','ram','sob','tug',
+  'ape','bud','cod','dew','elm','fog','gin','hub','imp','jaw','kite','lake','mine','nest','open','play','rain','sing','tree',
+  'upon','vine','walk','yard','zero','able','back','call','dark','each','face','game','hand','idea','jump','keep','land',
+  'make','name','over','page','read','safe','take','unit','very','week','year','also','been','come','done','even','from',
+  'give','have','into','just','know','life','more','next','only','part','real','some','that','used','want','with','work',
+  'blue','city','down','ever','find','good','help','item','kind','last','much','need','open','pick','rest','self','tell'
+];
+
+const MEDIUM_SENTENCES = [
+  'The quick brown fox jumps over the lazy dog.',
+  'She sells seashells by the seashore every morning.',
+  'A journey of a thousand miles begins with a single step.',
+  'Every great achievement starts with the decision to try.',
+  'The early bird catches the worm, but the second mouse gets the cheese.',
+  'Knowledge is power, and reading is the key to knowledge.',
+  'Life is what happens when you are busy making other plans.',
+  'The best time to plant a tree was twenty years ago.',
+  'In the middle of difficulty lies great opportunity.',
+  'Success is not final, failure is not fatal; it is the courage to continue.',
+  'A good book is like a garden carried in the pocket.',
+  'The only way to do great work is to love what you do.',
+  'Happiness depends upon ourselves and the choices we make.',
+  'Learning never exhausts the mind, only laziness does.',
+  'Actions speak louder than words in every situation.',
+  'Creativity is intelligence having fun with new ideas.',
+  'The pen is mightier than the sword in many cases.',
+  'Time flies when you are having fun with good friends.',
+  'Practice makes perfect, so never stop improving yourself.',
+  'Music is the universal language of all mankind.',
+  'Believe you can and you are halfway there already.',
+  'Education is the passport to the future and success.',
+  'Reading gives us someplace to go when we have to stay.',
+  'Adventure awaits those who dare to take the first step.',
+  'Patience is bitter, but its fruit is very sweet indeed.',
+  'The world is a book, and those who do not travel read only one page.',
+  'Stars cannot shine without darkness to surround them.',
+  'Every sunset brings the promise of a brand new dawn.',
+  'Courage is not the absence of fear, but the triumph over it.',
+  'The greatest glory is not in never falling, but in rising every time.',
+  'You miss one hundred percent of the shots you never take.',
+  'It does not matter how slowly you go as long as you do not stop.',
+  'The future belongs to those who believe in the beauty of their dreams.',
+  'Keep your face always toward the sunshine, and shadows will fall behind you.',
+  'What lies behind us and what lies before us are tiny matters.',
+  'The only impossible journey is the one you never begin.'
+];
+
+const HARD_SENTENCES = [
+  'The temperature reached 98.6 degrees Fahrenheit (37 Celsius) at 3:45 PM.',
+  'Her email address is jane_doe@company.com; please CC: the manager too.',
+  'The stock price fell by 12.5% to $47.83 per share on March 15, 2025.',
+  'Use the formula: Area = (base * height) / 2 to calculate the triangle.',
+  'The server IP is 192.168.1.100 and the port number is 8080.',
+  'Password requirements: 8+ characters, 1 uppercase, 1 number, 1 symbol (!@#$).',
+  'The function returns true if (x > 0 && y < 100) || z === "valid";',
+  'Invoice #INV-2025-0847: Total $1,234.56 (includes 7.5% tax of $86.42).',
+  'Meeting scheduled for 02/28/2025 at 10:30 AM EST in Room #B-204.',
+  'The equation is: E = mc^2, where c = 299,792,458 meters/second.',
+  'Download the file from https://example.com/docs/report_v2.pdf (4.7 MB).',
+  'The RGB color value #FF6B35 converts to rgb(255, 107, 53) in CSS.',
+  'Run the command: npm install --save-dev @types/react@^18.0.0 in terminal.',
+  'The coordinates are 40.7128 N, 74.0060 W (New York City).',
+  'Batch #A7-X92: 15,000 units @ $3.25/each = $48,750.00 subtotal.',
+  'The regex pattern /^[a-zA-Z0-9._-]+@[a-z]+\\.[a-z]{2,}$/ validates emails.',
+  'Error code 0xDEADBEEF occurred at memory address 0x7FFE0400.',
+  'Flight UA-2847 departs at 06:15 AM from Gate C-12 (Terminal 3).',
+  'The chemical formula for glucose is C6H12O6 with a mass of 180.16 g/mol.',
+  'Press Ctrl+Shift+P (or Cmd+Shift+P on Mac) to open the command palette.',
+  'Version 3.14.159 was released on 2025-01-20T14:30:00Z.',
+  'The WiFi password is: X$7kP!mN2@qR (case-sensitive, no spaces).',
+  'Array index [0] through [99]: total of 100 elements (0-indexed).',
+  'Discount: Buy 3+ items and save 20%; use code SAVE20 at checkout.',
+  'The file path is C:\\Users\\Documents\\Projects\\v2.0\\build_final.zip.'
+];
+
+// ============================================
+// Text Generation
+// ============================================
+function generateText(diff, maxChars) {
+  maxChars = maxChars || 600;
+
+  if (importedWords && importedWords.length > 0) {
+    return generateFromImported(maxChars);
+  }
+
+  switch(diff) {
+    case 'easy': return generateEasyText(maxChars);
+    case 'medium': return generateMediumText(maxChars);
+    case 'hard': return generateHardText(maxChars);
+    default: return generateEasyText(maxChars);
+  }
+}
+
+function generateEasyText(maxChars) {
+  let words = shuffle([...EASY_WORDS]);
+  let text = '';
+  let wi = 0;
+  while (text.length < maxChars) {
+    if (wi >= words.length) { words = shuffle([...EASY_WORDS]); wi = 0; }
+    text += (text ? ' ' : '') + words[wi++];
+  }
+  return text.trim();
+}
+
+function generateMediumText(maxChars) {
+  let sentences = shuffle([...MEDIUM_SENTENCES]);
+  let text = '';
+  let si = 0;
+  while (text.length < maxChars) {
+    if (si >= sentences.length) { sentences = shuffle([...MEDIUM_SENTENCES]); si = 0; }
+    text += (text ? ' ' : '') + sentences[si++];
+  }
+  return text.trim();
+}
+
+function generateHardText(maxChars) {
+  let sentences = shuffle([...HARD_SENTENCES]);
+  let text = '';
+  let si = 0;
+  while (text.length < maxChars) {
+    if (si >= sentences.length) { sentences = shuffle([...HARD_SENTENCES]); si = 0; }
+    text += (text ? ' ' : '') + sentences[si++];
+  }
+  return text.trim();
+}
+
+function generateFromImported(maxChars) {
+  let words = shuffle([...importedWords]);
+  let text = '';
+  let wi = 0;
+  while (text.length < maxChars) {
+    if (wi >= words.length) { words = shuffle([...importedWords]); wi = 0; }
+    text += (text ? ' ' : '') + words[wi++];
+  }
+  return text.trim();
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ============================================
+// Screen Management
+// ============================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+
+  if (id === 'homeScreen') loadPersonalBest();
+}
+
+// ============================================
+// Home Screen
+// ============================================
+async function loadPersonalBest() {
+  try {
+    await initFB();
+    if (studentId.startsWith('anon_')) return;
+    const snap = await getDoc(doc(db, 'typingRecords', studentId));
+    if (snap.exists()) {
+      const d = snap.data();
+      personalBestWPM = d.bestWPM || 0;
+      if (personalBestWPM > 0) {
+        document.getElementById('homeBestWpm').textContent = personalBestWPM;
+        document.getElementById('bestWpmDisplay').style.display = 'flex';
+      }
+    }
+  } catch(e) { console.warn('loadPersonalBest:', e); }
+}
+
+// ============================================
+// Setup Screen
+// ============================================
+function showSetup(mode) {
+  gameMode = mode || 'practice';
+  showScreen('setupScreen');
+}
+
+function selectDiff(el) {
+  document.querySelectorAll('#diffGrid .option-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  difficulty = el.dataset.diff;
+}
+
+function selectTime(el) {
+  document.querySelectorAll('#timeGrid .option-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  timeLimit = parseInt(el.dataset.time);
+}
+
+// ============================================
+// Import from Spelling Bee
+// ============================================
+function openImportModal() {
+  document.getElementById('importModal').classList.add('active');
+  loadSpellingLists();
+}
+
+function closeImportModal() {
+  document.getElementById('importModal').classList.remove('active');
+}
+
+async function loadSpellingLists() {
+  const area = document.getElementById('importContent');
+  area.innerHTML = '<p style="color:var(--text2);font-size:14px"><span style="display:inline-block;width:14px;height:14px;border:2px solid var(--accent2);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px"></span> Loading spelling lists...</p>';
+  try {
+    await initFB();
+    let tid = sessionStorage.getItem('teacherId') || sessionStorage.getItem('odaUID') || localStorage.getItem('odaUID') || '';
+    if (!tid) {
+      try { const a = await window.getFirebaseAuth(); if (a.auth.currentUser) tid = a.auth.currentUser.uid; } catch(e) {}
+    }
+    if (!tid && classCode) {
+      try {
+        const classQ = query(collection(db, 'classes'), where('classCode', '==', classCode));
+        const classSnap = await getDocs(classQ);
+        classSnap.forEach(function(d) { if (!tid) tid = d.data().teacherId || d.id; });
+      } catch(e) {}
+    }
+    if (!tid) {
+      area.innerHTML = '<div style="color:var(--accent3);font-size:13px">Could not determine teacher. Ask your teacher to share the class code.</div>';
+      return;
+    }
+    const q2 = query(collection(db, 'spellingLists'), where('teacherId', '==', tid));
+    const snap = await getDocs(q2);
+    importedSpellingLists = [];
+    snap.forEach(function(d) { importedSpellingLists.push(Object.assign({id: d.id}, d.data())); });
+    if (importedSpellingLists.length === 0) {
+      area.innerHTML = '<div style="color:var(--text2);font-size:13px">No spelling lists found. Create one in Spelling Bee first!</div>';
+      return;
+    }
+    let html = '<select class="import-select" onchange="TR.selectSpellingList(this.value)">';
+    html += '<option value="">-- Select a list --</option>';
+    importedSpellingLists.forEach(function(l, i) {
+      html += '<option value="' + i + '">' + window.esc(l.name || l.title || 'List') + ' (' + (l.words || []).length + ' words)</option>';
+    });
+    html += '</select>';
+    html += '<div class="import-preview" id="importPreview"></div>';
+    area.innerHTML = html;
+  } catch(e) {
+    console.warn('loadSpellingLists:', e);
+    area.innerHTML = '<div style="color:var(--accent3);font-size:13px">Failed to load lists. Try again.</div>';
+  }
+}
+
+function selectSpellingList(idx) {
+  if (idx === '') { importedWords = null; document.getElementById('importPreview').style.display = 'none'; return; }
+  const list = importedSpellingLists[parseInt(idx)];
+  if (!list || !list.words || !list.words.length) return;
+  importedWords = list.words.map(function(w) { return typeof w === 'string' ? w : (w.word || w.text || ''); }).filter(Boolean);
+  const preview = document.getElementById('importPreview');
+  preview.style.display = 'block';
+  preview.textContent = importedWords.slice(0, 20).join(', ') + (importedWords.length > 20 ? '...' : '');
+
+  document.getElementById('importedWordsBadge').style.display = 'block';
+  closeImportModal();
+  window.odaToast('Words imported! (' + importedWords.length + ' words)', 'success');
+}
+
+function clearImport() {
+  importedWords = null;
+  document.getElementById('importedWordsBadge').style.display = 'none';
+}
+
+// ============================================
+// Game Logic - Solo Practice
+// ============================================
+async function startGame() {
+  Audio.init();
+  coinsAwarded = false;
+  charIndex = 0; correctChars = 0; incorrectChars = 0; totalKeystrokes = 0; wordsCompleted = 0;
+  timeLeft = timeLimit;
+
+  const charCount = timeLimit <= 30 ? 400 : timeLimit <= 60 ? 700 : 1200;
+  gameText = generateText(difficulty, charCount);
+
+  showScreen('gameScreen');
+  renderText('textDisplay');
+  document.getElementById('liveWpm').textContent = '0';
+  document.getElementById('liveAcc').textContent = '100%';
+  document.getElementById('liveTime').textContent = timeLeft;
+  document.getElementById('liveChars').textContent = '0';
+  document.getElementById('progressFill').style.width = '0%';
+
+  await showCountdown();
+
+  gameActive = true;
+  gameStartTime = Date.now();
+  const input = document.getElementById('gameInput');
+  input.value = '';
+  input.focus();
+  input.addEventListener('input', handleSoloInput);
+
+  document.getElementById('textDisplay').addEventListener('click', function() { input.focus(); });
+
+  gameTimer = setInterval(function() {
+    timeLeft--;
+    document.getElementById('liveTime').textContent = Math.max(0, timeLeft);
+    updateLiveStats();
+    if (timeLeft <= 0) { endGame(); }
+  }, 1000);
+}
+
+function renderText(containerId) {
+  const container = document.getElementById(containerId);
+  let html = '';
+  for (let i = 0; i < gameText.length; i++) {
+    const ch = gameText[i];
+    const cls = i === 0 ? 'current' : 'upcoming';
+    const spaceClass = ch === ' ' ? ' space-marker' : '';
+    const display = ch === ' ' ? '\u00A0' : window.esc(ch);
+    html += '<span class="char ' + cls + spaceClass + '" data-idx="' + i + '">' + display + '</span>';
+  }
+  container.innerHTML = html;
+}
+
+function handleSoloInput(e) {
+  if (!gameActive) return;
+  const val = e.target.value;
+  if (!val.length) return;
+
+  const typed = val[val.length - 1];
+  e.target.value = '';
+  processChar(typed, 'textDisplay');
+}
+
+function processChar(typed, containerId) {
+  if (charIndex >= gameText.length) return;
+
+  totalKeystrokes++;
+  const expected = gameText[charIndex];
+  const charEl = document.querySelector('#' + containerId + ' .char[data-idx="' + charIndex + '"]');
+  if (!charEl) return;
+
+  if (typed === expected) {
+    charEl.classList.remove('current', 'upcoming');
+    charEl.classList.add('correct');
+    correctChars++;
+    Audio.play('key');
+
+    if (expected === ' ' || charIndex === gameText.length - 1) {
+      wordsCompleted++;
+      Audio.play('word');
+    }
+  } else {
+    charEl.classList.remove('current', 'upcoming');
+    charEl.classList.add('incorrect');
+    charEl.textContent = typed === ' ' ? '\u00A0' : typed;
+    incorrectChars++;
+    Audio.play('error');
+  }
+
+  charIndex++;
+
+  if (charIndex < gameText.length) {
+    const nextEl = document.querySelector('#' + containerId + ' .char[data-idx="' + charIndex + '"]');
+    if (nextEl) {
+      nextEl.classList.remove('upcoming');
+      nextEl.classList.add('current');
+      scrollToChar(nextEl, containerId);
+    }
+  }
+
+  updateLiveStats();
+  updateProgressBar();
+
+  if (charIndex >= gameText.length) {
+    if (gameMode === 'practice') endGame();
+    else endRaceForMe();
+  }
+}
+
+function scrollToChar(el, containerId) {
+  const container = document.getElementById(containerId);
+  const containerRect = container.getBoundingClientRect();
+  const charRect = el.getBoundingClientRect();
+  if (charRect.top > containerRect.bottom - 60 || charRect.bottom < containerRect.top + 20) {
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+}
+
+function updateLiveStats() {
+  const elapsed = (Date.now() - gameStartTime) / 60000;
+  const wpm = elapsed > 0 ? Math.round((wordsCompleted) / elapsed) : 0;
+  const acc = totalKeystrokes > 0 ? Math.round((correctChars / totalKeystrokes) * 100) : 100;
+
+  if (gameMode === 'practice' || gameMode === 'multi') {
+    const prefix = gameMode === 'multi' ? 'race' : 'live';
+    const wpmEl = document.getElementById(prefix + 'Wpm');
+    const accEl = document.getElementById(prefix + 'Acc');
+    if (wpmEl) wpmEl.textContent = wpm;
+    if (accEl) accEl.textContent = acc + '%';
+    if (gameMode === 'practice') {
+      document.getElementById('liveChars').textContent = charIndex;
+    }
+  }
+}
+
+function updateProgressBar() {
+  const pct = gameText.length > 0 ? Math.round((charIndex / gameText.length) * 100) : 0;
+  const fillId = gameMode === 'multi' ? 'raceProgressFill' : 'progressFill';
+  const el = document.getElementById(fillId);
+  if (el) el.style.width = pct + '%';
+}
+
+async function endGame() {
+  gameActive = false;
+  if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
+
+  const input = document.getElementById('gameInput');
+  input.removeEventListener('input', handleSoloInput);
+
+  const elapsed = (Date.now() - gameStartTime) / 60000;
+  const finalWPM = elapsed > 0 ? Math.round(wordsCompleted / elapsed) : 0;
+  const finalAcc = totalKeystrokes > 0 ? Math.round((correctChars / totalKeystrokes) * 100) : 100;
+
+  // Calculate coins
+  let coins = Math.floor(finalWPM / 5);
+  if (finalAcc >= 95) coins += 5;
+  let isNewRecord = false;
+  if (finalWPM > personalBestWPM && personalBestWPM > 0) {
+    coins += 10;
+    isNewRecord = true;
+  }
+  if (finalWPM > personalBestWPM) personalBestWPM = finalWPM;
+
+  // Show results
+  showScreen('resultScreen');
+  document.getElementById('resultTitle').textContent = finalWPM >= 60 ? 'Amazing!' : finalWPM >= 40 ? 'Great Job!' : finalWPM >= 20 ? 'Nice Work!' : 'Keep Practicing!';
+  document.getElementById('resultSub').textContent = difficulty.charAt(0).toUpperCase() + difficulty.slice(1) + ' mode \u00B7 ' + timeLimit + 's';
+
+  const coinSvg = '<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="var(--gold)" stroke-width="2" fill="rgba(255,209,102,.2)"/><text x="12" y="16" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--gold)">$</text></svg>';
+  document.getElementById('resultCoins').innerHTML = coinSvg + ' +' + coins + ' Coins';
+
+  document.getElementById('resultStats').innerHTML =
+    '<div class="stat-box"><div class="stat-val" style="color:var(--accent)">' + finalWPM + '</div><div class="stat-label">WPM</div></div>' +
+    '<div class="stat-box"><div class="stat-val" style="color:var(--accent2)">' + finalAcc + '%</div><div class="stat-label">Accuracy</div></div>' +
+    '<div class="stat-box"><div class="stat-val" style="color:var(--gold)">' + wordsCompleted + '</div><div class="stat-label">Words</div></div>' +
+    '<div class="stat-box"><div class="stat-val">' + charIndex + '</div><div class="stat-label">Chars</div></div>';
+
+  document.getElementById('raceResults').innerHTML = '';
+
+  if (isNewRecord) {
+    document.getElementById('newRecordArea').innerHTML = '<div class="new-record-badge">&#127881; New Personal Record!</div>';
+    Audio.play('record');
+    window.odaConfetti();
+  } else {
+    document.getElementById('newRecordArea').innerHTML = '';
+    Audio.play('finish');
+  }
+
+  document.getElementById('resultActions').innerHTML =
+    '<button class="btn btn-accent" onclick="TR.showSetup(\'practice\')">Play Again</button>' +
+    '<button class="btn btn-outline" onclick="TR.showScreen(\'homeScreen\')">Home</button>';
+
+  // Save to Firestore
+  if (!coinsAwarded && !studentId.startsWith('anon_')) {
+    coinsAwarded = true;
+    awardCoins(coins);
+    saveRecord(finalWPM, finalAcc);
+  }
+}
+
+// ============================================
+// Firestore: Coins + Records
+// ============================================
+async function awardCoins(coins) {
+  if (!studentId || studentId.startsWith('anon_') || coins <= 0) return;
+  try {
+    await initFB();
+    await updateDoc(doc(db, 'students', studentId), { coins: increment(coins) });
+  } catch(e) { console.warn('Coin award failed:', e); }
+}
+
+async function saveRecord(wpm, acc) {
+  if (!studentId || studentId.startsWith('anon_')) return;
+  try {
+    await initFB();
+    const ref = doc(db, 'typingRecords', studentId);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      const d = snap.data();
+      const oldGames = d.gamesPlayed || 0;
+      const oldAvg = d.avgWPM || 0;
+      const newGames = oldGames + 1;
+      const newAvg = Math.round(((oldAvg * oldGames) + wpm) / newGames);
+      await updateDoc(ref, {
+        bestWPM: Math.max(d.bestWPM || 0, wpm),
+        avgWPM: newAvg,
+        gamesPlayed: increment(1),
+        totalWordsTyped: increment(wordsCompleted),
+        bestAccuracy: Math.max(d.bestAccuracy || 0, acc),
+        lastPlayed: serverTimestamp()
+      });
+    } else {
+      await setDoc(ref, {
+        studentId: studentId,
+        studentName: studentName,
+        classCode: classCode,
+        bestWPM: wpm,
+        avgWPM: wpm,
+        gamesPlayed: 1,
+        totalWordsTyped: wordsCompleted,
+        bestAccuracy: acc,
+        lastPlayed: serverTimestamp()
+      });
+    }
+  } catch(e) { console.warn('saveRecord:', e); }
+}
+
+// ============================================
+// Records Screen
+// ============================================
+async function showRecords() {
+  showScreen('recordsScreen');
+  try {
+    await initFB();
+    // My stats
+    if (!studentId.startsWith('anon_')) {
+      const snap = await getDoc(doc(db, 'typingRecords', studentId));
+      if (snap.exists()) {
+        const d = snap.data();
+        document.getElementById('recBestWpm').textContent = d.bestWPM || 0;
+        document.getElementById('recAvgWpm').textContent = d.avgWPM || 0;
+        document.getElementById('recGames').textContent = d.gamesPlayed || 0;
+        document.getElementById('recBestAcc').textContent = (d.bestAccuracy || 0) + '%';
+        document.getElementById('recWords').textContent = d.totalWordsTyped || 0;
+      }
+    }
+
+    // Leaderboard
+    const lbArea = document.getElementById('leaderboardArea');
+    if (!classCode) {
+      lbArea.innerHTML = '<p style="color:var(--text2);font-size:14px;text-align:center">Join a class to see the leaderboard.</p>';
+      return;
+    }
+    const q2 = query(collection(db, 'typingRecords'), where('classCode', '==', classCode), orderBy('bestWPM', 'desc'), limit(20));
+    const snap2 = await getDocs(q2);
+    let rows = [];
+    snap2.forEach(function(d) { rows.push(d.data()); });
+    if (rows.length === 0) {
+      lbArea.innerHTML = '<p style="color:var(--text2);font-size:14px;text-align:center">No records yet. Be the first!</p>';
+      return;
+    }
+    let html = '<table class="leaderboard-table"><thead><tr><th>#</th><th>Player</th><th>Best WPM</th><th>Avg WPM</th><th>Acc</th></tr></thead><tbody>';
+    rows.forEach(function(r, i) {
+      const rankClass = i < 3 ? ' class="rank-' + (i+1) + '"' : '';
+      const medal = i === 0 ? '\uD83E\uDD47' : i === 1 ? '\uD83E\uDD48' : i === 2 ? '\uD83E\uDD49' : (i+1);
+      const isMe = r.studentId === studentId;
+      html += '<tr' + (isMe ? ' style="outline:1px solid var(--accent);border-radius:10px"' : '') + '>';
+      html += '<td' + rankClass + '>' + medal + '</td>';
+      html += '<td>' + window.esc(r.studentName || 'Player') + (isMe ? ' <span style="color:var(--accent);font-size:11px">(You)</span>' : '') + '</td>';
+      html += '<td style="color:var(--accent);font-weight:800">' + (r.bestWPM || 0) + '</td>';
+      html += '<td>' + (r.avgWPM || 0) + '</td>';
+      html += '<td>' + (r.bestAccuracy || 0) + '%</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    lbArea.innerHTML = html;
+  } catch(e) {
+    console.warn('showRecords:', e);
+    document.getElementById('leaderboardArea').innerHTML = '<p style="color:var(--accent3);font-size:14px;text-align:center">Failed to load records.</p>';
+  }
+}
+
+// ============================================
+// Countdown
+// ============================================
+function showCountdown() {
+  return new Promise(function(resolve) {
+    const overlay = document.getElementById('countdownOverlay');
+    const numEl = document.getElementById('countdownNum');
+    overlay.style.display = 'flex';
+    let count = 3;
+
+    function tick() {
+      if (count > 0) {
+        numEl.textContent = count;
+        numEl.className = 'countdown-num';
+        numEl.offsetWidth; // force reflow
+        numEl.style.animation = 'none';
+        numEl.offsetWidth;
+        numEl.style.animation = '';
+        Audio.play('countdown');
+        count--;
+        setTimeout(tick, 900);
+      } else {
+        numEl.textContent = 'GO!';
+        numEl.className = 'countdown-num go';
+        numEl.style.animation = 'none';
+        numEl.offsetWidth;
+        numEl.style.animation = '';
+        Audio.play('go');
+        setTimeout(function() {
+          overlay.style.display = 'none';
+          resolve();
+        }, 600);
+      }
+    }
+    tick();
+  });
+}
+
+function quitGame() {
+  gameActive = false;
+  if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
+  const input = document.getElementById('gameInput');
+  input.removeEventListener('input', handleSoloInput);
+  showScreen('homeScreen');
+}
+
+// ============================================
+// MULTIPLAYER
+// ============================================
+function showMulti() {
+  showScreen('multiScreen');
+  document.getElementById('multiError').textContent = '';
+  document.getElementById('joinCodeInput').value = '';
+}
+
+function genCode() { return String(Math.floor(1000 + Math.random() * 9000)); }
+
+const PLAYER_COLORS = ['#06d6a0', '#118ab2', '#ef476f', '#ffd166', '#9b5de5', '#00f5d4'];
+const PLAYER_CARS = ['\uD83D\uDE97', '\uD83D\uDE99', '\uD83D\uDE95', '\uD83D\uDE8C', '\uD83C\uDFCE\uFE0F', '\uD83D\uDE93'];
+
+async function createRoom() {
+  try {
+    await initFB();
+    roomCode = genCode();
+    let ref = doc(db, 'typingGames', roomCode);
+    let snap = await getDoc(ref);
+    if (snap.exists()) { roomCode = genCode(); ref = doc(db, 'typingGames', roomCode); }
+
+    isHost = true;
+    const playerObj = {};
+    playerObj[studentId] = { name: studentName, progress: 0, wpm: 0, finished: false, finishTime: 0 };
+
+    await setDoc(ref, {
+      host: studentId,
+      players: playerObj,
+      status: 'waiting',
+      difficulty: 'easy',
+      timeLimit: 60,
+      text: '',
+      classCode: classCode || null,
+      createdAt: serverTimestamp()
+    });
+
+    showScreen('lobbyScreen');
+    document.getElementById('lobbyCode').textContent = roomCode;
+    document.getElementById('lobbyTitle').textContent = 'Room Created!';
+    document.getElementById('lobbySettings').style.display = 'block';
+    document.getElementById('startRaceBtn').style.display = 'inline-flex';
+    document.getElementById('lobbyWaiting').style.display = 'none';
+
+    listenToLobby();
+  } catch(e) {
+    console.error('createRoom:', e);
+    document.getElementById('multiError').textContent = 'Failed to create room.';
+  }
+}
+
+async function joinRoom() {
+  const code = document.getElementById('joinCodeInput').value.trim();
+  if (code.length !== 4) { document.getElementById('multiError').textContent = 'Enter a 4-digit code'; return; }
+
+  try {
+    await initFB();
+    const ref = doc(db, 'typingGames', code);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) { document.getElementById('multiError').textContent = 'Room not found'; return; }
+    const data = snap.data();
+    if (data.status !== 'waiting') { document.getElementById('multiError').textContent = 'Race already started'; return; }
+
+    const players = data.players || {};
+    if (Object.keys(players).length >= 6) { document.getElementById('multiError').textContent = 'Room is full (max 6)'; return; }
+    if (players[studentId]) { document.getElementById('multiError').textContent = 'You are already in this room'; return; }
+
+    roomCode = code;
+    isHost = false;
+    const update = {};
+    update['players.' + studentId] = { name: studentName, progress: 0, wpm: 0, finished: false, finishTime: 0 };
+    await updateDoc(ref, update);
+
+    showScreen('lobbyScreen');
+    document.getElementById('lobbyCode').textContent = roomCode;
+    document.getElementById('lobbyTitle').textContent = 'Joined Room!';
+    document.getElementById('lobbySettings').style.display = 'none';
+    document.getElementById('startRaceBtn').style.display = 'none';
+    document.getElementById('lobbyWaiting').style.display = 'block';
+
+    listenToLobby();
+  } catch(e) {
+    console.error('joinRoom:', e);
+    document.getElementById('multiError').textContent = 'Failed to join room.';
+  }
+}
+
+function listenToLobby() {
+  if (unsub) unsub();
+  const ref = doc(db, 'typingGames', roomCode);
+  unsub = onSnapshot(ref, function(snap) {
+    if (!snap.exists()) { window.odaToast('Room was closed', 'error'); leaveRoom(); return; }
+    const data = snap.data();
+    raceData = data;
+    renderPlayerList(data.players || {});
+
+    const playerCount = Object.keys(data.players || {}).length;
+    if (isHost) {
+      document.getElementById('startRaceBtn').style.display = playerCount >= 2 ? 'inline-flex' : 'none';
+      if (playerCount < 2) {
+        document.getElementById('lobbyWaiting').style.display = 'block';
+        document.getElementById('lobbyWaiting').textContent = 'Waiting for players to join...';
+      } else {
+        document.getElementById('lobbyWaiting').style.display = 'none';
+      }
+    }
+
+    if (data.status === 'countdown') {
+      beginRace(data);
+    }
+  });
+}
+
+function renderPlayerList(players) {
+  const container = document.getElementById('playerList');
+  let html = '';
+  const ids = Object.keys(players);
+  for (let i = 0; i < 6; i++) {
+    if (i < ids.length) {
+      const p = players[ids[i]];
+      const color = PLAYER_COLORS[i];
+      const isMe = ids[i] === studentId;
+      const isHostPlayer = raceData && raceData.host === ids[i];
+      html += '<div class="player-slot"><div class="ps-avatar" style="background:' + color + ';color:#fff">' + PLAYER_CARS[i] + '</div><div class="ps-name"' + (isMe ? ' style="color:var(--accent)"' : '') + '>' + window.esc(p.name) + (isMe ? ' (You)' : '') + '</div>' + (isHostPlayer ? '<div class="ps-host">Host</div>' : '') + '</div>';
+    } else {
+      html += '<div class="player-slot empty"><div class="ps-avatar" style="background:var(--surface2)">?</div><div class="ps-name">Empty</div></div>';
+    }
+  }
+  container.innerHTML = html;
+}
+
+// Lobby difficulty/time selection
+function selectLobbyDiff(el) {
+  document.querySelectorAll('#lobbyDiffGrid .option-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  if (isHost && roomCode) {
+    initFB().then(() => updateDoc(doc(db, 'typingGames', roomCode), { difficulty: el.dataset.diff }).catch(() => {}));
+  }
+}
+
+function selectLobbyTime(el) {
+  document.querySelectorAll('#lobbyTimeGrid .option-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  if (isHost && roomCode) {
+    initFB().then(() => updateDoc(doc(db, 'typingGames', roomCode), { timeLimit: parseInt(el.dataset.time) }).catch(() => {}));
+  }
+}
+
+async function startRace() {
+  if (!isHost || !roomCode) return;
+  try {
+    const diffEl = document.querySelector('#lobbyDiffGrid .option-card.selected');
+    const timeEl = document.querySelector('#lobbyTimeGrid .option-card.selected');
+    const diff = diffEl ? diffEl.dataset.diff : 'easy';
+    const tl = timeEl ? parseInt(timeEl.dataset.time) : 60;
+
+    const charCount = tl <= 30 ? 400 : tl <= 60 ? 700 : 1200;
+    const text = generateText(diff, charCount);
+
+    await updateDoc(doc(db, 'typingGames', roomCode), {
+      status: 'countdown',
+      difficulty: diff,
+      timeLimit: tl,
+      text: text
+    });
+  } catch(e) {
+    console.error('startRace:', e);
+    window.odaToast('Failed to start race', 'error');
+  }
+}
+
+async function beginRace(data) {
+  if (unsub) unsub();
+  gameMode = 'multi';
+  difficulty = data.difficulty || 'easy';
+  timeLimit = data.timeLimit || 60;
+  timeLeft = timeLimit;
+  gameText = data.text;
+  charIndex = 0; correctChars = 0; incorrectChars = 0; totalKeystrokes = 0; wordsCompleted = 0;
+  coinsAwarded = false;
+  raceFinished = false;
+  raceData = data;
+
+  showScreen('raceScreen');
+  renderText('raceTextDisplay');
+  renderRaceTrack(data.players || {});
+  document.getElementById('raceWpm').textContent = '0';
+  document.getElementById('raceAcc').textContent = '100%';
+  document.getElementById('raceTime').textContent = timeLeft;
+  document.getElementById('raceProgressFill').style.width = '0%';
+
+  Audio.init();
+  await showCountdown();
+
+  gameActive = true;
+  gameStartTime = Date.now();
+
+  const input = document.getElementById('raceInput');
+  input.value = '';
+  input.focus();
+  input.addEventListener('input', handleRaceInput);
+
+  document.getElementById('raceTextDisplay').addEventListener('click', function() { input.focus(); });
+
+  // Listen for race updates
+  listenToRace();
+
+  gameTimer = setInterval(function() {
+    timeLeft--;
+    document.getElementById('raceTime').textContent = Math.max(0, timeLeft);
+    updateLiveStats();
+    if (timeLeft <= 0 && !raceFinished) { endRaceForMe(); }
+  }, 1000);
+}
+
+function handleRaceInput(e) {
+  if (!gameActive) return;
+  const val = e.target.value;
+  if (!val.length) return;
+  const typed = val[val.length - 1];
+  e.target.value = '';
+  processChar(typed, 'raceTextDisplay');
+
+  // Update progress in Firestore (debounced to every word)
+  if (gameText[charIndex - 1] === ' ' || charIndex >= gameText.length) {
+    updateRaceProgress();
+  }
+}
+
+async function updateRaceProgress() {
+  if (!roomCode) return;
+  try {
+    const elapsed = (Date.now() - gameStartTime) / 60000;
+    const wpm = elapsed > 0 ? Math.round(wordsCompleted / elapsed) : 0;
+    const progress = gameText.length > 0 ? Math.round((charIndex / gameText.length) * 100) : 0;
+    const update = {};
+    update['players.' + studentId + '.progress'] = progress;
+    update['players.' + studentId + '.wpm'] = wpm;
+    await updateDoc(doc(db, 'typingGames', roomCode), update);
+  } catch(e) {}
+}
+
+function listenToRace() {
+  if (unsub) unsub();
+  const ref = doc(db, 'typingGames', roomCode);
+  unsub = onSnapshot(ref, function(snap) {
+    if (!snap.exists()) return;
+    const data = snap.data();
+    raceData = data;
+    renderRaceTrack(data.players || {});
+
+    // Check if all finished
+    const players = data.players || {};
+    const allDone = Object.values(players).every(p => p.finished);
+    if (allDone && !raceFinished) {
+      endRaceComplete(data);
+    }
+  });
+}
+
+function renderRaceTrack(players) {
+  const container = document.getElementById('raceTrack');
+  const ids = Object.keys(players);
+  let html = '';
+  ids.forEach(function(id, i) {
+    const p = players[id];
+    const color = PLAYER_COLORS[i % PLAYER_COLORS.length];
+    const car = PLAYER_CARS[i % PLAYER_CARS.length];
+    const isMe = id === studentId;
+    const progress = Math.min(p.progress || 0, 100);
+    const leftPct = Math.min(progress, 95);
+    html += '<div class="race-lane' + (isMe ? ' me' : '') + '">';
+    html += '<div class="lane-name" style="color:' + color + '">' + window.esc(p.name) + '</div>';
+    html += '<div class="lane-track"><div class="lane-fill" style="width:' + progress + '%;background:' + color + '"></div><div class="lane-car" style="left:calc(' + leftPct + '% - 12px)">' + car + '</div></div>';
+    html += '<div class="lane-wpm">' + (p.wpm || 0) + ' wpm</div>';
+    html += '</div>';
+  });
+  container.innerHTML = html;
+}
+
+async function endRaceForMe() {
+  gameActive = false;
+  if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
+
+  const input = document.getElementById('raceInput');
+  input.removeEventListener('input', handleRaceInput);
+
+  const elapsed = (Date.now() - gameStartTime) / 60000;
+  const finalWPM = elapsed > 0 ? Math.round(wordsCompleted / elapsed) : 0;
+  const finalAcc = totalKeystrokes > 0 ? Math.round((correctChars / totalKeystrokes) * 100) : 100;
+  const progress = gameText.length > 0 ? Math.round((charIndex / gameText.length) * 100) : 0;
+
+  try {
+    const update = {};
+    update['players.' + studentId + '.finished'] = true;
+    update['players.' + studentId + '.wpm'] = finalWPM;
+    update['players.' + studentId + '.progress'] = progress;
+    update['players.' + studentId + '.finishTime'] = Date.now();
+    update['players.' + studentId + '.accuracy'] = finalAcc;
+    await updateDoc(doc(db, 'typingGames', roomCode), update);
+  } catch(e) {}
+
+  // Save personal record
+  if (!studentId.startsWith('anon_')) {
+    saveRecord(finalWPM, finalAcc);
+  }
+
+  // Wait a moment for all to finish, then check
+  setTimeout(async function() {
+    try {
+      const snap = await getDoc(doc(db, 'typingGames', roomCode));
+      if (snap.exists()) {
+        const data = snap.data();
+        const allDone = Object.values(data.players || {}).every(p => p.finished);
+        if (allDone || raceFinished) {
+          endRaceComplete(data);
+        } else {
+          // Wait for others - the onSnapshot listener will handle it
+        }
+      }
+    } catch(e) {}
+  }, 1500);
+}
+
+function endRaceComplete(data) {
+  if (raceFinished) return;
+  raceFinished = true;
+  if (unsub) { unsub(); unsub = null; }
+  if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
+  gameActive = false;
+
+  const players = data.players || {};
+  const rankings = Object.entries(players)
+    .map(([id, p]) => ({ id, name: p.name, wpm: p.wpm || 0, progress: p.progress || 0, accuracy: p.accuracy || 0 }))
+    .sort((a, b) => {
+      if (b.progress !== a.progress) return b.progress - a.progress;
+      return b.wpm - a.wpm;
+    });
+
+  const myRank = rankings.findIndex(r => r.id === studentId) + 1;
+  const myData = rankings.find(r => r.id === studentId) || { wpm: 0, accuracy: 0 };
+
+  // Coins by place
+  let coins = 2; // participation
+  if (myRank === 1) coins = 15;
+  else if (myRank === 2) coins = 10;
+  else if (myRank === 3) coins = 5;
+
+  // Accuracy bonus
+  if (myData.accuracy >= 95) coins += 5;
+
+  // New record check
+  let isNewRecord = false;
+  if (myData.wpm > personalBestWPM && personalBestWPM > 0) {
+    coins += 10;
+    isNewRecord = true;
+  }
+  if (myData.wpm > personalBestWPM) personalBestWPM = myData.wpm;
+
+  showScreen('resultScreen');
+  const placeText = myRank === 1 ? '1st Place!' : myRank === 2 ? '2nd Place!' : myRank === 3 ? '3rd Place!' : myRank + 'th Place';
+  document.getElementById('resultTitle').textContent = myRank === 1 ? 'You Won!' : placeText;
+  document.getElementById('resultSub').textContent = 'Multiplayer Race \u00B7 ' + Object.keys(players).length + ' players';
+
+  const coinSvg = '<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="var(--gold)" stroke-width="2" fill="rgba(255,209,102,.2)"/><text x="12" y="16" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--gold)">$</text></svg>';
+  document.getElementById('resultCoins').innerHTML = coinSvg + ' +' + coins + ' Coins';
+
+  document.getElementById('resultStats').innerHTML =
+    '<div class="stat-box"><div class="stat-val" style="color:var(--accent)">' + myData.wpm + '</div><div class="stat-label">WPM</div></div>' +
+    '<div class="stat-box"><div class="stat-val" style="color:var(--accent2)">' + myData.accuracy + '%</div><div class="stat-label">Accuracy</div></div>';
+
+  // Race results table
+  let rhtml = '<div style="margin-top:16px"><div class="section-title">Race Results</div>';
+  rhtml += '<div style="display:flex;flex-direction:column;gap:6px">';
+  rankings.forEach(function(r, i) {
+    const medal = i === 0 ? '\uD83E\uDD47' : i === 1 ? '\uD83E\uDD48' : i === 2 ? '\uD83E\uDD49' : '#' + (i+1);
+    const isMe = r.id === studentId;
+    const col = PLAYER_COLORS[Object.keys(players).indexOf(r.id) % PLAYER_COLORS.length];
+    rhtml += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface);border:1px solid ' + (isMe ? 'var(--accent)' : 'var(--border)') + ';border-radius:12px">';
+    rhtml += '<span style="font-size:18px;min-width:28px">' + medal + '</span>';
+    rhtml += '<span style="flex:1;font-weight:700;color:' + col + '">' + window.esc(r.name) + (isMe ? ' (You)' : '') + '</span>';
+    rhtml += '<span style="font-weight:800;color:var(--accent)">' + r.wpm + ' WPM</span>';
+    rhtml += '</div>';
+  });
+  rhtml += '</div></div>';
+  document.getElementById('raceResults').innerHTML = rhtml;
+
+  if (isNewRecord) {
+    document.getElementById('newRecordArea').innerHTML = '<div class="new-record-badge">&#127881; New Personal Record!</div>';
+    Audio.play('record');
+    window.odaConfetti();
+  } else {
+    document.getElementById('newRecordArea').innerHTML = '';
+    if (myRank === 1) { Audio.play('finish'); window.odaConfetti(); }
+    else Audio.play('finish');
+  }
+
+  document.getElementById('resultActions').innerHTML =
+    '<button class="btn btn-accent" onclick="TR.showMulti()">Race Again</button>' +
+    '<button class="btn btn-outline" onclick="TR.showScreen(\'homeScreen\')">Home</button>';
+
+  if (!coinsAwarded && !studentId.startsWith('anon_')) {
+    coinsAwarded = true;
+    awardCoins(coins);
+  }
+}
+
+async function leaveRoom() {
+  if (unsub) { unsub(); unsub = null; }
+  if (roomCode && !raceFinished) {
+    try {
+      await initFB();
+      const ref = doc(db, 'typingGames', roomCode);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const data = snap.data();
+        const players = data.players || {};
+        delete players[studentId];
+        if (Object.keys(players).length === 0) {
+          await deleteDoc(ref);
+        } else {
+          const update = {};
+          update['players.' + studentId] = fsMod.deleteField();
+          if (data.host === studentId) {
+            update.host = Object.keys(players)[0];
+          }
+          await updateDoc(ref, update);
+        }
+      }
+    } catch(e) {}
+  }
+  roomCode = null; isHost = false; raceFinished = false;
+  showScreen('homeScreen');
+}
+
+function quitRace() {
+  gameActive = false;
+  if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
+  const input = document.getElementById('raceInput');
+  input.removeEventListener('input', handleRaceInput);
+  endRaceForMe();
+}
+
+// ============================================
+// Keyboard handler for mobile focus
+// ============================================
+document.addEventListener('keydown', function(e) {
+  if (!gameActive) return;
+  const screen = document.querySelector('.screen.active');
+  if (!screen) return;
+
+  if (screen.id === 'gameScreen') {
+    document.getElementById('gameInput').focus();
+  } else if (screen.id === 'raceScreen') {
+    document.getElementById('raceInput').focus();
+  }
+});
+
+// Prevent default on typing display to avoid scrolling
+['textDisplay', 'raceTextDisplay'].forEach(function(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('keydown', function(e) {
+      if (gameActive) e.preventDefault();
+    });
+  }
+});
+
+// ============================================
+// Init
+// ============================================
+loadPersonalBest();
+
+// ============================================
+// Public API
+// ============================================
+window.TR = {
+  showScreen,
+  showSetup,
+  selectDiff,
+  selectTime,
+  startGame,
+  quitGame,
+  showMulti,
+  createRoom,
+  joinRoom,
+  startRace,
+  leaveRoom,
+  quitRace,
+  showRecords,
+  openImportModal,
+  closeImportModal,
+  selectSpellingList,
+  clearImport,
+  selectLobbyDiff,
+  selectLobbyTime
+};
+
+})();
+</script>
+</body>
+</html>
