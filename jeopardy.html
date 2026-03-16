@@ -591,7 +591,8 @@ function showBoardBuilder(existingBoard, editId) {
       questions: [[], [], [], [], []],
       finalJeopardy: { category: '', clue: '', answer: '' },
       dailyDoubles: [],
-      isPublic: false
+      isPublic: false,
+      enableFinalJeopardy: true
     };
     for (var i = 0; i < 5; i++) {
       builderBoard.questions[i] = [];
@@ -619,6 +620,22 @@ function renderBuilder() {
       '<button class="btn btn-accent" onclick="aiGenerateBoard()" id="aiGenBtn">&#x2728; Generate Board</button>' +
     '</div>' +
     '<div id="aiGenStatus"></div>' +
+  '</div>';
+
+  // Import from JeopardyLabs
+  html += '<div style="margin-bottom:16px">' +
+    '<div class="input-label">&#x1F4E5; Import from JeopardyLabs</div>' +
+    '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
+      '<label class="btn btn-surface btn-sm" style="cursor:pointer">' +
+        '&#x1F4C1; Choose .html file' +
+        '<input type="file" accept=".html,.htm" onchange="importJeopardyLabs(this)" style="display:none">' +
+      '</label>' +
+      '<span id="importStatus" style="font-size:13px;color:var(--text2)"></span>' +
+    '</div>' +
+    '<div style="margin-top:8px">' +
+      '<button class="btn btn-surface btn-sm" onclick="importFromSpelling()">&#x1F41D; Import from Spelling Bee</button>' +
+      '<div id="spellingImportArea" style="display:none;margin-top:8px"></div>' +
+    '</div>' +
   '</div>';
 
   // Title
@@ -655,13 +672,20 @@ function renderBuilder() {
     html += '</div>';
   }
 
-  // Final Jeopardy
-  html += '<div class="input-label" style="margin-top:16px">&#x1F3C6; Final Jeopardy</div>';
-  html += '<div class="builder-fj">' +
+  // Final Jeopardy toggle
+  html += '<div style="margin-top:16px;display:flex;align-items:center;gap:8px">' +
+    '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:700;color:var(--gold);font-size:15px">' +
+      '<input type="checkbox" id="fjEnabled"' + (b.enableFinalJeopardy !== false ? ' checked' : '') + ' onchange="toggleFJFields(this.checked)"> &#x1F3C6; Enable Final Jeopardy' +
+    '</label>' +
+  '</div>';
+
+  // Final Jeopardy fields
+  html += '<div id="fjFields" style="' + (b.enableFinalJeopardy !== false ? '' : 'display:none') + '">';
+  html += '<div class="builder-fj" style="margin-top:8px">' +
     '<input type="text" class="bq-input" id="fjCat" placeholder="Final Jeopardy Category" value="' + esc(b.finalJeopardy.category || '') + '">' +
     '<input type="text" class="bq-input" id="fjClue" placeholder="Final Jeopardy Clue" value="' + esc(b.finalJeopardy.clue || '') + '">' +
     '<input type="text" class="bq-input" id="fjAnswer" placeholder="Final Jeopardy Answer" value="' + esc(b.finalJeopardy.answer || '') + '">' +
-  '</div>';
+  '</div></div>';
 
   // Options
   html += '<div style="margin-top:16px;display:flex;align-items:center;gap:12px">' +
@@ -708,6 +732,11 @@ function toggleDD(cat, row) {
   }
 }
 
+function toggleFJFields(show) {
+  var fjDiv = document.getElementById('fjFields');
+  if (fjDiv) fjDiv.style.display = show ? '' : 'none';
+}
+
 function collectBuilderData() {
   var b = builderBoard;
   var titleEl = document.getElementById('boardTitle');
@@ -730,6 +759,8 @@ function collectBuilderData() {
   if (fjCat) b.finalJeopardy.category = fjCat.value;
   if (fjClue) b.finalJeopardy.clue = fjClue.value;
   if (fjAns) b.finalJeopardy.answer = fjAns.value;
+  var fjEnabledEl = document.getElementById('fjEnabled');
+  if (fjEnabledEl) b.enableFinalJeopardy = fjEnabledEl.checked;
   var pubEl = document.getElementById('boardPublic');
   if (pubEl) b.isPublic = pubEl.checked;
 }
@@ -761,6 +792,7 @@ async function saveBoard() {
       questions: b.questions,
       finalJeopardy: b.finalJeopardy,
       dailyDoubles: b.dailyDoubles || [],
+      enableFinalJeopardy: b.enableFinalJeopardy !== false,
       isPublic: b.isPublic,
       teacherId: teacherId,
       classCode: classCode,
@@ -779,6 +811,186 @@ async function saveBoard() {
     odaToast('Error saving: ' + e.message, 'error');
     btnReset(btn, '&#x1F4BE; Save Board');
   }
+}
+
+// ===========================
+// IMPORT FROM JEOPARDYLABS
+// ===========================
+function importJeopardyLabs(fileInput) {
+  var file = fileInput.files[0];
+  if (!file) return;
+
+  var statusEl = document.getElementById('importStatus');
+  statusEl.textContent = 'Parsing...';
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var parser = new DOMParser();
+      var doc = parser.parseFromString(e.target.result, 'text/html');
+
+      // Extract categories
+      var catEls = doc.querySelectorAll('.cat-cell');
+      var categories = [];
+      catEls.forEach(function(el) {
+        categories.push(el.textContent.trim());
+      });
+
+      // Pad to 5 categories
+      while (categories.length < 5) categories.push('');
+      categories = categories.slice(0, 5);
+
+      // Extract questions
+      var questions = [[], [], [], [], []];
+      for (var i = 0; i < 5; i++) {
+        for (var j = 0; j < 5; j++) {
+          questions[i].push({ clue: '', answer: '', points: (j+1)*100 });
+        }
+      }
+
+      var cellEls = doc.querySelectorAll('.cell-group.grid-cell');
+      var qCount = 0;
+      cellEls.forEach(function(cell) {
+        var row = parseInt(cell.getAttribute('data-row'));
+        var col = parseInt(cell.getAttribute('data-col'));
+        if (row < 1 || row > 5 || col < 0 || col >= 5) return;
+
+        var frontEl = cell.querySelector('.front.answer, .answer');
+        var backEl = cell.querySelector('.back.question, .question');
+
+        var clue = '';
+        var answer = '';
+
+        if (frontEl) {
+          // Get text content, strip images but note if images exist
+          clue = frontEl.textContent.trim().replace(/\s+/g, ' ');
+        }
+        if (backEl) {
+          answer = backEl.textContent.trim().replace(/\s+/g, ' ');
+        }
+
+        if (col < 5 && (row-1) < 5) {
+          questions[col][row-1].clue = clue;
+          questions[col][row-1].answer = answer;
+          if (clue || answer) qCount++;
+        }
+      });
+
+      // Auto-detect title
+      var titleEl = doc.querySelector('title');
+      var title = titleEl ? titleEl.textContent.replace(/Jeopardy Template/i, '').replace(/JeopardyLabs/i, '').trim() : '';
+      // Clean up common suffixes
+      title = title.replace(/^\s*[-\u2013\u2014|]\s*/, '').replace(/\s*[-\u2013\u2014|]\s*$/, '').trim();
+
+      // Apply to builder
+      builderBoard.title = title || builderBoard.title;
+      builderBoard.categories = categories;
+      builderBoard.questions = questions;
+
+      // Re-render
+      renderBuilder();
+
+      odaToast('Imported ' + categories.filter(function(c){return c}).length + ' categories & ' + qCount + ' questions!', 'success');
+      statusEl = document.getElementById('importStatus');
+      if (statusEl) statusEl.textContent = '\u2705 Import complete!';
+    } catch(err) {
+      console.error('Import error:', err);
+      statusEl.textContent = '\u274C Error parsing file';
+      odaToast('Error parsing JeopardyLabs file', 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ===========================
+// IMPORT FROM SPELLING BEE
+// ===========================
+async function importFromSpelling() {
+  var area = document.getElementById('spellingImportArea');
+  if (!area) return;
+  area.style.display = 'block';
+  area.innerHTML = '<div class="loading">Loading spelling lists</div>';
+
+  try {
+    var fb = await getFirebaseDB();
+    var fs = fb.fsMod;
+    var teacherId = sessionStorage.getItem('odaTeacherId') || localStorage.getItem('odaTeacherId') || '';
+    var q = fs.query(fs.collection(fb.db, 'spellingLists'), fs.where('teacherId','==',teacherId));
+    var snap = await fs.getDocs(q);
+    var lists = [];
+    snap.forEach(function(d) { lists.push(Object.assign({id: d.id}, d.data())); });
+
+    if (lists.length === 0) {
+      area.innerHTML = '<div style="color:var(--text2);font-size:13px">No spelling lists found. Create one in the Spelling Bee tool first!</div>';
+      return;
+    }
+
+    var optionsHtml = '<option value="">-- Select a list --</option>';
+    lists.forEach(function(l, idx) {
+      var name = l.title || l.name || ('List ' + (idx+1));
+      var count = (l.words || []).length;
+      optionsHtml += '<option value="' + idx + '">' + esc(name) + ' (' + count + ' words)</option>';
+    });
+
+    area.innerHTML = '<select class="input" style="max-width:300px;padding:10px 12px;font-size:14px" id="spellingListSelect" onchange="applySpellingList()">' + optionsHtml + '</select>';
+    window._spellingLists = lists;
+  } catch(err) {
+    console.error('Spelling import error:', err);
+    area.innerHTML = '<div style="color:var(--accent3);font-size:13px">\u274C Error loading spelling lists</div>';
+  }
+}
+
+function applySpellingList() {
+  var select = document.getElementById('spellingListSelect');
+  var idx = parseInt(select.value);
+  if (isNaN(idx)) return;
+
+  var list = window._spellingLists[idx];
+  if (!list) return;
+
+  var words = (list.words || []).slice(0, 25);
+  if (words.length === 0) {
+    odaToast('This list has no words!', 'warning');
+    return;
+  }
+
+  var listName = list.title || list.name || 'Spelling List';
+  builderBoard.title = 'Spelling Bee: ' + listName;
+  builderBoard.topic = 'Spelling';
+
+  // Split words into 5 categories (rounds)
+  var categories = ['Round 1', 'Round 2', 'Round 3', 'Round 4', 'Round 5'];
+  var questions = [[], [], [], [], []];
+  for (var i = 0; i < 5; i++) {
+    questions[i] = [];
+    for (var j = 0; j < 5; j++) {
+      questions[i].push({ clue: '', answer: '', points: (j+1)*100 });
+    }
+  }
+
+  // Distribute words across categories and rows
+  for (var w = 0; w < words.length && w < 25; w++) {
+    var cat = Math.floor(w / 5);
+    var row = w % 5;
+    var word = words[w];
+    var wordText = typeof word === 'string' ? word : (word.word || word.text || '');
+    var definition = typeof word === 'object' ? (word.definition || word.meaning || '') : '';
+
+    var clue = definition ? definition : 'How do you spell this word? (Say it out loud!)';
+    if (!definition) {
+      clue = 'Spell the word: ' + wordText;
+    }
+
+    questions[cat][row].clue = clue;
+    questions[cat][row].answer = wordText;
+  }
+
+  builderBoard.categories = categories;
+  builderBoard.questions = questions;
+  builderBoard.finalJeopardy = { category: 'Bonus Spelling', clue: 'Spell the hardest word from today\'s list!', answer: words.length > 0 ? (typeof words[words.length-1] === 'string' ? words[words.length-1] : (words[words.length-1].word || '')) : '' };
+
+  renderBuilder();
+  odaToast('Imported ' + words.length + ' spelling words into Jeopardy board!', 'success');
 }
 
 function editBoard(idx) {
@@ -1201,6 +1413,11 @@ function updateScoreDisplay() {
 // ===========================
 var fjStage = 0;
 function showFinalJeopardy() {
+  // Check if Final Jeopardy is disabled
+  if (gameState.board.enableFinalJeopardy === false) {
+    showGameOver();
+    return;
+  }
   var fj = gameState.board.finalJeopardy;
   if (!fj || !fj.clue || !fj.answer) {
     showGameOver();
