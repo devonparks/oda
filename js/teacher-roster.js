@@ -41,11 +41,13 @@ window.filterClass = filterClass;
 // Class Modal
 // ============================================
 
+/** Open the new-class modal with focus trap */
 function openClassModal() {
   var m = document.getElementById('classModal');
   m.classList.add('show');
   if (window.odaTrapFocus) _odaFocusTraps.classModal = window.odaTrapFocus(m);
 }
+/** Close the new-class modal and clear input */
 function closeClassModal() {
   document.getElementById('classModal').classList.remove('show');
   document.getElementById('className').value = '';
@@ -58,6 +60,7 @@ window.closeClassModal = closeClassModal;
 // Add Student Modal
 // ============================================
 
+/** Open the add-student modal, pre-selecting current class in dropdown */
 function openAddStudentModal() {
   var sel = document.getElementById('addStudentClass');
   var classes = window.teacherData && window.teacherData.classes
@@ -74,6 +77,7 @@ function openAddStudentModal() {
   if (window.odaTrapFocus) _odaFocusTraps.addStudentModal = window.odaTrapFocus(m);
 }
 
+/** Close the add-student modal and reset all fields */
 function closeAddStudentModal() {
   document.getElementById('addStudentModal').classList.remove('show');
   if (_odaFocusTraps.addStudentModal) { _odaFocusTraps.addStudentModal(); _odaFocusTraps.addStudentModal = null; }
@@ -118,6 +122,7 @@ function populateSettings() {
   document.getElementById('settingsClassCode').textContent = td.classCode || '------';
 }
 
+/** Update a toggle button's visual state (ON/OFF) */
 function updateToggleBtn(id, on) {
   var btn = document.getElementById(id);
   if (!btn) return;
@@ -401,6 +406,7 @@ window.deleteStudent = deleteStudent;
 // Multi-Select Delete
 // ============================================
 
+/** Toggle a student checkbox for bulk selection */
 function toggleStudentCheck(sid, cb) {
   var idx = _selectedStudentIds.indexOf(sid);
   if (cb.checked && idx < 0) _selectedStudentIds.push(sid);
@@ -411,6 +417,7 @@ function toggleStudentCheck(sid, cb) {
 }
 window.toggleStudentCheck = toggleStudentCheck;
 
+/** Show or hide the roster bulk-action bar based on selection count */
 function updateRosterBulkBar() {
   var bar = document.getElementById('rosterBulkBar');
   var count = _selectedStudentIds.length;
@@ -422,6 +429,7 @@ function updateRosterBulkBar() {
   }
 }
 
+/** Select all visible students for bulk operations */
 function selectAllStudents() {
   var boxes = document.querySelectorAll('#studentList .s-check');
   _selectedStudentIds = [];
@@ -434,6 +442,7 @@ function selectAllStudents() {
 }
 window.selectAllStudents = selectAllStudents;
 
+/** Clear all student selections and hide the bulk bar */
 function clearStudentSelection() {
   _selectedStudentIds = [];
   var boxes = document.querySelectorAll('#studentList .s-check');
@@ -616,10 +625,12 @@ function renderProfileAssignments() {
 // Profile Actions
 // ============================================
 
+/** Open the assignment creator for the currently selected student */
 function openAssignModal() {
   if (!selectedStudent) return;
   openCreateAssignment(selectedStudent.id);
 }
+/** Close the legacy assign modal */
 function closeAssignModal() { document.getElementById('assignModal').classList.remove('show'); }
 window.openAssignModal = openAssignModal;
 window.closeAssignModal = closeAssignModal;
