@@ -656,7 +656,7 @@ select.settings-input{cursor:pointer}
 <div class="fg"><label>Link (optional)</label><input type="url" id="createAssignLink" placeholder="https://..."></div>
 <div class="fg"><label>Grading</label><select id="createAssignGrading"><option value="teacher">Teacher Graded</option><option value="completion">Completion Only</option></select></div>
 </div>
-<div class="fg"><label>Attach File (optional — PDF or image, max 50MB)</label><input type="file" id="createAssignFile" accept=".pdf,.png,.jpg,.jpeg" style="padding:8px"></div>
+<div class="fg"><label>Attach File (optional — PDF or image, max 10MB)</label><input type="file" id="createAssignFile" accept=".pdf,.png,.jpg,.jpeg" style="padding:8px"></div>
 </div>
 <div class="type-panel" id="panel-templates">
 <div style="font-size:14px;color:var(--text2);margin-bottom:10px;font-weight:600">Click a template to load it, then assign to students.</div>
@@ -748,7 +748,7 @@ window.fbCollection=collection;window.fbQuery=query;window.fbWhere=where;window.
 onAuthStateChanged(auth,async function(user){
 if(!user){window.location.href='index.html';return}
 window.currentTeacher=user;
-sessionStorage.setItem('userRole','teacher');
+localStorage.setItem('userRole','teacher');
 localStorage.setItem('odaUserRole','teacher');
 try{
 var tDoc=await getDoc(doc(db,'teachers',user.uid));
@@ -888,9 +888,9 @@ setTimeout(function(){
 openCreateAssignment();
 setTimeout(function(){
 // Try to auto-select the tool
-var cards=document.querySelectorAll('.tp-card');
+var cards=document.querySelectorAll('.tool-pick');
 cards.forEach(function(c){
-if(c.getAttribute('data-tool')===toolType){c.click()}
+if(c.getAttribute('data-val')===toolType){c.click()}
 });
 },200);
 },100);
@@ -1017,9 +1017,21 @@ var msg=document.getElementById('profileSaveMsg');msg.style.display='block';setT
 }
 window.saveProfile=saveProfile;
 
-async function regenerateClassCode(){
+async function generateUniqueClassCode(){
+for(var attempts=0;attempts<10;attempts++){
 var code=String(Math.floor(100000+Math.random()*900000));
+var q=window.fbQuery(window.fbCollection(window.fbDb,'teachers'),window.fbWhere('classCode','==',code));
+var snap=await window.fbGetDocs(q);
+var taken=false;
+snap.forEach(function(d){if(d.id!==window.currentTeacher.uid)taken=true});
+if(!taken)return code;
+}
+return String(Math.floor(100000+Math.random()*900000)); // fallback
+}
+
+async function regenerateClassCode(){
 try{
+var code=await generateUniqueClassCode();
 await window.fbUpdateDoc(window.fbDoc(window.fbDb,'teachers',window.currentTeacher.uid),{classCode:code});
 window.teacherData.classCode=code;
 document.getElementById('classCodeDisplay').textContent=code;
@@ -1161,11 +1173,13 @@ _addingStudent=true;
 var btn=document.querySelector('#addStudentModal .btn-accent');
 if(btn){btn.textContent='Adding...';btn.disabled=true}
 try{
+var parentCode=String(Math.floor(1000+Math.random()*9000));
 await window.fbAddDoc(window.fbCollection(window.fbDb,'students'),{
 name:name,nameLower:name.toLowerCase(),grade:grade,
 teacherId:window.currentTeacher.uid,
 school:window.teacherData?window.teacherData.school:'',
 className:className,
+parentCode:parentCode,
 createdAt:new Date().toISOString()
 });
 closeAddStudentModal();
@@ -1183,7 +1197,7 @@ document.getElementById('rosterView').style.display='none';
 document.getElementById('profilePanel').classList.add('show');
 document.getElementById('profileAvatar').textContent=(selectedStudent.name||'?').charAt(0).toUpperCase();
 document.getElementById('profileName').textContent=selectedStudent.name;
-document.getElementById('profileDetail').textContent='Grade '+(selectedStudent.grade||'?')+(selectedStudent.className?' \u2022 '+selectedStudent.className:'');
+document.getElementById('profileDetail').textContent='Grade '+(selectedStudent.grade||'?')+(selectedStudent.className?' \u2022 '+selectedStudent.className:'')+(selectedStudent.parentCode?' \u2022 Parent Code: '+selectedStudent.parentCode:'');
 // Arcade toggle
 var arcOn=selectedStudent.arcadeUnlocked||false;
 var abtn=document.getElementById('arcadeToggleBtn');

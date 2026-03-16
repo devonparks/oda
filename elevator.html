@@ -562,16 +562,16 @@ var params=new URLSearchParams(window.location.search);
 var gradeId=params.get('grade');
 if(gradeId){initGradeMode(gradeId);return}
 assignmentId=params.get('assignmentId');
-studentId=params.get('studentId')||sessionStorage.getItem('studentId');
+studentId=params.get('studentId')||localStorage.getItem('studentId');
 isAssignmentMode=!!assignmentId;
-isTeacherMode=!!sessionStorage.getItem('teacherMode')||!!sessionStorage.getItem('teacherId');
+isTeacherMode=!!localStorage.getItem('teacherMode')||!!localStorage.getItem('teacherId');
 // Smart back link
 var backEl=document.getElementById('backLink');
 if(studentId)backEl.href='student.html';
 else if(isTeacherMode)backEl.href='teacher.html';
 // Show teacher mode button if teacher (but not if student is active)
-var isStudentSession=!!sessionStorage.getItem('studentId');
-var isTeacherUser=!isStudentSession&&(sessionStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher');
+var isStudentSession=!!localStorage.getItem('studentId');
+var isTeacherUser=!isStudentSession&&(localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher');
 if(isTeacherUser){
 document.getElementById('teacherModeBtn').style.display='inline-flex';
 }
@@ -605,7 +605,7 @@ grid.innerHTML='<div class="td-loading">Loading student pitches</div>';
 document.getElementById('tdStats').innerHTML='';
 try{
 var fb=await getFirebaseDB();
-var teacherId=sessionStorage.getItem('teacherId')||sessionStorage.getItem('userId')||'';
+var teacherId=localStorage.getItem('teacherId')||localStorage.getItem('userId')||'';
 // Query all elevator pitches - try teacher-specific first, fall back to all
 var pitchesRef=fb.fsMod.collection(fb.db,'elevatorPitches');
 var q;
@@ -1016,7 +1016,7 @@ step=-1;
 document.getElementById('progWrap').style.display='none';
 var saved=getSaved();
 // In assignment mode with a session name, skip start and jump right in
-var sessionName=sessionStorage.getItem('studentName');
+var sessionName=localStorage.getItem('studentName');
 if(isAssignmentMode&&sessionName){
 answers.name=sessionName;
 step=1;
@@ -1437,7 +1437,7 @@ saveElevatorToFirebase(ans,text);
 }
 
 async function saveElevatorToFirebase(ans,text){
-var sid=sessionStorage.getItem('studentId');
+var sid=localStorage.getItem('studentId');
 if(!sid)return;
 try{
 var fb=await getFirebaseDB();

@@ -541,10 +541,10 @@ select.input{cursor:pointer;-webkit-appearance:none;appearance:none;background-i
 // ============================================
 // GLOBALS
 // ============================================
-var studentId = sessionStorage.getItem('studentId');
-var studentName = sessionStorage.getItem('studentName');
-var isTeacher = !studentId && (sessionStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
-var classCode = sessionStorage.getItem('classCode') || localStorage.getItem('classCode') || '';
+var studentId = localStorage.getItem('studentId');
+var studentName = localStorage.getItem('studentName');
+var isTeacher = !studentId && (localStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
+var classCode = localStorage.getItem('classCode') || localStorage.getItem('classCode') || '';
 
 var allPassages = [];
 var currentPassage = null;
@@ -625,7 +625,7 @@ async function loadPassages(){
     var fb=await getFB();
     var constraints=[];
     if(isTeacher){
-      var teacherId=sessionStorage.getItem('odaTeacherId')||localStorage.getItem('odaTeacherId')||'';
+      var teacherId=localStorage.getItem('odaTeacherId')||localStorage.getItem('odaTeacherId')||'';
       if(teacherId) constraints.push(fb.fsMod.where('teacherId','==',teacherId));
     } else {
       if(classCode) constraints.push(fb.fsMod.where('classCode','==',classCode));
@@ -1653,7 +1653,7 @@ async function savePassage(){
     wordCount:wc,
     readingTime:Math.max(1,Math.round(wc/150)),
     questions:editQuestions,
-    teacherId:sessionStorage.getItem('odaTeacherId')||localStorage.getItem('odaTeacherId')||'anonymous',
+    teacherId:localStorage.getItem('odaTeacherId')||localStorage.getItem('odaTeacherId')||'anonymous',
     classCode:classCode,
     isPublic:true,
     assignedTo:[],

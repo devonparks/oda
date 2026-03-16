@@ -13,7 +13,7 @@
   // Firebase coin reward
   window.odaRewardCoins=function(score){
     var coins=Math.max(1,Math.floor(score));
-    var studentId=sessionStorage.getItem('studentId');
+    var studentId=localStorage.getItem('studentId');
     if(!studentId)return;
     window.getFirebaseDB().then(function(fb){
       fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{coins:fb.fsMod.increment(coins)}).then(function(){

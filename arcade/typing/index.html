@@ -532,10 +532,10 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 // ============================================
 // Session / Identity
 // ============================================
-const studentId = sessionStorage.getItem('studentId') || 'anon_' + Math.random().toString(36).slice(2,8);
-const studentName = sessionStorage.getItem('studentName') || 'Player';
-const classCode = sessionStorage.getItem('classCode') || '';
-const isTeacher = sessionStorage.getItem('userRole') === 'teacher' || localStorage.getItem('odaUserRole') === 'teacher';
+const studentId = localStorage.getItem('studentId') || 'anon_' + Math.random().toString(36).slice(2,8);
+const studentName = localStorage.getItem('studentName') || 'Player';
+const classCode = localStorage.getItem('classCode') || '';
+const isTeacher = localStorage.getItem('userRole') === 'teacher' || localStorage.getItem('odaUserRole') === 'teacher';
 
 if (isTeacher) {
   var bb = document.getElementById('backBtn');
@@ -879,7 +879,7 @@ async function loadSpellingLists() {
   area.innerHTML = '<p style="color:var(--text2);font-size:14px"><span style="display:inline-block;width:14px;height:14px;border:2px solid var(--accent2);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px"></span> Loading spelling lists...</p>';
   try {
     await initFB();
-    let tid = sessionStorage.getItem('teacherId') || sessionStorage.getItem('odaUID') || localStorage.getItem('odaUID') || '';
+    let tid = localStorage.getItem('teacherId') || localStorage.getItem('odaUID') || localStorage.getItem('odaUID') || '';
     if (!tid) {
       try { const a = await window.getFirebaseAuth(); if (a.auth.currentUser) tid = a.auth.currentUser.uid; } catch(e) {}
     }

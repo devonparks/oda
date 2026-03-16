@@ -1707,9 +1707,9 @@ function checkAchievements(s, wpm, acc, bestStreak) {
 
 /* ---- Coins ---- */
 function awardCoins(coins) {
-  if (sessionStorage.getItem('studentId')) {
+  if (localStorage.getItem('studentId')) {
     getFirebaseDB().then(function(fb) {
-      fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'students', sessionStorage.getItem('studentId')), {
+      fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'students', localStorage.getItem('studentId')), {
         coins: fb.fsMod.increment(coins)
       });
     }).catch(function(e) { console.log('[KW] Coin save error:', e); });
@@ -1737,7 +1737,7 @@ document.getElementById('typeInput').addEventListener('blur', function() {
 });
 
 // Fix back link
-var isTeacher = !sessionStorage.getItem('studentId') && (sessionStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
+var isTeacher = !localStorage.getItem('studentId') && (localStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
 if (isTeacher) {
   document.getElementById('backLink').href = 'teacher.html';
 }

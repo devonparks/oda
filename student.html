@@ -198,8 +198,8 @@ const app=initializeApp(cfg);const db=getFirestore(app);
 window.fbDb=db;window.fbDoc=doc;window.fbGetDoc=getDoc;window.fbGetDocs=getDocs;window.fbUpdateDoc=updateDoc;
 window.fbCollection=collection;window.fbQuery=query;window.fbWhere=where;
 
-var studentId=sessionStorage.getItem('studentId');
-var studentName=sessionStorage.getItem('studentName');
+var studentId=localStorage.getItem('studentId');
+var studentName=localStorage.getItem('studentName');
 if(!studentId){window.location.href='index.html'}
 else{
 document.getElementById('studentNameEl').textContent=studentName||'Student';
@@ -374,7 +374,7 @@ var toolId=a.toolType||a.type;
 // Tool assignments — pitch/elevator/lemonade
 if(toolId==='pitch-challenge'||toolId==='elevator-pitch'){
 var link=toolId==='pitch-challenge'?'pitch.html':'elevator.html';
-var sid=sessionStorage.getItem('studentId')||'';
+var sid=localStorage.getItem('studentId')||'';
 link+='?assignmentId='+encodeURIComponent(a.id)+'&studentId='+encodeURIComponent(sid);
 return '<a class="a-btn start" href="'+link+'">Start Pitch \u{1F680}</a>';
 }
@@ -595,7 +595,7 @@ var grid=document.getElementById('toolsGrid');
 var h='';
 ODA_TOOLS.forEach(function(t){
 var count=0;
-if(t.storageKey){try{var items=JSON.parse(localStorage.getItem(t.storageKey)||'[]');var sid=sessionStorage.getItem('studentId');if(sid){items=items.filter(function(p){return p.studentId===sid})}count=items.length}catch(e){}}
+if(t.storageKey){try{var items=JSON.parse(localStorage.getItem(t.storageKey)||'[]');var sid=localStorage.getItem('studentId');if(sid){items=items.filter(function(p){return p.studentId===sid})}count=items.length}catch(e){}}
 h+='<div class="tool-card" onclick="window.open(\''+t.url+'\',\'_self\')">';
 h+='<span class="tc-emoji">'+t.emoji+'</span>';
 h+='<div class="tc-name">'+t.name+'</div>';
@@ -617,7 +617,7 @@ ch+='</div>';
 coming.innerHTML=ch;
 }
 
-function studentLogout(){if(confirm('Are you sure you want to log out?')){sessionStorage.clear();window.location.href='index.html'}}
+function studentLogout(){if(confirm('Are you sure you want to log out?')){localStorage.removeItem('studentId');localStorage.removeItem('studentName');localStorage.removeItem('classCode');localStorage.removeItem('encourageShown');window.location.href='index.html'}}
 window.studentLogout=studentLogout;
 
 function fireConfetti(){var co=["#06d6a0","#118ab2","#ffd166","#ef476f","#a855f7"];for(var i=0;i<50;i++){var p=document.createElement('div');p.className='confetti-piece';var sz=6+Math.random()*10;p.style.width=sz+'px';p.style.height=sz*(Math.random()>.5?1:.6)+'px';p.style.left=Math.random()*100+'%';p.style.backgroundColor=co[i%co.length];p.style.borderRadius=Math.random()>.5?'50%':'2px';p.style.animationDuration=(2+Math.random()*3)+'s';p.style.animationDelay=(Math.random()*2)+'s';document.body.appendChild(p);(function(el){setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},5000)})(p)}}
@@ -656,7 +656,7 @@ btn.classList.remove('loading');btn.innerHTML='&#x1F916; AI Study Buddy';
 window.aiStudyBuddy=aiStudyBuddy;
 
 // ===== AI ENCOURAGEMENT BANNER (8f) =====
-var encourageShown=sessionStorage.getItem('encourageShown');
+var encourageShown=localStorage.getItem('encourageShown');
 function generateEncouragement(){
 if(encourageShown)return;
 // Wait for assignments to load
@@ -680,7 +680,7 @@ var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||d
 if(text){
 document.getElementById('encourageText').textContent=text;
 document.getElementById('encourageBanner').classList.add('show');
-sessionStorage.setItem('encourageShown','1');
+localStorage.setItem('encourageShown','1');
 }
 }).catch(function(e){console.error('Encouragement error:',e)});
 }
@@ -719,10 +719,10 @@ await fb.fsMod.addDoc(fb.fsMod.collection(fb.db,'feedback'),{
 type:type,
 message:message,
 page:page,
-userName:sessionStorage.getItem('studentName')||'Anonymous',
+userName:localStorage.getItem('studentName')||'Anonymous',
 userRole:'student',
-userId:sessionStorage.getItem('studentId')||'',
-classCode:sessionStorage.getItem('classCode')||'',
+userId:localStorage.getItem('studentId')||'',
+classCode:localStorage.getItem('classCode')||'',
 status:'new',
 createdAt:fb.fsMod.serverTimestamp()
 });

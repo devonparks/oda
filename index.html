@@ -417,18 +417,19 @@ window.fbCollection=collection;
 window.fbQuery=query;
 window.fbWhere=where;
 
-// Check if already logged in; auto-generate classCode if missing
+// Check if already logged in as a teacher; auto-generate classCode if missing
 onAuthStateChanged(auth,async function(user){
 if(user){
 try{
 const teacherRef=doc(db,'teachers',user.uid);
 const teacherSnap=await getDoc(teacherRef);
-if(teacherSnap.exists()&&!teacherSnap.data().classCode){
+if(!teacherSnap.exists())return; // Not a teacher — don't redirect
+if(!teacherSnap.data().classCode){
 const code=String(Math.floor(100000+Math.random()*900000));
 await setDoc(teacherRef,{classCode:code},{merge:true});
 }
-}catch(e){console.error('classCode auto-gen:',e)}
 window.location.href="teacher.html";
+}catch(e){console.error('classCode auto-gen:',e)}
 }
 });
 
@@ -528,8 +529,8 @@ stuStep=3;showStuStep();
 window.pickStudent=function(id){
 var student=stuStudents.find(function(s){return s.id===id});
 if(!student)return;
-sessionStorage.setItem('studentId',student.id);
-sessionStorage.setItem('studentName',student.name);
+localStorage.setItem('studentId',student.id);
+localStorage.setItem('studentName',student.name);
 window.location.href='student.html';
 };
 
@@ -575,13 +576,20 @@ var school=document.getElementById('signupSchool').value;
 var grades=document.getElementById('signupGrades').value.trim();
 var team=document.getElementById('signupTeam').value;
 var program=document.getElementById('signupProgram').value;
-var classCode=String(Math.floor(100000+Math.random()*900000));
 var pass=document.getElementById('signupPass').value;
 
 if(!name||!email||!pass){showError('signupError','Fill in name, email and password!');return}
 if(pass.length<6){showError('signupError','Password needs at least 6 characters');return}
 
 try{
+// Generate unique class code
+var classCode;
+for(var cc=0;cc<10;cc++){
+classCode=String(Math.floor(100000+Math.random()*900000));
+var ccQ=window.fbQuery(window.fbCollection(window.firebaseDb,'teachers'),window.fbWhere('classCode','==',classCode));
+var ccSnap=await window.fbGetDocs(ccQ);
+if(ccSnap.empty)break;
+}
 var cred=await window.createUserWithEmailAndPassword(window.firebaseAuth,email,pass);
 await window.fbSetDoc(window.fbDoc(window.firebaseDb,'teachers',cred.user.uid),{
 name:name,
@@ -619,8 +627,8 @@ if(snap.empty){
 showError('parentError','Not found. Check with your child\'s teacher.');
 return;
 }
-sessionStorage.setItem('parentStudentId',snap.docs[0].id);
-sessionStorage.setItem('parentStudentName',snap.docs[0].data().name);
+localStorage.setItem('parentStudentId',snap.docs[0].id);
+localStorage.setItem('parentStudentName',snap.docs[0].data().name);
 window.location.href='parent.html';
 }catch(e){
 console.error('Parent login error:',e);

@@ -427,8 +427,8 @@ select.input{cursor:pointer;-webkit-appearance:none;-moz-appearance:none;appeara
    ================================================ */
 
 // --- State ---
-var studentId = sessionStorage.getItem('studentId');
-var isTeacher = !studentId && (sessionStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
+var studentId = localStorage.getItem('studentId');
+var isTeacher = !studentId && (localStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
 
 var wordEntries = []; // [{word, clue}]
 var currentGrid = null; // generated grid data
@@ -503,7 +503,7 @@ async function importFromSpellingToCW() {
   try {
     var fb = await getFirebaseDB();
     var fs = fb.fsMod;
-    var tid = sessionStorage.getItem('teacherId') || '';
+    var tid = localStorage.getItem('teacherId') || '';
     if (!tid) { try { var a = await getFirebaseAuth(); if(a.auth.currentUser) tid = a.auth.currentUser.uid; } catch(e){} }
     if (!tid) { area.innerHTML = '<div style="color:var(--accent3);font-size:13px">Could not determine teacher ID.</div>'; return; }
     var q = fs.query(fs.collection(fb.db, 'spellingLists'), fs.where('teacherId', '==', tid));
@@ -560,7 +560,7 @@ async function importFromFlashcardsToCW() {
   try {
     var fb = await getFirebaseDB();
     var fs = fb.fsMod;
-    var tid = sessionStorage.getItem('teacherId') || '';
+    var tid = localStorage.getItem('teacherId') || '';
     if (!tid) { try { var a = await getFirebaseAuth(); if(a.auth.currentUser) tid = a.auth.currentUser.uid; } catch(e){} }
     if (!tid) { area.innerHTML = '<div style="color:var(--accent3);font-size:13px">Could not determine teacher ID.</div>'; return; }
     var q = fs.query(fs.collection(fb.db, 'flashcardDecks'), fs.where('teacherId', '==', tid));
@@ -628,7 +628,7 @@ async function importFromWordSearchToCW() {
   try {
     var fb = await getFirebaseDB();
     var fs = fb.fsMod;
-    var tid = sessionStorage.getItem('teacherId') || '';
+    var tid = localStorage.getItem('teacherId') || '';
     if (!tid) { try { var a = await getFirebaseAuth(); if(a.auth.currentUser) tid = a.auth.currentUser.uid; } catch(e){} }
     if (!tid) { area.innerHTML = '<div style="color:var(--accent3);font-size:13px">Could not determine teacher ID.</div>'; return; }
     var q = fs.query(fs.collection(fb.db, 'wordSearchPuzzles'), fs.where('teacherId', '==', tid));
@@ -1131,7 +1131,7 @@ async function savePuzzle() {
       gridWidth: currentGrid.width,
       gridHeight: currentGrid.height,
       difficulty: difficulty,
-      teacherId: sessionStorage.getItem('teacherId') || 'unknown',
+      teacherId: localStorage.getItem('teacherId') || 'unknown',
       classCode: '',
       validationMode: 'check',
       createdAt: new Date().toISOString(),
@@ -1158,7 +1158,7 @@ async function loadTeacherPuzzles() {
     var fb = await getFirebaseDB();
     var db = fb.db;
     var fsMod = fb.fsMod;
-    var teacherId = sessionStorage.getItem('teacherId') || '';
+    var teacherId = localStorage.getItem('teacherId') || '';
     var q = fsMod.query(
       fsMod.collection(db, 'crosswordPuzzles'),
       fsMod.where('teacherId', '==', teacherId),
@@ -1199,7 +1199,7 @@ async function loadTeacherResults() {
     var fb = await getFirebaseDB();
     var db = fb.db;
     var fsMod = fb.fsMod;
-    var teacherId = sessionStorage.getItem('teacherId') || '';
+    var teacherId = localStorage.getItem('teacherId') || '';
     var q = fsMod.query(
       fsMod.collection(db, 'crosswordResults'),
       fsMod.where('teacherId', '==', teacherId),
@@ -1235,7 +1235,7 @@ async function loadStudentPuzzles() {
     var fb = await getFirebaseDB();
     var db = fb.db;
     var fsMod = fb.fsMod;
-    var classCode = sessionStorage.getItem('classCode') || '';
+    var classCode = localStorage.getItem('classCode') || '';
 
     // Load assigned puzzles for this class
     var html = '';
@@ -1295,7 +1295,7 @@ async function loadStudentPuzzles() {
 var assigningPuzzleId = '';
 function openAssignModal(puzzleId) {
   assigningPuzzleId = puzzleId;
-  document.getElementById('assignClassCode').value = sessionStorage.getItem('classCode') || '';
+  document.getElementById('assignClassCode').value = localStorage.getItem('classCode') || '';
   document.getElementById('assignModal').classList.add('show');
 }
 
@@ -1818,8 +1818,8 @@ async function saveResult(solved, timeSeconds, coins) {
       puzzleId: playPuzzleId,
       puzzleTitle: currentPuzzleData ? currentPuzzleData.title : '',
       studentId: studentId,
-      studentName: sessionStorage.getItem('studentName') || 'Student',
-      classCode: sessionStorage.getItem('classCode') || '',
+      studentName: localStorage.getItem('studentName') || 'Student',
+      classCode: localStorage.getItem('classCode') || '',
       teacherId: currentPuzzleData ? (currentPuzzleData.teacherId || '') : '',
       wordsCompleted: solved,
       totalWords: playWords.length,

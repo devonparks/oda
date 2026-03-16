@@ -360,9 +360,9 @@ select.input{cursor:pointer;-webkit-appearance:none;appearance:none;background-i
 // ============================================
 // GLOBALS
 // ============================================
-var studentId = sessionStorage.getItem('studentId');
-var isTeacher = !studentId && (sessionStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
-var classCode = sessionStorage.getItem('classCode') || localStorage.getItem('odaClassCode') || '';
+var studentId = localStorage.getItem('studentId');
+var isTeacher = !studentId && (localStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
+var classCode = localStorage.getItem('classCode') || localStorage.getItem('odaClassCode') || '';
 
 // Puzzle state
 var currentWords = []; // [{word, definition}]
@@ -499,7 +499,7 @@ async function importFromSpellingToWS() {
   try {
     var fb = await getFirebaseDB();
     var fs = fb.fsMod;
-    var tid = sessionStorage.getItem('odaUID') || localStorage.getItem('odaUID') || '';
+    var tid = localStorage.getItem('odaUID') || localStorage.getItem('odaUID') || '';
     if (!tid) { try { var a = await getFirebaseAuth(); if(a.auth.currentUser) tid = a.auth.currentUser.uid; } catch(e){} }
     if (!tid) { area.innerHTML = '<div style="color:var(--accent3);font-size:13px">Could not determine teacher ID.</div>'; return; }
     var q = fs.query(fs.collection(fb.db, 'spellingLists'), fs.where('teacherId', '==', tid));
@@ -558,7 +558,7 @@ async function importFromFlashcardsToWS() {
   try {
     var fb = await getFirebaseDB();
     var fs = fb.fsMod;
-    var tid = sessionStorage.getItem('odaUID') || localStorage.getItem('odaUID') || '';
+    var tid = localStorage.getItem('odaUID') || localStorage.getItem('odaUID') || '';
     if (!tid) { try { var a = await getFirebaseAuth(); if(a.auth.currentUser) tid = a.auth.currentUser.uid; } catch(e){} }
     if (!tid) { area.innerHTML = '<div style="color:var(--accent3);font-size:13px">Could not determine teacher ID.</div>'; return; }
     var q = fs.query(fs.collection(fb.db, 'flashcardDecks'), fs.where('teacherId', '==', tid));
@@ -788,7 +788,7 @@ async function savePuzzle(){
       difficulty:difficulty,
       grid:generatedGrid,
       solution:generatedSolution.map(function(s){return{word:s.word,startRow:s.startRow,startCol:s.startCol,direction:s.direction,dr:s.dr,dc:s.dc};}),
-      teacherId:sessionStorage.getItem('odaUID')||localStorage.getItem('odaUID')||'unknown',
+      teacherId:localStorage.getItem('odaUID')||localStorage.getItem('odaUID')||'unknown',
       classCode:classCode,
       isPublic:true,
       createdAt:new Date().toISOString()
@@ -1318,7 +1318,7 @@ async function saveResult(coins){
       puzzleId:currentPuzzleId,
       puzzleTitle:currentPuzzleTitle,
       studentId:studentId,
-      studentName:sessionStorage.getItem('studentName')||'Student',
+      studentName:localStorage.getItem('studentName')||'Student',
       classCode:classCode,
       wordsFound:foundWords.length,
       totalWords:playSolution.length,

@@ -331,10 +331,10 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5}
    ============================ */
 
 // --- Session detection ---
-var studentId = sessionStorage.getItem('studentId');
-var studentName = sessionStorage.getItem('studentName');
-var classCode = sessionStorage.getItem('classCode') || localStorage.getItem('classCode') || '';
-var isTeacher = !studentId && (sessionStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
+var studentId = localStorage.getItem('studentId');
+var studentName = localStorage.getItem('studentName');
+var classCode = localStorage.getItem('classCode') || localStorage.getItem('classCode') || '';
+var isTeacher = !studentId && (localStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
 
 // --- Fix back link ---
 (function(){
@@ -587,7 +587,7 @@ async function showBoardBrowser(mode) {
     var fs = fb.fsMod;
     var q;
     if (mode === 'teacher') {
-      var teacherId = sessionStorage.getItem('odaTeacherId') || localStorage.getItem('odaTeacherId') || '';
+      var teacherId = localStorage.getItem('odaTeacherId') || localStorage.getItem('odaTeacherId') || '';
       q = fs.query(fs.collection(fb.db, 'jeopardyBoards'), fs.where('teacherId','==',teacherId), fs.orderBy('createdAt','desc'));
     } else {
       // Students see boards for their class code + public boards
@@ -986,7 +986,7 @@ async function saveBoard() {
   try {
     var fb = await getFirebaseDB();
     var fs = fb.fsMod;
-    var teacherId = sessionStorage.getItem('odaTeacherId') || localStorage.getItem('odaTeacherId') || 'unknown';
+    var teacherId = localStorage.getItem('odaTeacherId') || localStorage.getItem('odaTeacherId') || 'unknown';
 
     // Categories as map (no arrays for Firestore)
     var categoriesMap = {};
@@ -1163,7 +1163,7 @@ async function importFromSpelling() {
   try {
     var fb = await getFirebaseDB();
     var fs = fb.fsMod;
-    var teacherId = sessionStorage.getItem('odaTeacherId') || localStorage.getItem('odaTeacherId') || '';
+    var teacherId = localStorage.getItem('odaTeacherId') || localStorage.getItem('odaTeacherId') || '';
     var q = fs.query(fs.collection(fb.db, 'spellingLists'), fs.where('teacherId','==',teacherId));
     var snap = await fs.getDocs(q);
     var lists = [];
@@ -1924,7 +1924,7 @@ async function showTeacherDash() {
   try {
     var fb = await getFirebaseDB();
     var fs = fb.fsMod;
-    var teacherId = sessionStorage.getItem('odaTeacherId') || localStorage.getItem('odaTeacherId') || '';
+    var teacherId = localStorage.getItem('odaTeacherId') || localStorage.getItem('odaTeacherId') || '';
 
     // Load boards
     var bq = fs.query(fs.collection(fb.db, 'jeopardyBoards'), fs.where('teacherId','==',teacherId));
