@@ -194,6 +194,23 @@ textarea.input{resize:vertical;min-height:100px;font-size:16px;line-height:1.6}
 .card{padding:36px 32px}
 .mode-grid{gap:20px}
 }
+
+/* AI Generator */
+.ai-gen-box{background:linear-gradient(135deg,#FFF7ED,#FEF3C7);border:2px solid #F59E0B;border-radius:18px;padding:20px;margin-bottom:16px;position:relative;overflow:hidden}
+.ai-gen-box::before{content:'';position:absolute;top:-30px;right:-30px;width:100px;height:100px;background:radial-gradient(circle,rgba(245,158,11,.15),transparent);border-radius:50%}
+.ai-gen-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:#92400E}
+.ai-gen-row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.ai-gen-row .ai-field{flex:1;min-width:140px}
+.ai-field label{font-family:'Fredoka',sans-serif;font-size:13px;color:#92400E;font-weight:600;display:block;margin-bottom:4px}
+.ai-field input,.ai-field select{width:100%;padding:10px 14px;border-radius:12px;border:2px solid #FDE68A;font-family:'Quicksand',sans-serif;font-size:15px;color:#92400E;background:#fff;font-weight:600;outline:none}
+.ai-field input:focus,.ai-field select:focus{border-color:#F59E0B}
+.btn-ai{background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;font-family:'Fredoka',sans-serif;font-weight:700;font-size:15px;border:none;border-radius:14px;padding:10px 24px;cursor:pointer;box-shadow:0 4px 0 rgba(180,83,9,.4);transition:all .15s;white-space:nowrap;align-self:end}
+.btn-ai:hover{transform:translateY(-1px);box-shadow:0 6px 0 rgba(180,83,9,.4)}
+.btn-ai:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(180,83,9,.4)}
+.btn-ai:disabled{background:#ccc;box-shadow:0 4px 0 rgba(0,0,0,.1);cursor:not-allowed}
+.ai-loading{display:inline-flex;align-items:center;gap:8px;font-family:'Fredoka',sans-serif;font-size:14px;color:#D97706;font-weight:600}
+.ai-spinner{width:18px;height:18px;border:3px solid #FDE68A;border-top:3px solid #F59E0B;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -984,6 +1001,19 @@ document.getElementById('dashContent').innerHTML=h;
 function showCreateListForm(){
 var h='<div class="card">';
 h+='<div class="card-title">&#x1F4DD; Create Word List</div>';
+
+// AI Generator section
+h+='<div class="ai-gen-box">';
+h+='<div class="ai-gen-header">&#x2728; Generate with AI</div>';
+h+='<div class="ai-gen-row">';
+h+='<div class="ai-field" style="flex:2"><label>Topic or Theme</label><input id="aiTopic" placeholder="e.g. ocean animals, space, weather"></div>';
+h+='<div class="ai-field"><label>Grade</label><select id="aiGrade"><option value="K">Kindergarten</option><option value="1st">1st Grade</option><option value="2nd">2nd Grade</option><option value="3rd" selected>3rd Grade</option><option value="4th">4th Grade</option><option value="5th">5th Grade</option><option value="6th">6th Grade</option><option value="7th">7th Grade</option><option value="8th">8th Grade</option></select></div>';
+h+='<div class="ai-field"><label>Word Count</label><select id="aiCount"><option value="10">10 words</option><option value="15">15 words</option><option value="20" selected>20 words</option><option value="25">25 words</option><option value="30">30 words</option></select></div>';
+h+='<button class="btn-ai" id="aiGenBtn" onclick="generateAIWords()">&#x2728; Generate</button>';
+h+='</div>';
+h+='<div id="aiStatus" style="margin-top:8px;min-height:20px"></div>';
+h+='</div>';
+
 h+='<label class="input-label">List Name</label>';
 h+='<input class="input" id="newListName" placeholder="e.g. Week 1 Words, Bee Practice Round 1">';
 h+='<label class="input-label">Grade Level</label>';
@@ -996,6 +1026,59 @@ h+='<button class="btn btn-normal btn-outline" onclick="renderListsTab()">Cancel
 h+='</div>';
 h+='</div>';
 document.getElementById('dashContent').innerHTML=h;
+}
+
+// ===== AI Word List Generator =====
+async function generateAIWords(){
+var topic=document.getElementById('aiTopic').value.trim();
+var grade=document.getElementById('aiGrade').value;
+var count=document.getElementById('aiCount').value;
+var btn=document.getElementById('aiGenBtn');
+var status=document.getElementById('aiStatus');
+
+if(!topic){showToast('Enter a topic or theme first','error');document.getElementById('aiTopic').focus();return}
+
+btn.disabled=true;
+status.innerHTML='<div class="ai-loading"><div class="ai-spinner"></div>Generating '+count+' words about "'+esc(topic)+'"...</div>';
+
+try{
+var prompt='Generate a spelling bee word list for '+grade+' grade students about the topic: "'+topic+'". Return EXACTLY '+count+' words, one per line. The words should be age-appropriate for '+grade+' grade difficulty. Include a mix of easier and more challenging words related to the topic. ONLY output the words, one per line. No numbers, no definitions, no extra text.';
+
+var result=await odaAI(prompt,{
+system:'You are a spelling bee word list generator for K-8 students. Output ONLY the words, one per line, no numbers, no bullets, no definitions, no extra text. Every word must be a real English word that relates to the given topic.',
+temperature:0.8,
+max_tokens:500
+});
+
+// Clean up the response — extract just the words
+var words=result.split('\n')
+.map(function(w){return w.replace(/^[\d\.\)\-\*\•\s]+/,'').trim().toLowerCase()})
+.filter(function(w){return w.length>0 && /^[a-z\-]+$/.test(w)});
+
+if(words.length===0){
+status.innerHTML='<span style="color:#EF4444;font-weight:600">No words generated. Try a different topic.</span>';
+btn.disabled=false;
+return;
+}
+
+// Fill the form
+document.getElementById('newListWords').value=words.join('\n');
+document.getElementById('newListGrade').value=grade;
+if(!document.getElementById('newListName').value){
+document.getElementById('newListName').value=topic.charAt(0).toUpperCase()+topic.slice(1)+' — '+grade+' Grade';
+}
+
+status.innerHTML='<span style="color:#10B981;font-weight:700">&#x2705; Generated '+words.length+' words! Review and edit below, then save.</span>';
+btn.disabled=false;
+
+// Scroll to the words textarea
+document.getElementById('newListWords').scrollIntoView({behavior:'smooth',block:'center'});
+
+}catch(e){
+console.error('AI generation error:',e);
+status.innerHTML='<span style="color:#EF4444;font-weight:600">Error generating words. Please try again or type words manually.</span>';
+btn.disabled=false;
+}
 }
 
 async function saveNewList(){
