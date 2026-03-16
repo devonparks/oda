@@ -89,6 +89,8 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5}
 .q-answer-input::placeholder{color:rgba(255,255,255,.3)}
 .q-result{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;margin:16px 0;min-height:40px}
 .q-correct-answer{font-size:16px;color:rgba(255,255,255,.6);margin-bottom:16px;min-height:24px}
+.q-image{max-width:100%;max-height:320px;border-radius:16px;margin:0 auto 20px;display:block;box-shadow:0 8px 32px rgba(0,0,0,.4);object-fit:contain}
+.q-image-wrap{margin-bottom:20px}
 .q-floating-pts{position:fixed;font-family:'Fredoka',sans-serif;font-size:36px;font-weight:700;pointer-events:none;z-index:300;animation:floatUp 1.5s ease forwards}
 @keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-80px) scale(1.3)}}
 
@@ -269,6 +271,7 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5}
 <div class="q-modal-inner">
 <div class="q-points" id="qPoints"></div>
 <div class="q-category" id="qCategory"></div>
+<div class="q-image-wrap" id="qImageWrap" style="display:none"><img class="q-image" id="qImage" alt=""></div>
 <div class="q-clue" id="qClue"></div>
 <div class="q-timer-wrap">
 <div class="q-timer-bar"><div class="q-timer-fill" id="qTimerFill"></div></div>
@@ -597,7 +600,7 @@ function showBoardBuilder(existingBoard, editId) {
     for (var i = 0; i < 5; i++) {
       builderBoard.questions[i] = [];
       for (var j = 0; j < 5; j++) {
-        builderBoard.questions[i].push({ clue: '', answer: '', points: (j+1)*100 });
+        builderBoard.questions[i].push({ clue: '', answer: '', image: '', points: (j+1)*100 });
       }
     }
   }
@@ -662,10 +665,17 @@ function renderBuilder() {
     for (var j = 0; j < 5; j++) {
       var q = b.questions[i][j];
       var isDD = ddSet[i + '-' + j] || false;
+      var hasImg = q.image ? ' has-img' : '';
       html += '<div class="builder-q-row">' +
         '<div class="bq-pts">$' + ((j+1)*100) + '</div>' +
-        '<input type="text" class="bq-input bq-clue" id="bqClue' + i + '_' + j + '" placeholder="Clue / Question" value="' + esc(q.clue || '') + '">' +
-        '<input type="text" class="bq-input bq-ans" id="bqAns' + i + '_' + j + '" placeholder="Answer" value="' + esc(q.answer || '') + '">' +
+        '<div style="flex:1;min-width:0">' +
+          '<input type="text" class="bq-input bq-clue" id="bqClue' + i + '_' + j + '" placeholder="Clue / Question" value="' + esc(q.clue || '') + '">' +
+          '<input type="text" class="bq-input bq-ans" id="bqAns' + i + '_' + j + '" placeholder="Answer" value="' + esc(q.answer || '') + '">' +
+          '<div style="display:flex;gap:6px;align-items:center;margin-top:4px">' +
+            '<input type="text" class="bq-input" id="bqImg' + i + '_' + j + '" placeholder="&#x1F5BC;&#xFE0F; Image URL (optional)" value="' + esc(q.image || '') + '" style="font-size:12px;padding:6px 10px;flex:1">' +
+            (q.image ? '<img src="' + esc(q.image) + '" style="width:32px;height:32px;border-radius:6px;object-fit:cover">' : '') +
+          '</div>' +
+        '</div>' +
         '<button class="bq-dd' + (isDD?' active':'') + '" id="bqDD' + i + '_' + j + '" onclick="toggleDD(' + i + ',' + j + ')" title="Daily Double">&#x2B50;</button>' +
       '</div>';
     }
@@ -749,8 +759,10 @@ function collectBuilderData() {
     for (var j = 0; j < 5; j++) {
       var clueEl = document.getElementById('bqClue' + i + '_' + j);
       var ansEl = document.getElementById('bqAns' + i + '_' + j);
+      var imgEl = document.getElementById('bqImg' + i + '_' + j);
       if (clueEl) b.questions[i][j].clue = clueEl.value;
       if (ansEl) b.questions[i][j].answer = ansEl.value;
+      if (imgEl) b.questions[i][j].image = imgEl.value;
     }
   }
   var fjCat = document.getElementById('fjCat');
@@ -844,12 +856,13 @@ function importJeopardyLabs(fileInput) {
       var questions = [[], [], [], [], []];
       for (var i = 0; i < 5; i++) {
         for (var j = 0; j < 5; j++) {
-          questions[i].push({ clue: '', answer: '', points: (j+1)*100 });
+          questions[i].push({ clue: '', answer: '', image: '', points: (j+1)*100 });
         }
       }
 
       var cellEls = doc.querySelectorAll('.cell-group.grid-cell');
       var qCount = 0;
+      var imgCount = 0;
       cellEls.forEach(function(cell) {
         var row = parseInt(cell.getAttribute('data-row'));
         var col = parseInt(cell.getAttribute('data-col'));
@@ -860,10 +873,17 @@ function importJeopardyLabs(fileInput) {
 
         var clue = '';
         var answer = '';
+        var image = '';
 
         if (frontEl) {
-          // Get text content, strip images but note if images exist
           clue = frontEl.textContent.trim().replace(/\s+/g, ' ');
+          // Extract image URL if present
+          var imgEl = frontEl.querySelector('img');
+          if (imgEl) {
+            var src = imgEl.getAttribute('src') || '';
+            if (src.startsWith('/')) src = 'https://jeopardylabs.com' + src;
+            if (src) { image = src; imgCount++; }
+          }
         }
         if (backEl) {
           answer = backEl.textContent.trim().replace(/\s+/g, ' ');
@@ -872,6 +892,7 @@ function importJeopardyLabs(fileInput) {
         if (col < 5 && (row-1) < 5) {
           questions[col][row-1].clue = clue;
           questions[col][row-1].answer = answer;
+          questions[col][row-1].image = image;
           if (clue || answer) qCount++;
         }
       });
@@ -890,7 +911,9 @@ function importJeopardyLabs(fileInput) {
       // Re-render
       renderBuilder();
 
-      odaToast('Imported ' + categories.filter(function(c){return c}).length + ' categories & ' + qCount + ' questions!', 'success');
+      var msg = 'Imported ' + categories.filter(function(c){return c}).length + ' categories, ' + qCount + ' questions';
+      if (imgCount > 0) msg += ' & ' + imgCount + ' images';
+      odaToast(msg + '!', 'success');
       statusEl = document.getElementById('importStatus');
       if (statusEl) statusEl.textContent = '\u2705 Import complete!';
     } catch(err) {
@@ -1223,6 +1246,19 @@ function showQuestion(cat, row) {
   document.getElementById('qPoints').innerHTML = (gameState.isDailyDouble ? '&#x2B50; Daily Double &#x2B50; ' : '') + '$' + pts;
   document.getElementById('qCategory').textContent = catName;
   document.getElementById('qClue').textContent = q.clue;
+
+  // Show image if present
+  var imgWrap = document.getElementById('qImageWrap');
+  var imgEl = document.getElementById('qImage');
+  if (q.image) {
+    imgEl.src = q.image;
+    imgEl.alt = '';
+    imgWrap.style.display = '';
+  } else {
+    imgWrap.style.display = 'none';
+    imgEl.src = '';
+  }
+
   document.getElementById('qResult').textContent = '';
   document.getElementById('qCorrectAnswer').textContent = '';
   document.getElementById('qAnswerInput').value = '';
