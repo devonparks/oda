@@ -230,4 +230,22 @@ window.odaAnnounce = function(message) {
   document.head.appendChild(style);
 })();
 
-console.log('[ODA] Core loaded v1.1');
+// ============================================
+// File Blob Helpers (shared by teacher + student)
+// ============================================
+var _blobCache = {};
+window.dataUriToBlobUrl = function(id, dataUri) {
+  if (_blobCache[id]) return _blobCache[id];
+  try {
+    var parts = dataUri.split(',');
+    var mime = parts[0].match(/:(.*?);/)[1];
+    var raw = atob(parts[1]);
+    var arr = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+    var blob = new Blob([arr], { type: mime });
+    _blobCache[id] = URL.createObjectURL(blob);
+    return _blobCache[id];
+  } catch(e) { console.error('Blob conversion failed:', e); return dataUri; }
+};
+
+console.log('[ODA] Core loaded v1.2');

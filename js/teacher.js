@@ -1,6 +1,30 @@
 var ODA_VERSION='2026-03-14a';
 var students=[],allAssignments=[],currentClass='All Students',selectedStudent=null,selectedOpt=null;
 
+// ===== HTML BUILDER HELPERS =====
+// Reduce h+= string concatenation by centralizing common UI patterns
+
+/** Status badge HTML */
+function badgeHTML(status, label) {
+  var cls = { pending:'st-pending', submitted:'st-submitted', graded:'st-graded', completed:'st-completed', returned:'st-returned' };
+  return '<span class="a-status '+(cls[status]||'st-pending')+'">'+(label||status)+'</span>';
+}
+
+/** Status class lookup */
+function statusClass(status) {
+  return { pending:'st-pending', submitted:'st-submitted', graded:'st-graded', completed:'st-completed', returned:'st-returned' }[status] || 'st-pending';
+}
+
+/** Status display label */
+function statusLabel(status) {
+  return { pending:'Pending', submitted:'Needs Review', graded:'Graded', completed:'Completed', returned:'Returned' }[status] || status;
+}
+
+/** Emoji for assignment type */
+function typeEmoji(type) {
+  return { 'elevator-pitch':'\u{1F399}\uFE0F', 'pitch-challenge':'\u{1F4A1}', 'lemonade-day':'\u{1F34B}', 'spelling-bee':'\u{1F41D}', assignment:'\u{1F4CB}', tool:'\u{1F6E0}\uFE0F' }[type] || '\u{1F4CB}';
+}
+
 function checkForUpdates(btn){
 btn.disabled=true;btn.innerHTML='&#x1F504; Checking...';
 fetch(location.href+'?_='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(html){
@@ -1234,20 +1258,7 @@ window.openGradePanel=openGradePanel;
 function closeGradePanel(){document.getElementById('gradePanel').classList.remove('show');gradingAssignment=null;if(_odaFocusTraps.gradePanel){_odaFocusTraps.gradePanel();_odaFocusTraps.gradePanel=null}}
 window.closeGradePanel=closeGradePanel;
 
-var _blobCache={};
-function dataUriToBlobUrl(id,dataUri){
-if(_blobCache[id])return _blobCache[id];
-try{
-var parts=dataUri.split(',');
-var mime=parts[0].match(/:(.*?);/)[1];
-var raw=atob(parts[1]);
-var arr=new Uint8Array(raw.length);
-for(var i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);
-var blob=new Blob([arr],{type:mime});
-_blobCache[id]=URL.createObjectURL(blob);
-return _blobCache[id];
-}catch(e){console.error('Blob conversion failed:',e);return dataUri}
-}
+/* dataUriToBlobUrl provided by oda-core.js */
 
 function openFileBlob(assignId){
 var a=allAssignments.find(function(x){return x.id===assignId});
@@ -1423,11 +1434,7 @@ window.showLoading=showLoading;window.hideLoading=hideLoading;
 
 /* showToast replaced by odaToast from oda-core.js */
 
-function btnLoading(btn,loading,originalText){
-if(loading){btn._origText=btn.textContent;btn.classList.add('loading');btn.textContent=originalText||'Working...'}
-else{btn.classList.remove('loading');btn.textContent=btn._origText||originalText||'Done'}
-}
-window.btnLoading=btnLoading;
+/* btnLoading / btnReset provided by oda-core.js — no duplicate here */
 
 // ===== NOTIFICATION BADGE =====
 function updateNotifBadge(){
@@ -1636,7 +1643,7 @@ if(!topic){odaToast('Enter a topic','warning');return}
 var grade=document.getElementById('aiGenGrade').value;
 var btn=document.getElementById('aiGenBtn');
 var result=document.getElementById('aiGenResult');
-btnLoading(btn,true,'Generating...');
+window.btnLoading(btn,'Generating...');
 result.style.display='block';result.textContent='AI is creating your assignment...';
 document.getElementById('aiGenActions').style.display='none';
 
@@ -1651,7 +1658,7 @@ result.textContent='Title: '+lastAiAssignment.title+'\n\nInstructions: '+lastAiA
 document.getElementById('aiGenActions').style.display='block';
 }else{result.textContent='AI response:\n\n'+text;lastAiAssignment=null}
 }catch(e){console.error(e);result.textContent='Error: '+e.message;lastAiAssignment=null}
-btnLoading(btn,false,'Generate Assignment \u{1F680}');
+window.btnReset(btn,'Generate Assignment \u{1F680}');
 }
 window.generateAiAssignment=generateAiAssignment;
 
@@ -1676,7 +1683,7 @@ window.openAiDiff=openAiDiff;window.closeAiDiff=closeAiDiff;
 async function runAiDifferentiation(){
 var btn=document.getElementById('aiDiffBtn');
 var result=document.getElementById('aiDiffResult');
-btnLoading(btn,true,'Analyzing...');
+window.btnLoading(btn,'Analyzing...');
 result.style.display='block';result.textContent='Analyzing student performance...';
 
 // Build per-student data
@@ -1695,7 +1702,7 @@ try{
 var text=await odaAI(prompt);
 result.textContent=text;
 }catch(e){console.error(e);result.textContent='Error: '+e.message}
-btnLoading(btn,false,'Analyze Students \u{1F52C}');
+window.btnReset(btn,'Analyze Students \u{1F52C}');
 }
 window.runAiDifferentiation=runAiDifferentiation;
 
@@ -1711,7 +1718,7 @@ var history=allAssignments.filter(function(x){return x.studentId===a.studentId&&
 var historyStr=history.map(function(x){return(x.title||x.type)+': '+(x.score!==null?x.score+'%':'done')}).join(', ')||'no prior work';
 
 var btn=document.getElementById('aiFeedbackBtn');
-if(btn)btnLoading(btn,true,'Writing...');
+if(btn)window.btnLoading(btn,'Writing...');
 
 var prompt='You are a supportive afterschool program teacher writing personalized feedback for a K-12 student named '+studentName+'. Assignment: "'+
 (a.title||'')+'" with instructions: "'+(a.instructions||'None')+'". Student response: "'+
@@ -1722,7 +1729,7 @@ var text=await odaAI(prompt);
 var fb=document.getElementById('gradeFeedback');
 if(fb)fb.value=text;
 }catch(e){console.error(e);odaToast('Error generating feedback','error')}
-if(btn)btnLoading(btn,false,'\u{1F916} AI Write Feedback');
+if(btn)window.btnReset(btn,'\u{1F916} AI Write Feedback');
 }
 window.aiWriteFeedback=aiWriteFeedback;
 
