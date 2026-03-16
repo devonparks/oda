@@ -5,9 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="ODA Hub - The digital platform for Open Doors Academy. Learning tools, arcade games, and progress tracking for students, teachers, and parents.">
+<meta name="keywords" content="education, learning, school, Open Doors Academy, ODA, student, teacher, classroom">
+<meta name="classification" content="Education">
 <title>ODA Hub</title>
 <link rel="manifest" href="manifest.json">
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#a8b2c8;--glow:0 0 30px rgba(6,214,160,.15)}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -29,45 +32,67 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 /* Logo */
 .logo{text-align:center;margin-bottom:40px;animation:fadeUp .6s ease}
 .logo-icon{font-size:56px;margin-bottom:8px;filter:drop-shadow(0 0 20px rgba(6,214,160,.3))}
-.logo h1{font-size:48px;font-weight:900;letter-spacing:-2px;background:linear-gradient(135deg,var(--accent),var(--accent2),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1}
+.logo h1{font-family:'Fredoka',sans-serif;font-size:48px;font-weight:700;letter-spacing:-2px;background:linear-gradient(135deg,var(--accent),var(--accent2),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1;display:inline-flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center}
+@media(max-width:400px){.logo h1{font-size:40px;gap:8px}}
 .logo p{font-family:'Space Mono',monospace;font-size:14px;color:var(--text2);letter-spacing:3px;text-transform:uppercase;margin-top:6px}
 
-/* Door cards */
-.doors{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:780px;width:100%;animation:fadeUp .6s ease .1s both}
-@media(max-width:700px){.doors{grid-template-columns:1fr;max-width:380px}}
+/* BETA badge */
+.beta-badge{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:2px;background:rgba(239,71,111,.15);color:var(--accent3);border:1px solid rgba(239,71,111,.3);padding:4px 10px;border-radius:6px;-webkit-text-fill-color:var(--accent3);font-weight:700;animation:betaPulse 2s ease-in-out infinite;vertical-align:middle}
+@keyframes betaPulse{0%,100%{opacity:1}50%{opacity:.6}}
 
-.door{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:36px 24px;text-align:center;cursor:pointer;transition:all .3s cubic-bezier(.34,1.56,.64,1);position:relative;overflow:hidden}
+/* Door cards */
+.doors{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1000px;width:100%;animation:fadeUp .6s ease .1s both}
+@media(max-width:700px){.doors{grid-template-columns:1fr;max-width:380px}}
+@media(min-width:701px){.doors{gap:28px}}
+
+.door{background:var(--surface);border:2px solid var(--border);border-radius:24px;padding:40px 28px;text-align:center;cursor:pointer;transition:all .3s cubic-bezier(.34,1.56,.64,1);position:relative;overflow:hidden}
 .door::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,.02));opacity:0;transition:opacity .3s}
 .door:hover{transform:translateY(-8px);border-color:var(--accent);box-shadow:var(--glow)}
 .door:hover::before{opacity:1}
 .door:active{transform:translateY(-2px) scale(.98)}
-.door-emoji{font-size:52px;margin-bottom:16px;display:block;transition:transform .3s}
+.door-emoji{font-size:60px;margin-bottom:16px;display:block;transition:transform .3s}
 .door:hover .door-emoji{transform:scale(1.15)}
-.door-title{font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px;letter-spacing:-.5px}
+.door-title{font-family:'Fredoka',sans-serif;font-size:24px;font-weight:700;color:var(--text);margin-bottom:8px;letter-spacing:-.5px}
 .door-desc{font-size:15px;color:var(--text2);line-height:1.5;font-weight:400}
 .door.student:hover{border-color:var(--accent);box-shadow:0 0 30px rgba(6,214,160,.2)}
 .door.teacher:hover{border-color:var(--accent2);box-shadow:0 0 30px rgba(17,138,178,.2)}
 .door.parent:hover{border-color:var(--gold);box-shadow:0 0 30px rgba(255,209,102,.2)}
 
+/* Features row */
+.features{display:flex;gap:16px;max-width:1000px;width:100%;margin-top:28px;animation:fadeUp .6s ease .2s both}
+.feature{flex:1;display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 18px}
+.feature-icon{font-size:24px;flex-shrink:0}
+.feature-text{font-size:13px;font-weight:500;color:var(--text2);line-height:1.3}
+.feature-text strong{color:var(--text);display:block;font-size:15px;font-weight:700}
+@media(max-width:700px){.features{flex-direction:column;max-width:380px}}
+
 /* Login panels */
-.login-panel{display:none;max-width:420px;width:100%;animation:fadeUp .3s ease}
+.login-panel{display:none;max-width:500px;width:100%;animation:fadeUp .3s ease}
 .login-panel.show{display:block}
-.panel-card{background:var(--surface);border:2px solid var(--border);border-radius:24px;padding:36px 32px;position:relative}
-.panel-back{position:absolute;top:16px;left:16px;background:none;border:1px solid var(--border);border-radius:10px;padding:6px 14px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.login-panel.wide{max-width:640px}
+.panel-card{background:var(--surface);border:2px solid var(--border);border-radius:24px;padding:40px 36px;position:relative}
+@media(max-width:500px){.panel-card{padding:28px 20px}}
+.panel-back{position:absolute;top:16px;left:16px;background:none;border:1px solid var(--border);border-radius:10px;padding:6px 14px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;min-height:36px}
 .panel-back:hover{border-color:var(--text2);color:var(--text)}
 .panel-header{text-align:center;margin-bottom:28px;padding-top:20px}
 .panel-header .emoji{font-size:48px;margin-bottom:8px;display:block}
-.panel-header h2{font-size:26px;font-weight:800;letter-spacing:-.5px}
+.panel-header h2{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;letter-spacing:-.5px}
 .panel-header p{font-size:14px;color:var(--text2);margin-top:4px}
+
+/* Signup grid for desktop */
+.signup-grid{display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:600px){.signup-grid{grid-template-columns:1fr 1fr;gap:0 20px}}
+.signup-grid .field-full{grid-column:1/-1}
 
 .field{margin-bottom:18px}
 .field label{display:block;font-size:14px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;font-family:'Space Mono',monospace}
-.field input,.field select{width:100%;padding:14px 16px;background:var(--bg);border:2px solid var(--border);border-radius:12px;color:var(--text);font-family:'Outfit',sans-serif;font-size:18px;font-weight:600;outline:none;transition:border-color .2s}
+.field input,.field select{width:100%;padding:14px 16px;background:var(--bg);border:2px solid var(--border);border-radius:12px;color:var(--text);font-family:'Outfit',sans-serif;font-size:18px;font-weight:600;outline:none;transition:border-color .2s;-webkit-appearance:none}
 .field input:focus,.field select:focus{border-color:var(--accent)}
 .field input::placeholder{color:#4a5568;font-weight:400}
 .field input.code-input{font-family:'Space Mono',monospace;font-size:28px;letter-spacing:8px;text-align:center}
+.field select{cursor:pointer}
 
-.submit-btn{width:100%;padding:16px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:8px;letter-spacing:.5px}
+.submit-btn{width:100%;padding:16px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:8px;letter-spacing:.5px;min-height:52px}
 .submit-btn:active{transform:translateY(2px)}
 .submit-btn:disabled{opacity:.4;cursor:not-allowed}
 .submit-btn.green{background:linear-gradient(135deg,var(--accent),#04b890);color:var(--bg);box-shadow:0 4px 20px rgba(6,214,160,.25)}
@@ -76,17 +101,17 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 
 .divider{text-align:center;margin:20px 0;font-size:14px;color:var(--text2);font-family:'Space Mono',monospace;letter-spacing:2px}
 
-.google-btn{width:100%;padding:14px;border:2px solid var(--border);border-radius:14px;background:var(--surface2);color:var(--text);font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px}
+.google-btn{width:100%;padding:14px;border:2px solid var(--border);border-radius:14px;background:var(--surface2);color:var(--text);font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px;min-height:52px}
 .google-btn:hover{border-color:var(--text2);background:var(--border)}
 .google-btn svg{width:20px;height:20px}
 
 .error-msg{background:rgba(239,71,111,.1);border:1px solid rgba(239,71,111,.3);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--accent3);font-weight:600;margin-top:12px;display:none;text-align:center}
 .error-msg.show{display:block}
 
-.grade-pick{padding:14px 20px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:var(--text);transition:all .2s;flex:1;min-width:80px;text-align:center}
+.grade-pick{padding:14px 20px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:var(--text);transition:all .2s;flex:1;min-width:80px;text-align:center;min-height:52px}
 .grade-pick:hover{border-color:var(--accent);transform:translateY(-2px)}
 .grade-pick:active{transform:translateY(0)}
-.name-pick{padding:14px 18px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:var(--text);transition:all .2s;text-align:left}
+.name-pick{padding:14px 18px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:var(--text);transition:all .2s;text-align:left;min-height:52px}
 .name-pick:hover{border-color:var(--accent);background:rgba(6,214,160,.04)}
 .name-pick:active{transform:scale(.98)}
 
@@ -97,9 +122,20 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 .spinner{display:inline-block;width:20px;height:20px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-.footer{margin-top:40px;text-align:center;font-size:14px;color:#3a4560;font-family:'Space Mono',monospace;letter-spacing:1px}
+.footer{margin-top:40px;text-align:center;font-size:13px;color:#3a4560;font-family:'Space Mono',monospace;letter-spacing:1px;padding:20px;line-height:2}
 
 @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* Desktop enhancements */
+@media(min-width:1024px){
+.logo-icon{font-size:72px}
+.logo h1{font-size:64px}
+.logo p{font-size:15px;letter-spacing:4px}
+.door{padding:48px 32px}
+.door-emoji{font-size:72px}
+.door-title{font-size:28px}
+.door-desc{font-size:16px}
+}
 </style>
 </head>
 <body>
@@ -107,10 +143,9 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 <div class="orbs"><div class="orb"></div><div class="orb"></div><div class="orb"></div></div>
 
 <div class="app">
-<button onclick="location.reload(true)" title="Hard refresh" style="position:fixed;top:16px;right:16px;z-index:10;background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:8px 12px;border-radius:10px;cursor:pointer;font-size:16px;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'"">&#x1F504;</button>
 <div class="logo">
 <div class="logo-icon">&#x1F3AE;</div>
-<h1>ODA Hub</h1>
+<h1>ODA Hub <span class="beta-badge">BETA</span></h1>
 <p>Open Doors Academy &bull; Learn &bull; Play &bull; Win</p>
 </div>
 
@@ -130,6 +165,22 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 <span class="door-emoji">&#x1F46A;</span>
 <div class="door-title">Parent</div>
 <div class="door-desc">Check your child's progress and scores</div>
+</div>
+</div>
+
+<!-- FEATURES ROW -->
+<div class="features" id="features">
+<div class="feature">
+<span class="feature-icon">&#x1F4DA;</span>
+<div class="feature-text"><strong>10+ Learning Tools</strong>Flashcards, Spelling Bee, Jeopardy & more</div>
+</div>
+<div class="feature">
+<span class="feature-icon">&#x1F3AE;</span>
+<div class="feature-text"><strong>12 Arcade Games</strong>Chess, Snake, 2048, Typing Race & more</div>
+</div>
+<div class="feature">
+<span class="feature-icon">&#x1F4CA;</span>
+<div class="feature-text"><strong>Real-time Tracking</strong>Scores, progress & achievements</div>
 </div>
 </div>
 
@@ -202,7 +253,7 @@ Sign in with Google
 </div>
 
 <!-- TEACHER SIGNUP -->
-<div class="login-panel" id="panel-teacher-signup">
+<div class="login-panel wide" id="panel-teacher-signup">
 <div class="panel-card">
 <button class="panel-back" onclick="showPanel('teacher')">&#x2190; Back</button>
 <div class="panel-header">
@@ -210,6 +261,7 @@ Sign in with Google
 <h2>Create Teacher Account</h2>
 <p>Join ODA Hub in 60 seconds</p>
 </div>
+<div class="signup-grid">
 <div class="field">
 <label>Your Full Name</label>
 <input type="text" id="signupName" placeholder="Devon Parks">
@@ -220,7 +272,7 @@ Sign in with Google
 </div>
 <div class="field">
 <label>District</label>
-<select id="signupDistrict" style="cursor:pointer">
+<select id="signupDistrict">
 <option value="">Select district...</option>
 <option value="Breakthrough Public Schools">Breakthrough Public Schools</option>
 <option value="Cleveland Heights-University Heights">Cleveland Heights-University Heights</option>
@@ -237,7 +289,7 @@ Sign in with Google
 </div>
 <div class="field">
 <label>School / Site</label>
-<select id="signupSchool" style="cursor:pointer">
+<select id="signupSchool">
 <option value="">Select school...</option>
 <option value="Anton Grdina Elementary">Anton Grdina Elementary School</option>
 <option value="Archbishop Lyke">Archbishop Lyke School</option>
@@ -273,16 +325,16 @@ Sign in with Google
 </div>
 <div class="field">
 <label>Team</label>
-<select id="signupTeam" style="cursor:pointer">
+<select id="signupTeam">
 <option value="">Select team...</option>
 <option value="Elementary">Elementary</option>
 <option value="Middle School">Middle School</option>
 <option value="High School">High School</option>
 </select>
 </div>
-<div class="field">
+<div class="field field-full">
 <label>Program</label>
-<select id="signupProgram" style="cursor:pointer">
+<select id="signupProgram">
 <option value="">Select program...</option>
 <option value="School Year - Elementary">School Year - Elementary School</option>
 <option value="School Year - Middle">School Year - Middle School</option>
@@ -295,9 +347,10 @@ Sign in with Google
 <option value="Statewide Training">Statewide Training + Mentorship</option>
 </select>
 </div>
-<div class="field">
+<div class="field field-full">
 <label>Password</label>
 <input type="password" id="signupPass" placeholder="At least 6 characters">
+</div>
 </div>
 <button class="submit-btn blue" onclick="teacherSignup()">Create Account &#x1F680;</button>
 <div class="error-msg" id="signupError"></div>
@@ -327,7 +380,7 @@ Sign in with Google
 </div>
 </div>
 
-<div class="footer">ODA Hub v1.0 &bull; Built by Mr. Devon</div>
+<div class="footer">ODA Hub Beta v1 &bull; Built by Mr. Devon &bull; Open Doors Academy</div>
 </div>
 
 <!-- SHARED CORE -->
@@ -336,7 +389,7 @@ Sign in with Google
 <!-- FIREBASE -->
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-import{getAuth,signInWithEmailAndPassword,createUserWithEmailAndPassword,signInWithPopup,GoogleAuthProvider,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+import{getAuth,signInWithEmailAndPassword,createUserWithEmailAndPassword,signInWithPopup,signInWithRedirect,GoogleAuthProvider,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
 import{getFirestore,doc,setDoc,getDoc,getDocs,collection,query,where}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 
 const firebaseConfig=ODA_CONFIG.firebase;
@@ -355,6 +408,7 @@ window.googleProvider=googleProvider;
 window.signInWithEmailAndPassword=signInWithEmailAndPassword;
 window.createUserWithEmailAndPassword=createUserWithEmailAndPassword;
 window.signInWithPopup=signInWithPopup;
+window.signInWithRedirect=signInWithRedirect;
 window.fbDoc=doc;
 window.fbSetDoc=setDoc;
 window.fbGetDoc=getDoc;
@@ -384,12 +438,14 @@ window.firebaseReady=true;
 <script>
 function showDoors(){
 document.getElementById('doors').style.display='';
+document.getElementById('features').style.display='';
 var panels=document.querySelectorAll('.login-panel');
 for(var i=0;i<panels.length;i++)panels[i].classList.remove('show');
 }
 
 function showPanel(id){
 document.getElementById('doors').style.display='none';
+document.getElementById('features').style.display='none';
 var panels=document.querySelectorAll('.login-panel');
 for(var i=0;i<panels.length;i++)panels[i].classList.remove('show');
 var p=document.getElementById('panel-'+id);
@@ -496,13 +552,17 @@ showError('teacherError',msg);
 }
 };
 
-// GOOGLE LOGIN
+// GOOGLE LOGIN (popup with redirect fallback for school Chromebooks)
 window.googleLogin=async function(){
 try{
 await window.signInWithPopup(window.firebaseAuth,window.googleProvider);
 window.location.href='teacher.html';
 }catch(e){
+if(e.code==='auth/popup-blocked'||e.code==='auth/popup-closed-by-browser'||e.code==='auth/cancelled-popup-request'){
+try{await window.signInWithRedirect(window.firebaseAuth,window.googleProvider)}catch(e2){showError('teacherError','Sign-in failed: '+e2.message)}
+}else{
 showError('teacherError','Google sign-in failed: '+e.message);
+}
 }
 };
 

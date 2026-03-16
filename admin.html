@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODA Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#a8b2c8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(6,214,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+
+/* Loading / Access Denied */
+.center-msg{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:12px}
+.center-msg .emoji{font-size:48px}
+.center-msg h2{font-size:22px;font-weight:800}
+.center-msg p{color:var(--text2);font-size:14px}
+
+/* App layout */
+.app{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:16px;display:none}
+
+/* Header */
+.header{display:flex;justify-content:space-between;align-items:center;padding:12px 0;margin-bottom:20px;border-bottom:1px solid var(--border)}
+.header h1{font-family:'Fredoka',sans-serif;font-size:26px;font-weight:700;letter-spacing:-.5px;display:flex;align-items:center;gap:10px}
+.header h1 span{color:var(--accent)}
+.beta-badge{font-size:10px;font-weight:700;color:var(--bg);background:var(--gold);padding:2px 8px;border-radius:6px;letter-spacing:1px;text-transform:uppercase}
+.header-right{display:flex;align-items:center;gap:10px}
+.admin-email{font-size:13px;color:var(--text2);background:var(--surface);padding:6px 12px;border-radius:8px;border:1px solid var(--border)}
+.btn{padding:8px 18px;border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;cursor:pointer;transition:all .15s}
+.btn:active{transform:scale(.97)}
+.btn-outline{background:none;border:1px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--text2);color:var(--text)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-red{background:rgba(239,71,111,.15);color:var(--accent3);border:1px solid rgba(239,71,111,.2)}
+.btn-red:hover{background:rgba(239,71,111,.25)}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:8px}
+
+/* Platform Stats */
+.platform-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px}
+.p-stat{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center}
+.p-stat .val{font-family:'Space Mono',monospace;font-size:28px;font-weight:700;margin-bottom:2px}
+.p-stat .label{font-size:12px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.p-stat.bugs .val{color:var(--accent3)}
+.p-stat.features .val{color:var(--accent2)}
+.p-stat.new .val{color:var(--gold)}
+.p-stat.students .val{color:var(--accent)}
+.p-stat.teachers .val{color:var(--gold)}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface);border-radius:14px;padding:4px;border:1px solid var(--border)}
+.tab{flex:1;padding:10px 6px;text-align:center;border-radius:10px;cursor:pointer;font-weight:700;font-size:14px;color:var(--text2);transition:all .2s}
+.tab:hover{color:var(--text)}
+.tab.active{background:var(--accent);color:var(--bg)}
+@media(max-width:500px){.tab{font-size:12px;padding:8px 4px}}
+
+/* Feedback cards */
+.fb-list{display:flex;flex-direction:column;gap:10px}
+.fb-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;transition:all .2s}
+.fb-card:hover{border-color:var(--accent2)}
+.fb-card.resolved{opacity:.6}
+.fb-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:10px}
+.fb-type{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:8px;text-transform:uppercase;letter-spacing:.5px;flex-shrink:0}
+.fb-type.bug{background:rgba(239,71,111,.12);color:var(--accent3)}
+.fb-type.feature{background:rgba(17,138,178,.12);color:var(--accent2)}
+.fb-status{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px}
+.fb-status.new{background:rgba(255,209,102,.12);color:var(--gold)}
+.fb-status.resolved{background:rgba(6,214,160,.12);color:var(--accent)}
+.fb-message{font-size:15px;line-height:1.6;margin-bottom:10px;word-break:break-word}
+.fb-meta{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text2);margin-bottom:12px}
+.fb-meta span{display:flex;align-items:center;gap:4px}
+.fb-actions{display:flex;gap:8px;flex-wrap:wrap}
+.empty-state{text-align:center;padding:40px 16px;color:var(--text2)}
+.empty-state .emoji{font-size:40px;margin-bottom:8px;display:block}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<!-- Loading state -->
+<div class="center-msg" id="loadingState">
+<div class="emoji">&#x23F3;</div>
+<h2>Loading...</h2>
+<p>Checking admin access</p>
+</div>
+
+<!-- Access denied state -->
+<div class="center-msg" id="deniedState" style="display:none">
+<div class="emoji">&#x1F6AB;</div>
+<h2>Access Denied</h2>
+<p>You do not have admin privileges.</p>
+<button class="btn btn-outline" onclick="location.href='index.html'" style="margin-top:12px">&#x2190; Back to ODA</button>
+</div>
+
+<!-- Main app -->
+<div class="app" id="adminApp">
+<div class="header">
+<h1>&#x1F6E1;&#xFE0F; <span>ODA</span> Admin <span class="beta-badge">Beta</span></h1>
+<div class="header-right">
+<span class="admin-email" id="adminEmail"></span>
+<button class="btn btn-outline" onclick="adminLogout()">&#x2190; Logout</button>
+</div>
+</div>
+
+<!-- Platform Stats -->
+<div style="font-family:'Fredoka',sans-serif;font-size:16px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px">&#x1F4CA; Platform Stats</div>
+<div class="platform-stats">
+<div class="p-stat students"><div class="val" id="statStudents">-</div><div class="label">Students</div></div>
+<div class="p-stat teachers"><div class="val" id="statTeachers">-</div><div class="label">Teachers</div></div>
+<div class="p-stat bugs"><div class="val" id="statBugs">-</div><div class="label">Bug Reports</div></div>
+<div class="p-stat features"><div class="val" id="statFeatures">-</div><div class="label">Feature Requests</div></div>
+<div class="p-stat new"><div class="val" id="statNew">-</div><div class="label">New / Open</div></div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+<div class="tab active" onclick="filterTab('all')">All</div>
+<div class="tab" onclick="filterTab('bugs')">&#x1F41B; Bugs</div>
+<div class="tab" onclick="filterTab('features')">&#x1F4A1; Features</div>
+<div class="tab" onclick="filterTab('resolved')">&#x2705; Resolved</div>
+</div>
+
+<!-- Feedback list -->
+<div class="fb-list" id="feedbackList">
+<div class="empty-state"><span class="emoji">&#x1F4ED;</span><p>No feedback yet.</p></div>
+</div>
+</div>
+
+<script src="js/oda-core.js"></script>
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import{getAuth,signInWithPopup,signInWithRedirect,GoogleAuthProvider,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+import{getFirestore,doc,getDoc,getDocs,deleteDoc,updateDoc,collection,query,orderBy,onSnapshot}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+const ADMIN_EMAILS=['devonparks62@gmail.com'];
+
+const cfg=ODA_CONFIG.firebase;
+const app=initializeApp(cfg);
+const auth=getAuth(app);
+const db=getFirestore(app);
+
+window._adminDb=db;
+window._adminAuth=auth;
+
+onAuthStateChanged(auth,async function(user){
+if(!user){
+// Not logged in — try Google sign-in
+document.getElementById('loadingState').querySelector('h2').textContent='Sign in required';
+document.getElementById('loadingState').querySelector('p').textContent='Redirecting to login...';
+try{
+var provider=new GoogleAuthProvider();
+try{await signInWithPopup(auth,provider)}catch(pe){if(pe.code==='auth/popup-blocked'||pe.code==='auth/popup-closed-by-browser'){await signInWithRedirect(auth,provider);return}throw pe}
+}catch(e){
+console.error(e);
+document.getElementById('loadingState').style.display='none';
+document.getElementById('deniedState').style.display='flex';
+document.getElementById('deniedState').querySelector('p').textContent='Login failed. Please try again.';
+}
+return;
+}
+// Check admin
+if(!ADMIN_EMAILS.includes(user.email)){
+document.getElementById('loadingState').style.display='none';
+document.getElementById('deniedState').style.display='flex';
+return;
+}
+// Admin confirmed
+document.getElementById('loadingState').style.display='none';
+document.getElementById('adminApp').style.display='block';
+document.getElementById('adminEmail').textContent=user.email;
+loadPlatformStats();
+listenFeedback();
+});
+
+// Platform stats
+async function loadPlatformStats(){
+try{
+var studentsSnap=await getDocs(collection(db,'students'));
+document.getElementById('statStudents').textContent=studentsSnap.size;
+}catch(e){document.getElementById('statStudents').textContent='?'}
+try{
+var teachersSnap=await getDocs(collection(db,'teachers'));
+document.getElementById('statTeachers').textContent=teachersSnap.size;
+}catch(e){document.getElementById('statTeachers').textContent='?'}
+}
+
+// Real-time feedback listener
+var allFeedback=[];
+var currentFilter='all';
+
+function listenFeedback(){
+var q=query(collection(db,'feedback'),orderBy('createdAt','desc'));
+onSnapshot(q,function(snap){
+allFeedback=[];
+snap.forEach(function(d){allFeedback.push({id:d.id,...d.data()})});
+updateStats();
+renderFeedback();
+});
+}
+
+function updateStats(){
+var bugs=allFeedback.filter(function(f){return f.type==='bug'}).length;
+var features=allFeedback.filter(function(f){return f.type==='feature'}).length;
+var newCount=allFeedback.filter(function(f){return f.status==='new'}).length;
+document.getElementById('statBugs').textContent=bugs;
+document.getElementById('statFeatures').textContent=features;
+document.getElementById('statNew').textContent=newCount;
+}
+
+window.filterTab=function(tab){
+currentFilter=tab;
+var tabs=document.querySelectorAll('.tab');
+tabs.forEach(function(t){t.classList.remove('active')});
+var idx={all:0,bugs:1,features:2,resolved:3};
+if(idx[tab]!==undefined)tabs[idx[tab]].classList.add('active');
+renderFeedback();
+};
+
+function renderFeedback(){
+var filtered=allFeedback;
+if(currentFilter==='bugs')filtered=allFeedback.filter(function(f){return f.type==='bug'});
+else if(currentFilter==='features')filtered=allFeedback.filter(function(f){return f.type==='feature'});
+else if(currentFilter==='resolved')filtered=allFeedback.filter(function(f){return f.status==='resolved'});
+
+var el=document.getElementById('feedbackList');
+if(!filtered.length){
+el.innerHTML='<div class="empty-state"><span class="emoji">&#x1F4ED;</span><p>No feedback in this category.</p></div>';
+return;
+}
+var h='';
+filtered.forEach(function(f){
+var isResolved=f.status==='resolved';
+var date='';
+if(f.createdAt){
+try{
+var d=f.createdAt.toDate?f.createdAt.toDate():new Date(f.createdAt);
+date=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}catch(e){date=''}
+}
+h+='<div class="fb-card'+(isResolved?' resolved':'')+'" style="animation:fadeUp .2s ease">';
+h+='<div class="fb-top">';
+h+='<span class="fb-type '+(f.type==='bug'?'bug':'feature')+'">'+(f.type==='bug'?'&#x1F41B; Bug':'&#x1F4A1; Feature')+'</span>';
+h+='<span class="fb-status '+(isResolved?'resolved':'new')+'">'+(isResolved?'Resolved':'New')+'</span>';
+h+='</div>';
+h+='<div class="fb-message">'+esc(f.message)+'</div>';
+h+='<div class="fb-meta">';
+h+='<span>&#x1F464; '+esc(f.userName||'Anonymous')+'</span>';
+h+='<span>&#x1F3AD; '+esc(f.userRole||'?')+'</span>';
+if(f.classCode)h+='<span>&#x1F3EB; '+esc(f.classCode)+'</span>';
+if(f.page)h+='<span>&#x1F4CD; '+esc(f.page)+'</span>';
+if(date)h+='<span>&#x1F4C5; '+date+'</span>';
+h+='</div>';
+h+='<div class="fb-actions">';
+if(!isResolved){
+h+='<button class="btn btn-accent btn-sm" onclick="resolveFeedback(\''+f.id+'\')">&#x2705; Mark Resolved</button>';
+}else{
+h+='<button class="btn btn-outline btn-sm" onclick="reopenFeedback(\''+f.id+'\')">&#x1F504; Reopen</button>';
+}
+h+='<button class="btn btn-red btn-sm" onclick="deleteFeedback(\''+f.id+'\')">&#x1F5D1;&#xFE0F; Delete</button>';
+h+='</div>';
+h+='</div>';
+});
+el.innerHTML=h;
+}
+
+window.resolveFeedback=async function(id){
+try{
+await updateDoc(doc(db,'feedback',id),{status:'resolved'});
+odaToast('Marked as resolved','success');
+}catch(e){console.error(e);odaToast('Error updating','error')}
+};
+
+window.reopenFeedback=async function(id){
+try{
+await updateDoc(doc(db,'feedback',id),{status:'new'});
+odaToast('Reopened','info');
+}catch(e){console.error(e);odaToast('Error updating','error')}
+};
+
+window.deleteFeedback=async function(id){
+if(!confirm('Delete this feedback permanently?'))return;
+try{
+await deleteDoc(doc(db,'feedback',id));
+odaToast('Deleted','success');
+}catch(e){console.error(e);odaToast('Error deleting','error')}
+};
+
+window.adminLogout=async function(){
+try{await signOut(auth)}catch(e){}
+window.location.href='index.html';
+};
+</script>
+</body>
+</html>

@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ODA Hub - Teacher</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<meta name="description" content="ODA Hub Teacher Dashboard - Manage rosters, create assignments, and track student progress for Open Doors Academy.">
+<meta name="classification" content="Education">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#2a3450;--accent:#06d6a0;--accent2:#118ab2;--accent3:#ef476f;--gold:#ffd166;--text:#f0f4ff;--text2:#a8b2c8}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -357,7 +359,7 @@ select.settings-input{cursor:pointer}
 <div class="app">
 
 <div class="topbar">
-<h1>&#x1F3AE; <span>ODA Hub</span></h1>
+<h1>&#x1F3AE; <span>ODA Hub</span> <span style="font-size:10px;font-weight:700;color:var(--accent3);background:rgba(239,71,111,.15);border:1px solid rgba(239,71,111,.3);padding:2px 8px;border-radius:5px;letter-spacing:1px;font-family:'Space Mono',monospace;vertical-align:middle">BETA</span></h1>
 <div class="topbar-right">
 <span class="teacher-badge" id="teacherName">Loading...</span>
 <button class="btn btn-outline btn-sm" onclick="location.reload(true)" title="Hard refresh">&#x1F504; Refresh</button>
@@ -541,6 +543,15 @@ select.settings-input{cursor:pointer}
 <div style="font-size:11px;color:var(--text2);margin-top:4px">Auto-generated 6-digit code. Students enter this to find your class.</div>
 </div>
 <div id="codeSaveMsg" style="font-size:12px;color:var(--accent);margin-top:6px;display:none">&#x2705; Updated!</div>
+</div>
+
+<div class="card">
+<div class="card-title">&#x1F4AC; Feedback</div>
+<div style="font-size:13px;color:var(--text2);margin-bottom:12px">Help us improve ODA! Report bugs or request new features.</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+<button class="btn btn-outline" onclick="openFeedbackModal('bug')" style="flex:1;min-width:140px;padding:12px 16px;font-size:14px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:6px">&#x1F41B; Report a Bug</button>
+<button class="btn btn-outline" onclick="openFeedbackModal('feature')" style="flex:1;min-width:140px;padding:12px 16px;font-size:14px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:6px">&#x1F4A1; Request a Feature</button>
+</div>
 </div>
 </div>
 </div>
@@ -2485,6 +2496,72 @@ if(fb)fb.value=text;
 if(btn)btnLoading(btn,false,'\u{1F916} AI Write Feedback');
 }
 window.aiWriteFeedback=aiWriteFeedback;
+
+// ===== FEEDBACK SYSTEM =====
+function openFeedbackModal(type){
+var modal=document.getElementById('feedbackModal');
+var title=document.getElementById('feedbackTitle');
+var desc=document.getElementById('feedbackDesc');
+title.textContent=type==='bug'?'\u{1F41B} Report a Bug':'\u{1F4A1} Request a Feature';
+desc.placeholder=type==='bug'?'Describe the bug...':'Describe your idea...';
+desc.value='';
+document.getElementById('feedbackPage').value='';
+modal.dataset.type=type;
+modal.style.display='flex';
+}
+window.openFeedbackModal=openFeedbackModal;
+
+function closeFeedbackModal(){
+document.getElementById('feedbackModal').style.display='none';
+}
+window.closeFeedbackModal=closeFeedbackModal;
+
+async function submitFeedback(){
+var modal=document.getElementById('feedbackModal');
+var type=modal.dataset.type;
+var message=document.getElementById('feedbackDesc').value.trim();
+var page=document.getElementById('feedbackPage').value.trim();
+if(!message){showToast('Please describe your feedback.','warning');return}
+var btn=document.getElementById('feedbackSubmitBtn');
+btn.disabled=true;btn.textContent='Submitting...';
+try{
+var teacherName=(window.teacherData&&window.teacherData.name)||'Teacher';
+var teacherUid=(window.currentTeacher&&window.currentTeacher.uid)||'';
+var classCode=(window.teacherData&&window.teacherData.classCode)||'';
+await window.fbAddDoc(window.fbCollection(window.fbDb,'feedback'),{
+type:type,
+message:message,
+page:page,
+userName:teacherName,
+userRole:'teacher',
+userId:teacherUid,
+classCode:classCode,
+status:'new',
+createdAt:window.fbTimestamp.now()
+});
+showToast('Thanks! Your feedback has been submitted.','success');
+closeFeedbackModal();
+}catch(e){console.error(e);showToast('Error submitting feedback.','error')}
+btn.disabled=false;btn.textContent='Submit';
+}
+window.submitFeedback=submitFeedback;
 </script>
+
+<!-- FEEDBACK MODAL -->
+<div id="feedbackModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px">
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;max-width:480px;width:100%;position:relative;animation:fadeUp .2s ease">
+<button onclick="closeFeedbackModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text2);font-size:24px;cursor:pointer;line-height:1">&times;</button>
+<h2 id="feedbackTitle" style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;margin-bottom:16px;color:var(--text)"></h2>
+<div style="margin-bottom:14px">
+<label style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Description</label>
+<textarea id="feedbackDesc" rows="4" style="width:100%;padding:12px;background:var(--bg);border:2px solid var(--border);border-radius:12px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;resize:vertical;outline:none" placeholder="Describe the bug..."></textarea>
+</div>
+<div style="margin-bottom:18px">
+<label style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Page / Tool (optional)</label>
+<input id="feedbackPage" type="text" style="width:100%;padding:12px;background:var(--bg);border:2px solid var(--border);border-radius:12px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;outline:none" placeholder="e.g. Jeopardy, Roster, Assignments...">
+</div>
+<button id="feedbackSubmitBtn" onclick="submitFeedback()" style="width:100%;padding:14px;background:var(--accent);color:var(--bg);border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer">Submit</button>
+</div>
+</div>
 </body>
 </html>
