@@ -18,32 +18,15 @@
 .topbar-right{display:flex;align-items:center;gap:10px}
 .teacher-badge{font-size:14px;color:var(--text2);font-weight:500;background:var(--surface);padding:6px 14px;border-radius:8px;border:1px solid var(--border)}
 
-/* Common */
-.btn{padding:8px 18px;border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;cursor:pointer;transition:all .15s}
-.btn:active{transform:scale(.97)}
-.btn-accent{background:var(--accent);color:var(--bg)}
-.btn-blue{background:var(--accent2);color:#fff}
-.btn-gold{background:var(--gold);color:var(--bg)}
-.btn-outline{background:none;border:1px solid var(--border);color:var(--text2)}
-.btn-outline:hover{border-color:var(--text2);color:var(--text)}
-.btn-sm{padding:6px 12px;font-size:13px;border-radius:8px}
+/* Common — base .btn classes in oda-theme.css; teacher-specific overrides only */
 .btn-red{background:rgba(239,71,111,.15);color:var(--accent3);border:1px solid rgba(239,71,111,.2)}
-.btn-wide{width:100%;padding:14px;font-size:16px;border-radius:14px}
 
-/* Tabs */
-.tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface);border-radius:14px;padding:4px;border:1px solid var(--border)}
-.tab{flex:1;padding:10px 6px;text-align:center;border-radius:10px;cursor:pointer;font-weight:700;font-size:14px;color:var(--text2);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px}
-.tab:hover{color:var(--text)}
-.tab.active{background:var(--accent);color:var(--bg)}
+/* Tabs — base .tabs/.tab/.section in oda-theme.css; teacher-specific overrides */
+.tabs{border-radius:14px}
+.tab{padding:10px 6px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:5px}
 @media(max-width:600px){.tab{font-size:12px;padding:9px 3px}.tab-label{display:none}}
 
-.section{display:none;animation:fadeUp .2s ease}
-.section.show{display:block}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-
-/* Cards */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:14px}
-.card-title{font-size:16px;font-weight:800;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+/* Cards — .card and .card-title in oda-theme.css */
 
 /* Stats */
 .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
@@ -120,9 +103,7 @@
 .a-detail{font-size:13px;color:var(--text2);margin-top:2px}
 .a-status{font-size:12px;font-weight:700;padding:4px 8px;border-radius:6px}
 
-.empty-state{text-align:center;padding:32px 16px;color:var(--text2)}
-.empty-state .emoji{font-size:40px;margin-bottom:8px;display:block}
-.empty-state p{font-size:14px}
+/* .empty-state in oda-theme.css */
 
 /* Modal */
 .modal-bg{position:fixed;inset:0;background:rgba(10,14,26,.88);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
@@ -295,21 +276,11 @@ select.settings-input{cursor:pointer}
 /* Loading overlay */
 .loading-overlay{position:fixed;inset:0;background:rgba(10,14,26,.92);z-index:200;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;backdrop-filter:blur(4px)}
 .loading-overlay.show{display:flex}
-.loading-spinner{width:40px;height:40px;border:4px solid rgba(6,214,160,.2);border-top-color:var(--accent);border-radius:50%;animation:lspin .6s linear infinite}
-@keyframes lspin{to{transform:rotate(360deg)}}
+.loading-spinner{width:40px;height:40px;border:4px solid rgba(6,214,160,.2);border-top-color:var(--accent);border-radius:50%;animation:odaSpin .6s linear infinite}
 .loading-text{font-size:14px;color:var(--text2);font-weight:600}
 
-/* Toast */
-.toast-container{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px}
-.toast{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 20px;font-size:14px;font-weight:600;transform:translateX(120%);opacity:0;transition:all .3s ease;pointer-events:none}
-.toast.show{transform:translateX(0);opacity:1}
-.toast.success{border-color:var(--accent);color:var(--accent)}
-.toast.error{border-color:var(--accent3);color:var(--accent3)}
-.toast.info{border-color:var(--accent2);color:var(--accent2)}
-
-/* Btn loading */
-.btn.loading{opacity:.6;pointer-events:none;position:relative}
-.btn.loading::after{content:'';display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:lspin .6s linear infinite;margin-left:6px;vertical-align:middle}
+/* Toast — uses odaToast() from oda-core.js */
+/* .btn.loading defined in oda-theme.css */
 
 /* Analytics */
 .analytics-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-top:14px}
@@ -694,8 +665,7 @@ select.settings-input{cursor:pointer}
 <div class="loading-text" id="loadingText">Loading...</div>
 </div>
 
-<!-- TOAST CONTAINER -->
-<div class="toast-container" id="toastContainer"></div>
+<!-- Toasts handled by odaToast() from oda-core.js -->
 
 <!-- AI GENERATOR MODAL -->
 <div class="modal-bg" id="aiGenModal" role="dialog" aria-modal="true" aria-label="AI Assignment Generator">
@@ -948,7 +918,7 @@ window.openClassModal=openClassModal;window.closeClassModal=closeClassModal;
 function openAddStudentModal(){
 var sel=document.getElementById('addStudentClass');
 var classes=window.teacherData&&window.teacherData.classes?window.teacherData.classes.filter(function(c){return c!=='All Students'}):[];
-if(!classes.length){showToast('Create a class first before adding students.','warning');openClassModal();return}
+if(!classes.length){odaToast('Create a class first before adding students.','warning');openClassModal();return}
 var h='<option value="">Choose a class...</option>';
 for(var i=0;i<classes.length;i++){
 var isSelected=currentClass!=='All Students'&&classes[i]===currentClass;
@@ -1011,7 +981,7 @@ var school=document.getElementById('setSchool').value;
 var grades=document.getElementById('setGrades').value.trim();
 var team=document.getElementById('setTeam').value;
 var program=document.getElementById('setProgram').value;
-if(!name){showToast('Name is required','warning');return}
+if(!name){odaToast('Name is required','warning');return}
 try{
 await window.fbUpdateDoc(window.fbDoc(window.fbDb,'teachers',window.currentTeacher.uid),{name:name,district:district,school:school,gradeLevels:grades,team:team,program:program});
 window.teacherData.name=name;
@@ -1023,7 +993,7 @@ window.teacherData.program=program;
 document.getElementById('teacherName').textContent=name;
 document.getElementById('welcomeName').textContent=name.split(' ')[0];
 var msg=document.getElementById('profileSaveMsg');msg.style.display='block';setTimeout(function(){msg.style.display='none'},2000);
-}catch(e){console.error(e);showToast('Error saving','error')}
+}catch(e){console.error(e);odaToast('Error saving','error')}
 }
 window.saveProfile=saveProfile;
 
@@ -1047,15 +1017,15 @@ window.teacherData.classCode=code;
 document.getElementById('classCodeDisplay').textContent=code;
 document.getElementById('settingsClassCode').textContent=code;
 var msg=document.getElementById('codeSaveMsg');msg.style.display='block';setTimeout(function(){msg.style.display='none'},2000);
-}catch(e){console.error(e);showToast('Error: '+e.message,'error')}
+}catch(e){console.error(e);odaToast('Error: '+e.message,'error')}
 }
 window.regenerateClassCode=regenerateClassCode;
 
 function copyClassCode(){
 var code=window.teacherData&&window.teacherData.classCode?window.teacherData.classCode:'';
 if(!code)return;
-navigator.clipboard.writeText(code).then(function(){showToast('Class code copied!','success')}).catch(function(){
-var ta=document.createElement('textarea');ta.value=code;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('Class code copied!','success');
+navigator.clipboard.writeText(code).then(function(){odaToast('Class code copied!','success')}).catch(function(){
+var ta=document.createElement('textarea');ta.value=code;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);odaToast('Class code copied!','success');
 });
 }
 window.copyClassCode=copyClassCode;
@@ -1186,8 +1156,8 @@ var gradeSelect=document.getElementById('addStudentGrade').value;
 var grade=gradeSelect==='Other'?document.getElementById('addStudentGradeCustom').value.trim():gradeSelect;
 var className=document.getElementById('addStudentClass').value;
 if(!name)return;
-if(!grade){showToast('Please select a grade.','warning');return}
-if(!className){showToast('Please select a class for this student.','warning');return}
+if(!grade){odaToast('Please select a grade.','warning');return}
+if(!className){odaToast('Please select a class for this student.','warning');return}
 _addingStudent=true;
 var btn=document.querySelector('#addStudentModal .btn-accent');
 if(btn){btn.textContent='Adding...';btn.disabled=true}
@@ -1203,7 +1173,7 @@ createdAt:new Date().toISOString()
 });
 closeAddStudentModal();
 loadStudents();
-}catch(e){console.error(e);showToast('Error: '+e.message,'error')}
+}catch(e){console.error(e);odaToast('Error: '+e.message,'error')}
 finally{_addingStudent=false;if(btn){btn.textContent='Add Student';btn.disabled=false}}
 }
 window.addStudent=addStudent;
@@ -1249,8 +1219,8 @@ await Promise.all(deletes);
 await window.fbDeleteDoc(window.fbDoc(window.fbDb,'students',sId));
 closeProfile();
 await loadStudents();
-showToast('"'+sName+'" deleted','success');
-}catch(e){console.error(e);showToast('Error deleting student: '+e.message,'error')}
+odaToast('"'+sName+'" deleted','success');
+}catch(e){console.error(e);odaToast('Error deleting student: '+e.message,'error')}
 }
 window.deleteStudent=deleteStudent;
 
@@ -1320,8 +1290,8 @@ await window.fbDeleteDoc(window.fbDoc(window.fbDb,'students',sid));
 _selectedStudentIds=[];
 updateRosterBulkBar();
 await loadStudents();
-showToast(count+' student'+(count!==1?'s':'')+' deleted','success');
-}catch(e){console.error(e);showToast('Error deleting students: '+e.message,'error')}
+odaToast(count+' student'+(count!==1?'s':'')+' deleted','success');
+}catch(e){console.error(e);odaToast('Error deleting students: '+e.message,'error')}
 }
 window.deleteSelectedStudents=deleteSelectedStudents;
 
@@ -1636,28 +1606,28 @@ reader.readAsDataURL(file);
 
 async function submitCreateAssignment(){
 var studentIds=getSelectedStudentIds();
-if(!studentIds.length){showToast('Select at least one student','warning');return}
+if(!studentIds.length){odaToast('Select at least one student','warning');return}
 var dueDate=document.getElementById('createDueDate').value||null;
 var assignData={};
 
 if(createType==='tool'){
 var tool=document.getElementById('createToolSelect').value;
-if(!tool){showToast('Select a tool','warning');return}
+if(!tool){odaToast('Select a tool','warning');return}
 var t=ASSIGN_TYPES[tool]||{title:tool};
 var isAutoGrade=tool.startsWith('spelling')||tool.startsWith('vocab');
 assignData={type:'tool',toolType:tool,title:t.title||tool,instructions:'',gradingType:isAutoGrade?'auto':'completion',fileData:null,linkUrl:null};
 }else if(createType==='assignment'){
 var aTitle=document.getElementById('createAssignTitle').value.trim();
-if(!aTitle){showToast('Enter a title','warning');return}
+if(!aTitle){odaToast('Enter a title','warning');return}
 var aInstructions=document.getElementById('createAssignInstructions').value.trim();
-if(!aInstructions){showToast('Enter instructions so students know what to do','warning');return}
+if(!aInstructions){odaToast('Enter instructions so students know what to do','warning');return}
 var aLink=document.getElementById('createAssignLink').value.trim()||null;
 var aGrading=document.getElementById('createAssignGrading').value;
 var fileInput=document.getElementById('createAssignFile');
 var fileUrl=null;
 if(fileInput.files.length>0){
 var file=fileInput.files[0];
-if(file.size>10*1024*1024){showToast('File must be under 10MB','warning');return}
+if(file.size>10*1024*1024){odaToast('File must be under 10MB','warning');return}
 showLoading('Uploading file...');
 try{
 var ts=Date.now();
@@ -1666,7 +1636,7 @@ var path='assignments/'+window.currentTeacher.uid+'/'+ts+'_'+safeName;
 var sRef=window.fbStorageRef(window.fbStorage,path);
 await window.fbUploadBytes(sRef,file);
 fileUrl=await window.fbGetDownloadURL(sRef);
-}catch(e){hideLoading();console.error(e);showToast('File upload failed: '+e.message,'error');return}
+}catch(e){hideLoading();console.error(e);odaToast('File upload failed: '+e.message,'error');return}
 }
 assignData={type:'assignment',toolType:null,title:aTitle,instructions:aInstructions,gradingType:aGrading,fileData:null,fileUrl:fileUrl,linkUrl:aLink};
 }
@@ -1702,11 +1672,11 @@ fileData:assignData.fileData||null,fileUrl:assignData.fileUrl||null,linkUrl:assi
 await Promise.all(_assignPromises);
 hideLoading();
 closeCreateAssignment();
-showToast(studentIds.length+' assignment(s) created','success');
+odaToast(studentIds.length+' assignment(s) created','success');
 await loadStudents();
 renderAssignmentsList();
 if(selectedStudent)renderProfileAssignments();
-}catch(e){hideLoading();console.error(e);showToast('Error creating assignments: '+e.message,'error')}
+}catch(e){hideLoading();console.error(e);odaToast('Error creating assignments: '+e.message,'error')}
 }
 window.submitCreateAssignment=submitCreateAssignment;
 
@@ -2033,29 +2003,29 @@ async function gradeAssignment(){
 if(!gradingAssignment)return;
 var score=parseInt(document.getElementById('gradeScore').value);
 var feedback=document.getElementById('gradeFeedback').value.trim();
-if(isNaN(score)||score<0||score>100){showToast('Enter a valid score (0-100)','warning');return}
+if(isNaN(score)||score<0||score>100){odaToast('Enter a valid score (0-100)','warning');return}
 try{
 await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',gradingAssignment.id),{status:'graded',score:score,feedback:feedback,gradedAt:new Date().toISOString()});
 closeGradePanel();
-showToast('Assignment graded: '+score+'%','success');
+odaToast('Assignment graded: '+score+'%','success');
 await loadStudents();
 renderAssignmentsList();
 if(selectedStudent)renderProfileAssignments();
-}catch(e){console.error(e);showToast('Error grading','error')}
+}catch(e){console.error(e);odaToast('Error grading','error')}
 }
 window.gradeAssignment=gradeAssignment;
 
 async function returnForRevision(){
 if(!gradingAssignment)return;
 var feedback=document.getElementById('gradeFeedback').value.trim();
-if(!feedback){showToast('Please enter feedback for the student','warning');return}
+if(!feedback){odaToast('Please enter feedback for the student','warning');return}
 try{
 await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',gradingAssignment.id),{status:'returned',feedback:feedback});
 closeGradePanel();
 await loadStudents();
 renderAssignmentsList();
 if(selectedStudent)renderProfileAssignments();
-}catch(e){console.error(e);showToast('Error: '+e.message,'error')}
+}catch(e){console.error(e);odaToast('Error: '+e.message,'error')}
 }
 window.returnForRevision=returnForRevision;
 
@@ -2067,7 +2037,7 @@ closeGradePanel();
 await loadStudents();
 renderAssignmentsList();
 if(selectedStudent)renderProfileAssignments();
-}catch(e){console.error(e);showToast('Error: '+e.message,'error')}
+}catch(e){console.error(e);odaToast('Error: '+e.message,'error')}
 }
 window.markCompleteFromPanel=markCompleteFromPanel;
 
@@ -2079,7 +2049,7 @@ closeGradePanel();
 await loadStudents();
 renderAssignmentsList();
 if(selectedStudent)renderProfileAssignments();
-}catch(e){console.error(e);showToast('Error: '+e.message,'error')}
+}catch(e){console.error(e);odaToast('Error: '+e.message,'error')}
 }
 window.deleteFromPanel=deleteFromPanel;
 
@@ -2099,8 +2069,8 @@ var parsed=JSON.parse(match[0]);
 document.getElementById('gradeScore').value=parsed.score||'';
 document.getElementById('gradeFeedback').value=parsed.feedback||'';
 await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',a.id),{aiSuggestedScore:parsed.score||null,aiSuggestedFeedback:parsed.feedback||null});
-}else{showToast('AI response was not in expected format','error')}
-}catch(e){console.error(e);showToast('AI grading failed: '+e.message,'error')}
+}else{odaToast('AI response was not in expected format','error')}
+}catch(e){console.error(e);odaToast('AI grading failed: '+e.message,'error')}
 btn.textContent='\u{1F916} AI Suggest';btn.disabled=false;
 }
 window.aiSuggestGrade=aiSuggestGrade;
@@ -2149,7 +2119,7 @@ try{
 await window.fbDeleteDoc(window.fbDoc(window.fbDb,'templates',id));
 templates=templates.filter(function(t){return t.id!==id});
 loadTemplates();
-}catch(e){console.error(e);showToast('Failed to delete template','error')}
+}catch(e){console.error(e);odaToast('Failed to delete template','error')}
 }
 window.deleteTemplate=deleteTemplate;
 
@@ -2166,7 +2136,7 @@ document.getElementById('createAssignInstructions').value=t.instructions||'';
 document.getElementById('createAssignLink').value=t.linkUrl||'';
 document.getElementById('createAssignGrading').value=t.gradingType||'teacher';
 }
-showToast('Template loaded! Set due date and select students.','info');
+odaToast('Template loaded! Set due date and select students.','info');
 }
 window.loadTemplate=loadTemplate;
 
@@ -2194,19 +2164,7 @@ document.getElementById('loadingOverlay').classList.add('show');
 function hideLoading(){document.getElementById('loadingOverlay').classList.remove('show')}
 window.showLoading=showLoading;window.hideLoading=hideLoading;
 
-function showToast(msg,type){
-type=type||'info';
-var container=document.getElementById('toastContainer');
-var t=document.createElement('div');
-t.className='toast '+type;
-t.setAttribute('role','alert');
-t.setAttribute('aria-live','assertive');
-t.textContent=msg;
-container.appendChild(t);
-setTimeout(function(){t.classList.add('show')},10);
-setTimeout(function(){t.classList.remove('show');setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t)},300)},3000);
-}
-window.showToast=showToast;
+/* showToast replaced by odaToast from oda-core.js */
 
 function btnLoading(btn,loading,originalText){
 if(loading){btn._origText=btn.textContent;btn.classList.add('loading');btn.textContent=originalText||'Working...'}
@@ -2337,8 +2295,8 @@ if(!confirm('Mark '+bulkSelected.length+' assignment(s) as complete?'))return;
 showLoading('Completing assignments...');
 try{
 await Promise.all(bulkSelected.map(function(id){return window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',id),{status:'completed',completedAt:new Date().toISOString()})}));
-showToast(bulkSelected.length+' assignments completed','success');
-}catch(e){console.error(e);showToast('Error completing assignments','error')}
+odaToast(bulkSelected.length+' assignments completed','success');
+}catch(e){console.error(e);odaToast('Error completing assignments','error')}
 hideLoading();
 }
 window.bulkComplete=bulkComplete;
@@ -2348,12 +2306,12 @@ if(!bulkSelected.length)return;
 var score=prompt('Enter score (0-100) for all selected assignments:');
 if(score===null)return;
 score=parseInt(score);
-if(isNaN(score)||score<0||score>100){showToast('Enter a valid score (0-100)','warning');return}
+if(isNaN(score)||score<0||score>100){odaToast('Enter a valid score (0-100)','warning');return}
 showLoading('Grading assignments...');
 try{
 await Promise.all(bulkSelected.map(function(id){return window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',id),{status:'graded',score:score,gradedAt:new Date().toISOString()})}));
-showToast(bulkSelected.length+' assignments graded at '+score+'%','success');
-}catch(e){console.error(e);showToast('Error grading','error')}
+odaToast(bulkSelected.length+' assignments graded at '+score+'%','success');
+}catch(e){console.error(e);odaToast('Error grading','error')}
 hideLoading();
 }
 window.bulkGrade=bulkGrade;
@@ -2364,8 +2322,8 @@ if(!confirm('Delete '+bulkSelected.length+' assignment(s)? This cannot be undone
 showLoading('Deleting assignments...');
 try{
 await Promise.all(bulkSelected.map(function(id){return window.fbDeleteDoc(window.fbDoc(window.fbDb,'assignments',id))}));
-showToast(bulkSelected.length+' assignments deleted','success');
-}catch(e){console.error(e);showToast('Error deleting','error')}
+odaToast(bulkSelected.length+' assignments deleted','success');
+}catch(e){console.error(e);odaToast('Error deleting','error')}
 hideLoading();
 }
 window.bulkDelete=bulkDelete;
@@ -2417,7 +2375,7 @@ var lastAiAssignment=null;
 
 async function generateAiAssignment(){
 var topic=document.getElementById('aiGenTopic').value.trim();
-if(!topic){showToast('Enter a topic','warning');return}
+if(!topic){odaToast('Enter a topic','warning');return}
 var grade=document.getElementById('aiGenGrade').value;
 var btn=document.getElementById('aiGenBtn');
 var result=document.getElementById('aiGenResult');
@@ -2506,7 +2464,7 @@ try{
 var text=await odaAI(prompt);
 var fb=document.getElementById('gradeFeedback');
 if(fb)fb.value=text;
-}catch(e){console.error(e);showToast('Error generating feedback','error')}
+}catch(e){console.error(e);odaToast('Error generating feedback','error')}
 if(btn)btnLoading(btn,false,'\u{1F916} AI Write Feedback');
 }
 window.aiWriteFeedback=aiWriteFeedback;
@@ -2537,7 +2495,7 @@ var modal=document.getElementById('feedbackModal');
 var type=modal.dataset.type;
 var message=document.getElementById('feedbackDesc').value.trim();
 var page=document.getElementById('feedbackPage').value.trim();
-if(!message){showToast('Please describe your feedback.','warning');return}
+if(!message){odaToast('Please describe your feedback.','warning');return}
 var btn=document.getElementById('feedbackSubmitBtn');
 btn.disabled=true;btn.textContent='Submitting...';
 try{
@@ -2555,9 +2513,9 @@ classCode:classCode,
 status:'new',
 createdAt:window.fbTimestamp.now()
 });
-showToast('Thanks! Your feedback has been submitted.','success');
+odaToast('Thanks! Your feedback has been submitted.','success');
 closeFeedbackModal();
-}catch(e){console.error(e);showToast('Error submitting feedback.','error')}
+}catch(e){console.error(e);odaToast('Error submitting feedback.','error')}
 btn.disabled=false;btn.textContent='Submit';
 }
 window.submitFeedback=submitFeedback;
