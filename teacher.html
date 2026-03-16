@@ -364,17 +364,17 @@ select.settings-input{cursor:pointer}
 </div>
 </div>
 
-<div class="tabs">
-<div class="tab active" onclick="switchTab('home')"><span>&#x1F3E0;</span><span class="tab-label">Home</span></div>
-<div class="tab" onclick="switchTab('tools')"><span>&#x1F6E0;&#xFE0F;</span><span class="tab-label">Tools</span></div>
-<div class="tab" onclick="switchTab('roster')"><span>&#x1F465;</span><span class="tab-label">Roster</span></div>
-<div class="tab" onclick="switchTab('assignments')"><span>&#x1F4CB;</span><span class="tab-label">Assign</span><span class="notif-badge zero" id="assignNotifBadge">0</span></div>
-<div class="tab" onclick="switchTab('arcade')"><span>&#x1F3AE;</span><span class="tab-label">Arcade</span></div>
-<div class="tab" onclick="switchTab('settings')"><span>&#x2699;&#xFE0F;</span><span class="tab-label">Settings</span></div>
+<div class="tabs" role="tablist" aria-label="Teacher dashboard sections">
+<div class="tab active" role="tab" tabindex="0" aria-selected="true" aria-controls="sec-home" id="tab-home" onclick="switchTab('home')" onkeydown="teacherTabKeyNav(event,'home')"><span>&#x1F3E0;</span><span class="tab-label">Home</span></div>
+<div class="tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="sec-tools" id="tab-tools" onclick="switchTab('tools')" onkeydown="teacherTabKeyNav(event,'tools')"><span>&#x1F6E0;&#xFE0F;</span><span class="tab-label">Tools</span></div>
+<div class="tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="sec-roster" id="tab-roster" onclick="switchTab('roster')" onkeydown="teacherTabKeyNav(event,'roster')"><span>&#x1F465;</span><span class="tab-label">Roster</span></div>
+<div class="tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="sec-assignments" id="tab-assignments" onclick="switchTab('assignments')" onkeydown="teacherTabKeyNav(event,'assignments')"><span>&#x1F4CB;</span><span class="tab-label">Assign</span><span class="notif-badge zero" id="assignNotifBadge">0</span></div>
+<div class="tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="sec-arcade" id="tab-arcade" onclick="switchTab('arcade')" onkeydown="teacherTabKeyNav(event,'arcade')"><span>&#x1F3AE;</span><span class="tab-label">Arcade</span></div>
+<div class="tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="sec-settings" id="tab-settings" onclick="switchTab('settings')" onkeydown="teacherTabKeyNav(event,'settings')"><span>&#x2699;&#xFE0F;</span><span class="tab-label">Settings</span></div>
 </div>
 
 <!-- ===== HOME ===== -->
-<div class="section show" id="sec-home">
+<div class="section show" id="sec-home" role="tabpanel" aria-labelledby="tab-home">
 <div class="card">
 <div style="font-size:18px;font-weight:800;margin-bottom:2px">&#x1F44B; Welcome back, <span id="welcomeName">Teacher</span>!</div>
 <div style="font-size:15px;color:var(--text2)">Here's your class at a glance.</div>
@@ -420,7 +420,7 @@ select.settings-input{cursor:pointer}
 </div>
 
 <!-- ===== MY TOOLS ===== -->
-<div class="section" id="sec-tools">
+<div class="section" id="sec-tools" role="tabpanel" aria-labelledby="tab-tools">
 <div style="font-size:16px;font-weight:800;margin-bottom:6px">&#x1F6E0;&#xFE0F; My Tools</div>
 <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Open tools, assign to your class, or view student submissions.</p>
 <div class="tools-grid" id="teacherToolsGrid"></div>
@@ -429,7 +429,7 @@ select.settings-input{cursor:pointer}
 </div>
 
 <!-- ===== ROSTER ===== -->
-<div class="section" id="sec-roster">
+<div class="section" id="sec-roster" role="tabpanel" aria-labelledby="tab-roster">
 <div id="rosterView">
 <div class="card-title">
 <span>&#x1F465; Roster <span style="font-weight:400;font-size:13px;color:var(--text2)" id="rosterCount"></span></span>
@@ -469,7 +469,7 @@ select.settings-input{cursor:pointer}
 </div>
 
 <!-- ===== ASSIGNMENTS ===== -->
-<div class="section" id="sec-assignments">
+<div class="section" id="sec-assignments" role="tabpanel" aria-labelledby="tab-assignments">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
 <div style="font-size:16px;font-weight:800">&#x1F4CB; Assignments</div>
 </div>
@@ -494,7 +494,7 @@ select.settings-input{cursor:pointer}
 </div>
 
 <!-- ===== ARCADE ===== -->
-<div class="section" id="sec-arcade">
+<div class="section" id="sec-arcade" role="tabpanel" aria-labelledby="tab-arcade">
 <div style="font-size:16px;font-weight:800;margin-bottom:6px">&#x1F3AE; Arcade Manager</div>
 <div style="font-size:15px;color:var(--text2);margin-bottom:14px">12 games available for students in the Arcade tab.</div>
 <div class="tools-grid">
@@ -513,7 +513,7 @@ select.settings-input{cursor:pointer}
 </div>
 
 <!-- ===== SETTINGS ===== -->
-<div class="section" id="sec-settings">
+<div class="section" id="sec-settings" role="tabpanel" aria-labelledby="tab-settings">
 <div style="font-size:16px;font-weight:800;margin-bottom:14px">&#x2699;&#xFE0F; Account Settings</div>
 
 <div class="card">
@@ -804,18 +804,30 @@ var ASSIGN_TYPES={
 'custom':{title:'Custom',emoji:'\u270F\uFE0F'}
 };
 
+var teacherTabOrder=['home','tools','roster','assignments','arcade','settings'];
 function switchTab(id){
-var tabs=document.querySelectorAll('.tab');
+var tabs=document.querySelectorAll('.tab[role="tab"]');
 var secs=document.querySelectorAll('.section');
-for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');secs[i].classList.remove('show')}
+for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');tabs[i].setAttribute('aria-selected','false');tabs[i].setAttribute('tabindex','-1');secs[i].classList.remove('show')}
 document.getElementById('sec-'+id).classList.add('show');
 var m={home:0,tools:1,roster:2,assignments:3,arcade:4,settings:5};
-if(m[id]!==undefined)tabs[m[id]].classList.add('active');
+if(m[id]!==undefined){tabs[m[id]].classList.add('active');tabs[m[id]].setAttribute('aria-selected','true');tabs[m[id]].setAttribute('tabindex','0')}
 closeProfile();
 if(id==='assignments'){renderAssignmentsList();populateClassFilters()}
 if(id==='tools'){renderMyTools()}
+odaAnnounce(id+' tab selected');
 }
 window.switchTab=switchTab;
+function teacherTabKeyNav(e,current){
+var idx=teacherTabOrder.indexOf(current);if(idx<0)return;
+if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
+e.preventDefault();
+var next=e.key==='ArrowRight'?(idx+1)%teacherTabOrder.length:(idx-1+teacherTabOrder.length)%teacherTabOrder.length;
+switchTab(teacherTabOrder[next]);
+document.getElementById('tab-'+teacherTabOrder[next]).focus();
+}else if(e.key==='Enter'||e.key===' '){e.preventDefault();switchTab(current)}
+}
+window.teacherTabKeyNav=teacherTabKeyNav;
 
 // ===== MY TOOLS =====
 var TEACHER_TOOLS=[
@@ -1952,7 +1964,7 @@ h+='<div class="grade-work"><iframe src="'+esc(a.fileUrl)+'" style="width:100%;h
 }
 }else if(a.fileData){
 if(a.fileData.startsWith('data:image')){
-h+='<div class="grade-work" style="text-align:center"><img src="'+a.fileData+'" style="max-width:100%;border-radius:10px"></div>';
+h+='<div class="grade-work" style="text-align:center"><img src="'+esc(a.fileData)+'" style="max-width:100%;border-radius:10px"></div>';
 }else{
 var pdfUrl=dataUriToBlobUrl(a.id,a.fileData);
 h+='<div class="grade-work"><iframe src="'+pdfUrl+'" style="width:100%;height:500px;border:none;border-radius:10px"></iframe><div style="margin-top:8px;text-align:center"><a href="#" onclick="openFileBlob(\''+a.id+'\');return false" style="color:var(--accent2);font-size:13px;font-weight:600">Open in new tab \u2197\uFE0F</a></div></div>';
@@ -2080,13 +2092,7 @@ var prompt='Grade this student submission on a scale of 0-100. The assignment wa
 (a.title||'')+'" with instructions: "'+(a.instructions||'None')+'". The student submitted: "'+
 (a.studentResponse||'No text response')+'". Respond with ONLY a JSON object: {"score": number, "feedback": "string"}';
 try{
-var resp=await fetch(ODA_CONFIG.aiEndpoint,{
-method:'POST',headers:{'Content-Type':'application/json'},
-body:JSON.stringify({prompt:prompt})
-});
-if(!resp.ok)throw new Error('Server error');
-var data=await resp.json();
-var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'';
+var text=await odaAI(prompt);
 var match=text.match(/\{[\s\S]*\}/);
 if(match){
 var parsed=JSON.parse(match[0]);
@@ -2172,6 +2178,7 @@ document.addEventListener('keydown',function(e){
 if(e.key==='Escape'){
 var modals=[['assignModal',closeAssignModal],['classModal',closeClassModal],['addStudentModal',closeAddStudentModal],['createAssignModal',closeCreateAssignment],['gradePanel',closeGradePanel],['aiGenModal',closeAiGen],['aiDiffModal',closeAiDiff]];
 for(var i=0;i<modals.length;i++){if(document.getElementById(modals[i][0]).classList.contains('show')){modals[i][1]();return}}
+var fbm=document.getElementById('feedbackModal');if(fbm&&fbm.style.display==='flex'){closeFeedbackModal();return}
 }
 if(e.key==='Enter'){
 if(document.activeElement.id==='addStudentName'||document.activeElement.id==='addStudentGrade')addStudent();
@@ -2394,12 +2401,7 @@ return name+': '+d.completed+' done, '+d.pending+' pending, avg: '+avg2;
 var prompt='You are a helpful education assistant for an afterschool program. Write a weekly class summary for the teacher. Class data: '+students.length+' students, '+total+' total assignments, '+done+' completed, '+pending+' pending, '+submitted+' needs review, class avg score: '+avg+'. Per-student breakdown: '+studentSummary+'. Write a friendly 3-4 paragraph narrative summary highlighting class achievements, students who are excelling, students who may need extra support, and 2-3 actionable recommendations for next week. Keep it encouraging and professional.';
 
 try{
-var resp=await fetch(ODA_CONFIG.aiEndpoint,{
-method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
-});
-if(!resp.ok)throw new Error('Server error');
-var data=await resp.json();
-var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'Unable to generate summary.';
+var text=await odaAI(prompt);
 result.textContent=text;
 result.scrollIntoView({behavior:'smooth',block:'nearest'});
 }catch(e){console.error(e);result.textContent='Error generating summary. Please try again.';result.scrollIntoView({behavior:'smooth',block:'nearest'})}
@@ -2426,12 +2428,7 @@ document.getElementById('aiGenActions').style.display='none';
 var prompt='You are an education assistant for a K-12 afterschool program. Create an assignment for grade level '+grade+' on this topic: "'+topic+'". Respond with ONLY a JSON object: {"title": "assignment title", "instructions": "detailed instructions for the student (2-4 sentences)", "gradingType": "teacher" or "completion"}. Make it engaging, age-appropriate, and educational.';
 
 try{
-var resp=await fetch(ODA_CONFIG.aiEndpoint,{
-method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
-});
-if(!resp.ok)throw new Error('Server error');
-var data=await resp.json();
-var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'';
+var text=await odaAI(prompt);
 var match=text.match(/\{[\s\S]*\}/);
 if(match){
 lastAiAssignment=JSON.parse(match[0]);
@@ -2480,12 +2477,7 @@ perStudent.push(s.name+' (grade '+s.grade+', avg: '+avg+', completed: '+complete
 var prompt='You are an education consultant for a K-12 afterschool program. Analyze these students and suggest differentiation groupings (K-2 level, 3-4 level, 5-8 level) for each student based on their performance. Also suggest specific activities or supports for each group. Students: '+perStudent.join('; ')+'. Format your response clearly with group headers and student names under each group, followed by recommendations for each group.';
 
 try{
-var resp=await fetch(ODA_CONFIG.aiEndpoint,{
-method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
-});
-if(!resp.ok)throw new Error('Server error');
-var data=await resp.json();
-var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'Unable to generate analysis.';
+var text=await odaAI(prompt);
 result.textContent=text;
 }catch(e){console.error(e);result.textContent='Error: '+e.message}
 btnLoading(btn,false,'Analyze Students \u{1F52C}');
@@ -2511,12 +2503,7 @@ var prompt='You are a supportive afterschool program teacher writing personalize
 (a.studentResponse||'No text response')+'". Student history: '+historyStr+'. Write 2-3 sentences of warm, specific, actionable feedback. Be encouraging but honest. Reference specific things the student did well and one area to improve.';
 
 try{
-var resp=await fetch(ODA_CONFIG.aiEndpoint,{
-method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})
-});
-if(!resp.ok)throw new Error('Server error');
-var data=await resp.json();
-var text=(data.content&&data.content[0]&&data.content[0].text)||data.response||data.text||data.result||'';
+var text=await odaAI(prompt);
 var fb=document.getElementById('gradeFeedback');
 if(fb)fb.value=text;
 }catch(e){console.error(e);showToast('Error generating feedback','error')}
@@ -2535,10 +2522,12 @@ desc.value='';
 document.getElementById('feedbackPage').value='';
 modal.dataset.type=type;
 modal.style.display='flex';
+if(window.odaTrapFocus)_odaFocusTraps.feedbackModal=window.odaTrapFocus(modal);
 }
 window.openFeedbackModal=openFeedbackModal;
 
 function closeFeedbackModal(){
+if(_odaFocusTraps.feedbackModal){_odaFocusTraps.feedbackModal();_odaFocusTraps.feedbackModal=null}
 document.getElementById('feedbackModal').style.display='none';
 }
 window.closeFeedbackModal=closeFeedbackModal;

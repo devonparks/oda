@@ -27,13 +27,13 @@
 .unlock p{font-size:14px;color:rgba(10,14,26,.6);font-weight:600}
 @keyframes pulse{0%,100%{box-shadow:0 0 15px rgba(6,214,160,.2)}50%{box-shadow:0 0 30px rgba(6,214,160,.4)}}
 
-/* Assignment cards */
-.a-card{background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:20px;margin-bottom:10px;transition:all .2s}
+/* Assignment cards — base .a-card,.a-header,.a-title,.a-status in oda-theme.css */
+.a-card{border-width:2px;border-radius:16px;padding:20px;transition:all .2s}
 .a-card.pending{border-color:var(--accent2)}
 .a-card.completed{border-color:var(--accent);opacity:.7}
-.a-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
-.a-title{font-size:18px;font-weight:800;display:flex;align-items:center;gap:8px}
-.a-status{font-size:12px;font-weight:700;padding:4px 10px;border-radius:6px}
+.a-header{margin-bottom:8px}
+.a-title{font-size:18px;font-weight:800}
+.a-status{padding:4px 10px}
 .status-pending{background:rgba(17,138,178,.12);color:var(--accent2)}
 .status-done{background:rgba(6,214,160,.12);color:var(--accent)}
 .status-overdue{background:rgba(239,71,111,.12);color:var(--accent3)}
@@ -97,8 +97,7 @@
 .a-score{display:inline-flex;align-items:center;gap:4px;font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:var(--gold);background:rgba(255,209,102,.08);padding:4px 10px;border-radius:6px}
 .a-instructions{font-size:15px;line-height:1.6;margin-bottom:10px;padding:10px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)}
 
-.empty-state{text-align:center;padding:32px 16px;color:var(--text2)}
-.empty-state .emoji{font-size:40px;margin-bottom:8px;display:block}
+/* .empty-state defined in oda-theme.css */
 
 .confetti-piece{position:fixed;top:-20px;z-index:9999;pointer-events:none;animation:confettiFall 3s ease-in forwards}
 @keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
@@ -387,7 +386,7 @@ return '<button class="a-btn start" onclick="startQuiz(\''+a.id+'\',\''+toolId+'
 if(a.type==='assignment'||a.type==='worksheet'||a.type==='link'||a.type==='custom'){
 var bh='';
 if(a.instructions)bh+='<div class="a-instructions">'+esc(a.instructions)+'</div>';
-if(a.linkUrl)bh+='<div style="margin-bottom:10px"><a class="a-btn start" href="'+esc(a.linkUrl)+'" target="_blank" style="display:inline-block">Open Link \u{1F517}</a></div>';
+if(a.linkUrl&&!/^javascript:/i.test(a.linkUrl))bh+='<div style="margin-bottom:10px"><a class="a-btn start" href="'+esc(a.linkUrl)+'" target="_blank" rel="noopener noreferrer" style="display:inline-block">Open Link \u{1F517}</a></div>';
 if(a.fileUrl||a.fileData){
 var fSrc=a.fileUrl||null;
 var isImage=a.fileUrl?a.fileUrl.match(/\.(png|jpg|jpeg|gif|webp)/i):false;
@@ -507,14 +506,14 @@ activeQuiz=null;_submitting.quiz=false;
 async function submitWork(assignId){
 if(_submitting[assignId])return;
 var resp=document.getElementById('resp-'+assignId);
-if(!resp||!resp.value.trim()){alert('Please type your response before submitting');return}
+if(!resp||!resp.value.trim()){odaToast('Please type your response before submitting','warning');return}
 _submitting[assignId]=true;
 try{
 await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',assignId),{
 studentResponse:resp.value.trim(),status:'submitted',submittedAt:new Date().toISOString()
 });
 fireConfetti();
-}catch(e){console.error(e);alert('Error submitting')}
+}catch(e){console.error(e);odaToast('Error submitting. Try again.','error')}
 finally{_submitting[assignId]=false}
 }
 window.submitWork=submitWork;
@@ -548,7 +547,7 @@ await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',assignId),{
 status:'completed',completedAt:new Date().toISOString()
 });
 fireConfetti();
-}catch(e){console.error(e);alert('Error')}
+}catch(e){console.error(e);odaToast('Error marking done. Try again.','error')}
 finally{_submitting[assignId]=false}
 }
 window.markDone=markDone;

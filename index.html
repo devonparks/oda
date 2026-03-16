@@ -115,13 +115,10 @@ body{overflow-x:hidden}
 .success-msg{background:rgba(6,214,160,.1);border:1px solid rgba(6,214,160,.3);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--accent);font-weight:600;margin-top:12px;display:none;text-align:center}
 .success-msg.show{display:block}
 
-/* Loading */
-.spinner{display:inline-block;width:20px;height:20px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+/* Loading — .spinner defined in oda-theme.css; override size for login buttons */
+.submit-btn .spinner{width:20px;height:20px;border-width:3px}
 
 .footer{margin-top:40px;text-align:center;font-size:13px;color:#3a4560;font-family:'Space Mono',monospace;letter-spacing:1px;padding:20px;line-height:2}
-
-@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 
 /* Desktop enhancements */
 @media(min-width:1024px){
@@ -351,7 +348,7 @@ Sign in with Google
 <input type="password" id="signupPass" placeholder="At least 6 characters">
 </div>
 </div>
-<button class="submit-btn blue" onclick="teacherSignup()">Create Account &#x1F680;</button>
+<button class="submit-btn blue" id="signupSubmit" onclick="teacherSignup()">Create Account &#x1F680;</button>
 <div class="error-msg" id="signupError" role="alert" aria-live="assertive"></div>
 <div class="success-msg" id="signupSuccess" role="status" aria-live="polite"></div>
 </div>
@@ -374,7 +371,7 @@ Sign in with Google
 <label for="parentCode">Parent Code</label>
 <input type="text" id="parentCode" class="code-input" placeholder="0000" maxlength="4" autocomplete="off" inputmode="numeric">
 </div>
-<button class="submit-btn gold" onclick="parentLogin()">View Progress</button>
+<button class="submit-btn gold" id="parentSubmit" onclick="parentLogin()">View Progress</button>
 <div class="error-msg" id="parentError" role="alert" aria-live="assertive"></div>
 </div>
 </div>
@@ -451,7 +448,10 @@ document.getElementById('features').style.display='none';
 var panels=document.querySelectorAll('.login-panel');
 for(var i=0;i<panels.length;i++)panels[i].classList.remove('show');
 var p=document.getElementById('panel-'+id);
-if(p)p.classList.add('show');
+if(p){p.classList.add('show');
+// Move focus to first focusable element in the new panel
+setTimeout(function(){var focusable=p.querySelectorAll('input:not([type=hidden]),button,select,textarea,a[href],[tabindex]:not([tabindex="-1"])');if(focusable.length)focusable[0].focus()},100);
+}
 }
 
 function showError(id,msg){
@@ -484,6 +484,11 @@ var t=titles[stuStep];
 document.getElementById('stuEmoji').innerHTML=t[0];
 document.getElementById('stuTitle').textContent=t[1];
 document.getElementById('stuDesc').textContent=t[2];
+// Move focus to first interactive element of new step
+setTimeout(function(){
+var stepEl=document.getElementById('stuStep'+stuStep);
+if(stepEl){var f=stepEl.querySelectorAll('input,button,[tabindex]:not([tabindex="-1"])');if(f.length)f[0].focus()}
+},100);
 }
 
 window.checkClassCode=async function(){
@@ -622,6 +627,9 @@ var pass=document.getElementById('signupPass').value;
 if(!name||!email||!pass){showError('signupError','Fill in name, email and password!');return}
 if(pass.length<6){showError('signupError','Password needs at least 6 characters');return}
 
+var sbtn=document.getElementById('signupSubmit');
+sbtn.innerHTML='<span class="spinner"></span>';sbtn.disabled=true;
+
 try{
 // Generate unique class code
 var classCode;
@@ -648,6 +656,7 @@ createdAt:new Date().toISOString()
 try{await window.sendEmailVerification(cred.user)}catch(ev){console.warn('Verification email:',ev)}
 window.location.href='teacher.html';
 }catch(e){
+sbtn.textContent='Create Account \u{1F680}';sbtn.disabled=false;
 var msg=e.code==='auth/email-already-in-use'?'Email already has an account':'Error: '+e.message;
 showError('signupError',msg);
 }
@@ -659,6 +668,9 @@ var name=document.getElementById('parentChildName').value.trim();
 var code=document.getElementById('parentCode').value.trim();
 if(!name||!code){showError('parentError','Enter your child\'s name and code!');return}
 
+var pbtn=document.getElementById('parentSubmit');
+pbtn.innerHTML='<span class="spinner"></span>';pbtn.disabled=true;
+
 try{
 var q=window.fbQuery(
 window.fbCollection(window.firebaseDb,'students'),
@@ -667,6 +679,7 @@ window.fbWhere('parentCode','==',code)
 );
 var snap=await window.fbGetDocs(q);
 if(snap.empty){
+pbtn.textContent='View Progress';pbtn.disabled=false;
 showError('parentError','Not found. Check with your child\'s teacher.');
 return;
 }
@@ -674,6 +687,7 @@ localStorage.setItem('parentStudentId',snap.docs[0].id);
 localStorage.setItem('parentStudentName',snap.docs[0].data().name);
 window.location.href='parent.html';
 }catch(e){
+pbtn.textContent='View Progress';pbtn.disabled=false;
 console.error('Parent login error:',e);
 if(e.message&&e.message.includes('index')){showError('parentError','Database setup needed. Tell your teacher to check the console.')}
 else{showError('parentError','Something went wrong. Try again.')}
