@@ -105,6 +105,24 @@ window.odaAI = async function(prompt, options) {
 };
 
 // ============================================
+// Unique Class Code Generator
+// ============================================
+window.odaGenerateClassCode = async function() {
+  var db, fsMod;
+  try {
+    var fb = await window.getFirebaseDB();
+    db = fb.db; fsMod = fb.fsMod;
+  } catch(e) { return String(Math.floor(100000 + Math.random() * 900000)); }
+  for (var i = 0; i < 10; i++) {
+    var code = String(Math.floor(100000 + Math.random() * 900000));
+    var q = fsMod.query(fsMod.collection(db, 'teachers'), fsMod.where('classCode', '==', code));
+    var snap = await fsMod.getDocs(q);
+    if (snap.empty) return code;
+  }
+  return String(Math.floor(100000 + Math.random() * 900000));
+};
+
+// ============================================
 // UI Helpers
 // ============================================
 

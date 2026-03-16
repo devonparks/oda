@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="description" content="ODA Hub Parent Portal - View your child's progress, work samples, and achievements at Open Doors Academy.">
 <title>ODA Hub - Parent Portal</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/oda-theme.css">
@@ -267,8 +269,14 @@ var sid=window.parentStudentId;
 if(!sid)return;
 var h='';
 try{
+// Parallel fetch: elevator pitch, pitch challenge, spelling results
+var results=await Promise.all([
+window.fbGetDoc(window.fbDoc(window.fbDb,'elevatorPitches',sid)),
+window.fbGetDoc(window.fbDoc(window.fbDb,'pitchChallenges',sid)),
+window.fbGetDocs(window.fbQuery(window.fbCollection(window.fbDb,'spellingResults'),window.fbWhere('studentId','==',sid)))
+]);
+var epDoc=results[0],pcDoc=results[1],srSnap=results[2];
 // Elevator Pitch
-var epDoc=await window.fbGetDoc(window.fbDoc(window.fbDb,'elevatorPitches',sid));
 if(epDoc.exists()){
 var ep=epDoc.data();
 h+='<div class="work-card"><div class="work-header"><span class="work-type wt-elevator">&#x1F3A4; Elevator Pitch</span><span class="work-date">'+(ep.savedAt?new Date(ep.savedAt).toLocaleDateString():'')+'</span></div>';
@@ -284,7 +292,6 @@ if(ep.pitch)h+='<div class="pitch-text">'+esc(ep.pitch)+'</div>';
 h+='</div></div>';
 }
 // Pitch Challenge
-var pcDoc=await window.fbGetDoc(window.fbDoc(window.fbDb,'pitchChallenges',sid));
 if(pcDoc.exists()){
 var pc=pcDoc.data();
 h+='<div class="work-card"><div class="work-header"><span class="work-type wt-pitch">&#x1F4A1; Pitch Challenge</span><span class="work-date">'+(pc.savedAt?new Date(pc.savedAt).toLocaleDateString():'')+'</span></div>';
@@ -298,8 +305,6 @@ if(pc.hook)h+='<div class="pitch-text">'+esc(pc.hook)+'</div>';
 h+='</div></div>';
 }
 // Spelling Results
-var srQ=window.fbQuery(window.fbCollection(window.fbDb,'spellingResults'),window.fbWhere('studentId','==',sid));
-var srSnap=await window.fbGetDocs(srQ);
 if(!srSnap.empty){
 var results=[];srSnap.forEach(function(d){results.push(d.data())});
 results.sort(function(a,b){return(b.savedAt||'').localeCompare(a.savedAt||'')});

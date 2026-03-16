@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>ODA Hub - Student</title>
 <meta name="description" content="ODA Hub Student Dashboard - Learning tools, assignments, and arcade games for Open Doors Academy students.">
 <meta name="classification" content="Education">
@@ -440,7 +441,7 @@ var h='<div class="quiz-area">';
 h+='<div class="quiz-progress"><span>'+(q.current+1)+'/'+q.words.length+'</span><span>'+q.correct+' correct</span></div>';
 h+='<div class="quiz-word" id="qWord">'+esc(word)+'</div>';
 h+='<input type="text" class="quiz-input" id="qInput" placeholder="Type the word..." autocomplete="off" spellcheck="false">';
-h+='<div class="quiz-feedback" id="qFb"></div>';
+h+='<div class="quiz-feedback" id="qFb" role="status" aria-live="polite"></div>';
 h+='<button class="quiz-btn" onclick="checkSpelling()">Check \u{2714}\uFE0F</button>';
 h+='</div>';
 el.innerHTML=h;
@@ -472,7 +473,7 @@ h+='<div class="vocab-opts">';
 for(var i=0;i<opts.length;i++){
 h+='<div class="vocab-opt" onclick="checkVocab(this,\''+esc(opts[i]).replace(/'/g,"\\'")+'\',\''+esc(item.d).replace(/'/g,"\\'")+'\')">'+esc(opts[i])+'</div>';
 }
-h+='</div><div class="quiz-feedback" id="qFb"></div></div>';
+h+='</div><div class="quiz-feedback" id="qFb" role="status" aria-live="polite"></div></div>';
 el.innerHTML=h;
 }
 
@@ -563,7 +564,7 @@ window.completePitch=completePitch;
 function renderArcade(){
 var h='';
 GAMES.forEach(function(g){
-h+='<div class="game-card" onclick="location.href=\''+g.file+'\'">';
+h+='<div class="game-card" role="button" tabindex="0" onclick="location.href=\''+g.file+'\'" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();location.href=\''+g.file+'\'}">';
 h+='<span class="game-emoji">'+g.emoji+'</span>';
 h+='<div class="game-title">'+g.title+'</div>';
 h+='<div class="game-desc">'+g.desc+'</div></div>';
@@ -599,7 +600,7 @@ var h='';
 ODA_TOOLS.forEach(function(t){
 var count=0;
 if(t.storageKey){try{var items=JSON.parse(localStorage.getItem(t.storageKey)||'[]');var sid=localStorage.getItem('studentId');if(sid){items=items.filter(function(p){return p.studentId===sid})}count=items.length}catch(e){}}
-h+='<div class="tool-card" onclick="window.open(\''+t.url+'\',\'_self\')">';
+h+='<div class="tool-card" role="button" tabindex="0" onclick="window.open(\''+t.url+'\',\'_self\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();window.open(\''+t.url+'\',\'_self\')}">';
 h+='<span class="tc-emoji">'+t.emoji+'</span>';
 h+='<div class="tc-name">'+t.name+'</div>';
 h+='<div class="tc-desc">'+t.desc+'</div>';
@@ -620,7 +621,16 @@ ch+='</div>';
 coming.innerHTML=ch;
 }
 
-function studentLogout(){if(confirm('Are you sure you want to log out?')){localStorage.removeItem('studentId');localStorage.removeItem('studentName');localStorage.removeItem('classCode');localStorage.removeItem('encourageShown');window.location.href='index.html'}}
+function studentLogout(){
+var msg='Are you sure you want to log out?';
+var overlay=document.createElement('div');
+overlay.style.cssText='position:fixed;inset:0;background:rgba(10,14,26,.85);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)';
+overlay.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;max-width:340px;width:90%;text-align:center"><p style="font-size:16px;font-weight:700;margin-bottom:16px">'+msg+'</p><div style="display:flex;gap:10px;justify-content:center"><button id="logoutCancel" class="btn btn-outline" style="flex:1">Cancel</button><button id="logoutConfirm" class="btn btn-accent" style="flex:1">Log Out</button></div></div>';
+document.body.appendChild(overlay);
+document.getElementById('logoutConfirm').onclick=function(){localStorage.removeItem('studentId');localStorage.removeItem('studentName');localStorage.removeItem('classCode');localStorage.removeItem('encourageShown');window.location.href='index.html'};
+document.getElementById('logoutCancel').onclick=function(){overlay.remove()};
+overlay.onclick=function(e){if(e.target===overlay)overlay.remove()};
+}
 window.studentLogout=studentLogout;
 
 function fireConfetti(){var co=["#06d6a0","#118ab2","#ffd166","#ef476f","#a855f7"];for(var i=0;i<50;i++){var p=document.createElement('div');p.className='confetti-piece';var sz=6+Math.random()*10;p.style.width=sz+'px';p.style.height=sz*(Math.random()>.5?1:.6)+'px';p.style.left=Math.random()*100+'%';p.style.backgroundColor=co[i%co.length];p.style.borderRadius=Math.random()>.5?'50%':'2px';p.style.animationDuration=(2+Math.random()*3)+'s';p.style.animationDelay=(Math.random()*2)+'s';document.body.appendChild(p);(function(el){setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},5000)})(p)}}
