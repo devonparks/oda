@@ -556,7 +556,31 @@ showError('teacherError',msg);
 // GOOGLE LOGIN (popup with redirect fallback for school Chromebooks)
 window.googleLogin=async function(){
 try{
-await window.signInWithPopup(window.firebaseAuth,window.googleProvider);
+var result=await window.signInWithPopup(window.firebaseAuth,window.googleProvider);
+// Check if teacher doc exists; create one for first-time Google sign-ins
+var user=result.user;
+var teacherRef=window.fbDoc(window.firebaseDb,'teachers',user.uid);
+var teacherSnap=await window.fbGetDoc(teacherRef);
+if(!teacherSnap.exists()){
+var classCode;
+for(var cc=0;cc<10;cc++){
+classCode=String(Math.floor(100000+Math.random()*900000));
+var ccQ=window.fbQuery(window.fbCollection(window.firebaseDb,'teachers'),window.fbWhere('classCode','==',classCode));
+var ccSnap=await window.fbGetDocs(ccQ);
+if(ccSnap.empty)break;
+}
+await window.fbSetDoc(teacherRef,{
+name:user.displayName||'',
+email:user.email||'',
+district:'',school:'',team:'',program:'',gradeLevels:'',
+classCode:classCode,
+classes:['All Students'],
+createdAt:new Date().toISOString()
+});
+}else if(!teacherSnap.data().classCode){
+var code=String(Math.floor(100000+Math.random()*900000));
+await window.fbSetDoc(teacherRef,{classCode:code},{merge:true});
+}
 window.location.href='teacher.html';
 }catch(e){
 if(e.code==='auth/popup-blocked'||e.code==='auth/popup-closed-by-browser'||e.code==='auth/cancelled-popup-request'){
