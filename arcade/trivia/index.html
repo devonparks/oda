@@ -598,12 +598,39 @@ var game = {
   isHost: false,
   roomUnsub: null,
   players: {},
-  maxScore: 0
+  maxScore: 0,
+  coinsAwarded: false
 };
 
 // Player colors for avatars
 var playerColors = ['#e21b3c','#1368ce','#26890c','#d89e00','#9b59b6','#e67e22','#1abc9c','#e74c3c'];
 var playerEmojis = ['&#128663;','&#128665;','&#128661;','&#128667;','&#128641;','&#128666;','&#128668;','&#128664;'];
+
+// ============================================
+// COSMETICS
+// ============================================
+var myCosmetics = {};
+(function loadMyCosmetics(){
+  var sid = localStorage.getItem('studentId');
+  if(!sid) return;
+  getFirebaseDB().then(function(fb) {
+    var fs = fb.fsMod;
+    fs.getDoc(fs.doc(fb.db, 'students', sid)).then(function(snap) {
+      if(snap.exists()){ myCosmetics = snap.data().equipped || {}; }
+    }).catch(function(){});
+  }).catch(function(){});
+})();
+
+function applyNameColor(el, color){
+  if(!el || !color) return;
+  if(color.type === 'gradient' || color.type === 'animated-gradient'){
+    el.style.background = color.value;
+    el.style.webkitBackgroundClip = 'text';
+    el.style.webkitTextFillColor = 'transparent';
+  } else {
+    el.style.color = color.value;
+  }
+}
 
 // ============================================
 // INIT — Load quick stats
@@ -651,6 +678,7 @@ function startPractice(category) {
   game.score = 0;
   game.answers = [];
   game.maxScore = game.totalQuestions * 1000;
+  game.coinsAwarded = false;
   startGame();
 }
 
@@ -665,6 +693,7 @@ function startImportedQuiz(questions, title) {
   game.score = 0;
   game.answers = [];
   game.maxScore = game.totalQuestions * 1000;
+  game.coinsAwarded = false;
   startGame();
 }
 
@@ -878,7 +907,9 @@ function showHostLobby(fb, fs) {
     playerIds.forEach(function(pid, i) {
       var p = game.players[pid];
       var hostTag = pid === (data.hostId || '') ? ' host' : '';
-      html += '<div class="player-chip' + hostTag + '"><div class="pc-avatar" style="background:' + playerColors[p.color || i] + '">' + (p.name || 'P')[0].toUpperCase() + '</div>' + esc(p.name || 'Player') + '</div>';
+      var isMe = pid === studentId;
+      var chipAvatar = (isMe && myCosmetics.avatar?.emoji) ? myCosmetics.avatar.emoji : (p.name || 'P')[0].toUpperCase();
+      html += '<div class="player-chip' + hostTag + '"><div class="pc-avatar" style="background:' + playerColors[p.color || i] + '">' + chipAvatar + '</div>' + esc(p.name || 'Player') + '</div>';
     });
     html += '</div>';
 
@@ -962,7 +993,9 @@ function showPlayerLobby(fb, fs) {
     playerIds.forEach(function(pid, i) {
       var p = game.players[pid];
       var hostTag = pid === (data.hostId || '') ? ' host' : '';
-      html += '<div class="player-chip' + hostTag + '"><div class="pc-avatar" style="background:' + playerColors[p.color || i] + '">' + (p.name || 'P')[0].toUpperCase() + '</div>' + esc(p.name || 'Player') + '</div>';
+      var isMe2 = pid === studentId;
+      var chipAvatar2 = (isMe2 && myCosmetics.avatar?.emoji) ? myCosmetics.avatar.emoji : (p.name || 'P')[0].toUpperCase();
+      html += '<div class="player-chip' + hostTag + '"><div class="pc-avatar" style="background:' + playerColors[p.color || i] + '">' + chipAvatar2 + '</div>' + esc(p.name || 'Player') + '</div>';
     });
     html += '</div>';
 
@@ -1041,6 +1074,7 @@ async function hostStartGame() {
     game.score = 0;
     game.answers = [];
     game.maxScore = questions.length * 1000;
+    game.coinsAwarded = false;
   } catch(e) {
     console.error('Start game error:', e);
     odaToast('Could not start game', 'error');
@@ -1149,7 +1183,7 @@ function showRaceScreen(roomData, fb, fs, qIdx) {
     var color = playerColors[p.color || i];
     html += '<div class="race-lane">' +
       '<div class="rl-pos">' + (i + 1) + '</div>' +
-      '<div class="rl-avatar" style="background:' + color + '">' + (p.name || 'P')[0].toUpperCase() + '</div>' +
+      '<div class="rl-avatar" style="background:' + color + '">' + ((isMe && myCosmetics.avatar?.emoji) ? myCosmetics.avatar.emoji : (p.name || 'P')[0].toUpperCase()) + '</div>' +
       '<div class="rl-name' + (isMe ? ' you' : '') + '">' + esc(p.name || 'Player') + (isMe ? ' (You)' : '') + '</div>' +
       '<div class="rl-track-area"><div class="rl-car" style="left:' + Math.max(0, pct - 12) + '%;background:' + color + '">&#128663;</div></div>' +
       '<div class="rl-score">' + (p.score || 0) + '</div></div>';
@@ -1196,9 +1230,96 @@ async function finishMultiplayerGame() {
   } catch(e) { odaToast('Error finishing game', 'error'); }
 }
 
+/**
+ * Rematch: reset the Firestore room doc so both players replay with shuffled questions.
+ * Keeps the same room & players, resets scores/answers/status back to playing.
+ */
+async function rematchGame() {
+  if (!game.roomId) {
+    odaToast('Room no longer exists', 'warning');
+    showScreen('homeScreen');
+    return;
+  }
+  try {
+    var fb = await getFirebaseDB();
+    var fs = fb.fsMod;
+    var roomRef = fs.doc(fb.db, 'triviaGames', game.roomId);
+    var snap = await fs.getDoc(roomRef);
+
+    if (!snap.exists()) {
+      odaToast('Room no longer exists', 'warning');
+      game.roomId = '';
+      game.roomCode = '';
+      showScreen('homeScreen');
+      return;
+    }
+
+    var roomData = snap.data();
+    var questions = (roomData.questions || []).slice();
+    shuffle(questions);
+
+    // Reset every player's score and answers, keep their name/color/connected
+    var players = roomData.players || {};
+    Object.keys(players).forEach(function(pid) {
+      players[pid].score = 0;
+      players[pid].answers = {};
+    });
+
+    await fs.updateDoc(roomRef, {
+      status: 'playing',
+      currentQuestion: 0,
+      questions: questions,
+      players: players,
+      questionStartedAt: Date.now()
+    });
+
+    // Reset local game state
+    game.questions = questions;
+    game.totalQuestions = questions.length;
+    game.currentQ = 0;
+    game.score = 0;
+    game.answers = [];
+    game.maxScore = questions.length * 1000;
+    game.coinsAwarded = false;
+
+  } catch(e) {
+    console.error('Rematch error:', e);
+    odaToast('Could not start rematch', 'error');
+  }
+}
+
 function showMultiplayerResults(roomData) {
+  // Unsubscribe previous listener, then set up a rematch-aware one
   if (game.roomUnsub) { game.roomUnsub(); game.roomUnsub = null; }
   showScreen('resultScreen');
+
+  // Listen for rematch: if status goes back to 'playing', restart the quiz
+  (async function setupRematchListener() {
+    try {
+      var fb = await getFirebaseDB();
+      var fs = fb.fsMod;
+      game.roomUnsub = fs.onSnapshot(fs.doc(fb.db, 'triviaGames', game.roomId), function(snap) {
+        if (!snap.exists()) {
+          // Room deleted while on results
+          if (game.roomUnsub) { game.roomUnsub(); game.roomUnsub = null; }
+          return;
+        }
+        var data = snap.data();
+        if (data.status === 'playing' && data.currentQuestion >= 0) {
+          // Rematch triggered — restart the quiz for this player
+          game.questions = data.questions || [];
+          game.totalQuestions = data.totalQuestions || game.questions.length;
+          game.currentQ = data.currentQuestion;
+          game.score = 0;
+          game.answers = [];
+          game.maxScore = game.totalQuestions * 1000;
+          game.coinsAwarded = false;
+          game.players = data.players || {};
+          startMultiplayerQuestion(data, fb, fs);
+        }
+      });
+    } catch(e) { console.error('Rematch listener error:', e); }
+  })();
 
   var players = roomData.players || {};
   var playerIds = Object.keys(players);
@@ -1234,7 +1355,7 @@ function showMultiplayerResults(roomData) {
       var pid = playerIds[idx];
       var p = players[pid];
       html += '<div class="podium-block ' + podiumClasses[pi] + '">' +
-        '<div class="podium-avatar" style="background:' + playerColors[p.color || idx] + '">' + (p.name || 'P')[0].toUpperCase() + '</div>' +
+        '<div class="podium-avatar" style="background:' + playerColors[p.color || idx] + '">' + ((pid === studentId && myCosmetics.avatar?.emoji) ? myCosmetics.avatar.emoji : (p.name || 'P')[0].toUpperCase()) + '</div>' +
         '<div class="podium-name">' + esc(p.name) + '</div>' +
         '<div class="podium-score">' + (p.score || 0) + '</div>' +
         '<div class="podium-bar">' + (idx + 1) + '</div></div>';
@@ -1247,22 +1368,42 @@ function showMultiplayerResults(roomData) {
     '<div class="result-stat"><div class="rs-val" style="color:var(--accent)">' + (myData.score || 0) + '</div><div class="rs-label">Score</div></div>' +
     '<div class="result-stat"><div class="rs-val">' + accuracy + '%</div><div class="rs-label">Accuracy</div></div></div>';
 
-  // Coins
+  // Coins (only award once per match, not on rematch re-render)
   var coins = myRank === 1 ? 20 : myRank === 2 ? 12 : myRank === 3 ? 8 : 3;
   html += '<div class="coin-award">&#129689; +' + coins + ' Coins!</div>';
 
   html += '<div class="result-btns">' +
-    '<button class="btn btn-accent" onclick="showScreen(\'homeScreen\')">&#127968; Home</button>' +
-    '<button class="btn btn-blue" onclick="showMultiplayerMenu()">&#127937; New Race</button></div>';
+    '<button class="btn btn-gold" onclick="rematchGame()">&#128260; Rematch</button>' +
+    '<button class="btn btn-accent" onclick="leaveAndGoHome()">&#127968; Home</button>' +
+    '<button class="btn btn-blue" onclick="leaveAndNewRace()">&#127937; New Race</button></div>';
 
   document.getElementById('resultContent').innerHTML = html;
 
   playFanfare();
-  if (myRank <= 3) odaConfetti();
+  if (myRank <= 3 && typeof odaCelebrate === 'function') odaCelebrate(myCosmetics.winEffect?.type || 'confetti');
 
-  // Save records & coins
-  saveMultiplayerRecord(myRank, myData.score || 0, myCorrect, totalQ, myRank === 1);
-  awardCoins(coins);
+  // Save records & coins only once per match
+  if (!game.coinsAwarded) {
+    game.coinsAwarded = true;
+    saveMultiplayerRecord(myRank, myData.score || 0, myCorrect, totalQ, myRank === 1);
+    awardCoins(coins);
+  }
+}
+
+/** Clean up room listener and go home from multiplayer results */
+function leaveAndGoHome() {
+  if (game.roomUnsub) { game.roomUnsub(); game.roomUnsub = null; }
+  game.roomId = '';
+  game.roomCode = '';
+  showScreen('homeScreen');
+}
+
+/** Clean up room listener and start a new race from multiplayer results */
+function leaveAndNewRace() {
+  if (game.roomUnsub) { game.roomUnsub(); game.roomUnsub = null; }
+  game.roomId = '';
+  game.roomCode = '';
+  showMultiplayerMenu();
 }
 
 async function leaveRoom() {
@@ -1527,7 +1668,7 @@ function endPracticeGame() {
 
   if (accuracy >= 70) {
     playFanfare();
-    odaConfetti();
+    if (typeof odaCelebrate === 'function') odaCelebrate(myCosmetics.winEffect?.type || 'confetti');
   }
 
   // Save records

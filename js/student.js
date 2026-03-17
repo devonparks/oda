@@ -21,7 +21,7 @@ setTimeout(function(){btn.innerHTML='&#x1F504;';btn.disabled=false},2000);
 }
 }).catch(function(){
 btn.innerHTML='&#x1F504;';btn.disabled=false;
-location.reload(true);
+if(typeof odaToast==='function')odaToast('Unable to check for updates. Check your connection.','warning');
 });
 }
 var GAMES=[
@@ -30,6 +30,7 @@ var GAMES=[
 {id:'rps',emoji:'\u270A',title:'Rock Paper Scissors',desc:'Best of 3! Can you read your opponent?',file:'arcade/rps/index.html'},
 {id:'solitaire',emoji:'\u{1F0CF}',title:'Solitaire',desc:'Classic card game — clear the board!',file:'arcade/solitaire/index.html'},
 {id:'chess',emoji:'\u265A',title:'Chess',desc:'The ultimate strategy game — checkmate your opponent!',file:'arcade/chess/index.html'},
+{id:'checkers',emoji:'⛀',title:'Checkers',desc:'Jump and capture — king your pieces!',file:'arcade/checkers/index.html'},
 {id:'hangman',emoji:'\u{1F634}',title:'Hangman',desc:'Guess the word before time runs out!',file:'arcade/hangman/index.html'},
 {id:'memory',emoji:'\u{1F9E0}',title:'Memory Match',desc:'Flip cards and find matching pairs!',file:'arcade/memory/index.html'},
 {id:'trivia',emoji:'\u{1F3C1}',title:'Trivia Race',desc:'Race to answer questions — speed matters!',file:'arcade/trivia/index.html'},
@@ -72,7 +73,12 @@ document.getElementById('tab-'+stuTabOrder[next]).focus();
 }
 window.stuTabKeyNav=stuTabKeyNav;
 
+var _dashTimer=null;
 function renderDashboard(){
+if(_dashTimer)clearTimeout(_dashTimer);
+_dashTimer=setTimeout(_renderDashboardNow,50);
+}
+function _renderDashboardNow(){
 var assigns=window.myAssignments||[];
 var pending=assigns.filter(function(a){return a.status==='pending'||a.status==='returned'});
 var submitted=assigns.filter(function(a){return a.status==='submitted'});
@@ -112,9 +118,9 @@ h+='</div></div>';
 });
 // Submitted
 if(submitted.length){
-h+='<div style="font-size:14px;font-weight:700;color:var(--text2);margin:16px 0 8px;display:flex;align-items:center;gap:6px">&#x1F4E4; Submitted ('+submitted.length+')</div>';
+h+='<div class="a-section-label">&#x1F4E4; Submitted ('+submitted.length+')</div>';
 submitted.forEach(function(a){
-h+='<div class="a-card" style="border-color:var(--gold);opacity:.8">';
+h+='<div class="a-card a-card-submitted">';
 h+='<div class="a-header"><div class="a-title">'+getEmoji(a)+' '+esc(a.title||a.type)+'</div>';
 h+='<span class="a-status status-submitted">Submitted</span></div>';
 h+='<div class="a-meta">Waiting for teacher to review</div>';
@@ -123,14 +129,14 @@ h+='</div>';
 }
 // Graded
 if(graded.length){
-h+='<div style="font-size:14px;font-weight:700;color:var(--text2);margin:16px 0 8px;display:flex;align-items:center;gap:6px">&#x1F4DD; Graded ('+graded.length+')</div>';
+h+='<div class="a-section-label">&#x1F4DD; Graded ('+graded.length+')</div>';
 graded.forEach(function(a){
-h+='<div class="a-card" style="border-color:var(--gold);opacity:.85">';
+h+='<div class="a-card a-card-graded">';
 h+='<div class="a-header"><div class="a-title">'+getEmoji(a)+' '+esc(a.title||a.type)+'</div>';
 h+='<span class="a-status status-graded">Graded</span></div>';
 var meta=a.gradedAt?'Graded: '+new Date(a.gradedAt).toLocaleDateString():'';
 h+='<div class="a-meta">'+meta+'</div>';
-if(a.score!==null&&a.score!==undefined)h+='<div style="margin:6px 0"><span class="a-score">'+a.score+'%</span></div>';
+if(a.score!==null&&a.score!==undefined)h+='<div class="a-score-wrap"><span class="a-score">'+a.score+'%</span></div>';
 if(a.feedback)h+='<div class="a-feedback"><div class="a-feedback-label">Feedback</div>'+esc(a.feedback)+'</div>';
 h+='<button class="study-buddy-btn" onclick="event.stopPropagation();aiStudyBuddy(\''+a.id+'\',this)">&#x1F916; AI Study Buddy</button>';
 h+='<div class="study-buddy-result" id="buddy-'+a.id+'"></div>';
@@ -139,7 +145,7 @@ h+='</div>';
 }
 // Completed
 if(completed.length){
-h+='<div style="font-size:14px;font-weight:700;color:var(--text2);margin:16px 0 8px;display:flex;align-items:center;gap:6px">&#x2705; Completed ('+completed.length+')</div>';
+h+='<div class="a-section-label">&#x2705; Completed ('+completed.length+')</div>';
 completed.sort(function(a,b){return(b.completedAt||'').localeCompare(a.completedAt||'')});
 completed.forEach(function(a){
 h+='<div class="a-card completed">';
@@ -188,7 +194,7 @@ return '<button class="a-btn start" onclick="startQuiz(\''+a.id+'\',\''+toolId+'
 if(a.type==='assignment'||a.type==='worksheet'||a.type==='link'||a.type==='custom'){
 var bh='';
 if(a.instructions)bh+='<div class="a-instructions">'+esc(a.instructions)+'</div>';
-if(a.linkUrl&&!/^javascript:/i.test(a.linkUrl))bh+='<div style="margin-bottom:10px"><a class="a-btn start" href="'+esc(a.linkUrl)+'" target="_blank" rel="noopener noreferrer" style="display:inline-block">Open Link \u{1F517}</a></div>';
+if(a.linkUrl&&/^https?:\/\//i.test(a.linkUrl))bh+='<div class="a-link-wrap"><a class="a-btn start" href="'+esc(a.linkUrl)+'" target="_blank" rel="noopener noreferrer">Open Link \u{1F517}</a></div>';
 if(a.fileUrl||a.fileData){
 var fSrc=a.fileUrl||null;
 var isImage=a.fileUrl?a.fileUrl.match(/\.(png|jpg|jpeg|gif|webp)/i):false;
@@ -199,18 +205,18 @@ else{fSrc=dataUriToBlobUrl(a.id,a.fileData);}
 }
 if(fSrc){
 if(isImage){
-bh+='<div class="a-file-preview"><img src="'+fSrc+'" alt="Attachment"></div>';
+bh+='<div class="a-file-preview"><img src="'+esc(fSrc)+'" alt="Attachment"></div>';
 }else{
-var openLink=a.fileUrl?a.fileUrl:'#" onclick="openFileBlob(\''+a.id+'\');return false';
-bh+='<div class="a-file-preview" style="padding:0;overflow:hidden"><iframe src="'+fSrc+'" style="width:100%;height:450px;border:none;display:block"></iframe><div style="padding:10px;text-align:center;border-top:1px solid var(--border)"><a href="'+openLink+'" target="_blank" class="a-btn start" style="font-size:13px;padding:10px 24px">Open Full Screen \u{1F4C4}</a></div></div>';
+var openLink=a.fileUrl?esc(a.fileUrl):'#" onclick="openFileBlob(\''+a.id+'\');return false';
+bh+='<div class="a-file-preview a-file-embed"><iframe src="'+esc(fSrc)+'" class="a-file-iframe"></iframe><div class="a-file-actions"><a href="'+openLink+'" target="_blank" class="a-btn start a-btn-sm">Open Full Screen \u{1F4C4}</a></div></div>';
 }
 }
 }
 if(a.gradingType==='teacher'){
-bh+='<textarea class="a-response" id="resp-'+a.id+'" placeholder="Type your response here...">'+(a.studentResponse||'')+'</textarea>';
-bh+='<div><button class="a-btn start" onclick="submitWork(\''+a.id+'\')" style="width:100%;padding:14px;font-size:15px">Submit \u{1F4E4}</button></div>';
+bh+='<textarea class="a-response" id="resp-'+a.id+'" placeholder="Type your response here...">'+esc(a.studentResponse||'')+'</textarea>';
+bh+='<div><button class="a-btn start a-btn-full" onclick="submitWork(\''+a.id+'\')">Submit \u{1F4E4}</button></div>';
 }else{
-bh+='<div><button class="a-btn done-btn" onclick="markDone(\''+a.id+'\')" style="width:100%;padding:14px;font-size:15px">Mark Done \u{2705}</button></div>';
+bh+='<div><button class="a-btn done-btn a-btn-full" onclick="markDone(\''+a.id+'\')">Mark Done \u{2705}</button></div>';
 }
 return bh;
 }
@@ -253,8 +259,8 @@ function checkSpelling(){
 var inp=document.getElementById('qInput').value.trim().toLowerCase();
 var word=activeQuiz.words[activeQuiz.current].toLowerCase();
 var fb=document.getElementById('qFb');
-if(inp===word){activeQuiz.correct++;fb.innerHTML='<span style="color:var(--accent)">\u{2705} Correct!</span>'}
-else fb.innerHTML='<span style="color:var(--accent3)">\u{274C} It was: '+esc(activeQuiz.words[activeQuiz.current])+'</span>';
+if(inp===word){activeQuiz.correct++;fb.innerHTML='<span class="quiz-correct">\u{2705} Correct!</span>'}
+else fb.innerHTML='<span class="quiz-wrong">\u{274C} It was: '+esc(activeQuiz.words[activeQuiz.current])+'</span>';
 activeQuiz.current++;
 setTimeout(renderSpelling,1200);
 }
@@ -282,8 +288,8 @@ function checkVocab(el,picked,correct){
 var fb=document.getElementById('qFb');
 var opts=document.querySelectorAll('.vocab-opt');
 for(var i=0;i<opts.length;i++)opts[i].style.pointerEvents='none';
-if(picked===correct){el.classList.add('correct');activeQuiz.correct++;fb.innerHTML='<span style="color:var(--accent)">\u{2705} Correct!</span>'}
-else{el.classList.add('wrong');for(var i=0;i<opts.length;i++){if(opts[i].textContent===correct)opts[i].classList.add('correct')}fb.innerHTML='<span style="color:var(--accent3)">\u{274C} Not quite!</span>'}
+if(picked===correct){el.classList.add('correct');activeQuiz.correct++;fb.innerHTML='<span class="quiz-correct">\u{2705} Correct!</span>'}
+else{el.classList.add('wrong');for(var i=0;i<opts.length;i++){if(opts[i].textContent===correct)opts[i].classList.add('correct')}fb.innerHTML='<span class="quiz-wrong">\u{274C} Not quite!</span>'}
 activeQuiz.current++;
 setTimeout(renderVocab,1200);
 }
@@ -295,7 +301,7 @@ if(!activeQuiz||_submitting.quiz)return;_submitting.quiz=true;
 var pct=Math.round(activeQuiz.correct/activeQuiz.words.length*100);
 var passed=pct>=60;
 var el=document.getElementById('actions-'+activeQuiz.assignId);
-el.innerHTML='<div style="text-align:center;padding:16px"><div style="font-size:36px;margin-bottom:8px">'+(passed?'\u{1F389}':'\u{1F914}')+'</div><div style="font-size:20px;font-weight:800">'+(passed?'Great Job!':'Try Again!')+'</div><div style="font-size:14px;color:var(--text2);margin:4px 0 12px">'+activeQuiz.correct+'/'+activeQuiz.words.length+' ('+pct+'%)'+(passed?'':' — need 60%')+'</div>'+(passed?'':'<button class="a-btn start" onclick="startQuiz(\''+activeQuiz.assignId+'\',\''+activeQuiz.type+'\')">Retry \u{1F504}</button>')+'</div>';
+el.innerHTML='<div class="quiz-result"><div class="quiz-result-emoji">'+(passed?'\u{1F389}':'\u{1F914}')+'</div><div class="quiz-result-title">'+(passed?'Great Job!':'Try Again!')+'</div><div class="quiz-result-meta">'+activeQuiz.correct+'/'+activeQuiz.words.length+' ('+pct+'%)'+(passed?'':' — need 60%')+'</div>'+(passed?'':'<button class="a-btn start" onclick="startQuiz(\''+activeQuiz.assignId+'\',\''+activeQuiz.type+'\')">Retry \u{1F504}</button>')+'</div>';
 if(passed){
 try{
 await window.fbUpdateDoc(window.fbDoc(window.fbDb,'assignments',activeQuiz.assignId),{status:'completed',completedAt:new Date().toISOString(),score:pct});
@@ -350,12 +356,17 @@ fireConfetti();
 window.completePitch=completePitch;
 
 function renderArcade(){
+var assigns=window.myAssignments||[];
+var pending=assigns.filter(function(a){return a.status==='pending'||a.status==='returned'});
+var submitted=assigns.filter(function(a){return a.status==='submitted'});
+var arcadeUnlocked=pending.length===0&&submitted.length===0||(window.studentRecord&&window.studentRecord.arcadeUnlocked);
 var h='';
 GAMES.forEach(function(g){
-h+='<div class="game-card" role="button" tabindex="0" onclick="location.href=\''+g.file+'\'" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();location.href=\''+g.file+'\'}">';
+var locked=!arcadeUnlocked&&assigns.length>0;
+h+='<div class="game-card'+(locked?' locked':'')+'" role="button" tabindex="'+(locked?'-1':'0')+'" '+(locked?'':'onclick="location.href=\''+g.file+'\'" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();location.href=\''+g.file+'\'}"')+'>';
 h+='<span class="game-emoji">'+g.emoji+'</span>';
 h+='<div class="game-title">'+g.title+'</div>';
-h+='<div class="game-desc">'+g.desc+'</div></div>';
+h+='<div class="game-desc">'+(locked?'Finish your work first!':g.desc)+'</div></div>';
 });
 document.getElementById('gameGrid').innerHTML=h;
 }
@@ -412,8 +423,8 @@ coming.innerHTML=ch;
 function studentLogout(){
 var msg='Are you sure you want to log out?';
 var overlay=document.createElement('div');
-overlay.style.cssText='position:fixed;inset:0;background:rgba(10,14,26,.85);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)';
-overlay.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;max-width:340px;width:90%;text-align:center"><p style="font-size:16px;font-weight:700;margin-bottom:16px">'+msg+'</p><div style="display:flex;gap:10px;justify-content:center"><button id="logoutCancel" class="btn btn-outline" style="flex:1">Cancel</button><button id="logoutConfirm" class="btn btn-accent" style="flex:1">Log Out</button></div></div>';
+overlay.className='logout-overlay';
+overlay.innerHTML='<div class="logout-card"><p>'+msg+'</p><div class="logout-btns"><button id="logoutCancel" class="btn btn-outline">Cancel</button><button id="logoutConfirm" class="btn btn-accent">Log Out</button></div></div>';
 document.body.appendChild(overlay);
 document.getElementById('logoutConfirm').onclick=function(){localStorage.removeItem('studentId');localStorage.removeItem('studentName');localStorage.removeItem('classCode');localStorage.removeItem('encourageShown');window.location.href='index.html'};
 document.getElementById('logoutCancel').onclick=function(){overlay.remove()};
@@ -492,14 +503,14 @@ desc.placeholder=type==='bug'?'Describe the bug...':'Describe your idea...';
 desc.value='';
 document.getElementById('feedbackPage').value='';
 modal.dataset.type=type;
-modal.style.display='flex';
+modal.classList.add('show');
 _feedbackTrapCleanup=odaTrapFocus(modal);
 }
 window.openFeedbackModal=openFeedbackModal;
 
 function closeFeedbackModal(){
 if(_feedbackTrapCleanup){_feedbackTrapCleanup();_feedbackTrapCleanup=null}
-document.getElementById('feedbackModal').style.display='none';
+document.getElementById('feedbackModal').classList.remove('show');
 }
 window.closeFeedbackModal=closeFeedbackModal;
 
@@ -530,4 +541,42 @@ closeFeedbackModal();
 btn.disabled=false;btn.textContent='Submit';
 }
 window.submitFeedback=submitFeedback;
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=document.getElementById('feedbackModal');if(m&&m.style.display==='flex')closeFeedbackModal()}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=document.getElementById('feedbackModal');if(m&&m.classList.contains('show'))closeFeedbackModal()}});
+
+// ===== COSMETICS DISPLAY =====
+// Called from onSnapshot in student.html — no extra Firestore read needed
+function applyStudentCosmetics(d) {
+  if (!d) return;
+
+  // Update coins display
+  var coinEl = document.getElementById('coinDisplay');
+  if (coinEl) coinEl.textContent = (d.coins || 0);
+
+  // Update avatar
+  var eq = d.equipped || {};
+  var avatarEl = document.getElementById('stuAvatar');
+  if (avatarEl && eq.avatar && eq.avatar.emoji) {
+    avatarEl.textContent = eq.avatar.emoji;
+  }
+  if (avatarEl && eq.border && eq.border.value && eq.border.value !== 'none') {
+    avatarEl.style.boxShadow = eq.border.value;
+  }
+
+  // Update name color
+  var nameEl = document.getElementById('studentNameEl');
+  if (nameEl && eq.nameColor && eq.nameColor.value) {
+    if (eq.nameColor.type === 'gradient' || eq.nameColor.type === 'animated-gradient') {
+      nameEl.style.background = eq.nameColor.value;
+      nameEl.style.webkitBackgroundClip = 'text';
+      nameEl.style.webkitTextFillColor = 'transparent';
+      nameEl.style.backgroundClip = 'text';
+      if (eq.nameColor.type === 'animated-gradient') {
+        nameEl.style.backgroundSize = '200% 100%';
+        nameEl.style.animation = 'gradientShift 3s linear infinite';
+      }
+    } else {
+      nameEl.style.color = eq.nameColor.value;
+    }
+  }
+}
+window.applyStudentCosmetics = applyStudentCosmetics;

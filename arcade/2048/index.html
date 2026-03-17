@@ -334,6 +334,16 @@ let app;try{app=getApp()}catch(e){app=initializeApp(cfg)}
 const db=getFirestore(app);
 
 // ===========================
+// COSMETICS
+// ===========================
+let myCosmetics={};
+(async()=>{
+  const sid=localStorage.getItem('studentId');
+  if(!sid)return;
+  try{const snap=await getDoc(doc(db,'students',sid));if(snap.exists())myCosmetics=snap.data().equipped||{};}catch(e){}
+})();
+
+// ===========================
 // SESSION
 // ===========================
 const studentId=localStorage.getItem('studentId')||'anon_'+Math.random().toString(36).slice(2,8);
@@ -847,7 +857,7 @@ function move(dir){
       winShown=true;
       gameActive=false;
       playWinFanfare();
-      if(window.odaConfetti)window.odaConfetti();
+      if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti');else if(typeof odaConfetti==='function')odaConfetti();
       handleWin();
     }else if(isGameOver()){
       gameActive=false;
@@ -911,8 +921,8 @@ function handleWin(){
   document.getElementById('winCoins').textContent='+'+coins+' coins';
   document.getElementById('winOverlay').classList.add('active');
   if(!coinsAwarded){
+    coinsAwarded=true;
     awardCoins(coins);
-    // Don't set coinsAwarded here -- will award score coins on game over too
   }
 }
 

@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>ODA Shop</title>
+<meta name="description" content="ODA Hub Cosmetics Shop - Spend coins on avatars, name colors, borders, titles, and more.">
+<meta name="theme-color" content="#0a0e1a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/oda-theme.css">
+<link rel="stylesheet" href="css/shop.css">
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<a class="back-btn" href="student.html">&#8592; Back to Hub</a>
+
+<div class="shop-app">
+
+<!-- HEADER -->
+<header class="shop-header">
+  <div class="shop-title-row">
+    <h1 class="shop-title">&#x1F6CD;&#xFE0F; ODA Shop</h1>
+    <div class="coin-display" id="coinDisplay" aria-label="Your coin balance">
+      <span class="coin-icon">&#x1FA99;</span>
+      <span class="coin-amount" id="coinAmount">--</span>
+    </div>
+  </div>
+
+  <!-- LOADOUT PREVIEW -->
+  <div class="loadout-preview" id="loadoutPreview" aria-label="Your equipped cosmetics">
+    <div class="loadout-avatar-wrap" id="loadoutBorderWrap">
+      <div class="loadout-avatar" id="loadoutAvatar">&#x1F464;</div>
+    </div>
+    <div class="loadout-info">
+      <div class="loadout-name" id="loadoutName">Player</div>
+      <div class="loadout-title" id="loadoutTitle"></div>
+    </div>
+    <div class="loadout-badges">
+      <span class="loadout-badge" id="loadoutBoardBadge" style="display:none">&#x1F3C1; Board</span>
+      <span class="loadout-badge" id="loadoutPieceBadge" style="display:none">&#x26AB; Pieces</span>
+      <span class="loadout-badge" id="loadoutEffectBadge">&#x2728; Confetti</span>
+    </div>
+  </div>
+</header>
+
+<!-- CATEGORY TABS -->
+<nav class="shop-tabs" role="tablist" aria-label="Shop categories" id="shopTabs">
+  <button class="shop-tab active" role="tab" tabindex="0" aria-selected="true" aria-controls="panel-avatars" id="tab-avatars" onclick="switchShopTab('avatars')" onkeydown="shopTabKeyNav(event)">&#x1F438; Avatars</button>
+  <button class="shop-tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="panel-nameColors" id="tab-nameColors" onclick="switchShopTab('nameColors')" onkeydown="shopTabKeyNav(event)">&#x1F308; Colors</button>
+  <button class="shop-tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="panel-borders" id="tab-borders" onclick="switchShopTab('borders')" onkeydown="shopTabKeyNav(event)">&#x1F4AB; Borders</button>
+  <button class="shop-tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="panel-titles" id="tab-titles" onclick="switchShopTab('titles')" onkeydown="shopTabKeyNav(event)">&#x1F3F7;&#xFE0F; Titles</button>
+  <button class="shop-tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="panel-boardThemes" id="tab-boardThemes" onclick="switchShopTab('boardThemes')" onkeydown="shopTabKeyNav(event)">&#x265F;&#xFE0F; Boards</button>
+  <button class="shop-tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="panel-pieceSkins" id="tab-pieceSkins" onclick="switchShopTab('pieceSkins')" onkeydown="shopTabKeyNav(event)">&#x26AB; Pieces</button>
+  <button class="shop-tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="panel-winEffects" id="tab-winEffects" onclick="switchShopTab('winEffects')" onkeydown="shopTabKeyNav(event)">&#x1F386; Effects</button>
+  <button class="shop-tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="panel-achievements" id="tab-achievements" onclick="switchShopTab('achievements')" onkeydown="shopTabKeyNav(event)">&#x1F3C6; Achievements</button>
+</nav>
+
+<!-- PANELS -->
+<div id="panel-avatars" class="shop-panel show" role="tabpanel" aria-labelledby="tab-avatars"></div>
+<div id="panel-nameColors" class="shop-panel" role="tabpanel" aria-labelledby="tab-nameColors"></div>
+<div id="panel-borders" class="shop-panel" role="tabpanel" aria-labelledby="tab-borders"></div>
+<div id="panel-titles" class="shop-panel" role="tabpanel" aria-labelledby="tab-titles"></div>
+<div id="panel-boardThemes" class="shop-panel" role="tabpanel" aria-labelledby="tab-boardThemes"></div>
+<div id="panel-pieceSkins" class="shop-panel" role="tabpanel" aria-labelledby="tab-pieceSkins"></div>
+<div id="panel-winEffects" class="shop-panel" role="tabpanel" aria-labelledby="tab-winEffects"></div>
+<div id="panel-achievements" class="shop-panel" role="tabpanel" aria-labelledby="tab-achievements"></div>
+
+</div><!-- .shop-app -->
+
+<!-- CONFIRM MODAL -->
+<div id="confirmModal" class="shop-modal-overlay" role="dialog" aria-modal="true" aria-label="Purchase confirmation" style="display:none">
+  <div class="shop-modal">
+    <button class="shop-modal-close" onclick="closeConfirmModal()" aria-label="Close">&times;</button>
+    <div class="shop-modal-icon" id="modalIcon"></div>
+    <h2 class="shop-modal-title" id="modalTitle">Buy Item?</h2>
+    <p class="shop-modal-desc" id="modalDesc"></p>
+    <div class="shop-modal-cost">
+      <span class="coin-icon">&#x1FA99;</span>
+      <span id="modalCost">0</span>
+    </div>
+    <div class="shop-modal-actions">
+      <button class="btn btn-accent" id="modalBuyBtn" onclick="confirmPurchase()">Buy</button>
+      <button class="btn btn-outline" onclick="closeConfirmModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHARED CORE -->
+<script src="js/oda-core.js"></script>
+
+<!-- FIREBASE -->
+<script type="module">
+import{initializeApp,getApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import{getFirestore,doc,getDoc,updateDoc,arrayUnion,increment}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+const cfg=ODA_CONFIG.firebase;
+let app;try{app=getApp()}catch(e){app=initializeApp(cfg)}
+const db=getFirestore(app);
+
+/* ============================================
+   Student Identity
+   ============================================ */
+const studentId = localStorage.getItem('studentId') || '';
+const studentName = localStorage.getItem('studentName') || 'Player';
+if (!studentId) location.href = 'index.html';
+
+/* ============================================
+   Item Catalog
+   ============================================ */
+const CATALOG = [
+  // ---- AVATARS ----
+  // Common
+  { id:'avatar_cat', name:'Cool Cat', rarity:'common', cost:50, category:'avatars', emoji:'🐱' },
+  { id:'avatar_dog', name:'Good Boy', rarity:'common', cost:50, category:'avatars', emoji:'🐶' },
+  { id:'avatar_fox', name:'Sly Fox', rarity:'common', cost:75, category:'avatars', emoji:'🦊' },
+  { id:'avatar_frog', name:'Froggy', rarity:'common', cost:75, category:'avatars', emoji:'🐸' },
+  { id:'avatar_penguin', name:'Penguin', rarity:'common', cost:50, category:'avatars', emoji:'🐧' },
+  { id:'avatar_lion', name:'Lion King', rarity:'common', cost:100, category:'avatars', emoji:'🦁' },
+  { id:'avatar_panda', name:'Panda', rarity:'common', cost:100, category:'avatars', emoji:'🐼' },
+  { id:'avatar_monkey', name:'Monkey', rarity:'common', cost:75, category:'avatars', emoji:'🐵' },
+  // Rare
+  { id:'avatar_wizard', name:'Wizard', rarity:'rare', cost:300, category:'avatars', emoji:'🧙' },
+  { id:'avatar_ninja', name:'Ninja', rarity:'rare', cost:300, category:'avatars', emoji:'🥷' },
+  { id:'avatar_hero', name:'Superhero', rarity:'rare', cost:400, category:'avatars', emoji:'🦸' },
+  { id:'avatar_alien', name:'Alien', rarity:'rare', cost:350, category:'avatars', emoji:'👽' },
+  { id:'avatar_pirate', name:'Pirate', rarity:'rare', cost:400, category:'avatars', emoji:'🏴‍☠️' },
+  { id:'avatar_astronaut', name:'Astronaut', rarity:'rare', cost:500, category:'avatars', emoji:'🧑‍🚀' },
+  // Epic
+  { id:'avatar_phoenix', name:'Phoenix', rarity:'epic', cost:1500, category:'avatars', emoji:'🔥' },
+  { id:'avatar_storm', name:'Storm', rarity:'epic', cost:1500, category:'avatars', emoji:'⚡' },
+  { id:'avatar_ocean', name:'Ocean', rarity:'epic', cost:2000, category:'avatars', emoji:'🌊' },
+  { id:'avatar_diamond', name:'Diamond', rarity:'epic', cost:2500, category:'avatars', emoji:'💎' },
+  // Legendary
+  { id:'avatar_crown', name:'The Crown', rarity:'legendary', cost:8000, category:'avatars', emoji:'👑' },
+  { id:'avatar_dragon', name:'Dragon Lord', rarity:'legendary', cost:10000, category:'avatars', emoji:'🐲' },
+  // Achievement-locked avatars
+  { id:'avatar_robot', name:'AI Slayer', rarity:'epic', cost:0, category:'avatars', emoji:'🤖', achievement:'ach_ai_hard' },
+  { id:'avatar_trophy', name:'Champion', rarity:'legendary', cost:0, category:'avatars', emoji:'🏆', achievement:'ach_win_100' },
+  { id:'avatar_star', name:'Completionist', rarity:'legendary', cost:0, category:'avatars', emoji:'🌟', achievement:'ach_completionist' },
+
+  // ---- NAME COLORS ----
+  // Common
+  { id:'color_red', name:'Red', rarity:'common', cost:75, category:'nameColors', value:'#ef4444' },
+  { id:'color_blue', name:'Blue', rarity:'common', cost:75, category:'nameColors', value:'#3b82f6' },
+  { id:'color_green', name:'Green', rarity:'common', cost:75, category:'nameColors', value:'#22c55e' },
+  { id:'color_purple', name:'Purple', rarity:'common', cost:75, category:'nameColors', value:'#a855f7' },
+  { id:'color_orange', name:'Orange', rarity:'common', cost:75, category:'nameColors', value:'#f97316' },
+  { id:'color_pink', name:'Pink', rarity:'common', cost:75, category:'nameColors', value:'#ec4899' },
+  // Rare
+  { id:'color_gold', name:'Gold', rarity:'rare', cost:300, category:'nameColors', value:'#fbbf24' },
+  { id:'color_silver', name:'Silver', rarity:'rare', cost:300, category:'nameColors', value:'#cbd5e1' },
+  { id:'color_cyan', name:'Cyan', rarity:'rare', cost:300, category:'nameColors', value:'#22d3ee' },
+  // Epic
+  { id:'color_rainbow', name:'Rainbow', rarity:'epic', cost:1500, category:'nameColors', value:'linear-gradient(90deg,#ef4444,#f97316,#fbbf24,#22c55e,#3b82f6,#a855f7)', type:'gradient' },
+  { id:'color_fire', name:'Fire', rarity:'epic', cost:1500, category:'nameColors', value:'linear-gradient(90deg,#ef4444,#f97316,#fbbf24)', type:'gradient' },
+  // Legendary
+  { id:'color_prismatic', name:'Prismatic', rarity:'legendary', cost:6000, category:'nameColors', value:'linear-gradient(90deg,#ef4444,#f97316,#fbbf24,#22c55e,#3b82f6,#a855f7,#ef4444)', type:'animated-gradient', animationDuration:'3s' },
+
+  // ---- BORDERS ----
+  // Common
+  { id:'border_green', name:'Green Ring', rarity:'common', cost:100, category:'borders', value:'0 0 0 3px #06d6a0' },
+  { id:'border_blue', name:'Blue Ring', rarity:'common', cost:100, category:'borders', value:'0 0 0 3px #3b82f6' },
+  { id:'border_red', name:'Red Ring', rarity:'common', cost:100, category:'borders', value:'0 0 0 3px #ef4444' },
+  { id:'border_purple', name:'Purple Ring', rarity:'common', cost:100, category:'borders', value:'0 0 0 3px #a855f7' },
+  // Rare
+  { id:'border_pulse_green', name:'Pulse Green', rarity:'rare', cost:400, category:'borders', value:'0 0 0 3px #06d6a0, 0 0 15px rgba(6,214,160,0.3)', animation:'pulse' },
+  { id:'border_pulse_blue', name:'Pulse Blue', rarity:'rare', cost:400, category:'borders', value:'0 0 0 3px #3b82f6, 0 0 15px rgba(59,130,246,0.3)', animation:'pulse' },
+  // Epic
+  { id:'border_flame', name:'Flame', rarity:'epic', cost:2000, category:'borders', value:'0 0 0 3px #ef4444, 0 0 20px rgba(239,68,68,0.4), 0 0 40px rgba(249,115,22,0.2)', animation:'flame' },
+  { id:'border_lightning', name:'Lightning', rarity:'epic', cost:2000, category:'borders', value:'0 0 0 3px #fbbf24, 0 0 20px rgba(251,191,36,0.4)', animation:'lightning' },
+  { id:'border_galaxy', name:'Galaxy', rarity:'epic', cost:2000, category:'borders', value:'0 0 0 3px #a855f7, 0 0 20px rgba(168,85,247,0.4), 0 0 40px rgba(59,130,246,0.2)', animation:'galaxy' },
+  // Legendary
+  { id:'border_diamond', name:'Diamond', rarity:'legendary', cost:7500, category:'borders', value:'0 0 0 3px #e2e8f0, 0 0 20px rgba(226,232,240,0.5), 0 0 40px rgba(6,214,160,0.3)', animation:'diamond-sparkle' },
+  // Achievement-locked
+  { id:'border_fire_ring', name:'Fire Ring', rarity:'legendary', cost:0, category:'borders', value:'0 0 0 4px #ef4444, 0 0 25px rgba(239,68,68,0.5), 0 0 50px rgba(249,115,22,0.3)', animation:'flame', achievement:'ach_streak_10' },
+
+  // ---- TITLES ----
+  // Common
+  { id:'title_rookie', name:'Rookie', rarity:'common', cost:100, category:'titles', value:'Rookie' },
+  { id:'title_gamer', name:'Gamer', rarity:'common', cost:100, category:'titles', value:'Gamer' },
+  { id:'title_player', name:'Player', rarity:'common', cost:100, category:'titles', value:'Player' },
+  { id:'title_learner', name:'Learner', rarity:'common', cost:100, category:'titles', value:'Learner' },
+  // Rare
+  { id:'title_strategist', name:'Strategist', rarity:'rare', cost:400, category:'titles', value:'Strategist' },
+  { id:'title_thinker', name:'Quick Thinker', rarity:'rare', cost:400, category:'titles', value:'Quick Thinker' },
+  { id:'title_competitor', name:'Competitor', rarity:'rare', cost:400, category:'titles', value:'Competitor' },
+  { id:'title_brain', name:'Big Brain', rarity:'rare', cost:400, category:'titles', value:'Big Brain' },
+  // Epic
+  { id:'title_grandmaster', name:'Grandmaster', rarity:'epic', cost:2000, category:'titles', value:'Grandmaster' },
+  { id:'title_legend', name:'Legend', rarity:'epic', cost:2000, category:'titles', value:'Legend' },
+  { id:'title_unstoppable', name:'Unstoppable', rarity:'epic', cost:2000, category:'titles', value:'Unstoppable' },
+  // Legendary
+  { id:'title_goat', name:'The GOAT', rarity:'legendary', cost:8000, category:'titles', value:'The G.O.A.T.' },
+  // Achievement-locked
+  { id:'title_victor', name:'Tournament Victor', rarity:'legendary', cost:0, category:'titles', value:'Tournament Victor', achievement:'ach_tourney_win' },
+  { id:'title_slayer', name:'AI Slayer', rarity:'epic', cost:0, category:'titles', value:'AI Slayer', achievement:'ach_ai_master' },
+
+  // ---- BOARD THEMES ----
+  // Epic
+  { id:'theme_neon', name:'Neon', rarity:'epic', cost:2000, category:'boardThemes', vars:{'--board-dark':'#0a1628','--board-light':'#162040','--board-accent':'#06d6a0','--board-glow':'0 0 15px rgba(6,214,160,0.3)'} },
+  { id:'theme_galaxy', name:'Galaxy', rarity:'epic', cost:2500, category:'boardThemes', vars:{'--board-dark':'#1a0a2e','--board-light':'#2d1450','--board-accent':'#bb86fc','--board-glow':'0 0 15px rgba(187,134,252,0.3)'} },
+  { id:'theme_ocean', name:'Ocean', rarity:'epic', cost:2000, category:'boardThemes', vars:{'--board-dark':'#0a1929','--board-light':'#0d2137','--board-accent':'#22d3ee','--board-glow':'0 0 15px rgba(34,211,238,0.3)'} },
+  { id:'theme_lava', name:'Lava', rarity:'epic', cost:2500, category:'boardThemes', vars:{'--board-dark':'#2a0a0a','--board-light':'#3d1515','--board-accent':'#ef4444','--board-glow':'0 0 15px rgba(239,68,68,0.3)'} },
+  { id:'theme_forest', name:'Forest', rarity:'epic', cost:2000, category:'boardThemes', vars:{'--board-dark':'#0a1f0a','--board-light':'#153015','--board-accent':'#22c55e','--board-glow':'0 0 15px rgba(34,197,94,0.3)'} },
+  { id:'theme_candy', name:'Candy', rarity:'epic', cost:2000, category:'boardThemes', vars:{'--board-dark':'#2a1028','--board-light':'#3d1a3a','--board-accent':'#ec4899','--board-glow':'0 0 15px rgba(236,72,153,0.3)'} },
+  // Legendary
+  { id:'theme_void', name:'Void', rarity:'legendary', cost:7500, category:'boardThemes', vars:{'--board-dark':'#050510','--board-light':'#0a0a20','--board-accent':'#e2e8f0','--board-glow':'0 0 20px rgba(226,232,240,0.2)'} },
+  { id:'theme_royal', name:'Royal', rarity:'legendary', cost:7500, category:'boardThemes', vars:{'--board-dark':'#1a0f28','--board-light':'#281840','--board-accent':'#fbbf24','--board-glow':'0 0 20px rgba(251,191,36,0.3)'} },
+
+  // ---- PIECE SKINS ----
+  // Epic
+  { id:'skin_crystal', name:'Crystal', rarity:'epic', cost:2500, category:'pieceSkins', p1:'#ff6b9d', p2:'#45e3ff', glow:true },
+  { id:'skin_ember', name:'Ember', rarity:'epic', cost:2500, category:'pieceSkins', p1:'#ff6b35', p2:'#ffc107', glow:true },
+  { id:'skin_frost', name:'Frost', rarity:'epic', cost:2500, category:'pieceSkins', p1:'#a5f3fc', p2:'#c7d2fe', glow:true },
+  { id:'skin_toxic', name:'Toxic', rarity:'epic', cost:2500, category:'pieceSkins', p1:'#a3e635', p2:'#34d399', glow:true },
+  // Legendary
+  { id:'skin_diamond', name:'Diamond', rarity:'legendary', cost:10000, category:'pieceSkins', p1:'#e2e8f0', p2:'#fbbf24', glow:true, sparkle:true },
+  { id:'skin_shadow', name:'Shadow', rarity:'legendary', cost:10000, category:'pieceSkins', p1:'#6366f1', p2:'#a855f7', glow:true, trail:true },
+
+  // ---- WIN EFFECTS ----
+  // Rare
+  { id:'effect_stars', name:'Star Burst', rarity:'rare', cost:400, category:'winEffects', type:'stars' },
+  { id:'effect_snow', name:'Snowfall', rarity:'rare', cost:400, category:'winEffects', type:'snow' },
+  // Epic
+  { id:'effect_fireworks', name:'Fireworks', rarity:'epic', cost:2000, category:'winEffects', type:'fireworks' },
+  { id:'effect_lightning', name:'Lightning Storm', rarity:'epic', cost:2000, category:'winEffects', type:'lightning' },
+  { id:'effect_meteors', name:'Meteor Shower', rarity:'epic', cost:2000, category:'winEffects', type:'meteors' },
+  { id:'effect_bubbles', name:'Bubbles', rarity:'epic', cost:2000, category:'winEffects', type:'bubbles' },
+  // Legendary
+  { id:'effect_nuclear', name:'Nuclear', rarity:'legendary', cost:8000, category:'winEffects', type:'nuclear' },
+  { id:'effect_aurora', name:'Aurora', rarity:'legendary', cost:8000, category:'winEffects', type:'aurora' }
+];
+
+/** Achievements definition */
+const ACHIEVEMENTS = [
+  { id:'ach_first_game', name:'First Steps', description:'Play your first game', icon:'🎯' },
+  { id:'ach_play_10', name:'Warming Up', description:'Play 10 games', icon:'🏃' },
+  { id:'ach_play_100', name:'Dedicated', description:'Play 100 games', icon:'💪' },
+  { id:'ach_first_win', name:'First Win', description:'Win your first game', icon:'⭐' },
+  { id:'ach_win_50', name:'Fifty Wins', description:'Win 50 games', icon:'🏆' },
+  { id:'ach_win_100', name:'Century', description:'Win 100 games', icon:'👑', reward:'avatar_trophy' },
+  { id:'ach_streak_5', name:'On Fire', description:'5-game win streak', icon:'🔥' },
+  { id:'ach_streak_10', name:'Unstoppable', description:'10-game win streak', icon:'⚡', reward:'border_fire_ring' },
+  { id:'ach_ai_hard', name:'AI Slayer', description:'Beat Hard AI', icon:'🤖', reward:'avatar_robot' },
+  { id:'ach_ai_master', name:'AI Master', description:'Beat Hard AI in 3+ games', icon:'🧠', reward:'title_slayer' },
+  { id:'ach_tourney_win', name:'Tournament Victor', description:'Win a tournament', icon:'🏅', reward:'title_victor' },
+  { id:'ach_diverse', name:'Explorer', description:'Play 5 different games', icon:'🎮' },
+  { id:'ach_completionist', name:'Completionist', description:'Play all arcade games', icon:'🌟', reward:'avatar_star' },
+  { id:'ach_coins_1000', name:'Coin Collector', description:'Earn 1000 total coins', icon:'💰' },
+  { id:'ach_shopper', name:'Shopper', description:'Own 10 items', icon:'🛒' }
+];
+
+/** Effect type emojis for win effect previews */
+const EFFECT_EMOJIS = {
+  confetti: '🎊', stars: '⭐', snow: '❄️', fireworks: '🎆',
+  lightning: '⚡', meteors: '☄️', bubbles: '🫧', nuclear: '☢️', aurora: '🌌'
+};
+
+/** Rarity display order */
+const RARITY_ORDER = ['common','rare','epic','legendary'];
+const RARITY_LABELS = { common:'Common', rare:'Rare', epic:'Epic', legendary:'Legendary' };
+
+/* ============================================
+   State
+   ============================================ */
+let playerCoins = 0;
+let playerInventory = [];
+let playerEquipped = {
+  avatar: { id:'avatar_default', emoji:'👤' },
+  nameColor: { id:'color_default', value:'#e2e8f0' },
+  border: { id:'border_none', value:'none' },
+  title: { id:'title_none', value:'' },
+  boardTheme: null,
+  pieceSkin: null,
+  winEffect: { id:'effect_confetti', type:'confetti' }
+};
+let playerAchievements = [];
+let activeTab = 'avatars';
+let pendingItem = null;
+let modalCleanup = null;
+
+/* ============================================
+   Init: load student data
+   ============================================ */
+async function init() {
+  try {
+    const snap = await getDoc(doc(db, 'students', studentId));
+    if (snap.exists()) {
+      const data = snap.data();
+      playerCoins = data.coins || 0;
+      playerInventory = data.inventory || [];
+      playerAchievements = data.achievements || [];
+      if (data.equipped) {
+        playerEquipped = {
+          avatar: data.equipped.avatar || playerEquipped.avatar,
+          nameColor: data.equipped.nameColor || playerEquipped.nameColor,
+          border: data.equipped.border || playerEquipped.border,
+          title: data.equipped.title || playerEquipped.title,
+          boardTheme: data.equipped.boardTheme || null,
+          pieceSkin: data.equipped.pieceSkin || null,
+          winEffect: data.equipped.winEffect || playerEquipped.winEffect
+        };
+      }
+    }
+  } catch (err) {
+    console.error('[Shop] Failed to load student data:', err);
+    odaToast('Failed to load data. Please refresh.', 'error');
+  }
+  updateCoinDisplay();
+  updateLoadoutPreview();
+  renderActivePanel();
+}
+
+/* ============================================
+   Coin display
+   ============================================ */
+function updateCoinDisplay() {
+  document.getElementById('coinAmount').textContent = playerCoins.toLocaleString();
+}
+
+/* ============================================
+   Loadout preview
+   ============================================ */
+function updateLoadoutPreview() {
+  // Avatar
+  const avatarEl = document.getElementById('loadoutAvatar');
+  avatarEl.textContent = playerEquipped.avatar.emoji || '👤';
+
+  // Border
+  const borderWrap = document.getElementById('loadoutBorderWrap');
+  if (playerEquipped.border && playerEquipped.border.value && playerEquipped.border.value !== 'none') {
+    borderWrap.style.boxShadow = playerEquipped.border.value;
+    // Add animation class
+    borderWrap.className = 'loadout-avatar-wrap';
+    const borderItem = CATALOG.find(i => i.id === playerEquipped.border.id);
+    if (borderItem && borderItem.animation) {
+      borderWrap.classList.add('border-anim-' + borderItem.animation);
+    }
+  } else {
+    borderWrap.style.boxShadow = 'none';
+    borderWrap.className = 'loadout-avatar-wrap';
+  }
+
+  // Name + color
+  const nameEl = document.getElementById('loadoutName');
+  nameEl.textContent = studentName;
+  const nc = playerEquipped.nameColor;
+  if (nc && nc.value) {
+    const colorItem = CATALOG.find(i => i.id === nc.id);
+    if (colorItem && (colorItem.type === 'gradient' || colorItem.type === 'animated-gradient')) {
+      nameEl.style.background = nc.value;
+      nameEl.style.webkitBackgroundClip = 'text';
+      nameEl.style.webkitTextFillColor = 'transparent';
+      nameEl.style.backgroundClip = 'text';
+      nameEl.style.backgroundSize = '200% 100%';
+      if (colorItem.type === 'animated-gradient') {
+        nameEl.classList.add('animated-gradient');
+      } else {
+        nameEl.classList.remove('animated-gradient');
+      }
+    } else {
+      nameEl.style.background = 'none';
+      nameEl.style.webkitBackgroundClip = 'unset';
+      nameEl.style.webkitTextFillColor = nc.value;
+      nameEl.style.backgroundClip = 'unset';
+      nameEl.classList.remove('animated-gradient');
+    }
+  }
+
+  // Title
+  const titleEl = document.getElementById('loadoutTitle');
+  if (playerEquipped.title && playerEquipped.title.value) {
+    titleEl.textContent = playerEquipped.title.value;
+    titleEl.style.display = '';
+  } else {
+    titleEl.textContent = '';
+    titleEl.style.display = 'none';
+  }
+
+  // Badge: board theme
+  const boardBadge = document.getElementById('loadoutBoardBadge');
+  if (playerEquipped.boardTheme) {
+    const bt = CATALOG.find(i => i.id === playerEquipped.boardTheme.id);
+    boardBadge.textContent = '🏁 ' + (bt ? bt.name : 'Board');
+    boardBadge.style.display = '';
+  } else {
+    boardBadge.style.display = 'none';
+  }
+
+  // Badge: piece skin
+  const pieceBadge = document.getElementById('loadoutPieceBadge');
+  if (playerEquipped.pieceSkin) {
+    const ps = CATALOG.find(i => i.id === playerEquipped.pieceSkin.id);
+    pieceBadge.textContent = '⚫ ' + (ps ? ps.name : 'Pieces');
+    pieceBadge.style.display = '';
+  } else {
+    pieceBadge.style.display = 'none';
+  }
+
+  // Badge: win effect
+  const effectBadge = document.getElementById('loadoutEffectBadge');
+  if (playerEquipped.winEffect) {
+    const eff = CATALOG.find(i => i.id === playerEquipped.winEffect.id);
+    const emoji = EFFECT_EMOJIS[playerEquipped.winEffect.type] || '✨';
+    effectBadge.textContent = emoji + ' ' + (eff ? eff.name : 'Confetti');
+    effectBadge.style.display = '';
+  } else {
+    effectBadge.style.display = 'none';
+  }
+}
+
+/* ============================================
+   Tab switching
+   ============================================ */
+window.switchShopTab = function(tab) {
+  activeTab = tab;
+  // Update tab buttons
+  document.querySelectorAll('.shop-tab').forEach(function(t) {
+    const isActive = t.id === 'tab-' + tab;
+    t.classList.toggle('active', isActive);
+    t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    t.tabIndex = isActive ? 0 : -1;
+  });
+  // Update panels
+  document.querySelectorAll('.shop-panel').forEach(function(p) {
+    p.classList.toggle('show', p.id === 'panel-' + tab);
+  });
+  renderActivePanel();
+  odaAnnounce(CATEGORY_NAMES[tab] || tab);
+};
+
+const CATEGORY_NAMES = {
+  avatars:'Avatars', nameColors:'Name Colors', borders:'Borders', titles:'Titles',
+  boardThemes:'Board Themes', pieceSkins:'Piece Skins', winEffects:'Win Effects', achievements:'Achievements'
+};
+
+window.shopTabKeyNav = function(e) {
+  const tabs = Array.from(document.querySelectorAll('.shop-tab'));
+  const idx = tabs.indexOf(e.target);
+  let next = -1;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); next = (idx + 1) % tabs.length; }
+  else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); next = (idx - 1 + tabs.length) % tabs.length; }
+  else if (e.key === 'Home') { e.preventDefault(); next = 0; }
+  else if (e.key === 'End') { e.preventDefault(); next = tabs.length - 1; }
+  if (next >= 0) {
+    const tabId = tabs[next].id.replace('tab-', '');
+    switchShopTab(tabId);
+    tabs[next].focus();
+  }
+};
+
+/* ============================================
+   Render active panel
+   ============================================ */
+function renderActivePanel() {
+  if (activeTab === 'achievements') {
+    renderAchievements();
+    return;
+  }
+  const panel = document.getElementById('panel-' + activeTab);
+  if (!panel) return;
+
+  const items = CATALOG.filter(function(i) { return i.category === activeTab; });
+  let html = '';
+
+  RARITY_ORDER.forEach(function(rarity) {
+    const group = items.filter(function(i) { return i.rarity === rarity; });
+    if (!group.length) return;
+
+    html += '<div class="rarity-section">';
+    html += '<div class="rarity-header rarity-' + rarity + '">';
+    html += '<span class="rarity-dot"></span> ' + esc(RARITY_LABELS[rarity]);
+    html += '</div>';
+    html += '<div class="item-grid">';
+
+    group.forEach(function(item) {
+      html += buildItemCard(item);
+    });
+
+    html += '</div></div>';
+  });
+
+  if (!html) {
+    html = '<div class="empty-state"><span class="emoji">🏪</span><p>No items in this category yet!</p></div>';
+  }
+
+  panel.innerHTML = html;
+}
+
+/* ============================================
+   Build item card HTML
+   ============================================ */
+function buildItemCard(item) {
+  const owned = playerInventory.includes(item.id);
+  const equipped = isEquipped(item);
+  const locked = item.achievement && !playerAchievements.includes(item.achievement);
+  const canAfford = playerCoins >= item.cost;
+
+  let preview = '';
+  let extraClass = '';
+
+  // Build preview based on category
+  switch (item.category) {
+    case 'avatars':
+      preview = '<div class="item-preview-emoji">' + item.emoji + '</div>';
+      break;
+    case 'nameColors': {
+      const colorItem = item;
+      if (colorItem.type === 'gradient' || colorItem.type === 'animated-gradient') {
+        preview = '<div class="item-preview-color-gradient" style="background:' + esc(colorItem.value) + '"></div>';
+      } else {
+        preview = '<div class="item-preview-color" style="background:' + esc(colorItem.value) + '"></div>';
+      }
+      break;
+    }
+    case 'borders':
+      preview = '<div class="item-preview-border"><div class="border-circle" style="box-shadow:' + esc(item.value) + '"></div></div>';
+      if (item.animation) extraClass += ' has-animation';
+      break;
+    case 'titles':
+      preview = '<div class="item-preview-title">' + esc(item.value) + '</div>';
+      break;
+    case 'boardThemes':
+      preview = buildBoardPreview(item);
+      break;
+    case 'pieceSkins':
+      preview = buildPieceSkinPreview(item);
+      break;
+    case 'winEffects':
+      preview = '<div class="item-preview-effect">' + (EFFECT_EMOJIS[item.type] || '✨') + '</div>';
+      break;
+  }
+
+  // Status badge
+  let statusHtml = '';
+  if (locked) {
+    const ach = ACHIEVEMENTS.find(function(a) { return a.id === item.achievement; });
+    statusHtml = '<div class="item-status item-locked">🔒 ' + esc(ach ? ach.name : 'Locked') + '</div>';
+  } else if (equipped) {
+    statusHtml = '<div class="item-status item-equipped">EQUIPPED</div>';
+  } else if (owned) {
+    statusHtml = '<div class="item-status item-owned">OWNED</div>';
+  } else {
+    const affordClass = canAfford ? '' : ' cant-afford';
+    statusHtml = '<div class="item-cost' + affordClass + '"><span class="coin-icon-sm">🪙</span> ' + item.cost.toLocaleString() + '</div>';
+  }
+
+  const cardClass = 'item-card rarity-border-' + item.rarity
+    + (owned ? ' owned' : '') + (equipped ? ' equipped' : '')
+    + (locked ? ' locked' : '') + extraClass;
+
+  return '<button class="' + cardClass + '" onclick="handleItemClick(\'' + item.id + '\')" '
+    + 'aria-label="' + esc(item.name) + ', ' + esc(item.rarity) + (owned ? ', owned' : ', ' + item.cost + ' coins') + '">'
+    + (locked ? '<div class="lock-overlay">🔒</div>' : '')
+    + '<div class="item-preview">' + preview + '</div>'
+    + '<div class="item-name">' + esc(item.name) + '</div>'
+    + '<span class="rarity-badge rarity-' + item.rarity + '">' + esc(RARITY_LABELS[item.rarity]) + '</span>'
+    + statusHtml
+    + '</button>';
+}
+
+/** Mini board preview for board themes */
+function buildBoardPreview(item) {
+  const dark = item.vars['--board-dark'];
+  const light = item.vars['--board-light'];
+  const accent = item.vars['--board-accent'];
+  let cells = '';
+  for (let r = 0; r < 4; r++) {
+    for (let c = 0; c < 4; c++) {
+      const isDark = (r + c) % 2 === 1;
+      cells += '<div class="board-cell" style="background:' + (isDark ? dark : light) + '"></div>';
+    }
+  }
+  return '<div class="item-preview-board" style="border-color:' + accent + '">' + cells + '</div>';
+}
+
+/** Piece skin preview */
+function buildPieceSkinPreview(item) {
+  const glow1 = item.glow ? 'box-shadow:0 0 10px ' + item.p1 + '60;' : '';
+  const glow2 = item.glow ? 'box-shadow:0 0 10px ' + item.p2 + '60;' : '';
+  return '<div class="item-preview-pieces">'
+    + '<div class="piece-dot" style="background:' + item.p1 + ';' + glow1 + '"></div>'
+    + '<span class="piece-vs">vs</span>'
+    + '<div class="piece-dot" style="background:' + item.p2 + ';' + glow2 + '"></div>'
+    + '</div>';
+}
+
+/* ============================================
+   Check if item is equipped
+   ============================================ */
+function isEquipped(item) {
+  switch (item.category) {
+    case 'avatars': return playerEquipped.avatar && playerEquipped.avatar.id === item.id;
+    case 'nameColors': return playerEquipped.nameColor && playerEquipped.nameColor.id === item.id;
+    case 'borders': return playerEquipped.border && playerEquipped.border.id === item.id;
+    case 'titles': return playerEquipped.title && playerEquipped.title.id === item.id;
+    case 'boardThemes': return playerEquipped.boardTheme && playerEquipped.boardTheme.id === item.id;
+    case 'pieceSkins': return playerEquipped.pieceSkin && playerEquipped.pieceSkin.id === item.id;
+    case 'winEffects': return playerEquipped.winEffect && playerEquipped.winEffect.id === item.id;
+    default: return false;
+  }
+}
+
+/* ============================================
+   Handle item click
+   ============================================ */
+window.handleItemClick = function(itemId) {
+  const item = CATALOG.find(function(i) { return i.id === itemId; });
+  if (!item) return;
+
+  const owned = playerInventory.includes(item.id);
+  const equipped = isEquipped(item);
+  const locked = item.achievement && !playerAchievements.includes(item.achievement);
+
+  if (locked) {
+    const ach = ACHIEVEMENTS.find(function(a) { return a.id === item.achievement; });
+    odaToast('🔒 Unlock by: ' + (ach ? ach.description : 'earning the achievement'), 'warning');
+    return;
+  }
+
+  if (equipped) {
+    // Allow unequipping for optional slots
+    if (['titles','boardThemes','pieceSkins'].includes(item.category)) {
+      unequipItem(item);
+    } else {
+      odaToast('Already equipped!', 'info');
+    }
+    return;
+  }
+
+  if (owned) {
+    equipItem(item);
+    return;
+  }
+
+  // Not owned: try to buy
+  if (playerCoins < item.cost) {
+    const need = item.cost - playerCoins;
+    odaToast('Not enough coins! Need ' + need.toLocaleString() + ' more.', 'error');
+    return;
+  }
+
+  // Show confirm modal
+  openConfirmModal(item);
+};
+
+/* ============================================
+   Confirm Modal
+   ============================================ */
+function openConfirmModal(item) {
+  pendingItem = item;
+  const modal = document.getElementById('confirmModal');
+
+  // Icon
+  let iconHtml = '';
+  if (item.emoji) iconHtml = item.emoji;
+  else if (item.category === 'nameColors') iconHtml = '🎨';
+  else if (item.category === 'borders') iconHtml = '💫';
+  else if (item.category === 'titles') iconHtml = '🏷️';
+  else if (item.category === 'boardThemes') iconHtml = '♟️';
+  else if (item.category === 'pieceSkins') iconHtml = '⚫';
+  else if (item.category === 'winEffects') iconHtml = EFFECT_EMOJIS[item.type] || '✨';
+  document.getElementById('modalIcon').textContent = iconHtml;
+
+  document.getElementById('modalTitle').textContent = 'Buy ' + item.name + '?';
+  document.getElementById('modalDesc').textContent = RARITY_LABELS[item.rarity] + ' ' + CATEGORY_NAMES[item.category].replace(/s$/, '');
+  document.getElementById('modalCost').textContent = item.cost.toLocaleString();
+  document.getElementById('modalBuyBtn').disabled = false;
+
+  modal.style.display = 'flex';
+  modalCleanup = odaTrapFocus(modal);
+}
+
+window.closeConfirmModal = function() {
+  document.getElementById('confirmModal').style.display = 'none';
+  pendingItem = null;
+  if (modalCleanup) { modalCleanup(); modalCleanup = null; }
+};
+
+// Close modal on overlay click
+document.getElementById('confirmModal').addEventListener('click', function(e) {
+  if (e.target === this) closeConfirmModal();
+});
+
+// Close modal on Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && document.getElementById('confirmModal').style.display === 'flex') {
+    closeConfirmModal();
+  }
+});
+
+/* ============================================
+   Purchase flow
+   ============================================ */
+window.confirmPurchase = async function() {
+  if (!pendingItem) return;
+  const item = pendingItem;
+  const buyBtn = document.getElementById('modalBuyBtn');
+  buyBtn.disabled = true;
+  buyBtn.textContent = 'Buying...';
+
+  try {
+    const studentRef = doc(db, 'students', studentId);
+
+    // Deduct coins and add to inventory
+    await updateDoc(studentRef, {
+      coins: increment(-item.cost),
+      inventory: arrayUnion(item.id)
+    });
+
+    // Update local state
+    playerCoins -= item.cost;
+    if (!playerInventory.includes(item.id)) {
+      playerInventory.push(item.id);
+    }
+
+    // Auto-equip purchased item
+    await equipItem(item, true);
+
+    updateCoinDisplay();
+    closeConfirmModal();
+    renderActivePanel();
+
+    odaToast('Purchased ' + item.name + '!', 'success');
+    odaConfetti();
+
+  } catch (err) {
+    console.error('[Shop] Purchase failed:', err);
+    odaToast('Purchase failed. Please try again.', 'error');
+    buyBtn.disabled = false;
+    buyBtn.textContent = 'Buy';
+  }
+};
+
+/* ============================================
+   Equip item
+   ============================================ */
+async function equipItem(item, skipToast) {
+  const studentRef = doc(db, 'students', studentId);
+  let equipData = {};
+
+  switch (item.category) {
+    case 'avatars':
+      playerEquipped.avatar = { id: item.id, emoji: item.emoji };
+      equipData = { 'equipped.avatar': playerEquipped.avatar };
+      break;
+    case 'nameColors':
+      playerEquipped.nameColor = { id: item.id, value: item.value, type: item.type || null };
+      equipData = { 'equipped.nameColor': playerEquipped.nameColor };
+      break;
+    case 'borders':
+      playerEquipped.border = { id: item.id, value: item.value };
+      equipData = { 'equipped.border': playerEquipped.border };
+      break;
+    case 'titles':
+      playerEquipped.title = { id: item.id, value: item.value };
+      equipData = { 'equipped.title': playerEquipped.title };
+      break;
+    case 'boardThemes':
+      playerEquipped.boardTheme = { id: item.id, vars: item.vars };
+      equipData = { 'equipped.boardTheme': playerEquipped.boardTheme };
+      break;
+    case 'pieceSkins':
+      playerEquipped.pieceSkin = { id: item.id, p1: item.p1, p2: item.p2, glow: item.glow, sparkle: item.sparkle, trail: item.trail };
+      equipData = { 'equipped.pieceSkin': playerEquipped.pieceSkin };
+      break;
+    case 'winEffects':
+      playerEquipped.winEffect = { id: item.id, type: item.type };
+      equipData = { 'equipped.winEffect': playerEquipped.winEffect };
+      break;
+  }
+
+  try {
+    await updateDoc(studentRef, equipData);
+  } catch (err) {
+    console.error('[Shop] Equip failed:', err);
+    odaToast('Failed to equip. Try again.', 'error');
+    return;
+  }
+
+  updateLoadoutPreview();
+  renderActivePanel();
+  if (!skipToast) odaToast('Equipped ' + item.name + '!', 'success');
+}
+
+/* ============================================
+   Unequip item (optional slots)
+   ============================================ */
+async function unequipItem(item) {
+  const studentRef = doc(db, 'students', studentId);
+  let equipData = {};
+
+  switch (item.category) {
+    case 'titles':
+      playerEquipped.title = { id: 'title_none', value: '' };
+      equipData = { 'equipped.title': playerEquipped.title };
+      break;
+    case 'boardThemes':
+      playerEquipped.boardTheme = null;
+      equipData = { 'equipped.boardTheme': null };
+      break;
+    case 'pieceSkins':
+      playerEquipped.pieceSkin = null;
+      equipData = { 'equipped.pieceSkin': null };
+      break;
+  }
+
+  try {
+    await updateDoc(studentRef, equipData);
+  } catch (err) {
+    console.error('[Shop] Unequip failed:', err);
+    odaToast('Failed to unequip. Try again.', 'error');
+    return;
+  }
+
+  updateLoadoutPreview();
+  renderActivePanel();
+  odaToast('Unequipped ' + item.name, 'info');
+}
+
+/* ============================================
+   Achievements panel
+   ============================================ */
+function renderAchievements() {
+  const panel = document.getElementById('panel-achievements');
+  let html = '<div class="achievements-grid">';
+
+  ACHIEVEMENTS.forEach(function(ach) {
+    const earned = playerAchievements.includes(ach.id);
+    const rewardItem = ach.reward ? CATALOG.find(function(i) { return i.id === ach.reward; }) : null;
+
+    html += '<div class="achievement-card' + (earned ? ' earned' : '') + '">';
+    html += '<div class="ach-icon">' + ach.icon + '</div>';
+    html += '<div class="ach-info">';
+    html += '<div class="ach-name">' + esc(ach.name) + '</div>';
+    html += '<div class="ach-desc">' + esc(ach.description) + '</div>';
+    if (rewardItem) {
+      html += '<div class="ach-reward">Unlocks: <strong>' + esc(rewardItem.name) + '</strong> ' + (rewardItem.emoji || '') + '</div>';
+    }
+    html += '</div>';
+    html += '<div class="ach-status">' + (earned ? '✅' : '🔒') + '</div>';
+    html += '</div>';
+  });
+
+  html += '</div>';
+  panel.innerHTML = html;
+}
+
+/* ============================================
+   Boot
+   ============================================ */
+init();
+</script>
+</body>
+</html>

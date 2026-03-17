@@ -478,6 +478,16 @@ var studentName = localStorage.getItem('studentName') || 'Player';
 var classCode = localStorage.getItem('classCode') || '';
 var isTeacher = localStorage.getItem('userRole') === 'teacher' || localStorage.getItem('odaUserRole') === 'teacher';
 
+// =========================================================
+//  COSMETICS
+// =========================================================
+let myCosmetics={};
+(async()=>{
+  const sid=localStorage.getItem('studentId');
+  if(!sid)return;
+  try{const fb=await getFirebaseDB();const snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));if(snap.exists())myCosmetics=snap.data().equipped||{};}catch(e){}
+})();
+
 // Game state
 var cards = [];
 var flippedCards = [];
@@ -1105,7 +1115,7 @@ function endGame() {
   // Play sounds
   playWinSound();
   setTimeout(function() {
-    if (typeof odaConfetti === 'function') odaConfetti();
+    if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti');else if(typeof odaConfetti==='function')odaConfetti();
   }, 300);
 
   // Show coin popup

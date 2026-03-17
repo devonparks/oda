@@ -248,5 +248,155 @@ window.dataUriToBlobUrl = function(id, dataUri) {
     return _blobCache[id];
   } catch(e) { console.error('Blob conversion failed:', e); return dataUri; }
 };
+// Revoke blob URLs on page unload to free memory
+window.addEventListener('beforeunload', function() {
+  for (var id in _blobCache) { try { URL.revokeObjectURL(_blobCache[id]); } catch(e){} }
+});
 
-console.log('[ODA] Core loaded v1.2');
+// ============================================
+// Cosmetics Loader
+// ============================================
+window.loadCosmetics = async function(studentId) {
+  if (!studentId) return {};
+  try {
+    var fb = await window.getFirebaseDB();
+    var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'students', studentId));
+    if (!snap.exists()) return {};
+    var d = snap.data();
+    return d.equipped || {};
+  } catch(e) { console.warn('[ODA] Cosmetics load error:', e); return {}; }
+};
+
+// Win celebration with cosmetic effects
+window.odaCelebrate = function(effectType) {
+  effectType = effectType || 'confetti';
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  if (effectType === 'confetti' || effectType === 'default') {
+    window.odaConfetti();
+    return;
+  }
+
+  var colors, count, shape;
+  switch(effectType) {
+    case 'stars':
+      colors = ['#fbbf24', '#fcd34d', '#fef3c7', '#f59e0b', '#ffffff'];
+      count = 35;
+      _spawnParticles(colors, count, '★');
+      break;
+    case 'snow':
+      colors = ['#e2e8f0', '#f1f5f9', '#cbd5e1', '#ffffff', '#dbeafe'];
+      count = 50;
+      _spawnParticles(colors, count, '❄');
+      break;
+    case 'fireworks':
+      _fireworksBurst();
+      break;
+    case 'lightning':
+      _lightningFlash();
+      window.odaConfetti();
+      break;
+    case 'meteors':
+      colors = ['#ef4444', '#f97316', '#fbbf24', '#ff6b35', '#ffd166'];
+      count = 20;
+      _spawnParticles(colors, count, '☄');
+      break;
+    case 'bubbles':
+      colors = ['rgba(59,130,246,0.6)', 'rgba(34,211,238,0.6)', 'rgba(168,85,247,0.6)', 'rgba(6,214,160,0.6)', 'rgba(236,72,153,0.6)'];
+      count = 30;
+      _spawnBubbles(colors, count);
+      break;
+    case 'nuclear':
+      _nuclearFlash();
+      setTimeout(function(){ window.odaConfetti(); }, 300);
+      setTimeout(function(){ window.odaConfetti(); }, 600);
+      break;
+    case 'aurora':
+      _auroraWave();
+      break;
+    default:
+      window.odaConfetti();
+  }
+};
+
+function _spawnParticles(colors, count, char) {
+  for (var i = 0; i < count; i++) {
+    var p = document.createElement('div');
+    p.textContent = char;
+    p.style.cssText = 'position:fixed;font-size:' + (14 + Math.random() * 14) + 'px;left:' + (Math.random() * 100) + 'vw;top:-20px;z-index:10000;pointer-events:none;color:' + colors[Math.floor(Math.random() * colors.length)];
+    document.body.appendChild(p);
+    var dur = 1500 + Math.random() * 2000;
+    p.animate([
+      { transform: 'translateY(0) rotate(0deg) scale(1)', opacity: 1 },
+      { transform: 'translateY(' + (window.innerHeight + 50) + 'px) rotate(' + (180 + Math.random() * 540) + 'deg) scale(0.3)', opacity: 0 }
+    ], { duration: dur, easing: 'ease-in' });
+    setTimeout((function(el) { return function() { el.remove(); }; })(p), dur);
+  }
+}
+
+function _spawnBubbles(colors, count) {
+  for (var i = 0; i < count; i++) {
+    var size = 10 + Math.random() * 30;
+    var b = document.createElement('div');
+    b.style.cssText = 'position:fixed;width:' + size + 'px;height:' + size + 'px;border-radius:50%;left:' + (Math.random() * 100) + 'vw;bottom:-30px;z-index:10000;pointer-events:none;background:' + colors[Math.floor(Math.random() * colors.length)] + ';border:1px solid rgba(255,255,255,0.3)';
+    document.body.appendChild(b);
+    var dur = 2000 + Math.random() * 2000;
+    b.animate([
+      { transform: 'translateY(0) scale(1)', opacity: 0.8 },
+      { transform: 'translateY(-' + (window.innerHeight + 50) + 'px) scale(0.5)', opacity: 0 }
+    ], { duration: dur, easing: 'ease-out' });
+    setTimeout((function(el) { return function() { el.remove(); }; })(b), dur);
+  }
+}
+
+function _fireworksBurst() {
+  var burstColors = [['#ef4444','#f97316','#fbbf24'], ['#3b82f6','#22d3ee','#a855f7'], ['#06d6a0','#ffd166','#118ab2']];
+  for (var b = 0; b < 3; b++) {
+    setTimeout((function(colors, delay) {
+      return function() {
+        var cx = 20 + Math.random() * 60;
+        var cy = 20 + Math.random() * 40;
+        for (var i = 0; i < 15; i++) {
+          var p = document.createElement('div');
+          var angle = (i / 15) * Math.PI * 2;
+          var dist = 80 + Math.random() * 120;
+          p.style.cssText = 'position:fixed;width:6px;height:6px;border-radius:50%;left:' + cx + 'vw;top:' + cy + 'vh;z-index:10000;pointer-events:none;background:' + colors[i % colors.length];
+          document.body.appendChild(p);
+          p.animate([
+            { transform: 'translate(0,0) scale(1)', opacity: 1 },
+            { transform: 'translate(' + (Math.cos(angle) * dist) + 'px,' + (Math.sin(angle) * dist) + 'px) scale(0)', opacity: 0 }
+          ], { duration: 800 + Math.random() * 400, easing: 'ease-out' });
+          setTimeout((function(el) { return function() { el.remove(); }; })(p), 1200);
+        }
+      };
+    })(burstColors[b], b * 400), b * 400);
+  }
+}
+
+function _lightningFlash() {
+  var flash = document.createElement('div');
+  flash.style.cssText = 'position:fixed;inset:0;z-index:9999;pointer-events:none;background:rgba(251,191,36,0.15)';
+  document.body.appendChild(flash);
+  flash.animate([{opacity:0},{opacity:1},{opacity:0},{opacity:0.7},{opacity:0}], {duration:400});
+  setTimeout(function(){ flash.remove(); }, 400);
+}
+
+function _nuclearFlash() {
+  var flash = document.createElement('div');
+  flash.style.cssText = 'position:fixed;inset:0;z-index:9999;pointer-events:none;background:radial-gradient(circle at 50% 50%,rgba(255,255,255,0.8),rgba(239,68,68,0.3),transparent)';
+  document.body.appendChild(flash);
+  flash.animate([{opacity:0,transform:'scale(0.3)'},{opacity:1,transform:'scale(1)'},{opacity:0,transform:'scale(1.5)'}], {duration:800, easing:'ease-out'});
+  setTimeout(function(){ flash.remove(); }, 800);
+}
+
+function _auroraWave() {
+  var aurora = document.createElement('div');
+  aurora.style.cssText = 'position:fixed;top:0;left:0;right:0;height:40vh;z-index:9999;pointer-events:none;background:linear-gradient(180deg,rgba(6,214,160,0.3),rgba(59,130,246,0.2),rgba(168,85,247,0.15),transparent);filter:blur(20px)';
+  document.body.appendChild(aurora);
+  aurora.animate([{opacity:0,transform:'translateY(-100%)'},{opacity:1,transform:'translateY(0)'},{opacity:0.5,transform:'translateY(10%)'},{opacity:0,transform:'translateY(20%)'}], {duration:2500, easing:'ease-in-out'});
+  setTimeout(function(){ aurora.remove(); }, 2500);
+  // Also do regular confetti
+  setTimeout(function(){ window.odaConfetti(); }, 500);
+}
+
+console.log('[ODA] Core loaded v1.3');

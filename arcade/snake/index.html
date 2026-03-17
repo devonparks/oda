@@ -296,6 +296,16 @@ if (isTeacher) {
 }
 
 // =============================================
+// COSMETICS
+// =============================================
+let myCosmetics={};
+(async()=>{
+  const sid=localStorage.getItem('studentId');
+  if(!sid)return;
+  try{const fb=await getFirebaseDB();const snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));if(snap.exists())myCosmetics=snap.data().equipped||{};}catch(e){}
+})();
+
+// =============================================
 // SCREEN SYSTEM
 // =============================================
 function showScreen(id) {
@@ -1025,7 +1035,7 @@ function endGame() {
     title.textContent = 'New High Score!';
     document.getElementById('goRecordBadge').innerHTML = '<div class="new-record-badge">&#127942; New Personal Best!</div>';
     sfxHighScore();
-    if (window.odaConfetti) window.odaConfetti();
+    if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti');else if(typeof odaConfetti==='function')odaConfetti();
   } else {
     header.classList.remove('new-record');
     title.textContent = 'Game Over';

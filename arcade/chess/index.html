@@ -148,11 +148,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 
 /* Board */
 .board-area{flex:0 0 auto;position:relative}
-.board-frame{background:var(--surface);border:3px solid var(--border);border-radius:16px;padding:clamp(4px,1vw,10px);display:inline-block;position:relative;box-shadow:0 8px 40px rgba(0,0,0,.4)}
+.board-frame{background:var(--surface);border:3px solid var(--border);border-radius:16px;padding:clamp(4px,1vw,10px);display:inline-block;position:relative;box-shadow:var(--board-glow,0 8px 40px rgba(0,0,0,.4))}
 .board-grid{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);position:relative}
 .square{width:clamp(44px,8.5vw,72px);height:clamp(44px,8.5vw,72px);display:flex;align-items:center;justify-content:center;font-size:clamp(28px,5.5vw,48px);cursor:pointer;position:relative;transition:background .15s}
-.square.light{background:#e8dcc8}
-.square.dark{background:#b58863}
+.square.light{background:var(--board-light,#e8dcc8)}
+.square.dark{background:var(--board-dark,#b58863)}
 .square.selected{background:#7fc97f!important;box-shadow:inset 0 0 12px rgba(0,0,0,.2)}
 .square.last-move{background:rgba(255,209,102,.45)!important}
 .square.check-highlight{background:rgba(239,71,111,.55)!important;box-shadow:inset 0 0 16px rgba(239,71,111,.5)}
@@ -246,6 +246,47 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   .square{width:clamp(40px,11.5vw,50px)!important;height:clamp(40px,11.5vw,50px)!important;font-size:clamp(24px,7vw,32px)!important}
   .home-header{padding:0 16px}
 }
+
+/* ======================== */
+/* FORMAT PICKER             */
+/* ======================== */
+.format-grid{display:flex;gap:8px;justify-content:center;margin:12px 0 16px;flex-wrap:wrap}
+.format-option{padding:10px 18px;border-radius:12px;background:var(--surface);border:2px solid var(--border);color:var(--text2);font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;text-align:center;min-width:70px}
+.format-option:hover{border-color:var(--accent);color:var(--text)}
+.format-option.selected{border-color:var(--accent);background:rgba(6,214,160,.1);color:var(--accent)}
+.format-option .format-label{font-size:11px;color:var(--text2);display:block;margin-top:2px;font-weight:500}
+.format-option.selected .format-label{color:var(--accent)}
+
+/* ======================== */
+/* SERIES BAR (in-game)      */
+/* ======================== */
+.series-bar{position:fixed;top:0;left:0;right:0;z-index:60;background:rgba(10,14,26,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;justify-content:center;gap:16px;font-size:14px;font-weight:700}
+.series-bar .sb-game{color:var(--text2);font-size:12px;text-transform:uppercase;letter-spacing:1px}
+.series-bar .sb-score{display:flex;align-items:center;gap:12px;font-family:'Fredoka',sans-serif;font-size:20px}
+.series-bar .sb-p1{color:var(--accent3)}
+.series-bar .sb-p2{color:var(--gold)}
+.series-bar .sb-dash{color:var(--text2);font-size:14px}
+
+/* ======================== */
+/* SERIES RESULT DISPLAY     */
+/* ======================== */
+.series-score-display{display:flex;align-items:center;justify-content:center;gap:20px;margin:16px 0;padding:16px 24px;background:var(--surface);border:1px solid var(--border);border-radius:16px}
+.series-score-display .ssd-player{text-align:center;min-width:80px}
+.series-score-display .ssd-name{font-size:13px;color:var(--text2);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.series-score-display .ssd-score{font-size:36px;font-weight:900;font-family:'Fredoka',sans-serif}
+.series-score-display .ssd-p1 .ssd-score{color:var(--accent3)}
+.series-score-display .ssd-p2 .ssd-score{color:var(--gold)}
+.series-score-display .ssd-vs{color:var(--text2);font-size:22px;font-weight:700;font-family:'Fredoka',sans-serif}
+.series-game-label{text-align:center;font-size:13px;color:var(--text2);margin-bottom:4px;font-weight:600}
+.series-winner-text{font-size:15px;color:var(--accent);font-weight:700;margin-top:8px;text-align:center}
+
+/* Waiting format badge */
+.waiting-format{margin-top:12px;font-size:14px;color:var(--text2);font-weight:600}
+.waiting-format .wf-badge{display:inline-block;padding:4px 14px;border-radius:20px;background:rgba(6,214,160,.1);color:var(--accent);font-weight:700;font-size:13px;border:1px solid rgba(6,214,160,.2)}
+
+/* Series mobile adjustments */
+.has-series .mobile-turn{top:42px}
+.has-series .game-layout{padding-top:100px}
 </style>
 </head>
 <body>
@@ -307,6 +348,15 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <h2>Quick Match</h2>
     <p class="sub">Create a room or join with a code</p>
     <div class="qm-actions">
+      <div style="width:100%">
+        <div class="section-title" style="text-align:center;margin-bottom:6px">Game Format</div>
+        <div class="format-grid" id="formatGrid">
+          <div class="format-option selected" data-format="1" onclick="Chess.pickFormat(1)">1v1<span class="format-label">Single</span></div>
+          <div class="format-option" data-format="3" onclick="Chess.pickFormat(3)">Bo3<span class="format-label">Best of 3</span></div>
+          <div class="format-option" data-format="5" onclick="Chess.pickFormat(5)">Bo5<span class="format-label">Best of 5</span></div>
+          <div class="format-option" data-format="7" onclick="Chess.pickFormat(7)">Bo7<span class="format-label">Best of 7</span></div>
+        </div>
+      </div>
       <button class="btn btn-accent" onclick="Chess.createGame()">Create Room</button>
       <div class="qm-divider"><span>or join</span></div>
       <div class="join-row">
@@ -325,6 +375,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <h2>Room Created!</h2>
     <p style="color:var(--text2);font-size:14px;margin-top:4px">Share this code with your opponent:</p>
     <div class="room-code-big" id="roomCodeDisplay"></div>
+    <div class="waiting-format" id="waitingFormat"></div>
     <p class="waiting-pulse">Waiting for opponent to join...</p>
     <button class="btn btn-outline btn-small" onclick="Chess.cancelGame()" style="margin-top:20px">Cancel</button>
   </div>
@@ -332,6 +383,14 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 
 <!-- GAME SCREEN -->
 <div class="screen" id="gameScreen">
+  <div class="series-bar" id="seriesBar" style="display:none">
+    <span class="sb-game" id="sbGame">Game 1</span>
+    <div class="sb-score">
+      <span class="sb-p1" id="sbP1Score">0</span>
+      <span class="sb-dash">&mdash;</span>
+      <span class="sb-p2" id="sbP2Score">0</span>
+    </div>
+  </div>
   <div class="mobile-turn" id="mobileTurn">White's turn</div>
   <div class="game-layout">
     <!-- Left player panel -->
@@ -390,8 +449,9 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <h2 id="resultTitle">Checkmate!</h2>
     <p class="result-sub" id="resultSub">You won against the computer</p>
     <div class="coins-display" id="coinsDisplay" style="display:none">&#127944; +<span id="coinsAmount">0</span> coins</div>
+    <div id="seriesResultArea"></div>
     <div class="card-static record-update" id="recordUpdate"></div>
-    <div class="result-actions">
+    <div class="result-actions" id="resultActions">
       <button class="btn btn-accent" onclick="Chess.playAgain()">Play Again</button>
       <button class="btn btn-outline" onclick="Chess.showScreen('homeScreen')">Home</button>
     </div>
@@ -560,6 +620,52 @@ let myPlayerNum = 0; // 1=white, 2=black
 let promoResolve = null;
 let coinsAwarded = 0;
 let positionHistory = [];
+let resultTimeout = null;
+let selectedFormat = 1;
+let seriesFormat = 1, seriesScore = [0,0], seriesGame = 1, seriesWinner = null;
+let opponentName = 'Opponent';
+
+// ── Cosmetics ─────────────────────────────────────────────────
+let myCosmetics = {};
+(async function loadMyCosmetics(){
+  const sid = localStorage.getItem('studentId');
+  if(!sid) return;
+  try{
+    const {db,fsMod} = window.getFirebaseDB();
+    const snap = await fsMod.getDoc(fsMod.doc(db,'students',sid));
+    if(snap.exists()){ myCosmetics = snap.data().equipped || {}; }
+  }catch(e){ console.warn('Cosmetics load error:',e); }
+})();
+
+function applyBoardTheme(){
+  const board = document.getElementById('boardFrame');
+  if(!board || !myCosmetics.boardTheme?.vars) return;
+  Object.entries(myCosmetics.boardTheme.vars).forEach(([prop,val]) => {
+    board.style.setProperty(prop, val);
+  });
+}
+
+function applyNameColor(el, color){
+  if(!el || !color) return;
+  if(color.type === 'gradient' || color.type === 'animated-gradient'){
+    el.style.background = color.value;
+    el.style.webkitBackgroundClip = 'text';
+    el.style.webkitTextFillColor = 'transparent';
+  } else {
+    el.style.color = color.value;
+  }
+}
+
+function applyPlayerCosmetics(){
+  const avatar = myCosmetics.avatar?.emoji;
+  const nameColor = myCosmetics.nameColor;
+  // In chess, myPlayerNum: 1=white, 2=black; topPanel is black, bottomPanel has white
+  if(myPlayerNum === 1 || gameMode === 'ai'){
+    if(nameColor) applyNameColor(document.getElementById('bottomName'), nameColor);
+  } else if(myPlayerNum === 2){
+    if(nameColor) applyNameColor(document.getElementById('topName'), nameColor);
+  }
+}
 
 // ── Sound ──────────────────────────────────────────────────────
 let audioCtx = null;
@@ -601,6 +707,40 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const el=document.getElementById(id);
   if(el) el.classList.add('active');
+}
+
+// ── Format Picker & Series Helpers ────────────────────────────
+function pickFormat(n){
+  selectedFormat=n;
+  document.querySelectorAll('.format-option').forEach(el=>{
+    el.classList.toggle('selected',parseInt(el.dataset.format)===n);
+  });
+}
+
+function formatLabel(n){
+  if(n===3)return'Best of 3';
+  if(n===5)return'Best of 5';
+  if(n===7)return'Best of 7';
+  return'Single Game';
+}
+
+function updateSeriesBar(data){
+  const bar=document.getElementById('seriesBar');
+  const gs=document.getElementById('gameScreen');
+  const format=data.seriesFormat||1;
+  if(format<=1){
+    bar.style.display='none';
+    gs.classList.remove('has-series');
+    return;
+  }
+  bar.style.display='flex';
+  gs.classList.add('has-series');
+  const score=data.seriesScore||[0,0];
+  const game=data.seriesGame||1;
+  const winsNeeded=Math.ceil(format/2);
+  document.getElementById('sbGame').textContent='Game '+game+' \u00B7 First to '+winsNeeded;
+  document.getElementById('sbP1Score').textContent=score[0];
+  document.getElementById('sbP2Score').textContent=score[1];
 }
 
 // ── Board Setup ────────────────────────────────────────────────
@@ -1292,8 +1432,8 @@ function renderBoard(){
 }
 
 function updatePanels(){
-  const wName = gameMode==='ai' ? (playerColor===WHITE?getStudentName():'Computer') : (myPlayerNum===1?getStudentName():'Opponent');
-  const bName = gameMode==='ai' ? (playerColor===BLACK?getStudentName():'Computer') : (myPlayerNum===2?getStudentName():'Opponent');
+  const wName = gameMode==='ai' ? (playerColor===WHITE?getStudentName():'Computer') : (playerColor===WHITE?getStudentName():opponentName);
+  const bName = gameMode==='ai' ? (playerColor===BLACK?getStudentName():'Computer') : (playerColor===BLACK?getStudentName():opponentName);
 
   // If board is flipped, swap which panel shows which
   const topIsBlack = !boardFlipped;
@@ -1367,10 +1507,9 @@ function updateMoveList(){
 function handleSquareClick(idx){
   if(gameOver) return;
 
-  // In multiplayer, only allow moves on your turn
+  // In multiplayer, only allow moves on your turn (playerColor may alternate in series)
   if(gameMode==='multi'){
-    const myColor = myPlayerNum===1?WHITE:BLACK;
-    if(turn!==myColor) return;
+    if(turn!==playerColor) return;
   }
   // In AI mode, only allow player's color
   if(gameMode==='ai' && turn!==playerColor) return;
@@ -1456,14 +1595,18 @@ function executePlayerMove(move){
 
   // Check game end
   const status = checkGameEnd();
-  if(status.over){
-    endGame(status);
+
+  // If multiplayer, send move (and result if game is over)
+  if(gameMode==='multi'){
+    sendMultiMove(move, status.over ? status : null);
+    if(status.over){
+      endGame(status);
+    }
     return;
   }
 
-  // If multiplayer, send move to Firestore
-  if(gameMode==='multi'){
-    sendMultiMove(move);
+  if(status.over){
+    endGame(status);
     return;
   }
 
@@ -1495,6 +1638,17 @@ async function endGame(status){
   const sname = getStudentName();
   const cc = getClassCode();
   let resultType = 'draw'; // 'win','loss','draw'
+  const esc = window.esc || (s=>s);
+
+  const format = seriesFormat||1;
+  const score = seriesScore||[0,0];
+  const game = seriesGame||1;
+  const winsNeeded = Math.ceil(format/2);
+  const isSeriesOver = format<=1||score[0]>=winsNeeded||score[1]>=winsNeeded;
+  const seriesWinnerPlayer = score[0]>=winsNeeded?1:(score[1]>=winsNeeded?2:null);
+
+  // Determine who is P1 white in this game: odd games = P1 white
+  const p1IsWhite = game%2===1;
 
   if(status.result==='draw'){
     title = 'Draw!';
@@ -1505,33 +1659,46 @@ async function endGame(status){
     resultType='draw';
   } else {
     const winnerColor = status.result; // 'white' or 'black'
-    const playerIsWhite = gameMode==='ai' ? playerColor===WHITE : myPlayerNum===1;
-    const playerWon = (winnerColor==='white' && playerIsWhite)||(winnerColor==='black' && !playerIsWhite);
+    const playerWon = (winnerColor==='white' && playerColor===WHITE)||(winnerColor==='black' && playerColor===BLACK);
 
     if(playerWon){
-      title = 'Checkmate!';
-      sub = 'You won! Great game!';
-      sndGameOver(true);
-      if(typeof window.odaConfetti==='function') window.odaConfetti();
-      resultType='win';
-      if(gameMode==='ai'){
-        coins = aiDifficulty==='easy'?5:aiDifficulty==='medium'?10:20;
+      const iWonSeries = gameMode==='multi' && isSeriesOver && seriesWinnerPlayer===myPlayerNum;
+      if(iWonSeries && format>1){
+        title = 'Series Winner!';
+        sub = 'You won the '+formatLabel(format)+'!';
+        coins = 30;
+        sndGameOver(true);
       } else {
-        coins=15;
+        title = status.reason==='resignation'?'Opponent Resigned!':'Checkmate!';
+        sub = format>1?'Keep it going!':'You won! Great game!';
+        sndGameOver(true);
+        if(gameMode==='ai'){
+          coins = aiDifficulty==='easy'?5:aiDifficulty==='medium'?10:20;
+        } else {
+          coins = 15;
+        }
       }
+      resultType='win';
+      if(typeof window.odaCelebrate==='function') window.odaCelebrate(myCosmetics.winEffect?.type||'confetti');
     } else {
-      title = 'Checkmate';
-      sub = 'You lost. Better luck next time!';
-      sndGameOver(false);
+      const iLostSeries = gameMode==='multi' && isSeriesOver && seriesWinnerPlayer && seriesWinnerPlayer!==myPlayerNum;
+      if(iLostSeries && format>1){
+        title = 'Series Over';
+        sub = 'Your opponent won the series';
+        coins = 2;
+      } else {
+        title = status.reason==='resignation'?'You Resigned':'Checkmate';
+        sub = format>1?'Fight back next game!':'You lost. Better luck next time!';
+        coins = gameMode==='multi'?2:0;
+      }
       resultType='loss';
-      if(gameMode==='multi') coins=2;
+      sndGameOver(false);
     }
   }
 
-  coinsAwarded = coins;
-
-  // Save records
-  if(sid && sid!=='guest'){
+  // Save records & coins
+  if(coinsAwarded===0 && sid && sid!=='guest'){
+    coinsAwarded = coins;
     try{
       const {db,fsMod}=window.getFirebaseDB();
       const recRef = fsMod.doc(db,'chessRecords',sid);
@@ -1551,8 +1718,6 @@ async function endGame(status){
           gamesPlayed:1
         });
       }
-
-      // Award coins
       if(coins>0 && cc){
         const studentRef = fsMod.doc(db,'students',sid);
         await fsMod.updateDoc(studentRef,{coins:fsMod.increment(coins)}).catch(()=>{});
@@ -1561,35 +1726,90 @@ async function endGame(status){
   }
 
   // Show result screen
-  document.getElementById('resultTitle').textContent = title;
-  document.getElementById('resultSub').textContent = sub;
+  const titleEl = document.getElementById('resultTitle');
+  const subEl = document.getElementById('resultSub');
+  const coinsEl = document.getElementById('coinsDisplay');
+  const coinsAmountEl = document.getElementById('coinsAmount');
+  const seriesArea = document.getElementById('seriesResultArea');
+  const actionsEl = document.getElementById('resultActions');
+
+  titleEl.textContent = title;
+  titleEl.style.color = resultType==='win'?'var(--accent)':resultType==='loss'?'var(--accent3)':'var(--text2)';
+  subEl.textContent = sub;
+
   if(coins>0){
-    document.getElementById('coinsDisplay').style.display = 'flex';
-    document.getElementById('coinsAmount').textContent = coins;
+    coinsEl.style.display = 'flex';
+    coinsAmountEl.textContent = coins;
   } else {
-    document.getElementById('coinsDisplay').style.display = 'none';
+    coinsEl.style.display = 'none';
+  }
+
+  // Series score display
+  seriesArea.innerHTML = '';
+  if(format>1 && gameMode==='multi'){
+    // Derive player names: P1=creator, P2=joiner
+    const myName = getStudentName();
+    const p1Name = myPlayerNum===1?myName:opponentName;
+    const p2Name = myPlayerNum===2?myName:opponentName;
+    let winnerHTML='';
+    if(isSeriesOver && seriesWinnerPlayer){
+      const wName=seriesWinnerPlayer===1?p1Name:p2Name;
+      winnerHTML='<div class="series-winner-text">\uD83C\uDFC6 '+esc(wName)+' wins the series!</div>';
+    }
+    seriesArea.innerHTML=
+      '<div class="series-game-label">Game '+game+' of '+format+' \u00B7 First to '+winsNeeded+'</div>'+
+      '<div class="series-score-display">'+
+        '<div class="ssd-player ssd-p1">'+
+          '<div class="ssd-name">'+esc(p1Name)+'</div>'+
+          '<div class="ssd-score">'+score[0]+'</div>'+
+        '</div>'+
+        '<div class="ssd-vs">\u2014</div>'+
+        '<div class="ssd-player ssd-p2">'+
+          '<div class="ssd-name">'+esc(p2Name)+'</div>'+
+          '<div class="ssd-score">'+score[1]+'</div>'+
+        '</div>'+
+      '</div>'+winnerHTML;
   }
 
   // Record update display
   const recDiv = document.getElementById('recordUpdate');
+  recDiv.innerHTML = '';
   if(sid && sid!=='guest'){
     try{
       const {db,fsMod}=window.getFirebaseDB();
       const snap = await fsMod.getDoc(fsMod.doc(db,'chessRecords',sid));
       if(snap.exists()){
         const d = snap.data();
-        recDiv.innerHTML = `
-          <div class="stat-box"><div class="stat-val" style="color:var(--accent)">${d.wins||0}</div><div class="stat-label">Wins</div></div>
-          <div class="stat-box"><div class="stat-val" style="color:var(--accent3)">${d.losses||0}</div><div class="stat-label">Losses</div></div>
-          <div class="stat-box"><div class="stat-val" style="color:var(--text2)">${d.draws||0}</div><div class="stat-label">Draws</div></div>
-          <div class="stat-box"><div class="stat-val">${d.gamesPlayed||0}</div><div class="stat-label">Played</div></div>
-        `;
+        recDiv.innerHTML =
+          '<div class="stat-box"><div class="stat-val" style="color:var(--accent)">'+(d.wins||0)+'</div><div class="stat-label">Wins</div></div>'+
+          '<div class="stat-box"><div class="stat-val" style="color:var(--accent3)">'+(d.losses||0)+'</div><div class="stat-label">Losses</div></div>'+
+          '<div class="stat-box"><div class="stat-val" style="color:var(--text2)">'+(d.draws||0)+'</div><div class="stat-label">Draws</div></div>'+
+          '<div class="stat-box"><div class="stat-val">'+(d.gamesPlayed||0)+'</div><div class="stat-label">Played</div></div>';
       }
     }catch(e){}
   }
 
+  // Action buttons based on context
+  let actionsHTML='';
+  if(gameMode==='ai'){
+    actionsHTML='<button class="btn btn-accent" onclick="Chess.playAgain()">Play Again</button>';
+  } else if(format>1){
+    // Series mode
+    if(isSeriesOver){
+      actionsHTML='<button class="btn btn-accent" onclick="Chess.rematchGame()">\uD83D\uDD04 New Series</button>';
+    } else if(status.result==='draw'){
+      actionsHTML='<button class="btn btn-accent" onclick="Chess.replayDraw()">Replay Game \u2192</button>';
+    } else {
+      actionsHTML='<button class="btn btn-accent" onclick="Chess.nextSeriesGame()">Next Game \u2192</button>';
+    }
+  } else {
+    actionsHTML='<button class="btn btn-accent" onclick="Chess.rematchGame()">\uD83D\uDD04 Rematch</button>';
+  }
+  actionsHTML+='<button class="btn btn-outline" onclick="Chess.goHome()">Home</button>';
+  actionsEl.innerHTML = actionsHTML;
+
   if(typeof window.odaToast==='function'){
-    if(coins>0) window.odaToast(`+${coins} coins earned!`,'success');
+    if(coins>0) window.odaToast('+'+coins+' coins earned!','success');
   }
 
   showScreen('resultScreen');
@@ -1611,6 +1831,8 @@ function startAiGame(diff){
   initBoard();
   boardFlipped = false;
   showScreen('gameScreen');
+  applyBoardTheme();
+  applyPlayerCosmetics();
   renderBoard();
 }
 
@@ -1630,6 +1852,12 @@ async function createGame(){
     gameMode = 'multi';
     playerColor = WHITE;
 
+    seriesFormat=selectedFormat;
+    seriesScore=[0,0];
+    seriesGame=1;
+    seriesWinner=null;
+    coinsAwarded=0;
+
     const gameData = {
       code,
       player1: sid,
@@ -1646,6 +1874,10 @@ async function createGame(){
       enPassant: -1,
       status: 'waiting',
       result: null,
+      seriesFormat: selectedFormat,
+      seriesScore: [0,0],
+      seriesGame: 1,
+      seriesWinner: null,
       createdAt: fsMod.serverTimestamp()
     };
 
@@ -1653,6 +1885,12 @@ async function createGame(){
     gameDocId = docRef.id;
 
     document.getElementById('roomCodeDisplay').textContent = code;
+    const wf=document.getElementById('waitingFormat');
+    if(selectedFormat>1){
+      wf.innerHTML='<span class="wf-badge">'+formatLabel(selectedFormat)+'</span>';
+    }else{
+      wf.innerHTML='<span class="wf-badge">Single Game</span>';
+    }
     showScreen('waitingScreen');
 
     // Listen for opponent joining
@@ -1662,7 +1900,10 @@ async function createGame(){
       if(data.status==='playing' && data.player2){
         initBoard();
         boardFlipped = false;
+        playerColor = WHITE; // P1 is white in game 1
         showScreen('gameScreen');
+        applyBoardTheme();applyPlayerCosmetics();
+        updateSeriesBar(data);
         renderBoard();
         listenForMoves();
         if(typeof window.odaToast==='function') window.odaToast('Opponent joined!','success');
@@ -1701,7 +1942,14 @@ async function joinGame(){
     myPlayerNum = 2;
     gameMode = 'multi';
     playerColor = BLACK;
+    coinsAwarded = 0;
     errEl.textContent = '';
+
+    // Read series format from game
+    seriesFormat = data.seriesFormat||1;
+    seriesScore = data.seriesScore||[0,0];
+    seriesGame = data.seriesGame||1;
+    seriesWinner = data.seriesWinner||null;
 
     await fsMod.updateDoc(fsMod.doc(db,'chessGames',gameDocId), {
       player2: sid,
@@ -1712,6 +1960,8 @@ async function joinGame(){
     initBoard();
     boardFlipped = true;
     showScreen('gameScreen');
+    applyBoardTheme();applyPlayerCosmetics();
+    updateSeriesBar(data);
     renderBoard();
     listenForMoves();
     if(typeof window.odaToast==='function') window.odaToast('Joined game!','success');
@@ -1729,37 +1979,69 @@ function listenForMoves(){
       if(!snap.exists()) return;
       const data = snap.data();
 
-      // Sync board state from move list
-      const serverMoves = data.moves||[];
-      if(serverMoves.length > moveHistory.length){
-        // New moves arrived
-        for(let i=moveHistory.length;i<serverMoves.length;i++){
-          const sm = serverMoves[i];
-          const move = {from:sm.from,to:sm.to};
-          if(sm.promo) move.promo = sm.promo;
-          if(sm.castle) move.castle = sm.castle;
-          if(sm.enPassant) move.enPassant = true;
-          if(sm.double) move.double = true;
-          if(sm.capture) move.capture = sm.capture;
+      // Read series data and opponent name
+      seriesFormat=data.seriesFormat||1;
+      seriesScore=data.seriesScore||[0,0];
+      seriesGame=data.seriesGame||1;
+      seriesWinner=data.seriesWinner||null;
+      if(myPlayerNum===1 && data.player2Name) opponentName=data.player2Name;
+      if(myPlayerNum===2 && data.player1Name) opponentName=data.player1Name;
 
-          const result = execMove(move);
-          if(move.castle) sndCastle();
-          else if(result.captured) sndCapture();
-          else sndMove();
-          if(result.inChk) setTimeout(()=>sndCheck(),100);
+      if(data.status==='playing'){
+        // Clear any pending result timeout (series transitions)
+        if(resultTimeout){clearTimeout(resultTimeout);resultTimeout=null}
+        coinsAwarded=0;
+
+        // If server moves is empty, this is a fresh game (series next game)
+        const serverMoves=data.moves||[];
+        if(serverMoves.length===0 && moveHistory.length>0){
+          // Re-init the board for a new series game
+          initBoard();
+          // Set color based on series game: odd=P1 white, even=P1 black
+          if(seriesGame%2===0){
+            playerColor=myPlayerNum===1?BLACK:WHITE;
+            boardFlipped=myPlayerNum===1;
+          }else{
+            playerColor=myPlayerNum===1?WHITE:BLACK;
+            boardFlipped=myPlayerNum===2;
+          }
         }
-        selectedSquare = -1;
-        legalMovesForSelected = [];
-        renderBoard();
 
-        const status = checkGameEnd();
-        if(status.over) endGame(status);
+        showScreen('gameScreen');
+        applyBoardTheme();applyPlayerCosmetics();
+        updateSeriesBar(data);
+
+        // Sync board state from move list
+        if(serverMoves.length > moveHistory.length){
+          for(let i=moveHistory.length;i<serverMoves.length;i++){
+            const sm = serverMoves[i];
+            const move = {from:sm.from,to:sm.to};
+            if(sm.promo) move.promo = sm.promo;
+            if(sm.castle) move.castle = sm.castle;
+            if(sm.enPassant) move.enPassant = true;
+            if(sm.double) move.double = true;
+            if(sm.capture) move.capture = sm.capture;
+
+            const result = execMove(move);
+            if(move.castle) sndCastle();
+            else if(result.captured) sndCapture();
+            else sndMove();
+            if(result.inChk) setTimeout(()=>sndCheck(),100);
+          }
+          selectedSquare = -1;
+          legalMovesForSelected = [];
+          renderBoard();
+
+          const status = checkGameEnd();
+          if(status.over) endGame(status);
+        } else {
+          renderBoard();
+        }
       }
 
       // Check for resignation or draw
       if(data.status==='finished' && data.result){
         if(!gameOver){
-          const myColor = myPlayerNum===1?'white':'black';
           let status;
           if(data.result==='draw') status = {over:true,result:'draw',reason:'agreed draw'};
           else status = {over:true,result:data.result,reason:'resignation'};
@@ -1770,7 +2052,7 @@ function listenForMoves(){
   }catch(e){ console.error('Listen error:',e); }
 }
 
-async function sendMultiMove(move){
+async function sendMultiMove(move, gameEndStatus){
   try{
     const {db,fsMod}=window.getFirebaseDB();
     const moveData = {from:move.from,to:move.to};
@@ -1786,11 +2068,35 @@ async function sendMultiMove(move){
     const moves = data.moves||[];
     moves.push(moveData);
 
-    await fsMod.updateDoc(ref, {
+    const upd = {
       moves,
       turn: turn,
       board: JSON.stringify(board)
-    });
+    };
+
+    // If the game ended (checkmate, stalemate, etc.), update Firestore
+    if(gameEndStatus){
+      upd.status = 'finished';
+      upd.result = gameEndStatus.result; // 'white','black', or 'draw'
+      // Update series score for wins
+      if(gameEndStatus.result!=='draw'){
+        const winnerColor = gameEndStatus.result; // 'white' or 'black'
+        // In chess, P1 color alternates: odd games = P1 white, even = P1 black
+        const game = data.seriesGame||1;
+        const p1IsWhite = game%2===1;
+        const winnerPlayerNum = ((winnerColor==='white')===p1IsWhite)?1:2;
+        const score = data.seriesScore ? [...data.seriesScore] : [0,0];
+        score[winnerPlayerNum-1]++;
+        upd.seriesScore = score;
+        const format = data.seriesFormat||1;
+        const winsNeeded = Math.ceil(format/2);
+        if(score[winnerPlayerNum-1]>=winsNeeded){
+          upd.seriesWinner = winnerPlayerNum;
+        }
+      }
+    }
+
+    await fsMod.updateDoc(ref, upd);
   }catch(e){ console.error('Send move error:',e); }
 }
 
@@ -1803,6 +2109,8 @@ async function cancelGame(){
     }catch(e){}
   }
   gameDocId = null;
+  seriesFormat=1; seriesScore=[0,0]; seriesGame=1; seriesWinner=null;
+  coinsAwarded=0; opponentName='Opponent';
   showScreen('homeScreen');
 }
 
@@ -1810,20 +2118,30 @@ async function resignGame(){
   if(gameOver) return;
   if(!confirm('Are you sure you want to resign?')) return;
 
+  // The winner is whoever I'm NOT (the opponent's color)
+  const winnerColor = playerColor===WHITE?'black':'white';
+
   if(gameMode==='multi' && gameDocId){
     try{
       const {db,fsMod}=window.getFirebaseDB();
-      const winner = myPlayerNum===1?'black':'white';
-      await fsMod.updateDoc(fsMod.doc(db,'chessGames',gameDocId),{
-        status:'finished',
-        result: winner
-      });
+      const upd = {status:'finished', result: winnerColor};
+      // Update series score: the opponent (winner) gets a point
+      const winnerPlayerNum = myPlayerNum===1?2:1;
+      const score = seriesScore ? [...seriesScore] : [0,0];
+      score[winnerPlayerNum-1]++;
+      seriesScore = score; // update local state
+      upd.seriesScore = score;
+      const format = seriesFormat||1;
+      const winsNeeded = Math.ceil(format/2);
+      if(score[winnerPlayerNum-1]>=winsNeeded){
+        upd.seriesWinner = winnerPlayerNum;
+        seriesWinner = winnerPlayerNum;
+      }
+      await fsMod.updateDoc(fsMod.doc(db,'chessGames',gameDocId), upd);
     }catch(e){}
   }
 
-  const winner = (gameMode==='ai') ?
-    (playerColor===WHITE?'black':'white') :
-    (myPlayerNum===1?'black':'white');
+  const winner = winnerColor;
 
   endGame({over:true, result:winner, reason:'resignation'});
 }
@@ -1855,8 +2173,129 @@ function playAgain(){
   if(unsubGame) unsubGame();
   unsubGame = null;
   gameDocId = null;
+  seriesFormat=1; seriesScore=[0,0]; seriesGame=1; seriesWinner=null;
+  coinsAwarded=0; opponentName='Opponent';
+  document.getElementById('seriesBar').style.display='none';
+  document.getElementById('gameScreen').classList.remove('has-series');
   if(gameMode==='ai') showScreen('diffScreen');
   else showScreen('quickMatchScreen');
+}
+
+function goHome(){
+  if(unsubGame) unsubGame();
+  if(resultTimeout){clearTimeout(resultTimeout);resultTimeout=null}
+  unsubGame = null;
+  gameDocId = null;
+  seriesFormat=1; seriesScore=[0,0]; seriesGame=1; seriesWinner=null;
+  coinsAwarded=0; opponentName='Opponent';
+  document.getElementById('seriesBar').style.display='none';
+  document.getElementById('gameScreen').classList.remove('has-series');
+  showScreen('homeScreen');
+  loadQuickStats();
+}
+
+async function nextSeriesGame(){
+  if(!gameDocId)return;
+  try{
+    const {db,fsMod}=window.getFirebaseDB();
+    const ref=fsMod.doc(db,'chessGames',gameDocId);
+    const snap=await fsMod.getDoc(ref);
+    if(!snap.exists()){
+      if(typeof window.odaToast==='function') window.odaToast('Room no longer exists','error');
+      goHome();return;
+    }
+    const data=snap.data();
+    const nextGame=(data.seriesGame||1)+1;
+    // Alternate colors: odd games = P1 white, even games = P1 black
+    const nextTurn='w'; // always starts with white
+    coinsAwarded=0;
+    gameOver=false;
+
+    // Build a fresh initial board
+    const freshBoard=[BR,BN,BB,BQ,BK,BB,BN,BR,BP,BP,BP,BP,BP,BP,BP,BP,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,WP,WP,WP,WP,WP,WP,WP,WP,WR,WN,WB,WQ,WK,WB,WN,WR];
+
+    await fsMod.updateDoc(ref,{
+      board:JSON.stringify(freshBoard),
+      turn:nextTurn,
+      moves:[],
+      castling:JSON.stringify({wk:true,wq:true,bk:true,bq:true}),
+      enPassant:-1,
+      status:'playing',
+      result:null,
+      seriesGame:nextGame
+    });
+  }catch(e){
+    console.error('nextSeriesGame error:',e);
+    if(typeof window.odaToast==='function') window.odaToast('Failed to start next game','error');
+  }
+}
+
+async function replayDraw(){
+  // Replay the same game number (draws don't count in series)
+  if(!gameDocId)return;
+  try{
+    const {db,fsMod}=window.getFirebaseDB();
+    const ref=fsMod.doc(db,'chessGames',gameDocId);
+    const snap=await fsMod.getDoc(ref);
+    if(!snap.exists()){
+      if(typeof window.odaToast==='function') window.odaToast('Room no longer exists','error');
+      goHome();return;
+    }
+    coinsAwarded=0;
+    gameOver=false;
+
+    const freshBoard=[BR,BN,BB,BQ,BK,BB,BN,BR,BP,BP,BP,BP,BP,BP,BP,BP,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,WP,WP,WP,WP,WP,WP,WP,WP,WR,WN,WB,WQ,WK,WB,WN,WR];
+
+    await fsMod.updateDoc(ref,{
+      board:JSON.stringify(freshBoard),
+      turn:'w',
+      moves:[],
+      castling:JSON.stringify({wk:true,wq:true,bk:true,bq:true}),
+      enPassant:-1,
+      status:'playing',
+      result:null
+    });
+  }catch(e){
+    console.error('replayDraw error:',e);
+    if(typeof window.odaToast==='function') window.odaToast('Failed to replay game','error');
+  }
+}
+
+async function rematchGame(){
+  // Reset for a whole new match/series with same opponent, same room
+  if(!gameDocId)return;
+  try{
+    const {db,fsMod}=window.getFirebaseDB();
+    const ref=fsMod.doc(db,'chessGames',gameDocId);
+    const snap=await fsMod.getDoc(ref);
+    if(!snap.exists()){
+      if(typeof window.odaToast==='function') window.odaToast('Room no longer exists','error');
+      goHome();return;
+    }
+    const data=snap.data();
+    const format=data.seriesFormat||1;
+    coinsAwarded=0;
+    gameOver=false;
+
+    const freshBoard=[BR,BN,BB,BQ,BK,BB,BN,BR,BP,BP,BP,BP,BP,BP,BP,BP,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,WP,WP,WP,WP,WP,WP,WP,WP,WR,WN,WB,WQ,WK,WB,WN,WR];
+
+    await fsMod.updateDoc(ref,{
+      board:JSON.stringify(freshBoard),
+      turn:'w',
+      moves:[],
+      castling:JSON.stringify({wk:true,wq:true,bk:true,bq:true}),
+      enPassant:-1,
+      status:'playing',
+      result:null,
+      seriesFormat:format,
+      seriesScore:[0,0],
+      seriesGame:1,
+      seriesWinner:null
+    });
+  }catch(e){
+    console.error('rematchGame error:',e);
+    if(typeof window.odaToast==='function') window.odaToast('Failed to start rematch','error');
+  }
 }
 
 // ── Records ────────────────────────────────────────────────────
@@ -1957,7 +2396,8 @@ document.addEventListener('DOMContentLoaded', init);
 // ── Public API ─────────────────────────────────────────────────
 return {
   showScreen, startAiGame, createGame, joinGame, cancelGame,
-  flipBoard, resignGame, offerDraw, playAgain, loadRecords
+  flipBoard, resignGame, offerDraw, playAgain, goHome, loadRecords,
+  pickFormat, nextSeriesGame, replayDraw, rematchGame
 };
 
 })();

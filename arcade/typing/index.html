@@ -590,10 +590,33 @@ let unsub = null;
 let raceData = null;
 let raceFinished = false;
 
+// ===== COSMETICS =====
+let myCosmetics = {};
+(async function loadMyCosmetics(){
+  const sid = localStorage.getItem('studentId');
+  if(!sid) return;
+  try{
+    await initFB();
+    const snap = await getDoc(doc(db, 'students', sid));
+    if(snap.exists()){ myCosmetics = snap.data().equipped || {}; }
+  }catch(e){ console.warn('Cosmetics load error:', e); }
+})();
+
+function applyNameColor(el, color){
+  if(!el || !color) return;
+  if(color.type === 'gradient' || color.type === 'animated-gradient'){
+    el.style.background = color.value;
+    el.style.webkitBackgroundClip = 'text';
+    el.style.webkitTextFillColor = 'transparent';
+  } else {
+    el.style.color = color.value;
+  }
+}
+
 // ============================================
 // Audio Engine (Web Audio API)
 // ============================================
-const Audio = {
+const SFX = {
   ctx: null,
   init() {
     if (this.ctx) return;
@@ -939,7 +962,7 @@ function clearImport() {
 // Game Logic - Solo Practice
 // ============================================
 async function startGame() {
-  Audio.init();
+  SFX.init();
   coinsAwarded = false;
   charIndex = 0; correctChars = 0; incorrectChars = 0; totalKeystrokes = 0; wordsCompleted = 0;
   timeLeft = timeLimit;
@@ -1009,18 +1032,18 @@ function processChar(typed, containerId) {
     charEl.classList.remove('current', 'upcoming');
     charEl.classList.add('correct');
     correctChars++;
-    Audio.play('key');
+    SFX.play('key');
 
     if (expected === ' ' || charIndex === gameText.length - 1) {
       wordsCompleted++;
-      Audio.play('word');
+      SFX.play('word');
     }
   } else {
     charEl.classList.remove('current', 'upcoming');
     charEl.classList.add('incorrect');
     charEl.textContent = typed === ' ' ? '\u00A0' : typed;
     incorrectChars++;
-    Audio.play('error');
+    SFX.play('error');
   }
 
   charIndex++;
@@ -1115,11 +1138,11 @@ async function endGame() {
 
   if (isNewRecord) {
     document.getElementById('newRecordArea').innerHTML = '<div class="new-record-badge">&#127881; New Personal Record!</div>';
-    Audio.play('record');
-    window.odaConfetti();
+    SFX.play('record');
+    if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti');
   } else {
     document.getElementById('newRecordArea').innerHTML = '';
-    Audio.play('finish');
+    SFX.play('finish');
   }
 
   document.getElementById('resultActions').innerHTML =
@@ -1254,7 +1277,7 @@ function showCountdown() {
         numEl.style.animation = 'none';
         numEl.offsetWidth;
         numEl.style.animation = '';
-        Audio.play('countdown');
+        SFX.play('countdown');
         count--;
         setTimeout(tick, 900);
       } else {
@@ -1263,7 +1286,7 @@ function showCountdown() {
         numEl.style.animation = 'none';
         numEl.offsetWidth;
         numEl.style.animation = '';
-        Audio.play('go');
+        SFX.play('go');
         setTimeout(function() {
           overlay.style.display = 'none';
           resolve();
@@ -1302,7 +1325,7 @@ async function createRoom() {
     roomCode = genCode();
     let ref = doc(db, 'typingGames', roomCode);
     let snap = await getDoc(ref);
-    if (snap.exists()) { roomCode = genCode(); ref = doc(db, 'typingGames', roomCode); }
+    let retries=0;while(snap.exists()&&retries<10){roomCode=genCode();ref=doc(db,'typingGames',roomCode);snap=await getDoc(ref);retries++}
 
     isHost = true;
     const playerObj = {};
@@ -1405,7 +1428,9 @@ function renderPlayerList(players) {
       const color = PLAYER_COLORS[i];
       const isMe = ids[i] === studentId;
       const isHostPlayer = raceData && raceData.host === ids[i];
-      html += '<div class="player-slot"><div class="ps-avatar" style="background:' + color + ';color:#fff">' + PLAYER_CARS[i] + '</div><div class="ps-name"' + (isMe ? ' style="color:var(--accent)"' : '') + '>' + window.esc(p.name) + (isMe ? ' (You)' : '') + '</div>' + (isHostPlayer ? '<div class="ps-host">Host</div>' : '') + '</div>';
+      var avatarContent = (isMe && myCosmetics.avatar?.emoji) ? myCosmetics.avatar.emoji : PLAYER_CARS[i];
+      var nameStyle = isMe ? ' style="color:var(--accent)"' : '';
+      html += '<div class="player-slot"><div class="ps-avatar" style="background:' + color + ';color:#fff">' + avatarContent + '</div><div class="ps-name"' + nameStyle + '>' + window.esc(p.name) + (isMe ? ' (You)' : '') + '</div>' + (isHostPlayer ? '<div class="ps-host">Host</div>' : '') + '</div>';
     } else {
       html += '<div class="player-slot empty"><div class="ps-avatar" style="background:var(--surface2)">?</div><div class="ps-name">Empty</div></div>';
     }
@@ -1454,7 +1479,13 @@ async function startRace() {
 }
 
 async function beginRace(data) {
-  if (unsub) unsub();
+  // Clean up any previous race state (important for rematch)
+  if (unsub) { unsub(); unsub = null; }
+  if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
+  gameActive = false;
+  const prevInput = document.getElementById('raceInput');
+  if (prevInput) prevInput.removeEventListener('input', handleRaceInput);
+
   gameMode = 'multi';
   difficulty = data.difficulty || 'easy';
   timeLimit = data.timeLimit || 60;
@@ -1473,7 +1504,7 @@ async function beginRace(data) {
   document.getElementById('raceTime').textContent = timeLeft;
   document.getElementById('raceProgressFill').style.width = '0%';
 
-  Audio.init();
+  SFX.init();
   await showCountdown();
 
   gameActive = true;
@@ -1554,7 +1585,8 @@ function renderRaceTrack(players) {
     const progress = Math.min(p.progress || 0, 100);
     const leftPct = Math.min(progress, 95);
     html += '<div class="race-lane' + (isMe ? ' me' : '') + '">';
-    html += '<div class="lane-name" style="color:' + color + '">' + window.esc(p.name) + '</div>';
+    var laneAvatar = (isMe && myCosmetics.avatar?.emoji) ? '<span style="margin-right:4px">' + myCosmetics.avatar.emoji + '</span>' : '';
+    html += '<div class="lane-name" style="color:' + color + '">' + laneAvatar + window.esc(p.name) + '</div>';
     html += '<div class="lane-track"><div class="lane-fill" style="width:' + progress + '%;background:' + color + '"></div><div class="lane-car" style="left:calc(' + leftPct + '% - 12px)">' + car + '</div></div>';
     html += '<div class="lane-wpm">' + (p.wpm || 0) + ' wpm</div>';
     html += '</div>';
@@ -1609,7 +1641,6 @@ async function endRaceForMe() {
 function endRaceComplete(data) {
   if (raceFinished) return;
   raceFinished = true;
-  if (unsub) { unsub(); unsub = null; }
   if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
   gameActive = false;
 
@@ -1671,22 +1702,108 @@ function endRaceComplete(data) {
 
   if (isNewRecord) {
     document.getElementById('newRecordArea').innerHTML = '<div class="new-record-badge">&#127881; New Personal Record!</div>';
-    Audio.play('record');
-    window.odaConfetti();
+    SFX.play('record');
+    if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti');
   } else {
     document.getElementById('newRecordArea').innerHTML = '';
-    if (myRank === 1) { Audio.play('finish'); window.odaConfetti(); }
-    else Audio.play('finish');
+    if (myRank === 1) { SFX.play('finish'); if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti'); }
+    else SFX.play('finish');
   }
 
+  // Show rematch + home buttons for multiplayer
   document.getElementById('resultActions').innerHTML =
-    '<button class="btn btn-accent" onclick="TR.showMulti()">Race Again</button>' +
-    '<button class="btn btn-outline" onclick="TR.showScreen(\'homeScreen\')">Home</button>';
+    '<button class="btn btn-accent" onclick="TR.rematchGame()">\uD83D\uDD04 Rematch</button>' +
+    '<button class="btn btn-outline" onclick="TR.goHomeFromResult()">Home</button>';
 
   if (!coinsAwarded && !studentId.startsWith('anon_')) {
     coinsAwarded = true;
     awardCoins(coins);
   }
+
+  // Start listening for rematch (other player triggering it)
+  listenForRematch();
+}
+
+/**
+ * Listen on the current room doc for a rematch transition.
+ * When any player clicks Rematch, the doc status changes to 'countdown'
+ * with fresh text, which this listener picks up for all players.
+ */
+function listenForRematch() {
+  if (unsub) unsub();
+  if (!roomCode) return;
+  const ref = doc(db, 'typingGames', roomCode);
+  unsub = onSnapshot(ref, function(snap) {
+    if (!snap.exists()) {
+      // Room was deleted while on result screen
+      if (unsub) { unsub(); unsub = null; }
+      return;
+    }
+    const data = snap.data();
+    // If the room transitions to countdown, begin the rematch race
+    if (data.status === 'countdown' && raceFinished) {
+      beginRace(data);
+    }
+  });
+}
+
+/**
+ * Reset the Firestore room doc so both players race again with new text.
+ * Keeps the same players, difficulty, and time limit.
+ */
+async function rematchGame() {
+  if (!roomCode) { window.odaToast('No room to rematch in', 'error'); showScreen('homeScreen'); return; }
+  try {
+    await initFB();
+    const ref = doc(db, 'typingGames', roomCode);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      window.odaToast('Room no longer exists', 'error');
+      roomCode = null; isHost = false; raceFinished = false;
+      if (unsub) { unsub(); unsub = null; }
+      showScreen('homeScreen');
+      return;
+    }
+    const data = snap.data();
+    const diff = data.difficulty || 'easy';
+    const tl = data.timeLimit || 60;
+    const charCount = tl <= 30 ? 400 : tl <= 60 ? 700 : 1200;
+    const newText = generateText(diff, charCount);
+
+    // Reset every player's progress/stats in the players map
+    const players = data.players || {};
+    const resetPlayers = {};
+    Object.keys(players).forEach(function(pid) {
+      resetPlayers[pid] = {
+        name: players[pid].name,
+        progress: 0,
+        wpm: 0,
+        finished: false,
+        finishTime: 0,
+        accuracy: 0
+      };
+    });
+
+    await updateDoc(ref, {
+      status: 'countdown',
+      text: newText,
+      players: resetPlayers
+    });
+    // The onSnapshot listener (listenForRematch) will pick this up
+    // and call beginRace() for all connected players
+  } catch(e) {
+    console.error('rematchGame:', e);
+    window.odaToast('Rematch failed', 'error');
+  }
+}
+
+/**
+ * Leave the room cleanly and go home from the result screen.
+ */
+function goHomeFromResult() {
+  if (unsub) { unsub(); unsub = null; }
+  roomCode = null; isHost = false; raceFinished = false;
+  showScreen('homeScreen');
 }
 
 async function leaveRoom() {
@@ -1777,7 +1894,9 @@ window.TR = {
   selectSpellingList,
   clearImport,
   selectLobbyDiff,
-  selectLobbyTime
+  selectLobbyTime,
+  rematchGame,
+  goHomeFromResult
 };
 
 })();

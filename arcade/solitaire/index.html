@@ -186,6 +186,14 @@ if (isTeacher) {
   document.getElementById('winBackLink').href = '../../teacher.html';
 }
 
+// ===== COSMETICS =====
+let myCosmetics={};
+(async()=>{
+  const sid=localStorage.getItem('studentId');
+  if(!sid)return;
+  try{const fb=await getFirebaseDB();const snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));if(snap.exists())myCosmetics=snap.data().equipped||{};}catch(e){}
+})();
+
 // ===== CONSTANTS =====
 var SUITS = ['s','h','d','c']; // spades, hearts, diamonds, clubs
 var SUIT_SYMBOLS = {s:'\u2660',h:'\u2665',d:'\u2666',c:'\u2663'};
@@ -890,7 +898,7 @@ function checkWin() {
 
 function onWin() {
   playSound('win');
-  odaConfetti();
+  if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti');else if(typeof odaConfetti==='function')odaConfetti();
 
   // Cascade animation
   setTimeout(cascadeCards, 500);

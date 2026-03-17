@@ -314,6 +314,18 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
    KEYBOARD WARRIORS - Complete Typing Battle Game
    ============================================================ */
 
+// ===== COSMETICS =====
+var myCosmetics={};
+(function(){
+  var sid=localStorage.getItem('studentId');
+  if(!sid)return;
+  getFirebaseDB().then(function(fb){
+    return fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));
+  }).then(function(snap){
+    if(snap.exists())myCosmetics=snap.data().equipped||{};
+  }).catch(function(e){console.log('[KW] Cosmetics load error:',e)});
+})();
+
 /* ---- Word Lists ---- */
 var WORD_LISTS = {
   easy: ['the','and','cat','dog','run','big','red','sun','hat','map','cup','box','sit','top','fun','hot','let','go','up','did','can','him','her','get','was','but','not','you','all','had','one','our','out','day','use','way','may','say','she','two','how','its','has','old','see','now','new','any','few','set','try','ask','own','put','end','too','us','man','air','off','boy','did','oil','old','far','low','yes','lot','add','age','ago','mix','art','act','arm','bed','bit','bar','bat','bug','bus','cap','car','cut','cry','dug','ear','eat','egg','end','eye','fan','fit','fix','fly','for','fox','gas','got','gun','gum','gut','gym','hid','hit','hop','hug','ice','ill','ink','jam','jar','jaw','jet','jog','joy','key','kid','lap','lip','lit','log','mad','met','mop','mud','nap','net','nod','nor','nut','odd','pad','pan','pay','pen','pet','pie','pig','pin','pit','pop','pot','pub','rag','ram','ran','rat','raw','ray','rib','rid','rip','rob','rod','row','rub','rug','sad','saw','sir','sip','sob','sow','spy','sum','tab','tag','tan','tap','tax','tea','ten','tie','tin','tip','toe','ton','toy','tub','tug','van','vet','vow','war','web','wet','wig','win','wit','woke','won','zoo'],
@@ -1659,7 +1671,8 @@ function endGame(won) {
   showScreen('summaryScreen');
 
   if (won) {
-    if (typeof odaConfetti === 'function') odaConfetti();
+    if (typeof odaCelebrate === 'function') odaCelebrate(myCosmetics.winEffect&&myCosmetics.winEffect.type||'stars');
+    else if (typeof odaConfetti === 'function') odaConfetti();
   }
 }
 

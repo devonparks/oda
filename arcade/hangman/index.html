@@ -298,6 +298,44 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   .kb-key{width:26px;height:32px;font-size:11px}
   .kb-row{gap:3px}
 }
+
+/* ======================== */
+/* FORMAT PICKER             */
+/* ======================== */
+.format-grid{display:flex;gap:8px;justify-content:center;margin:12px 0 16px;flex-wrap:wrap}
+.format-option{padding:10px 18px;border-radius:12px;background:var(--surface);border:2px solid var(--border);color:var(--text2);font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;text-align:center;min-width:70px}
+.format-option:hover{border-color:var(--accent);color:var(--text)}
+.format-option.selected{border-color:var(--accent);background:rgba(6,214,160,.1);color:var(--accent)}
+.format-option .format-label{font-size:11px;color:var(--text2);display:block;margin-top:2px;font-weight:500}
+.format-option.selected .format-label{color:var(--accent)}
+
+/* ======================== */
+/* SERIES BAR (in-game)      */
+/* ======================== */
+.series-bar{position:fixed;top:0;left:0;right:0;z-index:60;background:rgba(10,14,26,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;justify-content:center;gap:16px;font-size:14px;font-weight:700}
+.series-bar .sb-game{color:var(--text2);font-size:12px;text-transform:uppercase;letter-spacing:1px}
+.series-bar .sb-score{display:flex;align-items:center;gap:12px;font-family:'Fredoka',sans-serif;font-size:20px}
+.series-bar .sb-p1{color:var(--accent2)}
+.series-bar .sb-p2{color:var(--gold)}
+.series-bar .sb-dash{color:var(--text2);font-size:14px}
+.has-series #gameScreen{padding-top:100px}
+
+/* ======================== */
+/* SERIES RESULT DISPLAY     */
+/* ======================== */
+.series-score-display{display:flex;align-items:center;justify-content:center;gap:20px;margin:16px 0;padding:16px 24px;background:var(--surface);border:1px solid var(--border);border-radius:16px}
+.series-score-display .ssd-player{text-align:center;min-width:80px}
+.series-score-display .ssd-name{font-size:13px;color:var(--text2);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.series-score-display .ssd-score{font-size:36px;font-weight:900;font-family:'Fredoka',sans-serif}
+.series-score-display .ssd-p1 .ssd-score{color:var(--accent2)}
+.series-score-display .ssd-p2 .ssd-score{color:var(--gold)}
+.series-score-display .ssd-vs{color:var(--text2);font-size:22px;font-weight:700;font-family:'Fredoka',sans-serif}
+.series-game-label{text-align:center;font-size:13px;color:var(--text2);margin-bottom:4px;font-weight:600}
+.series-winner-text{font-size:15px;color:var(--accent);font-weight:700;margin-top:8px;text-align:center}
+
+/* Waiting format badge */
+.waiting-format{margin-top:12px;font-size:14px;color:var(--text2);font-weight:600}
+.waiting-format .wf-badge{display:inline-block;padding:4px 14px;border-radius:20px;background:rgba(6,214,160,.1);color:var(--accent);font-weight:700;font-size:13px;border:1px solid rgba(6,214,160,.2)}
 </style>
 </head>
 <body>
@@ -389,6 +427,14 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 <!-- GAME SCREEN              -->
 <!-- ======================== -->
 <div class="screen" id="gameScreen">
+  <div class="series-bar" id="seriesBar" style="display:none">
+    <span class="sb-game" id="sbGame">Game 1</span>
+    <div class="sb-score">
+      <span class="sb-p1" id="sbP1Score">0</span>
+      <span class="sb-dash">&mdash;</span>
+      <span class="sb-p2" id="sbP2Score">0</span>
+    </div>
+  </div>
   <div class="game-container">
     <!-- Solo HUD -->
     <div class="game-hud" id="soloHud">
@@ -466,8 +512,9 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <div class="coins-display" id="coinsDisplay" style="display:none">
       <span>&#129689;</span> +<span id="coinsAmount">0</span> coins
     </div>
+    <div id="seriesResultArea"></div>
     <div class="record-update" id="recordUpdate"></div>
-    <div class="result-actions">
+    <div class="result-actions" id="resultActions">
       <button class="btn btn-accent" onclick="HM.playAgain()">Play Again</button>
       <button class="btn btn-outline" onclick="HM.goHome()">Home</button>
     </div>
@@ -482,6 +529,15 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <h2>&#9876;&#65039; Quick Match</h2>
     <p class="sub">Challenge a friend!</p>
     <div class="qm-actions">
+      <div style="width:100%">
+        <div class="section-title" style="text-align:center;margin-bottom:6px">Game Format</div>
+        <div class="format-grid" id="formatGrid">
+          <div class="format-option selected" data-format="1" onclick="HM.pickFormat(1)">1v1<span class="format-label">Single</span></div>
+          <div class="format-option" data-format="3" onclick="HM.pickFormat(3)">Bo3<span class="format-label">Best of 3</span></div>
+          <div class="format-option" data-format="5" onclick="HM.pickFormat(5)">Bo5<span class="format-label">Best of 5</span></div>
+          <div class="format-option" data-format="7" onclick="HM.pickFormat(7)">Bo7<span class="format-label">Best of 7</span></div>
+        </div>
+      </div>
       <button class="btn btn-accent" onclick="HM.createRoom()">Create Room</button>
       <div class="qm-divider"><span>or</span></div>
       <div class="join-row">
@@ -502,6 +558,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <h2>Waiting for Opponent</h2>
     <div class="room-code-big" id="waitingCode">ABCD</div>
     <p class="waiting-pulse">Share this code with a friend...</p>
+    <div class="waiting-format" id="waitingFormat"></div>
 
     <div class="word-entry" id="wordEntryArea" style="display:none">
       <label>Enter a word for your opponent to guess:</label>
@@ -654,6 +711,51 @@ let mpRole = null; // 'picker' or 'guesser'
 let unsubRoom = null;
 let mpRound = 0;
 
+/* Series/format state */
+let resultTimeout = null;
+let selectedFormat = 1;
+let seriesFormat = 1;
+let seriesScore = [0, 0];
+let seriesGame = 1;
+let seriesWinner = null;
+
+/* ===================== */
+/* COSMETICS             */
+/* ===================== */
+let myCosmetics = {};
+(async function loadMyCosmetics(){
+  const sid = localStorage.getItem('studentId');
+  if(!sid) return;
+  try{
+    await initFirebase();
+    const snap = await getDoc(doc(db, 'students', sid));
+    if(snap.exists()){ myCosmetics = snap.data().equipped || {}; }
+  }catch(e){ console.warn('Cosmetics load error:', e); }
+})();
+
+function applyNameColor(el, color){
+  if(!el || !color) return;
+  if(color.type === 'gradient' || color.type === 'animated-gradient'){
+    el.style.background = color.value;
+    el.style.webkitBackgroundClip = 'text';
+    el.style.webkitTextFillColor = 'transparent';
+  } else {
+    el.style.color = color.value;
+  }
+}
+
+function applyMpCosmetics(){
+  if(!mpMode) return;
+  const avatar = myCosmetics.avatar?.emoji;
+  const nameColor = myCosmetics.nameColor;
+  // mpRole: 'picker' or 'guesser'
+  const myPanel = mpRole === 'picker' ? 'mpPicker' : 'mpGuesser';
+  const myAvatarEl = document.getElementById(mpRole === 'picker' ? 'mpPickerAvatar' : 'mpGuesserAvatar');
+  const myNameEl = document.getElementById(mpRole === 'picker' ? 'mpPickerName' : 'mpGuesserName');
+  if(avatar && myAvatarEl) myAvatarEl.textContent = avatar;
+  if(nameColor) applyNameColor(myNameEl, nameColor);
+}
+
 /* ===================== */
 /* SOUND (Web Audio)     */
 /* ===================== */
@@ -718,6 +820,41 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const el = document.getElementById(id);
   if (el) el.classList.add('active');
+}
+
+/* ===================== */
+/* FORMAT PICKER         */
+/* ===================== */
+function pickFormat(n) {
+  selectedFormat = n;
+  document.querySelectorAll('.format-option').forEach(el => {
+    el.classList.toggle('selected', parseInt(el.dataset.format) === n);
+  });
+}
+
+function formatLabel(n) {
+  if (n === 3) return 'Best of 3';
+  if (n === 5) return 'Best of 5';
+  if (n === 7) return 'Best of 7';
+  return 'Single Game';
+}
+
+function updateSeriesBar(data) {
+  const bar = document.getElementById('seriesBar');
+  const format = data.seriesFormat || 1;
+  if (format <= 1) {
+    bar.style.display = 'none';
+    document.body.classList.remove('has-series');
+    return;
+  }
+  bar.style.display = 'flex';
+  document.body.classList.add('has-series');
+  const score = data.seriesScore || [0, 0];
+  const game = data.seriesGame || 1;
+  const winsNeeded = Math.ceil(format / 2);
+  document.getElementById('sbGame').textContent = 'Game ' + game + ' \u00B7 First to ' + winsNeeded;
+  document.getElementById('sbP1Score').textContent = score[0];
+  document.getElementById('sbP2Score').textContent = score[1];
 }
 
 /* ===================== */
@@ -1088,7 +1225,7 @@ async function endGame(won) {
     playSound('win');
     showHappyFace();
     currentStreak++;
-    if (typeof odaConfetti === 'function') odaConfetti();
+    if (typeof odaCelebrate === 'function') odaCelebrate(myCosmetics.winEffect?.type || 'confetti');
     createWinBurst();
   } else {
     playSound('lose');
@@ -1145,6 +1282,13 @@ async function endGame(won) {
     <div class="stat-box"><div class="stat-val" style="color:var(--accent)">${currentStreak}</div><div class="stat-label">Streak</div></div>
     <div class="stat-box"><div class="stat-val">${DIFFICULTY[difficulty]?.label || 'N/A'}</div><div class="stat-label">Difficulty</div></div>
   `;
+
+  // Clear series area for solo games
+  document.getElementById('seriesResultArea').innerHTML = '';
+  // Reset action buttons for solo
+  document.getElementById('resultActions').innerHTML =
+    '<button class="btn btn-accent" onclick="HM.playAgain()">Play Again</button>' +
+    '<button class="btn btn-outline" onclick="HM.goHome()">Home</button>';
 
   setTimeout(() => showScreen('resultScreen'), mpMode ? 200 : 600);
 }
@@ -1425,6 +1569,10 @@ function clearImported() {
 function showQuickMatch() {
   document.getElementById('joinError').textContent = '';
   document.getElementById('joinCodeInput').value = '';
+  selectedFormat = 1;
+  document.querySelectorAll('.format-option').forEach(el => {
+    el.classList.toggle('selected', parseInt(el.dataset.format) === 1);
+  });
   showScreen('quickMatchScreen');
 }
 
@@ -1455,12 +1603,22 @@ async function createRoom() {
       picker: studentId,
       guesser: null,
       classCode: classCode || '',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      seriesFormat: selectedFormat,
+      seriesScore: [0, 0],
+      seriesGame: 1,
+      seriesWinner: null
     });
 
     document.getElementById('waitingCode').textContent = roomCode;
     document.getElementById('wordEntryArea').style.display = 'none';
     document.getElementById('waitingInfo').textContent = 'Waiting for another player to join...';
+    const wf = document.getElementById('waitingFormat');
+    if (selectedFormat > 1) {
+      wf.innerHTML = '<span class="wf-badge">' + formatLabel(selectedFormat) + '</span>';
+    } else {
+      wf.innerHTML = '<span class="wf-badge">Single Game</span>';
+    }
     showScreen('waitingScreen');
 
     listenToRoom();
@@ -1520,6 +1678,12 @@ function listenToRoom() {
     mpRole = data.picker === studentId ? 'picker' : 'guesser';
     mpRound = data.round || 1;
 
+    // Read series data
+    seriesFormat = data.seriesFormat || 1;
+    seriesScore = data.seriesScore || [0, 0];
+    seriesGame = data.seriesGame || 1;
+    seriesWinner = data.seriesWinner || null;
+
     if (data.status === 'waiting') {
       // Still waiting for guest
       document.getElementById('waitingCode').textContent = roomCode;
@@ -1528,6 +1692,10 @@ function listenToRoom() {
       showScreen('waitingScreen');
     }
     else if (data.status === 'picking') {
+      // Clear any pending result timeout (important for series transitions)
+      if (resultTimeout) { clearTimeout(resultTimeout); resultTimeout = null; }
+      coinsAwarded = false;
+
       if (mpRole === 'picker') {
         // I need to pick a word
         document.getElementById('waitingCode').textContent = roomCode;
@@ -1546,6 +1714,10 @@ function listenToRoom() {
       }
     }
     else if (data.status === 'playing') {
+      // Clear any pending result timeout (important for series transitions)
+      if (resultTimeout) { clearTimeout(resultTimeout); resultTimeout = null; }
+      coinsAwarded = false;
+
       // Game is active
       currentWord = data.word.toUpperCase();
       guessedLetters = new Set(data.guessedLetters ? data.guessedLetters.split(',').filter(Boolean) : []);
@@ -1555,7 +1727,6 @@ function listenToRoom() {
       hintAllowed = false;
       hintUsed = true;
       mpMode = true;
-      coinsAwarded = false;
 
       // Set up HUD
       document.getElementById('soloHud').style.display = 'none';
@@ -1567,6 +1738,7 @@ function listenToRoom() {
       document.getElementById('mpGuesserName').textContent = guesserName || 'Guesser';
       document.getElementById('mpPickerAvatar').textContent = (pickerName || 'P').charAt(0).toUpperCase();
       document.getElementById('mpGuesserAvatar').textContent = (guesserName || 'G').charAt(0).toUpperCase();
+      applyMpCosmetics();
 
       if (mpRole === 'picker') {
         document.getElementById('mpPicker').classList.add('active-player');
@@ -1578,6 +1750,7 @@ function listenToRoom() {
 
       gameActive = mpRole === 'guesser';
       setupGameUI();
+      updateSeriesBar(data);
 
       // If I'm picker, disable keyboard
       if (mpRole === 'picker') {
@@ -1596,35 +1769,8 @@ function listenToRoom() {
       currentWord = data.word.toUpperCase();
       guessedLetters = new Set(data.guessedLetters ? data.guessedLetters.split(',').filter(Boolean) : []);
       wrongCount = data.wrongCount || 0;
-      const won = mpRole === 'guesser' && data.winner === 'guesser';
-      const lost = mpRole === 'guesser' && data.winner !== 'guesser';
 
-      if (mpRole === 'guesser') {
-        endGame(won);
-      } else {
-        // Picker sees the result
-        const guesserWon = data.winner === 'guesser';
-        document.getElementById('resultTitle').textContent = guesserWon ? 'They Got It!' : 'They Lost!';
-        document.getElementById('resultTitle').style.color = guesserWon ? 'var(--accent)' : 'var(--accent3)';
-        document.getElementById('resultSub').textContent = guesserWon ? 'Your opponent figured it out.' : 'Your word stumped them!';
-        document.getElementById('resultWord').textContent = currentWord;
-        document.getElementById('resultWord').className = 'result-word ' + (guesserWon ? 'win' : 'lose');
-        document.getElementById('coinsDisplay').style.display = 'none';
-
-        // Award coins to picker if guesser lost
-        if (!guesserWon && !coinsAwarded) {
-          document.getElementById('coinsDisplay').style.display = '';
-          document.getElementById('coinsAmount').textContent = '10';
-          awardCoins(10);
-          coinsAwarded = true;
-        }
-
-        document.getElementById('recordUpdate').innerHTML = '';
-        showScreen('resultScreen');
-      }
-
-      if (unsubRoom) unsubRoom();
-      unsubRoom = null;
+      resultTimeout = setTimeout(() => showMPResult(data), 600);
     }
   });
 }
@@ -1682,9 +1828,30 @@ async function syncMPGuess(letter) {
     if (allGuessed) {
       update.status = 'finished';
       update.winner = 'guesser';
+      // Update series score: guesser wins this game
+      // guesser is player index 1 (0-based: host=0, guest=1 when host picks; guest=0, host=1 when guest picks)
+      const score = data.seriesScore ? [...data.seriesScore] : [0, 0];
+      const guesserIdx = data.guesser === data.host ? 0 : 1;
+      score[guesserIdx]++;
+      update.seriesScore = score;
+      const format = data.seriesFormat || 1;
+      const winsNeeded = Math.ceil(format / 2);
+      if (score[guesserIdx] >= winsNeeded) {
+        update.seriesWinner = data.guesser;
+      }
     } else if (lost) {
       update.status = 'finished';
       update.winner = 'picker';
+      // Update series score: picker wins this game
+      const score = data.seriesScore ? [...data.seriesScore] : [0, 0];
+      const pickerIdx = data.picker === data.host ? 0 : 1;
+      score[pickerIdx]++;
+      update.seriesScore = score;
+      const format = data.seriesFormat || 1;
+      const winsNeeded = Math.ceil(format / 2);
+      if (score[pickerIdx] >= winsNeeded) {
+        update.seriesWinner = data.picker;
+      }
     }
 
     await updateDoc(ref, update);
@@ -1693,6 +1860,7 @@ async function syncMPGuess(letter) {
 
 async function cancelRoom() {
   if (unsubRoom) { unsubRoom(); unsubRoom = null; }
+  if (resultTimeout) { clearTimeout(resultTimeout); resultTimeout = null; }
   if (roomCode) {
     try {
       await initFirebase();
@@ -1702,7 +1870,200 @@ async function cancelRoom() {
   roomCode = null;
   mpMode = false;
   mpRole = null;
+  seriesFormat = 1; seriesScore = [0, 0]; seriesGame = 1; seriesWinner = null;
+  document.getElementById('seriesBar').style.display = 'none';
+  document.body.classList.remove('has-series');
   showScreen('homeScreen');
+}
+
+/* ===================== */
+/* MULTIPLAYER RESULT    */
+/* (series-aware)        */
+/* ===================== */
+function showMPResult(data) {
+  showScreen('resultScreen');
+  const titleEl = document.getElementById('resultTitle');
+  const subEl = document.getElementById('resultSub');
+  const wordEl = document.getElementById('resultWord');
+  const coinsEl = document.getElementById('coinsDisplay');
+  const recordEl = document.getElementById('recordUpdate');
+  const actionsEl = document.getElementById('resultActions');
+  const seriesArea = document.getElementById('seriesResultArea');
+
+  currentWord = data.word.toUpperCase();
+  wordEl.textContent = currentWord;
+
+  const guesserWon = data.winner === 'guesser';
+  const iAmGuesser = mpRole === 'guesser';
+  const iWonThisGame = (iAmGuesser && guesserWon) || (!iAmGuesser && !guesserWon);
+
+  const format = data.seriesFormat || 1;
+  const score = data.seriesScore || [0, 0];
+  const game = data.seriesGame || 1;
+  const winsNeeded = Math.ceil(format / 2);
+  const isSeriesOver = format <= 1 || score[0] >= winsNeeded || score[1] >= winsNeeded;
+  const myIdx = studentId === data.host ? 0 : 1;
+  const iWonSeries = isSeriesOver && score[myIdx] >= winsNeeded;
+  const iLostSeries = isSeriesOver && score[1 - myIdx] >= winsNeeded;
+
+  let coins = 0;
+  let recordResult = 'loss';
+
+  if (iWonThisGame) {
+    if (iWonSeries && format > 1) {
+      titleEl.textContent = 'Series Winner!';
+      titleEl.style.color = 'var(--accent)';
+      subEl.textContent = 'You won the ' + formatLabel(format) + '!';
+      coins = 30;
+    } else {
+      titleEl.textContent = iAmGuesser ? 'You Got It!' : 'They Failed!';
+      titleEl.style.color = 'var(--accent)';
+      subEl.textContent = format > 1 ? 'Keep it going!' : (iAmGuesser ? 'Great guessing!' : 'Your word stumped them!');
+      coins = 10;
+    }
+    wordEl.className = 'result-word win';
+    recordResult = 'win';
+    playSound('win');
+    if (typeof odaCelebrate === 'function') odaCelebrate(myCosmetics.winEffect?.type || 'confetti');
+  } else {
+    if (iLostSeries && format > 1) {
+      titleEl.textContent = 'Series Over';
+      titleEl.style.color = 'var(--accent3)';
+      subEl.textContent = 'Your opponent won the series';
+      coins = 3;
+    } else {
+      titleEl.textContent = iAmGuesser ? 'Game Over' : 'They Got It!';
+      titleEl.style.color = iAmGuesser ? 'var(--accent3)' : 'var(--accent3)';
+      subEl.textContent = format > 1 ? 'Fight back next game!' : (iAmGuesser ? 'Better luck next time!' : 'Your opponent figured it out.');
+      coins = 3;
+    }
+    wordEl.className = 'result-word lose';
+    recordResult = 'loss';
+    playSound('lose');
+  }
+
+  // Coins
+  if (!coinsAwarded && coins > 0) {
+    document.getElementById('coinsAmount').textContent = coins;
+    coinsEl.style.display = '';
+    awardCoins(coins);
+    coinsAwarded = true;
+    if (studentId) updateRecord(iWonThisGame);
+  } else {
+    coinsEl.style.display = 'none';
+  }
+
+  // Series score display
+  seriesArea.innerHTML = '';
+  if (format > 1) {
+    const hostName = data.hostName || 'Player 1';
+    const guestName = data.guestName || 'Player 2';
+    let winnerHTML = '';
+    if (isSeriesOver && (score[0] >= winsNeeded || score[1] >= winsNeeded)) {
+      const wName = score[0] >= winsNeeded ? hostName : guestName;
+      winnerHTML = '<div class="series-winner-text">\u{1F3C6} ' + esc(wName) + ' wins the series!</div>';
+    }
+    seriesArea.innerHTML =
+      '<div class="series-game-label">Game ' + game + ' of ' + format + ' &middot; First to ' + winsNeeded + '</div>' +
+      '<div class="series-score-display">' +
+        '<div class="ssd-player ssd-p1">' +
+          '<div class="ssd-name">' + esc(hostName) + '</div>' +
+          '<div class="ssd-score">' + score[0] + '</div>' +
+        '</div>' +
+        '<div class="ssd-vs">&mdash;</div>' +
+        '<div class="ssd-player ssd-p2">' +
+          '<div class="ssd-name">' + esc(guestName) + '</div>' +
+          '<div class="ssd-score">' + score[1] + '</div>' +
+        '</div>' +
+      '</div>' + winnerHTML;
+  }
+
+  // Record update
+  recordEl.innerHTML = '';
+
+  // Action buttons based on series context
+  let actionsHTML = '';
+  if (format > 1) {
+    if (isSeriesOver) {
+      actionsHTML = '<button class="btn btn-accent" onclick="HM.rematchGame()">\u{1F504} New Series</button>';
+    } else {
+      actionsHTML = '<button class="btn btn-accent" onclick="HM.nextSeriesGame()">Next Game \u{2192}</button>';
+    }
+  } else {
+    actionsHTML = '<button class="btn btn-accent" onclick="HM.rematchGame()">\u{1F504} Rematch</button>';
+  }
+  actionsHTML += '<button class="btn btn-outline" onclick="HM.goHome()">Home</button>';
+  actionsEl.innerHTML = actionsHTML;
+}
+
+/* ===================== */
+/* SERIES GAME FLOW      */
+/* ===================== */
+async function nextSeriesGame() {
+  if (!roomCode) return;
+  try {
+    await initFirebase();
+    const ref = doc(db, 'hangmanGames', roomCode);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      if (typeof odaToast === 'function') odaToast('Room no longer exists', 'error');
+      goHome(); return;
+    }
+    const data = snap.data();
+    const nextGame = (data.seriesGame || 1) + 1;
+    // Alternate who picks: odd games = host picks, even games = guest picks
+    const newPicker = nextGame % 2 === 1 ? data.host : data.guest;
+    const newGuesser = nextGame % 2 === 1 ? data.guest : data.host;
+    coinsAwarded = false;
+    await updateDoc(ref, {
+      word: '',
+      guessedLetters: '',
+      wrongCount: 0,
+      maxWrong: 6,
+      status: 'picking',
+      winner: null,
+      picker: newPicker,
+      guesser: newGuesser,
+      seriesGame: nextGame
+    });
+  } catch (e) {
+    console.error('nextSeriesGame error:', e);
+    if (typeof odaToast === 'function') odaToast('Failed to start next game', 'error');
+  }
+}
+
+async function rematchGame() {
+  // Reset for a whole new match/series with same opponent, same room
+  if (!roomCode) return;
+  try {
+    await initFirebase();
+    const ref = doc(db, 'hangmanGames', roomCode);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      if (typeof odaToast === 'function') odaToast('Room no longer exists', 'error');
+      goHome(); return;
+    }
+    const data = snap.data();
+    const format = data.seriesFormat || 1;
+    coinsAwarded = false;
+    await updateDoc(ref, {
+      word: '',
+      guessedLetters: '',
+      wrongCount: 0,
+      maxWrong: 6,
+      status: 'picking',
+      winner: null,
+      picker: data.host,
+      guesser: data.guest,
+      seriesFormat: format,
+      seriesScore: [0, 0],
+      seriesGame: 1,
+      seriesWinner: null
+    });
+  } catch (e) {
+    console.error('rematchGame error:', e);
+    if (typeof odaToast === 'function') odaToast('Failed to start rematch', 'error');
+  }
 }
 
 /* ===================== */
@@ -1721,8 +2082,12 @@ function playAgain() {
 
 function goHome() {
   if (unsubRoom) { unsubRoom(); unsubRoom = null; }
+  if (resultTimeout) { clearTimeout(resultTimeout); resultTimeout = null; }
   roomCode = null;
   mpMode = false;
+  seriesFormat = 1; seriesScore = [0, 0]; seriesGame = 1; seriesWinner = null;
+  document.getElementById('seriesBar').style.display = 'none';
+  document.body.classList.remove('has-series');
   showScreen('homeScreen');
   loadHomeStats();
 }
@@ -1771,6 +2136,9 @@ window.HM = {
   playAgain,
   goHome,
   quitGame,
+  pickFormat,
+  nextSeriesGame,
+  rematchGame,
   importFromSpelling,
   importFromFlashcards,
   applySpellingImport,

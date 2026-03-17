@@ -141,6 +141,7 @@ h1,h2,h3{font-family:'Fredoka',sans-serif}
 .result-wrap .result-sub{font-size:16px;color:var(--text2);margin-bottom:6px}
 .coins-display{color:var(--gold);font-size:22px;font-weight:700;margin:12px 0 24px}
 .result-buttons{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.rematch-waiting{opacity:.6;pointer-events:none}
 .final-score{font-family:'Fredoka',sans-serif;font-size:56px;font-weight:700;margin:8px 0}
 .final-score .fs-win{color:var(--accent)}
 .final-score .fs-lose{color:var(--accent3)}
@@ -338,8 +339,8 @@ h1,h2,h3{font-family:'Fredoka',sans-serif}
     <div class="result-sub" id="resultSub"></div>
     <div class="coins-display" id="coinsDisplay"></div>
     <div class="result-buttons">
-      <button class="btn btn-accent" onclick="playAgain()">Play Again</button>
-      <a class="btn btn-outline" id="resultBackLink" href="../../student.html">Back to Hub</a>
+      <button class="btn btn-accent" id="rematchBtn" onclick="rematchGame()">&#x1F504; Rematch</button>
+      <button class="btn btn-outline" onclick="playAgain()">Home</button>
     </div>
   </div>
 </div>
@@ -418,7 +419,6 @@ const classCode=localStorage.getItem('classCode')||'';
 const isTeacher=!localStorage.getItem('studentId')&&(localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher');
 if(isTeacher){
   document.getElementById('backLink').href='../../teacher.html';
-  document.getElementById('resultBackLink').href='../../teacher.html';
 }
 
 // ===== CONSTANTS =====
@@ -443,6 +443,34 @@ let unsub=null;
 
 // AI pattern tracking
 let playerHistory=[];
+
+// ===== COSMETICS =====
+let myCosmetics={};
+async function loadMyCosmetics(){
+  const sid=localStorage.getItem('studentId');
+  if(!sid)return;
+  try{
+    const snap=await getDoc(doc(db,'students',sid));
+    if(snap.exists()){myCosmetics=snap.data().equipped||{};}
+  }catch(e){console.warn('Cosmetics load error:',e);}
+}
+loadMyCosmetics();
+
+function applyNameColor(el,color){
+  if(!el||!color)return;
+  if(color.type==='gradient'||color.type==='animated-gradient'){
+    el.style.background=color.value;
+    el.style.webkitBackgroundClip='text';
+    el.style.webkitTextFillColor='transparent';
+  }else{
+    el.style.color=color.value;
+  }
+}
+
+function applyPlayerCosmetics(){
+  const nameColor=myCosmetics.nameColor;
+  if(nameColor)applyNameColor(document.getElementById('p1Name'),nameColor);
+}
 
 // ===== AUDIO (Web Audio API) =====
 let audioCtx=null;
@@ -520,6 +548,7 @@ function initGameState(){
 function setupGameUI(oppName){
   document.getElementById('p1Name').textContent=studentName||'You';
   document.getElementById('p2Name').textContent=oppName;
+  applyPlayerCosmetics();
   document.getElementById('p1Score').textContent='0';
   document.getElementById('p2Score').textContent='0';
   document.getElementById('gameBestOfLabel').textContent='Best of '+bestOf;
@@ -793,7 +822,7 @@ function showMatchResult(){
       coins=aiDifficulty==='hard'?15:aiDifficulty==='medium'?10:5;
       subEl.textContent='Defeated '+aiDifficulty+' AI';
       sfxMatchWin();
-      launchConfetti();
+      if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti');
     }else{
       titleEl.textContent='AI Wins!';
       titleEl.style.color='var(--accent3)';
@@ -808,7 +837,7 @@ function showMatchResult(){
       coins=15;
       subEl.textContent='Great match!';
       sfxMatchWin();
-      launchConfetti();
+      if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti');
     }else if(isDraw){
       titleEl.textContent='Draw!';
       titleEl.style.color='var(--gold)';
@@ -836,6 +865,60 @@ window.playAgain=function(){
   if(unsub){unsub();unsub=null}
   roomCode=null;myPlayer=0;
   showScreen('homeScreen');
+};
+
+window.rematchGame=async function(){
+  if(gameMode==='ai'){
+    // AI rematch: reset state, keep same difficulty and bestOf
+    initGameState();
+    playerHistory=[];
+    setupGameUI(aiDifficulty.charAt(0).toUpperCase()+aiDifficulty.slice(1)+' AI');
+    showScreen('gameScreen');
+    return;
+  }
+
+  if(gameMode==='mp'&&roomCode){
+    // MP rematch: reset the Firestore doc while keeping players and bestOf
+    const rematchBtn=document.getElementById('rematchBtn');
+    rematchBtn.textContent='Waiting...';
+    rematchBtn.classList.add('rematch-waiting');
+    try{
+      const ref=doc(db,'rpsGames',roomCode);
+      const snap=await getDoc(ref);
+      if(!snap.exists()){
+        odaToast('Room no longer exists','error');
+        if(unsub){unsub();unsub=null}
+        roomCode=null;
+        showScreen('homeScreen');
+        return;
+      }
+      const data=snap.data();
+      // Check opponent is still in the room
+      if(!data.player1||!data.player2){
+        odaToast('Opponent has left the room','error');
+        if(unsub){unsub();unsub=null}
+        roomCode=null;
+        showScreen('homeScreen');
+        return;
+      }
+      await updateDoc(ref,{
+        status:'playing',
+        round:1,
+        player1Score:0,
+        player2Score:0,
+        player1Choice:null,
+        player2Choice:null,
+        history:{},
+        winner:null
+      });
+      // Local state will be reset by the snapshot listener
+    }catch(e){
+      console.error('rematch error:',e);
+      odaToast('Failed to start rematch','error');
+      rematchBtn.textContent='\u{1F504} Rematch';
+      rematchBtn.classList.remove('rematch-waiting');
+    }
+  }
 };
 
 // ===== COINS & RECORDS =====
@@ -944,7 +1027,7 @@ window.createRoom=async function(){
     roomCode=genCode();
     let ref=doc(db,'rpsGames',roomCode);
     let snap=await getDoc(ref);
-    if(snap.exists()){roomCode=genCode();ref=doc(db,'rpsGames',roomCode)}
+    let retries=0;while(snap.exists()&&retries<10){roomCode=genCode();ref=doc(db,'rpsGames',roomCode);snap=await getDoc(ref);retries++}
     await setDoc(ref,{
       gameCode:roomCode,
       player1:studentId,
@@ -1016,8 +1099,11 @@ function listenToGame(){
   const ref=doc(db,'rpsGames',roomCode);
   unsub=onSnapshot(ref,snap=>{
     if(!snap.exists()){
-      if(!matchOver){showScreen('homeScreen')}
+      // Room was deleted - show toast and go home
       if(unsub){unsub();unsub=null}
+      roomCode=null;
+      odaToast('Room was closed','error');
+      showScreen('homeScreen');
       return;
     }
     const data=snap.data();
@@ -1025,6 +1111,23 @@ function listenToGame(){
     if(data.status==='waiting')return;
 
     if(data.status==='playing'){
+      // Detect rematch: if matchOver was true and status flipped back to playing
+      if(matchOver){
+        // Reset all local state for the new match
+        initGameState();
+        mpRevealRunning=false;
+        const oppName=myPlayer===1?(data.player2Name||'Opponent'):(data.player1Name||'Opponent');
+        setupGameUI(oppName);
+        bestOf=data.bestOf||3;
+        document.getElementById('gameBestOfLabel').textContent='Best of '+bestOf;
+        // Reset rematch button state for next time
+        const rematchBtn=document.getElementById('rematchBtn');
+        rematchBtn.textContent='\u{1F504} Rematch';
+        rematchBtn.classList.remove('rematch-waiting');
+        showScreen('gameScreen');
+        return;
+      }
+
       showScreen('gameScreen');
       const oppName=myPlayer===1?(data.player2Name||'Opponent'):(data.player1Name||'Opponent');
       document.getElementById('p1Name').textContent=studentName||'You';
@@ -1230,7 +1333,7 @@ window.createTournament=async function(){
     tourneyCode=genCode();
     let ref=doc(db,'rpsTournaments',tourneyCode);
     let snap=await getDoc(ref);
-    if(snap.exists()){tourneyCode=genCode();ref=doc(db,'rpsTournaments',tourneyCode)}
+    let tRetries=0;while(snap.exists()&&tRetries<10){tourneyCode=genCode();ref=doc(db,'rpsTournaments',tourneyCode);snap=await getDoc(ref);tRetries++}
     isTourneyHost=true;
     await setDoc(ref,{
       code:tourneyCode,
