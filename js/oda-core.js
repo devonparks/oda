@@ -38,12 +38,12 @@
   csp.setAttribute('http-equiv', 'Content-Security-Policy');
   csp.setAttribute('content', [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://apis.google.com https://us-central1-oda-hub-d4bef.cloudfunctions.net",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://apis.google.com https://us-central1-oda-hub-d4bef.cloudfunctions.net https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https:",
-    "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com https://us-central1-oda-hub-d4bef.cloudfunctions.net https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com wss://*.firebaseio.com",
-    "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://docs.google.com https://www.youtube.com https://youtube.com",
+    "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com https://us-central1-oda-hub-d4bef.cloudfunctions.net https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com wss://*.firebaseio.com https://www.google.com/recaptcha/",
+    "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://docs.google.com https://www.youtube.com https://youtube.com https://www.google.com/recaptcha/ https://recaptcha.google.com/",
     "frame-ancestors 'self'",
     "form-action 'self'",
     "base-uri 'self'",
@@ -157,6 +157,22 @@ window.odaSafeUrl = function(url) {
 // ============================================
 var _odaFbCache = null;
 var _odaFbApp = null;
+var _odaAppCheckInit = false;
+
+// SECURITY: Initialize App Check (OWASP A01 / MITRE T1190)
+// Verifies requests come from our real app, not scrapers/bots
+async function _initAppCheck(app) {
+  if (_odaAppCheckInit) return;
+  _odaAppCheckInit = true;
+  try {
+    var cdnBase = 'https://www.gstatic.com/firebasejs/' + ODA_CONFIG.firebaseVersion + '/';
+    var appCheckMod = await import(cdnBase + 'firebase-app-check.js');
+    appCheckMod.initializeAppCheck(app, {
+      provider: new appCheckMod.ReCaptchaV3Provider('6LcZII0sAAAAAEhbfDWiwP4-l9DTJIQOwFa2CzD_'),
+      isTokenAutoRefreshEnabled: true
+    });
+  } catch(e) { console.warn('App Check init:', e); }
+}
 
 window.getFirebaseDB = async function() {
   if (_odaFbCache) return _odaFbCache;
@@ -164,6 +180,7 @@ window.getFirebaseDB = async function() {
   var appMod = await import(cdnBase + 'firebase-app.js');
   var fsMod = await import(cdnBase + 'firebase-firestore.js');
   try { _odaFbApp = appMod.getApp(); } catch(e) { _odaFbApp = appMod.initializeApp(ODA_CONFIG.firebase); }
+  await _initAppCheck(_odaFbApp);
   var db = fsMod.getFirestore(_odaFbApp);
   _odaFbCache = { app: _odaFbApp, db: db, fsMod: fsMod };
   return _odaFbCache;
@@ -175,6 +192,7 @@ window.getFirebaseAuth = async function() {
   var authMod = await import(cdnBase + 'firebase-auth.js');
   var app;
   try { app = appMod.getApp(); } catch(e) { app = appMod.initializeApp(ODA_CONFIG.firebase); }
+  await _initAppCheck(app);
   var auth = authMod.getAuth(app);
   return { app: app, auth: auth, authMod: authMod };
 };
@@ -185,6 +203,7 @@ window.getFirebaseStorage = async function() {
   var storageMod = await import(cdnBase + 'firebase-storage.js');
   var app;
   try { app = appMod.getApp(); } catch(e) { app = appMod.initializeApp(ODA_CONFIG.firebase); }
+  await _initAppCheck(app);
   var storage = storageMod.getStorage(app);
   return { app: app, storage: storage, storageMod: storageMod };
 };

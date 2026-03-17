@@ -275,10 +275,12 @@ Sign in with Google
 import{initializeApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
 import{getAuth,signInWithEmailAndPassword,createUserWithEmailAndPassword,signInWithPopup,signInWithRedirect,getRedirectResult,GoogleAuthProvider,onAuthStateChanged,sendPasswordResetEmail,sendEmailVerification}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
 import{getFirestore,doc,setDoc,getDoc,getDocs,collection,query,where}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+import{initializeAppCheck,ReCaptchaV3Provider}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app-check.js";
 
 const firebaseConfig=ODA_CONFIG.firebase;
 
 const app=initializeApp(firebaseConfig);
+try{initializeAppCheck(app,{provider:new ReCaptchaV3Provider('6LcZII0sAAAAAEhbfDWiwP4-l9DTJIQOwFa2CzD_'),isTokenAutoRefreshEnabled:true})}catch(e){console.warn('App Check:',e)}
 const auth=getAuth(app);
 const db=getFirestore(app);
 const googleProvider=new GoogleAuthProvider();
