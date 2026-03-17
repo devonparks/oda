@@ -503,14 +503,14 @@ desc.placeholder=type==='bug'?'Describe the bug...':'Describe your idea...';
 desc.value='';
 document.getElementById('feedbackPage').value='';
 modal.dataset.type=type;
-modal.classList.add('show');
+modal.style.display='flex';modal.classList.add('show');
 _feedbackTrapCleanup=odaTrapFocus(modal);
 }
 window.openFeedbackModal=openFeedbackModal;
 
 function closeFeedbackModal(){
 if(_feedbackTrapCleanup){_feedbackTrapCleanup();_feedbackTrapCleanup=null}
-document.getElementById('feedbackModal').classList.remove('show');
+var fm=document.getElementById('feedbackModal');fm.classList.remove('show');fm.style.display='none';
 }
 window.closeFeedbackModal=closeFeedbackModal;
 
@@ -541,7 +541,7 @@ closeFeedbackModal();
 btn.disabled=false;btn.textContent='Submit';
 }
 window.submitFeedback=submitFeedback;
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=document.getElementById('feedbackModal');if(m&&m.classList.contains('show'))closeFeedbackModal()}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=document.getElementById('feedbackModal');if(m&&(m.classList.contains('show')||m.style.display==='flex'))closeFeedbackModal()}});
 
 // ===== COSMETICS DISPLAY =====
 // Called from onSnapshot in student.html — no extra Firestore read needed

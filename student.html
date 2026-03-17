@@ -25,7 +25,7 @@
 </div>
 <div class="topbar-actions">
 <button class="btn btn-outline topbar-btn" onclick="location.href='shop.html'" title="Shop"><span class="topbar-icon">🛒</span> <span id="coinDisplay" class="coin-label">0</span></button>
-<button class="btn btn-outline topbar-btn" onclick="checkForUpdates(this)" title="Check for updates">&#x1F504;</button>
+<button class="btn btn-outline topbar-btn" onclick="location.reload(true)" title="Refresh">&#x1F504;</button>
 <button class="btn btn-outline" onclick="studentLogout()">&#x2190; Exit</button>
 </div>
 </div>
@@ -92,7 +92,7 @@ document.getElementById('studentNameEl').textContent=studentName||'Student';
 window.studentId=studentId;
 // Listen for student record (teacher arcade toggle)
 onSnapshot(doc(db,'students',studentId),function(snap){
-if(snap.exists()){window.studentRecord=snap.data();applyStudentCosmetics(snap.data())}
+if(snap.exists()){window.studentRecord=snap.data();if(window.applyStudentCosmetics)window.applyStudentCosmetics(snap.data())}
 renderDashboard();
 });
 // Real-time listener for assignments
@@ -108,7 +108,7 @@ renderDashboard();
 <script src="js/student.js"></script>
 
 <!-- FEEDBACK MODAL -->
-<div id="feedbackModal" class="fb-modal" role="dialog" aria-modal="true" aria-label="Submit Feedback">
+<div id="feedbackModal" class="fb-modal" style="display:none" role="dialog" aria-modal="true" aria-label="Submit Feedback">
 <div class="fb-card">
 <button onclick="closeFeedbackModal()" aria-label="Close" class="fb-close">&times;</button>
 <h2 id="feedbackTitle" class="fb-title"></h2>
