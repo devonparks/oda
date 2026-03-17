@@ -586,12 +586,12 @@ if(g.feedback)h+='<div style="font-size:13px;color:#78350F;margin-top:4px">'+esc
 h+='<div class="gc-btns">';
 if(g.status==='pending_approval'){
 h+='<button class="btn btn-small btn-green" onclick="approveGroup(\''+g.id+'\')">&#x2705; Approve</button>';
-h+='<button class="btn btn-small btn-red" onclick="deleteGroup(\''+g.id+'\')">&#x1F5D1; Delete</button>';
 }
 h+='<button class="btn btn-small btn-blue" onclick="viewGroupDetail(\''+g.id+'\')">&#x1F441; View Details</button>';
 if(g.status==='submitted'||g.status==='graded'){
 h+='<button class="btn btn-small btn-orange" onclick="openGroupGrade(\''+g.id+'\')">'+(g.status==='graded'?'&#x270F;&#xFE0F; Re-Grade':'&#x1F4DD; Grade')+'</button>';
 }
+h+='<button class="btn btn-small btn-red" onclick="deleteGroup(\''+g.id+'\')">&#x1F5D1; Delete</button>';
 h+='</div></div>';
 return h;
 }
@@ -612,7 +612,10 @@ try{
 var fb=await getFirebaseDB();
 await fb.fsMod.deleteDoc(fb.fsMod.doc(fb.db,'lemonadeGroups',groupId));
 showToast('Group deleted','');
-loadTeacherGroups();
+// Return to dashboard if viewing detail
+var detailEl=document.getElementById('groupDetailView');
+if(detailEl&&detailEl.style.display!=='none')backToDash();
+else loadTeacherGroups();
 }catch(e){console.error(e);showToast('Error deleting','error')}
 }
 
@@ -726,6 +729,7 @@ h+='<button class="btn btn-green" onclick="approveGroup(\''+g.id+'\');backToDash
 if(g.status==='submitted'||g.status==='graded'){
 h+='<button class="btn btn-orange" onclick="openGroupGrade(\''+g.id+'\')">&#x1F4DD; '+(g.status==='graded'?'Re-Grade':'Grade')+' This Project</button>';
 }
+h+='<button class="btn btn-red" onclick="deleteGroup(\''+g.id+'\')">&#x1F5D1; Delete Group</button>';
 h+='</div>';
 
 el.innerHTML=h;
