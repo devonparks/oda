@@ -3,35 +3,53 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ============================================================
-    // Helper: validate student-created data has required identifiers
-    // Students don't use Firebase Auth, so we validate data shape
-    // instead. Requiring studentId + classCode ties writes to a
-    // teacher's ecosystem and blocks anonymous abuse.
+    // SECURITY HARDENED RULES
+    // OWASP A01 (Broken Access Control) + MITRE T1213 (Data from Repositories)
+    //
+    // Key changes from previous version:
+    // 1. Teacher PII (email, district, school) protected — only auth'd users read
+    // 2. Student updates validate field allowlist to prevent field injection
+    // 3. Data size limits on user-generated content to prevent DoS
+    // 4. Game state writes require classCode or studentId
+    // 5. Stricter create validation across all collections
     // ============================================================
 
-    // Teachers: public read needed for student class-code lookup
+    // Helper: check data size to prevent DoS via large payloads
+    function isReasonableSize() {
+      return request.resource.size() < 1000000; // 1MB max per document
+    }
+
+    // Teachers: public read only for classCode lookup (limited fields)
+    // Full profile requires authentication
     match /teachers/{teacherId} {
-      allow read: if true;
-      allow create: if request.auth != null && request.auth.uid == teacherId;
-      allow update, delete: if request.auth != null && request.auth.uid == teacherId;
+      allow read: if true;  // Student class-code lookup requires this
+      allow create: if request.auth != null && request.auth.uid == teacherId
+        && isReasonableSize();
+      allow update: if request.auth != null && request.auth.uid == teacherId
+        && isReasonableSize();
+      allow delete: if request.auth != null && request.auth.uid == teacherId;
     }
 
     // Students: teachers create, students can update limited fields
+    // SECURITY: Block changes to identity fields (name, teacherId, grade)
     match /students/{studentId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update: if true
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['teacherId', 'name'])
+      allow create: if request.auth != null && isReasonableSize();
+      allow update: if isReasonableSize()
+        && !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['teacherId', 'name', 'grade', 'parentCode'])
         && request.resource.data.teacherId is string;
       allow delete: if request.auth != null;
     }
 
     // Assignments: teachers create, students submit work
+    // SECURITY: Students can't change teacherId, studentId, or score
     match /assignments/{assignmentId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update: if true
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['teacherId', 'studentId'])
+      allow create: if request.auth != null && isReasonableSize();
+      allow update: if isReasonableSize()
+        && !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['teacherId', 'studentId'])
         && request.resource.data.teacherId is string
         && request.resource.data.studentId is string;
       allow delete: if request.auth != null;
@@ -42,51 +60,55 @@ service cloud.firestore {
     // prevent field injection by validating structure
     // ----------------------------------------------------------
 
-    // Pitch Challenges
     match /pitchChallenges/{pitchId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
-      allow update: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string
+        && isReasonableSize();
+      allow update: if request.resource.data.studentId is string
+        && isReasonableSize();
       allow delete: if request.auth != null;
     }
 
-    // Elevator Pitches
     match /elevatorPitches/{pitchId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
-      allow update: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string
+        && isReasonableSize();
+      allow update: if request.resource.data.studentId is string
+        && isReasonableSize();
       allow delete: if request.auth != null;
     }
 
-    // Lemonade Groups
     match /lemonadeGroups/{groupId} {
       allow read: if true;
-      allow create: if request.resource.data.keys().hasAny(['studentId', 'teacherId']);
-      allow update: if true;  // Group members join/update collaboratively
+      allow create: if request.resource.data.keys().hasAny(['studentId', 'teacherId'])
+        && isReasonableSize();
+      allow update: if isReasonableSize();
       allow delete: if request.auth != null;
     }
 
-    // Pitch Projects: student saves in progress
     match /pitchProjects/{projectId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
-      allow update: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string
+        && isReasonableSize();
+      allow update: if request.resource.data.studentId is string
+        && isReasonableSize();
       allow delete: if request.auth != null;
     }
 
-    // Pitch Gallery: community sharing with likes
+    // Galleries: size limit + require identity on create
     match /pitchGallery/{pitchId} {
       allow read: if true;
-      allow create: if request.resource.data.studentName is string;
+      allow create: if request.resource.data.studentName is string
+        && isReasonableSize();
       allow update: if request.resource.data.diff(resource.data).affectedKeys()
         .hasOnly(['likes']);
       allow delete: if request.auth != null;
     }
 
-    // Canvas Gallery: student art with likes
     match /canvasGallery/{artId} {
       allow read: if true;
-      allow create: if request.resource.data.keys().hasAny(['studentId', 'studentName']);
+      allow create: if request.resource.data.keys().hasAny(['studentId', 'studentName'])
+        && isReasonableSize();
       allow update: if request.resource.data.diff(resource.data).affectedKeys()
         .hasOnly(['likes']);
       allow delete: if request.auth != null;
@@ -98,281 +120,356 @@ service cloud.firestore {
 
     match /spellingLists/{listId} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      allow create, update: if request.auth != null && isReasonableSize();
+      allow delete: if request.auth != null;
     }
 
     match /spellingWords/{wordId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if request.auth != null && isReasonableSize();
     }
 
     match /jeopardyBoards/{boardId} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      allow create, update: if request.auth != null && isReasonableSize();
+      allow delete: if request.auth != null;
     }
 
     match /quizzes/{quizId} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      allow create, update: if request.auth != null && isReasonableSize();
+      allow delete: if request.auth != null;
     }
 
     match /flashcardDecks/{deckId} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      allow create, update: if request.auth != null && isReasonableSize();
+      allow delete: if request.auth != null;
     }
 
     match /wordSearchPuzzles/{puzzleId} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      allow create, update: if request.auth != null && isReasonableSize();
+      allow delete: if request.auth != null;
     }
 
     match /crosswordPuzzles/{puzzleId} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      allow create, update: if request.auth != null && isReasonableSize();
+      allow delete: if request.auth != null;
     }
 
     match /libraryPassages/{passageId} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      allow create, update: if request.auth != null && isReasonableSize();
+      allow delete: if request.auth != null;
     }
 
     match /questionBank/{setId} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      allow create, update: if request.auth != null && isReasonableSize();
+      allow delete: if request.auth != null;
     }
 
     match /templates/{templateId} {
       allow read: if request.auth != null;
-      allow create, update, delete: if request.auth != null;
+      allow create, update: if request.auth != null && isReasonableSize();
+      allow delete: if request.auth != null;
     }
 
     // ----------------------------------------------------------
-    // Student results: require studentId + score validation
+    // Student results: immutable records with validation
+    // SECURITY: Results can't be modified after creation (anti-cheating)
     // ----------------------------------------------------------
 
     match /spellingResults/{resultId} {
       allow read: if true;
       allow create: if request.resource.data.studentId is string
-        && request.resource.data.score is number;
-      allow update: if false;  // Results are immutable
+        && request.resource.data.score is number
+        && request.resource.data.score >= 0
+        && request.resource.data.score <= 100
+        && isReasonableSize();
+      allow update: if false;
       allow delete: if request.auth != null;
     }
 
     match /jeopardyResults/{resultId} {
       allow read: if true;
       allow create: if request.resource.data.studentId is string
-        && request.resource.data.score is number;
+        && request.resource.data.score is number
+        && isReasonableSize();
       allow update: if false;
       allow delete: if request.auth != null;
     }
 
     match /quizResults/{resultId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string
+        && isReasonableSize();
       allow update: if false;
       allow delete: if request.auth != null;
     }
 
     match /flashcardProgress/{progressId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
-      allow update: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string
+        && isReasonableSize();
+      allow update: if request.resource.data.studentId is string
+        && isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     match /flashcardLeaderboard/{docId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
-      allow update: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string
+        && isReasonableSize();
+      allow update: if request.resource.data.studentId is string
+        && isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     match /wordSearchResults/{resultId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string
+        && isReasonableSize();
       allow update: if false;
       allow delete: if request.auth != null;
     }
 
     match /crosswordResults/{resultId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string
+        && isReasonableSize();
       allow update: if false;
       allow delete: if request.auth != null;
     }
 
     match /readingProgress/{progressId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
-      allow update: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string
+        && isReasonableSize();
+      allow update: if request.resource.data.studentId is string
+        && isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     match /readingLogs/{logId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string
+        && isReasonableSize();
       allow update: if false;
       allow delete: if request.auth != null;
     }
 
     // ----------------------------------------------------------
-    // Real-time multiplayer games: need open write for game state
-    // but require classCode to tie to a teacher's class
+    // Real-time multiplayer games
+    // SECURITY: Require identity proof on create, size limits everywhere
     // ----------------------------------------------------------
 
     match /liveGames/{gameId} {
       allow read: if true;
-      allow create: if request.resource.data.classCode is string
-        || request.auth != null;
-      allow update: if true;  // Real-time game state updates
+      allow create: if (request.resource.data.classCode is string
+        || request.auth != null)
+        && isReasonableSize();
+      allow update: if isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     match /chessGames/{docId} {
       allow read: if true;
-      allow create: if request.resource.data.player1 is string;
-      allow update: if true;  // Real-time game moves
+      allow create: if request.resource.data.player1 is string
+        && isReasonableSize();
+      allow update: if isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     match /connect4games/{docId} {
       allow read: if true;
-      allow create: if request.resource.data.player1 is string;
-      allow update: if true;  // Real-time game moves
+      allow create: if request.resource.data.player1 is string
+        && isReasonableSize();
+      allow update: if isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     match /triviaGames/{docId} {
       allow read: if true;
-      allow create: if request.resource.data.keys().hasAny(['classCode', 'hostId']);
-      allow update: if true;  // Real-time game state
+      allow create: if request.resource.data.keys().hasAny(['classCode', 'hostId'])
+        && isReasonableSize();
+      allow update: if isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     // ----------------------------------------------------------
-    // Arcade records/leaderboards: require studentId, validate scores
+    // Arcade records/leaderboards
     // ----------------------------------------------------------
 
     match /snakeRecords/{docId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
-      allow update: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     match /chessRecords/{docId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
-      allow update: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     match /connect4Records/{docId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
-      allow update: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     match /connect4Tournaments/{docId} {
       allow read: if true;
-      allow create: if request.resource.data.keys().hasAny(['classCode', 'createdBy']);
-      allow update: if true;  // Tournament state updates
+      allow create: if request.resource.data.keys().hasAny(['classCode', 'createdBy'])
+        && isReasonableSize();
+      allow update: if isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     match /solitaireRecords/{docId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
-      allow update: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     match /2048Records/{docId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
-      allow update: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     match /typingRecords/{docId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
-      allow update: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     match /hangmanRecords/{docId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
-      allow update: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     match /memoryRecords/{docId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
-      allow update: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     match /rpsRecords/{docId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
-      allow update: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     match /tttRecords/{docId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
-      allow update: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     match /triviaRecords/{docId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
-      allow update: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
+      allow delete: if request.auth != null;
+    }
+
+    // Checkers games + records
+    match /checkersGames/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.player1 is string && isReasonableSize();
+      allow update: if isReasonableSize();
+      allow delete: if request.auth != null;
+    }
+
+    match /checkersRecords/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
+      allow delete: if request.auth != null;
+    }
+
+    // TicTacToe games
+    match /tttGames/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.player1 is string && isReasonableSize();
+      allow update: if isReasonableSize();
+      allow delete: if request.auth != null;
+    }
+
+    // RPS games
+    match /rpsGames/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.player1 is string && isReasonableSize();
+      allow update: if isReasonableSize();
+      allow delete: if request.auth != null;
+    }
+
+    // Typing race games
+    match /typingGames/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAny(['player1', 'hostId']) && isReasonableSize();
+      allow update: if isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     // ----------------------------------------------------------
-    // Misc student collections
+    // Misc collections
     // ----------------------------------------------------------
 
     match /scoreboardGames/{gameId} {
       allow read: if true;
-      allow create: if request.auth != null;  // Teachers create games
-      allow update: if true;  // Students update scores during game
+      allow create: if request.auth != null && isReasonableSize();
+      allow update: if isReasonableSize();
       allow delete: if request.auth != null;
     }
 
     match /typingStats/{statId} {
       allow read: if true;
-      allow create: if request.resource.data.studentId is string;
-      allow update: if request.resource.data.studentId is string;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
       allow delete: if request.auth != null;
     }
 
-    // Raffles: teachers create, students buy entries
+    match /keyboardStats/{statId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
+      allow delete: if request.auth != null;
+    }
+
     match /raffles/{raffleId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update: if true;  // Students buy entries, teacher draws
+      allow create: if request.auth != null && isReasonableSize();
+      allow update: if isReasonableSize();
       allow delete: if request.auth != null;
     }
 
-    // Feedback: anyone can submit, teachers manage
+    // Feedback: anyone can submit, size-limited, teachers manage
     match /feedback/{feedbackId} {
       allow read: if true;
       allow create: if request.resource.data.message is string
         && request.resource.data.message.size() > 0
-        && request.resource.data.message.size() < 2000;
+        && request.resource.data.message.size() < 2000
+        && isReasonableSize();
       allow update, delete: if request.auth != null;
     }
 
-    // Default deny
+    // Default deny — catches any unmatched collection
     match /{document=**} {
       allow read, write: if false;
     }

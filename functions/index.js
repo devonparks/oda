@@ -42,11 +42,30 @@ setInterval(() => {
 
 // --- Cloud Function ---
 exports.ai = onRequest({ secrets: [ANTHROPIC_KEY] }, async (req, res) => {
-  // CORS
-  res.set("Access-Control-Allow-Origin", "*");
+  // SECURITY: Restrict CORS to known origins (OWASP A05 / MITRE T1190)
+  const allowedOrigins = ["https://odahub.org", "https://www.odahub.org", "http://localhost:3456", "http://127.0.0.1:3456"];
+  const origin = req.headers.origin || "";
+  const corsOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  res.set("Access-Control-Allow-Origin", corsOrigin);
   res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.set("Vary", "Origin");
+
+  // SECURITY: Additional response headers
+  res.set("X-Content-Type-Options", "nosniff");
+  res.set("X-Frame-Options", "DENY");
+  res.set("X-XSS-Protection", "1; mode=block");
+  res.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+
   if (req.method === "OPTIONS") {
-    res.status(200).send("");
+    res.status(204).send("");
+    return;
+  }
+
+  // SECURITY: Only allow POST (OWASP A01)
+  if (req.method !== "POST") {
+    res.status(405).json({ error: "Method not allowed." });
     return;
   }
 

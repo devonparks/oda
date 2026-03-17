@@ -1,7 +1,68 @@
 /**
  * ODA Core - Shared configuration and utilities
  * Used by all ODA Hub pages to eliminate code duplication
+ *
+ * SECURITY: This file is loaded on every page and handles:
+ *   - XSS protection (esc function)
+ *   - Clickjacking protection (framebusting)
+ *   - Session timeout (auto-logout after inactivity)
+ *   - Input sanitization and validation
+ *   - Security meta tag injection (CSP, Referrer-Policy, Permissions-Policy)
  */
+
+// ============================================
+// SECURITY: Anti-clickjacking (MITRE T1557)
+// Prevent the site from being iframed by malicious sites
+// ============================================
+(function() {
+  if (window.self !== window.top) {
+    // Allow same-origin iframes (e.g., file preview embeds)
+    try { if (window.top.location.hostname === window.location.hostname) return; } catch(e) {}
+    // Block cross-origin iframing
+    document.body && (document.body.innerHTML = '');
+    window.top.location = window.self.location;
+  }
+})();
+
+// ============================================
+// SECURITY: Inject security meta tags (CSP, headers)
+// GitHub Pages can't set HTTP headers, so we use meta tags
+// OWASP A05 Security Misconfiguration
+// ============================================
+(function() {
+  var head = document.head || document.getElementsByTagName('head')[0];
+  if (!head) return;
+
+  // Content-Security-Policy: restrict script/style sources
+  var csp = document.createElement('meta');
+  csp.setAttribute('http-equiv', 'Content-Security-Policy');
+  csp.setAttribute('content', [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://apis.google.com https://us-central1-oda-hub-d4bef.cloudfunctions.net",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: blob: https:",
+    "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com https://us-central1-oda-hub-d4bef.cloudfunctions.net https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com wss://*.firebaseio.com",
+    "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://docs.google.com https://www.youtube.com https://youtube.com",
+    "frame-ancestors 'self'",
+    "form-action 'self'",
+    "base-uri 'self'",
+    "object-src 'none'"
+  ].join('; '));
+  head.insertBefore(csp, head.firstChild);
+
+  // Referrer-Policy: don't leak URLs to third parties
+  var rp = document.createElement('meta');
+  rp.setAttribute('name', 'referrer');
+  rp.setAttribute('content', 'strict-origin-when-cross-origin');
+  head.appendChild(rp);
+
+  // Permissions-Policy: disable unnecessary browser APIs
+  var pp = document.createElement('meta');
+  pp.setAttribute('http-equiv', 'Permissions-Policy');
+  pp.setAttribute('content', 'geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()');
+  head.appendChild(pp);
+})();
 
 // Firebase Configuration (single source of truth)
 window.ODA_CONFIG = {
@@ -18,7 +79,7 @@ window.ODA_CONFIG = {
 };
 
 // ============================================
-// HTML Escape (XSS protection)
+// HTML Escape (XSS protection — OWASP A03 Injection)
 // ============================================
 window.esc = function(s) {
   if (s === null || s === undefined) return '';
@@ -26,6 +87,70 @@ window.esc = function(s) {
   d.textContent = String(s);
   return d.innerHTML;
 };
+
+// ============================================
+// SECURITY: Input validation helpers
+// ============================================
+window.odaSanitize = function(input, maxLen) {
+  if (typeof input !== 'string') return '';
+  var s = input.trim();
+  if (maxLen && s.length > maxLen) s = s.substring(0, maxLen);
+  // Strip null bytes and control characters (OWASP A03)
+  s = s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  return s;
+};
+
+// Validate URL to prevent javascript: protocol injection (OWASP A03)
+window.odaSafeUrl = function(url) {
+  if (!url || typeof url !== 'string') return '';
+  var trimmed = url.trim();
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return '';
+};
+
+// ============================================
+// SECURITY: Session timeout (OWASP A07 / MITRE T1078)
+// Auto-expire student sessions after 4 hours of inactivity
+// ============================================
+(function() {
+  var SESSION_TIMEOUT_MS = 4 * 60 * 60 * 1000; // 4 hours
+  var ACTIVITY_KEY = 'odaLastActivity';
+
+  function updateActivity() {
+    try { localStorage.setItem(ACTIVITY_KEY, String(Date.now())); } catch(e) {}
+  }
+
+  function checkSession() {
+    var last = parseInt(localStorage.getItem(ACTIVITY_KEY) || '0', 10);
+    if (last && (Date.now() - last > SESSION_TIMEOUT_MS)) {
+      // Session expired — clear all auth data
+      localStorage.removeItem('studentId');
+      localStorage.removeItem('studentName');
+      localStorage.removeItem('classCode');
+      localStorage.removeItem('parentStudentId');
+      localStorage.removeItem('parentStudentName');
+      localStorage.removeItem(ACTIVITY_KEY);
+      localStorage.removeItem('encourageShown');
+      // Redirect to login if on a protected page
+      var page = location.pathname.split('/').pop();
+      var protectedPages = ['student.html', 'parent.html'];
+      if (protectedPages.indexOf(page) >= 0) {
+        window.location.href = 'index.html';
+      }
+    }
+  }
+
+  // Check on page load
+  checkSession();
+  // Update on user interaction
+  ['click', 'keydown', 'scroll', 'touchstart'].forEach(function(evt) {
+    document.addEventListener(evt, updateActivity, { passive: true, capture: false });
+  });
+  // Record initial activity
+  updateActivity();
+  // Periodic check every 5 minutes
+  setInterval(checkSession, 5 * 60 * 1000);
+})();
 
 // ============================================
 // Firebase Lazy Loader (for tool pages)

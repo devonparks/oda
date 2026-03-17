@@ -5,6 +5,31 @@
  */
 
 // ============================================
+// SECURITY: Brute-force protection (OWASP A07 / MITRE T1110)
+// Prevents rapid-fire class code guessing and parent code guessing
+// ============================================
+var _loginAttempts = { count: 0, lockUntil: 0 };
+var MAX_LOGIN_ATTEMPTS = 8;
+var LOCKOUT_DURATION_MS = 60 * 1000; // 1 minute lockout
+
+function checkLoginThrottle(errorElId) {
+  if (Date.now() < _loginAttempts.lockUntil) {
+    var secsLeft = Math.ceil((_loginAttempts.lockUntil - Date.now()) / 1000);
+    showError(errorElId, 'Too many attempts. Try again in ' + secsLeft + ' seconds.');
+    return false;
+  }
+  if (_loginAttempts.count >= MAX_LOGIN_ATTEMPTS) {
+    _loginAttempts.lockUntil = Date.now() + LOCKOUT_DURATION_MS;
+    _loginAttempts.count = 0;
+    showError(errorElId, 'Too many attempts. Locked for 1 minute.');
+    return false;
+  }
+  return true;
+}
+function recordLoginAttempt() { _loginAttempts.count++; }
+function resetLoginAttempts() { _loginAttempts.count = 0; }
+
+// ============================================
 // Hard Refresh (clear SW + reload)
 // ============================================
 window.hardRefresh = async function () {
@@ -94,8 +119,10 @@ function showStuStep() {
 }
 
 window.checkClassCode = async function () {
+  if (!checkLoginThrottle('studentError')) return;
   var code = document.getElementById('classCodeInput').value.trim();
   if (!/^\d{6}$/.test(code)) { showError('studentError', 'Enter a 6-digit class code!'); return; }
+  recordLoginAttempt();
   var btn = document.getElementById('codeSubmit');
   btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
   try {
@@ -119,6 +146,7 @@ window.checkClassCode = async function () {
     var h = '';
     gk.forEach(function (g) { h += '<button class="grade-pick" onclick="pickGrade(\'' + esc(g) + '\')">' + esc(g) + '</button>'; });
     document.getElementById('gradeButtons').innerHTML = h;
+    resetLoginAttempts();
     stuStep = 2; showStuStep();
   } catch (e) { btn.textContent = 'Enter \u2192'; btn.disabled = false; showError('studentError', 'Something went wrong.'); console.error(e); }
 };
@@ -268,9 +296,11 @@ window.teacherSignup = async function () {
 // Parent Login
 // ============================================
 window.parentLogin = async function () {
+  if (!checkLoginThrottle('parentError')) return;
   var name = document.getElementById('parentChildName').value.trim();
   var code = document.getElementById('parentCode').value.trim();
   if (!name || !code) { showError('parentError', 'Enter your child\'s name and code!'); return; }
+  recordLoginAttempt();
 
   var pbtn = document.getElementById('parentSubmit');
   pbtn.innerHTML = '<span class="spinner"></span>'; pbtn.disabled = true;
