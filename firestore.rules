@@ -388,7 +388,7 @@ service cloud.firestore {
       allow delete: if request.auth != null;
     }
 
-    // Checkers games + records
+    // Checkers games, records, tournaments
     match /checkersGames/{docId} {
       allow read: if true;
       allow create: if request.resource.data.player1 is string && isReasonableSize();
@@ -403,7 +403,15 @@ service cloud.firestore {
       allow delete: if request.auth != null;
     }
 
-    // TicTacToe games
+    match /checkersTournaments/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAny(['classCode', 'teacherId'])
+        && isReasonableSize();
+      allow update: if isReasonableSize();
+      allow delete: if request.auth != null;
+    }
+
+    // TicTacToe games + tournaments
     match /tttGames/{docId} {
       allow read: if true;
       allow create: if request.resource.data.player1 is string && isReasonableSize();
@@ -411,12 +419,37 @@ service cloud.firestore {
       allow delete: if request.auth != null;
     }
 
-    // RPS games
+    match /tttTournaments/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAny(['classCode', 'createdBy', 'host'])
+        && isReasonableSize();
+      allow update: if isReasonableSize();
+      allow delete: if request.auth != null;
+    }
+
+    // RPS games + tournaments
     match /rpsGames/{docId} {
       allow read: if true;
       allow create: if request.resource.data.player1 is string && isReasonableSize();
       allow update: if isReasonableSize();
       allow delete: if request.auth != null;
+    }
+
+    match /rpsTournaments/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAny(['classCode', 'createdBy', 'host'])
+        && isReasonableSize();
+      allow update: if isReasonableSize();
+      allow delete: if request.auth != null;
+    }
+
+    // Hangman multiplayer games
+    match /hangmanGames/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAny(['player1', 'hostId'])
+        && isReasonableSize();
+      allow update: if isReasonableSize();
+      allow delete: if true; // Players clean up finished games
     }
 
     // Typing race games

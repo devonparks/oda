@@ -631,7 +631,7 @@ let myCosmetics = {};
   const sid = localStorage.getItem('studentId');
   if(!sid) return;
   try{
-    const {db,fsMod} = window.getFirebaseDB();
+    const {db,fsMod} = await window.getFirebaseDB();
     const snap = await fsMod.getDoc(fsMod.doc(db,'students',sid));
     if(snap.exists()){ myCosmetics = snap.data().equipped || {}; }
   }catch(e){ console.warn('Cosmetics load error:',e); }
@@ -1700,7 +1700,7 @@ async function endGame(status){
   if(coinsAwarded===0 && sid && sid!=='guest'){
     coinsAwarded = coins;
     try{
-      const {db,fsMod}=window.getFirebaseDB();
+      const {db,fsMod}=await window.getFirebaseDB();
       const recRef = fsMod.doc(db,'chessRecords',sid);
       const recSnap = await fsMod.getDoc(recRef);
       if(recSnap.exists()){
@@ -1776,7 +1776,7 @@ async function endGame(status){
   recDiv.innerHTML = '';
   if(sid && sid!=='guest'){
     try{
-      const {db,fsMod}=window.getFirebaseDB();
+      const {db,fsMod}=await window.getFirebaseDB();
       const snap = await fsMod.getDoc(fsMod.doc(db,'chessRecords',sid));
       if(snap.exists()){
         const d = snap.data();
@@ -1845,7 +1845,7 @@ async function createGame(){
     return;
   }
   try{
-    const {db,fsMod}=window.getFirebaseDB();
+    const {db,fsMod}=await window.getFirebaseDB();
     const code = String(Math.floor(1000+Math.random()*9000));
     roomCode = code;
     myPlayerNum = 1;
@@ -1928,7 +1928,7 @@ async function joinGame(){
   }
 
   try{
-    const {db,fsMod}=window.getFirebaseDB();
+    const {db,fsMod}=await window.getFirebaseDB();
     const q = fsMod.query(fsMod.collection(db,'chessGames'), fsMod.where('code','==',code), fsMod.where('status','==','waiting'));
     const snap = await fsMod.getDocs(q);
     if(snap.empty){ errEl.textContent='Room not found or already full'; return; }
@@ -1974,7 +1974,7 @@ async function joinGame(){
 function listenForMoves(){
   if(unsubGame) unsubGame();
   try{
-    const {db,fsMod}=window.getFirebaseDB();
+    const {db,fsMod}=await window.getFirebaseDB();
     unsubGame = fsMod.onSnapshot(fsMod.doc(db,'chessGames',gameDocId), snap=>{
       if(!snap.exists()) return;
       const data = snap.data();
@@ -2054,7 +2054,7 @@ function listenForMoves(){
 
 async function sendMultiMove(move, gameEndStatus){
   try{
-    const {db,fsMod}=window.getFirebaseDB();
+    const {db,fsMod}=await window.getFirebaseDB();
     const moveData = {from:move.from,to:move.to};
     if(move.promo) moveData.promo = move.promo;
     if(move.castle) moveData.castle = move.castle;
@@ -2104,7 +2104,7 @@ async function cancelGame(){
   if(unsubGame) unsubGame();
   if(gameDocId){
     try{
-      const {db,fsMod}=window.getFirebaseDB();
+      const {db,fsMod}=await window.getFirebaseDB();
       await fsMod.deleteDoc(fsMod.doc(db,'chessGames',gameDocId));
     }catch(e){}
   }
@@ -2123,7 +2123,7 @@ async function resignGame(){
 
   if(gameMode==='multi' && gameDocId){
     try{
-      const {db,fsMod}=window.getFirebaseDB();
+      const {db,fsMod}=await window.getFirebaseDB();
       const upd = {status:'finished', result: winnerColor};
       // Update series score: the opponent (winner) gets a point
       const winnerPlayerNum = myPlayerNum===1?2:1;
@@ -2158,7 +2158,7 @@ async function offerDraw(){
   if(confirm('Offer a draw? (Both players must agree)')){
     if(gameDocId){
       try{
-        const {db,fsMod}=window.getFirebaseDB();
+        const {db,fsMod}=await window.getFirebaseDB();
         await fsMod.updateDoc(fsMod.doc(db,'chessGames',gameDocId),{
           status:'finished',
           result:'draw'
@@ -2197,7 +2197,7 @@ function goHome(){
 async function nextSeriesGame(){
   if(!gameDocId)return;
   try{
-    const {db,fsMod}=window.getFirebaseDB();
+    const {db,fsMod}=await window.getFirebaseDB();
     const ref=fsMod.doc(db,'chessGames',gameDocId);
     const snap=await fsMod.getDoc(ref);
     if(!snap.exists()){
@@ -2234,7 +2234,7 @@ async function replayDraw(){
   // Replay the same game number (draws don't count in series)
   if(!gameDocId)return;
   try{
-    const {db,fsMod}=window.getFirebaseDB();
+    const {db,fsMod}=await window.getFirebaseDB();
     const ref=fsMod.doc(db,'chessGames',gameDocId);
     const snap=await fsMod.getDoc(ref);
     if(!snap.exists()){
@@ -2265,7 +2265,7 @@ async function rematchGame(){
   // Reset for a whole new match/series with same opponent, same room
   if(!gameDocId)return;
   try{
-    const {db,fsMod}=window.getFirebaseDB();
+    const {db,fsMod}=await window.getFirebaseDB();
     const ref=fsMod.doc(db,'chessGames',gameDocId);
     const snap=await fsMod.getDoc(ref);
     if(!snap.exists()){
@@ -2303,7 +2303,7 @@ async function loadRecords(){
   const sid = getStudentId();
   const cc = getClassCode();
   try{
-    const {db,fsMod}=window.getFirebaseDB();
+    const {db,fsMod}=await window.getFirebaseDB();
 
     // My stats
     if(sid && sid!=='guest'){
@@ -2357,7 +2357,7 @@ async function loadQuickStats(){
   const sid = getStudentId();
   if(!sid || sid==='guest') return;
   try{
-    const {db,fsMod}=window.getFirebaseDB();
+    const {db,fsMod}=await window.getFirebaseDB();
     const snap = await fsMod.getDoc(fsMod.doc(db,'chessRecords',sid));
     if(snap.exists()){
       const d = snap.data();
