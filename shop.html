@@ -103,11 +103,15 @@ try{initializeAppCheck(app,{provider:new ReCaptchaV3Provider('6LcZII0sAAAAAEhbfD
 const db=getFirestore(app);
 
 /* ============================================
-   Student Identity
+   Identity (student or teacher)
    ============================================ */
-const studentId = localStorage.getItem('studentId') || '';
-const studentName = localStorage.getItem('studentName') || 'Player';
-if (!studentId) location.href = 'index.html';
+const isTeacher = localStorage.getItem('userRole') === 'teacher' || localStorage.getItem('odaUserRole') === 'teacher';
+const studentId = localStorage.getItem('studentId') || (isTeacher ? localStorage.getItem('teacherId') || 'teacher' : '');
+const studentName = localStorage.getItem('studentName') || (isTeacher ? 'Teacher' : 'Player');
+if (!studentId && !isTeacher) location.href = 'index.html';
+
+// Update back link for teachers
+if (isTeacher) document.querySelector('.back-btn').href = 'teacher.html';
 
 /* ============================================
    Item Catalog
@@ -288,28 +292,51 @@ let modalCleanup = null;
    Init: load student data
    ============================================ */
 async function init() {
-  try {
-    const snap = await getDoc(doc(db, 'students', studentId));
-    if (snap.exists()) {
-      const data = snap.data();
-      playerCoins = data.coins || 0;
-      playerInventory = data.inventory || [];
-      playerAchievements = data.achievements || [];
-      if (data.equipped) {
+  if (isTeacher) {
+    // Teachers get everything unlocked for free
+    playerCoins = 999999;
+    playerInventory = CATALOG.map(function(i) { return i.id; });
+    playerAchievements = ACHIEVEMENTS.map(function(a) { return a.id; });
+    // Load teacher's equipped cosmetics from their teacher doc
+    try {
+      const snap = await getDoc(doc(db, 'teachers', studentId));
+      if (snap.exists() && snap.data().equipped) {
+        const eq = snap.data().equipped;
         playerEquipped = {
-          avatar: data.equipped.avatar || playerEquipped.avatar,
-          nameColor: data.equipped.nameColor || playerEquipped.nameColor,
-          border: data.equipped.border || playerEquipped.border,
-          title: data.equipped.title || playerEquipped.title,
-          boardTheme: data.equipped.boardTheme || null,
-          pieceSkin: data.equipped.pieceSkin || null,
-          winEffect: data.equipped.winEffect || playerEquipped.winEffect
+          avatar: eq.avatar || playerEquipped.avatar,
+          nameColor: eq.nameColor || playerEquipped.nameColor,
+          border: eq.border || playerEquipped.border,
+          title: eq.title || playerEquipped.title,
+          boardTheme: eq.boardTheme || null,
+          pieceSkin: eq.pieceSkin || null,
+          winEffect: eq.winEffect || playerEquipped.winEffect
         };
       }
+    } catch (e) { console.warn('[Shop] Teacher data load:', e); }
+  } else {
+    try {
+      const snap = await getDoc(doc(db, 'students', studentId));
+      if (snap.exists()) {
+        const data = snap.data();
+        playerCoins = data.coins || 0;
+        playerInventory = data.inventory || [];
+        playerAchievements = data.achievements || [];
+        if (data.equipped) {
+          playerEquipped = {
+            avatar: data.equipped.avatar || playerEquipped.avatar,
+            nameColor: data.equipped.nameColor || playerEquipped.nameColor,
+            border: data.equipped.border || playerEquipped.border,
+            title: data.equipped.title || playerEquipped.title,
+            boardTheme: data.equipped.boardTheme || null,
+            pieceSkin: data.equipped.pieceSkin || null,
+            winEffect: data.equipped.winEffect || playerEquipped.winEffect
+          };
+        }
+      }
+    } catch (err) {
+      console.error('[Shop] Failed to load student data:', err);
+      odaToast('Failed to load data. Please refresh.', 'error');
     }
-  } catch (err) {
-    console.error('[Shop] Failed to load student data:', err);
-    odaToast('Failed to load data. Please refresh.', 'error');
   }
   updateCoinDisplay();
   updateLoadoutPreview();
@@ -741,7 +768,7 @@ window.confirmPurchase = async function() {
    Equip item
    ============================================ */
 async function equipItem(item, skipToast) {
-  const studentRef = doc(db, 'students', studentId);
+  const studentRef = doc(db, isTeacher ? 'teachers' : 'students', studentId);
   let equipData = {};
 
   switch (item.category) {
@@ -792,7 +819,7 @@ async function equipItem(item, skipToast) {
    Unequip item (optional slots)
    ============================================ */
 async function unequipItem(item) {
-  const studentRef = doc(db, 'students', studentId);
+  const studentRef = doc(db, isTeacher ? 'teachers' : 'students', studentId);
   let equipData = {};
 
   switch (item.category) {

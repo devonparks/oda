@@ -360,7 +360,13 @@ var assigns=window.myAssignments||[];
 var pending=assigns.filter(function(a){return a.status==='pending'||a.status==='returned'});
 var submitted=assigns.filter(function(a){return a.status==='submitted'});
 var arcadeUnlocked=pending.length===0&&submitted.length===0||(window.studentRecord&&window.studentRecord.arcadeUnlocked);
+var coins=(window.studentRecord&&window.studentRecord.coins)||0;
 var h='';
+// Shop banner at top of arcade
+h+='<div class="game-card shop-card" role="button" tabindex="0" onclick="location.href=\'shop.html\'" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();location.href=\'shop.html\'}">';
+h+='<span class="game-emoji">\u{1F6CD}\uFE0F</span>';
+h+='<div class="game-title">ODA Shop</div>';
+h+='<div class="game-desc">\u{1FA99} '+coins+' coins \u2014 Buy avatars, colors & more!</div></div>';
 GAMES.forEach(function(g){
 var locked=!arcadeUnlocked&&assigns.length>0;
 h+='<div class="game-card'+(locked?' locked':'')+'" role="button" tabindex="'+(locked?'-1':'0')+'" '+(locked?'':'onclick="location.href=\''+g.file+'\'" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();location.href=\''+g.file+'\'}"')+'>';
