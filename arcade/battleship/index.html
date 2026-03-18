@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Battleship - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden;user-select:none}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(17,138,178,.12) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* Back Button */
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+/* Sound Toggle */
+.sound-toggle{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 14px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;transition:all .2s;backdrop-filter:blur(8px);line-height:1}
+.sound-toggle:hover{border-color:var(--accent)}
+
+/* Screen System */
+.screen{display:none;width:100%;min-height:100vh;animation:fadeUp .35s ease}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* Shared Components */
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-blue{background:var(--accent2);color:#fff}
+.btn-blue:hover{box-shadow:0 0 24px rgba(17,138,178,.3)}
+.btn-red{background:var(--accent3);color:#fff}
+.btn-red:hover{box-shadow:0 0 24px rgba(239,71,111,.3)}
+.btn-gold{background:var(--gold);color:var(--bg)}
+.btn-gold:hover{box-shadow:0 0 24px rgba(255,209,102,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+.btn-icon{min-width:auto;padding:10px 14px}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;transition:all .2s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.badge-accent{background:rgba(6,214,160,.15);color:var(--accent)}
+.badge-gold{background:rgba(255,209,102,.15);color:var(--gold)}
+.badge-red{background:rgba(239,71,111,.15);color:var(--accent3)}
+.badge-blue{background:rgba(17,138,178,.15);color:var(--accent2)}
+
+.section-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px}
+
+.code-input{background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:14px 20px;color:var(--text);font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;text-align:center;width:200px;letter-spacing:8px;outline:none;transition:border-color .2s}
+.code-input:focus{border-color:var(--accent)}
+.code-input::placeholder{color:var(--border);letter-spacing:4px;font-size:20px}
+
+.error-text{color:var(--accent3);font-size:13px;font-weight:600;margin-top:8px;min-height:20px}
+
+.stat-box{text-align:center;padding:12px 16px}
+.stat-box .stat-val{font-size:28px;font-weight:900;font-family:'Fredoka',sans-serif}
+.stat-box .stat-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+.divider{width:100%;height:1px;background:var(--border);margin:16px 0}
+
+/* ======================== */
+/* HOME SCREEN              */
+/* ======================== */
+#homeScreen{padding-top:60px;padding-bottom:40px}
+.home-header{text-align:center;margin-bottom:36px}
+.home-header h1{font-size:clamp(36px,8vw,52px);font-weight:700;margin-bottom:4px}
+.home-header p{color:var(--text2);font-size:15px}
+
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:700px;width:90%;margin:0 auto}
+.mode-card{cursor:pointer;text-align:center;padding:28px 20px}
+.mode-card .mode-icon{font-size:40px;margin-bottom:12px;display:block}
+.mode-card h3{font-size:18px;margin-bottom:6px}
+.mode-card p{font-size:13px;color:var(--text2);line-height:1.4}
+
+.quick-stats{display:flex;gap:12px;justify-content:center;margin-top:28px;flex-wrap:wrap}
+.quick-stats .stat-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:8px 16px;font-size:13px;font-weight:600}
+.quick-stats .stat-pill .stat-num{color:var(--accent);font-weight:800}
+
+/* ======================== */
+/* AI DIFFICULTY PICKER     */
+/* ======================== */
+#aiPickerScreen{padding-top:80px}
+.diff-grid{display:flex;flex-direction:column;gap:14px;max-width:360px;width:90%;margin:24px auto 0}
+.diff-card{cursor:pointer;display:flex;align-items:center;gap:16px;padding:20px 24px}
+.diff-card .diff-icon{font-size:32px;flex-shrink:0}
+.diff-card h3{font-size:17px;margin-bottom:2px}
+.diff-card p{font-size:13px;color:var(--text2)}
+.diff-card.easy{border-color:var(--accent)}
+.diff-card.easy:hover{box-shadow:0 0 20px rgba(6,214,160,.2)}
+.diff-card.medium{border-color:var(--gold)}
+.diff-card.medium:hover{box-shadow:0 0 20px rgba(255,209,102,.2)}
+.diff-card.hard{border-color:var(--accent3)}
+.diff-card.hard:hover{box-shadow:0 0 20px rgba(239,71,111,.2)}
+
+/* ======================== */
+/* MULTIPLAYER SCREEN       */
+/* ======================== */
+#multiplayerScreen{padding-top:80px}
+.qm-container{text-align:center;max-width:400px;width:90%}
+.qm-container h2{font-size:28px;margin-bottom:8px}
+.qm-container .sub{color:var(--text2);font-size:14px;margin-bottom:24px}
+.qm-actions{display:flex;flex-direction:column;gap:14px;align-items:center}
+.qm-divider{display:flex;align-items:center;gap:14px;width:100%;margin:4px 0}
+.qm-divider::before,.qm-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.qm-divider span{color:var(--text2);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px}
+.join-row{display:flex;gap:12px;align-items:center;justify-content:center}
+
+/* ======================== */
+/* WAITING SCREEN           */
+/* ======================== */
+#waitingScreen{padding-top:80px}
+.waiting-container{text-align:center;max-width:400px;width:90%}
+.waiting-container h2{font-size:28px;margin-bottom:8px}
+.room-code-big{font-family:'Fredoka',sans-serif;font-size:56px;font-weight:700;color:var(--accent);letter-spacing:12px;margin:20px 0 16px;text-shadow:0 0 30px rgba(6,214,160,.3)}
+.waiting-pulse{color:var(--text2);font-size:14px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
+
+/* ======================== */
+/* SETUP SCREEN             */
+/* ======================== */
+#setupScreen{padding-top:60px;padding-bottom:40px}
+.setup-container{display:flex;flex-direction:column;align-items:center;gap:20px;width:95%;max-width:600px}
+.setup-header{text-align:center}
+.setup-header h2{font-size:24px;margin-bottom:4px}
+.setup-header p{color:var(--text2);font-size:13px}
+
+.setup-grid-wrap{position:relative}
+.setup-grid{display:grid;grid-template-columns:repeat(10,36px);grid-template-rows:repeat(10,36px);gap:2px;background:var(--border);padding:2px;border-radius:8px;border:2px solid var(--border);position:relative}
+.setup-grid .cell{width:36px;height:36px;border-radius:4px;cursor:pointer;position:relative;transition:background .15s}
+.setup-grid .cell.water{background:var(--surface2)}
+.setup-grid .cell.ship{background:#6b7280}
+.setup-grid .cell.valid-hover{background:rgba(6,214,160,.4);box-shadow:inset 0 0 8px rgba(6,214,160,.3)}
+.setup-grid .cell.invalid-hover{background:rgba(239,71,111,.4);box-shadow:inset 0 0 8px rgba(239,71,111,.3)}
+
+.col-labels,.row-labels{display:flex;font-size:11px;color:var(--text2);font-weight:700}
+.col-labels{gap:2px;padding-left:20px;margin-bottom:4px}
+.col-labels span{width:36px;text-align:center}
+.row-labels{flex-direction:column;gap:2px;padding-top:0;margin-right:4px;justify-content:center}
+.row-labels span{height:36px;display:flex;align-items:center;justify-content:flex-end;width:14px}
+
+.grid-with-labels{display:flex;align-items:flex-start}
+
+.ship-dock{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%}
+.dock-ship{display:flex;gap:2px;cursor:grab;padding:6px 10px;border-radius:10px;border:2px solid var(--border);transition:all .2s;align-items:center;flex-direction:column}
+.dock-ship:hover{border-color:var(--accent2)}
+.dock-ship.selected{border-color:var(--accent);box-shadow:0 0 16px rgba(6,214,160,.3)}
+.dock-ship.placed{opacity:.4;pointer-events:none}
+.dock-ship .ship-name{font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.dock-ship .ship-cells{display:flex;gap:2px}
+.dock-ship .ship-cell{width:20px;height:20px;background:#6b7280;border-radius:3px}
+
+.setup-actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+
+.orientation-indicator{font-size:12px;color:var(--text2);text-align:center;font-weight:600}
+.orientation-indicator span{color:var(--accent);font-weight:800}
+
+/* ======================== */
+/* GAME SCREEN              */
+/* ======================== */
+#gameScreen{padding-top:60px;padding-bottom:40px}
+.game-container{display:flex;flex-direction:column;align-items:center;gap:16px;width:95%;max-width:900px}
+.turn-bar{text-align:center;width:100%}
+.turn-bar h2{font-size:20px;margin-bottom:2px}
+.turn-bar .turn-indicator{font-size:14px;font-weight:700;padding:6px 16px;border-radius:20px;display:inline-block}
+.turn-bar .turn-indicator.your-turn{background:rgba(6,214,160,.15);color:var(--accent)}
+.turn-bar .turn-indicator.enemy-turn{background:rgba(239,71,111,.15);color:var(--accent3)}
+.turn-bar .turn-indicator.thinking{background:rgba(255,209,102,.15);color:var(--gold)}
+
+.boards-area{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;width:100%}
+.board-panel{display:flex;flex-direction:column;align-items:center;gap:8px}
+.board-panel h3{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--text2)}
+
+.game-grid{display:grid;grid-template-columns:repeat(10,var(--cell-size,36px));grid-template-rows:repeat(10,var(--cell-size,36px));gap:2px;background:var(--border);padding:2px;border-radius:8px;border:2px solid var(--border)}
+.game-grid .cell{width:var(--cell-size,36px);height:var(--cell-size,36px);border-radius:4px;position:relative;transition:all .15s;cursor:default;overflow:hidden}
+
+/* Water cells with subtle wave animation */
+.game-grid .cell.water{background:var(--surface2)}
+.game-grid .cell.water::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 40%,rgba(17,138,178,.08) 50%,transparent 60%);animation:wave 4s ease-in-out infinite;opacity:0}
+.game-grid .cell.water:not(.hit):not(.miss)::after{opacity:1}
+@keyframes wave{0%,100%{transform:translateX(-100%)}50%{transform:translateX(100%)}}
+
+/* Ship cells on your board */
+.game-grid .cell.ship{background:#4b5563;border:1px solid #6b7280}
+
+/* Attackable cells on enemy grid */
+.game-grid.attack-grid .cell.water{cursor:crosshair}
+.game-grid.attack-grid .cell.water:hover{background:rgba(17,138,178,.25);box-shadow:inset 0 0 8px rgba(17,138,178,.3)}
+
+/* Hit marker */
+.game-grid .cell.hit{background:#dc2626;animation:hitPop .4s ease}
+.game-grid .cell.hit::after{content:'';position:absolute;inset:20%;background:radial-gradient(circle,#ff6b35,#dc2626);border-radius:50%;animation:none}
+@keyframes hitPop{0%{transform:scale(0);opacity:0}50%{transform:scale(1.3)}100%{transform:scale(1);opacity:1}}
+
+/* Miss marker */
+.game-grid .cell.miss{background:var(--surface2)}
+.game-grid .cell.miss::after{content:'';position:absolute;inset:30%;background:rgba(255,255,255,.5);border-radius:50%;animation:none}
+
+/* Sunk ship overlay */
+.game-grid .cell.sunk{background:#7f1d1d}
+.game-grid .cell.sunk::before{content:'X';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);font-weight:900;font-size:calc(var(--cell-size,36px)*.5)}
+
+/* Ship status panel */
+.ship-status{display:flex;flex-direction:column;gap:6px;width:100%;max-width:400px}
+.ship-status-item{display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--border);font-size:13px;font-weight:600}
+.ship-status-item .ship-dots{display:flex;gap:3px;flex:1}
+.ship-status-item .ship-dot{width:14px;height:14px;background:#4b5563;border-radius:3px}
+.ship-status-item .ship-dot.hit-dot{background:#dc2626}
+.ship-status-item.sunk-status{opacity:.5;text-decoration:line-through}
+.ship-status-item .ship-sname{min-width:85px}
+.ship-status-item .ship-sunk-label{color:var(--accent3);font-size:11px;font-weight:800;text-transform:uppercase;text-decoration:none}
+
+.status-panels{display:flex;gap:16px;width:100%;max-width:800px;flex-wrap:wrap;justify-content:center}
+.status-col{flex:1;min-width:200px}
+.status-col h4{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;text-align:center}
+
+/* ======================== */
+/* RESULT SCREEN            */
+/* ======================== */
+#resultScreen{padding-top:80px}
+.result-container{text-align:center;max-width:500px;width:90%}
+.result-container h2{font-size:clamp(32px,8vw,48px);font-weight:700;margin-bottom:8px}
+.result-sub{color:var(--text2);font-size:15px;margin-bottom:20px}
+.coins-display{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:rgba(255,209,102,.1);border:1px solid rgba(255,209,102,.2);border-radius:14px;font-size:18px;font-weight:800;color:var(--gold);margin-bottom:16px}
+.record-update{color:var(--text2);font-size:13px;margin-bottom:24px;min-height:20px}
+.result-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.result-stats{display:flex;gap:16px;justify-content:center;margin:16px 0;flex-wrap:wrap}
+
+/* ======================== */
+/* RECORDS SCREEN           */
+/* ======================== */
+#recordsScreen{padding-top:60px;padding-bottom:40px}
+.records-container{max-width:700px;width:90%}
+.records-container h2{font-size:28px;text-align:center;margin-bottom:24px}
+.my-record-card{margin-bottom:24px}
+.my-record-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:4px}
+.leaderboard-table{width:100%;border-collapse:separate;border-spacing:0 6px}
+.leaderboard-table th{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;padding:8px 12px;text-align:left}
+.leaderboard-table td{padding:10px 12px;background:var(--surface);font-size:14px;font-weight:600}
+.leaderboard-table tr td:first-child{border-radius:10px 0 0 10px}
+.leaderboard-table tr td:last-child{border-radius:0 10px 10px 0}
+.leaderboard-table .rank-1{color:var(--gold)}
+.leaderboard-table .rank-2{color:#c0c0c0}
+.leaderboard-table .rank-3{color:#cd7f32}
+
+/* ======================== */
+/* RESPONSIVE               */
+/* ======================== */
+@media(max-width:700px){
+  .boards-area{flex-direction:column;align-items:center}
+  .game-grid{--cell-size:30px}
+  .setup-grid .cell{width:30px;height:30px}
+  .setup-grid{grid-template-columns:repeat(10,30px);grid-template-rows:repeat(10,30px)}
+  .col-labels span{width:30px}
+  .row-labels span{height:30px}
+  .col-labels{padding-left:18px}
+  .status-panels{flex-direction:column}
+}
+@media(max-width:400px){
+  .game-grid{--cell-size:26px}
+  .setup-grid .cell{width:26px;height:26px}
+  .setup-grid{grid-template-columns:repeat(10,26px);grid-template-rows:repeat(10,26px)}
+  .col-labels span{width:26px}
+  .row-labels span{height:26px}
+  .col-labels{padding-left:16px}
+}
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../../student.html" id="backBtn">&larr; Back</a>
+<div class="sound-toggle" id="soundToggle" title="Toggle Sound">&#128266;</div>
+
+<!-- ======================== -->
+<!-- HOME SCREEN              -->
+<!-- ======================== -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1>&#128674; Battleship</h1>
+    <p>Seek and destroy the enemy fleet!</p>
+  </div>
+  <div class="mode-grid">
+    <div class="card mode-card" onclick="BS.showAIPicker()">
+      <span class="mode-icon">&#129302;</span>
+      <h3>VS AI</h3>
+      <p>Battle an AI opponent with 3 difficulty levels</p>
+    </div>
+    <div class="card mode-card" onclick="BS.showMultiplayer()">
+      <span class="mode-icon">&#127760;</span>
+      <h3>VS Friend</h3>
+      <p>Play online with a room code</p>
+    </div>
+    <div class="card mode-card" onclick="BS.showRecords()">
+      <span class="mode-icon">&#128202;</span>
+      <h3>Records</h3>
+      <p>Stats &amp; leaderboard</p>
+    </div>
+  </div>
+  <div class="quick-stats" id="quickStats"></div>
+</div>
+
+<!-- ======================== -->
+<!-- AI PICKER SCREEN         -->
+<!-- ======================== -->
+<div class="screen" id="aiPickerScreen">
+  <h2 style="font-size:28px;margin-bottom:4px">Choose Difficulty</h2>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:8px">Select the AI strength</p>
+  <div class="diff-grid">
+    <div class="card diff-card easy" onclick="BS.startAI('easy')">
+      <span class="diff-icon">&#127774;</span>
+      <div><h3>Easy</h3><p>Random shots &mdash; great for beginners</p></div>
+    </div>
+    <div class="card diff-card medium" onclick="BS.startAI('medium')">
+      <span class="diff-icon">&#9889;</span>
+      <div><h3>Medium</h3><p>Hunts after hits &mdash; a real challenge</p></div>
+    </div>
+    <div class="card diff-card hard" onclick="BS.startAI('hard')">
+      <span class="diff-icon">&#128293;</span>
+      <div><h3>Hard</h3><p>Smart targeting &mdash; good luck!</p></div>
+    </div>
+  </div>
+  <button class="btn btn-outline btn-small" style="margin-top:24px" onclick="BS.showScreen('homeScreen')">&larr; Back</button>
+</div>
+
+<!-- ======================== -->
+<!-- MULTIPLAYER SCREEN       -->
+<!-- ======================== -->
+<div class="screen" id="multiplayerScreen">
+  <div class="qm-container">
+    <h2>VS Friend</h2>
+    <p class="sub">Create a room or join with a code</p>
+    <div class="qm-actions">
+      <button class="btn btn-accent" onclick="BS.createRoom()">Create Room</button>
+      <div class="qm-divider"><span>or</span></div>
+      <div class="join-row">
+        <input class="code-input" id="joinCodeInput" maxlength="4" placeholder="----" inputmode="numeric">
+        <button class="btn btn-blue btn-small" onclick="BS.joinRoom()">Join</button>
+      </div>
+      <div class="error-text" id="lobbyError"></div>
+    </div>
+    <button class="btn btn-outline btn-small" style="margin-top:20px" onclick="BS.showScreen('homeScreen')">&larr; Back</button>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- WAITING SCREEN           -->
+<!-- ======================== -->
+<div class="screen" id="waitingScreen">
+  <div class="waiting-container">
+    <h2>Room Created!</h2>
+    <p style="color:var(--text2);font-size:14px;margin-top:4px">Share this code with your opponent:</p>
+    <div class="room-code-big" id="roomCodeDisplay"></div>
+    <p class="waiting-pulse">Waiting for opponent to join...</p>
+    <button class="btn btn-outline btn-small" style="margin-top:24px" onclick="BS.cancelRoom()">Cancel</button>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- SETUP SCREEN             -->
+<!-- ======================== -->
+<div class="screen" id="setupScreen">
+  <div class="setup-container">
+    <div class="setup-header">
+      <h2>Place Your Fleet</h2>
+      <p>Click a ship below, then click the grid to place it. Click placed ships to rotate.</p>
+    </div>
+    <div class="orientation-indicator">Orientation: <span id="orientationLabel">Horizontal</span> &mdash; <button class="btn btn-outline btn-small" style="min-width:auto;padding:6px 14px;font-size:12px" onclick="BS.toggleOrientation()">Rotate (R)</button></div>
+    <div style="display:flex;flex-direction:column;align-items:center">
+      <div class="col-labels" id="setupColLabels"></div>
+      <div class="grid-with-labels">
+        <div class="row-labels" id="setupRowLabels"></div>
+        <div class="setup-grid" id="setupGrid"></div>
+      </div>
+    </div>
+    <div class="ship-dock" id="shipDock"></div>
+    <div class="setup-actions">
+      <button class="btn btn-blue btn-small" onclick="BS.randomizeShips()">&#127922; Randomize</button>
+      <button class="btn btn-outline btn-small" onclick="BS.clearShips()">Clear</button>
+      <button class="btn btn-accent" id="readyBtn" onclick="BS.ready()" disabled>Ready!</button>
+    </div>
+    <div id="setupWaiting" style="display:none;text-align:center;margin-top:12px">
+      <p class="waiting-pulse">Waiting for opponent to place ships...</p>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- GAME SCREEN              -->
+<!-- ======================== -->
+<div class="screen" id="gameScreen">
+  <div class="game-container">
+    <div class="turn-bar">
+      <div class="turn-indicator" id="turnIndicator">Your Turn</div>
+    </div>
+    <div class="boards-area">
+      <div class="board-panel">
+        <h3>Your Fleet</h3>
+        <div style="display:flex;flex-direction:column;align-items:center">
+          <div class="col-labels game-col-labels" id="myColLabels"></div>
+          <div class="grid-with-labels">
+            <div class="row-labels game-row-labels" id="myRowLabels"></div>
+            <div class="game-grid" id="myGrid"></div>
+          </div>
+        </div>
+      </div>
+      <div class="board-panel">
+        <h3>Enemy Waters</h3>
+        <div style="display:flex;flex-direction:column;align-items:center">
+          <div class="col-labels game-col-labels" id="atkColLabels"></div>
+          <div class="grid-with-labels">
+            <div class="row-labels game-row-labels" id="atkRowLabels"></div>
+            <div class="game-grid attack-grid" id="attackGrid"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="status-panels">
+      <div class="status-col">
+        <h4>Your Ships</h4>
+        <div class="ship-status" id="myShipStatus"></div>
+      </div>
+      <div class="status-col">
+        <h4>Enemy Ships</h4>
+        <div class="ship-status" id="enemyShipStatus"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- RESULT SCREEN            -->
+<!-- ======================== -->
+<div class="screen" id="resultScreen">
+  <div class="result-container">
+    <h2 id="resultTitle">Victory!</h2>
+    <p class="result-sub" id="resultSub"></p>
+    <div class="result-stats" id="resultStats"></div>
+    <div class="coins-display" id="coinsDisplay"></div>
+    <div class="record-update" id="recordUpdate"></div>
+    <div class="result-actions">
+      <button class="btn btn-accent" onclick="BS.playAgain()">Play Again</button>
+      <button class="btn btn-outline" onclick="BS.goHome()">Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- RECORDS SCREEN           -->
+<!-- ======================== -->
+<div class="screen" id="recordsScreen">
+  <div class="records-container">
+    <h2>Records &amp; Leaderboard</h2>
+    <div class="card-static my-record-card" id="myRecordCard">
+      <h3 style="margin-bottom:12px;font-size:16px">My Stats</h3>
+      <div class="my-record-stats" id="myRecordStats">
+        <div class="stat-box"><div class="stat-val" style="color:var(--accent)">-</div><div class="stat-label">Wins</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--accent3)">-</div><div class="stat-label">Losses</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--accent2)">-</div><div class="stat-label">Played</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--gold)">-</div><div class="stat-label">Ships Sunk</div></div>
+      </div>
+    </div>
+    <h3 class="section-title">Class Leaderboard</h3>
+    <div id="leaderboardWrap"><p style="color:var(--text2);font-size:14px;text-align:center;padding:20px">Loading...</p></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="BS.showScreen('homeScreen')">&larr; Back</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script>
+// ============================================
+// BATTLESHIP - ODA Arcade
+// ============================================
+const BS = (function(){
+
+// ── Constants ──────────────────────────────────────────
+const SHIPS = [
+  {name:'Carrier',   size:5},
+  {name:'Battleship',size:4},
+  {name:'Cruiser',   size:3},
+  {name:'Submarine', size:3},
+  {name:'Destroyer', size:2}
+];
+const COLS = 'ABCDEFGHIJ'.split('');
+const EMPTY=0, SHIP=1, MISS_MARK=1, HIT_MARK=2;
+
+// ── State ─────────────────────────────────────────────
+let gameMode=''; // 'ai' or 'multi'
+let aiDifficulty='easy';
+let myBoard=[], myShips=[], myAttacks=[];
+let enemyBoard=[], enemyShips=[], enemyAttacks=[];
+let isMyTurn=false, gameOver=false, coinsAwarded=false;
+let roomCode=null, myPlayer=0, unsub=null;
+let selectedShipIndex=-1, orientation='h'; // h or v
+let placedShips=[]; // tracks placed ships on setup grid
+let setupBoard=[];
+let soundEnabled=true;
+
+// AI hunt state
+let aiHuntMode=false, aiHitStack=[], aiTriedCells=new Set();
+let aiFirstHit=null, aiDirection=null, aiLastHit=null;
+
+// ── Session helpers ────────────────────────────────────
+function sid(){ return localStorage.getItem('studentId')||'guest'; }
+function sname(){ return localStorage.getItem('studentName')||'Guest'; }
+function classCode(){ return localStorage.getItem('classCode')||''; }
+function isTeacher(){ return localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'; }
+
+// ── Cosmetics ──────────────────────────────────────────
+let myCosmetics={};
+(async()=>{
+  const s=localStorage.getItem('studentId');
+  if(!s)return;
+  try{const fb=await getFirebaseDB();const snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',s));if(snap.exists())myCosmetics=snap.data().equipped||{};}catch(e){}
+})();
+
+// ── Sound Engine ───────────────────────────────────────
+let audioCtx=null;
+function getAudio(){
+  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  return audioCtx;
+}
+function playTone(freq,dur,type='sine',vol=0.15){
+  if(!soundEnabled)return;
+  try{
+    const ctx=getAudio(),osc=ctx.createOscillator(),g=ctx.createGain();
+    osc.type=type;osc.frequency.value=freq;
+    g.gain.setValueAtTime(vol,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+    osc.connect(g);g.connect(ctx.destination);
+    osc.start();osc.stop(ctx.currentTime+dur);
+  }catch(e){}
+}
+function sndHit(){
+  playTone(200,.15,'sawtooth',.18);
+  setTimeout(()=>playTone(150,.1,'square',.1),50);
+  setTimeout(()=>playTone(100,.15,'sawtooth',.06),100);
+}
+function sndMiss(){
+  playTone(400,.08,'sine',.08);
+  setTimeout(()=>playTone(300,.1,'sine',.05),60);
+}
+function sndSunk(){
+  playTone(250,.12,'sawtooth',.15);
+  setTimeout(()=>playTone(200,.12,'square',.12),80);
+  setTimeout(()=>playTone(150,.15,'sawtooth',.1),160);
+  setTimeout(()=>playTone(100,.2,'sawtooth',.08),250);
+}
+function sndPlace(){
+  playTone(600,.06,'sine',.1);
+  setTimeout(()=>playTone(800,.06,'sine',.08),40);
+}
+function sndWin(){
+  [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(f,.2,'sine',.12),i*120));
+}
+function sndLose(){
+  [400,350,300,250].forEach((f,i)=>setTimeout(()=>playTone(f,.25,'sawtooth',.1),i*200));
+}
+function sndClick(){ playTone(700,.04,'sine',.06); }
+
+// Sound toggle
+document.getElementById('soundToggle').addEventListener('click',()=>{
+  soundEnabled=!soundEnabled;
+  document.getElementById('soundToggle').innerHTML=soundEnabled?'&#128266;':'&#128264;';
+  if(soundEnabled) sndClick();
+});
+
+// ── Utility ────────────────────────────────────────────
+function emptyGrid(){ return Array.from({length:10},()=>Array(10).fill(0)); }
+function cloneGrid(g){ return g.map(r=>[...r]); }
+function genCode(){ return String(Math.floor(1000+Math.random()*9000)); }
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById(id);
+  if(el) el.classList.add('active');
+}
+
+function showError(msg){
+  const el=document.getElementById('lobbyError');
+  if(el){el.textContent=msg;setTimeout(()=>{el.textContent=''},3000);}
+}
+
+// ── Teacher detection ──────────────────────────────────
+(function(){
+  if(isTeacher()){
+    const b=document.getElementById('backBtn');
+    if(b) b.href='../../teacher.html';
+  }
+})();
+
+// ── Quick stats on home ────────────────────────────────
+async function loadQuickStats(){
+  const s=sid();
+  if(s==='guest')return;
+  try{
+    const fb=await getFirebaseDB();
+    const snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'battleshipRecords',s));
+    if(!snap.exists())return;
+    const d=snap.data();
+    document.getElementById('quickStats').innerHTML=`
+      <div class="stat-pill"><span class="stat-num">${d.wins||0}</span> Wins</div>
+      <div class="stat-pill"><span class="stat-num">${d.gamesPlayed||0}</span> Games</div>
+      <div class="stat-pill"><span class="stat-num">${d.shipsSunk||0}</span> Ships Sunk</div>
+    `;
+  }catch(e){}
+}
+loadQuickStats();
+
+// ============================================
+// GRID RENDERING
+// ============================================
+function buildLabels(colId,rowId){
+  const ce=document.getElementById(colId);
+  const re=document.getElementById(rowId);
+  ce.innerHTML=COLS.map(c=>`<span>${c}</span>`).join('');
+  re.innerHTML=Array.from({length:10},(_,i)=>`<span>${i+1}</span>`).join('');
+}
+
+function renderSetupGrid(){
+  buildLabels('setupColLabels','setupRowLabels');
+  const grid=document.getElementById('setupGrid');
+  grid.innerHTML='';
+  for(let r=0;r<10;r++){
+    for(let c=0;c<10;c++){
+      const cell=document.createElement('div');
+      cell.className='cell water';
+      cell.dataset.r=r;cell.dataset.c=c;
+      if(setupBoard[r][c]===SHIP) cell.classList.replace('water','ship');
+      cell.addEventListener('click',()=>onSetupCellClick(r,c));
+      cell.addEventListener('mouseenter',()=>onSetupCellHover(r,c));
+      cell.addEventListener('mouseleave',clearSetupHover);
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function renderShipDock(){
+  const dock=document.getElementById('shipDock');
+  dock.innerHTML='';
+  SHIPS.forEach((ship,i)=>{
+    const isPlaced=placedShips.some(p=>p.index===i);
+    const div=document.createElement('div');
+    div.className='dock-ship'+(selectedShipIndex===i?' selected':'')+(isPlaced?' placed':'');
+    div.innerHTML=`<div class="ship-name">${esc(ship.name)} (${ship.size})</div><div class="ship-cells">${Array(ship.size).fill('<div class="ship-cell"></div>').join('')}</div>`;
+    div.addEventListener('click',()=>{
+      if(isPlaced)return;
+      selectedShipIndex=i;
+      sndClick();
+      renderShipDock();
+    });
+    dock.appendChild(div);
+  });
+}
+
+function onSetupCellHover(r,c){
+  if(selectedShipIndex<0)return;
+  const ship=SHIPS[selectedShipIndex];
+  const cells=getShipCells(r,c,ship.size,orientation);
+  if(!cells)return;
+  const valid=canPlace(cells,selectedShipIndex);
+  const grid=document.getElementById('setupGrid');
+  cells.forEach(([cr,cc])=>{
+    const cell=grid.children[cr*10+cc];
+    if(cell) cell.classList.add(valid?'valid-hover':'invalid-hover');
+  });
+}
+
+function clearSetupHover(){
+  document.querySelectorAll('#setupGrid .cell').forEach(c=>{
+    c.classList.remove('valid-hover','invalid-hover');
+  });
+}
+
+function getShipCells(r,c,size,orient){
+  const cells=[];
+  for(let i=0;i<size;i++){
+    const nr=orient==='v'?r+i:r;
+    const nc=orient==='h'?c+i:c;
+    if(nr<0||nr>=10||nc<0||nc>=10)return null;
+    cells.push([nr,nc]);
+  }
+  return cells;
+}
+
+function canPlace(cells,shipIdx){
+  for(const[r,c] of cells){
+    if(setupBoard[r][c]===SHIP){
+      // Allow if this cell belongs to the same ship being moved
+      const occupier=placedShips.find(p=>p.cells.some(([pr,pc])=>pr===r&&pc===c));
+      if(!occupier||occupier.index!==shipIdx) return false;
+    }
+  }
+  return true;
+}
+
+function onSetupCellClick(r,c){
+  // If clicking on an already placed ship, remove it
+  const existing=placedShips.find(p=>p.cells.some(([pr,pc])=>pr===r&&pc===c));
+  if(existing&&selectedShipIndex<0){
+    // Remove the ship and select it for re-placement
+    existing.cells.forEach(([pr,pc])=>{ setupBoard[pr][pc]=EMPTY; });
+    placedShips=placedShips.filter(p=>p.index!==existing.index);
+    selectedShipIndex=existing.index;
+    orientation=existing.orient;
+    document.getElementById('orientationLabel').textContent=orientation==='h'?'Horizontal':'Vertical';
+    sndClick();
+    renderSetupGrid();
+    renderShipDock();
+    updateReadyBtn();
+    return;
+  }
+
+  if(selectedShipIndex<0)return;
+  const ship=SHIPS[selectedShipIndex];
+  const cells=getShipCells(r,c,ship.size,orientation);
+  if(!cells||!canPlace(cells,selectedShipIndex))return;
+
+  // Place ship
+  cells.forEach(([cr,cc])=>{ setupBoard[cr][cc]=SHIP; });
+  placedShips.push({index:selectedShipIndex, cells:cells, orient:orientation, name:ship.name, size:ship.size});
+  selectedShipIndex=-1;
+  sndPlace();
+  renderSetupGrid();
+  renderShipDock();
+  updateReadyBtn();
+}
+
+function toggleOrientation(){
+  orientation=orientation==='h'?'v':'h';
+  document.getElementById('orientationLabel').textContent=orientation==='h'?'Horizontal':'Vertical';
+  sndClick();
+}
+
+function updateReadyBtn(){
+  document.getElementById('readyBtn').disabled=placedShips.length!==5;
+}
+
+function randomizeShips(){
+  setupBoard=emptyGrid();
+  placedShips=[];
+  selectedShipIndex=-1;
+  SHIPS.forEach((ship,i)=>{
+    let placed=false,tries=0;
+    while(!placed&&tries<200){
+      const orient=Math.random()<.5?'h':'v';
+      const r=Math.floor(Math.random()*10);
+      const c=Math.floor(Math.random()*10);
+      const cells=getShipCells(r,c,ship.size,orient);
+      if(cells&&cells.every(([cr,cc])=>setupBoard[cr][cc]===EMPTY)){
+        cells.forEach(([cr,cc])=>{ setupBoard[cr][cc]=SHIP; });
+        placedShips.push({index:i,cells,orient,name:ship.name,size:ship.size});
+        placed=true;
+      }
+      tries++;
+    }
+  });
+  sndPlace();
+  renderSetupGrid();
+  renderShipDock();
+  updateReadyBtn();
+}
+
+function clearShips(){
+  setupBoard=emptyGrid();
+  placedShips=[];
+  selectedShipIndex=-1;
+  sndClick();
+  renderSetupGrid();
+  renderShipDock();
+  updateReadyBtn();
+}
+
+// ============================================
+// GAME GRID RENDERING
+// ============================================
+function renderMyGrid(){
+  buildLabels('myColLabels','myRowLabels');
+  const grid=document.getElementById('myGrid');
+  grid.innerHTML='';
+  for(let r=0;r<10;r++){
+    for(let c=0;c<10;c++){
+      const cell=document.createElement('div');
+      cell.className='cell';
+      const isShip=myBoard[r][c]===SHIP;
+      const atk=enemyAttacks[r][c];
+      if(atk===HIT_MARK){
+        cell.classList.add('hit');
+        // Check if part of sunk ship
+        if(isShipSunk(myShips,r,c,enemyAttacks)) cell.classList.add('sunk');
+      } else if(atk===MISS_MARK){
+        cell.classList.add('miss');
+      } else if(isShip){
+        cell.classList.add('ship');
+      } else {
+        cell.classList.add('water');
+      }
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function renderAttackGrid(){
+  buildLabels('atkColLabels','atkRowLabels');
+  const grid=document.getElementById('attackGrid');
+  grid.innerHTML='';
+  for(let r=0;r<10;r++){
+    for(let c=0;c<10;c++){
+      const cell=document.createElement('div');
+      cell.className='cell';
+      const atk=myAttacks[r][c];
+      if(atk===HIT_MARK){
+        cell.classList.add('hit');
+        if(gameMode==='ai'&&isShipSunk(enemyShips,r,c,myAttacks)) cell.classList.add('sunk');
+        if(gameMode==='multi') {
+          // Check sunk from enemyShips data
+          if(isShipSunk(enemyShips,r,c,myAttacks)) cell.classList.add('sunk');
+        }
+      } else if(atk===MISS_MARK){
+        cell.classList.add('miss');
+      } else {
+        cell.classList.add('water');
+        if(!gameOver&&isMyTurn){
+          cell.addEventListener('click',()=>onAttackClick(r,c));
+        }
+      }
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function isShipSunk(ships,r,c,attacks){
+  const ship=ships.find(s=>s.cells.some(([sr,sc])=>sr===r&&sc===c));
+  if(!ship)return false;
+  return ship.cells.every(([sr,sc])=>attacks[sr][sc]===HIT_MARK);
+}
+
+function renderShipStatus(ships,attacks,containerId){
+  const el=document.getElementById(containerId);
+  el.innerHTML='';
+  ships.forEach(ship=>{
+    const sunk=ship.cells.every(([r,c])=>attacks[r][c]===HIT_MARK);
+    const hits=ship.cells.filter(([r,c])=>attacks[r][c]===HIT_MARK).length;
+    const div=document.createElement('div');
+    div.className='ship-status-item'+(sunk?' sunk-status':'');
+    div.innerHTML=`
+      <span class="ship-sname">${esc(ship.name)}</span>
+      <div class="ship-dots">${ship.cells.map(([r,c])=>`<div class="ship-dot${attacks[r][c]===HIT_MARK?' hit-dot':''}"></div>`).join('')}</div>
+      ${sunk?'<span class="ship-sunk-label">Sunk!</span>':''}
+    `;
+    el.appendChild(div);
+  });
+}
+
+function updateTurnIndicator(){
+  const el=document.getElementById('turnIndicator');
+  if(gameOver){
+    el.textContent='Game Over';
+    el.className='turn-indicator';
+    return;
+  }
+  if(isMyTurn){
+    el.textContent='Your Turn — Fire!';
+    el.className='turn-indicator your-turn';
+  } else {
+    if(gameMode==='ai'){
+      el.textContent='AI is thinking...';
+      el.className='turn-indicator thinking';
+    } else {
+      el.textContent="Opponent's Turn";
+      el.className='turn-indicator enemy-turn';
+    }
+  }
+}
+
+function refreshGameUI(){
+  renderMyGrid();
+  renderAttackGrid();
+  renderShipStatus(myShips,enemyAttacks,'myShipStatus');
+  renderShipStatus(enemyShips,myAttacks,'enemyShipStatus');
+  updateTurnIndicator();
+}
+
+// ============================================
+// GAME LOGIC - ATTACK
+// ============================================
+function onAttackClick(r,c){
+  if(!isMyTurn||gameOver)return;
+  if(myAttacks[r][c]!==0)return;
+
+  if(gameMode==='ai'){
+    doAttack(r,c);
+  } else {
+    doMultiplayerAttack(r,c);
+  }
+}
+
+function doAttack(r,c){
+  // Attack enemy board
+  const isHit=enemyBoard[r][c]===SHIP;
+  myAttacks[r][c]=isHit?HIT_MARK:MISS_MARK;
+
+  if(isHit){
+    sndHit();
+    // Check if sunk
+    const sunkShip=enemyShips.find(s=>s.cells.some(([sr,sc])=>sr===r&&sc===c)&&s.cells.every(([sr,sc])=>myAttacks[sr][sc]===HIT_MARK));
+    if(sunkShip&&!sunkShip.sunk){
+      sunkShip.sunk=true;
+      setTimeout(()=>sndSunk(),200);
+      if(typeof odaToast==='function') odaToast(`You sunk their ${sunkShip.name}!`,'success');
+    }
+    // Check win
+    if(enemyShips.every(s=>s.sunk)){
+      gameOver=true;
+      refreshGameUI();
+      setTimeout(()=>showResult(true),600);
+      return;
+    }
+  } else {
+    sndMiss();
+  }
+
+  isMyTurn=false;
+  refreshGameUI();
+
+  // AI turn
+  if(gameMode==='ai'&&!gameOver){
+    setTimeout(()=>aiTurn(),800+Math.random()*600);
+  }
+}
+
+// ============================================
+// AI LOGIC
+// ============================================
+function aiTurn(){
+  if(gameOver)return;
+  const[r,c]=aiPickTarget();
+  const isHit=myBoard[r][c]===SHIP;
+  enemyAttacks[r][c]=isHit?HIT_MARK:MISS_MARK;
+  aiTriedCells.add(r*10+c);
+
+  if(isHit){
+    sndHit();
+    // AI hunt logic
+    if(aiDifficulty!=='easy'){
+      aiHitStack.push([r,c]);
+      aiHuntMode=true;
+      if(!aiFirstHit) aiFirstHit=[r,c];
+      aiLastHit=[r,c];
+    }
+    // Check if sunk
+    const sunkShip=myShips.find(s=>s.cells.some(([sr,sc])=>sr===r&&sc===c)&&s.cells.every(([sr,sc])=>enemyAttacks[sr][sc]===HIT_MARK));
+    if(sunkShip&&!sunkShip.sunk){
+      sunkShip.sunk=true;
+      setTimeout(()=>sndSunk(),200);
+      if(typeof odaToast==='function') odaToast(`They sunk your ${sunkShip.name}!`,'error');
+      // Reset hunt for this ship
+      if(aiDifficulty!=='easy'){
+        // Remove sunk ship cells from hit stack
+        const sunkSet=new Set(sunkShip.cells.map(([sr,sc])=>sr*10+sc));
+        aiHitStack=aiHitStack.filter(([hr,hc])=>!sunkSet.has(hr*10+hc));
+        if(aiHitStack.length===0){
+          aiHuntMode=false;
+          aiFirstHit=null;
+          aiDirection=null;
+          aiLastHit=null;
+        } else {
+          aiFirstHit=aiHitStack[0];
+          aiLastHit=aiHitStack[aiHitStack.length-1];
+          aiDirection=null;
+        }
+      }
+    }
+    // Check AI win
+    if(myShips.every(s=>s.sunk)){
+      gameOver=true;
+      refreshGameUI();
+      setTimeout(()=>showResult(false),600);
+      return;
+    }
+  } else {
+    sndMiss();
+    // On miss during hunt mode with direction, reverse direction
+    if(aiDifficulty==='hard'&&aiHuntMode&&aiDirection){
+      aiLastHit=aiFirstHit;
+      aiDirection=null; // will recalculate
+    }
+  }
+
+  isMyTurn=true;
+  refreshGameUI();
+}
+
+function aiPickTarget(){
+  if(aiDifficulty==='easy') return aiRandomTarget();
+  if(!aiHuntMode) return aiSmartRandom();
+  return aiHuntTarget();
+}
+
+function aiRandomTarget(){
+  let r,c;
+  do{
+    r=Math.floor(Math.random()*10);
+    c=Math.floor(Math.random()*10);
+  }while(aiTriedCells.has(r*10+c));
+  return[r,c];
+}
+
+function aiSmartRandom(){
+  // Checkerboard pattern for efficiency on hard
+  const candidates=[];
+  for(let r=0;r<10;r++){
+    for(let c=0;c<10;c++){
+      if(aiTriedCells.has(r*10+c)) continue;
+      if(aiDifficulty==='hard'&&(r+c)%2!==0) continue; // checkerboard
+      candidates.push([r,c]);
+    }
+  }
+  // If checkerboard exhausted, try remaining
+  if(candidates.length===0){
+    for(let r=0;r<10;r++){
+      for(let c=0;c<10;c++){
+        if(!aiTriedCells.has(r*10+c)) candidates.push([r,c]);
+      }
+    }
+  }
+  return candidates[Math.floor(Math.random()*candidates.length)]||[0,0];
+}
+
+function aiHuntTarget(){
+  const dirs=[[0,1],[0,-1],[1,0],[-1,0]];
+
+  // Hard: try to determine direction from multiple hits
+  if(aiDifficulty==='hard'&&aiHitStack.length>=2&&!aiDirection){
+    const[r1,c1]=aiHitStack[0];
+    const[r2,c2]=aiHitStack[aiHitStack.length-1];
+    if(r1===r2) aiDirection='h';
+    else if(c1===c2) aiDirection='v';
+  }
+
+  // Try extending in the determined direction
+  if(aiDirection&&aiLastHit){
+    const[lr,lc]=aiLastHit;
+    let tryDirs;
+    if(aiDirection==='h') tryDirs=[[0,1],[0,-1]];
+    else tryDirs=[[1,0],[-1,0]];
+
+    for(const[dr,dc] of tryDirs){
+      const nr=lr+dr, nc=lc+dc;
+      if(nr>=0&&nr<10&&nc>=0&&nc<10&&!aiTriedCells.has(nr*10+nc)) return[nr,nc];
+    }
+    // Try from first hit in opposite direction
+    if(aiFirstHit){
+      const[fr,fc]=aiFirstHit;
+      for(const[dr,dc] of tryDirs){
+        const nr=fr+dr, nc=fc+dc;
+        if(nr>=0&&nr<10&&nc>=0&&nc<10&&!aiTriedCells.has(nr*10+nc)) return[nr,nc];
+      }
+    }
+  }
+
+  // Try adjacent to any hit in stack
+  for(const[hr,hc] of [...aiHitStack].reverse()){
+    const shuffled=[...dirs].sort(()=>Math.random()-.5);
+    for(const[dr,dc] of shuffled){
+      const nr=hr+dr, nc=hc+dc;
+      if(nr>=0&&nr<10&&nc>=0&&nc<10&&!aiTriedCells.has(nr*10+nc)) return[nr,nc];
+    }
+  }
+
+  // Fallback to random
+  aiHuntMode=false;
+  aiFirstHit=null;aiDirection=null;aiLastHit=null;
+  return aiSmartRandom();
+}
+
+// ============================================
+// GAME SETUP
+// ============================================
+function initSetup(){
+  setupBoard=emptyGrid();
+  placedShips=[];
+  selectedShipIndex=-1;
+  orientation='h';
+  document.getElementById('orientationLabel').textContent='Horizontal';
+  document.getElementById('setupWaiting').style.display='none';
+  document.getElementById('readyBtn').disabled=true;
+  document.getElementById('readyBtn').style.display='';
+  renderSetupGrid();
+  renderShipDock();
+  showScreen('setupScreen');
+}
+
+function startAI(diff){
+  gameMode='ai';
+  aiDifficulty=diff;
+  gameOver=false;
+  coinsAwarded=false;
+  aiHuntMode=false;aiHitStack=[];aiTriedCells=new Set();
+  aiFirstHit=null;aiDirection=null;aiLastHit=null;
+  initSetup();
+}
+
+function ready(){
+  if(placedShips.length!==5)return;
+
+  // Build my data
+  myBoard=cloneGrid(setupBoard);
+  myShips=placedShips.map(p=>({
+    name:p.name, size:p.size,
+    cells:p.cells.map(([r,c])=>[r,c]),
+    sunk:false
+  }));
+  myAttacks=emptyGrid();
+  enemyAttacks=emptyGrid();
+
+  if(gameMode==='ai'){
+    // Generate AI board
+    generateAIBoard();
+    isMyTurn=true;
+    showScreen('gameScreen');
+    refreshGameUI();
+    sndClick();
+  } else {
+    // Multiplayer: save board to Firestore
+    submitMultiplayerBoard();
+  }
+}
+
+function generateAIBoard(){
+  enemyBoard=emptyGrid();
+  enemyShips=[];
+  SHIPS.forEach((ship,i)=>{
+    let placed=false,tries=0;
+    while(!placed&&tries<200){
+      const orient=Math.random()<.5?'h':'v';
+      const r=Math.floor(Math.random()*10);
+      const c=Math.floor(Math.random()*10);
+      const cells=getShipCells(r,c,ship.size,orient);
+      if(cells&&cells.every(([cr,cc])=>enemyBoard[cr][cc]===EMPTY)){
+        cells.forEach(([cr,cc])=>{ enemyBoard[cr][cc]=SHIP; });
+        enemyShips.push({name:ship.name,size:ship.size,cells,sunk:false});
+        placed=true;
+      }
+      tries++;
+    }
+  });
+}
+
+// ============================================
+// MULTIPLAYER
+// ============================================
+async function createRoom(){
+  try{
+    gameMode='multi';
+    gameOver=false;
+    coinsAwarded=false;
+    const fb=await getFirebaseDB();
+    const{db,fsMod}=fb;
+
+    roomCode=genCode();
+    let ref=fsMod.doc(db,'battleshipGames',roomCode);
+    let snap=await fsMod.getDoc(ref);
+    let retries=0;
+    while(snap.exists()&&retries<10){roomCode=genCode();ref=fsMod.doc(db,'battleshipGames',roomCode);snap=await fsMod.getDoc(ref);retries++;}
+
+    await fsMod.setDoc(ref,{
+      player1:sid(), player1Name:sname(),
+      player2:null, player2Name:null,
+      p1Board:null, p2Board:null,
+      p1Attacks:JSON.stringify(emptyGrid()),
+      p2Attacks:JSON.stringify(emptyGrid()),
+      p1Ships:null, p2Ships:null,
+      turn:1,
+      status:'waiting',
+      winner:null,
+      p1Ready:false, p2Ready:false,
+      createdAt:fsMod.serverTimestamp()
+    });
+
+    myPlayer=1;
+    document.getElementById('roomCodeDisplay').textContent=roomCode;
+    showScreen('waitingScreen');
+    listenToGame();
+  }catch(e){
+    console.error('Create room error:',e);
+    showError('Failed to create room');
+  }
+}
+
+async function joinRoom(){
+  const code=document.getElementById('joinCodeInput').value.trim();
+  if(!code||code.length<4){showError('Enter a 4-digit code');return;}
+  try{
+    gameMode='multi';
+    gameOver=false;
+    coinsAwarded=false;
+    const fb=await getFirebaseDB();
+    const{db,fsMod}=fb;
+    const ref=fsMod.doc(db,'battleshipGames',code);
+    const snap=await fsMod.getDoc(ref);
+    if(!snap.exists()){showError('Room not found');return;}
+    const data=snap.data();
+    if(data.status!=='waiting'){showError('Game already in progress');return;}
+    if(data.player1===sid()){showError("Can't join your own game");return;}
+
+    roomCode=code;
+    myPlayer=2;
+    await fsMod.updateDoc(ref,{
+      player2:sid(), player2Name:sname(),
+      status:'setup'
+    });
+    initSetup();
+    listenToGame();
+  }catch(e){
+    console.error('Join room error:',e);
+    showError('Failed to join room');
+  }
+}
+
+function listenToGame(){
+  if(unsub) unsub();
+  (async()=>{
+    try{
+      const fb=await getFirebaseDB();
+      const{db,fsMod}=fb;
+      const ref=fsMod.doc(db,'battleshipGames',roomCode);
+
+      unsub=fsMod.onSnapshot(ref,snap=>{
+        if(!snap.exists()){
+          if(unsub)unsub();
+          unsub=null;
+          showScreen('homeScreen');
+          if(typeof odaToast==='function') odaToast('Game was cancelled','error');
+          return;
+        }
+        const data=snap.data();
+
+        // Waiting -> Setup transition (for P1)
+        if(data.status==='setup'&&myPlayer===1){
+          const current=document.querySelector('.screen.active');
+          if(current&&current.id==='waitingScreen'){
+            initSetup();
+          }
+        }
+
+        // Both ready -> playing
+        if(data.status==='playing'){
+          const current=document.querySelector('.screen.active');
+          if(current&&current.id==='setupScreen'){
+            // Load game state
+            loadMultiplayerGameState(data);
+            showScreen('gameScreen');
+            refreshGameUI();
+          } else if(current&&current.id==='gameScreen'){
+            // Update from opponent's move
+            loadMultiplayerGameState(data);
+            refreshGameUI();
+
+            // Check for game end
+            if(data.status==='finished'||data.winner){
+              gameOver=true;
+              const iWon=data.winner===myPlayer;
+              refreshGameUI();
+              setTimeout(()=>showResult(iWon),600);
+            }
+          }
+        }
+
+        // Game finished
+        if(data.status==='finished'&&data.winner){
+          gameOver=true;
+          loadMultiplayerGameState(data);
+          const iWon=data.winner===myPlayer;
+          refreshGameUI();
+          const current=document.querySelector('.screen.active');
+          if(current&&current.id==='gameScreen'){
+            setTimeout(()=>showResult(iWon),600);
+          }
+        }
+      });
+    }catch(e){ console.error('Listen error:',e); }
+  })();
+}
+
+function loadMultiplayerGameState(data){
+  const amP1=myPlayer===1;
+
+  // My board
+  if(amP1&&data.p1Board) myBoard=JSON.parse(data.p1Board);
+  else if(!amP1&&data.p2Board) myBoard=JSON.parse(data.p2Board);
+
+  // My ships
+  if(amP1&&data.p1Ships) myShips=JSON.parse(data.p1Ships);
+  else if(!amP1&&data.p2Ships) myShips=JSON.parse(data.p2Ships);
+
+  // Enemy ships (without board - just for status tracking)
+  if(amP1&&data.p2Ships){
+    enemyShips=JSON.parse(data.p2Ships);
+    // Hide actual cell positions in enemy ships? No, we need them for sunk detection
+    // But we don't reveal the board
+  } else if(!amP1&&data.p1Ships){
+    enemyShips=JSON.parse(data.p1Ships);
+  }
+
+  // Attacks
+  if(data.p1Attacks) {
+    const p1a=JSON.parse(data.p1Attacks);
+    if(amP1){ myAttacks=p1a; } else { enemyAttacks=p1a; }
+  }
+  if(data.p2Attacks){
+    const p2a=JSON.parse(data.p2Attacks);
+    if(amP1){ enemyAttacks=p2a; } else { myAttacks=p2a; }
+  }
+
+  // Turn
+  isMyTurn=(data.turn===myPlayer);
+
+  // Detect sunk ships
+  if(myShips) myShips.forEach(s=>{
+    s.sunk=s.cells.every(([r,c])=>enemyAttacks[r]&&enemyAttacks[r][c]===HIT_MARK);
+  });
+  if(enemyShips) enemyShips.forEach(s=>{
+    s.sunk=s.cells.every(([r,c])=>myAttacks[r]&&myAttacks[r][c]===HIT_MARK);
+  });
+}
+
+async function submitMultiplayerBoard(){
+  try{
+    const fb=await getFirebaseDB();
+    const{db,fsMod}=fb;
+    const ref=fsMod.doc(db,'battleshipGames',roomCode);
+    const amP1=myPlayer===1;
+
+    const shipData=myShips.map(s=>({name:s.name,size:s.size,cells:s.cells,sunk:false}));
+
+    const update={};
+    if(amP1){
+      update.p1Board=JSON.stringify(myBoard);
+      update.p1Ships=JSON.stringify(shipData);
+      update.p1Ready=true;
+    } else {
+      update.p2Board=JSON.stringify(myBoard);
+      update.p2Ships=JSON.stringify(shipData);
+      update.p2Ready=true;
+    }
+
+    await fsMod.updateDoc(ref,update);
+
+    // Check if both ready
+    const snap=await fsMod.getDoc(ref);
+    const data=snap.data();
+    if(data.p1Ready&&data.p2Ready){
+      await fsMod.updateDoc(ref,{status:'playing'});
+    } else {
+      document.getElementById('setupWaiting').style.display='';
+      document.getElementById('readyBtn').style.display='none';
+    }
+  }catch(e){
+    console.error('Submit board error:',e);
+    if(typeof odaToast==='function') odaToast('Failed to submit board','error');
+  }
+}
+
+async function doMultiplayerAttack(r,c){
+  if(!isMyTurn||gameOver)return;
+  isMyTurn=false; // Prevent double-click
+  refreshGameUI();
+
+  try{
+    const fb=await getFirebaseDB();
+    const{db,fsMod}=fb;
+    const ref=fsMod.doc(db,'battleshipGames',roomCode);
+    const snap=await fsMod.getDoc(ref);
+    const data=snap.data();
+    const amP1=myPlayer===1;
+
+    // Get enemy board to check hit
+    const enemyBoardData=amP1?JSON.parse(data.p2Board):JSON.parse(data.p1Board);
+    const isHit=enemyBoardData[r][c]===SHIP;
+
+    // Update my attacks
+    const myAttacksKey=amP1?'p1Attacks':'p2Attacks';
+    const currentAttacks=JSON.parse(data[myAttacksKey]);
+    currentAttacks[r][c]=isHit?HIT_MARK:MISS_MARK;
+
+    if(isHit) sndHit(); else sndMiss();
+
+    const update={};
+    update[myAttacksKey]=JSON.stringify(currentAttacks);
+    update.turn=amP1?2:1;
+
+    // Check for sunk ships
+    const eShipsKey=amP1?'p2Ships':'p1Ships';
+    const eShips=JSON.parse(data[eShipsKey]);
+    let sunkCount=0;
+    eShips.forEach(s=>{
+      const wasSunk=s.sunk;
+      s.sunk=s.cells.every(([sr,sc])=>currentAttacks[sr][sc]===HIT_MARK);
+      if(s.sunk) sunkCount++;
+      if(s.sunk&&!wasSunk){
+        setTimeout(()=>sndSunk(),200);
+        if(typeof odaToast==='function') odaToast(`You sunk their ${s.name}!`,'success');
+      }
+    });
+    update[eShipsKey]=JSON.stringify(eShips);
+
+    // Check win
+    if(sunkCount===5){
+      update.status='finished';
+      update.winner=myPlayer;
+    }
+
+    await fsMod.updateDoc(ref,update);
+  }catch(e){
+    console.error('Attack error:',e);
+    isMyTurn=true;
+    refreshGameUI();
+  }
+}
+
+async function cancelRoom(){
+  if(unsub){unsub();unsub=null;}
+  if(roomCode){
+    try{
+      const fb=await getFirebaseDB();
+      await fb.fsMod.deleteDoc(fb.fsMod.doc(fb.db,'battleshipGames',roomCode));
+    }catch(e){}
+  }
+  roomCode=null;
+  showScreen('homeScreen');
+}
+
+// ============================================
+// RESULTS & COINS
+// ============================================
+function showResult(won){
+  showScreen('resultScreen');
+  const titleEl=document.getElementById('resultTitle');
+  const subEl=document.getElementById('resultSub');
+  const coinsEl=document.getElementById('coinsDisplay');
+  const statsEl=document.getElementById('resultStats');
+
+  let coins=0;
+  let mySunk=0, enemySunk=0;
+
+  if(myShips) mySunk=myShips.filter(s=>s.sunk).length;
+  if(enemyShips) enemySunk=enemyShips.filter(s=>s.sunk).length;
+
+  // Count total shots
+  let myShots=0,myHits=0;
+  if(myAttacks) myAttacks.forEach(row=>row.forEach(c=>{if(c>0)myShots++;if(c===HIT_MARK)myHits++;}));
+
+  if(won){
+    titleEl.textContent='Victory!';
+    titleEl.style.color='var(--accent)';
+    if(gameMode==='ai'){
+      subEl.textContent=`You defeated the ${aiDifficulty} AI!`;
+      coins=aiDifficulty==='hard'?15:10;
+    } else {
+      subEl.textContent='You destroyed the enemy fleet!';
+      coins=15;
+    }
+    sndWin();
+    if(typeof odaCelebrate==='function') odaCelebrate(myCosmetics.winEffect?.type||'confetti');
+  } else {
+    titleEl.textContent='Defeat';
+    titleEl.style.color='var(--accent3)';
+    if(gameMode==='ai'){
+      subEl.textContent='The AI sank your fleet';
+    } else {
+      subEl.textContent='Your fleet was destroyed';
+    }
+    coins=3;
+    sndLose();
+  }
+
+  coinsEl.innerHTML=`<svg width="22" height="22" viewBox="0 0 24 24" fill="var(--gold)"><circle cx="12" cy="12" r="10" stroke="var(--gold)" stroke-width="2" fill="rgba(255,209,102,.2)"/><text x="12" y="16" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--gold)">$</text></svg> +${coins} Coins`;
+
+  statsEl.innerHTML=`
+    <div class="stat-box"><div class="stat-val" style="color:var(--accent)">${enemySunk}</div><div class="stat-label">Ships Sunk</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--accent2)">${myShots}</div><div class="stat-label">Shots Fired</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--gold)">${myShots>0?Math.round(myHits/myShots*100):0}%</div><div class="stat-label">Accuracy</div></div>
+  `;
+
+  if(!coinsAwarded){
+    coinsAwarded=true;
+    awardCoins(coins, won?'win':'loss', enemySunk);
+  }
+}
+
+async function awardCoins(coins,resultType,shipsSunk){
+  const s=sid();
+  if(s==='guest')return;
+  try{
+    const fb=await getFirebaseDB();
+    const{db,fsMod}=fb;
+
+    // Update record
+    const recRef=fsMod.doc(db,'battleshipRecords',s);
+    const recSnap=await fsMod.getDoc(recRef);
+    if(recSnap.exists()){
+      const upd={gamesPlayed:fsMod.increment(1), lastPlayed:fsMod.serverTimestamp()};
+      if(resultType==='win') upd.wins=fsMod.increment(1);
+      else upd.losses=fsMod.increment(1);
+      if(shipsSunk) upd.shipsSunk=fsMod.increment(shipsSunk);
+      await fsMod.updateDoc(recRef,upd);
+    } else {
+      await fsMod.setDoc(recRef,{
+        studentId:s, studentName:sname(), classCode:classCode(),
+        wins:resultType==='win'?1:0,
+        losses:resultType==='loss'?1:0,
+        gamesPlayed:1,
+        shipsSunk:shipsSunk||0,
+        lastPlayed:fsMod.serverTimestamp()
+      });
+    }
+
+    // Award coins
+    if(coins>0){
+      const studentRef=fsMod.doc(db,'students',s);
+      await fsMod.updateDoc(studentRef,{coins:fsMod.increment(coins)}).catch(()=>{});
+    }
+
+    document.getElementById('recordUpdate').textContent='Record updated!';
+  }catch(e){ console.warn('Record save error:',e); }
+}
+
+// ============================================
+// RECORDS & LEADERBOARD
+// ============================================
+async function loadRecords(){
+  const s=sid();
+  showScreen('recordsScreen');
+
+  // My stats
+  try{
+    const fb=await getFirebaseDB();
+    const{db,fsMod}=fb;
+    if(s!=='guest'){
+      const snap=await fsMod.getDoc(fsMod.doc(db,'battleshipRecords',s));
+      if(snap.exists()){
+        const d=snap.data();
+        document.getElementById('myRecordStats').innerHTML=`
+          <div class="stat-box"><div class="stat-val" style="color:var(--accent)">${d.wins||0}</div><div class="stat-label">Wins</div></div>
+          <div class="stat-box"><div class="stat-val" style="color:var(--accent3)">${d.losses||0}</div><div class="stat-label">Losses</div></div>
+          <div class="stat-box"><div class="stat-val" style="color:var(--accent2)">${d.gamesPlayed||0}</div><div class="stat-label">Played</div></div>
+          <div class="stat-box"><div class="stat-val" style="color:var(--gold)">${d.shipsSunk||0}</div><div class="stat-label">Ships Sunk</div></div>
+        `;
+      }
+    }
+
+    // Leaderboard
+    const cc=classCode();
+    const wrap=document.getElementById('leaderboardWrap');
+    if(!cc){
+      wrap.innerHTML='<p style="color:var(--text2);font-size:14px;text-align:center;padding:20px">Join a class to see the leaderboard</p>';
+      return;
+    }
+    const q=fsMod.query(
+      fsMod.collection(db,'battleshipRecords'),
+      fsMod.where('classCode','==',cc),
+      fsMod.orderBy('wins','desc'),
+      fsMod.limit(20)
+    );
+    const snaps=await fsMod.getDocs(q);
+    if(snaps.empty){
+      wrap.innerHTML='<p style="color:var(--text2);font-size:14px;text-align:center;padding:20px">No records yet — be the first!</p>';
+      return;
+    }
+    let html='<table class="leaderboard-table"><thead><tr><th>#</th><th>Player</th><th>W</th><th>L</th><th>Ships</th></tr></thead><tbody>';
+    let rank=0;
+    snaps.forEach(doc=>{
+      rank++;
+      const d=doc.data();
+      const rc=rank<=3?` class="rank-${rank}"`:'';
+      const medal=rank===1?'&#129351; ':rank===2?'&#129352; ':rank===3?'&#129353; ':'';
+      html+=`<tr><td${rc}>${medal}${rank}</td><td>${esc(d.studentName||'Unknown')}</td><td>${d.wins||0}</td><td>${d.losses||0}</td><td>${d.shipsSunk||0}</td></tr>`;
+    });
+    html+='</tbody></table>';
+    wrap.innerHTML=html;
+  }catch(e){
+    console.error('Records error:',e);
+    document.getElementById('leaderboardWrap').innerHTML='<p style="color:var(--text2);font-size:14px;text-align:center;padding:20px">Failed to load leaderboard</p>';
+  }
+}
+
+// ============================================
+// NAVIGATION
+// ============================================
+function showAIPicker(){ sndClick(); showScreen('aiPickerScreen'); }
+function showMultiplayer(){ sndClick(); showScreen('multiplayerScreen'); document.getElementById('joinCodeInput').value=''; }
+function showRecords(){ sndClick(); loadRecords(); }
+
+function playAgain(){
+  if(unsub){unsub();unsub=null;}
+  sndClick();
+  if(gameMode==='ai'){
+    showScreen('aiPickerScreen');
+  } else {
+    showScreen('multiplayerScreen');
+  }
+}
+
+function goHome(){
+  if(unsub){unsub();unsub=null;}
+  roomCode=null;
+  sndClick();
+  loadQuickStats();
+  showScreen('homeScreen');
+}
+
+// ============================================
+// KEYBOARD SHORTCUTS
+// ============================================
+document.addEventListener('keydown',e=>{
+  if(e.key==='r'||e.key==='R'){
+    const active=document.querySelector('.screen.active');
+    if(active&&active.id==='setupScreen'){
+      toggleOrientation();
+    }
+  }
+  if(e.key==='Escape'){
+    const active=document.querySelector('.screen.active');
+    if(active&&active.id!=='homeScreen'){
+      goHome();
+    }
+  }
+});
+
+// ============================================
+// PUBLIC API
+// ============================================
+return {
+  showScreen, showAIPicker, showMultiplayer, showRecords,
+  startAI, ready, randomizeShips, clearShips, toggleOrientation,
+  createRoom, joinRoom, cancelRoom,
+  playAgain, goHome, loadRecords
+};
+
+})(); // end BS namespace
+</script>
+</body>
+</html>

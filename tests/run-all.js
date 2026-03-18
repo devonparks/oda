@@ -12,6 +12,7 @@ const typing = require('./test-typing');
 const trivia = require('./test-trivia');
 const soloGames = require('./test-solo-games');
 const shop = require('./test-shop');
+const newGames = require('./test-new-games');
 
 async function runAll() {
   console.log('╔══════════════════════════════════════╗');
@@ -30,7 +31,8 @@ async function runAll() {
     { name: 'Typing Race', fn: typing.run },
     { name: 'Trivia Race', fn: trivia.run },
     { name: 'Solo Games', fn: soloGames.run },
-    { name: 'Shop', fn: shop.run }
+    { name: 'Shop', fn: shop.run },
+    { name: 'New Games (Block Blast, Battleship, Wordle, Uno)', fn: newGames.run }
   ];
 
   for (const suite of suites) {

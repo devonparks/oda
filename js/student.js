@@ -38,6 +38,10 @@ var GAMES=[
 {id:'2048',emoji:'\u{1F522}',title:'2048',desc:'Slide and merge tiles to reach 2048!',file:'arcade/2048/index.html'},
 {id:'typing',emoji:'\u2328\uFE0F',title:'Typing Race',desc:'Type fast and race your classmates!',file:'arcade/typing/index.html'},
 {id:'keyboard',emoji:'\u{1F3AE}',title:'Keyboard Warriors',desc:'Type to defeat enemies! Improve your typing speed.',file:'keyboard.html'},
+{id:'blockblast',emoji:'\u{1F9F1}',title:'Block Blast',desc:'Place blocks, clear lines, chain combos!',file:'arcade/blockblast/index.html'},
+{id:'battleship',emoji:'\u{1F6A2}',title:'Battleship',desc:'Find and sink your opponent\'s fleet!',file:'arcade/battleship/index.html'},
+{id:'wordle',emoji:'\u{1F4DD}',title:'Wordle',desc:'Guess the 5-letter word in 6 tries!',file:'arcade/wordle/index.html'},
+{id:'uno',emoji:'\u{1F3B4}',title:'Uno',desc:'Match colors and numbers — be first to empty your hand!',file:'arcade/uno/index.html'},
 ];
 
 var WORD_BANKS={

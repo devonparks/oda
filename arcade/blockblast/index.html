@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Block Blast - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:center}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* Back Button */
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:10px;padding:8px 16px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+/* Sound Toggle */
+.sound-toggle{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:100;color:var(--text2);font-size:18px;transition:all .2s;backdrop-filter:blur(8px)}
+.sound-toggle:hover{border-color:var(--accent);color:var(--text)}
+
+/* Screen System */
+.screen{display:none;width:100%;max-width:600px;padding:16px;min-height:100vh;min-height:100dvh}
+.screen.active{display:flex;flex-direction:column;align-items:center;animation:fadeUp .35s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* Buttons */
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-blue{background:var(--accent2);color:#fff}
+.btn-blue:hover{box-shadow:0 0 24px rgba(17,138,178,.3)}
+.btn-red{background:var(--accent3);color:#fff}
+.btn-red:hover{box-shadow:0 0 24px rgba(239,71,111,.3)}
+.btn-gold{background:var(--gold);color:var(--bg)}
+.btn-gold:hover{box-shadow:0 0 24px rgba(255,209,102,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;transition:all .2s;cursor:pointer}
+.card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+
+/* ======================== */
+/* HOME SCREEN              */
+/* ======================== */
+#homeScreen{padding-top:60px;padding-bottom:40px}
+.home-header{text-align:center;margin-bottom:24px}
+.home-header h1{font-size:clamp(42px,10vw,64px);font-weight:700;margin-bottom:4px;letter-spacing:-2px}
+.home-header h1 .hl{color:var(--accent);position:relative}
+.home-header h1 .hl::after{content:'';position:absolute;bottom:-2px;left:0;width:100%;height:4px;background:var(--accent);border-radius:2px}
+.home-header p{color:var(--text2);font-size:15px;margin-top:8px}
+
+.best-pill{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:10px 20px;font-size:15px;font-weight:600;margin-bottom:24px}
+.best-pill .bp-label{color:var(--text2)}
+.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:18px;font-family:'Fredoka',sans-serif}
+
+.mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:560px;width:90%;margin:0 auto 24px}
+.mode-card{text-align:center;padding:22px 14px}
+.mode-card .mode-icon{font-size:28px;margin-bottom:8px;display:block}
+.mode-card h3{font-size:16px;margin-bottom:4px}
+.mode-card p{font-size:11px;color:var(--text2);line-height:1.4}
+.mode-card.selected{border-color:var(--accent);background:rgba(6,214,160,.08);box-shadow:0 0 20px rgba(6,214,160,.15)}
+
+.home-actions{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:24px}
+
+.how-to{max-width:420px;width:90%;margin:0 auto;text-align:center}
+.how-to h3{font-size:14px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px}
+.how-to p{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* ======================== */
+/* GAME SCREEN              */
+/* ======================== */
+#gameScreen{padding-top:16px;padding-bottom:20px;min-height:100vh;min-height:100dvh;justify-content:flex-start}
+
+.game-top{display:flex;align-items:center;justify-content:center;gap:14px;width:90%;max-width:500px;margin-bottom:10px;flex-wrap:wrap}
+.game-title{font-family:'Fredoka',sans-serif;font-size:24px;font-weight:700;color:var(--accent);letter-spacing:-1px}
+.game-mode-label{font-size:11px;font-weight:700;color:var(--text2);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 8px;text-transform:uppercase;letter-spacing:1px}
+
+.score-row{display:flex;gap:10px;margin-bottom:10px}
+.score-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 16px;text-align:center;min-width:80px;position:relative}
+.score-box .sb-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.score-box .sb-val{font-size:22px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--text);line-height:1.2}
+.score-box .sb-val.gold{color:var(--gold)}
+.score-box .sb-val.accent{color:var(--accent)}
+
+.combo-display{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Fredoka',sans-serif;font-size:48px;font-weight:700;color:var(--gold);pointer-events:none;z-index:200;opacity:0;text-shadow:0 0 30px rgba(255,209,102,.6)}
+.combo-display.show{animation:comboPopIn .8s ease forwards}
+@keyframes comboPopIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.3)}30%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1;transform:translate(-50%,-60%) scale(1)}100%{opacity:0;transform:translate(-50%,-80%) scale(.8)}}
+
+.score-add{position:absolute;top:-8px;right:-8px;font-size:14px;font-weight:800;color:var(--accent);animation:scoreFloat .9s ease forwards;pointer-events:none;z-index:5}
+@keyframes scoreFloat{0%{opacity:1;transform:translateY(0) scale(1)}60%{opacity:1;transform:translateY(-16px) scale(1.1)}100%{opacity:0;transform:translateY(-28px) scale(.8)}}
+
+.game-controls{display:flex;gap:8px;margin-bottom:10px}
+.ctrl-btn{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 16px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s}
+.ctrl-btn:hover{border-color:var(--accent);color:var(--text)}
+.ctrl-btn:active{transform:scale(.95)}
+
+/* Timer */
+.timer-bar{width:100%;max-width:360px;height:6px;background:var(--surface2);border-radius:3px;margin-bottom:8px;overflow:hidden;display:none}
+.timer-bar.active{display:block}
+.timer-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .3s linear}
+.timer-fill.warning{background:var(--gold)}
+.timer-fill.danger{background:var(--accent3)}
+
+/* Grid */
+.grid-wrapper{position:relative;margin:0 auto;touch-action:none}
+.grid-container{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;background:var(--surface2);border:2px solid var(--border);border-radius:14px;padding:6px}
+.grid-cell{aspect-ratio:1;background:rgba(42,52,80,.45);border-radius:6px;position:relative;transition:background .15s}
+.grid-cell.ghost{background:rgba(6,214,160,.2);box-shadow:inset 0 0 8px rgba(6,214,160,.15)}
+.grid-cell.ghost-invalid{background:rgba(239,71,111,.15);box-shadow:inset 0 0 8px rgba(239,71,111,.1)}
+.grid-cell.filled{border-radius:6px;transition:background .1s,box-shadow .1s,transform .15s}
+.grid-cell.clearing{animation:cellClear .4s ease forwards}
+@keyframes cellClear{0%{transform:scale(1);opacity:1}40%{transform:scale(1.15);opacity:1;background:var(--accent);box-shadow:0 0 16px var(--accent)}100%{transform:scale(0);opacity:0}}
+
+/* Block colors */
+.grid-cell.color-0{background:var(--accent);box-shadow:inset 0 -2px 4px rgba(0,0,0,.2),0 0 8px rgba(6,214,160,.2)}
+.grid-cell.color-1{background:var(--accent2);box-shadow:inset 0 -2px 4px rgba(0,0,0,.2),0 0 8px rgba(17,138,178,.2)}
+.grid-cell.color-2{background:var(--accent3);box-shadow:inset 0 -2px 4px rgba(0,0,0,.2),0 0 8px rgba(239,71,111,.2)}
+.grid-cell.color-3{background:var(--gold);box-shadow:inset 0 -2px 4px rgba(0,0,0,.2),0 0 8px rgba(255,209,102,.2)}
+.grid-cell.color-4{background:#9b59b6;box-shadow:inset 0 -2px 4px rgba(0,0,0,.2),0 0 8px rgba(155,89,182,.2)}
+
+/* Piece Tray */
+.piece-tray{display:flex;gap:12px;justify-content:center;align-items:center;margin-top:14px;min-height:90px;flex-wrap:nowrap;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:360px}
+.piece-slot{display:flex;align-items:center;justify-content:center;flex:1;min-width:60px;min-height:60px;cursor:grab;touch-action:none;transition:transform .15s,opacity .15s;position:relative}
+.piece-slot:active{cursor:grabbing}
+.piece-slot.used{opacity:.15;pointer-events:none}
+.piece-slot.cant-place{opacity:.35}
+.piece-slot.dragging{opacity:.4;transform:scale(.9)}
+
+.piece-preview{display:grid;gap:2px;pointer-events:none}
+.piece-cell{width:var(--piece-cell-size,20px);height:var(--piece-cell-size,20px);border-radius:4px}
+.piece-cell.filled{box-shadow:inset 0 -1px 3px rgba(0,0,0,.2)}
+.piece-cell.empty{background:transparent}
+
+/* Floating drag piece */
+.drag-float{position:fixed;z-index:500;pointer-events:none;display:none;opacity:.85}
+.drag-float .piece-preview{gap:2px}
+.drag-float .piece-cell{width:var(--grid-cell-size,40px);height:var(--grid-cell-size,40px);border-radius:6px}
+
+/* Game Over Overlay */
+.game-overlay{position:absolute;inset:0;border-radius:14px;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:10;animation:overlayIn .4s ease;gap:10px;text-align:center;padding:20px;background:rgba(10,14,26,.92);backdrop-filter:blur(4px)}
+.game-overlay.active{display:flex}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+.game-overlay h2{font-size:28px;font-weight:700}
+
+/* ======================== */
+/* RESULT SCREEN            */
+/* ======================== */
+#resultScreen{padding-top:80px;padding-bottom:40px}
+.result-card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:32px 28px;text-align:center;max-width:380px;width:90%}
+.result-card h1{font-size:32px;margin-bottom:4px}
+.result-score{font-size:48px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--gold);margin:8px 0}
+.result-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+.result-stat{background:var(--surface2);border-radius:12px;padding:12px}
+.result-stat .rs-val{font-size:22px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.result-stat .rs-val.gold{color:var(--gold)}
+.result-stat .rs-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-weight:600}
+.result-new-best{font-size:14px;color:var(--accent);font-weight:700;margin-bottom:8px;animation:bestPulse 1s ease-in-out infinite}
+@keyframes bestPulse{0%,100%{opacity:1}50%{opacity:.6}}
+.result-coins{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:8px 18px;font-size:16px;font-weight:700;color:var(--gold);font-family:'Fredoka',sans-serif;margin:12px 0}
+.result-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+
+/* ======================== */
+/* RECORDS SCREEN           */
+/* ======================== */
+#recordsScreen{padding-top:60px;padding-bottom:40px}
+.records-container{width:90%;max-width:420px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.stat-card .sv{font-size:24px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.stat-card .sv.gold{color:var(--gold)}
+.stat-card .sv.red{color:var(--accent3)}
+.stat-card .sl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-weight:600}
+
+.lb-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px;transition:all .15s}
+.lb-row:hover{border-color:var(--accent)}
+.lb-row.me{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.lb-rank{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text2);flex-shrink:0}
+.lb-rank.r1{background:rgba(255,209,102,.2);color:var(--gold)}
+.lb-rank.r2{background:rgba(192,192,192,.15);color:#c0c0c0}
+.lb-rank.r3{background:rgba(205,127,50,.15);color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-size:14px;font-weight:800;color:var(--gold);font-family:'Fredoka',sans-serif}
+.lb-empty{text-align:center;color:var(--text2);font-size:14px;padding:24px;font-weight:600}
+
+/* Particles */
+.particle{position:fixed;pointer-events:none;z-index:300;border-radius:3px}
+
+/* Responsive */
+@media(max-width:480px){
+  .mode-grid{gap:8px}
+  .mode-card{padding:16px 8px}
+  .mode-card h3{font-size:14px}
+  .mode-card .mode-icon{font-size:22px}
+  .game-title{font-size:20px}
+  .score-box{padding:6px 10px;min-width:65px}
+  .score-box .sb-val{font-size:18px}
+  .piece-tray{gap:8px;padding:8px}
+  .grid-container{gap:2px;padding:4px}
+}
+@media(max-width:360px){
+  .grid-container{gap:2px;padding:3px}
+  .piece-tray{gap:6px;padding:6px}
+}
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../../student.html" id="backBtn">&#8592; Back</a>
+<div class="sound-toggle" id="soundToggle" title="Toggle sound">&#128266;</div>
+
+<!-- ======================== -->
+<!-- HOME SCREEN              -->
+<!-- ======================== -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1>&#129521; <span class="hl">Block Blast</span></h1>
+    <p>Place blocks, clear lines, chase high scores</p>
+  </div>
+  <div class="best-pill">
+    <span class="bp-label">Best Score</span>
+    <span class="bp-val" id="homeBest">0</span>
+  </div>
+  <div class="mode-grid">
+    <div class="card mode-card selected" id="modeClassic" onclick="selectMode('classic')">
+      <div class="mode-icon">&#9854;</div>
+      <h3>Classic</h3>
+      <p>Endless mode, no time limit</p>
+    </div>
+    <div class="card mode-card" id="modeTimed" onclick="selectMode('timed')">
+      <div class="mode-icon">&#9201;</div>
+      <h3>Timed</h3>
+      <p>60 seconds, max score</p>
+    </div>
+    <div class="card mode-card" id="modeRecords" onclick="showScreen('recordsScreen');loadRecords()">
+      <div class="mode-icon">&#128202;</div>
+      <h3>Records</h3>
+      <p>Stats &amp; leaderboard</p>
+    </div>
+  </div>
+  <div class="home-actions">
+    <button class="btn btn-accent" onclick="startGame()">Play</button>
+  </div>
+  <div class="how-to">
+    <h3>How to Play</h3>
+    <p>Drag blocks from the tray onto the 8x8 grid. Fill a complete row or column to clear it. Clear multiple lines at once for combo bonuses. Game ends when no pieces can fit!</p>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- GAME SCREEN              -->
+<!-- ======================== -->
+<div class="screen" id="gameScreen">
+  <div class="game-top">
+    <div class="game-title">Block Blast</div>
+    <div class="game-mode-label" id="modeLabel">Classic</div>
+  </div>
+  <div class="score-row">
+    <div class="score-box" id="scoreBox">
+      <div class="sb-label">Score</div>
+      <div class="sb-val" id="scoreDisplay">0</div>
+    </div>
+    <div class="score-box">
+      <div class="sb-label">Best</div>
+      <div class="sb-val gold" id="bestDisplay">0</div>
+    </div>
+    <div class="score-box">
+      <div class="sb-label">Lines</div>
+      <div class="sb-val accent" id="linesDisplay">0</div>
+    </div>
+  </div>
+  <div class="timer-bar" id="timerBar">
+    <div class="timer-fill" id="timerFill" style="width:100%"></div>
+  </div>
+  <div class="game-controls">
+    <button class="ctrl-btn" onclick="quitGame()">Quit</button>
+  </div>
+  <div class="grid-wrapper" id="gridWrapper">
+    <div class="grid-container" id="gridContainer"></div>
+    <div class="game-overlay" id="gameOverOverlay">
+      <h2 style="color:var(--accent3)">Game Over</h2>
+      <p style="color:var(--text2);font-size:14px;margin-top:4px">No more moves!</p>
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <button class="btn btn-accent btn-small" onclick="startGame()">Play Again</button>
+        <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Menu</button>
+      </div>
+    </div>
+  </div>
+  <div class="piece-tray" id="pieceTray"></div>
+  <div class="combo-display" id="comboDisplay"></div>
+</div>
+
+<!-- Floating drag piece -->
+<div class="drag-float" id="dragFloat">
+  <div class="piece-preview" id="dragPreview"></div>
+</div>
+
+<!-- ======================== -->
+<!-- RESULT SCREEN            -->
+<!-- ======================== -->
+<div class="screen" id="resultScreen">
+  <div class="result-card">
+    <h1 style="color:var(--accent3)">Game Over</h1>
+    <div class="result-score" id="resultScore">0</div>
+    <div class="result-new-best" id="resultNewBest" style="display:none">New Personal Best!</div>
+    <div class="result-stats">
+      <div class="result-stat"><div class="rs-val" id="resultLines">0</div><div class="rs-label">Lines Cleared</div></div>
+      <div class="result-stat"><div class="rs-val gold" id="resultCombo">0</div><div class="rs-label">Best Combo</div></div>
+      <div class="result-stat"><div class="rs-val" id="resultPlaced">0</div><div class="rs-label">Blocks Placed</div></div>
+      <div class="result-stat"><div class="rs-val gold" id="resultBest">0</div><div class="rs-label">Best Score</div></div>
+    </div>
+    <div class="result-coins" id="resultCoins">+0 coins</div>
+    <div class="result-actions">
+      <button class="btn btn-accent btn-small" onclick="startGame()">Play Again</button>
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Menu</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- RECORDS SCREEN           -->
+<!-- ======================== -->
+<div class="screen" id="recordsScreen">
+  <h1>&#128202; <span style="color:var(--accent)">Records</span></h1>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Block Blast stats &amp; leaderboard</p>
+  <div class="records-container">
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="sv gold" id="statBest">0</div><div class="sl">Best Score</div></div>
+      <div class="stat-card"><div class="sv" id="statPlayed">0</div><div class="sl">Games Played</div></div>
+      <div class="stat-card"><div class="sv" id="statLines">0</div><div class="sl">Total Lines</div></div>
+      <div class="stat-card"><div class="sv red" id="statCombo">0</div><div class="sl">Best Combo</div></div>
+    </div>
+    <div class="lb-title">Class Leaderboard</div>
+    <div class="lb-list" id="leaderboard"><div class="lb-empty">Loading...</div></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&#8592; Back</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script>
+// =============================================
+// SESSION
+// =============================================
+var studentId = localStorage.getItem('studentId') || '';
+var studentName = localStorage.getItem('studentName') || '';
+var classCode = localStorage.getItem('classCode') || '';
+var isTeacher = localStorage.getItem('userRole') === 'teacher' || localStorage.getItem('odaUserRole') === 'teacher';
+
+if (isTeacher) {
+  document.getElementById('backBtn').href = '../../teacher.html';
+}
+
+// =============================================
+// COSMETICS
+// =============================================
+var myCosmetics = {};
+(async function() {
+  var sid = localStorage.getItem('studentId');
+  if (!sid) return;
+  try {
+    var fb = await getFirebaseDB();
+    var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'students', sid));
+    if (snap.exists()) myCosmetics = snap.data().equipped || {};
+  } catch(e) {}
+})();
+
+// =============================================
+// SCREEN SYSTEM
+// =============================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  if (id === 'homeScreen') loadLocalStats();
+}
+
+// =============================================
+// AUDIO ENGINE (Web Audio API)
+// =============================================
+var audioCtx = null;
+var soundOn = true;
+
+function getAudioCtx() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e) { return null; }
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function playTone(freq, dur, type, vol, ramp) {
+  if (!soundOn) return;
+  try {
+    var ctx = getAudioCtx();
+    if (!ctx) return;
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = type || 'square';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    if (ramp) osc.frequency.linearRampToValueAtTime(ramp, ctx.currentTime + dur);
+    gain.gain.setValueAtTime(vol || 0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+
+function sfxPlace() {
+  playTone(440, 0.06, 'sine', 0.1);
+  setTimeout(function() { playTone(580, 0.05, 'sine', 0.08); }, 40);
+}
+
+function sfxClear(count) {
+  var base = 500;
+  for (var i = 0; i < Math.min(count, 4); i++) {
+    (function(idx) {
+      setTimeout(function() {
+        playTone(base + idx * 150, 0.12, 'triangle', 0.1);
+      }, idx * 80);
+    })(i);
+  }
+}
+
+function sfxCombo(level) {
+  var notes = [523, 659, 784, 1047, 1319];
+  for (var i = 0; i < Math.min(level + 1, 5); i++) {
+    (function(idx) {
+      setTimeout(function() {
+        playTone(notes[idx], 0.15, 'sine', 0.1);
+      }, idx * 100);
+    })(i);
+  }
+}
+
+function sfxGameOver() {
+  var notes = [400, 340, 280, 220];
+  notes.forEach(function(freq, i) {
+    setTimeout(function() { playTone(freq, 0.2, 'sine', 0.08); }, i * 130);
+  });
+}
+
+function sfxCantPlace() {
+  playTone(200, 0.15, 'sawtooth', 0.06);
+}
+
+// Sound toggle
+var soundToggleEl = document.getElementById('soundToggle');
+soundToggleEl.addEventListener('click', function() {
+  soundOn = !soundOn;
+  soundToggleEl.innerHTML = soundOn ? '&#128266;' : '&#128264;';
+  localStorage.setItem('odaBlockBlastSound', soundOn ? '1' : '0');
+});
+if (localStorage.getItem('odaBlockBlastSound') === '0') {
+  soundOn = false;
+  soundToggleEl.innerHTML = '&#128264;';
+}
+
+// =============================================
+// PIECE DEFINITIONS
+// =============================================
+var SHAPES = [
+  // 1x1
+  { name: 'dot', cells: [[1]], color: 0 },
+  // 1x2
+  { name: '1x2', cells: [[1,1]], color: 1 },
+  // 1x3
+  { name: '1x3', cells: [[1,1,1]], color: 2 },
+  // 1x4
+  { name: '1x4', cells: [[1,1,1,1]], color: 3 },
+  // 1x5
+  { name: '1x5', cells: [[1,1,1,1,1]], color: 4 },
+  // 2x2
+  { name: '2x2', cells: [[1,1],[1,1]], color: 3 },
+  // 2x1
+  { name: '2x1', cells: [[1],[1]], color: 0 },
+  // 3x1
+  { name: '3x1', cells: [[1],[1],[1]], color: 1 },
+  // L shape
+  { name: 'L', cells: [[1,0],[1,0],[1,1]], color: 2 },
+  // L mirror
+  { name: 'Lm', cells: [[0,1],[0,1],[1,1]], color: 4 },
+  // L rotated
+  { name: 'Lr', cells: [[1,0,0],[1,1,1]], color: 1 },
+  // L rotated mirror
+  { name: 'Lrm', cells: [[0,0,1],[1,1,1]], color: 3 },
+  // T shape
+  { name: 'T', cells: [[1,1,1],[0,1,0]], color: 4 },
+  // T up
+  { name: 'Tu', cells: [[0,1,0],[1,1,1]], color: 0 },
+  // T left
+  { name: 'Tl', cells: [[1,0],[1,1],[1,0]], color: 2 },
+  // T right
+  { name: 'Tr', cells: [[0,1],[1,1],[0,1]], color: 1 },
+  // S shape
+  { name: 'S', cells: [[0,1,1],[1,1,0]], color: 0 },
+  // Z shape
+  { name: 'Z', cells: [[1,1,0],[0,1,1]], color: 3 },
+  // S vertical
+  { name: 'Sv', cells: [[1,0],[1,1],[0,1]], color: 2 },
+  // Z vertical
+  { name: 'Zv', cells: [[0,1],[1,1],[1,0]], color: 4 },
+  // Corner 2x2
+  { name: 'c1', cells: [[1,1],[1,0]], color: 1 },
+  { name: 'c2', cells: [[1,1],[0,1]], color: 2 },
+  { name: 'c3', cells: [[1,0],[1,1]], color: 3 },
+  { name: 'c4', cells: [[0,1],[1,1]], color: 0 },
+  // 3x3 L shapes
+  { name: 'bigL', cells: [[1,0,0],[1,0,0],[1,1,1]], color: 4 },
+  { name: 'bigLm', cells: [[0,0,1],[0,0,1],[1,1,1]], color: 2 },
+  { name: 'bigLr', cells: [[1,1,1],[1,0,0],[1,0,0]], color: 0 },
+  { name: 'bigLrm', cells: [[1,1,1],[0,0,1],[0,0,1]], color: 3 },
+  // 3x3 square
+  { name: '3x3', cells: [[1,1,1],[1,1,1],[1,1,1]], color: 1 },
+  // I-5 vertical
+  { name: '5x1', cells: [[1],[1],[1],[1],[1]], color: 2 }
+];
+
+// Block color classes
+var COLORS = ['color-0','color-1','color-2','color-3','color-4'];
+
+// =============================================
+// GAME STATE
+// =============================================
+var GRID_SIZE = 8;
+var grid = []; // 8x8, each cell: null or color index
+var score = 0;
+var bestScore = 0;
+var previousBest = 0;
+var linesCleared = 0;
+var totalBlocksPlaced = 0;
+var bestCombo = 0;
+var gameMode = 'classic';
+var gameActive = false;
+var coinsAwarded = false;
+var currentPieces = []; // array of 3 piece objects: {shape, color, used}
+var timerInterval = null;
+var timeLeft = 60;
+
+var LS_KEY = 'odaBlockBlast';
+
+// =============================================
+// LOCAL STATS
+// =============================================
+var localStats = { highScore: 0, gamesPlayed: 0, totalLines: 0, bestCombo: 0 };
+
+function loadLocalStats() {
+  try {
+    var saved = localStorage.getItem(LS_KEY);
+    if (saved) localStats = JSON.parse(saved);
+  } catch(e) {}
+  bestScore = localStats.highScore || 0;
+  previousBest = bestScore;
+  document.getElementById('homeBest').textContent = fmtNum(bestScore);
+}
+
+function saveLocalStats() {
+  try {
+    if (score > localStats.highScore) localStats.highScore = score;
+    localStats.gamesPlayed = (localStats.gamesPlayed || 0) + 1;
+    localStats.totalLines = (localStats.totalLines || 0) + linesCleared;
+    if (bestCombo > (localStats.bestCombo || 0)) localStats.bestCombo = bestCombo;
+    localStorage.setItem(LS_KEY, JSON.stringify(localStats));
+  } catch(e) {}
+}
+
+function fmtNum(n) { return n.toLocaleString(); }
+
+// =============================================
+// MODE SELECTION
+// =============================================
+function selectMode(mode) {
+  if (mode === 'records') return;
+  gameMode = mode;
+  document.querySelectorAll('.mode-card').forEach(function(c) { c.classList.remove('selected'); });
+  if (mode === 'classic') document.getElementById('modeClassic').classList.add('selected');
+  else document.getElementById('modeTimed').classList.add('selected');
+}
+
+// =============================================
+// GRID SETUP
+// =============================================
+function buildGrid() {
+  var container = document.getElementById('gridContainer');
+  container.innerHTML = '';
+  grid = [];
+  for (var r = 0; r < GRID_SIZE; r++) {
+    grid[r] = [];
+    for (var c = 0; c < GRID_SIZE; c++) {
+      grid[r][c] = null;
+      var cell = document.createElement('div');
+      cell.className = 'grid-cell';
+      cell.setAttribute('data-r', r);
+      cell.setAttribute('data-c', c);
+      container.appendChild(cell);
+    }
+  }
+  updateGridSize();
+}
+
+function updateGridSize() {
+  var wrapper = document.getElementById('gridWrapper');
+  var maxW = Math.min(window.innerWidth - 32, 400);
+  wrapper.style.width = maxW + 'px';
+  var cellSize = Math.floor((maxW - 12 - 3 * 7) / 8); // padding + gaps
+  document.documentElement.style.setProperty('--grid-cell-size', cellSize + 'px');
+  // Piece cell size in tray (smaller)
+  var pieceCell = Math.max(12, Math.floor(cellSize * 0.5));
+  document.documentElement.style.setProperty('--piece-cell-size', pieceCell + 'px');
+}
+
+function getCellAt(r, c) {
+  return document.querySelector('.grid-cell[data-r="' + r + '"][data-c="' + c + '"]');
+}
+
+function renderGrid() {
+  for (var r = 0; r < GRID_SIZE; r++) {
+    for (var c = 0; c < GRID_SIZE; c++) {
+      var cell = getCellAt(r, c);
+      if (!cell) continue;
+      cell.className = 'grid-cell';
+      if (grid[r][c] !== null) {
+        cell.classList.add('filled');
+        cell.classList.add(COLORS[grid[r][c] % COLORS.length]);
+      }
+    }
+  }
+}
+
+// =============================================
+// PIECE MANAGEMENT
+// =============================================
+function getRandomPiece() {
+  var idx = Math.floor(Math.random() * SHAPES.length);
+  var shape = SHAPES[idx];
+  var colorIdx = Math.floor(Math.random() * COLORS.length);
+  return {
+    cells: shape.cells,
+    color: colorIdx,
+    used: false,
+    name: shape.name
+  };
+}
+
+function spawnPieces() {
+  currentPieces = [];
+  for (var i = 0; i < 3; i++) {
+    currentPieces.push(getRandomPiece());
+  }
+  renderPieceTray();
+  checkPiecePlacement();
+}
+
+function renderPieceTray() {
+  var tray = document.getElementById('pieceTray');
+  tray.innerHTML = '';
+  currentPieces.forEach(function(piece, idx) {
+    var slot = document.createElement('div');
+    slot.className = 'piece-slot';
+    if (piece.used) slot.classList.add('used');
+    slot.setAttribute('data-idx', idx);
+
+    var preview = createPiecePreview(piece);
+    slot.appendChild(preview);
+    tray.appendChild(slot);
+
+    if (!piece.used) {
+      // Mouse events
+      slot.addEventListener('mousedown', function(e) { startDrag(e, idx); });
+      // Touch events
+      slot.addEventListener('touchstart', function(e) { startDrag(e, idx); }, { passive: false });
+    }
+  });
+}
+
+function createPiecePreview(piece) {
+  var rows = piece.cells.length;
+  var cols = piece.cells[0].length;
+  var preview = document.createElement('div');
+  preview.className = 'piece-preview';
+  preview.style.gridTemplateColumns = 'repeat(' + cols + ', var(--piece-cell-size, 20px))';
+  preview.style.gridTemplateRows = 'repeat(' + rows + ', var(--piece-cell-size, 20px))';
+
+  for (var r = 0; r < rows; r++) {
+    for (var c = 0; c < cols; c++) {
+      var cell = document.createElement('div');
+      cell.className = 'piece-cell';
+      if (piece.cells[r][c]) {
+        cell.classList.add('filled');
+        cell.classList.add(COLORS[piece.color % COLORS.length]);
+      } else {
+        cell.classList.add('empty');
+      }
+      preview.appendChild(cell);
+    }
+  }
+  return preview;
+}
+
+function createDragPreview(piece) {
+  var rows = piece.cells.length;
+  var cols = piece.cells[0].length;
+  var preview = document.getElementById('dragPreview');
+  preview.innerHTML = '';
+  preview.style.gridTemplateColumns = 'repeat(' + cols + ', var(--grid-cell-size, 40px))';
+  preview.style.gridTemplateRows = 'repeat(' + rows + ', var(--grid-cell-size, 40px))';
+
+  for (var r = 0; r < rows; r++) {
+    for (var c = 0; c < cols; c++) {
+      var cell = document.createElement('div');
+      cell.className = 'piece-cell';
+      if (piece.cells[r][c]) {
+        cell.classList.add('filled');
+        cell.classList.add(COLORS[piece.color % COLORS.length]);
+      } else {
+        cell.classList.add('empty');
+      }
+      preview.appendChild(cell);
+    }
+  }
+}
+
+// =============================================
+// DRAG AND DROP
+// =============================================
+var dragging = false;
+var dragPieceIdx = -1;
+var dragOffsetX = 0;
+var dragOffsetY = 0;
+var lastGhostR = -1;
+var lastGhostC = -1;
+
+function startDrag(e, idx) {
+  if (!gameActive || currentPieces[idx].used) return;
+  e.preventDefault();
+
+  dragging = true;
+  dragPieceIdx = idx;
+
+  var piece = currentPieces[idx];
+  createDragPreview(piece);
+
+  var floatEl = document.getElementById('dragFloat');
+  floatEl.style.display = 'block';
+
+  // Mark slot as dragging
+  var slot = document.querySelector('.piece-slot[data-idx="' + idx + '"]');
+  if (slot) slot.classList.add('dragging');
+
+  var clientX, clientY;
+  if (e.touches) {
+    clientX = e.touches[0].clientX;
+    clientY = e.touches[0].clientY;
+  } else {
+    clientX = e.clientX;
+    clientY = e.clientY;
+  }
+
+  // Get piece dimensions for centering
+  var cellSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--grid-cell-size')) || 40;
+  var cols = piece.cells[0].length;
+  var rows = piece.cells.length;
+  dragOffsetX = (cols * cellSize + (cols - 1) * 2) / 2;
+  dragOffsetY = (rows * cellSize + (rows - 1) * 2) / 2;
+
+  // Position above finger on touch
+  var yOff = e.touches ? 80 : 30;
+  floatEl.style.left = (clientX - dragOffsetX) + 'px';
+  floatEl.style.top = (clientY - dragOffsetY - yOff) + 'px';
+
+  // Add move/end listeners
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup', onDragEnd);
+  document.addEventListener('touchmove', onDragMove, { passive: false });
+  document.addEventListener('touchend', onDragEnd);
+  document.addEventListener('touchcancel', onDragEnd);
+}
+
+function onDragMove(e) {
+  if (!dragging) return;
+  e.preventDefault();
+
+  var clientX, clientY;
+  if (e.touches) {
+    clientX = e.touches[0].clientX;
+    clientY = e.touches[0].clientY;
+  } else {
+    clientX = e.clientX;
+    clientY = e.clientY;
+  }
+
+  var floatEl = document.getElementById('dragFloat');
+  var yOff = e.touches ? 80 : 30;
+  floatEl.style.left = (clientX - dragOffsetX) + 'px';
+  floatEl.style.top = (clientY - dragOffsetY - yOff) + 'px';
+
+  // Determine grid position under cursor
+  var gridPos = getGridPosition(clientX, clientY - yOff);
+  showGhost(gridPos);
+}
+
+function onDragEnd(e) {
+  if (!dragging) return;
+  dragging = false;
+
+  document.removeEventListener('mousemove', onDragMove);
+  document.removeEventListener('mouseup', onDragEnd);
+  document.removeEventListener('touchmove', onDragMove);
+  document.removeEventListener('touchend', onDragEnd);
+  document.removeEventListener('touchcancel', onDragEnd);
+
+  var floatEl = document.getElementById('dragFloat');
+  floatEl.style.display = 'none';
+
+  var slot = document.querySelector('.piece-slot[data-idx="' + dragPieceIdx + '"]');
+  if (slot) slot.classList.remove('dragging');
+
+  clearGhost();
+
+  // Try to place at last ghost position
+  if (lastGhostR >= 0 && lastGhostC >= 0) {
+    var piece = currentPieces[dragPieceIdx];
+    if (canPlace(piece, lastGhostR, lastGhostC)) {
+      placePiece(piece, lastGhostR, lastGhostC, dragPieceIdx);
+    } else {
+      sfxCantPlace();
+    }
+  }
+
+  lastGhostR = -1;
+  lastGhostC = -1;
+  dragPieceIdx = -1;
+}
+
+function getGridPosition(clientX, clientY) {
+  var container = document.getElementById('gridContainer');
+  var rect = container.getBoundingClientRect();
+  var cellSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--grid-cell-size')) || 40;
+  var gap = 3;
+  var padding = 6;
+
+  var x = clientX - rect.left - padding;
+  var y = clientY - rect.top - padding;
+
+  var col = Math.floor(x / (cellSize + gap));
+  var row = Math.floor(y / (cellSize + gap));
+
+  // Center the piece on the cursor
+  if (dragPieceIdx >= 0) {
+    var piece = currentPieces[dragPieceIdx];
+    var pRows = piece.cells.length;
+    var pCols = piece.cells[0].length;
+    row -= Math.floor(pRows / 2);
+    col -= Math.floor(pCols / 2);
+  }
+
+  return { r: row, c: col };
+}
+
+function showGhost(pos) {
+  clearGhost();
+  if (dragPieceIdx < 0 || pos.r < -2 || pos.c < -2) return;
+
+  var piece = currentPieces[dragPieceIdx];
+  var valid = canPlace(piece, pos.r, pos.c);
+
+  lastGhostR = pos.r;
+  lastGhostC = pos.c;
+
+  for (var r = 0; r < piece.cells.length; r++) {
+    for (var c = 0; c < piece.cells[r].length; c++) {
+      if (!piece.cells[r][c]) continue;
+      var gr = pos.r + r;
+      var gc = pos.c + c;
+      if (gr < 0 || gr >= GRID_SIZE || gc < 0 || gc >= GRID_SIZE) continue;
+      var cell = getCellAt(gr, gc);
+      if (cell) {
+        cell.classList.add(valid ? 'ghost' : 'ghost-invalid');
+      }
+    }
+  }
+}
+
+function clearGhost() {
+  document.querySelectorAll('.grid-cell.ghost,.grid-cell.ghost-invalid').forEach(function(c) {
+    c.classList.remove('ghost');
+    c.classList.remove('ghost-invalid');
+  });
+}
+
+// =============================================
+// PLACEMENT LOGIC
+// =============================================
+function canPlace(piece, startR, startC) {
+  for (var r = 0; r < piece.cells.length; r++) {
+    for (var c = 0; c < piece.cells[r].length; c++) {
+      if (!piece.cells[r][c]) continue;
+      var gr = startR + r;
+      var gc = startC + c;
+      if (gr < 0 || gr >= GRID_SIZE || gc < 0 || gc >= GRID_SIZE) return false;
+      if (grid[gr][gc] !== null) return false;
+    }
+  }
+  return true;
+}
+
+function canPlaceAnywhere(piece) {
+  for (var r = 0; r < GRID_SIZE; r++) {
+    for (var c = 0; c < GRID_SIZE; c++) {
+      if (canPlace(piece, r, c)) return true;
+    }
+  }
+  return false;
+}
+
+function placePiece(piece, startR, startC, pieceIdx) {
+  var cellCount = 0;
+  for (var r = 0; r < piece.cells.length; r++) {
+    for (var c = 0; c < piece.cells[r].length; c++) {
+      if (!piece.cells[r][c]) continue;
+      var gr = startR + r;
+      var gc = startC + c;
+      grid[gr][gc] = piece.color;
+      cellCount++;
+    }
+  }
+
+  // Score for placed cells
+  score += cellCount;
+  totalBlocksPlaced++;
+
+  // Mark piece as used
+  currentPieces[pieceIdx].used = true;
+
+  sfxPlace();
+  renderGrid();
+  renderPieceTray();
+
+  // Check and clear lines
+  var cleared = checkAndClearLines();
+
+  // Update score display
+  updateScoreDisplay();
+
+  // Check if all 3 pieces used -> spawn new set
+  var allUsed = currentPieces.every(function(p) { return p.used; });
+  if (allUsed) {
+    setTimeout(function() {
+      spawnPieces();
+    }, cleared > 0 ? 500 : 100);
+  } else {
+    // Check if remaining pieces can be placed
+    checkPiecePlacement();
+    checkGameOver();
+  }
+}
+
+// =============================================
+// LINE CLEARING
+// =============================================
+function checkAndClearLines() {
+  var rowsToClear = [];
+  var colsToClear = [];
+
+  // Check rows
+  for (var r = 0; r < GRID_SIZE; r++) {
+    var full = true;
+    for (var c = 0; c < GRID_SIZE; c++) {
+      if (grid[r][c] === null) { full = false; break; }
+    }
+    if (full) rowsToClear.push(r);
+  }
+
+  // Check columns
+  for (var c = 0; c < GRID_SIZE; c++) {
+    var full = true;
+    for (var r = 0; r < GRID_SIZE; r++) {
+      if (grid[r][c] === null) { full = false; break; }
+    }
+    if (full) colsToClear.push(c);
+  }
+
+  var totalLines = rowsToClear.length + colsToClear.length;
+  if (totalLines === 0) return 0;
+
+  linesCleared += totalLines;
+
+  // Calculate score: 10 per line, combo multiplier
+  var lineScore = totalLines * 10;
+  if (totalLines > 1) {
+    lineScore *= totalLines; // combo: 2 lines = 2x, 3 lines = 3x, etc.
+    if (totalLines > bestCombo) bestCombo = totalLines;
+    showCombo(totalLines);
+    sfxCombo(totalLines);
+  } else {
+    sfxClear(1);
+  }
+  score += lineScore;
+
+  // Animate clearing
+  var cellsToClear = new Set();
+
+  rowsToClear.forEach(function(r) {
+    for (var c = 0; c < GRID_SIZE; c++) {
+      cellsToClear.add(r + ',' + c);
+    }
+  });
+
+  colsToClear.forEach(function(c) {
+    for (var r = 0; r < GRID_SIZE; r++) {
+      cellsToClear.add(r + ',' + c);
+    }
+  });
+
+  // Trigger clear animation
+  cellsToClear.forEach(function(key) {
+    var parts = key.split(',');
+    var r = parseInt(parts[0]);
+    var c = parseInt(parts[1]);
+    var cell = getCellAt(r, c);
+    if (cell) {
+      cell.classList.add('clearing');
+    }
+    spawnClearParticles(r, c);
+  });
+
+  // After animation, actually clear the cells
+  setTimeout(function() {
+    cellsToClear.forEach(function(key) {
+      var parts = key.split(',');
+      var r = parseInt(parts[0]);
+      var c = parseInt(parts[1]);
+      grid[r][c] = null;
+    });
+    renderGrid();
+    updateScoreDisplay();
+  }, 400);
+
+  updateScoreDisplay();
+  return totalLines;
+}
+
+function showCombo(count) {
+  var el = document.getElementById('comboDisplay');
+  var texts = ['', '', 'Double!', 'Triple!', 'QUAD!', 'MEGA!'];
+  el.textContent = (texts[count] || count + 'x COMBO!') + ' +' + (count * 10 * count);
+  el.className = 'combo-display show';
+  setTimeout(function() { el.className = 'combo-display'; }, 800);
+}
+
+function spawnClearParticles(r, c) {
+  var cell = getCellAt(r, c);
+  if (!cell) return;
+  var rect = cell.getBoundingClientRect();
+  var cx = rect.left + rect.width / 2;
+  var cy = rect.top + rect.height / 2;
+  var colors = ['var(--accent)', 'var(--gold)', 'var(--accent2)', '#fff'];
+
+  for (var i = 0; i < 3; i++) {
+    var p = document.createElement('div');
+    p.className = 'particle';
+    var size = 3 + Math.random() * 5;
+    p.style.width = size + 'px';
+    p.style.height = size + 'px';
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.left = cx + 'px';
+    p.style.top = cy + 'px';
+    document.body.appendChild(p);
+
+    var angle = Math.random() * Math.PI * 2;
+    var dist = 30 + Math.random() * 50;
+    var dx = Math.cos(angle) * dist;
+    var dy = Math.sin(angle) * dist;
+    var dur = 400 + Math.random() * 300;
+
+    p.animate([
+      { transform: 'translate(0,0) scale(1)', opacity: 1 },
+      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(0)', opacity: 0 }
+    ], { duration: dur, easing: 'ease-out' });
+
+    (function(el, d) {
+      setTimeout(function() { el.remove(); }, d);
+    })(p, dur);
+  }
+}
+
+// =============================================
+// SCORE DISPLAY
+// =============================================
+function updateScoreDisplay() {
+  document.getElementById('scoreDisplay').textContent = fmtNum(score);
+  document.getElementById('linesDisplay').textContent = fmtNum(linesCleared);
+  if (score > bestScore) {
+    bestScore = score;
+    document.getElementById('bestDisplay').textContent = fmtNum(bestScore);
+  }
+}
+
+function showScorePopup(pts) {
+  var box = document.getElementById('scoreBox');
+  var el = document.createElement('div');
+  el.className = 'score-add';
+  el.textContent = '+' + fmtNum(pts);
+  box.appendChild(el);
+  setTimeout(function() { el.remove(); }, 900);
+}
+
+// =============================================
+// GAME OVER DETECTION
+// =============================================
+function checkPiecePlacement() {
+  currentPieces.forEach(function(piece, idx) {
+    if (piece.used) return;
+    var slot = document.querySelector('.piece-slot[data-idx="' + idx + '"]');
+    if (!slot) return;
+    if (!canPlaceAnywhere(piece)) {
+      slot.classList.add('cant-place');
+    } else {
+      slot.classList.remove('cant-place');
+    }
+  });
+}
+
+function checkGameOver() {
+  var anyCanPlace = false;
+  currentPieces.forEach(function(piece) {
+    if (piece.used) return;
+    if (canPlaceAnywhere(piece)) anyCanPlace = true;
+  });
+
+  if (!anyCanPlace) {
+    // Delay slightly so player sees final state
+    setTimeout(function() {
+      endGame();
+    }, 300);
+  }
+}
+
+// =============================================
+// TIMER (for Timed mode)
+// =============================================
+function startTimer() {
+  timeLeft = 60;
+  var bar = document.getElementById('timerBar');
+  var fill = document.getElementById('timerFill');
+  bar.classList.add('active');
+  fill.style.width = '100%';
+  fill.className = 'timer-fill';
+
+  timerInterval = setInterval(function() {
+    timeLeft--;
+    var pct = (timeLeft / 60) * 100;
+    fill.style.width = pct + '%';
+
+    if (timeLeft <= 10) {
+      fill.className = 'timer-fill danger';
+    } else if (timeLeft <= 20) {
+      fill.className = 'timer-fill warning';
+    }
+
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      endGame();
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+  document.getElementById('timerBar').classList.remove('active');
+}
+
+// =============================================
+// START / END GAME
+// =============================================
+function startGame() {
+  score = 0;
+  linesCleared = 0;
+  totalBlocksPlaced = 0;
+  bestCombo = 0;
+  coinsAwarded = false;
+  gameActive = true;
+
+  loadLocalStats();
+  previousBest = bestScore;
+
+  document.getElementById('scoreDisplay').textContent = '0';
+  document.getElementById('linesDisplay').textContent = '0';
+  document.getElementById('bestDisplay').textContent = fmtNum(bestScore);
+  document.getElementById('modeLabel').textContent = gameMode === 'timed' ? 'Timed 60s' : 'Classic';
+  document.getElementById('gameOverOverlay').classList.remove('active');
+
+  buildGrid();
+  spawnPieces();
+
+  showScreen('gameScreen');
+
+  stopTimer();
+  if (gameMode === 'timed') {
+    startTimer();
+  }
+}
+
+function endGame() {
+  gameActive = false;
+  stopTimer();
+  sfxGameOver();
+
+  // Save stats
+  saveLocalStats();
+
+  var isNewBest = score > previousBest && score > 0;
+
+  // Calculate coins
+  var coins = 5; // base
+  if (bestCombo > 1) coins += bestCombo * 2;
+  if (score > 500) coins += 5;
+  if (score > 1000) coins += 10;
+
+  // Show result screen
+  document.getElementById('resultScore').textContent = fmtNum(score);
+  document.getElementById('resultLines').textContent = fmtNum(linesCleared);
+  document.getElementById('resultCombo').textContent = bestCombo > 1 ? bestCombo + 'x' : '-';
+  document.getElementById('resultPlaced').textContent = fmtNum(totalBlocksPlaced);
+  document.getElementById('resultBest').textContent = fmtNum(bestScore);
+  document.getElementById('resultCoins').textContent = '+' + coins + ' coins';
+
+  if (isNewBest) {
+    document.getElementById('resultNewBest').style.display = 'block';
+  } else {
+    document.getElementById('resultNewBest').style.display = 'none';
+  }
+
+  if (!coinsAwarded) {
+    coinsAwarded = true;
+    if (coins > 0) awardCoins(coins);
+    saveRecord();
+  }
+
+  // Celebrate on good scores
+  if (score >= 200) {
+    if (typeof odaCelebrate === 'function') {
+      odaCelebrate(myCosmetics.winEffect ? myCosmetics.winEffect.type : 'confetti');
+    } else if (typeof odaConfetti === 'function') {
+      odaConfetti();
+    }
+  }
+
+  setTimeout(function() {
+    showScreen('resultScreen');
+  }, 600);
+}
+
+function quitGame() {
+  if (score > 20 && gameActive) {
+    if (!confirm('Quit? Your progress will be lost.')) return;
+  }
+  gameActive = false;
+  stopTimer();
+  if (score > 0) {
+    saveLocalStats();
+    if (!coinsAwarded) {
+      coinsAwarded = true;
+      saveRecord();
+    }
+  }
+  showScreen('homeScreen');
+}
+
+// =============================================
+// WINDOW RESIZE
+// =============================================
+var resizeTimer = null;
+window.addEventListener('resize', function() {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function() {
+    updateGridSize();
+  }, 150);
+});
+
+// =============================================
+// FIRESTORE - COINS
+// =============================================
+async function awardCoins(coins) {
+  if (!studentId || studentId.startsWith('anon_')) return;
+  try {
+    var fb = await getFirebaseDB();
+    await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'students', studentId), { coins: fb.fsMod.increment(coins) });
+  } catch(e) { console.error('Coin award error:', e); }
+}
+
+// =============================================
+// FIRESTORE - RECORDS
+// =============================================
+async function saveRecord() {
+  if (!studentId || studentId.startsWith('anon_')) return;
+  try {
+    var fb = await getFirebaseDB();
+    var ref = fb.fsMod.doc(fb.db, 'blockblastRecords', studentId);
+    var snap = await fb.fsMod.getDoc(ref);
+
+    if (snap.exists()) {
+      var data = snap.data();
+      var updates = {
+        gamesPlayed: fb.fsMod.increment(1),
+        totalLinesCleared: fb.fsMod.increment(linesCleared),
+        studentName: studentName,
+        classCode: classCode,
+        lastPlayed: new Date().toISOString()
+      };
+      if (score > (data.highScore || 0)) updates.highScore = score;
+      if (bestCombo > (data.bestCombo || 0)) updates.bestCombo = bestCombo;
+      await fb.fsMod.updateDoc(ref, updates);
+    } else {
+      await fb.fsMod.setDoc(ref, {
+        studentId: studentId,
+        studentName: studentName || '',
+        classCode: classCode,
+        highScore: score,
+        gamesPlayed: 1,
+        totalLinesCleared: linesCleared,
+        bestCombo: bestCombo,
+        lastPlayed: new Date().toISOString()
+      });
+    }
+  } catch(e) { console.warn('Save record failed:', e); }
+}
+
+async function loadRecords() {
+  // Personal stats from local
+  document.getElementById('statBest').textContent = fmtNum(localStats.highScore || 0);
+  document.getElementById('statPlayed').textContent = fmtNum(localStats.gamesPlayed || 0);
+  document.getElementById('statLines').textContent = fmtNum(localStats.totalLines || 0);
+  document.getElementById('statCombo').textContent = localStats.bestCombo > 1 ? (localStats.bestCombo + 'x') : '-';
+
+  // Try Firestore for personal stats + leaderboard
+  if (!classCode && !studentId) {
+    document.getElementById('leaderboard').innerHTML = '<div class="lb-empty">Log in to see the leaderboard</div>';
+    return;
+  }
+
+  try {
+    var fb = await getFirebaseDB();
+
+    // Load personal from Firestore
+    if (studentId && !studentId.startsWith('anon_')) {
+      var myRef = fb.fsMod.doc(fb.db, 'blockblastRecords', studentId);
+      var mySnap = await fb.fsMod.getDoc(myRef);
+      if (mySnap.exists()) {
+        var d = mySnap.data();
+        document.getElementById('statBest').textContent = fmtNum(d.highScore || 0);
+        document.getElementById('statPlayed').textContent = fmtNum(d.gamesPlayed || 0);
+        document.getElementById('statLines').textContent = fmtNum(d.totalLinesCleared || 0);
+        document.getElementById('statCombo').textContent = (d.bestCombo || 0) > 1 ? (d.bestCombo + 'x') : '-';
+      }
+    }
+
+    // Class leaderboard
+    var lb = document.getElementById('leaderboard');
+    var q;
+    if (classCode) {
+      q = fb.fsMod.query(
+        fb.fsMod.collection(fb.db, 'blockblastRecords'),
+        fb.fsMod.where('classCode', '==', classCode),
+        fb.fsMod.orderBy('highScore', 'desc'),
+        fb.fsMod.limit(10)
+      );
+    } else {
+      q = fb.fsMod.query(
+        fb.fsMod.collection(fb.db, 'blockblastRecords'),
+        fb.fsMod.orderBy('highScore', 'desc'),
+        fb.fsMod.limit(10)
+      );
+    }
+
+    var snaps = await fb.fsMod.getDocs(q);
+    if (snaps.empty) {
+      lb.innerHTML = '<div class="lb-empty">No records yet. Play some games!</div>';
+      return;
+    }
+    lb.innerHTML = '';
+    var rank = 1;
+    snaps.forEach(function(s) {
+      var d = s.data();
+      var row = document.createElement('div');
+      row.className = 'lb-row';
+      if (s.id === studentId) row.classList.add('me');
+      var rc = rank <= 3 ? ' r' + rank : '';
+      row.innerHTML =
+        '<div class="lb-rank' + rc + '">' + rank + '</div>' +
+        '<div class="lb-name">' + esc(d.studentName || 'Player') + '</div>' +
+        '<div class="lb-score">' + fmtNum(d.highScore || 0) + '</div>';
+      lb.appendChild(row);
+      rank++;
+    });
+  } catch(e) {
+    document.getElementById('leaderboard').innerHTML = '<div class="lb-empty">Could not load leaderboard</div>';
+    console.warn('Leaderboard load failed:', e);
+  }
+}
+
+// =============================================
+// INIT
+// =============================================
+loadLocalStats();
+
+</script>
+</body>
+</html>
