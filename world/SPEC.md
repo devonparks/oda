@@ -3,6 +3,9 @@
 ## Vision
 Sims-level character creator for ODA World. Every kid should be able to create a character that looks like them and is instantly recognizable across the hub at 32px. Target audience: elementary & middle school, majority Black students.
 
+## Key Research Finding
+Per ACM IX Magazine study on designing Black children in video games: kids specifically requested braids, locs, afros, updos, frohawks, sponge twists, and curly bobs as must-haves. Children expressed strong desire for hairstyle variety in character creators regardless of character gender. Wide/flat bridge noses and full lips should be prominent defaults, not afterthoughts.
+
 ## Current State (on `oda-world` branch)
 - Basic layered canvas renderer (character-renderer.js)
 - Gender picker (Boy/Girl)
@@ -73,74 +76,111 @@ face: {
 
 Current hair looks like programmer art. Needs complete visual redesign based on real barbershop/salon references.
 
-#### Boys — Short Styles (Barbershop)
-- **Low Fade** — clean taper on sides, natural curls/waves on top
-- **Mid Fade** — fade starts higher, more contrast
-- **High Fade** — dramatic contrast, almost bald sides
-- **Burst Fade** — fade curves around ear in a burst pattern
-- **Taper Fade** — gradual blend, more conservative
-- **Buzz Cut** — uniform short all over
-- **High Top Fade** — flat top, sharp geometric shape
-- **Flat Top** — boxy geometric cut (think Kid 'n Play)
-- **Sponge Curls** — defined coils on top using curl sponge, faded sides
-- **360 Waves** — wave pattern visible across the head
-- **South of France / Usher Cut** — burst fade with curly mohawk strip
-- **Frohawk** — faded sides, textured mohawk center strip
-- **Line Up / Edge Up** — sharp hairline with any style
+#### Boys — Short Styles (Barbershop) [13 styles]
+- **Low Fade** — gradual taper starting low on sides, natural curls on top. Silhouette: compact rounded top, clean tight sides
+- **Mid Fade** — taper starts at ear level, more contrast. Silhouette: distinct separation between fuller top and cropped sides
+- **High Fade / Skin Fade** — hair on top only, sides shaved to skin. Silhouette: volume only at crown, bare sides
+- **Burst Fade** — fade curves in arc around ear. Silhouette: rounded fade lines behind ears
+- **Taper** — subtle gradual reduction to neckline. Silhouette: neat natural head shape, slightly fuller top
+- **Buzz Cut** — uniform very short all over. Silhouette: follows head shape, minimal texture
+- **High Top Fade** — tall volume on top, sharp faded sides (Kid 'n Play). Silhouette: dramatic vertical height, bare sides — one of the most recognizable at any size
+- **Flat Top** — hair shaped into flat boxy platform, sides faded. Silhouette: squared-off top edge, very distinctive even at 32px
+- **Sponge Curls with Fade** — defined coils on top from curl sponge, faded sides. Silhouette: textured popcorn-like top, clean sides
+- **360 Waves** — wave pattern brushed across the head. Silhouette: close like buzz cut but with visible wavy lines radiating from crown
+- **South of France / Usher Cut** — burst fade with curly rounded mohawk strip. Silhouette: soft rounded mohawk with curved side contours
+- **Frohawk** — faded sides, center strip of textured natural hair. Silhouette: peaked center ridge, narrow sides
+- **Line Up / Edge Up** — razor-sharp geometric hairline (pairs with any style). Distinctive: crisp straight lines at forehead visible even at small sizes
+- **Caesar Cut** — short even length with straight-across fringe. Silhouette: compact, uniform, with visible horizontal bang line
 
-#### Boys — Medium/Long Styles
-- **Short Locs** — starter locs, 2-3 inches
+#### Boys — Medium/Long Styles [16 styles]
+- **Two-Strand Twists** — hair sectioned and twisted into rope-like strands. Silhouette: bumpy textured top with visible twist segments
+- **Mini Twists** — smaller, thinner, more numerous twists. Silhouette: dense fine textured top
+- **Twist-Out** — twists unraveled for defined stretched curls. Silhouette: fuller, rounded, fluffy with visible curl definition
+- **Cornrows Straight Back** — flat braids in parallel rows front to back. Silhouette: visible linear stripes across head
+- **Cornrows with Designs** — zigzag, curved, or geometric patterns. Silhouette: non-linear braid patterns on head
+- **Cornrows with Fade** — braids on top, faded sides. Silhouette: lined top, clean bare sides
+- **Box Braids (short)** — individual braids, jaw length. Silhouette: dangling strands framing face
+- **Starter Locs / Baby Locs** — newly formed, short, slightly spiky. Silhouette: short nubby textured protrusions
+- **Short Locs** — 2-3 inches, defined cylindrical strands
 - **Medium Locs** — shoulder length, can be pulled up
-- **Long Locs** — past shoulders, often colored tips
-- **Freeform Locs** — irregular, organic growth pattern
-- **Two-Strand Twists** — neat twisted sections
-- **Mini Twists** — smaller, more defined twist sections
-- **Twist Out** — twists removed to show defined curl pattern
-- **Cornrows Straight Back** — clean parallel rows going back
-- **Cornrows with Design** — zig-zag or geometric patterns
-- **Box Braids (short)** — individual braids, jaw length
+- **Long Locs** — past shoulders, often with colored tips
+- **Freeform Locs** — organic irregular growth, varied widths. Silhouette: non-uniform rope strands
+- **Locs with Fade** — maintained locs on top, faded sides. Silhouette: rope strands sprouting from top, clean sides
+- **Locs with Top Knot** — locs gathered into bun/knot at crown. Silhouette: rounded knot on top
+- **Braided Man Bun** — cornrows or twists into small bun. Silhouette: braided texture leading to rounded knot
+- **Mohawk Braids** — cornrows braided front-to-back in center, sides faded. Silhouette: central ridged strip
 
-#### Girls — Natural Styles
-- **TWA (Teeny Weeny Afro)** — very short natural
-- **Small Afro** — close to head, defined texture
-- **Medium Afro** — rounder, more volume
-- **Big Afro** — maximum volume, statement look
-- **Afro Puffs (two)** — two round puffs with hair ties
-- **Afro Puff (one)** — single puff on top
-- **Pineapple** — high puff/ponytail on top of head
-- **Twist Out** — defined spiral curls from removed twists
-- **Wash and Go** — defined curls, shrinkage visible
-- **Bantu Knots** — coiled knots across the head
+#### Girls — Natural Styles [10 styles]
+- **TWA (Teeny Weeny Afro)** — very short natural, close to head. Silhouette: thin textured cap hugging head
+- **Small Afro** — 2-3 inches, compact rounded shape
+- **Medium Afro** — fuller, rounder volume
+- **Big Afro** — maximum volume, statement halo. Silhouette: large round cloud around head, unmistakable at any size
+- **Single Afro Puff** — all hair in one round puff on top. Silhouette: single ball on crown
+- **Double Afro Puffs** — two round puffs on either side. Silhouette: two symmetrical balls — iconic, instantly readable at 32px
+- **Pineapple Puff** — high puff at very top with curls spilling out. Silhouette: volume at top, cascading
+- **Twist-Out** — unraveled twists for defined spirals. Silhouette: voluminous with visible spiral texture
+- **Wash-and-Go** — defined curls with product, air dried. Silhouette: rounded, voluminous, visible curl clumping
+- **Bantu Knots** — coiled knots all over head. Silhouette: multiple small cone/spiral shapes — very distinctive at small sizes
 
-#### Girls — Protective Styles
-- **Box Braids (long)** — classic long individual braids
+#### Girls — Protective Styles [20 styles]
+- **Box Braids (long)** — classic individual braids, square partings. Silhouette: many parallel hanging strands
 - **Box Braids (bob)** — shorter box braids at jaw/shoulder
-- **Knotless Braids** — smoother, no bulky knot at root
-- **Cornrows Straight Back** — neat parallel rows
-- **Cornrows into Ponytail** — rows leading to a gathered back
-- **Fulani Braids** — cornrow center + hanging side braids with beads
-- **Goddess Braids** — large, thick raised braids
-- **Lemonade Braids** — side-swept cornrows (Beyoncé style)
-- **Feed-in Braids** — start thin, get thicker
-- **Faux Locs** — wrapped to look like locs, temporary
-- **Passion Twists** — bohemian curly twist style
-- **Butterfly Locs** — distressed, looped locs look
-- **Crochet Braids** — curly or straight hair crocheted onto cornrow base
+- **Knotless Braids** — smoother, no bulky knot at root, flatter at scalp
+- **Bohemian Box Braids** — braids with curly hair woven through for wispy ends
+- **Cornrows Straight Back** — flat braids front to back
+- **Cornrows into Ponytail/Bun** — rows leading to gathered back. Silhouette: lined scalp leading to rounded shape
+- **Lemonade Braids** — side-swept cornrows. Silhouette: diagonal lines across head, braids over one shoulder
+- **Fulani Braids** — center cornrow + hanging side braids with beads/cowrie shells. Silhouette: distinctive center braid, face-framing side braids
+- **Ghana Braids / Feed-In Braids** — start thin at hairline, thicken as hair added. Silhouette: smooth thick rows tapering at front
+- **Goddess Braids** — large thick cornrows (2-6 total). Silhouette: few large prominent ridges
+- **Two-Strand Twists** — rope-like twisted sections hanging down
+- **Flat Twists** — twists done flat against scalp (like cornrows but twisted)
+- **Flat Twists into Puffs** — flat twists leading to puffs. Silhouette: textured front, rounded puffs on top/back
+- **Bantu Knots** — (same as natural but also protective)
+- **Faux Locs** — wrapped extensions looking like locs. Silhouette: uniform cylindrical hanging strands
+- **Butterfly Locs** — distressed looped texture along each loc. Silhouette: thick bumpy strands with visible loops
+- **Passion Twists** — curly/wavy bohemian twist style. Silhouette: twists with fluffy wavy texture
+- **Crochet Braids** — curly or straight hair crocheted onto cornrow base. Silhouette: full, voluminous
+- **Braids with Beads** — any braid style + colorful beads at ends. Silhouette: braids ending in small round color spots — very readable at small sizes
+- **Starter Locs / Baby Locs** — short newly formed real locs
 
-#### Girls — Styled
-- **Straightened / Flat Ironed** — sleek, straight
-- **Silk Press** — straight with bounce and movement
-- **Space Buns** — two buns on top of head
-- **Low Bun** — elegant bun at nape
+#### Girls — Styled [8 styles]
+- **Silk Press** — natural hair flat-ironed for sleek straight finish with bounce. Silhouette: smooth flowing hair with body
+- **Blowout** — stretched with blow dryer for voluminous fluffy straight look. Silhouette: big, full, puffy shape
+- **Press and Curl** — straightened then curled for bouncy curls. Silhouette: smooth roots with curled/flipped ends
+- **Flexi Rod / Perm Rod Set** — tight spiral curls from flexible rods. Silhouette: springy spirals with lots of volume
+- **Space Buns** — two buns on top of head. Silhouette: two rounded shapes on crown
 - **High Ponytail** — sleek pulled-up ponytail
-- **Two Ponytails** — pigtails
+- **Two Ponytails** — pigtails on either side
 - **Half Up Half Down** — top section up, rest flowing
 
-#### Unisex
+#### Unisex [12 styles]
+- **Tapered Afro** — full afro tapering shorter on sides. Silhouette: rounded top, narrowing at ears
+- **Short Afro / Mini Afro** — few inches, compact rounded shape
+- **TWA** — very short natural all around
+- **Two-Strand Twists (short)** — short twisted sections
+- **Finger Coils** — small individual spirals wound around finger. Silhouette: many small springy dangles
+- **Freeform Locs** — organic varied-width rope strands
+- **Cornrows** — flat braids any pattern
+- **Frohawk** — center natural mohawk, sides cut/pinned
+- **Fade with Natural Top** — any fade + natural curl texture on top
+- **Wash-and-Go** — natural defined curls
 - **Buzz Cut** — very short all over
-- **Short Crop** — slightly longer than buzz
-- **Wavy** — loose wave pattern
-- **Curly** — visible curl definition
+- **Braids with Fade** — any braid style on top + faded sides
+
+#### Most Distinctive Silhouettes at 32px (prioritize these for V3 launch)
+Based on research, these read most clearly at tiny game sprite sizes:
+1. High Top Fade (tall rectangular top)
+2. Full Afro (large round halo)
+3. Double Puffs (two ball shapes)
+4. Bantu Knots (multiple small bumps)
+5. Flat Top (squared top edge)
+6. Cornrows (linear stripe pattern)
+7. Box Braids (many hanging strands)
+8. Locs (thick dangling rope strands)
+9. Frohawk (peaked center ridge)
+10. Single Puff (one ball on top)
+11. Braids with Beads (braids + colored dots at tips)
 
 #### Drawing Approach
 Each hairstyle should be drawn considering:
