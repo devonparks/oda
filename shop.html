@@ -96,11 +96,15 @@
 <script type="module">
 import{initializeApp,getApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
 import{getFirestore,doc,getDoc,updateDoc,arrayUnion,increment}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+import{getAuth,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
 import{initializeAppCheck,ReCaptchaV3Provider}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app-check.js";
 const cfg=ODA_CONFIG.firebase;
 let app;try{app=getApp()}catch(e){app=initializeApp(cfg)}
 try{initializeAppCheck(app,{provider:new ReCaptchaV3Provider('6LcZII0sAAAAAEhbfDWiwP4-l9DTJIQOwFa2CzD_'),isTokenAutoRefreshEnabled:true})}catch(e){}
 const db=getFirestore(app);
+const auth=getAuth(app);
+// Auth ready promise — teacher equip needs authenticated writes
+window._shopAuthReady=new Promise(function(resolve){onAuthStateChanged(auth,function(user){resolve(user)})});
 
 /* ============================================
    Identity (student or teacher)
@@ -768,6 +772,7 @@ window.confirmPurchase = async function() {
    Equip item
    ============================================ */
 async function equipItem(item, skipToast) {
+  if (isTeacher) await window._shopAuthReady;
   const studentRef = doc(db, isTeacher ? 'teachers' : 'students', studentId);
   let equipData = {};
 
@@ -819,6 +824,7 @@ async function equipItem(item, skipToast) {
    Unequip item (optional slots)
    ============================================ */
 async function unequipItem(item) {
+  if (isTeacher) await window._shopAuthReady;
   const studentRef = doc(db, isTeacher ? 'teachers' : 'students', studentId);
   let equipData = {};
 
