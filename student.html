@@ -77,9 +77,12 @@
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
 import{getFirestore,doc,getDoc,getDocs,updateDoc,collection,query,where,onSnapshot}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+import{initializeAppCheck,ReCaptchaV3Provider}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app-check.js";
 
 const cfg=ODA_CONFIG.firebase;
-const app=initializeApp(cfg);const db=getFirestore(app);
+const app=initializeApp(cfg);
+try{initializeAppCheck(app,{provider:new ReCaptchaV3Provider('6LcZII0sAAAAAEhbfDWiwP4-l9DTJIQOwFa2CzD_'),isTokenAutoRefreshEnabled:true})}catch(e){}
+const db=getFirestore(app);
 
 window.fbDb=db;window.fbDoc=doc;window.fbGetDoc=getDoc;window.fbGetDocs=getDocs;window.fbUpdateDoc=updateDoc;
 window.fbCollection=collection;window.fbQuery=query;window.fbWhere=where;
