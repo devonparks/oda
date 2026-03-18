@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODA World - Create Your Character</title>
+<meta name="theme-color" content="#0a0e1a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/oda-theme.css">
+<link rel="stylesheet" href="css/creator.css">
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<div class="creator-app">
+  <div class="creator-header">
+    <a href="../student.html" class="back-link">&larr; Back</a>
+    <h1>🌍 Create Your Character</h1>
+    <div class="header-right">
+      <button class="btn btn-outline btn-sm" onclick="randomize()">🎲 Randomize</button>
+    </div>
+  </div>
+
+  <div class="creator-main">
+    <!-- Preview Column -->
+    <div class="preview-col">
+      <div class="preview-card">
+        <canvas id="charPreview" width="256" height="256"></canvas>
+        <div class="preview-name" id="previewName">Your Character</div>
+        <div class="preview-title" id="previewTitle"></div>
+      </div>
+      <div class="preview-mini-row">
+        <canvas id="miniPreview1" width="64" height="64" title="Small"></canvas>
+        <canvas id="miniPreview2" width="48" height="48" title="Tiny"></canvas>
+        <canvas id="miniPreview3" width="32" height="32" title="World size"></canvas>
+        <span class="mini-label">How you look in-game →</span>
+      </div>
+    </div>
+
+    <!-- Options Column -->
+    <div class="options-col">
+      <!-- Gender Picker -->
+      <div class="gender-picker">
+        <button class="gender-btn active" id="genderBoy" onclick="pickGender('boy')">
+          <span class="gender-icon">👦</span><span>Boy</span>
+        </button>
+        <button class="gender-btn" id="genderGirl" onclick="pickGender('girl')">
+          <span class="gender-icon">👧</span><span>Girl</span>
+        </button>
+      </div>
+
+      <!-- Category Tabs -->
+      <div class="cat-tabs" id="catTabs">
+        <button class="cat-tab active" data-cat="skinTone" onclick="switchCat('skinTone')">🎨 Skin</button>
+        <button class="cat-tab" data-cat="hairStyle" onclick="switchCat('hairStyle')">💇 Hair</button>
+        <button class="cat-tab" data-cat="hairColor" onclick="switchCat('hairColor')">🌈 Color</button>
+        <button class="cat-tab" data-cat="outfit" onclick="switchCat('outfit')">👕 Outfit</button>
+        <button class="cat-tab" data-cat="expression" onclick="switchCat('expression')">😊 Face</button>
+        <button class="cat-tab" data-cat="bodyType" onclick="switchCat('bodyType')">🧍 Body</button>
+        <button class="cat-tab" data-cat="shoes" onclick="switchCat('shoes')">👟 Shoes</button>
+      </div>
+
+      <div class="options-grid" id="optionsGrid"></div>
+    </div>
+  </div>
+
+  <div class="save-bar">
+    <button class="btn btn-accent btn-lg save-btn" onclick="saveCharacter()" id="saveBtn">✨ Save & Enter ODA World</button>
+  </div>
+</div>
+
+<script src="../js/oda-core.js"></script>
+<script src="js/character-parts.js"></script>
+<script src="js/character-renderer.js"></script>
+<script>
+var currentConfig = ODA_CHAR.defaultConfig('boy');
+var currentCat = 'skinTone';
+
+function render() {
+  ODA_RENDER.drawPreview(document.getElementById('charPreview'), currentConfig, { size: 256 });
+  ODA_RENDER.drawPreview(document.getElementById('miniPreview1'), currentConfig, { size: 64 });
+  ODA_RENDER.drawPreview(document.getElementById('miniPreview2'), currentConfig, { size: 48 });
+  ODA_RENDER.drawPreview(document.getElementById('miniPreview3'), currentConfig, { size: 32 });
+}
+
+function pickGender(g) {
+  currentConfig.gender = g;
+  // Reset gender-specific options to defaults
+  var def = ODA_CHAR.defaultConfig(g);
+  currentConfig.bodyType = def.bodyType;
+  // Only reset outfit if current one doesn't match gender
+  var curOutfit = ODA_CHAR.find('outfits', currentConfig.outfit);
+  if (curOutfit && curOutfit.genderFilter !== 'all' && curOutfit.genderFilter !== g) {
+    currentConfig.outfit = def.outfit;
+  }
+  // Only reset hair if current doesn't match gender
+  var curHair = ODA_CHAR.find('hairStyles', currentConfig.hairStyle);
+  if (curHair && curHair.genderFilter !== 'all' && curHair.genderFilter !== g) {
+    currentConfig.hairStyle = def.hairStyle;
+  }
+  document.getElementById('genderBoy').classList.toggle('active', g === 'boy');
+  document.getElementById('genderGirl').classList.toggle('active', g === 'girl');
+  render();
+  renderOptions();
+}
+
+function switchCat(cat) {
+  currentCat = cat;
+  document.querySelectorAll('.cat-tab').forEach(function (t) {
+    t.classList.toggle('active', t.dataset.cat === cat);
+  });
+  renderOptions();
+}
+
+function renderOptions() {
+  var grid = document.getElementById('optionsGrid');
+  var h = '';
+  var gender = currentConfig.gender;
+
+  switch (currentCat) {
+    case 'skinTone':
+      ODA_CHAR.skinTones.forEach(function (s) {
+        var sel = currentConfig.skinTone === s.id ? ' selected' : '';
+        h += '<button class="opt-btn skin-opt' + sel + '" onclick="pick(\'skinTone\',\'' + s.id + '\')" title="' + s.name + '">';
+        h += '<div class="skin-swatch" style="background:' + s.value + '"></div>';
+        h += '<span>' + s.name + '</span></button>';
+      });
+      break;
+
+    case 'hairStyle':
+      var filtered = ODA_CHAR.filterByGender('hairStyles', gender);
+      var lastGroup = '';
+      filtered.forEach(function (hs) {
+        if (hs.group && hs.group !== lastGroup) {
+          h += '<div class="group-header"><span>' + hs.group + '</span></div>';
+          lastGroup = hs.group;
+        }
+        var sel = currentConfig.hairStyle === hs.id ? ' selected' : '';
+        h += '<button class="opt-btn hair-opt' + sel + '" onclick="pick(\'hairStyle\',\'' + hs.id + '\')">';
+        h += '<canvas class="hair-preview" data-hair="' + hs.id + '" width="64" height="64"></canvas>';
+        h += '<span>' + hs.name + '</span></button>';
+      });
+      break;
+
+    case 'hairColor':
+      ODA_CHAR.hairColors.forEach(function (hc) {
+        var sel = currentConfig.hairColor === hc.id ? ' selected' : '';
+        h += '<button class="opt-btn color-opt' + sel + '" onclick="pick(\'hairColor\',\'' + hc.id + '\')">';
+        h += '<div class="color-swatch" style="background:' + hc.value + '"></div>';
+        h += '<span>' + hc.name + '</span></button>';
+      });
+      break;
+
+    case 'outfit':
+      var outfits = ODA_CHAR.filterByGender('outfits', gender);
+      outfits.forEach(function (o) {
+        var sel = currentConfig.outfit === o.id ? ' selected' : '';
+        h += '<button class="opt-btn outfit-opt' + sel + '" onclick="pick(\'outfit\',\'' + o.id + '\')">';
+        h += '<canvas class="outfit-preview" data-outfit="' + o.id + '" width="64" height="64"></canvas>';
+        h += '<span>' + o.name + '</span></button>';
+      });
+      break;
+
+    case 'expression':
+      ODA_CHAR.expressions.forEach(function (e) {
+        var sel = currentConfig.expression === e.id ? ' selected' : '';
+        h += '<button class="opt-btn expr-opt' + sel + '" onclick="pick(\'expression\',\'' + e.id + '\')">';
+        h += '<canvas class="expr-preview" data-expr="' + e.id + '" width="64" height="64"></canvas>';
+        h += '<span>' + e.name + '</span></button>';
+      });
+      break;
+
+    case 'bodyType':
+      var bodies = ODA_CHAR.filterByGender('bodyTypes', gender);
+      bodies.forEach(function (b) {
+        var sel = currentConfig.bodyType === b.id ? ' selected' : '';
+        h += '<button class="opt-btn body-opt' + sel + '" onclick="pick(\'bodyType\',\'' + b.id + '\')">';
+        h += '<canvas class="body-preview" data-body="' + b.id + '" width="64" height="64"></canvas>';
+        h += '<span>' + b.name + '</span></button>';
+      });
+      break;
+
+    case 'shoes':
+      ODA_CHAR.shoes.forEach(function (sh) {
+        var sel = currentConfig.shoes === sh.id ? ' selected' : '';
+        h += '<button class="opt-btn shoe-opt' + sel + '" onclick="pick(\'shoes\',\'' + sh.id + '\')">';
+        h += '<div class="shoe-swatch" style="background:' + sh.color + '"></div>';
+        h += '<span>' + sh.name + '</span></button>';
+      });
+      break;
+  }
+
+  grid.innerHTML = h;
+
+  // Render canvas previews for hair, outfit, expression, body tabs
+  if (currentCat === 'hairStyle') {
+    document.querySelectorAll('.hair-preview').forEach(function (c) {
+      var tmp = JSON.parse(JSON.stringify(currentConfig));
+      tmp.hairStyle = c.dataset.hair;
+      ODA_RENDER.drawPreview(c, tmp, { size: 64 });
+    });
+  }
+  if (currentCat === 'outfit') {
+    document.querySelectorAll('.outfit-preview').forEach(function (c) {
+      var tmp = JSON.parse(JSON.stringify(currentConfig));
+      tmp.outfit = c.dataset.outfit;
+      ODA_RENDER.drawPreview(c, tmp, { size: 64 });
+    });
+  }
+  if (currentCat === 'expression') {
+    document.querySelectorAll('.expr-preview').forEach(function (c) {
+      var tmp = JSON.parse(JSON.stringify(currentConfig));
+      tmp.expression = c.dataset.expr;
+      ODA_RENDER.drawPreview(c, tmp, { size: 64 });
+    });
+  }
+  if (currentCat === 'bodyType') {
+    document.querySelectorAll('.body-preview').forEach(function (c) {
+      var tmp = JSON.parse(JSON.stringify(currentConfig));
+      tmp.bodyType = c.dataset.body;
+      ODA_RENDER.drawPreview(c, tmp, { size: 64 });
+    });
+  }
+}
+
+function pick(field, value) {
+  currentConfig[field] = value;
+  render();
+  renderOptions();
+}
+
+function randomize() {
+  var g = currentConfig.gender;
+  function randFrom(arr) { return arr[Math.floor(Math.random() * arr.length)].id; }
+  currentConfig.skinTone = randFrom(ODA_CHAR.skinTones);
+  currentConfig.hairStyle = randFrom(ODA_CHAR.filterByGender('hairStyles', g));
+  currentConfig.hairColor = randFrom(ODA_CHAR.hairColors);
+  currentConfig.bodyType = randFrom(ODA_CHAR.filterByGender('bodyTypes', g));
+  currentConfig.outfit = randFrom(ODA_CHAR.filterByGender('outfits', g));
+  currentConfig.expression = randFrom(ODA_CHAR.expressions);
+  currentConfig.shoes = randFrom(ODA_CHAR.shoes);
+  render();
+  renderOptions();
+}
+
+function saveCharacter() {
+  localStorage.setItem('odaWorldCharacter', JSON.stringify(currentConfig));
+  if (window.odaToast) odaToast('Character saved!', 'success');
+  document.getElementById('saveBtn').textContent = '✅ Saved!';
+  setTimeout(function () { document.getElementById('saveBtn').textContent = '✨ Save & Enter ODA World'; }, 2000);
+}
+
+(function init() {
+  var saved = localStorage.getItem('odaWorldCharacter');
+  if (saved) {
+    try {
+      currentConfig = JSON.parse(saved);
+      currentConfig = ODA_CHAR.migrateConfig(currentConfig);
+    } catch (e) {}
+  }
+  var name = localStorage.getItem('studentName') || 'Your Character';
+  document.getElementById('previewName').textContent = name;
+  document.getElementById('genderBoy').classList.toggle('active', currentConfig.gender === 'boy');
+  document.getElementById('genderGirl').classList.toggle('active', currentConfig.gender === 'girl');
+  render();
+  renderOptions();
+})();
+</script>
+</body>
+</html>
