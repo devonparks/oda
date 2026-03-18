@@ -625,7 +625,8 @@ async function loadPassages(){
     var fb=await getFB();
     var constraints=[];
     if(isTeacher){
-      var teacherId=localStorage.getItem('odaTeacherId')||localStorage.getItem('odaTeacherId')||'';
+      var teacherId=localStorage.getItem('teacherId')||'';
+      if(!teacherId){try{var a=await getFirebaseAuth();if(a.auth.currentUser)teacherId=a.auth.currentUser.uid;}catch(e){}}
       if(teacherId) constraints.push(fb.fsMod.where('teacherId','==',teacherId));
     } else {
       if(classCode) constraints.push(fb.fsMod.where('classCode','==',classCode));
@@ -1653,7 +1654,7 @@ async function savePassage(){
     wordCount:wc,
     readingTime:Math.max(1,Math.round(wc/150)),
     questions:editQuestions,
-    teacherId:localStorage.getItem('odaTeacherId')||localStorage.getItem('odaTeacherId')||'anonymous',
+    teacherId:localStorage.getItem('teacherId')||'anonymous',
     classCode:classCode,
     isPublic:true,
     assignedTo:[],

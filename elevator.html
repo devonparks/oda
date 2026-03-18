@@ -324,7 +324,7 @@ body.desktop-mode .td-wrap{max-width:1100px}
 
 <div class="app">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-<a class="back" id="backLink" href="index.html" style="margin-bottom:0">&#x2190; Back to ODA Hub</a>
+<a class="back" id="backLink" href="student.html" style="margin-bottom:0">&#x2190; Back to ODA Hub</a>
 <button class="dash-teacher-btn" id="teacherModeBtn" onclick="toggleTeacherMode()" style="display:none">&#x1F469;&#x200D;&#x1F3EB; Teacher Mode</button>
 </div>
 <div id="teacherBanner" style="display:none" class="teacher-banner"><span class="tb-badge">Teacher</span> &#x1F469;&#x200D;&#x1F3EB; 1-on-1 Mode &#x2014; Guiding <span class="tb-student" id="tbStudentName">a student</span> through their pitch</div>
@@ -605,7 +605,8 @@ grid.innerHTML='<div class="td-loading">Loading student pitches</div>';
 document.getElementById('tdStats').innerHTML='';
 try{
 var fb=await getFirebaseDB();
-var teacherId=localStorage.getItem('teacherId')||localStorage.getItem('userId')||'';
+var teacherId=localStorage.getItem('teacherId')||'';
+if(!teacherId){try{var a=await getFirebaseAuth();if(a.auth.currentUser)teacherId=a.auth.currentUser.uid;}catch(e){}}
 // Query all elevator pitches - try teacher-specific first, fall back to all
 var pitchesRef=fb.fsMod.collection(fb.db,'elevatorPitches');
 var q;

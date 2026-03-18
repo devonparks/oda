@@ -353,7 +353,7 @@ textarea.fun-input::placeholder{color:#3a4560}
 <!-- ===== HOME DASHBOARD VIEW ===== -->
 <div class="view active" id="view-home">
 <div class="dash-wrap">
-<a href="index.html" id="dashBackLink" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);text-decoration:none;font-size:14px;font-weight:600;margin-bottom:12px;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">&#x2190; Back to ODA Hub</a>
+<a href="student.html" id="dashBackLink" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);text-decoration:none;font-size:14px;font-weight:600;margin-bottom:12px;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">&#x2190; Back to ODA Hub</a>
 <div class="dash-top">
 <div>
 <h1>&#x2728; ODA Pitch Challenge &#x2728;</h1>
@@ -920,11 +920,20 @@ applyAgeMode();
 switchView('wizard');
 }
 
-function deleteProject(id){
+async function deleteProject(id){
 if(!confirm('Delete this pitch? This cannot be undone.'))return;
 var all=getAllProjects().filter(function(p){return p.id!==id});
 saveProjects(all);
 renderDashboard();
+// Also delete from Firestore so it doesn't come back on sync
+var sid=localStorage.getItem('studentId');
+if(sid){
+  try{
+    var fb=await getFirebaseDB();
+    var docId=sid+'_'+id;
+    await fb.fsMod.deleteDoc(fb.fsMod.doc(fb.db,'pitchProjects',docId));
+  }catch(e){console.warn('Cloud delete:',e.message)}
+}
 }
 
 function switchView(view){

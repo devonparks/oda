@@ -587,7 +587,7 @@ async function showBoardBrowser(mode) {
     var fs = fb.fsMod;
     var q;
     if (mode === 'teacher') {
-      var teacherId = localStorage.getItem('odaTeacherId') || localStorage.getItem('odaTeacherId') || '';
+      var teacherId = localStorage.getItem('teacherId') || '';
       q = fs.query(fs.collection(fb.db, 'jeopardyBoards'), fs.where('teacherId','==',teacherId), fs.orderBy('createdAt','desc'));
     } else {
       // Students see boards for their class code + public boards
@@ -986,7 +986,7 @@ async function saveBoard() {
   try {
     var fb = await getFirebaseDB();
     var fs = fb.fsMod;
-    var teacherId = localStorage.getItem('odaTeacherId') || localStorage.getItem('odaTeacherId') || 'unknown';
+    var teacherId = localStorage.getItem('teacherId') || 'unknown';
 
     // Categories as map (no arrays for Firestore)
     var categoriesMap = {};
@@ -1163,7 +1163,7 @@ async function importFromSpelling() {
   try {
     var fb = await getFirebaseDB();
     var fs = fb.fsMod;
-    var teacherId = localStorage.getItem('odaTeacherId') || localStorage.getItem('odaTeacherId') || '';
+    var teacherId = localStorage.getItem('teacherId') || '';
     var q = fs.query(fs.collection(fb.db, 'spellingLists'), fs.where('teacherId','==',teacherId));
     var snap = await fs.getDocs(q);
     var lists = [];
@@ -1924,7 +1924,7 @@ async function showTeacherDash() {
   try {
     var fb = await getFirebaseDB();
     var fs = fb.fsMod;
-    var teacherId = localStorage.getItem('odaTeacherId') || localStorage.getItem('odaTeacherId') || '';
+    var teacherId = localStorage.getItem('teacherId') || '';
 
     // Load boards
     var bq = fs.query(fs.collection(fb.db, 'jeopardyBoards'), fs.where('teacherId','==',teacherId));
