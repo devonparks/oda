@@ -1271,42 +1271,35 @@ const ODA_HAIR = (() => {
     ctx.restore();
   }
 
-  /** Does this hairstyle cover the hood area? If so, skip drawing the hood. */
-  function coversHood(styleId) {
-    const covering = [
-      'hair_afro_small', 'hair_afro_medium', 'hair_afro_big',
-      'hair_twistout_girl', 'hair_washgo_girl', 'hair_twistout_boy',
-      'hair_tapered_afro', 'hair_short_afro', 'hair_finger_coils',
-      'hair_washgo', 'hair_fade_natural', 'hair_blowout',
-      'hair_crochet_braids', 'hair_frohawk', 'hair_frohawk_boy',
+  /** Should the hood be recolored to match hair? Returns true for styles where hood peeks through gaps. */
+  function shouldRecolorHood(styleId) {
+    // Only recolor for styles with gaps (hanging strands, individual braids/locs/twists)
+    // Short/compact styles (fades, buzz, taper, caesar, waves, cornrows flat to head) don't need it
+    const gappyStyles = [
       'hair_locs_medium', 'hair_locs_long', 'hair_freeform_locs',
       'hair_locs_topknot', 'hair_locs_fade',
       'hair_box_braids_long', 'hair_box_braids_bob',
       'hair_knotless_braids', 'hair_boho_braids',
       'hair_twists_boy', 'hair_mini_twists', 'hair_twist_out_boy',
-      'hair_cornrows', 'hair_cornrows_designs', 'hair_cornrows_fade',
-      'hair_braids_short', 'hair_braids_fade',
+      'hair_braids_short',
       'hair_lemonade_braids', 'hair_fulani_braids',
       'hair_ghana_braids', 'hair_goddess_braids',
-      'hair_flat_twists', 'hair_flat_twist_puffs',
       'hair_faux_locs', 'hair_butterfly_locs', 'hair_passion_twists',
       'hair_braids_beads', 'hair_starter_locs', 'hair_baby_locs',
+      'hair_twists_girl', 'hair_twistout_girl', 'hair_twistout_boy',
+      'hair_finger_coils', 'hair_crochet_braids',
       'hair_silk_press', 'hair_press_curl', 'hair_flexi_rod',
       'hair_high_ponytail', 'hair_two_ponytails', 'hair_half_up',
-      'hair_space_buns', 'hair_twa_girl', 'hair_twa',
-      'hair_afro_puff_single', 'hair_afro_puff_double',
-      'hair_pineapple_puff', 'hair_bantu_knots',
-      'hair_sponge_curls', 'hair_high_top', 'hair_flat_top', 'hair_sof',
-      'hair_braided_bun', 'hair_mohawk_braids',
-      'hair_cornrows_ponytail', 'hair_twists_girl',
+      'hair_mohawk_braids', 'hair_cornrows_ponytail',
+      'hair_sponge_curls',
     ];
-    return covering.includes(styleId);
+    return gappyStyles.includes(styleId);
   }
 
   return {
     drawHairVolume,
     drawHairTop,
     drawHairOutline,
-    coversHood,
+    shouldRecolorHood,
   };
 })();
