@@ -133,7 +133,7 @@ window.odaSafeUrl = function(url) {
       localStorage.removeItem('encourageShown');
       // Redirect to login if on a protected page
       var page = location.pathname.split('/').pop();
-      var protectedPages = ['student.html', 'parent.html'];
+      var protectedPages = ['student.html', 'parent.html', 'shop.html'];
       if (protectedPages.indexOf(page) >= 0) {
         window.location.href = 'index.html';
       }
