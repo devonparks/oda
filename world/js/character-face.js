@@ -70,7 +70,7 @@ const ODA_FACE = (() => {
     // Pupil
     ctx.fillStyle = '#000000';
     ctx.beginPath();
-    ctx.arc(x + (offsetX||0), y, r*0.45, 0, Math.PI*2);
+    ctx.arc(x + (offsetX||0), y, r*0.3, 0, Math.PI*2);
     ctx.fill();
     // Highlight
     ctx.fillStyle = '#FFFFFF';
