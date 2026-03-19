@@ -91,11 +91,8 @@
 
 <script src="../js/oda-core.js"></script>
 <script src="js/character-parts.js"></script>
-<script src="js/character-face.js"></script>
-<script src="js/character-hair.js"></script>
-<script src="js/character-outfit.js"></script>
-<script src="js/character-shoes.js"></script>
-<script src="js/character-renderer.js"></script>
+<script src="js/sprite-parts.js"></script>
+<script src="js/sprite-compositor.js"></script>
 <script src="js/color-picker.js"></script>
 <script>
 // ── State ─────────────────────────────────────────────────────
@@ -105,10 +102,12 @@ var currentSubCat = 'eyeShape';
 
 // ── Render ────────────────────────────────────────────────────
 function render() {
-  ODA_RENDER.drawPreview(document.getElementById('charPreview'), currentConfig, { size: 256 });
-  ODA_RENDER.drawPreview(document.getElementById('miniPreview1'), currentConfig, { size: 64 });
-  ODA_RENDER.drawPreview(document.getElementById('miniPreview2'), currentConfig, { size: 48 });
-  ODA_RENDER.drawPreview(document.getElementById('miniPreview3'), currentConfig, { size: 32 });
+  // Main preview: animated idle
+  ODA_SPRITE.updateAnimation(document.getElementById('charPreview'), currentConfig, { size: 256 });
+  // Mini previews: static front frame
+  ODA_SPRITE.drawPreview(document.getElementById('miniPreview1'), currentConfig, { size: 64 });
+  ODA_SPRITE.drawPreview(document.getElementById('miniPreview2'), currentConfig, { size: 48 });
+  ODA_SPRITE.drawPreview(document.getElementById('miniPreview3'), currentConfig, { size: 32 });
 }
 
 // ── Gender ────────────────────────────────────────────────────
@@ -368,29 +367,29 @@ function renderShoeOptions() {
 
 // ── Canvas Previews ───────────────────────────────────────────
 function renderCanvasPreviews() {
-  // Hair previews
+  // Hair previews — head-only crop
   document.querySelectorAll('.hair-preview').forEach(c => {
     var tmp = JSON.parse(JSON.stringify(currentConfig));
     tmp.hairStyle = c.dataset.hair;
-    ODA_RENDER.drawHeadPreview(c, tmp, { size: 64 });
+    ODA_SPRITE.drawHeadPreview(c, tmp, { size: 64 });
   });
-  // Face feature previews (head-only so you can see the face)
+  // Face feature previews — head-only crop
   document.querySelectorAll('.face-preview').forEach(c => {
     var tmp = JSON.parse(JSON.stringify(currentConfig));
     tmp.face[c.dataset.face] = c.dataset.val;
-    ODA_RENDER.drawHeadPreview(c, tmp, { size: 64 });
+    ODA_SPRITE.drawHeadPreview(c, tmp, { size: 64 });
   });
-  // Outfit previews
+  // Outfit previews — full body
   document.querySelectorAll('.outfit-preview').forEach(c => {
     var tmp = JSON.parse(JSON.stringify(currentConfig));
     tmp.outfit.garment = c.dataset.garment;
-    ODA_RENDER.drawPreview(c, tmp, { size: 64 });
+    ODA_SPRITE.drawPreview(c, tmp, { size: 64 });
   });
-  // Shoe previews
+  // Shoe previews — full body
   document.querySelectorAll('.shoe-preview').forEach(c => {
     var tmp = JSON.parse(JSON.stringify(currentConfig));
     tmp.shoes.type = c.dataset.shoe;
-    ODA_RENDER.drawPreview(c, tmp, { size: 64 });
+    ODA_SPRITE.drawPreview(c, tmp, { size: 64 });
   });
 }
 
@@ -460,7 +459,7 @@ function expandPreview() {
   bigCanvas.width = 512;
   bigCanvas.height = 512;
   bigCanvas.style.cssText = 'border-radius:20px;background:#2a2d3a;image-rendering:auto';
-  ODA_RENDER.drawPreview(bigCanvas, currentConfig, { size: 512 });
+  ODA_SPRITE.drawPreview(bigCanvas, currentConfig, { size: 512 });
   overlay.appendChild(bigCanvas);
   overlay.addEventListener('click', function() { overlay.remove(); });
   document.body.appendChild(overlay);
