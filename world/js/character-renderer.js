@@ -163,8 +163,8 @@ const ODA_RENDER = (() => {
     // 5. Outfit torso + sleeves
     ODA_OUTFIT.drawOutfit(ctx, config.outfit || {}, gender, skinHex, bd, cx, s);
 
-    // 6. Hood back (if hoodie/zipup)
-    if (garment && garment.hood) {
+    // 6. Hood back (if hoodie/zipup) — skip if hair covers it
+    if (garment && garment.hood && !ODA_HAIR.coversHood(config.hairStyle)) {
       ODA_OUTFIT.drawHoodBack(ctx, cx, s, config.outfit.primaryColor);
     }
 
