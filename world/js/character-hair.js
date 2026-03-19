@@ -47,51 +47,10 @@ const ODA_HAIR = (() => {
 
   // ── Shared Drawing Helpers ──────────────────────────────────
 
-  /** Draw a fade gradient on the sides of the head */
+  /** Draw a fade — currently a no-op; fade rendering removed for visual quality */
   function drawFade(ctx, cx, s, hc, level) {
-    // level: 'low' = just sideburns, 'mid' = half ear, 'high' = above ear, 'burst' = around ear
-    let startY, fadeH, topAlpha;
-    switch (level) {
-      case 'low':   startY = 56*s; fadeH = 24*s; topAlpha = 0.6;  break;
-      case 'mid':   startY = 48*s; fadeH = 30*s; topAlpha = 0.5;  break;
-      case 'high':  startY = 42*s; fadeH = 34*s; topAlpha = 0.35; break;
-      case 'burst': startY = 48*s; fadeH = 28*s; topAlpha = 0.45; break;
-      default:      startY = 48*s; fadeH = 30*s; topAlpha = 0.5;
-    }
-
-    ctx.save();
-    // Draw fade as multiple curved strips with decreasing opacity (top-to-bottom)
-    var strips = 6;
-    for (var i = 0; i < strips; i++) {
-      var t = i / strips;
-      var alpha = topAlpha * (1 - t * 0.85);
-      var y = startY + t * fadeH;
-      var stripH = fadeH / strips + 1;
-      // Width narrows toward bottom to follow head curvature
-      var headW = 30*s - t * 4*s;
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = hc;
-      // Left side — curved to follow head shape
-      ctx.beginPath();
-      ctx.ellipse(cx - headW + 4*s, y + stripH/2, 8*s, stripH/2, 0, 0, Math.PI*2);
-      ctx.fill();
-      // Right side
-      ctx.beginPath();
-      ctx.ellipse(cx + headW - 4*s, y + stripH/2, 8*s, stripH/2, 0, 0, Math.PI*2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-    ctx.restore();
-
-    if (level === 'burst') {
-      // Burst fade: circular fade around ear
-      ctx.save();
-      ctx.globalAlpha = 0.3;
-      ctx.fillStyle = hc;
-      ctx.beginPath(); ctx.arc(cx - 30*s, 66*s, 10*s, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(cx + 30*s, 66*s, 10*s, 0, Math.PI*2); ctx.fill();
-      ctx.restore();
-    }
+    // Intentionally empty — fade effects looked bad at this scale.
+    // Short styles just show hair on top, clean sides.
   }
 
   /** Draw hair on top with a natural lined-up hairline (not a perfect semicircle) */
