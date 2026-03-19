@@ -136,8 +136,8 @@ const ODA_RENDER = (() => {
       cx, s,
       eyeY: 64*s,
       eyeSpacing: 12*s,
-      mouthY: 78*s,
-      noseY: 72*s,
+      mouthY: 82*s,
+      noseY: 74*s,
       browY: 56*s,
       skinHex,
     };

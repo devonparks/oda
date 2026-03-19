@@ -50,40 +50,68 @@ const ODA_HAIR = (() => {
   /** Draw a fade gradient on the sides of the head */
   function drawFade(ctx, cx, s, hc, level) {
     // level: 'low' = just sideburns, 'mid' = half ear, 'high' = above ear, 'burst' = around ear
-    const fadeG = ctx.createLinearGradient(cx - 32*s, 42*s, cx - 32*s, 80*s);
-    fadeG.addColorStop(0, hc);
-    fadeG.addColorStop(1, 'rgba(0,0,0,0)');
-
-    let startY, height;
+    let startY, fadeH, topAlpha;
     switch (level) {
-      case 'low':   startY = 58*s; height = 22*s; break;
-      case 'mid':   startY = 50*s; height = 26*s; break;
-      case 'high':  startY = 42*s; height = 28*s; break;
-      case 'burst': startY = 50*s; height = 24*s; break;
-      default:      startY = 50*s; height = 26*s;
+      case 'low':   startY = 56*s; fadeH = 24*s; topAlpha = 0.6;  break;
+      case 'mid':   startY = 48*s; fadeH = 30*s; topAlpha = 0.5;  break;
+      case 'high':  startY = 42*s; fadeH = 34*s; topAlpha = 0.35; break;
+      case 'burst': startY = 48*s; fadeH = 28*s; topAlpha = 0.45; break;
+      default:      startY = 48*s; fadeH = 30*s; topAlpha = 0.5;
     }
 
     ctx.save();
-    ctx.fillStyle = fadeG;
-    // Left side
-    ctx.fillRect(cx - 34*s, startY, 10*s, height);
-    // Right side
-    const fadeR = ctx.createLinearGradient(cx + 24*s, 42*s, cx + 34*s, 80*s);
-    fadeR.addColorStop(0, hc);
-    fadeR.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = fadeR;
-    ctx.fillRect(cx + 24*s, startY, 10*s, height);
+    // Draw fade as multiple curved strips with decreasing opacity (top-to-bottom)
+    var strips = 6;
+    for (var i = 0; i < strips; i++) {
+      var t = i / strips;
+      var alpha = topAlpha * (1 - t * 0.85);
+      var y = startY + t * fadeH;
+      var stripH = fadeH / strips + 1;
+      // Width narrows toward bottom to follow head curvature
+      var headW = 30*s - t * 4*s;
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = hc;
+      // Left side — curved to follow head shape
+      ctx.beginPath();
+      ctx.ellipse(cx - headW + 4*s, y + stripH/2, 8*s, stripH/2, 0, 0, Math.PI*2);
+      ctx.fill();
+      // Right side
+      ctx.beginPath();
+      ctx.ellipse(cx + headW - 4*s, y + stripH/2, 8*s, stripH/2, 0, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
     ctx.restore();
 
     if (level === 'burst') {
       // Burst fade: circular fade around ear
       ctx.save();
-      ctx.globalAlpha = 0.4;
+      ctx.globalAlpha = 0.3;
       ctx.fillStyle = hc;
-      ctx.beginPath(); ctx.arc(cx - 30*s, 66*s, 12*s, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(cx + 30*s, 66*s, 12*s, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx - 30*s, 66*s, 10*s, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + 30*s, 66*s, 10*s, 0, Math.PI*2); ctx.fill();
       ctx.restore();
     }
+  }
+
+  /** Draw hair on top with a natural lined-up hairline (not a perfect semicircle) */
+  function drawLineup(ctx, cx, s, hc, halfW, height) {
+    ctx.fillStyle = hc;
+    ctx.beginPath();
+    // Start from left temple
+    ctx.moveTo(cx - halfW*s, 48*s);
+    // Left temple corner (sharp angle)
+    ctx.lineTo(cx - halfW*s, 42*s);
+    // Hairline curves: left temple → left forehead → center peak → right forehead → right temple
+    ctx.quadraticCurveTo(cx - halfW*0.6*s, 34*s, cx - 8*s, (42 - height)*s);
+    // Subtle widow's peak or straight across
+    ctx.quadraticCurveTo(cx, (40 - height)*s, cx + 8*s, (42 - height)*s);
+    // Right side mirrors left
+    ctx.quadraticCurveTo(cx + halfW*0.6*s, 34*s, cx + halfW*s, 42*s);
+    ctx.lineTo(cx + halfW*s, 48*s);
+    // Close along the back of the head
+    ctx.quadraticCurveTo(cx, 50*s, cx - halfW*s, 48*s);
+    ctx.fill();
   }
 
   /** Draw hanging braid strands */
@@ -750,23 +778,23 @@ const ODA_HAIR = (() => {
       // ═══════════════════════════════════════════════════════
 
       case 'hair_low_fade':
-        // Hair on top, low fade on sides
-        ctx.beginPath(); ctx.ellipse(cx, 42*s, 28*s, 16*s, 0, Math.PI, Math.PI*2); ctx.fill();
+        // Hair on top with lined-up hairline, low fade on sides
+        drawLineup(ctx, cx, s, hc, 28, 14);
         drawFade(ctx, cx, s, hc, 'low');
         break;
 
       case 'hair_mid_fade':
-        ctx.beginPath(); ctx.ellipse(cx, 42*s, 28*s, 16*s, 0, Math.PI, Math.PI*2); ctx.fill();
+        drawLineup(ctx, cx, s, hc, 28, 14);
         drawFade(ctx, cx, s, hc, 'mid');
         break;
 
       case 'hair_high_fade':
-        ctx.beginPath(); ctx.ellipse(cx, 42*s, 26*s, 14*s, 0, Math.PI, Math.PI*2); ctx.fill();
+        drawLineup(ctx, cx, s, hc, 26, 12);
         drawFade(ctx, cx, s, hc, 'high');
         break;
 
       case 'hair_burst_fade':
-        ctx.beginPath(); ctx.ellipse(cx, 42*s, 28*s, 16*s, 0, Math.PI, Math.PI*2); ctx.fill();
+        drawLineup(ctx, cx, s, hc, 28, 14);
         drawFade(ctx, cx, s, hc, 'burst');
         break;
 
