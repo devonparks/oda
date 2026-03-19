@@ -952,10 +952,9 @@ const ODA_HAIR = (() => {
 
       case 'hair_twa_girl':
         // Very short natural — sits close to head
-        ctx.globalAlpha = 0.7;
         ctx.beginPath(); ctx.ellipse(cx, 44*s, 30*s, 14*s, 0, Math.PI, Math.PI*2); ctx.fill();
-        ctx.globalAlpha = 1;
-        drawCurlTexture(ctx, cx, s, hc, 26, 38*s, 5);
+        // Subtle texture within the hair shape
+        drawCurlTexture(ctx, cx, s, hc, 22, 42*s, 4);
         break;
 
       case 'hair_afro_small':
@@ -1161,9 +1160,8 @@ const ODA_HAIR = (() => {
         break; // volume handles it
 
       case 'hair_twa':
-        ctx.globalAlpha = 0.6;
         ctx.beginPath(); ctx.ellipse(cx, 44*s, 29*s, 12*s, 0, Math.PI, Math.PI*2); ctx.fill();
-        ctx.globalAlpha = 1;
+        drawCurlTexture(ctx, cx, s, hc, 20, 42*s, 4);
         break;
 
       case 'hair_short_twists':

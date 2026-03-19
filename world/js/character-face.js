@@ -151,10 +151,10 @@ const ODA_FACE = (() => {
 
       switch (style) {
         case 'thick_straight':
-          ctx.lineWidth = 3*s;
+          ctx.lineWidth = 2*s;
           ctx.beginPath();
-          ctx.moveTo(bx - 7*s, browY);
-          ctx.lineTo(bx + 7*s, browY);
+          ctx.moveTo(bx - 6*s, browY);
+          ctx.lineTo(bx + 6*s, browY);
           ctx.stroke();
           break;
 
@@ -167,7 +167,7 @@ const ODA_FACE = (() => {
           break;
 
         case 'bushy':
-          ctx.lineWidth = 4*s;
+          ctx.lineWidth = 2.5*s;
           ctx.beginPath();
           ctx.moveTo(bx - 8*s, browY);
           ctx.quadraticCurveTo(bx, browY - 2*s, bx + 8*s, browY + 1*s);
@@ -183,7 +183,7 @@ const ODA_FACE = (() => {
           break;
 
         case 'flat':
-          ctx.lineWidth = 2.5*s;
+          ctx.lineWidth = 1.8*s;
           ctx.beginPath();
           ctx.moveTo(bx - 7*s, browY);
           ctx.lineTo(bx + 7*s, browY);
@@ -553,44 +553,43 @@ const ODA_FACE = (() => {
 
     let ew, eh;
     switch (style) {
-      case 'small':   ew = 5*s;  eh = 6*s;  break;
-      case 'large':   ew = 8*s;  eh = 11*s; break;
-      case 'pointed': ew = 6*s;  eh = 10*s; break;
-      default:        ew = 6*s;  eh = 8*s;
+      case 'small':   ew = 3.5*s; eh = 5*s;  break;
+      case 'large':   ew = 6*s;   eh = 8*s;  break;
+      case 'pointed': ew = 5*s;   eh = 8*s;  break;
+      default:        ew = 4.5*s; eh = 6*s;
     }
 
+    const earX = 27*s; // pulled in from 30
     const earY = 68*s;
 
     if (style === 'pointed') {
-      // Left pointed ear
       ctx.beginPath();
-      ctx.moveTo(cx - 30*s, earY + eh/2);
-      ctx.lineTo(cx - 30*s - ew, earY - eh*0.6);
-      ctx.lineTo(cx - 30*s + 2*s, earY - eh/2);
+      ctx.moveTo(cx - earX, earY + eh/2);
+      ctx.lineTo(cx - earX - ew, earY - eh*0.6);
+      ctx.lineTo(cx - earX + 2*s, earY - eh/2);
       ctx.closePath();
       ctx.fill();
-      // Right
       ctx.beginPath();
-      ctx.moveTo(cx + 30*s, earY + eh/2);
-      ctx.lineTo(cx + 30*s + ew, earY - eh*0.6);
-      ctx.lineTo(cx + 30*s - 2*s, earY - eh/2);
+      ctx.moveTo(cx + earX, earY + eh/2);
+      ctx.lineTo(cx + earX + ew, earY - eh*0.6);
+      ctx.lineTo(cx + earX - 2*s, earY - eh/2);
       ctx.closePath();
       ctx.fill();
     } else {
       ctx.beginPath();
-      ctx.ellipse(cx - 30*s, earY, ew, eh, 0, 0, Math.PI*2);
+      ctx.ellipse(cx - earX, earY, ew, eh, 0, 0, Math.PI*2);
       ctx.fill();
       ctx.beginPath();
-      ctx.ellipse(cx + 30*s, earY, ew, eh, 0, 0, Math.PI*2);
+      ctx.ellipse(cx + earX, earY, ew, eh, 0, 0, Math.PI*2);
       ctx.fill();
     }
 
     // Inner ear detail
     ctx.fillStyle = darken(skinHex, 0.1);
-    const iw = ew*0.5, ih = eh*0.5;
+    const iw = ew*0.45, ih = eh*0.45;
     if (style !== 'pointed') {
-      ctx.beginPath(); ctx.ellipse(cx - 30*s, earY, iw, ih, 0, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(cx + 30*s, earY, iw, ih, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx - earX, earY, iw, ih, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx + earX, earY, iw, ih, 0, 0, Math.PI*2); ctx.fill();
     }
     ctx.restore();
   }

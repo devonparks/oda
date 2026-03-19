@@ -466,23 +466,61 @@ function expandPreview() {
   document.body.appendChild(overlay);
 }
 
-// ── Save ──────────────────────────────────────────────────────
-function saveCharacter() {
+// ── Save (localStorage + Firestore) ──────────────────────────
+async function saveCharacter() {
   localStorage.setItem('odaWorldCharacter', JSON.stringify(currentConfig));
-  if (window.odaToast) odaToast('Character saved!', 'success');
   var btn = document.getElementById('saveBtn');
+  btn.textContent = 'Saving...';
+  btn.disabled = true;
+
+  // Save to Firestore so it persists across devices
+  var sid = localStorage.getItem('studentId') || '';
+  if (sid) {
+    try {
+      var fb = await getFirebaseDB();
+      await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'students', sid), {
+        character: currentConfig
+      });
+    } catch(e) {
+      // If student doc doesn't exist, try setDoc with merge
+      try {
+        var fb2 = await getFirebaseDB();
+        await fb2.fsMod.setDoc(fb2.fsMod.doc(fb2.db, 'students', sid), {
+          character: currentConfig
+        }, { merge: true });
+      } catch(e2) { console.warn('Character save failed:', e2); }
+    }
+  }
+
+  if (window.odaToast) odaToast('Character saved!', 'success');
   btn.textContent = 'Saved!';
+  btn.disabled = false;
   setTimeout(function() { btn.textContent = 'Save & Enter ODA World'; }, 2000);
 }
 
 // ── Init ──────────────────────────────────────────────────────
-(function init() {
+(async function init() {
+  // Try localStorage first (instant)
   var saved = localStorage.getItem('odaWorldCharacter');
   if (saved) {
     try {
       currentConfig = ODA_PARTS.migrateConfig(JSON.parse(saved));
     } catch(e) {}
   }
+
+  // Then try Firestore (async, may override localStorage with newer data)
+  var sid = localStorage.getItem('studentId') || '';
+  if (sid) {
+    try {
+      var fb = await getFirebaseDB();
+      var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'students', sid));
+      if (snap.exists() && snap.data().character) {
+        currentConfig = ODA_PARTS.migrateConfig(snap.data().character);
+        localStorage.setItem('odaWorldCharacter', JSON.stringify(currentConfig));
+      }
+    } catch(e) {}
+  }
+
   var name = localStorage.getItem('studentName') || 'Your Character';
   document.getElementById('previewName').textContent = name;
   document.getElementById('genderBoy').classList.toggle('active', currentConfig.gender === 'boy');

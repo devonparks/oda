@@ -172,25 +172,30 @@ const ODA_RENDER = (() => {
     const sleeveType = garment ? garment.sleeve : 'short';
     ODA_OUTFIT.drawArms(ctx, cx, s, skinHex, bd, sleeveType, config.outfit ? config.outfit.primaryColor : '#7c3aed');
 
-    // 8. Hair volume (behind head)
-    ODA_HAIR.drawHairVolume(ctx, config.hairStyle, hairColor, cx, s);
-
-    // 9. Head (covers hair in face zone)
-    drawHead(ctx, cx, s, skinHex);
-
-    // 10. Ears
+    // 8. Ears (behind hair volume)
     if (config.face) {
       ODA_FACE.drawEars(ctx, config.face, skinHex, faceDims);
     }
+
+    // 9. Hair volume (behind head)
+    ODA_HAIR.drawHairVolume(ctx, config.hairStyle, hairColor, cx, s);
+
+    // 10. Head (covers hair in face zone)
+    drawHead(ctx, cx, s, skinHex);
 
     // 11. Face features
     if (isSmall) {
       ODA_FACE.drawFaceSimple(ctx, faceDims);
     } else if (config.face) {
+      // Default eyebrow color to hair color for natural look
+      var faceWithBrows = config.face;
+      if (!faceWithBrows.eyebrowColor || faceWithBrows.eyebrowColor === '#1c1410') {
+        faceWithBrows = Object.assign({}, config.face, { eyebrowColor: hairColor });
+      }
       ODA_FACE.drawNose(ctx, config.face, faceDims);
       ODA_FACE.drawMouth(ctx, config.face, faceDims);
       ODA_FACE.drawEyes(ctx, config.face, faceDims);
-      ODA_FACE.drawEyebrows(ctx, config.face, faceDims);
+      ODA_FACE.drawEyebrows(ctx, faceWithBrows, faceDims);
       ODA_FACE.drawEyelashes(ctx, config.face, faceDims);
     }
 
