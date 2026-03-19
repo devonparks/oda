@@ -55,23 +55,40 @@ const ODA_FACE = (() => {
     ctx.stroke();
   }
 
-  function eyeWhite(ctx, x, y, w, h) {
+  /** Draw a natural eye shape (bezier almond, not a circle) */
+  function drawNaturalEye(ctx, x, y, w, h, irisR, irisColor, skinHex, s) {
+    // White — bezier curves for natural eye shape
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
-    ctx.ellipse(x, y, w, h, 0, 0, Math.PI*2);
+    ctx.moveTo(x - w, y);
+    ctx.bezierCurveTo(x - w, y - h, x + w, y - h, x + w, y);
+    ctx.bezierCurveTo(x + w, y + h*0.8, x - w, y + h*0.8, x - w, y);
     ctx.fill();
-  }
 
-  function iris(ctx, x, y, r, color, s, offsetX) {
-    // Simple two-tone eye: colored iris + small dark pupil
-    ctx.fillStyle = color;
+    // Thin upper lid line
+    ctx.strokeStyle = darken(skinHex || '#6B4226', 0.25);
+    ctx.lineWidth = 1*s;
     ctx.beginPath();
-    ctx.arc(x + (offsetX||0), y, r, 0, Math.PI*2);
+    ctx.moveTo(x - w, y);
+    ctx.bezierCurveTo(x - w, y - h, x + w, y - h, x + w, y);
+    ctx.stroke();
+
+    // Iris — sits slightly low in the eye
+    ctx.fillStyle = irisColor || '#3D2B1A';
+    ctx.beginPath();
+    ctx.arc(x, y + 0.5*s, irisR, 0, Math.PI*2);
     ctx.fill();
+
     // Pupil
     ctx.fillStyle = '#000000';
     ctx.beginPath();
-    ctx.arc(x + (offsetX||0), y, r*0.35, 0, Math.PI*2);
+    ctx.arc(x, y + 0.5*s, irisR * 0.5, 0, Math.PI*2);
+    ctx.fill();
+
+    // Highlight
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(x - 1*s, y - 0.5*s, s*0.8, 0, Math.PI*2);
     ctx.fill();
   }
 
@@ -82,50 +99,38 @@ const ODA_FACE = (() => {
     const ec = face.eyeColor || '#2D1B00';
     const shape = face.eyeShape || 'round';
 
-    // Base eye dimensions per shape
-    let ew, eh, irisR, lidDrop = 0;
+    // Eye dimensions per shape — all use natural bezier eye shape
+    let ew, eh, irisR;
     switch (shape) {
-      case 'round':      ew = 5*s;   eh = 5*s;   irisR = 3.2*s; break;
-      case 'almond':     ew = 6*s;   eh = 3.8*s; irisR = 2.8*s; break;
-      case 'wide':       ew = 6.5*s; eh = 5.5*s; irisR = 3.5*s; break;
-      case 'narrow':     ew = 5.5*s; eh = 2.8*s; irisR = 2.2*s; break;
-      case 'upturned':   ew = 5.5*s; eh = 4*s;   irisR = 3*s;   break;
-      case 'downturned': ew = 5.5*s; eh = 4*s;   irisR = 3*s;   break;
-      case 'monolid':    ew = 5.5*s; eh = 3.2*s; irisR = 2.5*s; break;
-      default:           ew = 5*s;   eh = 5*s;   irisR = 3.2*s;
+      case 'round':      ew = 6*s;   eh = 5*s;   irisR = 3.5*s; break;
+      case 'almond':     ew = 7*s;   eh = 4*s;   irisR = 3*s;   break;
+      case 'wide':       ew = 7.5*s; eh = 5.5*s; irisR = 4*s;   break;
+      case 'narrow':     ew = 6.5*s; eh = 3*s;   irisR = 2.5*s; break;
+      case 'upturned':   ew = 6.5*s; eh = 4.5*s; irisR = 3.2*s; break;
+      case 'downturned': ew = 6.5*s; eh = 4.5*s; irisR = 3.2*s; break;
+      case 'monolid':    ew = 6.5*s; eh = 3.2*s; irisR = 2.8*s; break;
+      default:           ew = 6*s;   eh = 5*s;   irisR = 3.5*s;
     }
+
+    const skinH = dims.skinHex || '#6B4226';
 
     for (const side of [-1, 1]) {
       const ex = cx + side * eyeSpacing;
 
       if (shape === 'upturned') {
-        // Outer corner tilts up
         ctx.save();
         ctx.translate(ex, eyeY);
-        ctx.rotate(side * -0.12);
-        eyeWhite(ctx, 0, 0, ew, eh);
-        iris(ctx, 0, 0, irisR, ec, s, 0);
+        ctx.rotate(side * -0.1);
+        drawNaturalEye(ctx, 0, 0, ew, eh, irisR, ec, skinH, s);
         ctx.restore();
       } else if (shape === 'downturned') {
         ctx.save();
         ctx.translate(ex, eyeY);
-        ctx.rotate(side * 0.12);
-        eyeWhite(ctx, 0, 0, ew, eh);
-        iris(ctx, 0, 0, irisR, ec, s, 0);
+        ctx.rotate(side * 0.1);
+        drawNaturalEye(ctx, 0, 0, ew, eh, irisR, ec, skinH, s);
         ctx.restore();
       } else {
-        eyeWhite(ctx, ex, eyeY, ew, eh);
-        iris(ctx, ex, eyeY, irisR, ec, s, 0);
-      }
-
-      // Monolid — no crease, flatter shape
-      if (shape === 'monolid') {
-        ctx.strokeStyle = faceLineColor(dims.skinHex || '#6B4226');
-        ctx.lineWidth = 0.8*s;
-        ctx.beginPath();
-        ctx.moveTo(ex - ew, eyeY);
-        ctx.lineTo(ex + ew, eyeY);
-        ctx.stroke();
+        drawNaturalEye(ctx, ex, eyeY, ew, eh, irisR, ec, skinH, s);
       }
     }
     ctx.restore();
