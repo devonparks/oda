@@ -226,31 +226,47 @@ const ODA_FACE = (() => {
     if (style === 'none') return;
     ctx.save();
     const { cx, s, eyeY, eyeSpacing } = dims;
+    const shape = face.eyeShape || 'round';
     const color = face.eyelashColor || '#1c1410';
     ctx.strokeStyle = color;
     ctx.lineCap = 'round';
 
-    let count, len;
-    switch (style) {
-      case 'short':    count = 3; len = 2.5*s; ctx.lineWidth = 0.8*s; break;
-      case 'medium':   count = 4; len = 3.5*s; ctx.lineWidth = 1*s;   break;
-      case 'long':     count = 5; len = 5*s;   ctx.lineWidth = 1*s;   break;
-      case 'dramatic': count = 6; len = 6*s;   ctx.lineWidth = 1.2*s; break;
-      default:         count = 3; len = 2.5*s; ctx.lineWidth = 0.8*s;
+    // Get eye width for this shape to scale lashes correctly
+    let ew;
+    switch (shape) {
+      case 'round':      ew = 5.5*s; break;
+      case 'almond':     ew = 6.5*s; break;
+      case 'wide':       ew = 7*s;   break;
+      case 'narrow':     ew = 6*s;   break;
+      case 'upturned':   ew = 6*s;   break;
+      case 'downturned': ew = 6*s;   break;
+      case 'monolid':    ew = 6*s;   break;
+      default:           ew = 5.5*s;
     }
+
+    // Style determines thickness and outer flick length
+    let lw, flick;
+    switch (style) {
+      case 'short':    lw = 1.2*s; flick = 1.5*s; break;
+      case 'medium':   lw = 1.5*s; flick = 2.5*s; break;
+      case 'long':     lw = 1.8*s; flick = 3.5*s; break;
+      case 'dramatic': lw = 2.2*s; flick = 4.5*s; break;
+      default:         lw = 1.2*s; flick = 1.5*s;
+    }
+    ctx.lineWidth = lw;
 
     for (const side of [-1, 1]) {
       const ex = cx + side * eyeSpacing;
-      // Lashes fan out from top of eye
-      for (let i = 0; i < count; i++) {
-        const angle = -Math.PI*0.3 + (Math.PI*0.6/(count-1)) * i;
-        const lx = ex + Math.cos(angle) * 5*s;
-        const ly = eyeY - 4*s;
-        ctx.beginPath();
-        ctx.moveTo(lx, ly);
-        ctx.lineTo(lx + Math.cos(angle - Math.PI*0.5) * len, ly + Math.sin(angle - Math.PI*0.5) * len);
-        ctx.stroke();
-      }
+      // Draw a curved lash line along the upper eyelid
+      ctx.beginPath();
+      ctx.moveTo(ex - ew*0.8, eyeY - 1*s);
+      ctx.quadraticCurveTo(ex, eyeY - ew*0.6, ex + ew*0.8, eyeY - 1*s);
+      ctx.stroke();
+      // Outer corner flick — curls upward and outward
+      ctx.beginPath();
+      ctx.moveTo(ex + side * ew*0.7, eyeY - 1.5*s);
+      ctx.quadraticCurveTo(ex + side * (ew + flick*0.5), eyeY - 2*s, ex + side * (ew + flick*0.3), eyeY - flick - 1*s);
+      ctx.stroke();
     }
     ctx.restore();
   }
