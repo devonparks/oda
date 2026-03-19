@@ -286,7 +286,7 @@ const ODA_PARTS = (() => {
         eyeColor: '#2D1B00',
         eyebrowStyle: 'thick_straight',
         eyebrowColor: '#1c1410',
-        eyelashStyle: 'short',
+        eyelashStyle: 'none',
         eyelashColor: '#1c1410',
         noseStyle: 'wide',
         mouthStyle: 'smile',

@@ -63,6 +63,7 @@ const ODA_FACE = (() => {
   }
 
   function iris(ctx, x, y, r, color, s, offsetX) {
+    // Simple two-tone eye: colored iris + small dark pupil
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.arc(x + (offsetX||0), y, r, 0, Math.PI*2);
@@ -70,12 +71,7 @@ const ODA_FACE = (() => {
     // Pupil
     ctx.fillStyle = '#000000';
     ctx.beginPath();
-    ctx.arc(x + (offsetX||0), y, r*0.3, 0, Math.PI*2);
-    ctx.fill();
-    // Highlight
-    ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.arc(x + (offsetX||0) - 0.8*s, y - 0.8*s, s*0.9, 0, Math.PI*2);
+    ctx.arc(x + (offsetX||0), y, r*0.35, 0, Math.PI*2);
     ctx.fill();
   }
 
@@ -89,14 +85,14 @@ const ODA_FACE = (() => {
     // Base eye dimensions per shape
     let ew, eh, irisR, lidDrop = 0;
     switch (shape) {
-      case 'round':      ew = 5.5*s; eh = 5.5*s; irisR = 2.5*s; break;
-      case 'almond':     ew = 6.5*s; eh = 4*s;   irisR = 2.2*s; break;
-      case 'wide':       ew = 7*s;   eh = 6*s;   irisR = 2.8*s; break;
-      case 'narrow':     ew = 6*s;   eh = 3*s;   irisR = 2*s;   break;
-      case 'upturned':   ew = 6*s;   eh = 4.5*s; irisR = 2.3*s; break;
-      case 'downturned': ew = 6*s;   eh = 4.5*s; irisR = 2.3*s; break;
-      case 'monolid':    ew = 6*s;   eh = 3.5*s; irisR = 2.2*s; break;
-      default:           ew = 5.5*s; eh = 5.5*s; irisR = 2.5*s;
+      case 'round':      ew = 5*s;   eh = 5*s;   irisR = 3.2*s; break;
+      case 'almond':     ew = 6*s;   eh = 3.8*s; irisR = 2.8*s; break;
+      case 'wide':       ew = 6.5*s; eh = 5.5*s; irisR = 3.5*s; break;
+      case 'narrow':     ew = 5.5*s; eh = 2.8*s; irisR = 2.2*s; break;
+      case 'upturned':   ew = 5.5*s; eh = 4*s;   irisR = 3*s;   break;
+      case 'downturned': ew = 5.5*s; eh = 4*s;   irisR = 3*s;   break;
+      case 'monolid':    ew = 5.5*s; eh = 3.2*s; irisR = 2.5*s; break;
+      default:           ew = 5*s;   eh = 5*s;   irisR = 3.2*s;
     }
 
     for (const side of [-1, 1]) {
@@ -257,15 +253,16 @@ const ODA_FACE = (() => {
 
     for (const side of [-1, 1]) {
       const ex = cx + side * eyeSpacing;
-      // Draw a curved lash line along the upper eyelid
+      // Draw a curved lash line along the upper eyelid — above the eye white
+      var lashY = eyeY - eh - 1*s;
       ctx.beginPath();
-      ctx.moveTo(ex - ew*0.8, eyeY - 1*s);
-      ctx.quadraticCurveTo(ex, eyeY - ew*0.6, ex + ew*0.8, eyeY - 1*s);
+      ctx.moveTo(ex - ew*0.9, lashY + 2*s);
+      ctx.quadraticCurveTo(ex, lashY - 1*s, ex + ew*0.9, lashY + 2*s);
       ctx.stroke();
       // Outer corner flick — curls upward and outward
       ctx.beginPath();
-      ctx.moveTo(ex + side * ew*0.7, eyeY - 1.5*s);
-      ctx.quadraticCurveTo(ex + side * (ew + flick*0.5), eyeY - 2*s, ex + side * (ew + flick*0.3), eyeY - flick - 1*s);
+      ctx.moveTo(ex + side * ew*0.8, lashY + 1.5*s);
+      ctx.quadraticCurveTo(ex + side * (ew + flick*0.3), lashY, ex + side * (ew + flick*0.2), lashY - flick);
       ctx.stroke();
     }
     ctx.restore();
