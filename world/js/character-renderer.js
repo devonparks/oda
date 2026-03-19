@@ -46,7 +46,7 @@ const ODA_RENDER = (() => {
     const id = bodyTypeId || '';
 
     if (gender === 'girl') {
-      bh = id.indexOf('tall') >= 0 ? 70 : 62;
+      bh = id.indexOf('tall') >= 0 ? 70 : 64;
       if (id.indexOf('slim') >= 0)       { shoulderW = 34; waistW = 28; hipW = 34; }
       else if (id.indexOf('curvy') >= 0) { shoulderW = 38; waistW = 30; hipW = 42; }
       else if (id.indexOf('tall') >= 0)  { shoulderW = 36; waistW = 30; hipW = 36; }
