@@ -543,4 +543,310 @@ function _auroraWave() {
   setTimeout(function(){ window.odaConfetti(); }, 500);
 }
 
-console.log('[ODA] Core loaded v1.3');
+// ============================================
+// In-Game Shop System (shared across all games)
+// ============================================
+window.odaShop = (function() {
+  var _cache = {}; // { studentId: { coins, inventory, gameCosmetics } }
+  var _studentId = null;
+
+  function _getSid() {
+    if (_studentId) return _studentId;
+    _studentId = localStorage.getItem('studentId') || '';
+    return _studentId;
+  }
+
+  /** Load student shop data from Firestore (coins, inventory, gameCosmetics) */
+  async function loadShopData() {
+    var sid = _getSid();
+    if (!sid || sid.startsWith('anon_')) return { coins: 0, inventory: [], gameCosmetics: {} };
+    if (_cache[sid]) return _cache[sid];
+    try {
+      var fb = await window.getFirebaseDB();
+      var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'students', sid));
+      if (snap.exists()) {
+        var d = snap.data();
+        _cache[sid] = {
+          coins: d.coins || 0,
+          inventory: d.inventory || [],
+          gameCosmetics: d.gameCosmetics || {}
+        };
+      } else {
+        _cache[sid] = { coins: 0, inventory: [], gameCosmetics: {} };
+      }
+    } catch(e) {
+      console.warn('[odaShop] Load failed:', e);
+      _cache[sid] = { coins: 0, inventory: [], gameCosmetics: {} };
+    }
+    return _cache[sid];
+  }
+
+  /** Check if player owns an item */
+  function owns(itemId) {
+    var sid = _getSid();
+    var data = _cache[sid];
+    if (!data) return false;
+    // Check global inventory
+    if (data.inventory && data.inventory.indexOf(itemId) >= 0) return true;
+    // Check all game cosmetics inventories
+    if (data.gameCosmetics) {
+      for (var g in data.gameCosmetics) {
+        var gc = data.gameCosmetics[g];
+        if (gc && gc.owned && gc.owned.indexOf(itemId) >= 0) return true;
+      }
+    }
+    return false;
+  }
+
+  /** Buy an item for a specific game */
+  async function buy(gameId, itemId, cost) {
+    var sid = _getSid();
+    if (!sid || sid.startsWith('anon_')) return false;
+    var data = _cache[sid] || await loadShopData();
+    if (data.coins < cost) return false;
+    try {
+      var fb = await window.getFirebaseDB();
+      var ref = fb.fsMod.doc(fb.db, 'students', sid);
+      // Build the update — add to gameCosmetics.{gameId}.owned array
+      var ownedKey = 'gameCosmetics.' + gameId + '.owned';
+      var update = {};
+      update.coins = fb.fsMod.increment(-cost);
+      update[ownedKey] = fb.fsMod.arrayUnion(itemId);
+      await fb.fsMod.updateDoc(ref, update);
+      // Update local cache
+      data.coins -= cost;
+      if (!data.gameCosmetics[gameId]) data.gameCosmetics[gameId] = { owned: [], equipped: {} };
+      if (data.gameCosmetics[gameId].owned.indexOf(itemId) < 0) {
+        data.gameCosmetics[gameId].owned.push(itemId);
+      }
+      return true;
+    } catch(e) {
+      console.error('[odaShop] Buy failed:', e);
+      return false;
+    }
+  }
+
+  /** Equip an item for a specific game + slot */
+  async function equip(gameId, slot, itemData) {
+    var sid = _getSid();
+    if (!sid || sid.startsWith('anon_')) return false;
+    var data = _cache[sid] || await loadShopData();
+    try {
+      var fb = await window.getFirebaseDB();
+      var ref = fb.fsMod.doc(fb.db, 'students', sid);
+      var equipKey = 'gameCosmetics.' + gameId + '.equipped.' + slot;
+      var update = {};
+      update[equipKey] = itemData;
+      await fb.fsMod.updateDoc(ref, update);
+      // Update local cache
+      if (!data.gameCosmetics[gameId]) data.gameCosmetics[gameId] = { owned: [], equipped: {} };
+      data.gameCosmetics[gameId].equipped[slot] = itemData;
+      return true;
+    } catch(e) {
+      console.error('[odaShop] Equip failed:', e);
+      return false;
+    }
+  }
+
+  /** Get equipped item for a game + slot */
+  function getEquipped(gameId, slot) {
+    var sid = _getSid();
+    var data = _cache[sid];
+    if (!data || !data.gameCosmetics || !data.gameCosmetics[gameId]) return null;
+    return data.gameCosmetics[gameId].equipped ? data.gameCosmetics[gameId].equipped[slot] : null;
+  }
+
+  /** Get all owned items for a game */
+  function getOwned(gameId) {
+    var sid = _getSid();
+    var data = _cache[sid];
+    if (!data || !data.gameCosmetics || !data.gameCosmetics[gameId]) return [];
+    return data.gameCosmetics[gameId].owned || [];
+  }
+
+  /** Get coin balance */
+  function getCoins() {
+    var sid = _getSid();
+    var data = _cache[sid];
+    return data ? data.coins : 0;
+  }
+
+  /** Invalidate cache (call after coin changes from gameplay) */
+  function invalidate() {
+    _cache = {};
+  }
+
+  /**
+   * Render a shop panel into a container element.
+   * @param {string} gameId - unique game identifier (e.g., 'snake', 'checkers')
+   * @param {Array} catalog - array of items: { id, name, icon/emoji, cost, slot, desc?, rarity? }
+   * @param {string} containerId - DOM element ID to render into
+   * @param {object} opts - { onEquip?: function(item), onBuy?: function(item) }
+   */
+  async function renderShopPanel(gameId, catalog, containerId, opts) {
+    opts = opts || {};
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    var data = await loadShopData();
+    var coins = data.coins;
+    var owned = getOwned(gameId);
+    var isTeacher = localStorage.getItem('userRole') === 'teacher' || localStorage.getItem('odaUserRole') === 'teacher';
+
+    var h = '<div class="oda-shop-header">';
+    h += '<h3 class="oda-shop-title">\u{1F6CD}\uFE0F Customize</h3>';
+    h += '<div class="oda-shop-coins">\u{1FA99} ' + (isTeacher ? '\u221E' : coins) + '</div>';
+    h += '</div>';
+
+    // Group by slot
+    var slots = {};
+    catalog.forEach(function(item) {
+      var s = item.slot || 'default';
+      if (!slots[s]) slots[s] = [];
+      slots[s].push(item);
+    });
+
+    for (var slotName in slots) {
+      var items = slots[slotName];
+      h += '<div class="oda-shop-section">';
+      h += '<div class="oda-shop-section-title">' + esc(slotName) + '</div>';
+      h += '<div class="oda-shop-grid">';
+      items.forEach(function(item) {
+        var isOwned = isTeacher || owned.indexOf(item.id) >= 0 || item.cost === 0;
+        var isEquipped = false;
+        var eq = getEquipped(gameId, item.slot || 'default');
+        if (eq && eq.id === item.id) isEquipped = true;
+        var canAfford = isTeacher || coins >= item.cost;
+
+        var cls = 'oda-shop-item';
+        if (isEquipped) cls += ' equipped';
+        else if (isOwned) cls += ' owned';
+        else if (!canAfford) cls += ' locked';
+
+        h += '<button class="' + cls + '" onclick="odaShop._handleClick(\'' + gameId + '\',\'' + esc(item.id) + '\')">';
+        h += '<div class="oda-shop-item-icon">' + (item.emoji || item.icon || '\u2728') + '</div>';
+        h += '<div class="oda-shop-item-name">' + esc(item.name) + '</div>';
+        if (isEquipped) {
+          h += '<div class="oda-shop-item-status equipped">\u2705 Equipped</div>';
+        } else if (isOwned) {
+          h += '<div class="oda-shop-item-status owned">Tap to equip</div>';
+        } else {
+          h += '<div class="oda-shop-item-cost' + (canAfford ? '' : ' cant-afford') + '">\u{1FA99} ' + item.cost + '</div>';
+        }
+        h += '</button>';
+      });
+      h += '</div></div>';
+    }
+
+    container.innerHTML = h;
+
+    // Inject styles if not already present
+    if (!document.getElementById('odaShopStyles')) {
+      var style = document.createElement('style');
+      style.id = 'odaShopStyles';
+      style.textContent = [
+        '.oda-shop-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding:0 4px}',
+        '.oda-shop-title{font-family:Fredoka,sans-serif;font-size:20px;font-weight:700;color:var(--text,#f0f4ff)}',
+        '.oda-shop-coins{background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:6px 14px;font-size:14px;font-weight:700;color:var(--gold,#ffd166);font-family:Fredoka,sans-serif}',
+        '.oda-shop-section{margin-bottom:16px}',
+        '.oda-shop-section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2,#a8b2c8);margin-bottom:8px;padding:0 4px}',
+        '.oda-shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px}',
+        '.oda-shop-item{background:var(--surface,#111827);border:2px solid var(--border,#2a3450);border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .15s;font-family:Outfit,sans-serif}',
+        '.oda-shop-item:hover{border-color:var(--accent,#06d6a0);transform:translateY(-2px)}',
+        '.oda-shop-item:active{transform:scale(.96)}',
+        '.oda-shop-item.equipped{border-color:var(--accent,#06d6a0);background:rgba(6,214,160,.08)}',
+        '.oda-shop-item.locked{opacity:.5;cursor:not-allowed}',
+        '.oda-shop-item-icon{font-size:32px;margin-bottom:4px}',
+        '.oda-shop-item-name{font-size:11px;font-weight:700;color:var(--text,#f0f4ff);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+        '.oda-shop-item-status{font-size:10px;font-weight:700}',
+        '.oda-shop-item-status.equipped{color:var(--accent,#06d6a0)}',
+        '.oda-shop-item-status.owned{color:var(--text2,#a8b2c8)}',
+        '.oda-shop-item-cost{font-size:11px;font-weight:700;color:var(--gold,#ffd166)}',
+        '.oda-shop-item-cost.cant-afford{color:var(--accent3,#ef476f)}',
+        '@media(min-width:768px){.oda-shop-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}}'
+      ].join('\n');
+      document.head.appendChild(style);
+    }
+
+    // Store catalog + opts for click handler
+    if (!window._odaShopCatalogs) window._odaShopCatalogs = {};
+    window._odaShopCatalogs[gameId] = { catalog: catalog, containerId: containerId, opts: opts };
+  }
+
+  /** Internal click handler */
+  async function _handleClick(gameId, itemId) {
+    var info = window._odaShopCatalogs && window._odaShopCatalogs[gameId];
+    if (!info) return;
+    var item = info.catalog.find(function(i) { return i.id === itemId; });
+    if (!item) return;
+
+    var isTeacher = localStorage.getItem('userRole') === 'teacher' || localStorage.getItem('odaUserRole') === 'teacher';
+    var isOwned = isTeacher || owns(itemId) || item.cost === 0;
+    var eq = getEquipped(gameId, item.slot || 'default');
+    var isEquipped = eq && eq.id === item.id;
+
+    if (isEquipped) {
+      // Already equipped — do nothing or unequip
+      if (typeof odaToast === 'function') odaToast('Already equipped!', 'info');
+      return;
+    }
+
+    if (isOwned) {
+      // Equip it
+      var eqData = { id: item.id };
+      // Copy relevant item properties
+      if (item.emoji) eqData.emoji = item.emoji;
+      if (item.value) eqData.value = item.value;
+      if (item.color) eqData.color = item.color;
+      if (item.style) eqData.style = item.style;
+      await equip(gameId, item.slot || 'default', eqData);
+      if (typeof odaToast === 'function') odaToast('Equipped ' + item.name + '!', 'success');
+      if (info.opts.onEquip) info.opts.onEquip(item);
+      // Re-render
+      await renderShopPanel(gameId, info.catalog, info.containerId, info.opts);
+      return;
+    }
+
+    // Not owned — try to buy
+    var data = _cache[_getSid()];
+    if (!isTeacher && data && data.coins < item.cost) {
+      if (typeof odaToast === 'function') odaToast('Need ' + (item.cost - data.coins) + ' more coins!', 'error');
+      return;
+    }
+
+    // Confirm purchase
+    if (!confirm('Buy ' + item.name + ' for ' + item.cost + ' coins?')) return;
+
+    var success = await buy(gameId, item.id, item.cost);
+    if (success) {
+      // Auto-equip
+      var eqData2 = { id: item.id };
+      if (item.emoji) eqData2.emoji = item.emoji;
+      if (item.value) eqData2.value = item.value;
+      if (item.color) eqData2.color = item.color;
+      if (item.style) eqData2.style = item.style;
+      await equip(gameId, item.slot || 'default', eqData2);
+      if (typeof odaToast === 'function') odaToast('Purchased & equipped ' + item.name + '!', 'success');
+      if (typeof odaConfetti === 'function') odaConfetti();
+      if (info.opts.onBuy) info.opts.onBuy(item);
+      // Re-render
+      await renderShopPanel(gameId, info.catalog, info.containerId, info.opts);
+    } else {
+      if (typeof odaToast === 'function') odaToast('Purchase failed. Try again.', 'error');
+    }
+  }
+
+  return {
+    loadShopData: loadShopData,
+    owns: owns,
+    buy: buy,
+    equip: equip,
+    getEquipped: getEquipped,
+    getOwned: getOwned,
+    getCoins: getCoins,
+    invalidate: invalidate,
+    renderShopPanel: renderShopPanel,
+    _handleClick: _handleClick
+  };
+})();
+
+console.log('[ODA] Core loaded v1.4');
