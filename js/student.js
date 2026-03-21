@@ -44,6 +44,7 @@ var GAMES=[
 {id:'uno',emoji:'\u{1F3B4}',title:'Uno',desc:'Match colors and numbers — be first to empty your hand!',file:'arcade/uno/index.html'},
 {id:'lemonade',emoji:'\u{1F34B}',title:'Lemonade Tycoon',desc:'Build a lemonade empire! Learn real business skills.',file:'arcade/lemonade/index.html'},
 {id:'racers',emoji:'\u{1F3CE}\uFE0F',title:'ODA Racers',desc:'Hill climb & drag race! Upgrade your ride!',file:'arcade/racers/index.html'},
+{id:'coinminer',emoji:'\u{1FA99}',title:'Coin Miner',desc:'Tap to mint coins! Buy upgrades, prestige, get rich!',file:'arcade/coinminer/index.html'},
 ];
 
 var WORD_BANKS={

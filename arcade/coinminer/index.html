@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ODA Coin Miner - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none;position:relative;display:flex;flex-direction:column;align-items:center}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+/* Back Button */
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:10px;padding:8px 16px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* Sound toggle */
+.sound-toggle{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:100;color:var(--text2);font-size:18px;transition:all .2s;backdrop-filter:blur(8px)}
+.sound-toggle:hover{border-color:var(--accent);color:var(--text)}
+
+/* Settings toggle */
+.settings-toggle{position:fixed;top:16px;right:64px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:100;color:var(--text2);font-size:18px;transition:all .2s;backdrop-filter:blur(8px)}
+.settings-toggle:hover{border-color:var(--accent);color:var(--text)}
+
+/* Buttons */
+.btn{padding:12px 24px;border:none;border-radius:12px;font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:all .15s;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-gold{background:var(--gold);color:var(--bg)}
+.btn-gold:hover{box-shadow:0 0 24px rgba(255,209,102,.3)}
+.btn-red{background:var(--accent3);color:#fff}
+.btn-red:hover{box-shadow:0 0 24px rgba(239,71,111,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:8px 16px;font-size:13px;border-radius:10px}
+
+/* ======================== */
+/* MAIN LAYOUT              */
+/* ======================== */
+.game-container{width:100%;max-width:600px;padding:16px;padding-top:70px;display:flex;flex-direction:column;align-items:center;animation:fadeUp .35s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* Coin Display Area */
+.coin-display{text-align:center;margin-bottom:12px;width:100%}
+.coin-count{font-family:'Fredoka',sans-serif;font-size:clamp(36px,8vw,52px);font-weight:700;color:var(--gold);line-height:1.1;text-shadow:0 0 20px rgba(255,209,102,.2)}
+.coin-label{font-size:13px;color:var(--text2);font-weight:600;letter-spacing:1px;text-transform:uppercase}
+.cps-display{font-size:15px;color:var(--accent);font-weight:700;margin-top:4px}
+.prestige-info{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;font-size:14px;font-weight:700;color:var(--gold)}
+.oda-coins-info{font-size:12px;color:var(--text2);margin-top:4px}
+
+/* Big Clickable Coin */
+.coin-area{position:relative;width:150px;height:150px;margin:16px auto;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.big-coin{width:150px;height:150px;font-size:100px;line-height:150px;text-align:center;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffe066,#ffb300 50%,#e6a200);box-shadow:0 0 40px rgba(255,209,102,.3),inset 0 -4px 8px rgba(0,0,0,.2);transition:transform .08s ease;animation:coinIdle 3s ease-in-out infinite;display:flex;align-items:center;justify-content:center}
+.big-coin:active{transform:scale(.92)!important}
+@keyframes coinIdle{0%,100%{transform:scale(1) rotate(0deg)}50%{transform:scale(1.03) rotate(2deg)}}
+.big-coin.clicked{animation:none;transform:scale(.88)}
+.big-coin-text{font-size:80px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}
+
+/* Floating text */
+.float-text{position:absolute;font-family:'Fredoka',sans-serif;font-weight:700;font-size:24px;color:var(--gold);pointer-events:none;animation:floatUp .8s ease-out forwards;z-index:50;text-shadow:0 1px 4px rgba(0,0,0,.5)}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-80px) scale(.7)}}
+
+/* Golden Coin Event */
+.golden-coin{position:fixed;width:60px;height:60px;font-size:48px;cursor:pointer;z-index:90;filter:drop-shadow(0 0 16px rgba(255,209,102,.8));animation:goldenFloat 5s linear forwards;pointer-events:auto;-webkit-tap-highlight-color:transparent}
+@keyframes goldenFloat{0%{transform:translateX(0) rotate(0deg)}25%{transform:translateX(30px) rotate(90deg)}50%{transform:translateX(-20px) rotate(180deg)}75%{transform:translateX(10px) rotate(270deg)}100%{transform:translateX(0) rotate(360deg);opacity:0}}
+
+/* Golden boost shimmer */
+.golden-boost-overlay{position:fixed;inset:0;pointer-events:none;z-index:80;background:linear-gradient(135deg,rgba(255,209,102,.05) 0%,transparent 50%,rgba(255,209,102,.08) 100%);animation:goldenShimmer 2s ease-in-out infinite;display:none}
+.golden-boost-overlay.active{display:block}
+@keyframes goldenShimmer{0%,100%{opacity:.5}50%{opacity:1}}
+.boost-badge{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:rgba(255,209,102,.15);border:1px solid var(--gold);border-radius:20px;padding:6px 16px;font-size:13px;font-weight:700;color:var(--gold);z-index:85;display:none;animation:pulse 1s ease-in-out infinite}
+.boost-badge.active{display:block}
+@keyframes pulse{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.05)}}
+
+/* Tab system for upgrades/stats */
+.tab-section{width:100%;margin-top:16px}
+.tab-bar{display:flex;gap:4px;margin-bottom:12px;border-bottom:2px solid var(--border);padding-bottom:0}
+.tab-btn{padding:10px 20px;border:none;background:none;color:var(--text2);font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-btn:hover{color:var(--text)}
+.tab-content{display:none;width:100%}
+.tab-content.active{display:block}
+
+/* Upgrade List */
+.upgrade-list{display:flex;flex-direction:column;gap:8px;width:100%;padding-bottom:100px}
+.upgrade-item{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:14px;transition:all .2s}
+.upgrade-item:hover{border-color:var(--accent);transform:translateY(-1px)}
+.upgrade-icon{font-size:32px;flex-shrink:0;width:44px;text-align:center}
+.upgrade-info{flex:1;min-width:0}
+.upgrade-name{font-weight:700;font-size:14px;margin-bottom:2px}
+.upgrade-detail{font-size:12px;color:var(--text2)}
+.upgrade-flavor{font-size:11px;color:var(--text2);font-style:italic;opacity:.7}
+.upgrade-owned{font-size:12px;color:var(--accent);font-weight:700}
+.buy-btn{padding:8px 16px;border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;white-space:nowrap;min-width:70px;text-align:center}
+.buy-btn.affordable{background:var(--accent);color:var(--bg)}
+.buy-btn.affordable:hover{box-shadow:0 0 16px rgba(6,214,160,.3)}
+.buy-btn.affordable:active{transform:scale(.95)}
+.buy-btn.locked{background:var(--surface);color:var(--text2);border:1px solid var(--border);cursor:not-allowed;opacity:.6}
+
+/* Click upgrades */
+.click-upgrade-item{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:14px;transition:all .2s;margin-bottom:8px}
+.click-upgrade-item.owned{border-color:var(--accent);background:rgba(6,214,160,.05)}
+.click-upgrade-item .cu-icon{font-size:24px;flex-shrink:0;width:36px;text-align:center}
+.click-upgrade-item .cu-info{flex:1}
+.click-upgrade-item .cu-name{font-weight:700;font-size:14px}
+.click-upgrade-item .cu-detail{font-size:12px;color:var(--text2)}
+
+/* Stats panel */
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;width:100%;margin-bottom:16px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.stat-card .stat-val{font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;color:var(--accent)}
+.stat-card .stat-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+/* Achievements */
+.achievements-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;margin-bottom:20px}
+.achievement{width:100%;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:24px;position:relative;transition:all .2s;cursor:default}
+.achievement.locked{opacity:.3;filter:grayscale(1)}
+.achievement.unlocked{border-color:var(--gold);box-shadow:0 0 12px rgba(255,209,102,.15)}
+.achievement .ach-name{font-size:8px;color:var(--text2);text-align:center;line-height:1.1;margin-top:2px;padding:0 2px}
+
+/* Settings overlay */
+.settings-overlay{position:fixed;inset:0;background:rgba(10,14,26,.92);z-index:200;display:none;flex-direction:column;align-items:center;justify-content:flex-start;padding:80px 20px 40px;overflow-y:auto;backdrop-filter:blur(8px)}
+.settings-overlay.active{display:flex}
+.settings-content{max-width:440px;width:100%;display:flex;flex-direction:column;gap:16px;align-items:center}
+.settings-content h2{font-size:28px;margin-bottom:8px}
+.settings-close{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:210;color:var(--text2);font-size:20px;transition:all .2s}
+.settings-close:hover{border-color:var(--accent3);color:var(--accent3)}
+.prestige-btn{width:100%}
+.prestige-info-box{background:var(--surface);border:1px solid var(--gold);border-radius:14px;padding:16px;text-align:center;width:100%}
+.prestige-info-box h3{color:var(--gold);margin-bottom:6px}
+.prestige-info-box p{font-size:13px;color:var(--text2);line-height:1.5}
+
+/* Confirm dialog */
+.confirm-overlay{position:fixed;inset:0;background:rgba(10,14,26,.9);z-index:300;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.confirm-overlay.active{display:flex}
+.confirm-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;max-width:380px;width:90%;text-align:center}
+.confirm-box h3{font-size:20px;margin-bottom:12px}
+.confirm-box p{font-size:14px;color:var(--text2);line-height:1.5;margin-bottom:20px}
+.confirm-box .confirm-btns{display:flex;gap:12px;justify-content:center}
+
+/* Welcome back overlay */
+.welcome-back{position:fixed;inset:0;background:rgba(10,14,26,.92);z-index:250;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.welcome-back.active{display:flex}
+.welcome-box{background:var(--surface);border:1px solid var(--gold);border-radius:20px;padding:32px;max-width:380px;width:90%;text-align:center;animation:fadeUp .5s ease}
+.welcome-box h2{color:var(--gold);font-size:24px;margin-bottom:8px}
+.welcome-box .wb-coins{font-family:'Fredoka',sans-serif;font-size:40px;font-weight:700;color:var(--gold);margin:12px 0}
+.welcome-box p{font-size:14px;color:var(--text2);margin-bottom:16px}
+
+/* Achievement popup */
+.ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
+@keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+.ach-popup .ach-icon{font-size:32px}
+.ach-popup .ach-text{font-weight:700;font-size:14px}
+.ach-popup .ach-desc{font-size:12px;color:var(--text2)}
+
+/* ======================== */
+/* DESKTOP SIZING           */
+/* ======================== */
+@media(min-width:1024px){
+  .game-container{max-width:1100px;flex-direction:column}
+  .coin-area{width:200px;height:200px}
+  .big-coin{width:200px;height:200px;font-size:130px;line-height:200px}
+  .big-coin-text{font-size:110px}
+  .tab-section{max-width:900px}
+  .upgrade-list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .stats-grid{grid-template-columns:repeat(4,1fr)}
+  .achievements-grid{grid-template-columns:repeat(10,1fr)}
+}
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../../student.html" id="backBtn">&#8592; Back</a>
+<div class="sound-toggle" id="soundToggle" title="Toggle sound">&#128266;</div>
+<div class="settings-toggle" id="settingsToggle" title="Settings">&#9881;&#65039;</div>
+
+<!-- Golden boost overlay -->
+<div class="golden-boost-overlay" id="goldenOverlay"></div>
+<div class="boost-badge" id="boostBadge">&#9733; 7x BOOST! &#9733;</div>
+
+<!-- Main Game -->
+<div class="game-container">
+  <!-- Coin Display -->
+  <div class="coin-display">
+    <div class="coin-count" id="coinCount">0</div>
+    <div class="coin-label">coins</div>
+    <div class="cps-display" id="cpsDisplay">0.0 per second</div>
+    <div class="prestige-info" id="prestigeInfo" style="display:none">
+      <span id="starDisplay">&#11088; 0 Stars</span>
+      <span id="multDisplay">(1.0x bonus)</span>
+    </div>
+    <div class="oda-coins-info" id="odaCoinsInfo">ODA Coins Earned: 0</div>
+  </div>
+
+  <!-- Big Coin -->
+  <div class="coin-area" id="coinArea">
+    <div class="big-coin" id="bigCoin">
+      <span class="big-coin-text">&#129689;</span>
+    </div>
+  </div>
+
+  <!-- Tabs: Generators, Click Power, Stats -->
+  <div class="tab-section">
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="generators">&#128200; Generators</button>
+      <button class="tab-btn" data-tab="clickpower">&#128077; Click Power</button>
+      <button class="tab-btn" data-tab="stats">&#128202; Stats</button>
+    </div>
+
+    <!-- Generators Tab -->
+    <div class="tab-content active" id="tab-generators">
+      <div class="upgrade-list" id="upgradeList"></div>
+    </div>
+
+    <!-- Click Power Tab -->
+    <div class="tab-content" id="tab-clickpower">
+      <div id="clickUpgradeList"></div>
+    </div>
+
+    <!-- Stats Tab -->
+    <div class="tab-content" id="tab-stats">
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="stat-val" id="statClicks">0</div><div class="stat-label">Total Clicks</div></div>
+        <div class="stat-card"><div class="stat-val" id="statLifetime">0</div><div class="stat-label">Lifetime Coins</div></div>
+        <div class="stat-card"><div class="stat-val" id="statCPS">0</div><div class="stat-label">Coins/Sec</div></div>
+        <div class="stat-card"><div class="stat-val" id="statStars">0</div><div class="stat-label">Stars</div></div>
+        <div class="stat-card"><div class="stat-val" id="statClickPower">1</div><div class="stat-label">Click Power</div></div>
+        <div class="stat-card"><div class="stat-val" id="statGenerators">0</div><div class="stat-label">Generators</div></div>
+        <div class="stat-card"><div class="stat-val" id="statGolden">0</div><div class="stat-label">Golden Clicks</div></div>
+        <div class="stat-card"><div class="stat-val" id="statODA">0</div><div class="stat-label">ODA Coins</div></div>
+      </div>
+      <h3 style="text-align:center;margin-bottom:12px;font-size:16px">&#127942; Achievements</h3>
+      <div class="achievements-grid" id="achievementsGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Overlay -->
+<div class="settings-overlay" id="settingsOverlay">
+  <div class="settings-close" id="settingsClose">&#10005;</div>
+  <div class="settings-content">
+    <h2>&#9881;&#65039; Settings</h2>
+
+    <div class="prestige-info-box">
+      <h3>&#11088; Prestige System</h3>
+      <p>Reset your progress to earn Stars.<br>Each Star gives a permanent +10% multiplier to ALL production!</p>
+      <p style="margin-top:8px;font-size:15px;font-weight:700;color:var(--gold)" id="prestigePreview">You need more coins to prestige.</p>
+    </div>
+    <button class="btn btn-gold prestige-btn" id="prestigeBtn" style="display:none" onclick="confirmPrestige()">&#11088; Prestige Now</button>
+
+    <button class="btn btn-accent" onclick="manualSave()">&#128190; Save Game</button>
+    <button class="btn btn-red" onclick="confirmReset()">&#128465; Reset All Progress</button>
+    <button class="btn btn-outline btn-small" onclick="closeSettings()">Close</button>
+  </div>
+</div>
+
+<!-- Confirm Overlay -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <h3 id="confirmTitle">Are you sure?</h3>
+    <p id="confirmText">This action cannot be undone.</p>
+    <div class="confirm-btns">
+      <button class="btn btn-red btn-small" id="confirmYes">Yes</button>
+      <button class="btn btn-outline btn-small" onclick="closeConfirm()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Welcome Back Overlay -->
+<div class="welcome-back" id="welcomeBack">
+  <div class="welcome-box">
+    <h2>&#128075; Welcome Back!</h2>
+    <p>While you were away, your generators kept working!</p>
+    <div class="wb-coins" id="wbCoins">+0</div>
+    <p id="wbTime">You were gone for 0 minutes</p>
+    <button class="btn btn-accent" onclick="closeWelcomeBack()">&#128176; Collect!</button>
+  </div>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script>
+// =============================================
+// SESSION
+// =============================================
+var studentId = localStorage.getItem('studentId') || '';
+var studentName = localStorage.getItem('studentName') || '';
+var classCode = localStorage.getItem('classCode') || '';
+var isTeacher = localStorage.getItem('userRole') === 'teacher' || localStorage.getItem('odaUserRole') === 'teacher';
+
+if (isTeacher) {
+  document.getElementById('backBtn').href = '../../teacher.html';
+}
+
+// =============================================
+// AUDIO ENGINE
+// =============================================
+var audioCtx = null;
+var soundOn = true;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function playTone(freq, dur, type, vol, ramp) {
+  if (!soundOn) return;
+  try {
+    var ctx = getAudioCtx();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = type || 'square';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    if (ramp) osc.frequency.linearRampToValueAtTime(ramp, ctx.currentTime + dur);
+    gain.gain.setValueAtTime(vol || 0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + dur);
+  } catch (e) {}
+}
+
+// Sound Effects
+function sfxClick() {
+  playTone(800, 0.08, 'sine', 0.12);
+  setTimeout(function() { playTone(1200, 0.05, 'sine', 0.08); }, 30);
+}
+
+function sfxBuy() {
+  playTone(600, 0.1, 'square', 0.1, 400);
+  setTimeout(function() { playTone(500, 0.08, 'square', 0.08); }, 60);
+}
+
+function sfxGoldenAppear() {
+  if (!soundOn) return;
+  var delays = [0, 60, 120, 180];
+  var freqs = [600, 800, 1000, 1200];
+  delays.forEach(function(d, i) {
+    setTimeout(function() { playTone(freqs[i], 0.12, 'sine', 0.08); }, d);
+  });
+}
+
+function sfxGoldenClick() {
+  if (!soundOn) return;
+  playTone(800, 0.15, 'sine', 0.12);
+  setTimeout(function() { playTone(1000, 0.12, 'sine', 0.1); }, 50);
+  setTimeout(function() { playTone(1200, 0.2, 'sine', 0.1); }, 100);
+  setTimeout(function() { playTone(1600, 0.25, 'sine', 0.08); }, 150);
+}
+
+function sfxAchievement() {
+  if (!soundOn) return;
+  var notes = [523, 659, 784, 1047];
+  notes.forEach(function(f, i) {
+    setTimeout(function() { playTone(f, 0.15, 'sine', 0.1); }, i * 100);
+  });
+}
+
+function sfxPrestige() {
+  if (!soundOn) return;
+  // Whoosh noise
+  try {
+    var ctx = getAudioCtx();
+    var bufSize = ctx.sampleRate * 0.5;
+    var buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    var data = buf.getChannelData(0);
+    for (var i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+    var src = ctx.createBufferSource();
+    src.buffer = buf;
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.08, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    src.connect(g);
+    g.connect(ctx.destination);
+    src.start();
+  } catch (e) {}
+  setTimeout(function() {
+    playTone(1047, 0.3, 'sine', 0.12);
+    setTimeout(function() { playTone(1319, 0.3, 'sine', 0.1); }, 100);
+    setTimeout(function() { playTone(1568, 0.4, 'sine', 0.1); }, 200);
+  }, 300);
+}
+
+// Sound toggle
+document.getElementById('soundToggle').addEventListener('click', function() {
+  soundOn = !soundOn;
+  this.innerHTML = soundOn ? '&#128266;' : '&#128263;';
+});
+
+// Init audio on first interaction
+document.addEventListener('click', function() { getAudioCtx(); }, { once: true });
+document.addEventListener('touchstart', function() { getAudioCtx(); }, { once: true });
+
+// =============================================
+// GAME STATE
+// =============================================
+var coins = 0;
+var lifetimeCoins = 0;
+var totalClicks = 0;
+var goldenClicks = 0;
+var prestigeStars = 0;
+var odaCoinsEarned = 0;
+var unconvertedCoins = 0;
+var lastSaveTime = Date.now();
+var lastFirestoreSave = Date.now();
+
+// Generator definitions
+var generators = [
+  { id: 'piggyBank', name: 'Piggy Bank', icon: '&#128055;', baseCost: 15, baseCPS: 0.1, flavor: 'Shakes out coins while you sleep', owned: 0 },
+  { id: 'lemonadeStand', name: 'Lemonade Stand', icon: '&#127819;', baseCost: 100, baseCPS: 1, flavor: 'Selling lemonade the old fashioned way', owned: 0 },
+  { id: 'homeworkHelper', name: 'Homework Helper', icon: '&#128218;', baseCost: 500, baseCPS: 5, flavor: 'Completing assignments generates coins', owned: 0 },
+  { id: 'arcadeMachine', name: 'Arcade Machine', icon: '&#128377;&#65039;', baseCost: 2000, baseCPS: 20, flavor: 'Students playing games = more coins', owned: 0 },
+  { id: 'coinPrinter', name: 'Coin Printer', icon: '&#128424;&#65039;', baseCost: 10000, baseCPS: 100, flavor: 'BRR goes the money printer', owned: 0 },
+  { id: 'robotTutor', name: 'Robot Tutor', icon: '&#129302;', baseCost: 50000, baseCPS: 500, flavor: "Mr. ODA's cousin runs a coin lab", owned: 0 },
+  { id: 'odaBank', name: 'ODA Bank', icon: '&#127974;', baseCost: 250000, baseCPS: 2500, flavor: 'Interest rates are wild these days', owned: 0 },
+  { id: 'coinSatellite', name: 'Coin Satellite', icon: '&#128752;', baseCost: 1000000, baseCPS: 10000, flavor: 'Mining coins from SPACE', owned: 0 },
+  { id: 'timeMachine', name: 'Time Machine', icon: '&#9200;', baseCost: 10000000, baseCPS: 50000, flavor: 'Stealing coins from the future', owned: 0 },
+  { id: 'multiverse', name: 'ODA Multiverse', icon: '&#127756;', baseCost: 100000000, baseCPS: 250000, flavor: 'Infinite dimensions = infinite coins', owned: 0 }
+];
+
+// Click power upgrades
+var clickUpgrades = [
+  { id: 'copper', name: 'Copper Fingers', icon: '&#129294;', cost: 100, power: 1, owned: false },
+  { id: 'silver', name: 'Silver Touch', icon: '&#129295;', cost: 1000, power: 5, owned: false },
+  { id: 'golden', name: 'Golden Hands', icon: '&#128588;', cost: 10000, power: 25, owned: false },
+  { id: 'diamond', name: 'Diamond Press', icon: '&#128142;', cost: 100000, power: 100, owned: false },
+  { id: 'quantum', name: 'Quantum Tap', icon: '&#9889;', cost: 1000000, power: 500, owned: false }
+];
+
+// Achievements
+var achievements = [
+  { id: 'firstClick', name: 'First Click', icon: '&#127919;', desc: 'Click the coin once', unlocked: false },
+  { id: 'hundredClub', name: 'Hundred Club', icon: '&#128175;', desc: 'Own 100 total generators', unlocked: false },
+  { id: 'coinShower', name: 'Coin Shower', icon: '&#127783;&#65039;', desc: 'Earn 1,000 total coins', unlocked: false },
+  { id: 'gettingRich', name: 'Getting Rich', icon: '&#128176;', desc: 'Earn 100,000 total coins', unlocked: false },
+  { id: 'millionaire', name: 'Millionaire', icon: '&#129297;', desc: 'Earn 1,000,000 total coins', unlocked: false },
+  { id: 'billionaire', name: 'Billionaire', icon: '&#128081;', desc: 'Earn 1,000,000,000 total coins', unlocked: false },
+  { id: 'speedClicker', name: 'Speed Clicker', icon: '&#9889;', desc: 'Click 10 times in 1 second', unlocked: false },
+  { id: 'goldenTouch', name: 'Golden Touch', icon: '&#10024;', desc: 'Click 10 golden coins', unlocked: false },
+  { id: 'fullHouse', name: 'Full House', icon: '&#127968;', desc: 'Own at least 1 of every generator', unlocked: false },
+  { id: 'piggyParadise', name: 'Piggy Paradise', icon: '&#128055;', desc: 'Own 100 Piggy Banks', unlocked: false },
+  { id: 'lemonadeEmpire', name: 'Lemonade Empire', icon: '&#127819;', desc: 'Own 50 Lemonade Stands', unlocked: false },
+  { id: 'robotArmy', name: 'Robot Army', icon: '&#129302;', desc: 'Own 25 Robot Tutors', unlocked: false },
+  { id: 'spaceProgram', name: 'Space Program', icon: '&#128752;', desc: 'Own 10 Coin Satellites', unlocked: false },
+  { id: 'timeLord', name: 'Time Lord', icon: '&#9200;', desc: 'Own 5 Time Machines', unlocked: false },
+  { id: 'multiverseMaster', name: 'Multiverse Master', icon: '&#127756;', desc: 'Own 1 ODA Multiverse', unlocked: false },
+  { id: 'prestige1', name: 'Prestige I', icon: '&#11088;', desc: 'Prestige once', unlocked: false },
+  { id: 'prestige5', name: 'Prestige V', icon: '&#127775;', desc: 'Have 5+ prestige stars', unlocked: false },
+  { id: 'idleMaster', name: 'Idle Master', icon: '&#128564;', desc: 'Earn 10,000 coins from offline', unlocked: false },
+  { id: 'upgradeMaxer', name: 'Upgrade Maxer', icon: '&#128295;', desc: 'Buy all click power upgrades', unlocked: false },
+  { id: 'odaLegend', name: 'ODA Legend', icon: '&#127942;', desc: '1B lifetime + 10 stars', unlocked: false }
+];
+
+// Golden coin state
+var goldenBoostActive = false;
+var goldenBoostEnd = 0;
+var goldenCoinTimer = null;
+var nextGoldenTime = 0;
+var offlineEarned = 0;
+
+// Speed clicker tracking
+var clickTimestamps = [];
+
+// =============================================
+// NUMBER FORMATTING
+// =============================================
+function formatNum(n) {
+  if (n < 0) n = 0;
+  if (n < 1000) return n < 10 ? n.toFixed(1) : Math.floor(n).toString();
+  if (n < 1e6) return (n / 1e3).toFixed(1) + 'K';
+  if (n < 1e9) return (n / 1e6).toFixed(1) + 'M';
+  if (n < 1e12) return (n / 1e9).toFixed(1) + 'B';
+  return (n / 1e12).toFixed(1) + 'T';
+}
+
+function formatTime(seconds) {
+  if (seconds < 60) return Math.floor(seconds) + ' seconds';
+  if (seconds < 3600) return Math.floor(seconds / 60) + ' minutes';
+  return (seconds / 3600).toFixed(1) + ' hours';
+}
+
+// =============================================
+// GAME CALCULATIONS
+// =============================================
+function getPrestigeMultiplier() {
+  return 1 + (prestigeStars * 0.1);
+}
+
+function getBoostMultiplier() {
+  return goldenBoostActive ? 7 : 1;
+}
+
+function getClickPower() {
+  var base = 1;
+  clickUpgrades.forEach(function(u) {
+    if (u.owned) base += u.power;
+  });
+  return base * getPrestigeMultiplier() * getBoostMultiplier();
+}
+
+function getGeneratorCPS(gen) {
+  return gen.baseCPS * gen.owned * getPrestigeMultiplier() * getBoostMultiplier();
+}
+
+function getTotalCPS() {
+  var total = 0;
+  generators.forEach(function(g) {
+    total += getGeneratorCPS(g);
+  });
+  return total;
+}
+
+function getGeneratorCost(gen) {
+  return Math.floor(gen.baseCost * Math.pow(1.15, gen.owned));
+}
+
+function getTotalGenerators() {
+  var total = 0;
+  generators.forEach(function(g) { total += g.owned; });
+  return total;
+}
+
+function getPrestigeStarsForLifetime(lt) {
+  return Math.floor(Math.sqrt(lt / 1000000));
+}
+
+// =============================================
+// UI RENDERING
+// =============================================
+function updateDisplay() {
+  document.getElementById('coinCount').textContent = formatNum(coins);
+  document.getElementById('cpsDisplay').textContent = formatNum(getTotalCPS()) + ' per second';
+
+  if (prestigeStars > 0) {
+    document.getElementById('prestigeInfo').style.display = 'flex';
+    document.getElementById('starDisplay').innerHTML = '&#11088; ' + prestigeStars + ' Star' + (prestigeStars !== 1 ? 's' : '');
+    document.getElementById('multDisplay').textContent = '(' + getPrestigeMultiplier().toFixed(1) + 'x bonus)';
+  }
+
+  document.getElementById('odaCoinsInfo').textContent = 'ODA Coins Earned: ' + odaCoinsEarned;
+}
+
+function renderGenerators() {
+  var html = '';
+  generators.forEach(function(gen, idx) {
+    var cost = getGeneratorCost(gen);
+    var canBuy = coins >= cost;
+    var cps = gen.baseCPS * (gen.owned > 0 ? gen.owned : 1) * getPrestigeMultiplier();
+    html += '<div class="upgrade-item">';
+    html += '<div class="upgrade-icon">' + gen.icon + '</div>';
+    html += '<div class="upgrade-info">';
+    html += '<div class="upgrade-name">' + gen.name + '</div>';
+    html += '<div class="upgrade-detail">';
+    if (gen.owned > 0) {
+      html += '<span class="upgrade-owned">Owned: ' + gen.owned + '</span> &middot; ';
+      html += formatNum(getGeneratorCPS(gen) / getBoostMultiplier()) + '/sec';
+    } else {
+      html += formatNum(gen.baseCPS * getPrestigeMultiplier()) + '/sec each';
+    }
+    html += '</div>';
+    html += '<div class="upgrade-flavor">' + gen.flavor + '</div>';
+    html += '</div>';
+    html += '<button class="buy-btn ' + (canBuy ? 'affordable' : 'locked') + '" onclick="buyGenerator(' + idx + ')">' + formatNum(cost) + '</button>';
+    html += '</div>';
+  });
+  document.getElementById('upgradeList').innerHTML = html;
+}
+
+function renderClickUpgrades() {
+  var html = '';
+  clickUpgrades.forEach(function(u, idx) {
+    var canBuy = !u.owned && coins >= u.cost;
+    html += '<div class="click-upgrade-item' + (u.owned ? ' owned' : '') + '">';
+    html += '<div class="cu-icon">' + u.icon + '</div>';
+    html += '<div class="cu-info">';
+    html += '<div class="cu-name">' + u.name + (u.owned ? ' &#10003;' : '') + '</div>';
+    html += '<div class="cu-detail">+' + u.power + ' per click</div>';
+    html += '</div>';
+    if (!u.owned) {
+      html += '<button class="buy-btn ' + (canBuy ? 'affordable' : 'locked') + '" onclick="buyClickUpgrade(' + idx + ')">' + formatNum(u.cost) + '</button>';
+    }
+    html += '</div>';
+  });
+  html += '<div style="margin-top:16px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;text-align:center">';
+  html += '<div style="font-size:13px;color:var(--text2)">Current Click Power</div>';
+  html += '<div style="font-family:Fredoka,sans-serif;font-size:28px;font-weight:700;color:var(--gold)">' + formatNum(getClickPower() / getBoostMultiplier()) + '</div>';
+  html += '</div>';
+  document.getElementById('clickUpgradeList').innerHTML = html;
+}
+
+function renderAchievements() {
+  var html = '';
+  achievements.forEach(function(a) {
+    html += '<div class="achievement ' + (a.unlocked ? 'unlocked' : 'locked') + '" title="' + a.name + ': ' + a.desc + '">';
+    html += '<span>' + a.icon + '</span>';
+    html += '<div class="ach-name">' + a.name + '</div>';
+    html += '</div>';
+  });
+  document.getElementById('achievementsGrid').innerHTML = html;
+}
+
+function updateStats() {
+  document.getElementById('statClicks').textContent = formatNum(totalClicks);
+  document.getElementById('statLifetime').textContent = formatNum(lifetimeCoins);
+  document.getElementById('statCPS').textContent = formatNum(getTotalCPS());
+  document.getElementById('statStars').textContent = prestigeStars;
+  document.getElementById('statClickPower').textContent = formatNum(getClickPower() / getBoostMultiplier());
+  document.getElementById('statGenerators').textContent = getTotalGenerators();
+  document.getElementById('statGolden').textContent = goldenClicks;
+  document.getElementById('statODA').textContent = odaCoinsEarned;
+}
+
+function updatePrestigeUI() {
+  var potentialStars = getPrestigeStarsForLifetime(lifetimeCoins);
+  var newStars = potentialStars - prestigeStars;
+  var preview = document.getElementById('prestigePreview');
+  var btn = document.getElementById('prestigeBtn');
+
+  if (newStars > 0) {
+    preview.innerHTML = 'You can prestige for <strong>+' + newStars + ' star' + (newStars !== 1 ? 's' : '') + '</strong>! (' + (potentialStars) + ' total)';
+    btn.style.display = 'block';
+    btn.innerHTML = '&#11088; Prestige for +' + newStars + ' Star' + (newStars !== 1 ? 's' : '');
+  } else {
+    var needed = Math.pow(prestigeStars + 1, 2) * 1000000;
+    preview.innerHTML = 'Need ' + formatNum(needed) + ' lifetime coins for next star.<br>Current: ' + formatNum(lifetimeCoins);
+    btn.style.display = 'none';
+  }
+}
+
+function renderAll() {
+  updateDisplay();
+  renderGenerators();
+  renderClickUpgrades();
+  renderAchievements();
+  updateStats();
+  updatePrestigeUI();
+}
+
+// =============================================
+// GAME ACTIONS
+// =============================================
+function doClick(e) {
+  var power = getClickPower();
+  coins += power;
+  lifetimeCoins += power;
+  unconvertedCoins += power;
+  totalClicks++;
+
+  // Visual feedback
+  var coinEl = document.getElementById('bigCoin');
+  coinEl.classList.add('clicked');
+  setTimeout(function() { coinEl.classList.remove('clicked'); }, 80);
+
+  // Float text
+  spawnFloatText('+' + formatNum(power), e);
+
+  // Sound
+  sfxClick();
+
+  // Track speed clicking
+  var now = Date.now();
+  clickTimestamps.push(now);
+  clickTimestamps = clickTimestamps.filter(function(t) { return now - t < 1000; });
+
+  updateDisplay();
+}
+
+function spawnFloatText(text, e) {
+  var area = document.getElementById('coinArea');
+  var rect = area.getBoundingClientRect();
+  var ft = document.createElement('div');
+  ft.className = 'float-text';
+  ft.textContent = text;
+
+  // Position near click or center with random offset
+  var xOff = (Math.random() - 0.5) * 60;
+  var yStart = -10;
+
+  if (e && e.clientX) {
+    var cx = e.clientX - rect.left;
+    ft.style.left = Math.max(0, Math.min(cx + xOff, rect.width - 30)) + 'px';
+  } else {
+    ft.style.left = (rect.width / 2 + xOff - 15) + 'px';
+  }
+  ft.style.top = yStart + 'px';
+
+  area.appendChild(ft);
+  setTimeout(function() { ft.remove(); }, 800);
+}
+
+function buyGenerator(idx) {
+  var gen = generators[idx];
+  var cost = getGeneratorCost(gen);
+  if (coins < cost) return;
+  coins -= cost;
+  gen.owned++;
+  sfxBuy();
+  renderAll();
+}
+
+function buyClickUpgrade(idx) {
+  var u = clickUpgrades[idx];
+  if (u.owned || coins < u.cost) return;
+  coins -= u.cost;
+  u.owned = true;
+  sfxBuy();
+  renderAll();
+}
+
+// =============================================
+// GOLDEN COIN EVENT
+// =============================================
+function scheduleGoldenCoin() {
+  var delay = 60000 + Math.random() * 60000; // 60-120 seconds
+  nextGoldenTime = Date.now() + delay;
+  goldenCoinTimer = setTimeout(spawnGoldenCoin, delay);
+}
+
+function spawnGoldenCoin() {
+  sfxGoldenAppear();
+
+  var gc = document.createElement('div');
+  gc.className = 'golden-coin';
+  gc.textContent = '\uD83E\uDE99'; // coin emoji
+  gc.style.filter = 'drop-shadow(0 0 20px rgba(255,209,102,.9)) brightness(1.5)';
+
+  // Random position
+  var x = 40 + Math.random() * (window.innerWidth - 120);
+  var y = 100 + Math.random() * (window.innerHeight - 200);
+  gc.style.left = x + 'px';
+  gc.style.top = y + 'px';
+
+  gc.addEventListener('click', function(e) {
+    e.stopPropagation();
+    clickGoldenCoin(gc);
+  });
+  gc.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    clickGoldenCoin(gc);
+  }, { passive: false });
+
+  document.body.appendChild(gc);
+
+  // Auto-remove after 5 seconds
+  setTimeout(function() {
+    if (gc.parentNode) gc.remove();
+  }, 5000);
+
+  // Schedule next
+  scheduleGoldenCoin();
+}
+
+function clickGoldenCoin(el) {
+  if (!el.parentNode) return;
+  el.remove();
+  goldenClicks++;
+  sfxGoldenClick();
+
+  // Activate 7x boost for 30 seconds
+  goldenBoostActive = true;
+  goldenBoostEnd = Date.now() + 30000;
+  document.getElementById('goldenOverlay').classList.add('active');
+  document.getElementById('boostBadge').classList.add('active');
+}
+
+function updateGoldenBoost() {
+  if (goldenBoostActive && Date.now() >= goldenBoostEnd) {
+    goldenBoostActive = false;
+    document.getElementById('goldenOverlay').classList.remove('active');
+    document.getElementById('boostBadge').classList.remove('active');
+  }
+}
+
+// =============================================
+// ACHIEVEMENTS
+// =============================================
+function checkAchievements() {
+  var changed = false;
+
+  function unlock(id) {
+    var a = achievements.find(function(x) { return x.id === id; });
+    if (a && !a.unlocked) {
+      a.unlocked = true;
+      changed = true;
+      showAchievementPopup(a);
+    }
+  }
+
+  // Check each
+  if (totalClicks >= 1) unlock('firstClick');
+  if (getTotalGenerators() >= 100) unlock('hundredClub');
+  if (lifetimeCoins >= 1000) unlock('coinShower');
+  if (lifetimeCoins >= 100000) unlock('gettingRich');
+  if (lifetimeCoins >= 1000000) unlock('millionaire');
+  if (lifetimeCoins >= 1000000000) unlock('billionaire');
+  if (clickTimestamps.length >= 10) unlock('speedClicker');
+  if (goldenClicks >= 10) unlock('goldenTouch');
+
+  var allGen = generators.every(function(g) { return g.owned > 0; });
+  if (allGen) unlock('fullHouse');
+
+  if (generators[0].owned >= 100) unlock('piggyParadise');
+  if (generators[1].owned >= 50) unlock('lemonadeEmpire');
+  if (generators[5].owned >= 25) unlock('robotArmy');
+  if (generators[7].owned >= 10) unlock('spaceProgram');
+  if (generators[8].owned >= 5) unlock('timeLord');
+  if (generators[9].owned >= 1) unlock('multiverseMaster');
+
+  if (prestigeStars >= 1) unlock('prestige1');
+  if (prestigeStars >= 5) unlock('prestige5');
+  if (offlineEarned >= 10000) unlock('idleMaster');
+
+  var allClicks = clickUpgrades.every(function(u) { return u.owned; });
+  if (allClicks) unlock('upgradeMaxer');
+
+  if (lifetimeCoins >= 1000000000 && prestigeStars >= 10) unlock('odaLegend');
+
+  if (changed) {
+    renderAchievements();
+  }
+}
+
+var achPopupQueue = [];
+var achPopupShowing = false;
+
+function showAchievementPopup(a) {
+  sfxAchievement();
+  achPopupQueue.push(a);
+  if (!achPopupShowing) processAchPopup();
+}
+
+function processAchPopup() {
+  if (achPopupQueue.length === 0) {
+    achPopupShowing = false;
+    return;
+  }
+  achPopupShowing = true;
+  var a = achPopupQueue.shift();
+  var popup = document.createElement('div');
+  popup.className = 'ach-popup';
+  popup.innerHTML = '<div class="ach-icon">' + a.icon + '</div><div><div class="ach-text">' + a.name + '</div><div class="ach-desc">' + a.desc + '</div></div>';
+  document.body.appendChild(popup);
+  setTimeout(function() {
+    popup.remove();
+    processAchPopup();
+  }, 3500);
+}
+
+// =============================================
+// PRESTIGE
+// =============================================
+function confirmPrestige() {
+  var potentialStars = getPrestigeStarsForLifetime(lifetimeCoins);
+  var newStars = potentialStars - prestigeStars;
+  if (newStars <= 0) return;
+
+  closeSettings();
+
+  document.getElementById('confirmTitle').innerHTML = '&#11088; Prestige?';
+  document.getElementById('confirmText').innerHTML =
+    'Prestige for <strong>+' + newStars + ' star' + (newStars !== 1 ? 's' : '') + '</strong>?<br><br>' +
+    'All coins, generators, and click upgrades will reset.<br>' +
+    'You\'ll earn <strong>' + ((potentialStars) * 10) + '% faster</strong> forever!';
+  document.getElementById('confirmYes').onclick = function() { doPrestige(); closeConfirm(); };
+  document.getElementById('confirmOverlay').classList.add('active');
+}
+
+function doPrestige() {
+  var potentialStars = getPrestigeStarsForLifetime(lifetimeCoins);
+  prestigeStars = potentialStars;
+
+  sfxPrestige();
+
+  // Reset
+  coins = 0;
+  generators.forEach(function(g) { g.owned = 0; });
+  clickUpgrades.forEach(function(u) { u.owned = false; });
+
+  // Keep: lifetimeCoins, totalClicks, goldenClicks, prestigeStars, achievements, odaCoinsEarned
+  renderAll();
+  saveLocal();
+}
+
+function confirmReset() {
+  document.getElementById('confirmTitle').innerHTML = '&#128465; Reset Everything?';
+  document.getElementById('confirmText').innerHTML = 'This will permanently delete ALL your progress, including prestige stars and achievements. Are you sure?';
+  document.getElementById('confirmYes').onclick = function() { doFullReset(); closeConfirm(); closeSettings(); };
+  document.getElementById('confirmOverlay').classList.add('active');
+}
+
+function doFullReset() {
+  coins = 0;
+  lifetimeCoins = 0;
+  totalClicks = 0;
+  goldenClicks = 0;
+  prestigeStars = 0;
+  odaCoinsEarned = 0;
+  unconvertedCoins = 0;
+  offlineEarned = 0;
+  generators.forEach(function(g) { g.owned = 0; });
+  clickUpgrades.forEach(function(u) { u.owned = false; });
+  achievements.forEach(function(a) { a.unlocked = false; });
+  lastSaveTime = Date.now();
+  renderAll();
+  saveLocal();
+}
+
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('active');
+}
+
+// =============================================
+// SETTINGS
+// =============================================
+document.getElementById('settingsToggle').addEventListener('click', function() {
+  updatePrestigeUI();
+  document.getElementById('settingsOverlay').classList.add('active');
+});
+
+document.getElementById('settingsClose').addEventListener('click', closeSettings);
+
+function closeSettings() {
+  document.getElementById('settingsOverlay').classList.remove('active');
+}
+
+// =============================================
+// TABS
+// =============================================
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+
+    // Re-render the active tab
+    if (btn.dataset.tab === 'generators') renderGenerators();
+    if (btn.dataset.tab === 'clickpower') renderClickUpgrades();
+    if (btn.dataset.tab === 'stats') { updateStats(); renderAchievements(); }
+  });
+});
+
+// =============================================
+// ODA COIN CONVERSION
+// =============================================
+function convertCoins() {
+  var newODA = Math.floor(unconvertedCoins / 10000);
+  if (newODA > 0) {
+    odaCoinsEarned += newODA;
+    unconvertedCoins -= newODA * 10000;
+    return newODA;
+  }
+  return 0;
+}
+
+// =============================================
+// SAVE / LOAD
+// =============================================
+function getSaveData() {
+  return {
+    coins: coins,
+    lifetimeCoins: lifetimeCoins,
+    totalClicks: totalClicks,
+    goldenClicks: goldenClicks,
+    prestigeStars: prestigeStars,
+    odaCoinsEarned: odaCoinsEarned,
+    unconvertedCoins: unconvertedCoins,
+    offlineEarned: offlineEarned,
+    generators: generators.map(function(g) { return { id: g.id, owned: g.owned }; }),
+    clickUpgrades: clickUpgrades.map(function(u) { return { id: u.id, owned: u.owned }; }),
+    achievements: achievements.map(function(a) { return { id: a.id, unlocked: a.unlocked }; }),
+    lastSaveTime: Date.now(),
+    version: 1
+  };
+}
+
+function loadSaveData(data) {
+  if (!data) return;
+  coins = data.coins || 0;
+  lifetimeCoins = data.lifetimeCoins || 0;
+  totalClicks = data.totalClicks || 0;
+  goldenClicks = data.goldenClicks || 0;
+  prestigeStars = data.prestigeStars || 0;
+  odaCoinsEarned = data.odaCoinsEarned || 0;
+  unconvertedCoins = data.unconvertedCoins || 0;
+  offlineEarned = data.offlineEarned || 0;
+  lastSaveTime = data.lastSaveTime || Date.now();
+
+  if (data.generators) {
+    data.generators.forEach(function(sg) {
+      var gen = generators.find(function(g) { return g.id === sg.id; });
+      if (gen) gen.owned = sg.owned || 0;
+    });
+  }
+  if (data.clickUpgrades) {
+    data.clickUpgrades.forEach(function(su) {
+      var u = clickUpgrades.find(function(x) { return x.id === su.id; });
+      if (u) u.owned = su.owned || false;
+    });
+  }
+  if (data.achievements) {
+    data.achievements.forEach(function(sa) {
+      var a = achievements.find(function(x) { return x.id === sa.id; });
+      if (a) a.unlocked = sa.unlocked || false;
+    });
+  }
+}
+
+function saveLocal() {
+  try {
+    localStorage.setItem('coinMinerSave', JSON.stringify(getSaveData()));
+  } catch (e) {}
+}
+
+function loadLocal() {
+  try {
+    var raw = localStorage.getItem('coinMinerSave');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return null;
+}
+
+async function saveFirestore() {
+  if (!studentId || studentId.startsWith('anon_')) return;
+  try {
+    var fb = await getFirebaseDB();
+    var saveData = getSaveData();
+    saveData.studentId = studentId;
+    saveData.studentName = studentName;
+    saveData.classCode = classCode;
+
+    var ref = fb.fsMod.doc(fb.db, 'coinMinerSaves', studentId);
+    await fb.fsMod.setDoc(ref, saveData, { merge: true });
+
+    // Award ODA coins
+    var newODA = convertCoins();
+    if (newODA > 0) {
+      var studentRef = fb.fsMod.doc(fb.db, 'students', studentId);
+      await fb.fsMod.updateDoc(studentRef, { coins: fb.fsMod.increment(newODA) });
+    }
+
+    // Save records for leaderboard
+    var recRef = fb.fsMod.doc(fb.db, 'coinMinerRecords', studentId);
+    await fb.fsMod.setDoc(recRef, {
+      studentId: studentId,
+      studentName: studentName,
+      classCode: classCode,
+      lifetimeCoins: lifetimeCoins,
+      prestigeStars: prestigeStars,
+      totalGenerators: getTotalGenerators(),
+      odaCoinsEarned: odaCoinsEarned,
+      lastPlayed: new Date().toISOString()
+    }, { merge: true });
+
+    lastFirestoreSave = Date.now();
+  } catch (e) {
+    console.warn('Firestore save failed:', e);
+  }
+}
+
+async function loadFirestore() {
+  if (!studentId || studentId.startsWith('anon_')) return null;
+  try {
+    var fb = await getFirebaseDB();
+    var ref = fb.fsMod.doc(fb.db, 'coinMinerSaves', studentId);
+    var snap = await fb.fsMod.getDoc(ref);
+    if (snap.exists()) return snap.data();
+  } catch (e) {
+    console.warn('Firestore load failed:', e);
+  }
+  return null;
+}
+
+function manualSave() {
+  saveLocal();
+  saveFirestore();
+  closeSettings();
+  // Brief feedback
+  var badge = document.getElementById('boostBadge');
+  var origText = badge.innerHTML;
+  var wasActive = badge.classList.contains('active');
+  badge.innerHTML = '&#128190; Saved!';
+  badge.classList.add('active');
+  setTimeout(function() {
+    badge.innerHTML = origText;
+    if (!wasActive) badge.classList.remove('active');
+  }, 1500);
+}
+
+// =============================================
+// OFFLINE EARNINGS
+// =============================================
+function calculateOfflineEarnings(saveData) {
+  if (!saveData || !saveData.lastSaveTime) return 0;
+  var elapsed = (Date.now() - saveData.lastSaveTime) / 1000; // seconds
+  if (elapsed < 30) return 0; // Less than 30 seconds, ignore
+
+  // Cap at 8 hours
+  elapsed = Math.min(elapsed, 8 * 3600);
+
+  // Calculate CPS from saved generators
+  var cps = 0;
+  var mult = 1 + ((saveData.prestigeStars || 0) * 0.1);
+  if (saveData.generators) {
+    saveData.generators.forEach(function(sg) {
+      var gen = generators.find(function(g) { return g.id === sg.id; });
+      if (gen) {
+        cps += gen.baseCPS * (sg.owned || 0) * mult;
+      }
+    });
+  }
+
+  return cps * elapsed * 0.5; // 50% efficiency
+}
+
+function showWelcomeBack(earned, elapsed) {
+  if (earned < 1) return;
+  document.getElementById('wbCoins').textContent = '+' + formatNum(earned);
+  document.getElementById('wbTime').textContent = 'You were gone for ' + formatTime(elapsed);
+  document.getElementById('welcomeBack').classList.add('active');
+}
+
+function closeWelcomeBack() {
+  document.getElementById('welcomeBack').classList.remove('active');
+}
+
+// =============================================
+// CLICK HANDLER
+// =============================================
+var coinArea = document.getElementById('coinArea');
+
+coinArea.addEventListener('click', function(e) {
+  doClick(e);
+});
+
+coinArea.addEventListener('touchstart', function(e) {
+  e.preventDefault();
+  // Handle multi-touch
+  for (var i = 0; i < e.touches.length; i++) {
+    doClick({ clientX: e.touches[i].clientX, clientY: e.touches[i].clientY });
+  }
+}, { passive: false });
+
+// =============================================
+// GAME LOOP (10 ticks/sec)
+// =============================================
+var tickCount = 0;
+
+setInterval(function() {
+  var cps = getTotalCPS();
+  var earned = cps / 10;
+  coins += earned;
+  lifetimeCoins += earned;
+  unconvertedCoins += earned;
+
+  // Update golden boost
+  updateGoldenBoost();
+
+  tickCount++;
+
+  // Update display every tick
+  updateDisplay();
+
+  // Check achievements every 10 ticks (1 second)
+  if (tickCount % 10 === 0) {
+    checkAchievements();
+  }
+
+  // Re-render generators every 20 ticks (2 seconds) to update buy buttons
+  if (tickCount % 20 === 0) {
+    renderGenerators();
+    renderClickUpgrades();
+  }
+
+  // Auto-save local every 300 ticks (30 seconds)
+  if (tickCount % 300 === 0) {
+    saveLocal();
+  }
+
+  // Auto-save Firestore every 3000 ticks (5 minutes)
+  if (tickCount % 3000 === 0) {
+    saveFirestore();
+  }
+}, 100);
+
+// =============================================
+// INIT
+// =============================================
+async function init() {
+  // Load local first
+  var localData = loadLocal();
+
+  // Try Firestore
+  var firestoreData = await loadFirestore();
+
+  // Use whichever is newer
+  var useData = null;
+  if (localData && firestoreData) {
+    useData = (firestoreData.lastSaveTime || 0) > (localData.lastSaveTime || 0) ? firestoreData : localData;
+  } else {
+    useData = firestoreData || localData;
+  }
+
+  if (useData) {
+    // Calculate offline earnings before loading
+    var elapsed = useData.lastSaveTime ? (Date.now() - useData.lastSaveTime) / 1000 : 0;
+    var offlineCoins = calculateOfflineEarnings(useData);
+
+    loadSaveData(useData);
+
+    // Add offline earnings
+    if (offlineCoins > 0) {
+      coins += offlineCoins;
+      lifetimeCoins += offlineCoins;
+      unconvertedCoins += offlineCoins;
+      offlineEarned += offlineCoins;
+      showWelcomeBack(offlineCoins, elapsed);
+    }
+  }
+
+  renderAll();
+  scheduleGoldenCoin();
+}
+
+init();
+
+// Save on page unload
+window.addEventListener('beforeunload', function() {
+  saveLocal();
+  // Try a quick Firestore save (navigator.sendBeacon would be better but Firestore doesn't support it easily)
+  saveFirestore();
+});
+
+// Prevent double-tap zoom on mobile
+var lastTap = 0;
+document.addEventListener('touchend', function(e) {
+  var now = Date.now();
+  if (now - lastTap < 300) e.preventDefault();
+  lastTap = now;
+}, { passive: false });
+</script>
+</body>
+</html>
