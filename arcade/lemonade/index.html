@@ -1,0 +1,2489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Lemonade Stand - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden;user-select:none}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:10px;padding:8px 16px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+.screen{display:none;width:100%;min-height:100vh;animation:fadeUp .35s ease}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-gold{background:var(--gold);color:var(--bg)}
+.btn-gold:hover{box-shadow:0 0 24px rgba(255,209,102,.3)}
+.btn-red{background:var(--accent3);color:#fff}
+.btn-red:hover{box-shadow:0 0 24px rgba(239,71,111,.3)}
+.btn-blue{background:var(--accent2);color:#fff}
+.btn-blue:hover{box-shadow:0 0 24px rgba(17,138,178,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+.btn-icon{min-width:auto;padding:10px 14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;transition:all .2s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.badge-accent{background:rgba(6,214,160,.15);color:var(--accent)}
+.badge-gold{background:rgba(255,209,102,.15);color:var(--gold)}
+.badge-red{background:rgba(239,71,111,.15);color:var(--accent3)}
+.badge-blue{background:rgba(17,138,178,.15);color:var(--accent2)}
+
+/* ===== SOUND TOGGLE ===== */
+.sound-btn{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:10px;padding:8px 14px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;backdrop-filter:blur(8px);transition:all .2s}
+.sound-btn:hover{border-color:var(--accent);color:var(--text)}
+
+/* ===== HOME SCREEN ===== */
+#homeScreen{padding-top:60px;padding-bottom:40px}
+.home-header{text-align:center;margin-bottom:32px}
+.home-header h1{font-size:clamp(36px,8vw,52px);font-weight:700;margin-bottom:4px}
+.home-header .lemon-icon{font-size:64px;display:block;margin-bottom:12px;animation:bobble 2s ease-in-out infinite}
+@keyframes bobble{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.home-header p{color:var(--text2);font-size:15px;max-width:400px;margin:0 auto}
+.location-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;max-width:800px;width:90%;margin:0 auto 24px}
+.loc-card{cursor:pointer;text-align:center;padding:28px 20px}
+.loc-card .loc-icon{font-size:40px;margin-bottom:12px;display:block}
+.loc-card h3{font-size:18px;margin-bottom:4px}
+.loc-card p{font-size:13px;color:var(--text2);line-height:1.4}
+.loc-card .loc-traits{display:flex;gap:6px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+.loc-card .loc-traits span{font-size:11px;padding:3px 8px;border-radius:8px;background:rgba(255,255,255,.05);color:var(--text2)}
+.home-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.home-stats{display:flex;gap:12px;justify-content:center;margin-top:24px;flex-wrap:wrap}
+.home-stats .stat-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:8px 16px;font-size:13px;font-weight:600}
+.home-stats .stat-pill .num{color:var(--accent);font-weight:800}
+
+/* ===== HUD ===== */
+.hud{position:fixed;top:0;left:0;right:0;background:rgba(10,14,26,.92);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;justify-content:center;gap:16px;z-index:90;backdrop-filter:blur(12px);flex-wrap:wrap}
+.hud-item{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:700}
+.hud-item .hud-icon{font-size:16px}
+.hud-item .hud-val{color:var(--accent)}
+.hud-money{color:var(--gold)!important;font-size:16px}
+.hud-rep{display:flex;align-items:center;gap:2px}
+.hud-star{color:var(--gold);font-size:14px}
+.hud-season{font-size:11px;padding:2px 8px;border-radius:6px;background:rgba(255,255,255,.08);color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+
+/* ===== PLANNING SCREEN ===== */
+#planScreen{padding-top:64px;padding-bottom:40px}
+.plan-wrap{max-width:520px;width:92%;margin:0 auto}
+.plan-section{margin-bottom:20px}
+.plan-section h3{font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.weather-card{display:flex;align-items:center;gap:16px;padding:16px 20px}
+.weather-icon{font-size:48px}
+.weather-info h4{font-size:18px;margin-bottom:2px}
+.weather-info p{font-size:13px;color:var(--text2)}
+.weather-temp{font-size:28px;font-weight:800;font-family:'Fredoka',sans-serif;margin-left:auto}
+.supply-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.supply-item{padding:14px;text-align:center;border-radius:14px;background:var(--surface);border:1px solid var(--border)}
+.supply-item .s-icon{font-size:24px;display:block;margin-bottom:4px}
+.supply-item .s-name{font-size:12px;color:var(--text2);display:block}
+.supply-item .s-count{font-size:20px;font-weight:800;font-family:'Fredoka',sans-serif;display:block}
+.buy-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.buy-item{padding:12px;border-radius:14px;background:var(--surface);border:1px solid var(--border);text-align:center}
+.buy-item .b-icon{font-size:20px}
+.buy-item .b-name{font-size:12px;color:var(--text2);display:block}
+.buy-item .b-price{font-size:14px;font-weight:700;color:var(--gold);display:block;margin:4px 0}
+.buy-item .b-info{font-size:10px;color:var(--text2);display:block;margin-bottom:6px}
+.buy-row{display:flex;align-items:center;justify-content:center;gap:6px}
+.buy-btn{width:32px;height:32px;border:none;border-radius:8px;background:var(--surface2);color:var(--text);font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.buy-btn:hover{background:var(--accent);color:var(--bg)}
+.buy-btn:active{transform:scale(.9)}
+.buy-qty{font-size:16px;font-weight:800;min-width:20px;text-align:center}
+.cups-possible{text-align:center;padding:12px;border-radius:12px;background:rgba(6,214,160,.1);border:1px solid rgba(6,214,160,.2);font-size:14px;font-weight:600;margin-top:8px}
+.cups-possible span{color:var(--accent);font-size:20px;font-weight:800}
+
+/* ===== RECIPE SCREEN ===== */
+#recipeScreen{padding-top:64px;padding-bottom:40px}
+.recipe-wrap{max-width:480px;width:92%;margin:0 auto}
+.recipe-slider-group{margin-bottom:16px}
+.recipe-slider-group label{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.recipe-slider-group .rs-row{display:flex;align-items:center;gap:10px}
+.recipe-slider-group input[type=range]{flex:1;-webkit-appearance:none;height:8px;border-radius:4px;background:var(--surface2);outline:none}
+.recipe-slider-group input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--accent);cursor:pointer;border:3px solid var(--bg)}
+.recipe-slider-group .rs-val{font-size:20px;font-weight:800;font-family:'Fredoka',sans-serif;min-width:28px;text-align:center}
+.quality-meter{text-align:center;margin:20px 0}
+.quality-stars{font-size:36px;letter-spacing:4px;margin-bottom:4px}
+.quality-label{font-size:14px;color:var(--text2);font-weight:600}
+.recipe-preview{display:flex;justify-content:center;gap:12px;margin:16px 0;flex-wrap:wrap}
+.recipe-preview .rp-item{font-size:12px;color:var(--text2);text-align:center}
+.recipe-preview .rp-item span{display:block;font-size:20px}
+
+/* ===== PRICING SCREEN ===== */
+#priceScreen{padding-top:64px;padding-bottom:40px}
+.price-wrap{max-width:480px;width:92%;margin:0 auto;text-align:center}
+.price-display{font-size:64px;font-weight:900;font-family:'Fredoka',sans-serif;color:var(--gold);margin:20px 0 8px}
+.price-slider{width:100%;-webkit-appearance:none;height:10px;border-radius:5px;background:linear-gradient(90deg,var(--accent),var(--gold),var(--accent3));outline:none;margin:16px 0}
+.price-slider::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#fff;cursor:pointer;border:3px solid var(--gold);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.price-hint{padding:12px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--border);font-size:13px;color:var(--text2);margin:12px 0}
+.price-hint strong{color:var(--gold)}
+
+/* ===== SERVING SCREEN ===== */
+#serveScreen{padding-top:56px;height:100vh;overflow:hidden}
+.serve-hud{position:fixed;top:44px;left:0;right:0;background:rgba(10,14,26,.92);border-bottom:1px solid var(--border);padding:6px 16px;display:flex;align-items:center;justify-content:center;gap:14px;z-index:88;backdrop-filter:blur(8px);flex-wrap:wrap}
+.serve-hud .sh-item{font-size:12px;font-weight:700;display:flex;align-items:center;gap:4px}
+.serve-hud .sh-val{color:var(--accent)}
+.supply-bars{display:flex;gap:8px;flex-wrap:wrap}
+.supply-bar{display:flex;align-items:center;gap:4px;font-size:11px}
+.supply-bar .sb-track{width:50px;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.supply-bar .sb-fill{height:100%;border-radius:3px;transition:width .3s}
+.day-timer{width:120px;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.day-timer .dt-fill{height:100%;background:var(--gold);border-radius:3px;transition:width .1s linear}
+
+.serve-area{position:relative;width:100%;flex:1;overflow:hidden;background:linear-gradient(180deg,transparent 0%,rgba(6,214,160,.02) 100%)}
+
+/* Stand */
+.stand{position:absolute;left:20px;bottom:80px;width:140px;height:180px;display:flex;flex-direction:column;align-items:center}
+.stand-awning{width:160px;height:40px;background:repeating-linear-gradient(90deg,var(--accent3) 0px,var(--accent3) 20px,#fff 20px,#fff 40px);border-radius:12px 12px 0 0;position:relative;z-index:2}
+.stand-body{width:140px;height:100px;background:var(--gold);border-radius:0 0 10px 10px;position:relative;display:flex;align-items:center;justify-content:center;z-index:1}
+.stand-body::before{content:'LEMONADE';position:absolute;top:10px;font-family:'Fredoka',sans-serif;font-size:14px;font-weight:700;color:var(--bg);letter-spacing:1px}
+.stand-legs{display:flex;justify-content:space-between;width:120px}
+.stand-legs div{width:8px;height:50px;background:var(--gold);border-radius:0 0 4px 4px;opacity:.8}
+.stand-pitcher{font-size:40px;margin-top:16px}
+.stand-sign{position:absolute;top:-24px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:2px 10px;font-size:11px;font-weight:700;color:var(--gold);white-space:nowrap;z-index:3}
+.stand-rep{position:absolute;top:-44px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--gold);white-space:nowrap;font-weight:700}
+
+/* Customer lane */
+.customer-lane{position:absolute;bottom:100px;left:180px;right:20px;height:120px}
+.customer{position:absolute;bottom:0;display:flex;flex-direction:column;align-items:center;transition:left .4s ease;cursor:pointer}
+.customer .c-bubble{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px 8px;font-size:11px;margin-bottom:4px;white-space:nowrap;opacity:0;transition:opacity .3s;max-width:120px;text-align:center}
+.customer .c-bubble.show{opacity:1}
+.customer .c-patience{width:40px;height:4px;background:var(--surface2);border-radius:2px;margin-bottom:4px}
+.customer .c-patience .cp-fill{height:100%;border-radius:2px;transition:width .2s linear}
+.customer .c-body{font-size:48px;line-height:1;transition:transform .1s}
+.customer .c-body:active{transform:scale(.9)}
+.customer .c-type{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.customer.leaving{opacity:0;transform:translateX(-40px);transition:all .5s}
+.customer.served .c-body{animation:serveBounce .4s ease}
+@keyframes serveBounce{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+
+/* Serve button */
+.serve-btn-wrap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:80}
+.serve-btn{padding:16px 48px;border:none;border-radius:20px;background:var(--accent);color:var(--bg);font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(6,214,160,.4)}
+.serve-btn:hover{box-shadow:0 4px 30px rgba(6,214,160,.5);transform:scale(1.02)}
+.serve-btn:active{transform:scale(.95)}
+.serve-btn:disabled{background:var(--border);color:var(--text2);cursor:not-allowed;box-shadow:none}
+
+/* Coins */
+.coin-fly{position:fixed;font-size:20px;font-weight:800;color:var(--gold);pointer-events:none;z-index:200;animation:coinUp 1s ease forwards}
+@keyframes coinUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-80px) scale(.5)}}
+
+/* Weather effects */
+.rain-drop{position:fixed;width:2px;background:rgba(17,138,178,.5);border-radius:1px;pointer-events:none;z-index:0;animation:rainFall linear infinite}
+@keyframes rainFall{0%{transform:translateY(-20px)}100%{transform:translateY(100vh)}}
+.sun-ray{position:fixed;top:-20px;width:3px;height:60px;background:rgba(255,209,102,.15);pointer-events:none;z-index:0;transform-origin:top center;animation:sunGlow 3s ease-in-out infinite alternate}
+@keyframes sunGlow{0%{opacity:.3}100%{opacity:.7}}
+
+/* ===== REPORT SCREEN ===== */
+#reportScreen{padding-top:64px;padding-bottom:40px}
+.report-wrap{max-width:480px;width:92%;margin:0 auto;text-align:center}
+.report-day{font-size:14px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px}
+.report-title{font-size:28px;margin-bottom:20px}
+.report-big{font-size:48px;font-weight:900;font-family:'Fredoka',sans-serif;margin-bottom:4px}
+.report-big.profit{color:var(--accent)}
+.report-big.loss{color:var(--accent3)}
+.report-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0}
+.report-stat{padding:14px;border-radius:14px;background:var(--surface);border:1px solid var(--border);text-align:center}
+.report-stat .rs-val{font-size:22px;font-weight:800;font-family:'Fredoka',sans-serif;display:block}
+.report-stat .rs-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.report-rep{display:flex;align-items:center;justify-content:center;gap:8px;margin:16px 0;font-size:16px;font-weight:700}
+.report-rep .rep-arrow{font-size:20px}
+.report-rep .rep-arrow.up{color:var(--accent)}
+.report-rep .rep-arrow.down{color:var(--accent3)}
+
+/* Savings slider */
+.savings-section{margin:20px 0;padding:16px;border-radius:14px;background:var(--surface);border:1px solid var(--border)}
+.savings-section h4{font-size:14px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.savings-slider{width:100%;-webkit-appearance:none;height:8px;border-radius:4px;background:var(--surface2);outline:none;margin:8px 0}
+.savings-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent2);cursor:pointer;border:3px solid var(--bg)}
+.savings-info{display:flex;justify-content:space-between;font-size:12px;color:var(--text2)}
+.piggy-bank{font-size:36px;margin-bottom:8px}
+
+/* ===== SHOP SCREEN ===== */
+#shopScreen{padding-top:64px;padding-bottom:40px}
+.shop-wrap{max-width:560px;width:92%;margin:0 auto}
+.shop-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.shop-item{padding:14px;border-radius:14px;background:var(--surface);border:1px solid var(--border);text-align:center;cursor:pointer;transition:all .2s}
+.shop-item:hover{border-color:var(--accent);transform:translateY(-2px)}
+.shop-item.owned{border-color:var(--accent);opacity:.7;cursor:default}
+.shop-item.owned::after{content:'OWNED';font-size:10px;font-weight:700;color:var(--accent);display:block;margin-top:4px}
+.shop-item.locked{opacity:.4;cursor:not-allowed}
+.shop-item .si-icon{font-size:28px;display:block;margin-bottom:4px}
+.shop-item .si-name{font-size:13px;font-weight:700;display:block}
+.shop-item .si-price{font-size:14px;font-weight:700;color:var(--gold);display:block;margin-top:2px}
+.shop-item .si-desc{font-size:10px;color:var(--text2);display:block;margin-top:2px}
+
+/* ===== EVENT OVERLAY ===== */
+.event-overlay{position:fixed;inset:0;background:rgba(10,14,26,.9);display:flex;align-items:center;justify-content:center;z-index:200;animation:fadeUp .3s ease}
+.event-card{max-width:400px;width:90%;padding:32px;border-radius:24px;background:var(--surface);border:1px solid var(--border);text-align:center}
+.event-card .ev-icon{font-size:64px;display:block;margin-bottom:12px}
+.event-card h3{font-size:22px;margin-bottom:8px}
+.event-card p{font-size:14px;color:var(--text2);margin-bottom:16px;line-height:1.5}
+.event-card .ev-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+/* ===== RECORDS SCREEN ===== */
+#recordsScreen{padding-top:64px;padding-bottom:40px}
+.records-wrap{max-width:520px;width:92%;margin:0 auto}
+.lb-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.lb-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--border)}
+.lb-item .lb-rank{font-size:18px;font-weight:800;font-family:'Fredoka',sans-serif;min-width:28px;text-align:center}
+.lb-item .lb-rank.gold{color:var(--gold)}
+.lb-item .lb-rank.silver{color:var(--text2)}
+.lb-item .lb-rank.bronze{color:#cd7f32}
+.lb-item .lb-name{flex:1;font-weight:600}
+.lb-item .lb-val{font-weight:800;color:var(--accent)}
+.my-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px}
+.my-stat{text-align:center;padding:14px;border-radius:14px;background:var(--surface);border:1px solid var(--border)}
+.my-stat .ms-val{font-size:22px;font-weight:800;font-family:'Fredoka',sans-serif;display:block;color:var(--accent)}
+.my-stat .ms-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+
+/* ===== GAME OVER ===== */
+#gameOverScreen{padding-top:80px}
+.go-wrap{max-width:440px;width:90%;margin:0 auto;text-align:center}
+.go-icon{font-size:72px;display:block;margin-bottom:12px}
+.go-title{font-size:32px;margin-bottom:8px}
+.go-sub{font-size:14px;color:var(--text2);margin-bottom:24px;line-height:1.5}
+.go-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
+
+/* ===== KAREN OVERLAY ===== */
+.karen-overlay{position:fixed;inset:0;background:rgba(10,14,26,.92);display:flex;align-items:center;justify-content:center;z-index:210;animation:fadeUp .3s ease}
+.karen-card{max-width:400px;width:90%;padding:28px;border-radius:24px;background:var(--surface);border:2px solid var(--accent3);text-align:center}
+.karen-card .karen-emoji{font-size:72px;display:block;margin-bottom:8px;animation:karenShake .3s ease infinite}
+@keyframes karenShake{0%,100%{transform:rotate(0)}25%{transform:rotate(-3deg)}75%{transform:rotate(3deg)}}
+.karen-card h3{font-size:20px;margin-bottom:8px;color:var(--accent3)}
+.karen-card p{font-size:14px;color:var(--text2);margin-bottom:16px;line-height:1.5}
+.karen-speech{font-style:italic;color:var(--text);padding:10px;border-radius:10px;background:rgba(239,71,111,.1);border:1px solid rgba(239,71,111,.2);margin-bottom:16px;font-size:13px}
+
+/* ===== THEFT OVERLAY ===== */
+.theft-overlay{position:fixed;inset:0;background:rgba(10,14,26,.92);display:flex;align-items:center;justify-content:center;z-index:210;animation:fadeUp .3s ease}
+.theft-card{max-width:420px;width:90%;padding:28px;border-radius:24px;background:var(--surface);border:2px solid var(--accent3);text-align:center}
+.theft-card .thief-emoji{font-size:72px;display:block;margin-bottom:8px;animation:sneakAnim 1s ease infinite}
+@keyframes sneakAnim{0%,100%{transform:translateX(0)}50%{transform:translateX(10px)}}
+.mr-devon-arrest{font-size:48px;display:block;margin:12px 0;animation:mrDevonIn .6s ease}
+@keyframes mrDevonIn{0%{transform:translateX(-100px) scale(0)}60%{transform:translateX(10px) scale(1.1)}100%{transform:translateX(0) scale(1)}}
+.arrest-msg{font-size:16px;font-weight:700;color:var(--accent);margin:8px 0}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:500px){
+  .supply-grid,.buy-grid,.shop-grid,.report-stats,.go-stats,.my-stats{grid-template-columns:1fr 1fr}
+  .hud{gap:8px;padding:6px 8px}
+  .hud-item{font-size:11px}
+  .stand{left:10px;transform:scale(.8);transform-origin:bottom left}
+  .customer-lane{left:130px}
+  .serve-btn{padding:14px 36px;font-size:18px}
+}
+</style>
+</head>
+<body>
+<a class="back-btn" href="../../student.html" id="backBtn">&larr; Back</a>
+<button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128266;</button>
+
+<!-- ===== HUD ===== -->
+<div class="hud" id="hud" style="display:none">
+  <div class="hud-item"><span class="hud-icon">&#128197;</span> Day <span class="hud-val" id="hudDay">1</span></div>
+  <div class="hud-item"><span class="hud-icon">&#128176;</span> $<span class="hud-val hud-money" id="hudMoney">50.00</span></div>
+  <div class="hud-item hud-rep" id="hudRep">&#11088;&#11088;&#11088;</div>
+  <div class="hud-item"><span class="hud-icon">&#127774;</span> <span class="hud-val" id="hudWeather">Sunny</span></div>
+  <span class="hud-season" id="hudSeason">SUMMER</span>
+</div>
+
+<!-- ===== HOME SCREEN ===== -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <span class="lemon-icon">&#127819;</span>
+    <h1>Lemonade Stand</h1>
+    <p>Build your lemonade empire! Buy supplies, mix the perfect recipe, set your price, and serve customers.</p>
+  </div>
+  <h3 style="margin-bottom:12px;color:var(--text2);font-size:13px;text-transform:uppercase;letter-spacing:2px">Choose Your Location</h3>
+  <div class="location-grid">
+    <div class="card loc-card" onclick="startGame('sunny')">
+      <span class="loc-icon">&#127958;</span>
+      <h3>Sunny Hills</h3>
+      <p>Wealthy neighborhood with premium prices</p>
+      <div class="loc-traits">
+        <span>&#128176; High prices</span>
+        <span>&#128101; Fewer customers</span>
+      </div>
+    </div>
+    <div class="card loc-card" onclick="startGame('main')">
+      <span class="loc-icon">&#127961;</span>
+      <h3>Main Street</h3>
+      <p>Busy downtown with lots of foot traffic</p>
+      <div class="loc-traits">
+        <span>&#128200; High volume</span>
+        <span>&#128181; Price sensitive</span>
+      </div>
+    </div>
+    <div class="card loc-card" onclick="startGame('park')">
+      <span class="loc-icon">&#127795;</span>
+      <h3>Park Avenue</h3>
+      <p>Popular park with the most customers</p>
+      <div class="loc-traits">
+        <span>&#128101; Most traffic</span>
+        <span>&#128374; Theft risk</span>
+      </div>
+    </div>
+  </div>
+  <div class="home-actions">
+    <button class="btn btn-outline btn-small" onclick="showScreen('recordsScreen')">&#127942; Records</button>
+    <button class="btn btn-outline btn-small" onclick="continueGame()">&#128190; Continue</button>
+  </div>
+  <div class="home-stats">
+    <div class="stat-pill"><span class="num" id="homeHighScore">$0</span> Best Net Worth</div>
+    <div class="stat-pill"><span class="num" id="homeTotalServed">0</span> Total Served</div>
+  </div>
+</div>
+
+<!-- ===== PLAN SCREEN ===== -->
+<div class="screen" id="planScreen">
+  <div class="plan-wrap">
+    <div class="plan-section">
+      <h3>&#9728;&#65039; Weather Forecast</h3>
+      <div class="card-static weather-card">
+        <span class="weather-icon" id="weatherIcon">&#9728;&#65039;</span>
+        <div class="weather-info">
+          <h4 id="weatherName">Sunny</h4>
+          <p id="weatherDesc">Perfect lemonade weather!</p>
+        </div>
+        <span class="weather-temp" id="weatherTemp">85&deg;</span>
+      </div>
+    </div>
+    <div class="plan-section">
+      <h3>&#128230; Your Supplies</h3>
+      <div class="supply-grid">
+        <div class="supply-item"><span class="s-icon">&#127819;</span><span class="s-name">Lemons</span><span class="s-count" id="supLemons">0</span></div>
+        <div class="supply-item"><span class="s-icon">&#127854;</span><span class="s-name">Sugar</span><span class="s-count" id="supSugar">0</span></div>
+        <div class="supply-item"><span class="s-icon">&#129371;</span><span class="s-name">Cups</span><span class="s-count" id="supCups">0</span></div>
+        <div class="supply-item"><span class="s-icon">&#129482;</span><span class="s-name">Ice</span><span class="s-count" id="supIce">0</span></div>
+      </div>
+    </div>
+    <div class="plan-section">
+      <h3>&#128722; Buy Supplies</h3>
+      <div class="buy-grid">
+        <div class="buy-item">
+          <span class="b-icon">&#127819;</span><span class="b-name">Lemons</span>
+          <span class="b-price" id="priceLemons">$2.00</span>
+          <span class="b-info">Makes 8 cups</span>
+          <div class="buy-row">
+            <button class="buy-btn" onclick="buySupply('lemons',-1)">-</button>
+            <span class="buy-qty" id="buyLemons">0</span>
+            <button class="buy-btn" onclick="buySupply('lemons',1)">+</button>
+          </div>
+        </div>
+        <div class="buy-item">
+          <span class="b-icon">&#127854;</span><span class="b-name">Sugar</span>
+          <span class="b-price" id="priceSugar">$1.00</span>
+          <span class="b-info">Makes 12 cups</span>
+          <div class="buy-row">
+            <button class="buy-btn" onclick="buySupply('sugar',-1)">-</button>
+            <span class="buy-qty" id="buySugar">0</span>
+            <button class="buy-btn" onclick="buySupply('sugar',1)">+</button>
+          </div>
+        </div>
+        <div class="buy-item">
+          <span class="b-icon">&#129371;</span><span class="b-name">Cups</span>
+          <span class="b-price" id="priceCups">$0.50</span>
+          <span class="b-info">Pack of 10</span>
+          <div class="buy-row">
+            <button class="buy-btn" onclick="buySupply('cups',-1)">-</button>
+            <span class="buy-qty" id="buyCups">0</span>
+            <button class="buy-btn" onclick="buySupply('cups',1)">+</button>
+          </div>
+        </div>
+        <div class="buy-item">
+          <span class="b-icon">&#129482;</span><span class="b-name">Ice</span>
+          <span class="b-price" id="priceIce">$1.00</span>
+          <span class="b-info">For 15 cups</span>
+          <div class="buy-row">
+            <button class="buy-btn" onclick="buySupply('ice',-1)">-</button>
+            <span class="buy-qty" id="buyIce">0</span>
+            <button class="buy-btn" onclick="buySupply('ice',1)">+</button>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:8px;font-size:13px;color:var(--text2)">
+        Cart total: <strong style="color:var(--gold)" id="cartTotal">$0.00</strong>
+      </div>
+    </div>
+    <div class="cups-possible">You can make <span id="cupsPossible">0</span> cups today</div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap">
+      <button class="btn btn-outline btn-small" onclick="showScreen('shopScreen')">&#128722; Shop</button>
+      <button class="btn btn-accent" onclick="goToRecipe()">Mix Recipe &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== RECIPE SCREEN ===== -->
+<div class="screen" id="recipeScreen">
+  <div class="recipe-wrap">
+    <h2 style="text-align:center;margin-bottom:4px">&#127819; Mix Your Recipe</h2>
+    <p style="text-align:center;color:var(--text2);font-size:13px;margin-bottom:20px">Find the perfect balance of flavors!</p>
+    <div class="recipe-slider-group">
+      <label>&#127819; Lemons <span style="color:var(--text2);font-size:11px">(sourness)</span></label>
+      <div class="rs-row">
+        <input type="range" min="1" max="5" value="3" id="sliderLemons" oninput="updateRecipe()">
+        <span class="rs-val" id="valLemons">3</span>
+      </div>
+    </div>
+    <div class="recipe-slider-group">
+      <label>&#127854; Sugar <span style="color:var(--text2);font-size:11px">(sweetness)</span></label>
+      <div class="rs-row">
+        <input type="range" min="1" max="5" value="3" id="sliderSugar" oninput="updateRecipe()">
+        <span class="rs-val" id="valSugar">3</span>
+      </div>
+    </div>
+    <div class="recipe-slider-group">
+      <label>&#129482; Ice <span style="color:var(--text2);font-size:11px">(coldness)</span></label>
+      <div class="rs-row">
+        <input type="range" min="1" max="3" value="2" id="sliderIce" oninput="updateRecipe()">
+        <span class="rs-val" id="valIce">2</span>
+      </div>
+    </div>
+    <div class="quality-meter">
+      <div class="quality-stars" id="qualityStars">&#11088;&#11088;&#11088;&#11088;&#11088;</div>
+      <div class="quality-label" id="qualityLabel">Perfectly balanced!</div>
+    </div>
+    <div class="recipe-preview">
+      <div class="rp-item"><span>&#127819;</span> <span id="rpLemons">3</span> lemons</div>
+      <div class="rp-item"><span>&#128167;</span> auto water</div>
+      <div class="rp-item"><span>&#127854;</span> <span id="rpSugar">3</span> sugar</div>
+      <div class="rp-item"><span>&#129482;</span> <span id="rpIce">2</span> ice</div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('planScreen')">&larr; Back</button>
+      <button class="btn btn-gold" onclick="goToPrice()">Set Price &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PRICE SCREEN ===== -->
+<div class="screen" id="priceScreen">
+  <div class="price-wrap">
+    <h2>&#128176; Set Your Price</h2>
+    <p style="color:var(--text2);font-size:13px;margin-bottom:8px">How much per cup?</p>
+    <div class="price-display" id="priceDisplay">$1.00</div>
+    <input type="range" class="price-slider" min="1" max="20" value="4" id="priceSlider" oninput="updatePrice()">
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)">
+      <span>$0.25</span><span>$5.00</span>
+    </div>
+    <div class="price-hint" id="priceHint">
+      &#128161; <strong>Tip:</strong> On hot days, people pay more for cold lemonade!
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('recipeScreen')">&larr; Recipe</button>
+      <button class="btn btn-accent" onclick="startServing()">Open Stand! &#127819;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SERVE SCREEN ===== -->
+<div class="screen" id="serveScreen">
+  <div class="serve-hud">
+    <div class="sh-item">&#128176; $<span class="sh-val" id="serveMoney">0.00</span></div>
+    <div class="sh-item">&#128101; <span class="sh-val" id="serveServed">0</span></div>
+    <div class="sh-item">&#128148; <span class="sh-val" id="serveLost">0</span></div>
+    <div class="supply-bars">
+      <div class="supply-bar">&#127819;<div class="sb-track"><div class="sb-fill" id="barLemons" style="width:100%;background:var(--gold)"></div></div></div>
+      <div class="supply-bar">&#127854;<div class="sb-track"><div class="sb-fill" id="barSugar" style="width:100%;background:var(--accent)"></div></div></div>
+      <div class="supply-bar">&#129371;<div class="sb-track"><div class="sb-fill" id="barCups" style="width:100%;background:var(--accent2)"></div></div></div>
+      <div class="supply-bar">&#129482;<div class="sb-track"><div class="sb-fill" id="barIce" style="width:100%;background:var(--text2)"></div></div></div>
+    </div>
+    <div class="day-timer"><div class="dt-fill" id="dayTimer" style="width:100%"></div></div>
+  </div>
+  <div class="serve-area" id="serveArea">
+    <div class="stand">
+      <div class="stand-rep" id="standRep">&#11088; 3.0</div>
+      <div class="stand-sign" id="standSign">$1.00</div>
+      <div class="stand-awning"></div>
+      <div class="stand-body">
+        <span class="stand-pitcher">&#127867;</span>
+      </div>
+      <div class="stand-legs"><div></div><div></div></div>
+    </div>
+    <div class="customer-lane" id="customerLane"></div>
+  </div>
+  <div class="serve-btn-wrap">
+    <button class="serve-btn" id="serveBtn" onclick="serveCustomer()">&#127819; SERVE!</button>
+  </div>
+</div>
+
+<!-- ===== REPORT SCREEN ===== -->
+<div class="screen" id="reportScreen">
+  <div class="report-wrap">
+    <div class="report-day" id="reportDay">END OF DAY 1</div>
+    <h2 class="report-title">Daily Report</h2>
+    <div class="report-big" id="reportProfit">+$0.00</div>
+    <p style="color:var(--text2);font-size:13px;margin-bottom:4px" id="reportProfitLabel">Net Profit</p>
+    <div class="report-stats">
+      <div class="report-stat"><span class="rs-val" style="color:var(--accent)" id="reportRevenue">$0.00</span><span class="rs-label">Revenue</span></div>
+      <div class="report-stat"><span class="rs-val" style="color:var(--accent3)" id="reportCosts">$0.00</span><span class="rs-label">Costs</span></div>
+      <div class="report-stat"><span class="rs-val" id="reportServed">0</span><span class="rs-label">Served</span></div>
+      <div class="report-stat"><span class="rs-val" style="color:var(--accent3)" id="reportLost">0</span><span class="rs-label">Lost</span></div>
+    </div>
+    <div class="report-rep" id="reportRep">
+      Reputation: &#11088; 3.0 <span class="rep-arrow up">&#8593;</span>
+    </div>
+    <div class="savings-section">
+      <h4>&#128055; Rainy Day Fund</h4>
+      <div class="piggy-bank">&#128055;</div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:8px">Save some profit for emergencies! Earns 1% interest daily.</p>
+      <input type="range" class="savings-slider" min="0" max="100" value="0" id="savingsSlider" oninput="updateSavingsPreview()">
+      <div class="savings-info">
+        <span>Save: <strong id="savingsAmount">$0.00</strong></span>
+        <span>Current savings: <strong id="currentSavings">$0.00</strong></span>
+      </div>
+    </div>
+    <div id="odaCoinsEarned" style="margin:12px 0;font-size:14px;font-weight:700;color:var(--gold)"></div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap">
+      <button class="btn btn-outline btn-small" onclick="showScreen('shopScreen')">&#128722; Shop</button>
+      <button class="btn btn-accent" onclick="nextDay()">Next Day &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SHOP SCREEN ===== -->
+<div class="screen" id="shopScreen">
+  <div class="shop-wrap">
+    <h2 style="text-align:center;margin-bottom:4px">&#128722; Upgrades Shop</h2>
+    <p style="text-align:center;color:var(--text2);font-size:13px;margin-bottom:16px">Invest in your business!</p>
+    <p style="text-align:center;font-size:14px;margin-bottom:16px">Balance: <strong style="color:var(--gold)" id="shopMoney">$50.00</strong></p>
+    <div class="shop-grid" id="shopGrid"></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="backFromShop()">&larr; Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== RECORDS SCREEN ===== -->
+<div class="screen" id="recordsScreen">
+  <div class="records-wrap">
+    <h2 style="text-align:center;margin-bottom:4px">&#127942; Records</h2>
+    <p style="text-align:center;color:var(--text2);font-size:13px;margin-bottom:16px">Your stats & class leaderboard</p>
+    <h3 style="font-size:14px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px">Your Stats</h3>
+    <div class="my-stats">
+      <div class="my-stat"><span class="ms-val" id="recNetWorth">$0</span><span class="ms-label">Net Worth</span></div>
+      <div class="my-stat"><span class="ms-val" id="recServed">0</span><span class="ms-label">Served</span></div>
+      <div class="my-stat"><span class="ms-val" id="recDays">0</span><span class="ms-label">Days</span></div>
+    </div>
+    <h3 style="font-size:14px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px">Class Leaderboard</h3>
+    <div class="lb-list" id="lbList"><p style="color:var(--text2)">Loading...</p></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&larr; Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== GAME OVER SCREEN ===== -->
+<div class="screen" id="gameOverScreen">
+  <div class="go-wrap">
+    <span class="go-icon">&#128557;</span>
+    <h2 class="go-title">Game Over!</h2>
+    <p class="go-sub" id="goReason">You ran out of money and can't buy any supplies.</p>
+    <div class="go-stats">
+      <div class="report-stat"><span class="rs-val" style="color:var(--gold)" id="goNetWorth">$0</span><span class="rs-label">Final Net Worth</span></div>
+      <div class="report-stat"><span class="rs-val" id="goDays">0</span><span class="rs-label">Days Survived</span></div>
+      <div class="report-stat"><span class="rs-val" id="goServed">0</span><span class="rs-label">Total Served</span></div>
+      <div class="report-stat"><span class="rs-val" id="goRep">0</span><span class="rs-label">Final Rep</span></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-accent" onclick="showScreen('homeScreen')">Play Again</button>
+      <button class="btn btn-outline btn-small" onclick="showScreen('recordsScreen')">&#127942; Records</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EVENT OVERLAY CONTAINER ===== -->
+<div id="eventOverlay" style="display:none"></div>
+
+<script src="../../js/oda-core.js"></script>
+<script type="module">
+// ============================================
+// Firebase Setup
+// ============================================
+import{initializeApp,getApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import{getFirestore,doc,getDoc,setDoc,updateDoc,increment,collection,query,where,orderBy,limit,getDocs}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+import{initializeAppCheck,ReCaptchaV3Provider}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app-check.js";
+const cfg=ODA_CONFIG.firebase;
+let app;try{app=getApp()}catch(e){app=initializeApp(cfg)}
+try{initializeAppCheck(app,{provider:new ReCaptchaV3Provider('6LcZII0sAAAAAEhbfDWiwP4-l9DTJIQOwFa2CzD_'),isTokenAutoRefreshEnabled:true})}catch(e){}
+const db=getFirestore(app);
+
+// Session
+const studentId=localStorage.getItem('studentId')||'anon_'+Math.random().toString(36).slice(2,8);
+const studentName=localStorage.getItem('studentName')||'Player';
+const classCode=localStorage.getItem('classCode')||'';
+
+// Teacher back button
+(function(){const t=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher';if(t)document.getElementById('backBtn').href='../../teacher.html'})();
+
+// ============================================
+// AUDIO ENGINE (Web Audio API)
+// ============================================
+let soundOn = true;
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playTone(freq, dur, type='square', vol=0.12) {
+  if (!soundOn) return;
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.value = vol;
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+
+function sfx(name) {
+  if (!soundOn) return;
+  switch(name) {
+    case 'pour':
+      playTone(600, 0.1, 'sine', 0.08);
+      setTimeout(() => playTone(800, 0.1, 'sine', 0.06), 60);
+      setTimeout(() => playTone(1000, 0.15, 'sine', 0.05), 120);
+      break;
+    case 'coin':
+      playTone(1200, 0.08, 'square', 0.1);
+      setTimeout(() => playTone(1600, 0.12, 'square', 0.08), 80);
+      break;
+    case 'happy':
+      playTone(523, 0.1, 'sine', 0.1);
+      setTimeout(() => playTone(659, 0.1, 'sine', 0.1), 100);
+      setTimeout(() => playTone(784, 0.15, 'sine', 0.1), 200);
+      break;
+    case 'angry':
+      playTone(200, 0.2, 'sawtooth', 0.08);
+      setTimeout(() => playTone(150, 0.3, 'sawtooth', 0.06), 150);
+      break;
+    case 'register':
+      playTone(800, 0.05, 'square', 0.1);
+      setTimeout(() => playTone(1000, 0.05, 'square', 0.1), 60);
+      setTimeout(() => playTone(1200, 0.05, 'square', 0.1), 120);
+      setTimeout(() => playTone(1600, 0.1, 'square', 0.12), 180);
+      break;
+    case 'rain':
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => playTone(200 + Math.random() * 400, 0.15, 'sine', 0.03), i * 60);
+      }
+      break;
+    case 'gameover':
+      playTone(400, 0.2, 'sawtooth', 0.1);
+      setTimeout(() => playTone(300, 0.2, 'sawtooth', 0.1), 200);
+      setTimeout(() => playTone(200, 0.4, 'sawtooth', 0.12), 400);
+      break;
+    case 'upgrade':
+      playTone(523, 0.08, 'square', 0.1);
+      setTimeout(() => playTone(659, 0.08, 'square', 0.1), 80);
+      setTimeout(() => playTone(784, 0.08, 'square', 0.1), 160);
+      setTimeout(() => playTone(1047, 0.15, 'square', 0.12), 240);
+      break;
+    case 'click':
+      playTone(800, 0.05, 'square', 0.06);
+      break;
+    case 'alert':
+      playTone(440, 0.15, 'square', 0.1);
+      setTimeout(() => playTone(440, 0.15, 'square', 0.1), 200);
+      break;
+    case 'whoosh':
+      playTone(300, 0.15, 'sine', 0.06);
+      setTimeout(() => playTone(600, 0.1, 'sine', 0.04), 50);
+      break;
+    case 'sick':
+      playTone(150, 0.3, 'sawtooth', 0.08);
+      setTimeout(() => playTone(120, 0.4, 'sawtooth', 0.06), 200);
+      break;
+  }
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  document.getElementById('soundBtn').innerHTML = soundOn ? '&#128266;' : '&#128263;';
+  if (soundOn) sfx('click');
+}
+
+// ============================================
+// GAME STATE
+// ============================================
+let G = {
+  day: 1,
+  money: 50,
+  savings: 0,
+  reputation: 3.0,
+  location: 'main',
+  totalServed: 0,
+  totalLost: 0,
+  totalRevenue: 0,
+  totalCosts: 0,
+
+  // Supplies
+  lemons: 0,
+  sugar: 0,
+  cups: 0,
+  ice: 0,
+
+  // Max capacity
+  maxLemons: 20,
+  maxSugar: 20,
+  maxCups: 100,
+  maxIce: 20,
+
+  // Recipe
+  recipeLemons: 3,
+  recipeSugar: 3,
+  recipeIce: 2,
+
+  // Price
+  price: 1.00,
+
+  // Season/weather
+  season: 'summer',
+  weather: 'sunny',
+  weatherTemp: 85,
+  forecastAccuracy: 0.7,
+
+  // Day costs
+  dayCosts: 0,
+  dayRevenue: 0,
+  dayServed: 0,
+  dayLost: 0,
+
+  // Upgrades
+  upgrades: {},
+
+  // Flavors unlocked
+  flavors: [],
+  activeFlavor: null,
+
+  // Permit
+  hasPermit: false,
+
+  // Lifetime
+  bestNetWorth: 0,
+
+  // ODA coins pending
+  odaCoinsPending: 0,
+
+  // Shop came from
+  shopFrom: 'planScreen',
+};
+
+// Daily prices (fluctuate)
+let dailyPrices = { lemons: 2.00, sugar: 1.00, cups: 0.50, ice: 1.00 };
+let buyCart = { lemons: 0, sugar: 0, cups: 0, ice: 0 };
+
+// Serving state
+let serving = false;
+let serveTimer = null;
+let dayTimeLeft = 0;
+let dayDuration = 75; // seconds
+let customers = [];
+let customerIdCounter = 0;
+let spawnTimer = null;
+let canServe2 = false;
+let serveCooldown = false;
+
+// Weather effects
+let weatherEffects = [];
+
+// ============================================
+// CONSTANTS
+// ============================================
+const LOCATIONS = {
+  sunny: { name: 'Sunny Hills', baseCustomers: 12, priceMult: 1.4, weatherRisk: 1.3, theftRisk: 0.5 },
+  main:  { name: 'Main Street', baseCustomers: 18, priceMult: 1.0, weatherRisk: 1.0, theftRisk: 0.8 },
+  park:  { name: 'Park Avenue', baseCustomers: 22, priceMult: 0.9, weatherRisk: 0.8, theftRisk: 1.5 }
+};
+
+const SEASONS = ['summer', 'summer', 'fall', 'fall', 'winter', 'winter', 'spring', 'spring'];
+const SEASON_NAMES = { summer: 'SUMMER', fall: 'FALL', winter: 'WINTER', spring: 'SPRING' };
+const SEASON_MULT = { summer: 1.3, fall: 1.0, winter: 0.4, spring: 0.8 };
+const SEASON_COLORS = {
+  summer: 'rgba(255,209,102,.08)',
+  fall: 'rgba(205,127,50,.08)',
+  winter: 'rgba(17,138,178,.08)',
+  spring: 'rgba(6,214,160,.08)'
+};
+
+const WEATHER_TYPES = [
+  { id: 'sunny',  icon: '\u2600\uFE0F', name: 'Sunny',  desc: 'Perfect lemonade weather!', mult: 1.0, tempRange: [78, 95] },
+  { id: 'hot',    icon: '\uD83D\uDD25', name: 'Hot',    desc: 'Scorching! Everyone wants a cold drink!', mult: 1.4, tempRange: [90, 105] },
+  { id: 'cloudy', icon: '\u2601\uFE0F', name: 'Cloudy', desc: 'Overcast but mild. Decent traffic.', mult: 0.8, tempRange: [65, 80] },
+  { id: 'rainy',  icon: '\uD83C\uDF27\uFE0F', name: 'Rainy', desc: 'Rain is keeping people inside.', mult: 0.4, tempRange: [55, 72] },
+  { id: 'storm',  icon: '\u26C8\uFE0F', name: 'Storm', desc: 'Terrible weather. Almost no one is out.', mult: 0.15, tempRange: [50, 65] }
+];
+
+const CUSTOMER_TYPES = [
+  { id: 'kid',      emoji: '\uD83E\uDDD2', label: 'Kid',      minPrice: 0.25, maxPrice: 1.25, patience: 8,  sweetPref: 1.3, qualityMin: 1, repMult: 2.0, groupChance: 0.4 },
+  { id: 'adult',    emoji: '\uD83E\uDDD1', label: 'Adult',    minPrice: 0.75, maxPrice: 3.00, patience: 10, sweetPref: 1.0, qualityMin: 3, repMult: 1.0, groupChance: 0.1 },
+  { id: 'business', emoji: '\uD83D\uDC68\u200D\uD83D\uDCBC', label: 'Business', minPrice: 1.50, maxPrice: 4.00, patience: 5,  sweetPref: 0.8, qualityMin: 3, repMult: 1.0, groupChance: 0 },
+  { id: 'karen',    emoji: '\uD83D\uDE24', label: 'Karen',    minPrice: 0.50, maxPrice: 2.00, patience: 12, sweetPref: 1.0, qualityMin: 1, repMult: 1.5, groupChance: 0 }
+];
+
+const UPGRADES = [
+  { id: 'betterLemons',   icon: '\uD83C\uDF4B', name: 'Better Lemons',   price: 50,  desc: '+1 quality star',        category: 'quality' },
+  { id: 'premiumSugar',   icon: '\u2728',       name: 'Premium Sugar',   price: 75,  desc: '+1 quality star',        category: 'quality' },
+  { id: 'biggerStand',    icon: '\uD83C\uDFEA', name: 'Bigger Stand',    price: 150, desc: 'Serve 2 at once',        category: 'speed' },
+  { id: 'signage',        icon: '\uD83E\uDEA7', name: 'Signage',         price: 100, desc: '+20% customer traffic',  category: 'traffic' },
+  { id: 'umbrella',       icon: '\u2602\uFE0F', name: 'Umbrella/Tent',   price: 200, desc: '-50% weather impact',    category: 'weather' },
+  { id: 'securityCam',    icon: '\uD83D\uDCF7', name: 'Security Camera', price: 250, desc: '+5s theft reaction',     category: 'safety' },
+  { id: 'iceMachine',     icon: '\u2744\uFE0F', name: 'Ice Machine',     price: 300, desc: 'Never run out of ice',   category: 'supply' },
+  { id: 'storageUnit',    icon: '\uD83D\uDCE6', name: 'Storage Unit',    price: 175, desc: 'Hold more supplies',     category: 'supply' },
+  { id: 'recipeBook',     icon: '\uD83D\uDCD6', name: 'Recipe Book',     price: 125, desc: 'Unlock flavor add-ons',  category: 'quality' },
+  { id: 'speakers',       icon: '\uD83D\uDD0A', name: 'Speaker System',  price: 100, desc: '+15% kid customers',     category: 'traffic' },
+  { id: 'tipJar',         icon: '\uD83C\uDFB0', name: 'Tip Jar',         price: 25,  desc: 'Random tips from happy customers', category: 'income' },
+  { id: 'loyaltyCards',   icon: '\uD83C\uDFAB', name: 'Loyalty Cards',   price: 200, desc: '+25% repeat customers',  category: 'traffic' }
+];
+
+const FLAVORS = [
+  { id: 'strawberry',  icon: '\uD83C\uDF53', name: 'Strawberry',  price: 50,  qualityBonus: 0.3 },
+  { id: 'mint',        icon: '\uD83C\uDF3F', name: 'Mint',        price: 75,  qualityBonus: 0.4 },
+  { id: 'watermelon',  icon: '\uD83C\uDF49', name: 'Watermelon',  price: 100, qualityBonus: 0.5 },
+  { id: 'lavender',    icon: '\uD83D\uDC9C', name: 'Lavender',    price: 150, qualityBonus: 0.6 }
+];
+
+const KAREN_COMPLAINTS = [
+  "This lemonade is CLEARLY not organic! I want to speak to the manager!",
+  "Excuse me, this cup is 0.2 ounces short. I measured it with my portable scale!",
+  "I ordered my lemonade at EXACTLY room temperature! This is 2 degrees off!",
+  "There are SEEDS in this lemon! I could have choked!",
+  "Your stand is blocking my feng shui energy path!",
+  "I've been coming here for 30 SECONDS and I'm your most loyal customer!",
+  "My psychic told me this lemonade has bad vibes!",
+  "This ice cube is not a perfect cube. I demand cube-shaped cubes!",
+  "I specifically asked for lemonade squeezed by left-handed lemons!",
+  "The sun is in my eyes. Fix the sun!"
+];
+
+// ============================================
+// SCREEN MANAGEMENT
+// ============================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const screen = document.getElementById(id);
+  if (screen) screen.classList.add('active');
+
+  const hud = document.getElementById('hud');
+  const gameScreens = ['planScreen', 'recipeScreen', 'priceScreen', 'serveScreen', 'reportScreen', 'shopScreen'];
+  hud.style.display = gameScreens.includes(id) ? 'flex' : 'none';
+
+  if (id === 'homeScreen') updateHomeStats();
+  if (id === 'shopScreen') renderShop();
+  if (id === 'recordsScreen') loadRecords();
+  sfx('whoosh');
+}
+
+// ============================================
+// HOME & CONTINUE
+// ============================================
+function updateHomeStats() {
+  document.getElementById('homeHighScore').textContent = '$' + G.bestNetWorth.toFixed(0);
+  document.getElementById('homeTotalServed').textContent = G.totalServed;
+}
+
+async function continueGame() {
+  try {
+    const snap = await getDoc(doc(db, 'lemonadeGame', studentId));
+    if (snap.exists()) {
+      const d = snap.data();
+      Object.assign(G, d);
+      if (typeof G.upgrades === 'string') G.upgrades = JSON.parse(G.upgrades);
+      if (typeof G.flavors === 'string') G.flavors = JSON.parse(G.flavors);
+      applyUpgradeEffects();
+      startNewDay();
+    } else {
+      alert('No saved game found! Start a new game.');
+    }
+  } catch(e) {
+    alert('Could not load save. Start a new game!');
+  }
+}
+
+function startGame(location) {
+  G = {
+    day: 1, money: 50, savings: 0, reputation: 3.0, location: location,
+    totalServed: 0, totalLost: 0, totalRevenue: 0, totalCosts: 0,
+    lemons: 0, sugar: 0, cups: 0, ice: 0,
+    maxLemons: 20, maxSugar: 20, maxCups: 100, maxIce: 20,
+    recipeLemons: 3, recipeSugar: 3, recipeIce: 2,
+    price: 1.00, season: 'summer', weather: 'sunny', weatherTemp: 85,
+    forecastAccuracy: 0.7,
+    dayCosts: 0, dayRevenue: 0, dayServed: 0, dayLost: 0,
+    upgrades: {}, flavors: [], activeFlavor: null,
+    hasPermit: false, bestNetWorth: 0, odaCoinsPending: 0,
+    shopFrom: 'planScreen'
+  };
+  sfx('happy');
+  startNewDay();
+}
+
+// ============================================
+// DAY FLOW
+// ============================================
+function startNewDay() {
+  // Reset daily counters
+  G.dayCosts = 0;
+  G.dayRevenue = 0;
+  G.dayServed = 0;
+  G.dayLost = 0;
+  buyCart = { lemons: 0, sugar: 0, cups: 0, ice: 0 };
+
+  // Season: changes every 7 days
+  const seasonIndex = Math.floor((G.day - 1) / 7) % 4;
+  G.season = ['summer', 'fall', 'winter', 'spring'][seasonIndex];
+
+  // Generate weather
+  generateWeather();
+
+  // Apply savings interest
+  if (G.savings > 0) {
+    const interest = G.savings * 0.01;
+    G.savings += interest;
+  }
+
+  // Fluctuate prices
+  dailyPrices = {
+    lemons: +(2.00 * (0.85 + Math.random() * 0.30)).toFixed(2),
+    sugar:  +(1.00 * (0.85 + Math.random() * 0.30)).toFixed(2),
+    cups:   +(0.50 * (0.85 + Math.random() * 0.30)).toFixed(2),
+    ice:    +(1.00 * (0.85 + Math.random() * 0.30)).toFixed(2)
+  };
+
+  // Check game over
+  const cheapest = Math.min(dailyPrices.lemons, dailyPrices.sugar, dailyPrices.cups, dailyPrices.ice);
+  if (G.money < cheapest && G.lemons === 0 && G.sugar === 0 && G.cups === 0) {
+    if (G.savings > 0) {
+      // Emergency: withdraw savings
+      const withdraw = G.savings;
+      G.money += withdraw;
+      G.savings = 0;
+      setTimeout(() => {
+        const overlay = document.getElementById('eventOverlay');
+        overlay.style.display = 'flex';
+        overlay.innerHTML = `
+          <div class="event-card">
+            <span class="ev-icon">\uD83D\uDCB0</span>
+            <h3>Emergency Withdrawal!</h3>
+            <p>You ran out of money! Your Rainy Day Fund of $${withdraw.toFixed(2)} saved the day! That's why we save!</p>
+            <div class="ev-actions">
+              <button class="btn btn-accent btn-small" onclick="closeEvent()">Phew!</button>
+            </div>
+          </div>`;
+        sfx('alert');
+      }, 500);
+    } else {
+      gameOver('You ran out of money and supplies! No lemonade can be made.');
+      return;
+    }
+  }
+
+  updateHUD();
+  setupPlanScreen();
+  showScreen('planScreen');
+
+  // Random between-day event
+  checkBetweenDayEvent();
+}
+
+function generateWeather() {
+  const seasonWeights = {
+    summer: [0.3, 0.35, 0.2, 0.1, 0.05],
+    fall:   [0.2, 0.1, 0.35, 0.25, 0.1],
+    winter: [0.1, 0.0, 0.3, 0.35, 0.25],
+    spring: [0.25, 0.15, 0.3, 0.2, 0.1]
+  };
+  const weights = seasonWeights[G.season];
+  let roll = Math.random();
+  let cumulative = 0;
+  let weatherIdx = 0;
+  for (let i = 0; i < weights.length; i++) {
+    cumulative += weights[i];
+    if (roll <= cumulative) { weatherIdx = i; break; }
+  }
+  const w = WEATHER_TYPES[weatherIdx];
+  G.weather = w.id;
+  G.weatherTemp = w.tempRange[0] + Math.floor(Math.random() * (w.tempRange[1] - w.tempRange[0]));
+
+  // Forecast might be wrong (30% chance)
+  if (Math.random() > G.forecastAccuracy) {
+    // Show a different weather in forecast
+    const fakeIdx = (weatherIdx + (Math.random() < 0.5 ? 1 : -1) + WEATHER_TYPES.length) % WEATHER_TYPES.length;
+    G._forecastWeather = WEATHER_TYPES[fakeIdx];
+  } else {
+    G._forecastWeather = w;
+  }
+}
+
+function getActualWeather() {
+  return WEATHER_TYPES.find(w => w.id === G.weather);
+}
+
+// ============================================
+// HUD
+// ============================================
+function updateHUD() {
+  document.getElementById('hudDay').textContent = G.day;
+  document.getElementById('hudMoney').textContent = G.money.toFixed(2);
+  const repStars = Math.round(G.reputation);
+  document.getElementById('hudRep').innerHTML = '\u2B50'.repeat(Math.max(1, Math.min(5, repStars)));
+  document.getElementById('hudWeather').textContent = getActualWeather()?.name || 'Unknown';
+  document.getElementById('hudSeason').textContent = SEASON_NAMES[G.season];
+  document.getElementById('hudSeason').style.background = SEASON_COLORS[G.season];
+}
+
+// ============================================
+// PLAN SCREEN
+// ============================================
+function setupPlanScreen() {
+  const fw = G._forecastWeather;
+  document.getElementById('weatherIcon').textContent = fw.icon;
+  document.getElementById('weatherName').textContent = fw.name;
+  document.getElementById('weatherDesc').textContent = fw.desc;
+  document.getElementById('weatherTemp').innerHTML = G.weatherTemp + '&deg;';
+
+  document.getElementById('supLemons').textContent = G.lemons;
+  document.getElementById('supSugar').textContent = G.sugar;
+  document.getElementById('supCups').textContent = G.cups;
+  document.getElementById('supIce').textContent = G.ice;
+
+  document.getElementById('priceLemons').textContent = '$' + dailyPrices.lemons.toFixed(2);
+  document.getElementById('priceSugar').textContent = '$' + dailyPrices.sugar.toFixed(2);
+  document.getElementById('priceCups').textContent = '$' + dailyPrices.cups.toFixed(2);
+  document.getElementById('priceIce').textContent = '$' + dailyPrices.ice.toFixed(2);
+
+  document.getElementById('buyLemons').textContent = '0';
+  document.getElementById('buySugar').textContent = '0';
+  document.getElementById('buyCups').textContent = '0';
+  document.getElementById('buyIce').textContent = '0';
+  buyCart = { lemons: 0, sugar: 0, cups: 0, ice: 0 };
+
+  updateCartTotal();
+  updateCupsPossible();
+}
+
+function buySupply(type, delta) {
+  sfx('click');
+  const newQty = buyCart[type] + delta;
+  if (newQty < 0) return;
+
+  // Check max capacity
+  const current = G[type];
+  let max = G['max' + type.charAt(0).toUpperCase() + type.slice(1)] || 999;
+  if (type === 'cups') max = G.maxCups;
+  const packSize = type === 'cups' ? 10 : 1;
+  if (current + newQty * packSize > max && delta > 0) return;
+
+  // Check money
+  const totalCost = getCartTotal({ ...buyCart, [type]: newQty });
+  if (totalCost > G.money && delta > 0) return;
+
+  buyCart[type] = newQty;
+  document.getElementById('buy' + type.charAt(0).toUpperCase() + type.slice(1)).textContent = newQty;
+  updateCartTotal();
+  updateCupsPossible();
+}
+
+function getCartTotal(cart) {
+  return +(cart.lemons * dailyPrices.lemons +
+           cart.sugar * dailyPrices.sugar +
+           cart.cups * dailyPrices.cups +
+           cart.ice * dailyPrices.ice).toFixed(2);
+}
+
+function updateCartTotal() {
+  const total = getCartTotal(buyCart);
+  document.getElementById('cartTotal').textContent = '$' + total.toFixed(2);
+}
+
+function updateCupsPossible() {
+  const lemons = G.lemons + buyCart.lemons;
+  const sugar = G.sugar + buyCart.sugar;
+  const cups = G.cups + buyCart.cups * 10;
+  const ice = G.ice + buyCart.ice;
+  const hasIceMachine = G.upgrades.iceMachine;
+
+  const fromLemons = lemons * 8;
+  const fromSugar = sugar * 12;
+  const fromIce = hasIceMachine ? 9999 : ice * 15;
+  const fromCups = cups;
+
+  const possible = Math.min(fromLemons, fromSugar, fromIce, fromCups);
+  document.getElementById('cupsPossible').textContent = possible;
+}
+
+function goToRecipe() {
+  // Process purchases
+  const cost = getCartTotal(buyCart);
+  if (cost > G.money) {
+    alert("You can't afford that! Remove some items.");
+    return;
+  }
+  G.money -= cost;
+  G.dayCosts += cost;
+  G.lemons += buyCart.lemons;
+  G.sugar += buyCart.sugar;
+  G.cups += buyCart.cups * 10;
+  G.ice += buyCart.ice;
+
+  if (cost > 0) sfx('register');
+  updateHUD();
+
+  // Setup recipe screen with current values
+  document.getElementById('sliderLemons').value = G.recipeLemons;
+  document.getElementById('sliderSugar').value = G.recipeSugar;
+  document.getElementById('sliderIce').value = G.recipeIce;
+  updateRecipe();
+  showScreen('recipeScreen');
+}
+
+// ============================================
+// RECIPE & QUALITY
+// ============================================
+function updateRecipe() {
+  G.recipeLemons = parseInt(document.getElementById('sliderLemons').value);
+  G.recipeSugar = parseInt(document.getElementById('sliderSugar').value);
+  G.recipeIce = parseInt(document.getElementById('sliderIce').value);
+
+  document.getElementById('valLemons').textContent = G.recipeLemons;
+  document.getElementById('valSugar').textContent = G.recipeSugar;
+  document.getElementById('valIce').textContent = G.recipeIce;
+  document.getElementById('rpLemons').textContent = G.recipeLemons;
+  document.getElementById('rpSugar').textContent = G.recipeSugar;
+  document.getElementById('rpIce').textContent = G.recipeIce;
+
+  const q = calcQuality();
+  renderQuality(q);
+}
+
+function calcQuality() {
+  const L = G.recipeLemons;
+  const S = G.recipeSugar;
+  const I = G.recipeIce;
+
+  // Perfect: 3L, 3S, 2I = 5 stars
+  // Difference from perfect lowers quality
+  const lDiff = Math.abs(L - 3);
+  const sDiff = Math.abs(S - 3);
+  const iDiff = Math.abs(I - 2);
+  let score = 5 - (lDiff * 0.6 + sDiff * 0.6 + iDiff * 0.4);
+
+  // Upgrade bonuses
+  if (G.upgrades.betterLemons) score += 0.5;
+  if (G.upgrades.premiumSugar) score += 0.5;
+
+  // Flavor bonus
+  if (G.activeFlavor) {
+    const flav = FLAVORS.find(f => f.id === G.activeFlavor);
+    if (flav) score += flav.qualityBonus;
+  }
+
+  return Math.max(1, Math.min(5, Math.round(score * 10) / 10));
+}
+
+function renderQuality(q) {
+  const full = Math.floor(q);
+  const half = q - full >= 0.5;
+  let stars = '\u2B50'.repeat(full);
+  if (half) stars += '\u2B50'; // half star shown as full for simplicity
+  const empty = 5 - full - (half ? 1 : 0);
+  stars += '\u2606'.repeat(empty);
+  document.getElementById('qualityStars').textContent = stars;
+
+  let label = '';
+  if (q >= 4.5) label = 'Absolutely perfect! Customers will love it!';
+  else if (q >= 4.0) label = 'Great recipe! Very tasty!';
+  else if (q >= 3.0) label = 'Good lemonade. Solid choice.';
+  else if (q >= 2.0) {
+    if (G.recipeSugar > G.recipeLemons + 1) label = 'Too sweet! Needs more lemons.';
+    else if (G.recipeLemons > G.recipeSugar + 1) label = 'Too sour! Add more sugar.';
+    else label = 'Needs work. Adjust the recipe.';
+  } else {
+    label = 'Yuck! This needs a lot of improvement!';
+  }
+  document.getElementById('qualityLabel').textContent = label;
+}
+
+function goToPrice() {
+  // Check if we can make any cups
+  const possible = calcMaxCups();
+  if (possible <= 0) {
+    alert('You need supplies to make lemonade! Go back and buy some.');
+    return;
+  }
+  document.getElementById('priceSlider').value = Math.round(G.price / 0.25);
+  updatePrice();
+  showScreen('priceScreen');
+}
+
+// ============================================
+// PRICING
+// ============================================
+function updatePrice() {
+  const val = parseInt(document.getElementById('priceSlider').value);
+  G.price = +(val * 0.25).toFixed(2);
+  document.getElementById('priceDisplay').textContent = '$' + G.price.toFixed(2);
+
+  // Generate hint
+  const loc = LOCATIONS[G.location];
+  const weather = getActualWeather();
+  let ideal = 1.00 * loc.priceMult;
+  if (weather.id === 'hot') ideal *= 1.5;
+  if (weather.id === 'rainy' || weather.id === 'storm') ideal *= 0.6;
+  if (G.season === 'summer') ideal *= 1.2;
+  if (G.season === 'winter') ideal *= 0.7;
+
+  let hint = '';
+  if (G.price < ideal * 0.6) hint = '&#128161; <strong>Very cheap!</strong> You\'ll attract lots of customers but won\'t make much profit.';
+  else if (G.price < ideal * 0.9) hint = '&#128161; <strong>Good deal!</strong> Customers will be happy with this price.';
+  else if (G.price < ideal * 1.2) hint = '&#128161; <strong>Sweet spot!</strong> Fair price for today\'s conditions.';
+  else if (G.price < ideal * 1.6) hint = '&#128161; <strong>Pricey!</strong> Only customers who really want lemonade will buy.';
+  else hint = '&#128161; <strong>Very expensive!</strong> Most customers will walk away.';
+
+  document.getElementById('priceHint').innerHTML = hint;
+}
+
+// ============================================
+// SERVING PHASE
+// ============================================
+function calcMaxCups() {
+  const fromLemons = G.lemons * 8;
+  const fromSugar = G.sugar * 12;
+  const fromIce = G.upgrades.iceMachine ? 9999 : G.ice * 15;
+  const fromCups = G.cups;
+  return Math.min(fromLemons, fromSugar, fromIce, fromCups);
+}
+
+function startServing() {
+  const maxCups = calcMaxCups();
+  if (maxCups <= 0) {
+    alert('You have no supplies! Go back and buy some.');
+    return;
+  }
+
+  serving = true;
+  dayTimeLeft = dayDuration;
+  customers = [];
+  customerIdCounter = 0;
+  canServe2 = !!G.upgrades.biggerStand;
+  _supUsed = { lemons: 0, sugar: 0, ice: 0 };
+
+  // Update stand display
+  document.getElementById('standSign').textContent = '$' + G.price.toFixed(2);
+  document.getElementById('standRep').textContent = '\u2B50 ' + G.reputation.toFixed(1);
+
+  // Reset serve HUD
+  updateServeHUD();
+
+  // Start weather effects
+  startWeatherEffects();
+
+  showScreen('serveScreen');
+
+  // Start customer spawning
+  scheduleNextCustomer();
+
+  // Start day timer
+  serveTimer = setInterval(() => {
+    dayTimeLeft -= 0.1;
+    updateDayTimer();
+    updateCustomerPatience();
+
+    if (dayTimeLeft <= 0) {
+      endDay();
+    }
+  }, 100);
+
+  // Check for mid-day random events
+  setTimeout(() => {
+    if (serving && Math.random() < 0.35) triggerServingEvent();
+  }, (dayDuration * 0.3 + Math.random() * dayDuration * 0.4) * 1000);
+}
+
+function updateServeHUD() {
+  document.getElementById('serveMoney').textContent = G.dayRevenue.toFixed(2);
+  document.getElementById('serveServed').textContent = G.dayServed;
+  document.getElementById('serveLost').textContent = G.dayLost;
+
+  // Supply bars
+  const maxCupsFromLemons = G.lemons * 8;
+  const maxCupsFromSugar = G.sugar * 12;
+  const maxCupsFromIce = G.upgrades.iceMachine ? 100 : G.ice * 15;
+  const startLemons = Math.max(1, G.lemons);
+  const startSugar = Math.max(1, G.sugar);
+  const startIce = Math.max(1, G.upgrades.iceMachine ? 100 : G.ice);
+  const startCups = Math.max(1, G.cups);
+
+  document.getElementById('barLemons').style.width = (G.lemons / (G.maxLemons || 20) * 100) + '%';
+  document.getElementById('barSugar').style.width = (G.sugar / (G.maxSugar || 20) * 100) + '%';
+  document.getElementById('barCups').style.width = (G.cups / (G.maxCups || 100) * 100) + '%';
+  document.getElementById('barIce').style.width = ((G.upgrades.iceMachine ? 100 : G.ice) / (G.maxIce || 20) * 100) + '%';
+
+  // Day timer
+  updateDayTimer();
+}
+
+function updateDayTimer() {
+  const pct = Math.max(0, (dayTimeLeft / dayDuration) * 100);
+  document.getElementById('dayTimer').style.width = pct + '%';
+}
+
+function scheduleNextCustomer() {
+  if (!serving) return;
+
+  const weather = getActualWeather();
+  const loc = LOCATIONS[G.location];
+  const seasonMult = SEASON_MULT[G.season];
+  const weatherMult = weather.mult;
+  const repMult = G.reputation >= 4.5 ? 1.3 : G.reputation >= 3.0 ? 1.0 : G.reputation >= 2.0 ? 0.7 : 0.3;
+  const signMult = G.upgrades.signage ? 1.2 : 1.0;
+  const loyaltyMult = G.upgrades.loyaltyCards ? 1.25 : 1.0;
+  const umbrMult = G.upgrades.umbrella && (weather.id === 'rainy' || weather.id === 'storm') ? 1.5 : 1.0;
+
+  const baseRate = loc.baseCustomers * seasonMult * weatherMult * repMult * signMult * loyaltyMult * umbrMult;
+  const avgDelay = dayDuration / Math.max(1, baseRate);
+  const delay = avgDelay * (0.5 + Math.random());
+
+  spawnTimer = setTimeout(() => {
+    if (serving) {
+      spawnCustomer();
+      scheduleNextCustomer();
+    }
+  }, delay * 1000);
+}
+
+function spawnCustomer() {
+  if (!serving) return;
+  const maxCups = calcMaxCups();
+  if (maxCups <= 0) return;
+
+  // Pick customer type
+  let type;
+  const speakerBonus = G.upgrades.speakers ? 0.10 : 0;
+  const roll = Math.random();
+
+  if (roll < 0.30 + speakerBonus) type = CUSTOMER_TYPES[0];       // kid (~30-40%)
+  else if (roll < 0.65) type = CUSTOMER_TYPES[1];                  // adult (~35%)
+  else if (roll < 0.90) type = CUSTOMER_TYPES[2];                  // business (~25%)
+  else type = CUSTOMER_TYPES[3];                                   // karen (~10%)
+
+  // Business people leave if line > 2
+  if (type.id === 'business' && customers.length > 2) return;
+
+  const cid = ++customerIdCounter;
+  const lane = document.getElementById('customerLane');
+  const laneWidth = lane.offsetWidth || 400;
+
+  const customer = {
+    id: cid,
+    type: type,
+    patience: type.patience * (1 + Math.random() * 0.3),
+    maxPatience: type.patience * (1 + Math.random() * 0.3),
+    x: laneWidth,
+    targetX: customers.length * 65,
+    served: false,
+    leaving: false,
+    el: null
+  };
+  customer.maxPatience = customer.patience;
+
+  // Group spawn for kids
+  const groupExtra = type.id === 'kid' && Math.random() < type.groupChance ? Math.floor(Math.random() * 2) + 1 : 0;
+
+  customers.push(customer);
+  renderCustomer(customer);
+
+  // Spawn group members
+  for (let i = 0; i < groupExtra; i++) {
+    const groupCid = ++customerIdCounter;
+    const gc = {
+      id: groupCid,
+      type: type,
+      patience: customer.patience,
+      maxPatience: customer.maxPatience,
+      x: laneWidth + (i + 1) * 50,
+      targetX: (customers.length) * 65,
+      served: false,
+      leaving: false,
+      el: null
+    };
+    customers.push(gc);
+    renderCustomer(gc);
+  }
+
+  repositionCustomers();
+}
+
+function renderCustomer(c) {
+  const lane = document.getElementById('customerLane');
+  const el = document.createElement('div');
+  el.className = 'customer';
+  el.id = 'cust-' + c.id;
+  el.style.left = c.x + 'px';
+  el.onclick = () => serveCustomer(c.id);
+
+  const patiencePct = (c.patience / c.maxPatience) * 100;
+  const pColor = patiencePct > 60 ? 'var(--accent)' : patiencePct > 30 ? 'var(--gold)' : 'var(--accent3)';
+
+  el.innerHTML = `
+    <div class="c-bubble" id="bubble-${c.id}"></div>
+    <div class="c-patience"><div class="cp-fill" id="patience-${c.id}" style="width:100%;background:${pColor}"></div></div>
+    <div class="c-body">${c.type.emoji}</div>
+    <div class="c-type">${c.type.label}</div>
+  `;
+  lane.appendChild(el);
+  c.el = el;
+
+  // Animate in
+  requestAnimationFrame(() => {
+    el.style.left = c.targetX + 'px';
+  });
+}
+
+function repositionCustomers() {
+  const active = customers.filter(c => !c.served && !c.leaving);
+  active.forEach((c, i) => {
+    c.targetX = i * 65;
+    if (c.el) {
+      c.el.style.left = c.targetX + 'px';
+    }
+  });
+}
+
+function updateCustomerPatience() {
+  const toRemove = [];
+  customers.forEach(c => {
+    if (c.served || c.leaving) return;
+    c.patience -= 0.1;
+    const pct = Math.max(0, (c.patience / c.maxPatience) * 100);
+    const pBar = document.getElementById('patience-' + c.id);
+    if (pBar) {
+      pBar.style.width = pct + '%';
+      pBar.style.background = pct > 60 ? 'var(--accent)' : pct > 30 ? 'var(--gold)' : 'var(--accent3)';
+    }
+
+    if (c.patience <= 0) {
+      // Customer leaves angry
+      customerLeaves(c, false);
+      toRemove.push(c.id);
+    }
+  });
+}
+
+function customerLeaves(c, happy) {
+  c.leaving = true;
+  if (c.el) {
+    if (happy) {
+      showBubble(c.id, '\uD83D\uDE0A');
+      c.el.classList.add('served');
+    } else {
+      showBubble(c.id, '\uD83D\uDE20 Too slow!');
+      sfx('angry');
+      G.dayLost++;
+      G.totalLost++;
+      G.reputation = Math.max(0.5, G.reputation - 0.05);
+    }
+
+    setTimeout(() => {
+      c.el.classList.add('leaving');
+      setTimeout(() => {
+        if (c.el && c.el.parentNode) c.el.parentNode.removeChild(c.el);
+        customers = customers.filter(x => x.id !== c.id);
+        repositionCustomers();
+      }, 500);
+    }, happy ? 600 : 300);
+  }
+  updateServeHUD();
+}
+
+function showBubble(cid, text) {
+  const bubble = document.getElementById('bubble-' + cid);
+  if (bubble) {
+    bubble.textContent = text;
+    bubble.classList.add('show');
+    setTimeout(() => bubble.classList.remove('show'), 1500);
+  }
+}
+
+function serveCustomer(specificId) {
+  if (!serving || serveCooldown) return;
+
+  const maxCups = calcMaxCups();
+  if (maxCups <= 0) {
+    document.getElementById('serveBtn').disabled = true;
+    showBubble(0, 'Out of supplies!');
+    return;
+  }
+
+  // Find first unserved customer
+  let toServe = [];
+  const active = customers.filter(c => !c.served && !c.leaving);
+  if (active.length === 0) return;
+
+  if (specificId) {
+    const specific = active.find(c => c.id === specificId);
+    if (specific) toServe.push(specific);
+    else toServe.push(active[0]);
+  } else {
+    toServe.push(active[0]);
+  }
+
+  // Serve 2 if upgraded
+  if (canServe2 && active.length > 1 && !specificId) {
+    const second = active.find(c => c.id !== toServe[0].id);
+    if (second) toServe.push(second);
+  }
+
+  // Cooldown
+  serveCooldown = true;
+  setTimeout(() => { serveCooldown = false; }, 300);
+
+  toServe.forEach(c => {
+    if (calcMaxCups() <= 0) return;
+
+    // Check if Karen
+    if (c.type.id === 'karen') {
+      c.served = true;
+      serving = false; // Pause
+      showKarenEvent(c);
+      return;
+    }
+
+    // Quality check
+    const quality = calcQuality();
+
+    // Price tolerance check
+    const priceTolerance = c.type.maxPrice * (quality / 5);
+    const willBuy = G.price <= priceTolerance && quality >= c.type.qualityMin;
+
+    if (!willBuy) {
+      // Customer refuses
+      if (quality < c.type.qualityMin) {
+        showBubble(c.id, '\uD83E\uDD22 Bad quality!');
+      } else {
+        showBubble(c.id, '\uD83D\uDCB8 Too expensive!');
+      }
+      sfx('angry');
+      c.served = true;
+      G.dayLost++;
+      G.totalLost++;
+      G.reputation = Math.max(0.5, G.reputation - 0.03);
+      setTimeout(() => {
+        if (c.el) {
+          c.el.classList.add('leaving');
+          setTimeout(() => {
+            if (c.el && c.el.parentNode) c.el.parentNode.removeChild(c.el);
+            customers = customers.filter(x => x.id !== c.id);
+            repositionCustomers();
+          }, 500);
+        }
+      }, 800);
+      updateServeHUD();
+      return;
+    }
+
+    // Serve successfully!
+    c.served = true;
+    sfx('pour');
+    setTimeout(() => sfx('coin'), 200);
+
+    // Consume supplies
+    consumeSupplies();
+
+    // Revenue
+    let revenue = G.price;
+
+    // Tip jar
+    if (G.upgrades.tipJar && Math.random() < 0.25 && quality >= 3) {
+      const tip = +(0.25 + Math.random() * 0.50).toFixed(2);
+      revenue += tip;
+      showBubble(c.id, '\uD83D\uDE0A +tip!');
+    }
+
+    G.dayRevenue += revenue;
+    G.totalRevenue += revenue;
+    G.dayServed++;
+    G.totalServed++;
+
+    // Satisfaction
+    const satisfaction = quality >= 4 ? 1 : quality >= 3 ? 0.7 : 0.4;
+    const repGain = 0.02 * satisfaction * c.type.repMult;
+    G.reputation = Math.min(5.0, G.reputation + repGain);
+
+    // Sick chance for bad quality
+    if (quality <= 2 && Math.random() < 0.15) {
+      setTimeout(() => triggerSickEvent(), 1000);
+    }
+
+    // Show satisfaction
+    const emoji = quality >= 4 ? '\uD83D\uDE0A Yum!' : quality >= 3 ? '\uD83D\uDE42 Good' : '\uD83D\uDE10 Meh';
+    showBubble(c.id, emoji);
+
+    // Coin animation
+    spawnCoinFly(c.el);
+
+    // Remove customer
+    customerLeaves(c, true);
+  });
+
+  updateServeHUD();
+}
+
+// Fractional supply tracking per day
+let _supUsed = { lemons: 0, sugar: 0, ice: 0 };
+
+function consumeSupplies() {
+  // Each cup uses: 1/8 lemon, 1/12 sugar, 1 cup, 1/15 ice
+  G.cups = Math.max(0, G.cups - 1);
+
+  // Lemons: 1 lemon makes 8 cups
+  _supUsed.lemons += 1/8;
+  if (_supUsed.lemons >= 1) {
+    const whole = Math.floor(_supUsed.lemons);
+    G.lemons = Math.max(0, G.lemons - whole);
+    _supUsed.lemons -= whole;
+  }
+
+  // Sugar: 1 unit makes 12 cups
+  _supUsed.sugar += 1/12;
+  if (_supUsed.sugar >= 1) {
+    const whole = Math.floor(_supUsed.sugar);
+    G.sugar = Math.max(0, G.sugar - whole);
+    _supUsed.sugar -= whole;
+  }
+
+  // Ice: 1 bag for 15 cups (hot weather uses 1/10 instead)
+  if (!G.upgrades.iceMachine) {
+    const iceRate = G.weather === 'hot' ? 1/10 : 1/15;
+    _supUsed.ice += iceRate;
+    if (_supUsed.ice >= 1) {
+      const whole = Math.floor(_supUsed.ice);
+      G.ice = Math.max(0, G.ice - whole);
+      _supUsed.ice -= whole;
+    }
+  }
+}
+
+function spawnCoinFly(fromEl) {
+  const coin = document.createElement('div');
+  coin.className = 'coin-fly';
+  coin.textContent = '+$' + G.price.toFixed(2);
+  if (fromEl) {
+    const rect = fromEl.getBoundingClientRect();
+    coin.style.left = rect.left + rect.width / 2 + 'px';
+    coin.style.top = rect.top + 'px';
+  } else {
+    coin.style.left = '50%';
+    coin.style.top = '50%';
+  }
+  document.body.appendChild(coin);
+  setTimeout(() => coin.remove(), 1000);
+}
+
+function endDay() {
+  serving = false;
+  clearInterval(serveTimer);
+  clearTimeout(spawnTimer);
+  clearWeatherEffects();
+
+  // Clear remaining customers
+  const lane = document.getElementById('customerLane');
+  lane.innerHTML = '';
+  customers = [];
+
+  // Calculate profit
+  const profit = G.dayRevenue - G.dayCosts;
+  G.money += G.dayRevenue;
+
+  // ODA coins: $100 in-game = 10 coins
+  G.odaCoinsPending = Math.floor(G.dayRevenue / 10);
+
+  // Update best net worth
+  const netWorth = G.money + G.savings;
+  if (netWorth > G.bestNetWorth) G.bestNetWorth = netWorth;
+
+  sfx('register');
+  showReport(profit);
+}
+
+// ============================================
+// WEATHER EFFECTS
+// ============================================
+function startWeatherEffects() {
+  clearWeatherEffects();
+  const w = getActualWeather();
+
+  if (w.id === 'rainy' || w.id === 'storm') {
+    const count = w.id === 'storm' ? 40 : 20;
+    for (let i = 0; i < count; i++) {
+      const drop = document.createElement('div');
+      drop.className = 'rain-drop';
+      drop.style.left = Math.random() * 100 + 'vw';
+      drop.style.height = (15 + Math.random() * 20) + 'px';
+      drop.style.animationDuration = (0.3 + Math.random() * 0.5) + 's';
+      drop.style.animationDelay = Math.random() * 2 + 's';
+      document.body.appendChild(drop);
+      weatherEffects.push(drop);
+    }
+    if (w.id === 'storm') sfx('rain');
+  } else if (w.id === 'sunny' || w.id === 'hot') {
+    for (let i = 0; i < 6; i++) {
+      const ray = document.createElement('div');
+      ray.className = 'sun-ray';
+      ray.style.left = (10 + Math.random() * 80) + 'vw';
+      ray.style.animationDelay = Math.random() * 3 + 's';
+      ray.style.height = (40 + Math.random() * 60) + 'px';
+      document.body.appendChild(ray);
+      weatherEffects.push(ray);
+    }
+  }
+}
+
+function clearWeatherEffects() {
+  weatherEffects.forEach(el => el.remove());
+  weatherEffects = [];
+}
+
+// ============================================
+// REPORT SCREEN
+// ============================================
+function showReport(profit) {
+  document.getElementById('reportDay').textContent = 'END OF DAY ' + G.day;
+  const profitEl = document.getElementById('reportProfit');
+  profitEl.textContent = (profit >= 0 ? '+' : '') + '$' + profit.toFixed(2);
+  profitEl.className = 'report-big ' + (profit >= 0 ? 'profit' : 'loss');
+  document.getElementById('reportProfitLabel').textContent = profit >= 0 ? 'Net Profit' : 'Net Loss';
+
+  document.getElementById('reportRevenue').textContent = '$' + G.dayRevenue.toFixed(2);
+  document.getElementById('reportCosts').textContent = '$' + G.dayCosts.toFixed(2);
+  document.getElementById('reportServed').textContent = G.dayServed;
+  document.getElementById('reportLost').textContent = G.dayLost;
+
+  // Rep display
+  const repArrow = G.dayServed > G.dayLost ? 'up' : 'down';
+  const repIcon = repArrow === 'up' ? '\u2191' : '\u2193';
+  document.getElementById('reportRep').innerHTML =
+    `Reputation: \u2B50 ${G.reputation.toFixed(1)} <span class="rep-arrow ${repArrow}">${repIcon}</span>`;
+
+  // Savings
+  document.getElementById('savingsSlider').value = 0;
+  document.getElementById('currentSavings').textContent = '$' + G.savings.toFixed(2);
+  document.getElementById('savingsAmount').textContent = '$0.00';
+
+  // ODA coins
+  if (G.odaCoinsPending > 0) {
+    document.getElementById('odaCoinsEarned').textContent = '\uD83E\uDE99 +' + G.odaCoinsPending + ' ODA Coins earned!';
+  } else {
+    document.getElementById('odaCoinsEarned').textContent = '';
+  }
+
+  updateHUD();
+  showScreen('reportScreen');
+}
+
+function updateSavingsPreview() {
+  const pct = parseInt(document.getElementById('savingsSlider').value);
+  const profit = G.dayRevenue - G.dayCosts;
+  const saveAmt = Math.max(0, profit * pct / 100);
+  document.getElementById('savingsAmount').textContent = '$' + saveAmt.toFixed(2);
+}
+
+function nextDay() {
+  // Process savings
+  const pct = parseInt(document.getElementById('savingsSlider').value);
+  const profit = G.dayRevenue - G.dayCosts;
+  const saveAmt = Math.max(0, profit * pct / 100);
+  if (saveAmt > 0 && saveAmt <= G.money) {
+    G.money -= saveAmt;
+    G.savings += saveAmt;
+  }
+
+  // Award ODA coins
+  awardODACoins(G.odaCoinsPending);
+  G.odaCoinsPending = 0;
+
+  // Save to Firestore
+  saveGame();
+  saveLeaderboard();
+
+  G.day++;
+  startNewDay();
+}
+
+// ============================================
+// RANDOM EVENTS
+// ============================================
+function checkBetweenDayEvent() {
+  if (G.day === 1) return; // No events on first day
+
+  const roll = Math.random();
+  if (roll < 0.12) {
+    // Supplier sale
+    triggerEvent('sale');
+  } else if (roll < 0.20 && !G.hasPermit && G.day >= 3) {
+    triggerEvent('permit');
+  } else if (roll < 0.28 && G.day >= 4) {
+    triggerEvent('inspector');
+  }
+}
+
+function triggerServingEvent() {
+  if (!serving) return;
+  const roll = Math.random();
+  const loc = LOCATIONS[G.location];
+
+  if (roll < 0.15 * loc.theftRisk) {
+    triggerEvent('theft');
+  } else if (roll < 0.25) {
+    triggerEvent('lucky');
+  }
+}
+
+function triggerEvent(type) {
+  const overlay = document.getElementById('eventOverlay');
+  overlay.style.display = 'flex';
+
+  switch (type) {
+    case 'sale':
+      overlay.innerHTML = `
+        <div class="event-card">
+          <span class="ev-icon">\uD83C\uDF89</span>
+          <h3>Supplier Sale!</h3>
+          <p>A supplier is offering 30% off all supplies today! Stock up while you can!</p>
+          <div class="ev-actions">
+            <button class="btn btn-accent btn-small" onclick="applySale()">Sweet! \uD83C\uDF89</button>
+          </div>
+        </div>`;
+      sfx('happy');
+      break;
+
+    case 'permit':
+      overlay.innerHTML = `
+        <div class="event-card">
+          <span class="ev-icon">\uD83D\uDCCB</span>
+          <h3>Permit Required!</h3>
+          <p>A city official says you need a business permit to operate. Pay $75 for a permanent permit or skip today.</p>
+          <div class="ev-actions">
+            <button class="btn btn-gold btn-small" onclick="buyPermit()"${G.money < 75 ? ' disabled' : ''}>Pay $75</button>
+            <button class="btn btn-outline btn-small" onclick="skipPermit()">Skip Today</button>
+          </div>
+        </div>`;
+      sfx('alert');
+      break;
+
+    case 'inspector':
+      const quality = calcQuality();
+      if (quality >= 4) {
+        overlay.innerHTML = `
+          <div class="event-card">
+            <span class="ev-icon">\u2705</span>
+            <h3>Health Inspector: PASSED!</h3>
+            <p>Your lemonade stand passed with flying colors! Your reputation gets a boost!</p>
+            <div class="ev-actions">
+              <button class="btn btn-accent btn-small" onclick="closeEvent()">Awesome!</button>
+            </div>
+          </div>`;
+        G.reputation = Math.min(5.0, G.reputation + 0.3);
+        sfx('happy');
+      } else if (quality >= 3) {
+        overlay.innerHTML = `
+          <div class="event-card">
+            <span class="ev-icon">\u26A0\uFE0F</span>
+            <h3>Health Inspector: Warning</h3>
+            <p>The inspector gave you a warning. Improve your recipe quality to avoid fines!</p>
+            <div class="ev-actions">
+              <button class="btn btn-gold btn-small" onclick="closeEvent()">Got it!</button>
+            </div>
+          </div>`;
+        sfx('alert');
+      } else {
+        const fine = 50;
+        overlay.innerHTML = `
+          <div class="event-card">
+            <span class="ev-icon">\u274C</span>
+            <h3>Health Inspector: FAILED!</h3>
+            <p>Your lemonade quality is too low! You're fined $${fine} and shut down for the day.</p>
+            <div class="ev-actions">
+              <button class="btn btn-red btn-small" onclick="inspectorFail(${fine})">Pay Fine</button>
+            </div>
+          </div>`;
+        sfx('angry');
+      }
+      break;
+
+    case 'theft':
+      serving = false; // Pause serving
+      clearInterval(serveTimer);
+      const camBonus = G.upgrades.securityCam ? ' You have 5 extra seconds to decide thanks to your camera!' : '';
+      overlay.style.display = 'none';
+      showTheftEvent(camBonus);
+      return;
+
+    case 'lucky':
+      const luckyType = Math.random();
+      if (luckyType < 0.4) {
+        // News crew
+        overlay.innerHTML = `
+          <div class="event-card">
+            <span class="ev-icon">\uD83D\uDCF0</span>
+            <h3>News Crew!</h3>
+            <p>A local news crew is doing a story on lemonade stands! Double traffic for the rest of the day!</p>
+            <div class="ev-actions">
+              <button class="btn btn-accent btn-small" onclick="closeEvent()">Woohoo!</button>
+            </div>
+          </div>`;
+        // Boost by spawning extra customers
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => { if (serving) spawnCustomer(); }, i * 2000);
+        }
+        sfx('happy');
+      } else if (luckyType < 0.7) {
+        // Celebrity visit
+        overlay.innerHTML = `
+          <div class="event-card">
+            <span class="ev-icon">\u2B50</span>
+            <h3>Celebrity Visit!</h3>
+            <p>A local celebrity stopped by your stand! Your reputation just went up!</p>
+            <div class="ev-actions">
+              <button class="btn btn-accent btn-small" onclick="closeEvent()">Amazing!</button>
+            </div>
+          </div>`;
+        G.reputation = Math.min(5.0, G.reputation + 0.4);
+        sfx('happy');
+      } else {
+        // Bulk order
+        const bulkCups = Math.min(calcMaxCups(), 15);
+        if (bulkCups > 0) {
+          const bulkRevenue = bulkCups * G.price;
+          overlay.innerHTML = `
+            <div class="event-card">
+              <span class="ev-icon">\uD83C\uDF89</span>
+              <h3>Bulk Order!</h3>
+              <p>A party organizer wants ${bulkCups} cups for an event! That's $${bulkRevenue.toFixed(2)} instant revenue!</p>
+              <div class="ev-actions">
+                <button class="btn btn-gold btn-small" onclick="processBulkOrder(${bulkCups},${bulkRevenue})">Fill Order!</button>
+              </div>
+            </div>`;
+          sfx('register');
+        } else {
+          closeEvent();
+          return;
+        }
+      }
+      break;
+  }
+}
+
+function triggerSickEvent() {
+  if (!serving) return;
+  const cost = 100;
+  const overlay = document.getElementById('eventOverlay');
+  overlay.style.display = 'flex';
+  overlay.innerHTML = `
+    <div class="event-card">
+      <span class="ev-icon">\uD83E\uDD22</span>
+      <h3>Customer Got Sick!</h3>
+      <p>A customer got sick from your low-quality lemonade! You have to pay a $${cost} settlement and your reputation drops.</p>
+      <div class="ev-actions">
+        <button class="btn btn-red btn-small" onclick="paySickSettlement(${cost})">Pay $${cost}</button>
+      </div>
+    </div>`;
+  sfx('sick');
+  serving = false;
+  clearInterval(serveTimer);
+}
+
+function paySickSettlement(cost) {
+  G.money = Math.max(0, G.money - cost);
+  G.dayCosts += cost;
+  G.reputation = Math.max(0.5, G.reputation - 0.5);
+  updateHUD();
+  closeEvent();
+  // Resume serving
+  resumeServing();
+}
+
+function applySale() {
+  dailyPrices.lemons = +(dailyPrices.lemons * 0.7).toFixed(2);
+  dailyPrices.sugar = +(dailyPrices.sugar * 0.7).toFixed(2);
+  dailyPrices.cups = +(dailyPrices.cups * 0.7).toFixed(2);
+  dailyPrices.ice = +(dailyPrices.ice * 0.7).toFixed(2);
+  setupPlanScreen();
+  closeEvent();
+}
+
+function buyPermit() {
+  if (G.money < 75) return;
+  G.money -= 75;
+  G.dayCosts += 75;
+  G.hasPermit = true;
+  updateHUD();
+  closeEvent();
+}
+
+function skipPermit() {
+  // Skip the whole day
+  closeEvent();
+  G.day++;
+  startNewDay();
+}
+
+function inspectorFail(fine) {
+  G.money = Math.max(0, G.money - fine);
+  G.dayCosts += fine;
+  G.reputation = Math.max(0.5, G.reputation - 0.3);
+  updateHUD();
+  closeEvent();
+  // Skip to next day
+  G.day++;
+  startNewDay();
+}
+
+function processBulkOrder(cups, revenue) {
+  for (let i = 0; i < cups; i++) consumeSupplies();
+  G.dayRevenue += revenue;
+  G.totalRevenue += revenue;
+  G.dayServed += cups;
+  G.totalServed += cups;
+  updateServeHUD();
+  closeEvent();
+}
+
+function closeEvent() {
+  const overlay = document.getElementById('eventOverlay');
+  overlay.style.display = 'none';
+  overlay.innerHTML = '';
+}
+
+function resumeServing() {
+  if (dayTimeLeft <= 0) {
+    endDay();
+    return;
+  }
+  serving = true;
+  serveTimer = setInterval(() => {
+    dayTimeLeft -= 0.1;
+    updateDayTimer();
+    updateCustomerPatience();
+    if (dayTimeLeft <= 0) endDay();
+  }, 100);
+  scheduleNextCustomer();
+}
+
+// ============================================
+// KAREN EVENT
+// ============================================
+function showKarenEvent(customer) {
+  const complaint = KAREN_COMPLAINTS[Math.floor(Math.random() * KAREN_COMPLAINTS.length)];
+  const overlay = document.getElementById('eventOverlay');
+  overlay.style.display = 'flex';
+  overlay.innerHTML = `
+    <div class="karen-card">
+      <span class="karen-emoji">\uD83D\uDE24</span>
+      <h3>Karen Alert!</h3>
+      <div class="karen-speech">"${complaint}"</div>
+      <p>What do you do?</p>
+      <div class="ev-actions">
+        <button class="btn btn-accent btn-small" onclick="handleKaren('refund')">&#128176; Give Refund</button>
+        <button class="btn btn-red btn-small" onclick="handleKaren('firm')">&#128170; Stay Firm</button>
+      </div>
+    </div>`;
+  sfx('angry');
+
+  // Pause serving
+  clearInterval(serveTimer);
+}
+
+function handleKaren(choice) {
+  if (choice === 'refund') {
+    // Lose money, reputation UP
+    const refund = G.price;
+    G.money = Math.max(0, G.money - refund);
+    G.reputation = Math.min(5.0, G.reputation + 0.15);
+    const overlay = document.getElementById('eventOverlay');
+    overlay.innerHTML = `
+      <div class="karen-card" style="border-color:var(--accent)">
+        <span class="karen-emoji" style="animation:none">\uD83D\uDE0C</span>
+        <h3 style="color:var(--accent)">Good Customer Service!</h3>
+        <p>Karen calms down. "Well, at least SOMEONE knows how to run a business!"<br><br>You lost $${G.price.toFixed(2)} but your reputation went up!</p>
+        <div class="ev-actions">
+          <button class="btn btn-accent btn-small" onclick="closeKaren()">Continue</button>
+        </div>
+      </div>`;
+    sfx('happy');
+  } else {
+    // Keep money, reputation DOWN
+    G.reputation = Math.max(0.5, G.reputation - 0.2);
+    const overlay = document.getElementById('eventOverlay');
+    overlay.innerHTML = `
+      <div class="karen-card">
+        <span class="karen-emoji" style="animation:none">\uD83D\uDE21</span>
+        <h3>Karen is FURIOUS!</h3>
+        <p>"I'm posting about this on ALL my social media! You'll hear from my lawyer!"<br><br>You kept your money but your reputation dropped!</p>
+        <div class="ev-actions">
+          <button class="btn btn-outline btn-small" onclick="closeKaren()">Whatever...</button>
+        </div>
+      </div>`;
+    sfx('angry');
+  }
+  updateHUD();
+}
+
+function closeKaren() {
+  closeEvent();
+  resumeServing();
+}
+
+// ============================================
+// THEFT EVENT
+// ============================================
+function showTheftEvent(camBonus) {
+  const overlay = document.getElementById('eventOverlay');
+  overlay.style.display = 'flex';
+  overlay.innerHTML = `
+    <div class="theft-card">
+      <span class="thief-emoji">\uD83E\uDD78</span>
+      <h3>Theft Attempt!</h3>
+      <p>Someone is trying to steal your tip jar and supplies!${camBonus}</p>
+      <div class="ev-actions">
+        <button class="btn btn-accent btn-small" onclick="handleTheft('devon')">&#128694; Get Mr. Devon!</button>
+        <button class="btn btn-red btn-small" onclick="handleTheft('self')">&#128170; Handle It Yourself</button>
+      </div>
+    </div>`;
+  sfx('alert');
+}
+
+function handleTheft(choice) {
+  const overlay = document.getElementById('eventOverlay');
+
+  if (choice === 'devon') {
+    // Safe option - Mr. Devon to the rescue!
+    overlay.innerHTML = `
+      <div class="theft-card" style="border-color:var(--accent)">
+        <span class="thief-emoji" style="animation:none">\uD83E\uDD78</span>
+        <div class="mr-devon-arrest">\uD83D\uDC68\u200D\uD83C\uDFEB\uD83D\uDC6E</div>
+        <div class="arrest-msg">Mr. Devon saved the day!</div>
+        <p>Mr. Devon arrived and the thief was caught! The police took them away. Your stand is safe!</p>
+        <div class="ev-actions">
+          <button class="btn btn-accent btn-small" onclick="closeTheft(true)">Thanks Mr. Devon!</button>
+        </div>
+      </div>`;
+    sfx('happy');
+  } else {
+    // Risky option - 50/50
+    if (Math.random() < 0.5) {
+      // Success
+      overlay.innerHTML = `
+        <div class="theft-card" style="border-color:var(--accent)">
+          <span class="thief-emoji" style="animation:none">\uD83D\uDCAA</span>
+          <h3 style="color:var(--accent)">You Scared Them Off!</h3>
+          <p>Your bravery scared the thief away! Nothing was stolen and the other customers are impressed!</p>
+          <div class="ev-actions">
+            <button class="btn btn-accent btn-small" onclick="closeTheft(true)">Yeah!</button>
+          </div>
+        </div>`;
+      G.reputation = Math.min(5.0, G.reputation + 0.2);
+      sfx('happy');
+    } else {
+      // Fail - lose some money
+      const stolen = Math.min(G.money * 0.3, 25);
+      G.money = Math.max(0, G.money - stolen);
+      overlay.innerHTML = `
+        <div class="theft-card">
+          <span class="thief-emoji" style="animation:none">\uD83D\uDE28</span>
+          <h3>They Got Away!</h3>
+          <p>The thief grabbed $${stolen.toFixed(2)} from your tip jar and ran! Next time, call Mr. Devon!</p>
+          <div class="ev-actions">
+            <button class="btn btn-outline btn-small" onclick="closeTheft(false)">Oh no...</button>
+          </div>
+        </div>`;
+      sfx('angry');
+    }
+  }
+  updateHUD();
+}
+
+function closeTheft(success) {
+  closeEvent();
+  resumeServing();
+}
+
+// ============================================
+// UPGRADES SHOP
+// ============================================
+function renderShop() {
+  document.getElementById('shopMoney').textContent = '$' + G.money.toFixed(2);
+  const grid = document.getElementById('shopGrid');
+  grid.innerHTML = '';
+
+  UPGRADES.forEach(u => {
+    const owned = !!G.upgrades[u.id];
+    const canAfford = G.money >= u.price;
+    const div = document.createElement('div');
+    div.className = 'shop-item' + (owned ? ' owned' : (!canAfford ? ' locked' : ''));
+    div.innerHTML = `
+      <span class="si-icon">${u.icon}</span>
+      <span class="si-name">${u.name}</span>
+      <span class="si-price">$${u.price}</span>
+      <span class="si-desc">${u.desc}</span>`;
+    if (!owned && canAfford) {
+      div.onclick = () => purchaseUpgrade(u);
+    }
+    grid.appendChild(div);
+  });
+
+  // Flavors section (if recipe book owned)
+  if (G.upgrades.recipeBook) {
+    const flavorHeader = document.createElement('div');
+    flavorHeader.style.cssText = 'grid-column:1/-1;text-align:center;margin-top:16px;font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px';
+    flavorHeader.textContent = '\uD83C\uDF53 Flavor Add-ons';
+    grid.appendChild(flavorHeader);
+
+    FLAVORS.forEach(f => {
+      const owned = G.flavors.includes(f.id);
+      const canAfford = G.money >= f.price;
+      const active = G.activeFlavor === f.id;
+      const div = document.createElement('div');
+      div.className = 'shop-item' + (owned ? ' owned' : (!canAfford ? ' locked' : ''));
+      if (active) div.style.borderColor = 'var(--gold)';
+      div.innerHTML = `
+        <span class="si-icon">${f.icon}</span>
+        <span class="si-name">${f.name}</span>
+        ${owned ? '<span class="si-price" style="color:var(--accent)">Owned</span>' : `<span class="si-price">$${f.price}</span>`}
+        <span class="si-desc">+${f.qualityBonus} quality</span>
+        ${owned ? `<button class="btn btn-small ${active ? 'btn-gold' : 'btn-outline'}" onclick="event.stopPropagation();setFlavor('${f.id}')" style="margin-top:4px;min-width:auto;padding:4px 12px;font-size:11px">${active ? 'Active' : 'Use'}</button>` : ''}`;
+      if (!owned && canAfford) {
+        div.onclick = () => purchaseFlavor(f);
+      }
+      grid.appendChild(div);
+    });
+  }
+}
+
+function purchaseUpgrade(u) {
+  if (G.money < u.price || G.upgrades[u.id]) return;
+  G.money -= u.price;
+  G.upgrades[u.id] = true;
+  applyUpgradeEffects();
+  sfx('upgrade');
+  updateHUD();
+  renderShop();
+}
+
+function purchaseFlavor(f) {
+  if (G.money < f.price || G.flavors.includes(f.id)) return;
+  G.money -= f.price;
+  G.flavors.push(f.id);
+  G.activeFlavor = f.id;
+  sfx('upgrade');
+  updateHUD();
+  renderShop();
+}
+
+function setFlavor(id) {
+  G.activeFlavor = G.activeFlavor === id ? null : id;
+  sfx('click');
+  renderShop();
+}
+
+function applyUpgradeEffects() {
+  if (G.upgrades.storageUnit) {
+    G.maxLemons = 40;
+    G.maxSugar = 40;
+    G.maxCups = 200;
+    G.maxIce = 40;
+  }
+  canServe2 = !!G.upgrades.biggerStand;
+}
+
+function backFromShop() {
+  showScreen(G.shopFrom || 'planScreen');
+}
+
+// ============================================
+// GAME OVER
+// ============================================
+function gameOver(reason) {
+  sfx('gameover');
+  const netWorth = G.money + G.savings;
+
+  document.getElementById('goReason').textContent = reason;
+  document.getElementById('goNetWorth').textContent = '$' + netWorth.toFixed(2);
+  document.getElementById('goDays').textContent = G.day;
+  document.getElementById('goServed').textContent = G.totalServed;
+  document.getElementById('goRep').textContent = G.reputation.toFixed(1);
+
+  // Save final stats
+  saveGame();
+  saveLeaderboard();
+
+  showScreen('gameOverScreen');
+}
+
+// ============================================
+// FIREBASE SAVE/LOAD
+// ============================================
+async function saveGame() {
+  try {
+    const saveData = { ...G };
+    delete saveData._forecastWeather; // Don't save transient data
+    saveData.upgrades = JSON.stringify(G.upgrades);
+    saveData.flavors = JSON.stringify(G.flavors);
+    saveData.lastPlayed = new Date().toISOString();
+    saveData.studentName = studentName;
+    saveData.classCode = classCode;
+    await setDoc(doc(db, 'lemonadeGame', studentId), saveData);
+  } catch(e) {
+    console.warn('Save failed:', e);
+  }
+}
+
+async function saveLeaderboard() {
+  try {
+    const netWorth = G.money + G.savings;
+    await setDoc(doc(db, 'lemonadeLeaderboard', studentId), {
+      name: studentName,
+      netWorth: netWorth,
+      reputation: G.reputation,
+      totalServed: G.totalServed,
+      day: G.day,
+      location: G.location,
+      classCode: classCode || null,
+      updatedAt: new Date().toISOString()
+    });
+  } catch(e) {
+    console.warn('Leaderboard save failed:', e);
+  }
+}
+
+async function awardODACoins(coins) {
+  if (coins <= 0) return;
+  try {
+    const ref = doc(db, 'students', studentId);
+    await updateDoc(ref, { coins: increment(coins) }).catch(() => {
+      // Student doc might not exist
+    });
+  } catch(e) {}
+}
+
+async function loadRecords() {
+  // My stats
+  const netWorth = G.money + G.savings;
+  document.getElementById('recNetWorth').textContent = '$' + netWorth.toFixed(0);
+  document.getElementById('recServed').textContent = G.totalServed;
+  document.getElementById('recDays').textContent = G.day;
+
+  // Leaderboard
+  const list = document.getElementById('lbList');
+  list.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+
+  try {
+    let q;
+    if (classCode) {
+      q = query(collection(db, 'lemonadeLeaderboard'),
+        where('classCode', '==', classCode),
+        orderBy('netWorth', 'desc'),
+        limit(20));
+    } else {
+      q = query(collection(db, 'lemonadeLeaderboard'),
+        orderBy('netWorth', 'desc'),
+        limit(20));
+    }
+    const snap = await getDocs(q);
+    if (snap.empty) {
+      list.innerHTML = '<p style="color:var(--text2)">No entries yet. Play a game!</p>';
+      return;
+    }
+    list.innerHTML = '';
+    let rank = 0;
+    snap.forEach(d => {
+      rank++;
+      const data = d.data();
+      const item = document.createElement('div');
+      item.className = 'lb-item';
+      const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+      const medal = rank === 1 ? '\uD83E\uDD47' : rank === 2 ? '\uD83E\uDD48' : rank === 3 ? '\uD83E\uDD49' : rank;
+      item.innerHTML = `
+        <span class="lb-rank ${rankClass}">${medal}</span>
+        <span class="lb-name">${escHtml(data.name || 'Player')}</span>
+        <span class="lb-val">$${(data.netWorth || 0).toFixed(0)}</span>`;
+      if (d.id === studentId) item.style.border = '1px solid var(--accent)';
+      list.appendChild(item);
+    });
+  } catch(e) {
+    list.innerHTML = '<p style="color:var(--text2)">Could not load leaderboard.</p>';
+  }
+}
+
+function escHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ============================================
+// WINDOW EXPORTS (for onclick handlers)
+// ============================================
+window.startGame = startGame;
+window.continueGame = continueGame;
+window.buySupply = buySupply;
+window.goToRecipe = goToRecipe;
+window.updateRecipe = updateRecipe;
+window.goToPrice = goToPrice;
+window.updatePrice = updatePrice;
+window.startServing = startServing;
+window.serveCustomer = serveCustomer;
+window.updateSavingsPreview = updateSavingsPreview;
+window.nextDay = nextDay;
+window.toggleSound = toggleSound;
+window.backFromShop = backFromShop;
+window.setFlavor = setFlavor;
+
+// Event handlers
+window.applySale = applySale;
+window.buyPermit = buyPermit;
+window.skipPermit = skipPermit;
+window.inspectorFail = inspectorFail;
+window.processBulkOrder = processBulkOrder;
+window.closeEvent = closeEvent;
+window.handleKaren = handleKaren;
+window.closeKaren = closeKaren;
+window.handleTheft = handleTheft;
+window.closeTheft = closeTheft;
+window.paySickSettlement = paySickSettlement;
+window.loadRecords = loadRecords;
+
+// Update home stats on load
+updateHomeStats();
+
+// Wrap showScreen to track shop origin
+window.showScreen = function(id) {
+  if (id === 'shopScreen') {
+    const current = document.querySelector('.screen.active');
+    if (current) G.shopFrom = current.id;
+  }
+  showScreen(id);
+};
+</script>
+</body>
+</html>
