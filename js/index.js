@@ -165,6 +165,10 @@ window.pickGrade = function (grade) {
 window.pickStudent = function (id) {
   var student = stuStudents.find(function (s) { return s.id === id; });
   if (!student) return;
+  // Clear any stale teacher session data first
+  localStorage.removeItem('userRole');
+  localStorage.removeItem('odaUserRole');
+  localStorage.removeItem('teacherId');
   localStorage.setItem('studentId', student.id);
   localStorage.setItem('studentName', student.name);
   window.location.href = 'student.html';
