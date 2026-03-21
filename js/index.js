@@ -200,6 +200,12 @@ window.teacherLogin = async function () {
   btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
   try {
     await window.signInWithEmailAndPassword(window.firebaseAuth, email, pass);
+    // Clear any stale student session data
+    localStorage.removeItem('studentId');
+    localStorage.removeItem('studentName');
+    localStorage.removeItem('classCode');
+    localStorage.removeItem('parentStudentId');
+    localStorage.removeItem('parentStudentName');
     window.location.href = 'teacher.html';
   } catch (e) {
     btn.textContent = 'Sign In'; btn.disabled = false;
@@ -242,6 +248,12 @@ window.googleLogin = async function () {
       var code = String(Math.floor(100000 + Math.random() * 900000));
       await window.fbSetDoc(teacherRef, { classCode: code }, { merge: true });
     }
+    // Clear any stale student session data
+    localStorage.removeItem('studentId');
+    localStorage.removeItem('studentName');
+    localStorage.removeItem('classCode');
+    localStorage.removeItem('parentStudentId');
+    localStorage.removeItem('parentStudentName');
     window.location.href = 'teacher.html';
   } catch (e) {
     if (e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-browser' || e.code === 'auth/cancelled-popup-request') {
@@ -288,6 +300,10 @@ window.teacherSignup = async function () {
       createdAt: new Date().toISOString()
     });
     try { await window.sendEmailVerification(cred.user); } catch (ev) { console.warn('Verification email:', ev); }
+    // Clear any stale student session data
+    localStorage.removeItem('studentId');
+    localStorage.removeItem('studentName');
+    localStorage.removeItem('classCode');
     window.location.href = 'teacher.html';
   } catch (e) {
     sbtn.textContent = 'Create Account \u{1F680}'; sbtn.disabled = false;
