@@ -554,14 +554,14 @@ updateQuickStats();
 // CAR DEFINITIONS
 // =============================================
 var CAR_BODIES = {
-  sedan:     { name:'Sedan',      icon:'&#128663;', speed:3, grip:3, weight:3, fuel:3, cost:0,    unlock:'free' },
-  hatchback: { name:'Hatchback',  icon:'&#128664;', speed:2, grip:4, weight:2, fuel:4, cost:200,  unlock:'buy' },
-  truck:     { name:'Truck',      icon:'&#128666;', speed:2, grip:5, weight:5, fuel:5, cost:0,    unlock:'boss10' },
-  sports:    { name:'Sports Car', icon:'&#127950;', speed:5, grip:3, weight:2, fuel:2, cost:0,    unlock:'boss25' },
-  suv:       { name:'SUV',        icon:'&#128665;', speed:3, grip:4, weight:4, fuel:4, cost:400,  unlock:'buy' },
-  muscle:    { name:'Muscle Car', icon:'&#128661;', speed:5, grip:2, weight:4, fuel:2, cost:0,    unlock:'boss50' },
-  buggy:     { name:'Dune Buggy', icon:'&#127950;', speed:3, grip:5, weight:1, fuel:3, cost:600,  unlock:'buy' },
-  supercar:  { name:'Supercar',   icon:'&#127950;', speed:5, grip:4, weight:2, fuel:1, cost:0,    unlock:'boss100' }
+  sedan:     { name:'Cruiser',       icon:'&#128663;', speed:3, grip:3, weight:3, fuel:3, cost:0,    unlock:'free' },
+  hatchback: { name:'Zippy',         icon:'&#128664;', speed:2, grip:4, weight:2, fuel:4, cost:200,  unlock:'buy' },
+  truck:     { name:'Trailblazer',   icon:'&#128666;', speed:2, grip:5, weight:5, fuel:5, cost:0,    unlock:'boss10' },
+  sports:    { name:'Stallion',      icon:'&#127950;', speed:5, grip:3, weight:2, fuel:2, cost:0,    unlock:'boss25' },
+  suv:       { name:'Titan',         icon:'&#128665;', speed:3, grip:4, weight:4, fuel:4, cost:400,  unlock:'buy' },
+  muscle:    { name:'Thunder',       icon:'&#128661;', speed:5, grip:2, weight:4, fuel:2, cost:0,    unlock:'boss50' },
+  buggy:     { name:'Sandstorm',     icon:'&#127950;', speed:3, grip:5, weight:1, fuel:3, cost:600,  unlock:'buy' },
+  supercar:  { name:'Raging Bull',   icon:'&#127950;', speed:5, grip:4, weight:2, fuel:1, cost:0,    unlock:'boss100' }
 };
 
 var PAINT_COLORS = [
@@ -628,9 +628,9 @@ var UPGRADE_COSTS = [100, 250, 500, 1000, 2000];
 function getCarStats() {
   var base = CAR_BODIES[gameState.car] || CAR_BODIES.sedan;
   return {
-    maxSpeed: 3 + base.speed * 0.8 + gameState.upgrades.engine * 0.6,
+    maxSpeed: 4 + base.speed * 1.2 + gameState.upgrades.engine * 0.8,
     grip: 0.6 + base.grip * 0.08 + gameState.upgrades.tires * 0.06,
-    accel: 0.08 + (5 - base.weight) * 0.01 + gameState.upgrades.weight * 0.015,
+    accel: 0.3 + (5 - base.weight) * 0.04 + gameState.upgrades.weight * 0.05,
     fuelMax: 80 + base.fuel * 8 + gameState.upgrades.fuel * 12,
     nitro: 1.5 + gameState.upgrades.turbo * 0.5,
     bounce: 0.7 + gameState.upgrades.suspension * 0.06,
@@ -783,16 +783,21 @@ function drawCar(ctx, x, y, w, h, angle, opts) {
 function generateTerrain(length) {
   var points = [];
   var x = 0, y = 400;
-  // Flat start
-  for (var fi = 0; fi < 600; fi += 20) {
+  // Short flat start (just enough to get rolling)
+  for (var fi = 0; fi < 300; fi += 20) {
     points.push({ x: fi, y: 400 });
   }
-  x = 600;
+  x = 300;
   while (x < length) {
-    var segLen = 40 + Math.random() * 80;
-    var difficulty = Math.min(x / 5000, 1);
-    var heightChange = (Math.random() - 0.45) * (30 + difficulty * 60);
-    y = Math.max(150, Math.min(520, y + heightChange));
+    var segLen = 30 + Math.random() * 60;
+    var difficulty = Math.min(x / 3000, 1);
+    // Much more dramatic hills — steep ups and downs for airtime
+    var heightChange = (Math.random() - 0.42) * (50 + difficulty * 120);
+    // Occasionally create a big ramp (steep up then steep down)
+    if (Math.random() < 0.12 + difficulty * 0.08) {
+      heightChange = -(60 + difficulty * 80); // Big uphill ramp
+    }
+    y = Math.max(120, Math.min(520, y + heightChange));
     points.push({ x: x, y: y });
     x += segLen;
   }
@@ -947,21 +952,19 @@ function updateHillPhysics(dt) {
 
   // Gas / Brake
   if (hillKeys.gas && car.fuel > 0) {
-    var power = stats.accel * 300;
+    var power = stats.accel * 800;
     car.vx += Math.cos(car.angle) * power * dt;
-    car.vy += Math.sin(car.angle) * power * dt * 0.3;
-    car.fuel -= dt * (8 + Math.abs(car.vx) * 0.02);
+    car.vy += Math.sin(car.angle) * power * dt * 0.5;
+    car.fuel -= dt * (5 + Math.abs(car.vx) * 0.01);
   }
   if (hillKeys.brake) {
     car.vx *= (1 - stats.brakeForce * dt * 5);
   }
 
-  // Speed cap
-  var speed = Math.sqrt(car.vx * car.vx + car.vy * car.vy);
-  var maxPx = stats.maxSpeed * 100;
-  if (speed > maxPx) {
-    car.vx *= maxPx / speed;
-    car.vy *= maxPx / speed;
+  // Speed cap (horizontal only — don't limit gravity/airtime)
+  var maxPx = stats.maxSpeed * 120;
+  if (Math.abs(car.vx) > maxPx) {
+    car.vx = maxPx * Math.sign(car.vx);
   }
 
   // Apply velocity
