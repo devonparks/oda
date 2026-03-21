@@ -56,7 +56,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .home-header{text-align:center;margin-bottom:36px}
 .home-header h1{font-size:clamp(36px,8vw,52px);font-weight:700;margin-bottom:4px}
 .home-header p{color:var(--text2);font-size:15px}
-.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:700px;width:90%;margin:0 auto}
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:900px;width:90%;margin:0 auto}
 .mode-card{cursor:pointer;text-align:center;padding:28px 20px}
 .mode-card .mode-icon{font-size:40px;margin-bottom:12px;display:block}
 .mode-card h3{font-size:18px;margin-bottom:6px}
@@ -116,7 +116,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .board-area{flex:0 0 auto;position:relative}
 .board-frame{background:var(--board-frame,#1a0e08);border:3px solid var(--border);border-radius:16px;padding:clamp(4px,1vw,10px);display:inline-block;position:relative;box-shadow:var(--board-glow,0 8px 40px rgba(0,0,0,.4))}
 .board-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:0;position:relative;z-index:3}
-.sq{width:clamp(40px,9vw,68px);height:clamp(40px,9vw,68px);display:flex;align-items:center;justify-content:center;position:relative;cursor:default}
+.sq{width:clamp(48px,10vw,88px);height:clamp(48px,10vw,88px);display:flex;align-items:center;justify-content:center;position:relative;cursor:default}
 .sq-light{background:var(--board-light,#f5deb3)}
 .sq-dark{background:var(--board-dark,#8B4513)}
 .sq:first-child{border-radius:8px 0 0 0}
@@ -131,7 +131,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .piece-2{background:var(--gold);box-shadow:inset 0 -3px 8px rgba(0,0,0,.2),0 2px 8px rgba(255,209,102,.4)}
 .piece-3{background:var(--accent3);box-shadow:inset 0 -3px 8px rgba(0,0,0,.3),0 2px 8px rgba(239,71,111,.4)}
 .piece-4{background:var(--gold);box-shadow:inset 0 -3px 8px rgba(0,0,0,.2),0 2px 8px rgba(255,209,102,.4)}
-.piece.king::before{content:'\u2605';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:clamp(14px,3.5vw,22px);color:rgba(255,255,255,.85);z-index:3;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.piece.king::before{content:'\1F451';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:clamp(16px,4vw,26px);z-index:3;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
 .piece.king::after{display:none}
 .piece.selected{transform:scale(1.12);box-shadow:0 0 20px rgba(6,214,160,.6),0 0 40px rgba(6,214,160,.3);animation:selectedPulse 1.2s ease-in-out infinite}
 @keyframes selectedPulse{0%,100%{box-shadow:0 0 20px rgba(6,214,160,.6)}50%{box-shadow:0 0 30px rgba(6,214,160,.8),0 0 50px rgba(6,214,160,.4)}}
@@ -262,7 +262,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 }
 @media(max-width:500px){
   .mode-grid{grid-template-columns:1fr}
-  .sq{width:clamp(38px,11.5vw,48px)!important;height:clamp(38px,11.5vw,48px)!important}
+  .sq{width:clamp(40px,11.5vw,52px)!important;height:clamp(40px,11.5vw,52px)!important}
   .board-frame{padding:3px}
   .home-header{padding:0 16px}
   .bracket-round{min-width:160px}
@@ -504,7 +504,7 @@ let coinsAwarded=false,resultTimeout=null,spectateMode=false;
 let selectedFormat=1;
 let seriesFormat=1,seriesScore=[0,0],seriesGame=1,seriesWinner=null;
 let currentTourneyCode=null,currentTourneyData=null,opponentRecord=null;
-let selectedPiece=null,validMoves=[],moveCount=0;
+let selectedPiece=null,validMoves=[],moveCount=0,movesWithoutCapture=0;
 
 /* ===== COSMETICS ===== */
 let myCosmetics={};
@@ -608,16 +608,16 @@ function getSimpleMoves(board,player){
 
 function getAllMoves(board,player){
   const caps=getAllCaptures(board,player);
-  if(caps.length>0)return caps;
-  return getSimpleMoves(board,player);
+  const simple=getSimpleMoves(board,player);
+  return [...caps,...simple];
 }
 
 function getMovesFrom(board,row,col,player){
   const piece=board[row][col];
   if(!isOwn(piece,player))return[];
-  const allCaps=getAllCaptures(board,player);
-  if(allCaps.length>0)return allCaps.filter(m=>m.fromRow===row&&m.fromCol===col);
-  return getSimpleMoves(board,player).filter(m=>m.fromRow===row&&m.fromCol===col);
+  const caps=getCapturesForPiece(board,row,col,[]).map(m=>({fromRow:row,fromCol:col,...m}));
+  const simple=getSimpleMoves(board,player).filter(m=>m.fromRow===row&&m.fromCol===col);
+  return [...caps,...simple];
 }
 
 function applyMove(board,move){
@@ -692,7 +692,6 @@ async function loadRecords(){
 /* ===== BOARD RENDERING ===== */
 function renderBoard(board,turn,isMyTurn){
   const el=document.getElementById('board');el.innerHTML='';
-  const hasCaps=isMyTurn?getAllCaptures(board,aiMode?1:myPlayer).length>0:false;
   for(let r=0;r<8;r++){for(let c=0;c<8;c++){
     const sq=document.createElement('div');
     sq.className='sq '+((r+c)%2===0?'sq-light':'sq-dark');
@@ -751,7 +750,7 @@ function updateTurnUI(turn){
 function startAiGame(diff){
   aiMode=true;spectateMode=false;aiDifficulty=diff;
   aiBoard=initBoard();aiTurn=1;aiThinking=false;
-  myPlayer=1;coinsAwarded=false;moveCount=0;
+  myPlayer=1;coinsAwarded=false;moveCount=0;movesWithoutCapture=0;
   selectedPiece=null;validMoves=[];  document.getElementById('p1Name').textContent=studentName||'You';
   document.getElementById('p2Name').textContent='AI ('+diff.charAt(0).toUpperCase()+diff.slice(1)+')';
   document.getElementById('p1Record').textContent='';document.getElementById('p2Record').textContent='';
@@ -771,10 +770,11 @@ function executeAiPlayerMove(move){
   const origPiece=aiBoard[selectedPiece[0]][selectedPiece[1]];
   aiBoard=applyMove(aiBoard,{fromRow:selectedPiece[0],fromCol:selectedPiece[1],...move});
   selectedPiece=null;validMoves=[];
-  if(hadCapture)SFX.play('capture');else SFX.play('move');
+  if(hadCapture){SFX.play('capture');movesWithoutCapture=0}else{SFX.play('move');movesWithoutCapture++}
   const landPiece=aiBoard[move.toRow][move.toCol];
   if(isKing(landPiece)&&!isKing(origPiece))SFX.play('king');
   moveCount++;
+  if(movesWithoutCapture>=40){setTimeout(()=>showResult({winner:0,isAi:true,isDraw:true}),400);renderBoard(aiBoard,1,false);updateTurnUI(1);return}
   if(isGameOver(aiBoard,2)){setTimeout(()=>showResult({winner:1,isAi:true}),400);renderBoard(aiBoard,1,false);updateTurnUI(1);return}
   if(countPieces(aiBoard,2)===0){setTimeout(()=>showResult({winner:1,isAi:true}),400);renderBoard(aiBoard,1,false);return}
   aiTurn=2;renderBoard(aiBoard,aiTurn,false);updateTurnUI(aiTurn);
@@ -793,9 +793,10 @@ function doAiMove(){
   const hadCapture=move.captures.length>0;
   const origAiPiece=aiBoard[move.fromRow][move.fromCol];
   aiBoard=applyMove(aiBoard,move);
-  if(hadCapture)SFX.play('capture');else SFX.play('move');
+  if(hadCapture){SFX.play('capture');movesWithoutCapture=0}else{SFX.play('move');movesWithoutCapture++}
   if(isKing(aiBoard[move.toRow][move.toCol])&&!isKing(origAiPiece))SFX.play('king');
   moveCount++;aiThinking=false;
+  if(movesWithoutCapture>=40){aiTurn=1;renderBoard(aiBoard,aiTurn,false);setTimeout(()=>showResult({winner:0,isAi:true,isDraw:true}),400);return}
   if(isGameOver(aiBoard,1)||countPieces(aiBoard,1)===0){aiTurn=1;renderBoard(aiBoard,aiTurn,false);setTimeout(()=>showResult({winner:2,isAi:true}),400);return}
   aiTurn=1;selectedPiece=null;validMoves=[];
   renderBoard(aiBoard,aiTurn,true);updateTurnUI(aiTurn);
@@ -872,7 +873,7 @@ async function executeMultiplayerMove(move){
 }
 
 async function createGame(){
-  try{aiMode=false;spectateMode=false;coinsAwarded=false;moveCount=0;
+  try{aiMode=false;spectateMode=false;coinsAwarded=false;moveCount=0;movesWithoutCapture=0;
   selectedPiece=null;validMoves=[];  roomCode=genCode();let ref=doc(db,'checkersGames',roomCode);let snap=await getDoc(ref);
   let retries=0;while(snap.exists()&&retries<10){roomCode=genCode();ref=doc(db,'checkersGames',roomCode);snap=await getDoc(ref);retries++}
   await setDoc(ref,{board:JSON.stringify(initBoard()),turn:1,player1:studentId,player1Name:studentName,player2:null,player2Name:null,status:'waiting',winner:null,classCode:classCode||null,seriesFormat:selectedFormat,seriesScore:[0,0],seriesGame:1,seriesWinner:null});
@@ -882,7 +883,7 @@ async function createGame(){
 }
 
 async function joinGame(){
-  aiMode=false;spectateMode=false;coinsAwarded=false;moveCount=0;
+  aiMode=false;spectateMode=false;coinsAwarded=false;moveCount=0;movesWithoutCapture=0;
   selectedPiece=null;validMoves=[];  const code=document.getElementById('codeInput').value.trim();
   if(code.length!==4){showError('Enter a 4-digit code');return}
   try{const ref=doc(db,'checkersGames',code);const snap=await getDoc(ref);
@@ -932,7 +933,8 @@ function showResult(data){
   const seriesWP=score[0]>=winsNeeded?1:(score[1]>=winsNeeded?2:null);
 
   if(data.isAi){
-    if(data.winner===1){titleEl.textContent='You Win!';titleEl.style.color='var(--accent)';subEl.textContent='You beat the AI on '+aiDifficulty+'!';coins=aiDifficulty==='hard'?30:aiDifficulty==='medium'?20:10;recordResult='win';SFX.play('win');if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti')}
+    if(data.isDraw){titleEl.textContent='Draw!';titleEl.style.color='var(--gold)';subEl.textContent='No captures for 40 moves - it\'s a draw!';coins=5;recordResult='draw'}
+    else if(data.winner===1){titleEl.textContent='You Win!';titleEl.style.color='var(--accent)';subEl.textContent='You beat the AI on '+aiDifficulty+'!';coins=aiDifficulty==='hard'?30:aiDifficulty==='medium'?20:10;recordResult='win';SFX.play('win');if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti')}
     else{titleEl.textContent='AI Wins!';titleEl.style.color='var(--accent3)';subEl.textContent='The AI outplayed you';coins=3;recordResult='loss';SFX.play('lose')}
   }else{
     const iWon=data.winner===myPlayer,iWonSeries=isSeriesOver&&seriesWP===myPlayer,iLostSeries=isSeriesOver&&seriesWP&&seriesWP!==myPlayer;

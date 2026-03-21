@@ -77,7 +77,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 @keyframes swing{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
 .home-header p{color:var(--text2);font-size:15px}
 
-.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;max-width:700px;width:90%;margin:0 auto}
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;max-width:900px;width:90%;margin:0 auto}
 .mode-card{cursor:pointer;text-align:center;padding:28px 20px}
 .mode-card .mode-icon{font-size:40px;margin-bottom:12px;display:block}
 .mode-card h3{font-size:18px;margin-bottom:6px}
@@ -124,7 +124,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 /* GAME SCREEN              */
 /* ======================== */
 #gameScreen{padding:60px 16px 40px;min-height:100vh;justify-content:flex-start}
-.game-container{max-width:700px;width:100%;display:flex;flex-direction:column;align-items:center;gap:20px}
+.game-container{max-width:900px;width:100%;display:flex;flex-direction:column;align-items:center;gap:20px}
 
 /* Game HUD */
 .game-hud{display:flex;justify-content:space-between;align-items:center;width:100%;flex-wrap:wrap;gap:8px}
@@ -189,7 +189,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .letter-space{min-width:16px}
 
 /* Keyboard */
-.keyboard{display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;max-width:520px}
+.keyboard{display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;max-width:640px}
 .kb-row{display:flex;gap:6px;justify-content:center}
 .kb-key{width:clamp(32px,8vw,44px);height:clamp(38px,9vw,48px);border:2px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);font-family:'Fredoka',sans-serif;font-size:clamp(14px,3.5vw,18px);font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
 .kb-key:hover:not(.used){border-color:var(--accent);background:rgba(6,214,160,.1);transform:translateY(-2px)}
@@ -252,7 +252,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 /* RECORDS SCREEN           */
 /* ======================== */
 #recordsScreen{padding-top:60px;padding-bottom:40px}
-.records-container{max-width:700px;width:90%}
+.records-container{max-width:900px;width:90%}
 .records-container h2{font-size:28px;text-align:center;margin-bottom:24px}
 .my-record-card{margin-bottom:24px}
 .my-record-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:8px}
@@ -278,6 +278,27 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .mp-player .mp-name{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px}
 .mp-player .mp-role{font-size:11px;color:var(--text2)}
 .mp-vs{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:var(--text2);flex-shrink:0}
+
+/* Desktop: bigger game */
+@media(min-width:768px){
+  .hangman-area{width:300px;height:340px;transform:scale(1.25);transform-origin:top center;margin-bottom:40px}
+  .kb-key{width:52px;height:56px;font-size:22px;border-radius:12px}
+  .kb-row{gap:10px}
+  .letter-slot{min-width:48px}
+  .letter-char{font-size:48px;height:60px}
+  .word-display{gap:16px}
+  .cat-container{max-width:800px}
+}
+@media(min-width:1200px){
+  .game-container{max-width:1100px}
+  .hangman-area{transform:scale(1.5);margin-bottom:80px}
+  .kb-key{width:56px;height:60px;font-size:24px}
+  .kb-row{gap:12px}
+  .keyboard{max-width:760px}
+  .letter-slot{min-width:52px}
+  .letter-char{font-size:52px;height:66px}
+  .word-display{gap:18px}
+}
 
 /* ======================== */
 /* MOBILE RESPONSIVE        */
@@ -929,7 +950,7 @@ function startGame(diff) {
   gameActive = true;
   coinsAwarded = false;
   mpMode = false;
-  currentWord = pickWord(diff);
+  currentWord = pickWord(diff).toUpperCase();
 
   document.getElementById('soloHud').style.display = '';
   document.getElementById('mpHud').style.display = 'none';
@@ -976,9 +997,9 @@ function buildWordDisplay() {
     if (ch === ' ') {
       display.innerHTML += '<div class="letter-space"></div>';
     } else {
-      const revealed = guessedLetters.has(ch);
+      const revealed = guessedLetters.has(ch.toUpperCase());
       display.innerHTML += `<div class="letter-slot">
-        <span class="letter-char ${revealed ? 'revealed' : ''}" data-idx="${i}">${ch}</span>
+        <span class="letter-char ${revealed ? 'revealed' : ''}" data-idx="${i}">${ch.toUpperCase()}</span>
         <div class="letter-line ${revealed ? 'revealed' : ''}"></div>
       </div>`;
     }
@@ -993,7 +1014,7 @@ function buildKeyboard() {
       let cls = 'kb-key';
       if (guessedLetters.has(l)) {
         cls += ' used';
-        cls += currentWord.includes(l) ? ' correct' : ' wrong';
+        cls += currentWord.toUpperCase().includes(l) ? ' correct' : ' wrong';
       }
       return `<button class="${cls}" data-letter="${l}" onclick="HM.guessLetter('${l}')">${l}</button>`;
     }).join('')}</div>`
@@ -1004,12 +1025,13 @@ function buildKeyboard() {
 /* GUESS A LETTER        */
 /* ===================== */
 function guessLetter(letter) {
+  letter = letter.toUpperCase();
   if (!gameActive || guessedLetters.has(letter)) return;
 
   playSound('click');
   guessedLetters.add(letter);
 
-  if (currentWord.includes(letter)) {
+  if (currentWord.toUpperCase().includes(letter)) {
     // Correct!
     playSound('correct');
     revealLetters(letter, 'revealed');
@@ -1059,8 +1081,9 @@ function guessLetter(letter) {
 }
 
 function revealLetters(letter, cls) {
+  letter = letter.toUpperCase();
   for (let i = 0; i < currentWord.length; i++) {
-    if (currentWord[i] === letter) {
+    if (currentWord[i].toUpperCase() === letter) {
       const chars = document.querySelectorAll('.letter-char');
       const lines = document.querySelectorAll('.letter-line');
       chars.forEach(c => {
@@ -1080,7 +1103,7 @@ function revealLetters(letter, cls) {
 
 function checkWin() {
   for (const ch of currentWord) {
-    if (ch !== ' ' && !guessedLetters.has(ch)) return false;
+    if (ch !== ' ' && !guessedLetters.has(ch.toUpperCase())) return false;
   }
   return true;
 }
@@ -1157,8 +1180,9 @@ function useHint() {
   // Find unrevealed letters
   const unrevealed = [];
   for (const ch of currentWord) {
-    if (ch !== ' ' && !guessedLetters.has(ch) && !unrevealed.includes(ch)) {
-      unrevealed.push(ch);
+    const upper = ch.toUpperCase();
+    if (ch !== ' ' && !guessedLetters.has(upper) && !unrevealed.includes(upper)) {
+      unrevealed.push(upper);
     }
   }
   if (unrevealed.length === 0) return;
@@ -1178,7 +1202,7 @@ function useHint() {
   buildWordDisplay();
   // Mark the hint letter slots
   document.querySelectorAll('.letter-char').forEach(c => {
-    if (currentWord[parseInt(c.dataset.idx)] === hintLetter) {
+    if (currentWord[parseInt(c.dataset.idx)].toUpperCase() === hintLetter) {
       c.classList.remove('revealed');
       c.classList.add('hint-reveal');
     }
@@ -1192,11 +1216,12 @@ function useHint() {
     if (ch === ' ') {
       display.innerHTML += '<div class="letter-space"></div>';
     } else {
-      const isGuessed = guessedLetters.has(ch);
-      const isHint = ch === hintLetter;
+      const upper = ch.toUpperCase();
+      const isGuessed = guessedLetters.has(upper);
+      const isHint = upper === hintLetter;
       const cls = isHint ? 'hint-reveal' : (isGuessed ? 'revealed' : '');
       display.innerHTML += `<div class="letter-slot">
-        <span class="letter-char ${cls}" data-idx="${i}">${ch}</span>
+        <span class="letter-char ${cls}" data-idx="${i}">${upper}</span>
         <div class="letter-line ${cls}"></div>
       </div>`;
     }
@@ -1232,7 +1257,7 @@ async function endGame(won) {
     currentStreak = 0;
     // Reveal remaining letters in red
     for (const ch of currentWord) {
-      if (ch !== ' ') guessedLetters.add(ch);
+      if (ch !== ' ') guessedLetters.add(ch.toUpperCase());
     }
     const display = document.getElementById('wordDisplay');
     display.innerHTML = '';
@@ -1242,7 +1267,7 @@ async function endGame(won) {
         display.innerHTML += '<div class="letter-space"></div>';
       } else {
         display.innerHTML += `<div class="letter-slot">
-          <span class="letter-char wrong-reveal" data-idx="${i}">${ch}</span>
+          <span class="letter-char wrong-reveal" data-idx="${i}">${ch.toUpperCase()}</span>
           <div class="letter-line wrong-reveal"></div>
         </div>`;
       }
@@ -1801,6 +1826,7 @@ async function submitWord() {
 }
 
 async function syncMPGuess(letter) {
+  letter = letter.toUpperCase();
   if (!roomCode) return;
   try {
     await initFirebase();
@@ -1809,7 +1835,7 @@ async function syncMPGuess(letter) {
     if (!snap.exists()) return;
     const data = snap.data();
 
-    const letters = data.guessedLetters ? data.guessedLetters.split(',').filter(Boolean) : [];
+    const letters = data.guessedLetters ? data.guessedLetters.split(',').filter(Boolean).map(l => l.toUpperCase()) : [];
     if (!letters.includes(letter)) letters.push(letter);
 
     const word = data.word.toUpperCase();
@@ -1817,7 +1843,7 @@ async function syncMPGuess(letter) {
     const newWrongCount = isWrong ? (data.wrongCount || 0) + 1 : (data.wrongCount || 0);
 
     // Check if game is over
-    const allGuessed = word.split('').every(ch => ch === ' ' || letters.includes(ch));
+    const allGuessed = word.split('').every(ch => ch === ' ' || letters.includes(ch.toUpperCase()));
     const lost = newWrongCount >= (data.maxWrong || 6);
 
     const update = {

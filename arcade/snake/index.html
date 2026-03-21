@@ -23,7 +23,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 
 /* Screen System */
-.screen{display:none;width:100%;max-width:600px;padding:16px;min-height:100vh;min-height:100dvh}
+.screen{display:none;width:100%;max-width:900px;padding:16px;min-height:100vh;min-height:100dvh}
 .screen.active{display:flex;flex-direction:column;align-items:center;animation:fadeUp .35s ease}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 
@@ -85,7 +85,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 /* GAME SCREEN              */
 /* ======================== */
 #gameScreen{padding-top:8px;min-height:auto;justify-content:flex-start}
-.game-hud{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:560px;padding:8px 4px;margin-bottom:6px}
+.game-hud{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:860px;padding:8px 4px;margin-bottom:6px}
 .hud-left,.hud-right{display:flex;align-items:center;gap:12px}
 .hud-score{font-family:'Fredoka',sans-serif;font-size:24px;font-weight:700}
 .hud-high{font-size:13px;color:var(--text2);font-weight:600}
@@ -93,7 +93,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .hud-btn{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:18px;transition:all .2s}
 .hud-btn:hover{border-color:var(--accent);color:var(--text)}
 
-.canvas-wrap{position:relative;width:100%;max-width:560px;aspect-ratio:4/3;background:var(--surface);border:2px solid var(--border);border-radius:16px;overflow:hidden}
+.canvas-wrap{position:relative;width:100%;max-width:860px;aspect-ratio:4/3;background:var(--surface);border:2px solid var(--border);border-radius:16px;overflow:hidden}
 .canvas-wrap canvas{width:100%;height:100%;display:block}
 
 /* D-Pad */
@@ -111,6 +111,29 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .pause-overlay{position:absolute;inset:0;background:rgba(10,14,26,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:10;backdrop-filter:blur(4px);border-radius:14px}
 .pause-overlay.active{display:flex}
 .pause-overlay h2{font-size:32px;margin-bottom:8px}
+
+/* Death / Game Over Overlay (in-canvas) */
+.death-overlay{position:absolute;inset:0;background:rgba(10,14,26,0);display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:15;border-radius:14px;text-align:center;padding:20px;transition:background .6s ease}
+.death-overlay.active{display:flex}
+.death-overlay.show-bg{background:rgba(10,14,26,.92);backdrop-filter:blur(6px)}
+.death-overlay h2{font-size:clamp(28px,6vw,38px);color:var(--accent3);opacity:0;transform:scale(.7);transition:all .4s ease;margin-bottom:4px}
+.death-overlay.show-bg h2{opacity:1;transform:scale(1)}
+.death-overlay.new-record h2{color:var(--gold)}
+.death-overlay .do-score-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;opacity:0;transition:opacity .3s ease .3s}
+.death-overlay.show-bg .do-score-label{opacity:1}
+.death-overlay .do-score{font-family:'Fredoka',sans-serif;font-size:clamp(42px,10vw,56px);font-weight:700;color:var(--text);opacity:0;transform:translateY(10px);transition:all .4s ease .35s}
+.death-overlay.show-bg .do-score{opacity:1;transform:translateY(0)}
+.death-overlay .do-stats{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;opacity:0;transition:opacity .3s ease .5s}
+.death-overlay.show-bg .do-stats{opacity:1}
+.death-overlay .do-stat{text-align:center;min-width:60px}
+.death-overlay .do-stat .dsv{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:var(--accent)}
+.death-overlay .do-stat .dsl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.death-overlay .do-coins{display:inline-flex;align-items:center;gap:6px;font-size:16px;font-weight:800;color:var(--gold);font-family:'Fredoka',sans-serif;opacity:0;transition:opacity .3s ease .6s}
+.death-overlay.show-bg .do-coins{opacity:1}
+.death-overlay .do-record{font-size:13px;color:var(--gold);font-weight:700;opacity:0;transition:opacity .3s ease .55s;animation:pulse 1.5s ease-in-out infinite}
+.death-overlay.show-bg .do-record{opacity:1}
+.death-overlay .do-btns{display:flex;flex-direction:column;gap:10px;align-items:center;margin-top:6px;opacity:0;transition:opacity .3s ease .7s}
+.death-overlay.show-bg .do-btns{opacity:1}
 
 /* ======================== */
 /* GAME OVER SCREEN         */
@@ -224,6 +247,23 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <button class="btn btn-accent" onclick="togglePause()">&#9654;&#65039; Resume</button>
       <button class="btn btn-outline btn-small" onclick="restartGame()">&#128260; Restart</button>
       <button class="btn btn-outline btn-small" onclick="quitToHome()">&#128682; Quit</button>
+    </div>
+    <!-- Death / Game Over Overlay -->
+    <div class="death-overlay" id="deathOverlay">
+      <h2 id="doTitle">Game Over</h2>
+      <div class="do-score-label">SCORE</div>
+      <div class="do-score" id="doScore">0</div>
+      <div class="do-record" id="doRecord" style="display:none">&#127942; New Personal Best!</div>
+      <div class="do-stats">
+        <div class="do-stat"><div class="dsv" id="doLength">0</div><div class="dsl">Length</div></div>
+        <div class="do-stat"><div class="dsv" id="doFood">0</div><div class="dsl">Food</div></div>
+        <div class="do-stat"><div class="dsv" id="doDiff">-</div><div class="dsl">Mode</div></div>
+      </div>
+      <div class="do-coins" id="doCoins"></div>
+      <div class="do-btns">
+        <button class="btn btn-accent btn-small" onclick="playAgain()">&#128260; Play Again</button>
+        <button class="btn btn-outline btn-small" onclick="quitToHome()">&#127968; Home</button>
+      </div>
     </div>
   </div>
   <div class="dpad" id="dpad">
@@ -502,6 +542,7 @@ function startGame(diff) {
   document.getElementById('hudScore').textContent = '0';
   document.getElementById('hudHigh').textContent = localStats.highScore;
   document.getElementById('pauseOverlay').classList.remove('active');
+  document.getElementById('deathOverlay').classList.remove('active', 'show-bg', 'new-record');
   document.getElementById('specialTimer').style.width = '0%';
 
   spawnFood();
@@ -1025,30 +1066,36 @@ function endGame() {
   if (isNewRecord) coins += 5;
   if (coins < 1 && score > 0) coins = 1;
 
-  // Show game over screen
-  showScreen('gameOverScreen');
+  // Show death overlay on the game canvas (not a separate screen)
+  var overlay = document.getElementById('deathOverlay');
+  var doTitle = document.getElementById('doTitle');
 
-  var header = document.getElementById('goHeader');
-  var title = document.getElementById('goTitle');
   if (isNewRecord && score > 0) {
-    header.classList.add('new-record');
-    title.textContent = 'New High Score!';
-    document.getElementById('goRecordBadge').innerHTML = '<div class="new-record-badge">&#127942; New Personal Best!</div>';
+    overlay.classList.add('new-record');
+    doTitle.textContent = 'New High Score!';
+    document.getElementById('doRecord').style.display = 'block';
     sfxHighScore();
     if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti');else if(typeof odaConfetti==='function')odaConfetti();
   } else {
-    header.classList.remove('new-record');
-    title.textContent = 'Game Over';
-    document.getElementById('goRecordBadge').innerHTML = '';
+    overlay.classList.remove('new-record');
+    doTitle.textContent = 'Game Over';
+    document.getElementById('doRecord').style.display = 'none';
   }
 
-  document.getElementById('goScore').textContent = score;
-  document.getElementById('goLength').textContent = snakeLen;
-  document.getElementById('goFood').textContent = foodEaten;
-  document.getElementById('goDiff').textContent = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+  document.getElementById('doScore').textContent = score;
+  document.getElementById('doLength').textContent = snakeLen;
+  document.getElementById('doFood').textContent = foodEaten;
+  document.getElementById('doDiff').textContent = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
 
   var coinSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="var(--gold)"><circle cx="12" cy="12" r="10" stroke="var(--gold)" stroke-width="2" fill="rgba(255,209,102,.2)"/><text x="12" y="16" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--gold)">$</text></svg>';
-  document.getElementById('goCoins').innerHTML = coinSvg + ' +' + coins + ' Coins';
+  document.getElementById('doCoins').innerHTML = coinSvg + ' +' + coins + ' Coins';
+
+  // Show overlay with animation
+  overlay.classList.add('active');
+  // Small delay so the particle animation is visible first, then fade in bg
+  setTimeout(function() {
+    overlay.classList.add('show-bg');
+  }, 100);
 
   // Award coins & save records
   if (!coinsAwarded && coins > 0) {
@@ -1171,11 +1218,13 @@ function quitToHome() {
   gameActive = false;
   gamePaused = false;
   deathAnimating = false;
+  document.getElementById('deathOverlay').classList.remove('active', 'show-bg', 'new-record');
   loadLocalStats();
   showScreen('homeScreen');
 }
 
 function playAgain() {
+  document.getElementById('deathOverlay').classList.remove('active', 'show-bg', 'new-record');
   startGame(difficulty);
 }
 
@@ -1307,5 +1356,4 @@ document.addEventListener('touchstart', function() { getAudioCtx(); }, { once: t
 loadLocalStats();
 </script>
 </body>
-</html>
 </html>
