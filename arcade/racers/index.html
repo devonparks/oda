@@ -227,6 +227,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   .personal-stats{max-width:500px}
   .leaderboard{max-width:560px}
 }
+@keyframes achSlide{from{opacity:0;transform:translateX(-50%) translateY(-30px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 </style>
 </head>
 <body>
@@ -591,14 +592,20 @@ var PAINT_COLORS = [
   { color:'#f97316', name:'Orange',  cost:100 },
   { color:'#ec4899', name:'Hot Pink', cost:150 },
   { color:'#14b8a6', name:'Teal',   cost:200 },
-  { color:'#000000', name:'Midnight', cost:500 }
+  { color:'#000000', name:'Midnight', cost:500 },
+  { color:'#84cc16', name:'Lime',    cost:75 },
+  { color:'#fb7185', name:'Rose',    cost:100 },
+  { color:'#67e8f9', name:'Ice Blue', cost:150 },
+  { color:'#cbd5e1', name:'Chrome',  cost:500 }
 ];
 
 var WHEEL_OPTIONS = [
   { id:'stock',    name:'Stock',    icon:'&#9898;',  cost:0 },
   { id:'chrome',   name:'Chrome',   icon:'&#11093;', cost:100 },
   { id:'gold',     name:'Gold',     icon:'&#127775;', cost:200 },
-  { id:'spinners', name:'Spinners', icon:'&#128171;', cost:300 }
+  { id:'spinners', name:'Spinners', icon:'&#128171;', cost:300 },
+  { id:'neon',     name:'Neon Rims', icon:'&#128161;', cost:250 },
+  { id:'monster',  name:'Monster Wheels', icon:'&#128165;', cost:400 }
 ];
 
 var SPOILER_OPTIONS = [
@@ -606,7 +613,9 @@ var SPOILER_OPTIONS = [
   { id:'small',   name:'Small',    icon:'&#9653;',  cost:50 },
   { id:'medium',  name:'Medium',   icon:'&#9651;',  cost:100 },
   { id:'gt',      name:'GT Wing',  icon:'&#127937;', cost:200 },
-  { id:'massive', name:'Massive',  icon:'&#128640;', cost:300 }
+  { id:'massive', name:'Massive',  icon:'&#128640;', cost:300 },
+  { id:'curved',  name:'Curved Wing', icon:'&#127936;', cost:150 },
+  { id:'f1',      name:'F1 Wing',  icon:'&#127950;', cost:400 }
 ];
 
 var UNDERGLOW_OPTIONS = [
@@ -615,7 +624,9 @@ var UNDERGLOW_OPTIONS = [
   { id:'blue',    name:'Blue',     color:'#118ab2',  cost:500 },
   { id:'red',     name:'Red',      color:'#ef476f',  cost:500 },
   { id:'purple',  name:'Purple',   color:'#7c3aed',  cost:500 },
-  { id:'rainbow', name:'Rainbow',  color:'rainbow',  cost:1000 }
+  { id:'rainbow', name:'Rainbow',  color:'rainbow',  cost:1000 },
+  { id:'white',   name:'White',    color:'#f0f4ff',  cost:500 },
+  { id:'gold',    name:'Gold',     color:'#ffd166',  cost:750 }
 ];
 
 var TRAIL_OPTIONS = [
@@ -623,7 +634,9 @@ var TRAIL_OPTIONS = [
   { id:'smoke',   name:'Smoke',    cost:200 },
   { id:'sparkle', name:'Sparkle',  cost:300 },
   { id:'fire',    name:'Fire',     cost:400 },
-  { id:'rainbow', name:'Rainbow',  cost:500 }
+  { id:'rainbow', name:'Rainbow',  cost:500 },
+  { id:'lightning', name:'Lightning', cost:600 },
+  { id:'pixel',   name:'Pixel',    cost:450 }
 ];
 
 var UPGRADE_DEFS = [
@@ -638,6 +651,66 @@ var UPGRADE_DEFS = [
 ];
 
 var UPGRADE_COSTS = [100, 250, 500, 1000, 2000];
+
+// =============================================
+// ACHIEVEMENTS
+// =============================================
+var RACER_ACHIEVEMENTS = [
+  { id:'rc_first', name:'First Race', desc:'Complete your first race', icon:'&#127937;', check: function(s){ return s.totalRuns >= 1; } },
+  { id:'rc_dist1k', name:'Distance 1000m', desc:'Reach 1000m in hill climb', icon:'&#127955;', check: function(s){ return s.totalDistance >= 1000; } },
+  { id:'rc_dist5k', name:'Distance 5000m', desc:'Reach 5000m in hill climb', icon:'&#127941;', check: function(s){ return s.totalDistance >= 5000; } },
+  { id:'rc_dist10k', name:'Distance 10000m', desc:'Reach 10000m in hill climb', icon:'&#127942;', check: function(s){ return s.totalDistance >= 10000; } },
+  { id:'rc_perfect', name:'Perfect Launch', desc:'Get a perfect drag race launch', icon:'&#9889;', check: function(s){ return s.perfectLaunch; } },
+  { id:'rc_shifts', name:'All Perfect Shifts', desc:'Get all perfect shifts in a drag race', icon:'&#128165;', check: function(s){ return s.allPerfectShifts; } },
+  { id:'rc_boss', name:'Beat Lightning', desc:'Beat the boss', icon:'&#128293;', check: function(s){ return s.beatBoss; } },
+  { id:'rc_speed', name:'Speed Demon', desc:'Reach 500km/h top speed', icon:'&#127950;', check: function(s){ return s.maxSpeed >= 500; } }
+];
+
+var racerAchState = {};
+
+function loadRacerAchievements() {
+  try {
+    var saved = localStorage.getItem('racerAchievements');
+    if (saved) racerAchState = JSON.parse(saved);
+  } catch(e) {}
+}
+loadRacerAchievements();
+
+function checkRacerAchievements(extraState) {
+  var state = Object.assign({}, gameState, extraState || {});
+  state.totalDistance = state.bestDistance || 0;
+  if (extraState.totalDistance && extraState.totalDistance > state.totalDistance) state.totalDistance = extraState.totalDistance;
+  var newUnlocks = [];
+  RACER_ACHIEVEMENTS.forEach(function(a) {
+    if (!racerAchState[a.id] && a.check(state)) {
+      racerAchState[a.id] = Date.now();
+      newUnlocks.push(a);
+    }
+  });
+  if (newUnlocks.length > 0) {
+    localStorage.setItem('racerAchievements', JSON.stringify(racerAchState));
+    // Also save to Firestore if possible
+    var sid = localStorage.getItem('studentId');
+    if (sid && !sid.startsWith('anon_') && window.getFirebaseDB) {
+      window.getFirebaseDB().then(function(fb) {
+        var upd = {};
+        newUnlocks.forEach(function(a) { upd['achievements.' + a.id] = racerAchState[a.id]; });
+        fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'racerRecords', sid), upd).catch(function(){});
+      });
+    }
+    newUnlocks.forEach(function(a, i) {
+      setTimeout(function() { showRacerAchToast(a); }, 600 + i * 1200);
+    });
+  }
+}
+
+function showRacerAchToast(a) {
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #ffd166;border-radius:16px;padding:14px 24px;z-index:9999;display:flex;align-items:center;gap:12px;animation:achSlide .4s ease;box-shadow:0 8px 32px rgba(255,209,102,.3);';
+  el.innerHTML = '<span style="font-size:32px">' + a.icon + '</span><div><div style="color:#ffd166;font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:#f0f4ff;font-size:15px;font-weight:600;font-family:Outfit,sans-serif">' + a.name + '</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function() { el.style.transition = 'opacity .4s'; el.style.opacity = '0'; setTimeout(function() { el.remove(); }, 400); }, 3000);
+}
 
 // =============================================
 // CAR STATS HELPERS
@@ -724,7 +797,7 @@ function drawCar(ctx, x, y, w, h, angle, opts) {
     ctx.strokeStyle = 'rgba(255,255,255,0.3)';
     ctx.lineWidth = 1;
     var sx = -bw/2 - 2;
-    var spoilerSizes = { small:0.15, medium:0.25, gt:0.35, massive:0.5 };
+    var spoilerSizes = { small:0.15, medium:0.25, gt:0.35, massive:0.5, curved:0.3, f1:0.45 };
     var ss = spoilerSizes[spoiler] || 0.2;
     ctx.beginPath();
     ctx.moveTo(sx, -bh);
@@ -763,7 +836,7 @@ function drawCar(ctx, x, y, w, h, angle, opts) {
     ctx.arc(0, 0, wheelR, 0, Math.PI*2);
     ctx.fill();
     // Rim
-    var rimColors = { stock:'#555', chrome:'#ccc', gold:'#ffd166', spinners:'#aaddff' };
+    var rimColors = { stock:'#555', chrome:'#ccc', gold:'#ffd166', spinners:'#aaddff', neon:'#39ff14', monster:'#ef4444' };
     ctx.fillStyle = rimColors[wheelType] || '#555';
     ctx.beginPath();
     ctx.arc(0, 0, wheelR*0.6, 0, Math.PI*2);
@@ -1127,7 +1200,7 @@ function updateHillPhysics(dt) {
 
   // Trail effect
   if (gameState.trail !== 'none' && Math.abs(car.vx) > 20) {
-    var trailColors = { smoke:'rgba(150,150,150,', sparkle:'rgba(255,220,100,', fire:'rgba(255,100,30,', rainbow:'rgba(100,200,255,' };
+    var trailColors = { smoke:'rgba(150,150,150,', sparkle:'rgba(255,220,100,', fire:'rgba(255,100,30,', rainbow:'rgba(100,200,255,', lightning:'rgba(100,180,255,', pixel:'rgba(20,184,166,' };
     var tc = trailColors[gameState.trail] || 'rgba(150,150,150,';
     if (Math.random() < 0.4) {
       s.particles.push({
@@ -1398,6 +1471,9 @@ function endHillClimb() {
   awardCoins(totalCoins);
   saveHillRecord(s.distance, isNewRecord);
   updateQuickStats();
+
+  // Achievement check
+  checkRacerAchievements({ totalDistance: s.distance, maxSpeed: s.maxSpeed });
 }
 
 var lastGameMode = 'hill';
@@ -2171,6 +2247,13 @@ function endDragRace() {
   awardCoins(coins);
   saveDragRecord(isWin);
   updateQuickStats();
+
+  // Achievement check
+  var achExtra = { maxSpeed: Math.floor(d.player.speed * 0.8) };
+  if (isWin && d.player.launchQuality === 1) achExtra.perfectLaunch = true;
+  if (isWin && d.player.shiftPerfects === d.player.shiftTotal && d.player.shiftTotal > 0) achExtra.allPerfectShifts = true;
+  if (isWin && d.opponent.diff === 'boss') achExtra.beatBoss = true;
+  checkRacerAchievements(achExtra);
 }
 
 // =============================================
@@ -2361,7 +2444,7 @@ function renderCosmeticsPanel() {
     var owned = gameState.ownedTrails.indexOf(tr.id) >= 0;
     var selected = gameState.trail === tr.id;
     html += '<div class="cosmetic-card' + (selected ? ' selected' : '') + '" onclick="selectCosmetic(\'trails\',\'' + tr.id + '\',' + tr.cost + ')">' +
-      '<div class="cc-icon">' + (tr.id === 'smoke' ? '&#127787;' : tr.id === 'sparkle' ? '&#10024;' : tr.id === 'fire' ? '&#128293;' : tr.id === 'rainbow' ? '&#127752;' : '&#10060;') + '</div>' +
+      '<div class="cc-icon">' + (tr.id === 'smoke' ? '&#127787;' : tr.id === 'sparkle' ? '&#10024;' : tr.id === 'fire' ? '&#128293;' : tr.id === 'rainbow' ? '&#127752;' : tr.id === 'lightning' ? '&#9889;' : tr.id === 'pixel' ? '&#127918;' : '&#10060;') + '</div>' +
       '<div class="cc-name">' + tr.name + '</div>' +
       '<div class="cc-price' + (owned ? ' owned' : '') + '">' + (owned ? 'Owned' : '&#129689; ' + tr.cost) + '</div></div>';
   });

@@ -362,6 +362,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   .tourney-container{max-width:1000px}
   .teacher-container{max-width:1100px}
 }
+@keyframes achSlide{from{opacity:0;transform:translateX(-50%) translateY(-30px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 </style>
 </head>
 <body>
@@ -725,11 +726,80 @@ var C4_SHOP = [
   { id:'c4_fire_ice', name:'Fire & Ice', emoji:'\u{1F525}', cost:250, slot:'Piece Style', value:{p1:'#ef4444',p2:'#22d3ee'} },
   { id:'c4_gold', name:'Gold & Silver', emoji:'\u{1F947}', cost:300, slot:'Piece Style', value:{p1:'#fbbf24',p2:'#cbd5e1'} },
   { id:'c4_galaxy', name:'Galaxy', emoji:'\u{1F30C}', cost:400, slot:'Piece Style', value:{p1:'#a855f7',p2:'#ec4899'} },
+  { id:'c4_neon2', name:'Neon Glow', emoji:'\u{1F4A1}', cost:300, slot:'Piece Style', value:{p1:'#39ff14',p2:'#ff1493'} },
+  { id:'c4_galaxy2', name:'Galaxy Nova', emoji:'\u{1F31F}', cost:500, slot:'Piece Style', value:{p1:'#6366f1',p2:'#f472b6'} },
+  { id:'c4_rainbow', name:'Rainbow', emoji:'\u{1F308}', cost:400, slot:'Piece Style', value:{p1:'#06d6a0',p2:'#ef476f'} },
+  { id:'c4_diamond', name:'Diamond', emoji:'\u{1F48E}', cost:1000, slot:'Piece Style', value:{p1:'#67e8f9',p2:'#c084fc'} },
   { id:'c4b_blue', name:'Classic Blue', emoji:'\u{1F7E6}', cost:0, slot:'Board Theme' },
   { id:'c4b_dark', name:'Midnight', emoji:'\u{1F319}', cost:150, slot:'Board Theme' },
   { id:'c4b_wood', name:'Wood', emoji:'\u{1FAB5}', cost:200, slot:'Board Theme' },
-  { id:'c4b_neon', name:'Neon', emoji:'\u{1F49A}', cost:300, slot:'Board Theme' }
+  { id:'c4b_neon', name:'Neon', emoji:'\u{1F49A}', cost:300, slot:'Board Theme' },
+  { id:'c4b_wood2', name:'Oak Wood', emoji:'\u{1F332}', cost:150, slot:'Board Theme' },
+  { id:'c4b_space', name:'Space', emoji:'\u{1F680}', cost:400, slot:'Board Theme' },
+  { id:'c4b_underwater', name:'Underwater', emoji:'\u{1F420}', cost:300, slot:'Board Theme' },
+  { id:'c4w_explosion', name:'Explosion', emoji:'\u{1F4A5}', cost:200, slot:'Win Animation' },
+  { id:'c4w_fireworks', name:'Fireworks', emoji:'\u{1F386}', cost:400, slot:'Win Animation' },
+  { id:'c4w_lightning', name:'Lightning', emoji:'\u26A1', cost:600, slot:'Win Animation' }
 ];
+
+/* ===================== */
+/* ACHIEVEMENTS          */
+/* ===================== */
+var C4_ACHIEVEMENTS = [
+  { id:'c4_first_win', name:'First Win', desc:'Win your first game', icon:'\u{1F3AF}', check: function(s){ return s.wins >= 1; } },
+  { id:'c4_win10', name:'Win 10', desc:'Win 10 games', icon:'\u{1F3C5}', check: function(s){ return s.wins >= 10; } },
+  { id:'c4_win50', name:'Win 50', desc:'Win 50 games', icon:'\u{1F948}', check: function(s){ return s.wins >= 50; } },
+  { id:'c4_win100', name:'Win 100', desc:'Win 100 games', icon:'\u{1F947}', check: function(s){ return s.wins >= 100; } },
+  { id:'c4_diagonal', name:'Four Diagonal', desc:'Win with a diagonal line', icon:'\u2197', check: function(s){ return s.diagonalWin; } },
+  { id:'c4_tourney', name:'Tournament Win', desc:'Win a tournament', icon:'\u{1F3C6}', check: function(s){ return s.tourneyWin; } },
+  { id:'c4_hard_ai', name:'Beat Hard AI', desc:'Beat the hard AI', icon:'\u{1F916}', check: function(s){ return s.beatHardAI; } },
+  { id:'c4_speed', name:'Speed Win', desc:'Win in under 10 moves', icon:'\u26A1', check: function(s){ return s.speedWin; } }
+];
+
+var c4AchState = {};
+
+async function loadC4Achievements() {
+  var sid = localStorage.getItem('studentId');
+  if (!sid || sid.startsWith('anon_')) return;
+  try {
+    var fb = await getFirebaseDB();
+    var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'connect4Records', sid));
+    if (snap.exists()) c4AchState = snap.data().achievements || {};
+  } catch(e) {}
+}
+loadC4Achievements();
+
+async function checkC4Achievements(extraState) {
+  var sid = localStorage.getItem('studentId');
+  if (!sid || sid.startsWith('anon_')) return;
+  var fb = await getFirebaseDB();
+  var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'connect4Records', sid));
+  var data = snap.exists() ? snap.data() : {};
+  var state = Object.assign({}, data, extraState || {});
+  var newUnlocks = [];
+  C4_ACHIEVEMENTS.forEach(function(a) {
+    if (!c4AchState[a.id] && a.check(state)) {
+      c4AchState[a.id] = Date.now();
+      newUnlocks.push(a);
+    }
+  });
+  if (newUnlocks.length > 0) {
+    var update = {};
+    newUnlocks.forEach(function(a) { update['achievements.' + a.id] = c4AchState[a.id]; });
+    try { await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'connect4Records', sid), update); } catch(e) {}
+    newUnlocks.forEach(function(a, i) {
+      setTimeout(function() { showC4AchToast(a); }, 600 + i * 1200);
+    });
+  }
+}
+
+function showC4AchToast(a) {
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #ffd166;border-radius:16px;padding:14px 24px;z-index:9999;display:flex;align-items:center;gap:12px;animation:achSlide .4s ease;box-shadow:0 8px 32px rgba(255,209,102,.3);';
+  el.innerHTML = '<span style="font-size:32px">' + a.icon + '</span><div><div style="color:#ffd166;font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:#f0f4ff;font-size:15px;font-weight:600;font-family:Outfit,sans-serif">' + a.name + '</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function() { el.style.transition = 'opacity .4s'; el.style.opacity = '0'; setTimeout(function() { el.remove(); }, 400); }, 3000);
+}
 
 function showShopScreen(){
   showScreen('shopScreen');
@@ -1527,6 +1597,17 @@ function showResult(data){
     coinsAwarded=true;
     awardCoins(coins);
     updateRecordAfterGame(recordResult);
+    // Achievement check
+    if(recordResult==='win'){
+      var achExtra = { wins: 1 };
+      // Check for diagonal win
+      var bd = typeof data.board==='string'?JSON.parse(data.board):data.board;
+      var winCells = getWinCells(bd, data.winner);
+      if(winCells.length>=4){var dc=winCells[1][0]-winCells[0][0];var dr=winCells[1][1]-winCells[0][1];if(dc!==0&&dr!==0)achExtra.diagonalWin=true;}
+      if(aiMode && aiDifficulty==='hard') achExtra.beatHardAI = true;
+      if(data.totalMoves && data.totalMoves < 10) achExtra.speedWin = true;
+      checkC4Achievements(achExtra);
+    }
   }
 
   // Series score display

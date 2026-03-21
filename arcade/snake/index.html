@@ -194,6 +194,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   .personal-stats{max-width:500px}
   .leaderboard{max-width:560px}
 }
+@keyframes achSlide{from{opacity:0;transform:translateX(-50%) translateY(-30px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 </style>
 </head>
 <body>
@@ -479,18 +480,87 @@ var SNAKE_SHOP = [
   { id:'snake_gold', name:'Gold', emoji:'\u{2728}', cost:300, slot:'Snake Skin', color:'#ffd166' },
   { id:'snake_purple', name:'Galaxy', emoji:'\u{1F30C}', cost:400, slot:'Snake Skin', color:'#a855f7' },
   { id:'snake_rainbow', name:'Rainbow', emoji:'\u{1F308}', cost:500, slot:'Snake Skin', color:'rainbow' },
+  { id:'snake_pixel', name:'Pixel', emoji:'\u{1F3AE}', cost:150, slot:'Snake Skin', color:'#14b8a6' },
+  { id:'snake_lava', name:'Lava', emoji:'\u{1F30B}', cost:400, slot:'Snake Skin', color:'#f97316' },
+  { id:'snake_ocean', name:'Ocean', emoji:'\u{1F30A}', cost:300, slot:'Snake Skin', color:'#0ea5e9' },
+  { id:'snake_diamond', name:'Diamond', emoji:'\u{1F48E}', cost:800, slot:'Snake Skin', color:'#67e8f9' },
   // Food styles
   { id:'food_apple', name:'Apple', emoji:'\u{1F34E}', cost:0, slot:'Food Style' },
   { id:'food_pizza', name:'Pizza', emoji:'\u{1F355}', cost:50, slot:'Food Style' },
   { id:'food_donut', name:'Donut', emoji:'\u{1F369}', cost:75, slot:'Food Style' },
   { id:'food_star', name:'Star', emoji:'\u{2B50}', cost:100, slot:'Food Style' },
   { id:'food_gem', name:'Gem', emoji:'\u{1F48E}', cost:200, slot:'Food Style' },
+  { id:'food_pizza2', name:'Pizza Slice', emoji:'\u{1F355}', cost:100, slot:'Food Style' },
+  { id:'food_star2', name:'Shooting Star', emoji:'\u{1F31F}', cost:200, slot:'Food Style' },
+  { id:'food_diamond', name:'Diamond', emoji:'\u{1F4A0}', cost:400, slot:'Food Style' },
   // Trail effects
   { id:'trail_none', name:'None', emoji:'\u{2796}', cost:0, slot:'Trail Effect' },
   { id:'trail_dots', name:'Dots', emoji:'\u{26AA}', cost:150, slot:'Trail Effect' },
   { id:'trail_sparkle', name:'Sparkle', emoji:'\u{2728}', cost:300, slot:'Trail Effect' },
-  { id:'trail_fire', name:'Fire Trail', emoji:'\u{1F525}', cost:400, slot:'Trail Effect' }
+  { id:'trail_fire', name:'Fire Trail', emoji:'\u{1F525}', cost:400, slot:'Trail Effect' },
+  { id:'trail_bubbles', name:'Bubbles', emoji:'\u{1F4A7}', cost:200, slot:'Trail Effect' },
+  { id:'trail_stars', name:'Stars', emoji:'\u{2B50}', cost:300, slot:'Trail Effect' },
+  { id:'trail_lightning', name:'Lightning', emoji:'\u26A1', cost:500, slot:'Trail Effect' }
 ];
+
+// =============================================
+// ACHIEVEMENTS
+// =============================================
+var SNAKE_ACHIEVEMENTS = [
+  { id:'sn_first', name:'First Food', desc:'Eat your first food', icon:'\u{1F34E}', check: function(s){ return s.totalFood >= 1; } },
+  { id:'sn_len10', name:'Length 10', desc:'Reach a snake length of 10', icon:'\u{1F40D}', check: function(s){ return s.maxLength >= 10; } },
+  { id:'sn_len25', name:'Length 25', desc:'Reach a snake length of 25', icon:'\u{1F3C5}', check: function(s){ return s.maxLength >= 25; } },
+  { id:'sn_len50', name:'Length 50', desc:'Reach a snake length of 50', icon:'\u{1F948}', check: function(s){ return s.maxLength >= 50; } },
+  { id:'sn_speed', name:'Speed Snake', desc:'Score 50 on hard difficulty', icon:'\u26A1', check: function(s){ return s.hardBest >= 50; } },
+  { id:'sn_score100', name:'Score 100', desc:'Score 100 points', icon:'\u{1F525}', check: function(s){ return s.bestScore >= 100; } },
+  { id:'sn_nowalls', name:'No Walls', desc:'Play a borderless game', icon:'\u{1F310}', check: function(s){ return s.borderlessPlayed; } },
+  { id:'sn_legend', name:'Snake Legend', desc:'Play 100 games', icon:'\u{1F451}', check: function(s){ return s.gamesPlayed >= 100; } }
+];
+
+var snakeAchState = {};
+
+async function loadSnakeAchievements() {
+  var sid = localStorage.getItem('studentId');
+  if (!sid || sid.startsWith('anon_')) return;
+  try {
+    var fb = await window.getFirebaseDB();
+    var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'snakeRecords', sid));
+    if (snap.exists()) snakeAchState = snap.data().achievements || {};
+  } catch(e) {}
+}
+loadSnakeAchievements();
+
+async function checkSnakeAchievements(extraState) {
+  var sid = localStorage.getItem('studentId');
+  if (!sid || sid.startsWith('anon_')) return;
+  var fb = await window.getFirebaseDB();
+  var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'snakeRecords', sid));
+  var data = snap.exists() ? snap.data() : {};
+  var state = Object.assign({}, data, extraState || {});
+  var newUnlocks = [];
+  SNAKE_ACHIEVEMENTS.forEach(function(a) {
+    if (!snakeAchState[a.id] && a.check(state)) {
+      snakeAchState[a.id] = Date.now();
+      newUnlocks.push(a);
+    }
+  });
+  if (newUnlocks.length > 0) {
+    var update = {};
+    newUnlocks.forEach(function(a) { update['achievements.' + a.id] = snakeAchState[a.id]; });
+    try { await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'snakeRecords', sid), update); } catch(e) {}
+    newUnlocks.forEach(function(a, i) {
+      setTimeout(function() { showSnakeAchToast(a); }, 600 + i * 1200);
+    });
+  }
+}
+
+function showSnakeAchToast(a) {
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #ffd166;border-radius:16px;padding:14px 24px;z-index:9999;display:flex;align-items:center;gap:12px;animation:achSlide .4s ease;box-shadow:0 8px 32px rgba(255,209,102,.3);';
+  el.innerHTML = '<span style="font-size:32px">' + a.icon + '</span><div><div style="color:#ffd166;font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:#f0f4ff;font-size:15px;font-weight:600;font-family:Outfit,sans-serif">' + a.name + '</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function() { el.style.transition = 'opacity .4s'; el.style.opacity = '0'; setTimeout(function() { el.remove(); }, 400); }, 3000);
+}
 
 var snakeSkinColor = '#06d6a0';
 var foodEmoji = null; // null = default circle rendering
@@ -1267,6 +1337,11 @@ function endGame() {
     coinsAwarded = true;
     awardCoins(coins);
     saveRecord(isNewRecord);
+    // Achievement check
+    var achExtra = { totalFood: foodEaten, maxLength: snakeLen, bestScore: score, gamesPlayed: localStats.gamesPlayed };
+    if (difficulty === 'hard' && score >= 50) achExtra.hardBest = score;
+    if (typeof borderless !== 'undefined' && borderless) achExtra.borderlessPlayed = true;
+    checkSnakeAchievements(achExtra);
   }
 }
 

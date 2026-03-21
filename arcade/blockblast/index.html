@@ -245,6 +245,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   .grid-container{gap:2px;padding:3px}
   .piece-tray{gap:6px;padding:6px}
 }
+@keyframes achSlide{from{opacity:0;transform:translateX(-50%) translateY(-30px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 </style>
 </head>
 <body>
@@ -437,10 +438,79 @@ var BB_SHOP = [
   { id:'bb_ocean', name:'Ocean', emoji:'\uD83C\uDF0A', cost:200, slot:'Color Theme' },
   { id:'bb_galaxy', name:'Galaxy', emoji:'\uD83C\uDF0C', cost:300, slot:'Color Theme' },
   { id:'bb_gold', name:'Gold', emoji:'\uD83D\uDC51', cost:400, slot:'Color Theme' },
+  { id:'bb_pastel2', name:'Pastel Dream', emoji:'\uD83C\uDF08', cost:150, slot:'Color Theme' },
+  { id:'bb_mono', name:'Monochrome', emoji:'\u2B1B', cost:200, slot:'Color Theme' },
+  { id:'bb_rainbow', name:'Rainbow', emoji:'\uD83C\uDF08', cost:400, slot:'Color Theme' },
+  { id:'bb_diamond', name:'Diamond', emoji:'\uD83D\uDC8E', cost:800, slot:'Color Theme' },
   { id:'bbg_default', name:'Default', emoji:'\u2B1B', cost:0, slot:'Grid Style' },
   { id:'bbg_neon', name:'Neon Grid', emoji:'\uD83D\uDC9A', cost:200, slot:'Grid Style' },
-  { id:'bbg_space', name:'Space', emoji:'\uD83D\uDE80', cost:300, slot:'Grid Style' }
+  { id:'bbg_space', name:'Space', emoji:'\uD83D\uDE80', cost:300, slot:'Grid Style' },
+  { id:'bbg_glow', name:'Glow Grid', emoji:'\u2728', cost:200, slot:'Grid Style' },
+  { id:'bbg_pixel', name:'Pixel Grid', emoji:'\uD83D\uDFE8', cost:150, slot:'Grid Style' },
+  { id:'bbg_crystal', name:'Crystal Grid', emoji:'\uD83D\uDC8E', cost:500, slot:'Grid Style' },
+  { id:'bbe_shatter', name:'Shatter', emoji:'\uD83D\uDCA5', cost:200, slot:'Clear Effect' },
+  { id:'bbe_dissolve', name:'Dissolve', emoji:'\uD83C\uDF2B', cost:300, slot:'Clear Effect' },
+  { id:'bbe_explosion', name:'Explosion', emoji:'\uD83D\uDD25', cost:500, slot:'Clear Effect' }
 ];
+
+/* =============================================
+   ACHIEVEMENTS
+   ============================================= */
+var BB_ACHIEVEMENTS = [
+  { id:'bb_first_clear', name:'First Clear', desc:'Clear a line for the first time', icon:'\u{1F3AF}', check: function(s){ return s.totalClears >= 1; } },
+  { id:'bb_combo3', name:'Combo 3', desc:'Get a 3x combo', icon:'\u{1F525}', check: function(s){ return s.maxCombo >= 3; } },
+  { id:'bb_combo5', name:'Combo 5', desc:'Get a 5x combo', icon:'\u26A1', check: function(s){ return s.maxCombo >= 5; } },
+  { id:'bb_score500', name:'Score 500', desc:'Score 500 points in a game', icon:'\u{1F3C5}', check: function(s){ return s.bestScore >= 500; } },
+  { id:'bb_score1000', name:'Score 1000', desc:'Score 1000 points in a game', icon:'\u{1F948}', check: function(s){ return s.bestScore >= 1000; } },
+  { id:'bb_score5000', name:'Score 5000', desc:'Score 5000 points in a game', icon:'\u{1F947}', check: function(s){ return s.bestScore >= 5000; } },
+  { id:'bb_marathon', name:'Marathon', desc:'Play 50 games', icon:'\u{1F3C3}', check: function(s){ return s.gamesPlayed >= 50; } },
+  { id:'bb_legend', name:'Block Legend', desc:'Score 10000 in a game', icon:'\u{1F451}', check: function(s){ return s.bestScore >= 10000; } }
+];
+
+var bbAchState = {};
+
+async function loadBBAchievements() {
+  var sid = localStorage.getItem('studentId');
+  if (!sid || sid.startsWith('anon_')) return;
+  try {
+    var fb = await window.getFirebaseDB();
+    var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'blockblastRecords', sid));
+    if (snap.exists()) bbAchState = snap.data().achievements || {};
+  } catch(e) {}
+}
+loadBBAchievements();
+
+async function checkBBAchievements(extraState) {
+  var sid = localStorage.getItem('studentId');
+  if (!sid || sid.startsWith('anon_')) return;
+  var fb = await window.getFirebaseDB();
+  var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'blockblastRecords', sid));
+  var data = snap.exists() ? snap.data() : {};
+  var state = Object.assign({}, data, extraState || {});
+  var newUnlocks = [];
+  BB_ACHIEVEMENTS.forEach(function(a) {
+    if (!bbAchState[a.id] && a.check(state)) {
+      bbAchState[a.id] = Date.now();
+      newUnlocks.push(a);
+    }
+  });
+  if (newUnlocks.length > 0) {
+    var update = {};
+    newUnlocks.forEach(function(a) { update['achievements.' + a.id] = bbAchState[a.id]; });
+    try { await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'blockblastRecords', sid), update); } catch(e) {}
+    newUnlocks.forEach(function(a, i) {
+      setTimeout(function() { showBBAchToast(a); }, 600 + i * 1200);
+    });
+  }
+}
+
+function showBBAchToast(a) {
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #ffd166;border-radius:16px;padding:14px 24px;z-index:9999;display:flex;align-items:center;gap:12px;animation:achSlide .4s ease;box-shadow:0 8px 32px rgba(255,209,102,.3);';
+  el.innerHTML = '<span style="font-size:32px">' + a.icon + '</span><div><div style="color:#ffd166;font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:#f0f4ff;font-size:15px;font-weight:600;font-family:Outfit,sans-serif">' + a.name + '</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function() { el.style.transition = 'opacity .4s'; el.style.opacity = '0'; setTimeout(function() { el.remove(); }, 400); }, 3000);
+}
 
 // =============================================
 // SCREEN SYSTEM
@@ -1329,6 +1399,8 @@ function endGame() {
     coinsAwarded = true;
     if (coins > 0) awardCoins(coins);
     saveRecord();
+    // Achievement check
+    checkBBAchievements({ bestScore: score, maxCombo: bestCombo, totalClears: linesCleared });
   }
 
   // Celebrate on good scores

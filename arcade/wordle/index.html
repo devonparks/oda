@@ -209,6 +209,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   .result-container{max-width:600px}
   .records-container{max-width:900px}
 }
+@keyframes achSlide{from{opacity:0;transform:translateX(-50%) translateY(-30px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 </style>
 </head>
 <body>
@@ -377,10 +378,77 @@ var WORDLE_SHOP = [
   { id:'wt_ocean', name:'Ocean', emoji:'\uD83C\uDF0A', cost:150, slot:'Tile Theme' },
   { id:'wt_fire', name:'Fire', emoji:'\uD83D\uDD25', cost:200, slot:'Tile Theme' },
   { id:'wt_galaxy', name:'Galaxy', emoji:'\uD83C\uDF0C', cost:300, slot:'Tile Theme' },
+  { id:'wt_candy', name:'Candy', emoji:'\uD83C\uDF6C', cost:200, slot:'Tile Theme' },
+  { id:'wt_ocean2', name:'Deep Ocean', emoji:'\uD83D\uDC19', cost:300, slot:'Tile Theme' },
+  { id:'wt_fire2', name:'Fire Storm', emoji:'\uD83C\uDF0B', cost:500, slot:'Tile Theme' },
   { id:'wk_default', name:'Default', emoji:'\u2328\uFE0F', cost:0, slot:'Keyboard Style' },
   { id:'wk_neon', name:'Neon', emoji:'\uD83D\uDC9A', cost:150, slot:'Keyboard Style' },
-  { id:'wk_retro', name:'Retro', emoji:'\uD83D\uDD79\uFE0F', cost:200, slot:'Keyboard Style' }
+  { id:'wk_retro', name:'Retro', emoji:'\uD83D\uDD79\uFE0F', cost:200, slot:'Keyboard Style' },
+  { id:'wk_mech', name:'Mechanical', emoji:'\u2699\uFE0F', cost:250, slot:'Keyboard Style' },
+  { id:'wk_rgb', name:'RGB', emoji:'\uD83C\uDF08', cost:500, slot:'Keyboard Style' },
+  { id:'wl_bounce', name:'Bounce', emoji:'\uD83C\uDFC0', cost:100, slot:'Letter Animation' },
+  { id:'wl_wave', name:'Wave', emoji:'\uD83C\uDF0A', cost:200, slot:'Letter Animation' },
+  { id:'wl_explode', name:'Explode', emoji:'\uD83D\uDCA5', cost:400, slot:'Letter Animation' }
 ];
+
+/* ===================== */
+/* ACHIEVEMENTS          */
+/* ===================== */
+var WORDLE_ACHIEVEMENTS = [
+  { id:'w_first', name:'First Solve', desc:'Solve your first word', icon:'\u{1F3AF}', check: function(s){ return s.gamesWon >= 1; } },
+  { id:'w_solve1', name:'Solve in 1', desc:'Solve a word in 1 guess', icon:'\u{1F4A5}', check: function(s){ return s.solveIn1; } },
+  { id:'w_solve2', name:'Solve in 2', desc:'Solve a word in 2 guesses', icon:'\u26A1', check: function(s){ return s.bestGuesses <= 2 && s.gamesWon >= 1; } },
+  { id:'w_solve3', name:'Solve in 3', desc:'Solve a word in 3 guesses', icon:'\u{1F525}', check: function(s){ return s.bestGuesses <= 3 && s.gamesWon >= 1; } },
+  { id:'w_streak7', name:'Daily Streak 7', desc:'Solve 7 days in a row', icon:'\u{1F4C6}', check: function(s){ return s.dailyStreak >= 7; } },
+  { id:'w_win50', name:'Win 50', desc:'Solve 50 words', icon:'\u{1F3C5}', check: function(s){ return s.gamesWon >= 50; } },
+  { id:'w_win100', name:'Win 100', desc:'Solve 100 words', icon:'\u{1F948}', check: function(s){ return s.gamesWon >= 100; } },
+  { id:'w_master', name:'Wordle Master', desc:'Solve 200 words', icon:'\u{1F451}', check: function(s){ return s.gamesWon >= 200; } }
+];
+
+var wordleAchState = {};
+
+async function loadWordleAchievements() {
+  var sid = localStorage.getItem('studentId');
+  if (!sid || sid.startsWith('anon_')) return;
+  try {
+    var fb = await window.getFirebaseDB();
+    var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'wordleRecords', sid));
+    if (snap.exists()) wordleAchState = snap.data().achievements || {};
+  } catch(e) {}
+}
+loadWordleAchievements();
+
+async function checkWordleAchievements(extraState) {
+  var sid = localStorage.getItem('studentId');
+  if (!sid || sid.startsWith('anon_')) return;
+  var fb = await window.getFirebaseDB();
+  var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'wordleRecords', sid));
+  var data = snap.exists() ? snap.data() : {};
+  var state = Object.assign({}, data, extraState || {});
+  var newUnlocks = [];
+  WORDLE_ACHIEVEMENTS.forEach(function(a) {
+    if (!wordleAchState[a.id] && a.check(state)) {
+      wordleAchState[a.id] = Date.now();
+      newUnlocks.push(a);
+    }
+  });
+  if (newUnlocks.length > 0) {
+    var update = {};
+    newUnlocks.forEach(function(a) { update['achievements.' + a.id] = wordleAchState[a.id]; });
+    try { await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'wordleRecords', sid), update); } catch(e) {}
+    newUnlocks.forEach(function(a, i) {
+      setTimeout(function() { showWordleAchToast(a); }, 600 + i * 1200);
+    });
+  }
+}
+
+function showWordleAchToast(a) {
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #ffd166;border-radius:16px;padding:14px 24px;z-index:9999;display:flex;align-items:center;gap:12px;animation:achSlide .4s ease;box-shadow:0 8px 32px rgba(255,209,102,.3);';
+  el.innerHTML = '<span style="font-size:32px">' + a.icon + '</span><div><div style="color:#ffd166;font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:#f0f4ff;font-size:15px;font-weight:600;font-family:Outfit,sans-serif">' + a.name + '</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function() { el.style.transition = 'opacity .4s'; el.style.opacity = '0'; setTimeout(function() { el.remove(); }, 400); }, 3000);
+}
 
 /* ===================== */
 /* WORD LISTS            */
@@ -1001,6 +1069,14 @@ function endGame(won){
   // Update Firestore record
   if(studentId){
     updateRecord(won, stats);
+  }
+
+  // Achievement check
+  if(won){
+    var achExtra = { gamesWon: stats.gamesWon, bestGuesses: guesses.length };
+    if(guesses.length === 1) achExtra.solveIn1 = true;
+    if(stats.currentStreak >= 7) achExtra.dailyStreak = stats.currentStreak;
+    checkWordleAchievements(achExtra);
   }
 
   // Build result screen

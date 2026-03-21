@@ -230,6 +230,7 @@ h2{font-family:'Fredoka',sans-serif;font-size:30px;font-weight:700;text-align:ce
   .records-container{max-width:600px}
   .tourney-lobby{max-width:600px}
 }
+@keyframes achSlide{from{opacity:0;transform:translateX(-50%) translateY(-30px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 </style>
 </head>
 <body>
@@ -508,11 +509,77 @@ var TTT_SHOP = [
   { id:'ttt_emoji', name:'Emoji', emoji:'\u{1F60E}', cost:150, slot:'Piece Style' },
   { id:'ttt_fire', name:'Fire & Ice', emoji:'\u{1F525}', cost:250, slot:'Piece Style' },
   { id:'ttt_gold', name:'Gold', emoji:'\u{1F451}', cost:300, slot:'Piece Style' },
+  { id:'ttt_neon2', name:'Neon Glow', emoji:'\u{1F4A1}', cost:200, slot:'Piece Style' },
+  { id:'ttt_fireice', name:'Fire & Ice V2', emoji:'\u2744', cost:400, slot:'Piece Style' },
+  { id:'ttt_stars', name:'Stars', emoji:'\u{1F31F}', cost:300, slot:'Piece Style' },
   { id:'tttb_default', name:'Default', emoji:'#\uFE0F\u20E3', cost:0, slot:'Board Theme' },
   { id:'tttb_neon', name:'Neon', emoji:'\u{1F49A}', cost:150, slot:'Board Theme' },
   { id:'tttb_chalk', name:'Chalkboard', emoji:'\u{1F4DD}', cost:200, slot:'Board Theme' },
-  { id:'tttb_galaxy', name:'Galaxy', emoji:'\u{1F30C}', cost:300, slot:'Board Theme' }
+  { id:'tttb_galaxy', name:'Galaxy', emoji:'\u{1F30C}', cost:300, slot:'Board Theme' },
+  { id:'tttb_chalk2', name:'Chalk', emoji:'\u{1F58D}', cost:150, slot:'Board Theme' },
+  { id:'tttb_neongrid', name:'Neon Grid', emoji:'\u{1F7E9}', cost:300, slot:'Board Theme' },
+  { id:'tttb_space', name:'Space', emoji:'\u{1F680}', cost:500, slot:'Board Theme' },
+  { id:'tttw_rainbow', name:'Rainbow Line', emoji:'\u{1F308}', cost:200, slot:'Win Line' },
+  { id:'tttw_lightning', name:'Lightning Line', emoji:'\u26A1', cost:400, slot:'Win Line' },
+  { id:'tttw_fire', name:'Fire Line', emoji:'\u{1F525}', cost:600, slot:'Win Line' }
 ];
+
+/* ===== ACHIEVEMENTS ===== */
+var TTT_ACHIEVEMENTS = [
+  { id:'ttt_first_win', name:'First Win', desc:'Win your first game', icon:'\u{1F3AF}', check: function(s){ return s.wins >= 1; } },
+  { id:'ttt_win25', name:'Win 25', desc:'Win 25 games', icon:'\u{1F3C5}', check: function(s){ return s.wins >= 25; } },
+  { id:'ttt_win100', name:'Win 100', desc:'Win 100 games', icon:'\u{1F947}', check: function(s){ return s.wins >= 100; } },
+  { id:'ttt_perfect', name:'Perfect Game', desc:'Win with no opponent marks in your line', icon:'\u{2728}', check: function(s){ return s.perfectGame; } },
+  { id:'ttt_blocker', name:'Block Master', desc:'Block 50 opponent wins', icon:'\u{1F6E1}', check: function(s){ return s.blocks >= 50; } },
+  { id:'ttt_speed', name:'Speed Win', desc:'Win a game quickly', icon:'\u26A1', check: function(s){ return s.speedWin; } },
+  { id:'ttt_tourney', name:'Tournament Champ', desc:'Win a tournament', icon:'\u{1F3C6}', check: function(s){ return s.tourneyWin; } },
+  { id:'ttt_legend', name:'TTT Legend', desc:'Win 500 games', icon:'\u{1F451}', check: function(s){ return s.wins >= 500; } }
+];
+
+var tttAchState = {};
+
+async function loadTTTAchievements() {
+  var sid = localStorage.getItem('studentId');
+  if (!sid || sid.startsWith('anon_')) return;
+  try {
+    var fb = await getFirebaseDB();
+    var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'tictactoeRecords', sid));
+    if (snap.exists()) tttAchState = snap.data().achievements || {};
+  } catch(e) {}
+}
+loadTTTAchievements();
+
+async function checkTTTAchievements(extraState) {
+  var sid = localStorage.getItem('studentId');
+  if (!sid || sid.startsWith('anon_')) return;
+  var fb = await getFirebaseDB();
+  var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'tictactoeRecords', sid));
+  var data = snap.exists() ? snap.data() : {};
+  var state = Object.assign({}, data, extraState || {});
+  var newUnlocks = [];
+  TTT_ACHIEVEMENTS.forEach(function(a) {
+    if (!tttAchState[a.id] && a.check(state)) {
+      tttAchState[a.id] = Date.now();
+      newUnlocks.push(a);
+    }
+  });
+  if (newUnlocks.length > 0) {
+    var update = {};
+    newUnlocks.forEach(function(a) { update['achievements.' + a.id] = tttAchState[a.id]; });
+    try { await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'tictactoeRecords', sid), update); } catch(e) {}
+    newUnlocks.forEach(function(a, i) {
+      setTimeout(function() { showTTTAchToast(a); }, 600 + i * 1200);
+    });
+  }
+}
+
+function showTTTAchToast(a) {
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #ffd166;border-radius:16px;padding:14px 24px;z-index:9999;display:flex;align-items:center;gap:12px;animation:achSlide .4s ease;box-shadow:0 8px 32px rgba(255,209,102,.3);';
+  el.innerHTML = '<span style="font-size:32px">' + a.icon + '</span><div><div style="color:#ffd166;font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:#f0f4ff;font-size:15px;font-weight:600;font-family:Outfit,sans-serif">' + a.name + '</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function() { el.style.transition = 'opacity .4s'; el.style.opacity = '0'; setTimeout(function() { el.remove(); }, 400); }, 3000);
+}
 
 function showShopScreen(){
   showScreen('shopScreen');
@@ -1119,6 +1186,12 @@ function showGameResult(data){
     coinsAwarded=true;
     awardCoins(coins);
     updateRecord(outcome);
+    // Achievement check
+    if(outcome==='win'){
+      var achExtra = { wins: 1 };
+      achExtra.speedWin = true; // TTT games are inherently quick
+      checkTTTAchievements(achExtra);
+    }
   }
 
   // Series score display

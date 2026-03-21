@@ -366,6 +366,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 /* Waiting format badge */
 .waiting-format{margin-top:12px;font-size:14px;color:var(--text2);font-weight:600}
 .waiting-format .wf-badge{display:inline-block;padding:4px 14px;border-radius:20px;background:rgba(6,214,160,.1);color:var(--accent);font-weight:700;font-size:13px;border:1px solid rgba(6,214,160,.2)}
+@keyframes achSlide{from{opacity:0;transform:translateX(-50%) translateY(-30px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 </style>
 </head>
 <body>
@@ -688,11 +689,80 @@ const HM_SHOP = [
   { id:'hm_alien', name:'Alien', emoji:'\uD83D\uDC7D', cost:200, slot:'Character' },
   { id:'hm_skeleton', name:'Skeleton', emoji:'\uD83D\uDC80', cost:250, slot:'Character' },
   { id:'hm_ninja', name:'Ninja', emoji:'\uD83E\uDD77', cost:300, slot:'Character' },
+  { id:'hm_robot2', name:'Mech Robot', emoji:'\uD83E\uDD16', cost:300, slot:'Character' },
+  { id:'hm_alien2', name:'Cosmic Alien', emoji:'\uD83D\uDC7E', cost:400, slot:'Character' },
+  { id:'hm_dragon', name:'Dragon', emoji:'\uD83D\uDC09', cost:600, slot:'Character' },
   { id:'hmb_default', name:'Default', emoji:'\uD83C\uDF19', cost:0, slot:'Background' },
   { id:'hmb_sunset', name:'Sunset', emoji:'\uD83C\uDF05', cost:150, slot:'Background' },
   { id:'hmb_space', name:'Space', emoji:'\uD83D\uDE80', cost:200, slot:'Background' },
-  { id:'hmb_forest', name:'Forest', emoji:'\uD83C\uDF32', cost:200, slot:'Background' }
+  { id:'hmb_forest', name:'Forest', emoji:'\uD83C\uDF32', cost:200, slot:'Background' },
+  { id:'hmb_beach', name:'Beach', emoji:'\uD83C\uDFD6', cost:200, slot:'Background' },
+  { id:'hmb_space2', name:'Deep Space', emoji:'\uD83C\uDF0C', cost:400, slot:'Background' },
+  { id:'hmb_haunted', name:'Haunted House', emoji:'\uD83C\uDFDA', cost:300, slot:'Background' },
+  { id:'hml_neon', name:'Neon Letters', emoji:'\uD83D\uDCA1', cost:150, slot:'Letter Style' },
+  { id:'hml_gold', name:'Gold Letters', emoji:'\uD83D\uDC51', cost:300, slot:'Letter Style' },
+  { id:'hml_rainbow', name:'Rainbow Letters', emoji:'\uD83C\uDF08', cost:500, slot:'Letter Style' }
 ];
+
+/* ===================== */
+/* ACHIEVEMENTS          */
+/* ===================== */
+const HM_ACHIEVEMENTS = [
+  { id:'hm_first', name:'First Save', desc:'Save the hangman for the first time', icon:'\u{1F3AF}', check: function(s){ return s.gamesWon >= 1; } },
+  { id:'hm_nomistakes', name:'No Mistakes', desc:'Solve with 0 wrong guesses', icon:'\u{2728}', check: function(s){ return s.perfectSolve; } },
+  { id:'hm_speed', name:'Speed Solve', desc:'Solve in under 30 seconds', icon:'\u26A1', check: function(s){ return s.speedSolve; } },
+  { id:'hm_wordmaster', name:'Word Master', desc:'Solve 50 words', icon:'\u{1F4DA}', check: function(s){ return s.gamesWon >= 50; } },
+  { id:'hm_vocabking', name:'Vocabulary King', desc:'Solve 100 words', icon:'\u{1F451}', check: function(s){ return s.gamesWon >= 100; } },
+  { id:'hm_allcats', name:'All Categories', desc:'Play all word categories', icon:'\u{1F30D}', check: function(s){ return s.categoriesPlayed >= 7; } },
+  { id:'hm_streak5', name:'Streak 5', desc:'Win 5 games in a row', icon:'\u{1F525}', check: function(s){ return s.winStreak >= 5; } },
+  { id:'hm_legend', name:'Hangman Legend', desc:'Solve 200 words', icon:'\u{1F3C6}', check: function(s){ return s.gamesWon >= 200; } }
+];
+
+var hmAchState = {};
+var hmWinStreak = 0;
+
+async function loadHMAchievements() {
+  var sid = localStorage.getItem('studentId');
+  if (!sid || sid.startsWith('anon_')) return;
+  try {
+    var fb = await window.getFirebaseDB();
+    var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'hangmanRecords', sid));
+    if (snap.exists()) { hmAchState = snap.data().achievements || {}; hmWinStreak = snap.data().winStreak || 0; }
+  } catch(e) {}
+}
+loadHMAchievements();
+
+async function checkHMAchievements(extraState) {
+  var sid = localStorage.getItem('studentId');
+  if (!sid || sid.startsWith('anon_')) return;
+  var fb = await window.getFirebaseDB();
+  var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'hangmanRecords', sid));
+  var data = snap.exists() ? snap.data() : {};
+  var state = Object.assign({}, data, extraState || {});
+  var newUnlocks = [];
+  HM_ACHIEVEMENTS.forEach(function(a) {
+    if (!hmAchState[a.id] && a.check(state)) {
+      hmAchState[a.id] = Date.now();
+      newUnlocks.push(a);
+    }
+  });
+  if (newUnlocks.length > 0) {
+    var update = {};
+    newUnlocks.forEach(function(a) { update['achievements.' + a.id] = hmAchState[a.id]; });
+    try { await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'hangmanRecords', sid), update); } catch(e) {}
+    newUnlocks.forEach(function(a, i) {
+      setTimeout(function() { showHMAchToast(a); }, 600 + i * 1200);
+    });
+  }
+}
+
+function showHMAchToast(a) {
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #ffd166;border-radius:16px;padding:14px 24px;z-index:9999;display:flex;align-items:center;gap:12px;animation:achSlide .4s ease;box-shadow:0 8px 32px rgba(255,209,102,.3);';
+  el.innerHTML = '<span style="font-size:32px">' + a.icon + '</span><div><div style="color:#ffd166;font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:#f0f4ff;font-size:15px;font-weight:600;font-family:Outfit,sans-serif">' + a.name + '</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function() { el.style.transition = 'opacity .4s'; el.style.opacity = '0'; setTimeout(function() { el.remove(); }, 400); }, 3000);
+}
 
 /* ===================== */
 /* WORD BANK (~200 words)*/
@@ -763,6 +833,7 @@ let hintUsed = false;
 let hintAllowed = true;
 let gameActive = false;
 let currentStreak = 0;
+let gameStartTime = 0;
 let importedWords = [];
 let coinsAwarded = false;
 
@@ -992,6 +1063,7 @@ function startGame(diff) {
   coinsAwarded = false;
   mpMode = false;
   currentWord = pickWord(diff).toUpperCase();
+  gameStartTime = Date.now();
 
   document.getElementById('soloHud').style.display = '';
   document.getElementById('mpHud').style.display = 'none';
@@ -1341,6 +1413,18 @@ async function endGame(won) {
   // Update record
   if (studentId) {
     await updateRecord(won);
+  }
+
+  // Achievement check
+  if (won) {
+    hmWinStreak++;
+    var achExtra = { winStreak: hmWinStreak };
+    if (wrongCount === 0) achExtra.perfectSolve = true;
+    var elapsed = gameStartTime ? Math.floor((Date.now() - gameStartTime) / 1000) : 999;
+    if (elapsed < 30) achExtra.speedSolve = true;
+    checkHMAchievements(achExtra);
+  } else {
+    hmWinStreak = 0;
   }
 
   // Record update display

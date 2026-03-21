@@ -281,6 +281,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   .tourney-container{max-width:1000px}
   .teacher-container{max-width:1100px}
 }
+@keyframes achSlide{from{opacity:0;transform:translateX(-50%) translateY(-30px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 </style>
 </head>
 <body>
@@ -943,6 +944,93 @@ function listenToGame(){
 function spectateGame(code){roomCode=code;spectateMode=true;myPlayer=0;coinsAwarded=false;listenToGame();showScreen('gameScreen')}
 
 /* ===== RESULTS & COINS ===== */
+/* ===== SHOP CATALOG ===== */
+var CK_SHOP = [
+  { id:'ck_classic', name:'Classic', emoji:'\u{1F534}', cost:0, slot:'Piece Style' },
+  { id:'ck_neon', name:'Neon', emoji:'\u{1F49A}', cost:150, slot:'Piece Style' },
+  { id:'ck_wood', name:'Wood', emoji:'\u{1FAB5}', cost:100, slot:'Piece Style' },
+  { id:'ck_galaxy', name:'Galaxy', emoji:'\u{1F30C}', cost:300, slot:'Piece Style' },
+  { id:'ck_diamond', name:'Diamond', emoji:'\u{1F48E}', cost:400, slot:'Piece Style' },
+  { id:'ck_fire', name:'Fire', emoji:'\u{1F525}', cost:250, slot:'Piece Style' },
+  { id:'ck_ocean', name:'Ocean', emoji:'\u{1F30A}', cost:200, slot:'Piece Style' },
+  { id:'ck_rainbow', name:'Rainbow', emoji:'\u{1F308}', cost:500, slot:'Piece Style' },
+  { id:'ckb_default', name:'Default', emoji:'\u{1F7EB}', cost:0, slot:'Board Theme' },
+  { id:'ckb_dark', name:'Midnight', emoji:'\u{1F319}', cost:150, slot:'Board Theme' },
+  { id:'ckb_wood', name:'Oak', emoji:'\u{1F332}', cost:200, slot:'Board Theme' },
+  { id:'ckb_neon', name:'Neon', emoji:'\u{1F49A}', cost:300, slot:'Board Theme' },
+  { id:'ckb_marble', name:'Marble', emoji:'\u{1FAAA}', cost:250, slot:'Board Theme' },
+  { id:'ckb_space', name:'Space', emoji:'\u{1F680}', cost:400, slot:'Board Theme' },
+  { id:'ckb_royal', name:'Royal', emoji:'\u{1F451}', cost:350, slot:'Board Theme' },
+  { id:'ckb_ocean', name:'Ocean', emoji:'\u{1F30A}', cost:300, slot:'Board Theme' },
+  { id:'ckc_classic', name:'Classic Crown', emoji:'\u{1F451}', cost:0, slot:'Crown Style' },
+  { id:'ckc_diamond', name:'Diamond Crown', emoji:'\u{1F48E}', cost:300, slot:'Crown Style' },
+  { id:'ckc_fire', name:'Fire Crown', emoji:'\u{1F525}', cost:500, slot:'Crown Style' },
+  { id:'ckc_rainbow', name:'Rainbow Crown', emoji:'\u{1F308}', cost:800, slot:'Crown Style' }
+];
+
+function showShopScreen(){
+  showScreen('shopScreen');
+  if(window.odaShop){
+    odaShop.renderShopPanel('checkers', CK_SHOP, 'checkersShopContainer', {
+      onEquip: function(item){ console.log('[CK] Equipped:', item.id); },
+      onBuy: function(item){ console.log('[CK] Bought:', item.id); }
+    });
+  }
+}
+
+/* ===== ACHIEVEMENTS ===== */
+var CK_ACHIEVEMENTS = [
+  { id:'ck_first_king', name:'First King', desc:'Get your first king', icon:'\u{1F451}', check: function(s){ return s.kings >= 1; } },
+  { id:'ck_double_jump', name:'Double Jump', desc:'Capture 2 in one move', icon:'\u{1F4A8}', check: function(s){ return s.doubleJump; } },
+  { id:'ck_triple_jump', name:'Triple Jump', desc:'Capture 3+ in one move', icon:'\u26A1', check: function(s){ return s.tripleJump; } },
+  { id:'ck_win10', name:'Win 10', desc:'Win 10 games', icon:'\u{1F3C5}', check: function(s){ return s.wins >= 10; } },
+  { id:'ck_win50', name:'Win 50', desc:'Win 50 games', icon:'\u{1F948}', check: function(s){ return s.wins >= 50; } },
+  { id:'ck_flawless', name:'Flawless Victory', desc:'Win without losing a piece', icon:'\u{2728}', check: function(s){ return s.flawless; } },
+  { id:'ck_tourney', name:'Tournament Victor', desc:'Win a tournament', icon:'\u{1F3C6}', check: function(s){ return s.tourneyWin; } },
+  { id:'ck_legend', name:'Checkers Legend', desc:'Win 200 games', icon:'\u{1F947}', check: function(s){ return s.wins >= 200; } }
+];
+
+var ckAchState = {};
+
+async function loadCKAchievements() {
+  if (!studentId || studentId.startsWith('anon_')) return;
+  try {
+    var snap = await getDoc(doc(db, 'checkersRecords', studentId));
+    if (snap.exists()) ckAchState = snap.data().achievements || {};
+  } catch(e) {}
+}
+loadCKAchievements();
+
+async function checkCKAchievements(extraState) {
+  if (!studentId || studentId.startsWith('anon_')) return;
+  var snap = await getDoc(doc(db, 'checkersRecords', studentId));
+  var data = snap.exists() ? snap.data() : {};
+  var state = Object.assign({}, data, extraState || {});
+  var newUnlocks = [];
+  CK_ACHIEVEMENTS.forEach(function(a) {
+    if (!ckAchState[a.id] && a.check(state)) {
+      ckAchState[a.id] = Date.now();
+      newUnlocks.push(a);
+    }
+  });
+  if (newUnlocks.length > 0) {
+    var upd = {};
+    newUnlocks.forEach(function(a) { upd['achievements.' + a.id] = ckAchState[a.id]; });
+    try { await updateDoc(doc(db, 'checkersRecords', studentId), upd); } catch(e) {}
+    newUnlocks.forEach(function(a, i) {
+      setTimeout(function() { showCKAchToast(a); }, 600 + i * 1200);
+    });
+  }
+}
+
+function showCKAchToast(a) {
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #ffd166;border-radius:16px;padding:14px 24px;z-index:9999;display:flex;align-items:center;gap:12px;animation:achSlide .4s ease;box-shadow:0 8px 32px rgba(255,209,102,.3);';
+  el.innerHTML = '<span style="font-size:32px">' + a.icon + '</span><div><div style="color:#ffd166;font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:#f0f4ff;font-size:15px;font-weight:600;font-family:Outfit,sans-serif">' + a.name + '</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function() { el.style.transition = 'opacity .4s'; el.style.opacity = '0'; setTimeout(function() { el.remove(); }, 400); }, 3000);
+}
+
 function showResult(data){
   showScreen('resultScreen');
   const titleEl=document.getElementById('resultTitle'),subEl=document.getElementById('resultSub');
@@ -971,7 +1059,9 @@ function showResult(data){
     }
   }
   coinsEl.innerHTML=`<svg width="22" height="22" viewBox="0 0 24 24" fill="var(--gold)"><circle cx="12" cy="12" r="10" stroke="var(--gold)" stroke-width="2" fill="rgba(255,209,102,.2)"/><text x="12" y="16" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--gold)">$</text></svg> +${coins} Coins`;
-  if(!coinsAwarded){coinsAwarded=true;awardCoins(coins);updateRecordAfterGame(recordResult)}
+  if(!coinsAwarded){coinsAwarded=true;awardCoins(coins);updateRecordAfterGame(recordResult);
+    if(recordResult==='win'){ checkCKAchievements({ wins: 1 }); }
+  }
   seriesArea.innerHTML='';
   if(format>1&&!data.isAi){
     const p1N=document.getElementById('p1Name').textContent,p2N=document.getElementById('p2Name').textContent;
@@ -1199,7 +1289,7 @@ async function loadAssignedMatches(){
 }
 
 /* ===== PUBLIC API ===== */
-window.CK={showScreen,startAiGame,createGame,joinGame,cancelGame,playAgain,goHome,pickFormat,nextSeriesGame,rematchGame,showTourneyJoin,joinTourney,leaveTourney,backToTourney,showTeacherDashboard,teacherTab,teacherCreateTourney,teacherStartTourney,teacherViewTourney,assignMatch,loadRecords,spectateGame};
+window.CK={showScreen,startAiGame,createGame,joinGame,cancelGame,playAgain,goHome,pickFormat,nextSeriesGame,rematchGame,showTourneyJoin,joinTourney,leaveTourney,backToTourney,showTeacherDashboard,teacherTab,teacherCreateTourney,teacherStartTourney,teacherViewTourney,assignMatch,loadRecords,spectateGame,showShopScreen};
 </script>
 </body>
 </html>
