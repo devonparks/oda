@@ -459,7 +459,12 @@ var achievements = [
   { id: 'prestige5', name: 'Prestige V', icon: '&#127775;', desc: 'Have 5+ prestige stars', unlocked: false },
   { id: 'idleMaster', name: 'Idle Master', icon: '&#128564;', desc: 'Earn 10,000 coins from offline', unlocked: false },
   { id: 'upgradeMaxer', name: 'Upgrade Maxer', icon: '&#128295;', desc: 'Buy all click power upgrades', unlocked: false },
-  { id: 'odaLegend', name: 'ODA Legend', icon: '&#127942;', desc: '1B lifetime + 10 stars', unlocked: false }
+  { id: 'odaLegend', name: 'ODA Legend', icon: '&#127942;', desc: '1B lifetime + 10 stars', unlocked: false },
+  { id: 'tapMaster', name: 'Tap Master', icon: '&#128070;', desc: 'Click 10,000 times', unlocked: false },
+  { id: 'genCollector', name: 'Generator Collector', icon: '&#127981;', desc: 'Own 50 total generators', unlocked: false },
+  { id: 'overnightSuccess', name: 'Overnight Success', icon: '&#127769;', desc: 'Earn 50,000 from offline', unlocked: false },
+  { id: 'speedClickerPro', name: 'Speed Clicker Pro', icon: '&#9889;&#65039;', desc: 'Click 20 times in 1 second', unlocked: false },
+  { id: 'prestigeX', name: 'Prestige X', icon: '&#11088;&#11088;', desc: 'Have 10+ prestige stars', unlocked: false }
 ];
 
 // Golden coin state
@@ -826,6 +831,14 @@ function checkAchievements() {
   if (allClicks) unlock('upgradeMaxer');
 
   if (lifetimeCoins >= 1000000000 && prestigeStars >= 10) unlock('odaLegend');
+
+  // New achievements
+  if (totalClicks >= 10000) unlock('tapMaster');
+  if (getTotalGenerators() >= 50) unlock('genCollector');
+  if (offlineEarned >= 50000) unlock('overnightSuccess');
+  // Speed clicker pro: 20 clicks in 1 second (clickTimestamps already filtered to last 1s)
+  if (clickTimestamps.length >= 20) unlock('speedClickerPro');
+  if (prestigeStars >= 10) unlock('prestigeX');
 
   if (changed) {
     renderAchievements();

@@ -344,6 +344,18 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 }
 
 /* ======================== */
+/* ACHIEVEMENTS             */
+/* ======================== */
+.ach-item{display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 4px;text-align:center;aspect-ratio:1;transition:all .2s}
+.ach-item.locked{opacity:.3;filter:grayscale(1)}
+.ach-item.unlocked{border-color:var(--gold);box-shadow:0 0 12px rgba(255,209,102,.15)}
+.ach-item .ach-icon{font-size:24px}
+.ach-item .ach-name{font-size:8px;color:var(--text2);line-height:1.1;margin-top:2px}
+.ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:250;animation:achSlideIn .5s ease,achFadeOut .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
+@keyframes achSlideIn{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes achFadeOut{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+
+/* ======================== */
 /* DESKTOP SIZING           */
 /* ======================== */
 @media(min-width:1024px){
@@ -405,7 +417,22 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <p>View your stats and class leaderboard</p>
     </div>
   </div>
+  <div style="text-align:center;margin-top:16px">
+    <button class="btn btn-outline btn-small" onclick="UNO.showShopScreen()">&#128717;&#65039; Shop</button>
+  </div>
   <div class="quick-stats" id="quickStats"></div>
+</div>
+
+<!-- ======================== -->
+<!-- SHOP SCREEN              -->
+<!-- ======================== -->
+<div class="screen" id="shopScreen">
+  <div style="text-align:center;margin-bottom:8px">
+    <h1>&#128717;&#65039; Shop</h1>
+    <p style="color:var(--text2);font-size:14px">Customize your Uno experience</p>
+  </div>
+  <div id="unoShopContainer" style="width:100%;max-width:500px"></div>
+  <button class="btn btn-outline btn-small" onclick="UNO.showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
 </div>
 
 <!-- ======================== -->
@@ -531,6 +558,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
         <div class="stat-box"><div class="stat-val" style="color:var(--accent2)">-</div><div class="stat-label">Best</div></div>
       </div>
     </div>
+    <h3 class="section-title">&#127942; Achievements</h3>
+    <div id="unoAchievementsGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:24px"></div>
     <h3 class="section-title">Class Leaderboard</h3>
     <div id="leaderboardWrap"><p style="color:var(--text2);font-size:14px;text-align:center;padding:20px">Loading...</p></div>
     <div style="text-align:center;margin-top:20px">
@@ -1019,6 +1048,14 @@ function executePlay(playerIndex,cardIndex,chosenColor){
   cardsPlayedCount++;
   AudioEngine.play('play');
 
+  // Track achievement stats for player's plays
+  if(playerIndex===myPlayerIndex){
+    if(card.value==='reverse'){unoAchStats.reverseCards=(unoAchStats.reverseCards||0)+1;saveUnoAchievements();}
+    if(card.type==='wild'){unoAchStats.wildCards=(unoAchStats.wildCards||0)+1;saveUnoAchievements();}
+    if(card.value==='drawTwo'){unoAchStats.drawForced=(unoAchStats.drawForced||0)+2;saveUnoAchievements();}
+    if(card.value==='wildDrawFour'){unoAchStats.drawForced=(unoAchStats.drawForced||0)+4;saveUnoAchievements();}
+  }
+
   if(chosenColor){
     currentColor=chosenColor;
   }else{
@@ -1028,6 +1065,7 @@ function executePlay(playerIndex,cardIndex,chosenColor){
   // Check UNO
   if(hands[playerIndex].length===1){
     showUnoFlash();
+    if(playerIndex===myPlayerIndex){unoAchStats.unosCalled=(unoAchStats.unosCalled||0)+1;saveUnoAchievements();}
   }
 
   // Check win
@@ -1296,6 +1334,9 @@ function showResult(winnerIndex){
     updateRecordAfterGame(recordResult);
   }
 
+  // Check achievements
+  checkUnoAchievements(isWin);
+
   showScreen('resultScreen');
 }
 
@@ -1348,6 +1389,7 @@ async function loadQuickStats(){
 loadQuickStats();
 
 async function loadRecords(){
+  renderUnoAchievements();
   // My stats
   try{
     const snap=await getDoc(doc(db,'unoRecords',studentId));
@@ -2443,6 +2485,8 @@ function showGroupResult(winnerIdx,isWin){
     updateRecordAfterGame(isWin?'win':'loss');
   }
 
+  checkUnoAchievements(isWin);
+
   showScreen('resultScreen');
 }
 
@@ -2482,6 +2526,141 @@ function handlePickColor(color){
 /* ===================== */
 /* PUBLIC API            */
 /* ===================== */
+// =====================
+// SHOP
+// =====================
+const UNO_SHOP=[
+  // Card Back Designs
+  {id:'back_classic',name:'Classic Red',emoji:'\u{2764}\uFE0F',cost:0,slot:'Card Back'},
+  {id:'back_galaxy',name:'Galaxy',emoji:'\u{1F30C}',cost:300,slot:'Card Back'},
+  {id:'back_oda',name:'ODA Logo',emoji:'\u{1F393}',cost:100,slot:'Card Back'},
+  {id:'back_gold',name:'Gold',emoji:'\u{1F4B0}',cost:500,slot:'Card Back'},
+  // Table Themes
+  {id:'table_default',name:'Default',emoji:'\u{1F532}',cost:0,slot:'Table Theme'},
+  {id:'table_casino',name:'Casino Green',emoji:'\u{1F0CF}',cost:200,slot:'Table Theme'},
+  {id:'table_space',name:'Space',emoji:'\u{1F680}',cost:400,slot:'Table Theme'},
+  {id:'table_neon',name:'Neon Party',emoji:'\u{1F4A1}',cost:500,slot:'Table Theme'},
+  // UNO Call Effects
+  {id:'call_default',name:'Default',emoji:'\u{1F4E2}',cost:0,slot:'UNO Call'},
+  {id:'call_horn',name:'Air Horn',emoji:'\u{1F4EF}',cost:200,slot:'UNO Call'},
+  {id:'call_mega',name:'Megaphone',emoji:'\u{1F4E3}',cost:300,slot:'UNO Call'},
+  {id:'call_thunder',name:'Thunder',emoji:'\u{26A1}',cost:500,slot:'UNO Call'}
+];
+
+function showShopScreen(){
+  showScreen('shopScreen');
+  if(typeof odaShop!=='undefined'){
+    odaShop.renderShopPanel('uno',UNO_SHOP,'unoShopContainer',{
+      onEquip:function(){},onBuy:function(){}
+    });
+  }
+}
+
+// =====================
+// ACHIEVEMENTS
+// =====================
+const UNO_ACHIEVEMENTS=[
+  {id:'firstWin',name:'First Win',icon:'\u{1F3C6}',desc:'Win 1 game'},
+  {id:'unoCall',name:'Uno!',icon:'\u{1F4E2}',desc:'Call UNO successfully'},
+  {id:'reverseMaster',name:'Reverse Master',icon:'\u{1F504}',desc:'Play 10 reverse cards'},
+  {id:'colorChanger',name:'Color Changer',icon:'\u{1F308}',desc:'Play 20 wild cards'},
+  {id:'drawMaster',name:'Draw Master',icon:'\u{1F4A5}',desc:'Make opponents draw 50 total'},
+  {id:'streak3',name:'Win Streak 3',icon:'\u{1F525}',desc:'Win 3 games in a row'},
+  {id:'streak5',name:'Win Streak 5',icon:'\u{2B50}',desc:'Win 5 games in a row'},
+  {id:'cardShark',name:'Card Shark',icon:'\u{1F988}',desc:'Win 25 games'},
+  {id:'unoMaster',name:'Uno Master',icon:'\u{1F396}\uFE0F',desc:'Win 50 games'},
+  {id:'unoLegend',name:'Uno Legend',icon:'\u{1F451}',desc:'Win 100 games'}
+];
+
+let unoAchievements={};
+let unoAchStats={reverseCards:0,wildCards:0,drawForced:0,unosCalled:0};
+const UNO_ACH_LS='unoAchievements';
+const UNO_ACHSTATS_LS='unoAchStats';
+
+function loadUnoAchievements(){
+  try{unoAchievements=JSON.parse(localStorage.getItem(UNO_ACH_LS)||'{}');}catch(e){unoAchievements={}}
+  try{unoAchStats=JSON.parse(localStorage.getItem(UNO_ACHSTATS_LS)||'{}');
+    unoAchStats.reverseCards=unoAchStats.reverseCards||0;
+    unoAchStats.wildCards=unoAchStats.wildCards||0;
+    unoAchStats.drawForced=unoAchStats.drawForced||0;
+    unoAchStats.unosCalled=unoAchStats.unosCalled||0;
+  }catch(e){unoAchStats={reverseCards:0,wildCards:0,drawForced:0,unosCalled:0}}
+}
+
+function saveUnoAchievements(){
+  try{localStorage.setItem(UNO_ACH_LS,JSON.stringify(unoAchievements));}catch(e){}
+  try{localStorage.setItem(UNO_ACHSTATS_LS,JSON.stringify(unoAchStats));}catch(e){}
+}
+
+function checkUnoAchievements(isWin){
+  let changed=false;
+  function unlock(id){
+    if(!unoAchievements[id]){unoAchievements[id]=true;changed=true;
+      const a=UNO_ACHIEVEMENTS.find(x=>x.id===id);
+      if(a)showUnoAchPopup(a);
+    }
+  }
+  if(isWin)unlock('firstWin');
+  if(unoAchStats.unosCalled>=1)unlock('unoCall');
+  if(unoAchStats.reverseCards>=10)unlock('reverseMaster');
+  if(unoAchStats.wildCards>=20)unlock('colorChanger');
+  if(unoAchStats.drawForced>=50)unlock('drawMaster');
+  // Win milestones from Firestore records
+  (async()=>{
+    try{
+      const snap=await getDoc(doc(db,'unoRecords',studentId));
+      if(snap.exists()){
+        const d=snap.data();
+        let changed2=false;
+        function unlock2(id){
+          if(!unoAchievements[id]){unoAchievements[id]=true;changed2=true;
+            const a=UNO_ACHIEVEMENTS.find(x=>x.id===id);
+            if(a)showUnoAchPopup(a);
+          }
+        }
+        if((d.winStreak||0)>=3)unlock2('streak3');
+        if((d.winStreak||0)>=5||(d.bestStreak||0)>=5)unlock2('streak5');
+        if((d.wins||0)>=25)unlock2('cardShark');
+        if((d.wins||0)>=50)unlock2('unoMaster');
+        if((d.wins||0)>=100)unlock2('unoLegend');
+        if(changed2){saveUnoAchievements();renderUnoAchievements();}
+      }
+    }catch(e){}
+  })();
+  if(changed){saveUnoAchievements();renderUnoAchievements();}
+}
+
+let unoAchPopupQueue=[];
+let unoAchPopupShowing=false;
+
+function showUnoAchPopup(a){
+  unoAchPopupQueue.push(a);
+  if(!unoAchPopupShowing)processUnoAchPopup();
+}
+
+function processUnoAchPopup(){
+  if(unoAchPopupQueue.length===0){unoAchPopupShowing=false;return;}
+  unoAchPopupShowing=true;
+  const a=unoAchPopupQueue.shift();
+  const popup=document.createElement('div');
+  popup.className='ach-popup';
+  popup.innerHTML='<div style="font-size:32px">'+a.icon+'</div><div><div style="font-weight:700;font-size:14px">'+esc(a.name)+'</div><div style="font-size:12px;color:var(--text2)">'+esc(a.desc)+'</div></div>';
+  document.body.appendChild(popup);
+  setTimeout(()=>{popup.remove();processUnoAchPopup()},3500);
+}
+
+function renderUnoAchievements(){
+  const grid=document.getElementById('unoAchievementsGrid');
+  if(!grid)return;
+  grid.innerHTML='';
+  UNO_ACHIEVEMENTS.forEach(a=>{
+    const unlocked=!!unoAchievements[a.id];
+    grid.innerHTML+='<div class="ach-item '+(unlocked?'unlocked':'locked')+'" title="'+esc(a.name)+': '+esc(a.desc)+'"><span class="ach-icon">'+a.icon+'</span><div class="ach-name">'+esc(a.name)+'</div></div>';
+  });
+}
+
+loadUnoAchievements();
+
 window.UNO={
   showScreen,
   startAI:startAIGame,
@@ -2497,7 +2676,8 @@ window.UNO={
   startGroupGame:hostStartGroupGame,
   playAgain,
   goHome,
-  loadRecords
+  loadRecords,
+  showShopScreen
 };
 
 </script>

@@ -277,6 +277,18 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 }
 
 /* ======================== */
+/* ACHIEVEMENTS             */
+/* ======================== */
+.ach-item{display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 4px;text-align:center;aspect-ratio:1;transition:all .2s}
+.ach-item.locked{opacity:.3;filter:grayscale(1)}
+.ach-item.unlocked{border-color:var(--gold);box-shadow:0 0 12px rgba(255,209,102,.15)}
+.ach-item .ach-icon{font-size:24px}
+.ach-item .ach-name{font-size:8px;color:var(--text2);line-height:1.1;margin-top:2px}
+.ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlideIn .5s ease,achFadeOut .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
+@keyframes achSlideIn{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes achFadeOut{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+
+/* ======================== */
 /* DESKTOP SIZING           */
 /* ======================== */
 @media(min-width:1024px){
@@ -327,7 +339,22 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <p>Stats &amp; leaderboard</p>
     </div>
   </div>
+  <div style="text-align:center;margin-top:16px">
+    <button class="btn btn-outline btn-small" onclick="BS.showShopScreen()">&#128717;&#65039; Shop</button>
+  </div>
   <div class="quick-stats" id="quickStats"></div>
+</div>
+
+<!-- ======================== -->
+<!-- SHOP SCREEN              -->
+<!-- ======================== -->
+<div class="screen" id="shopScreen">
+  <div style="text-align:center;margin-bottom:8px">
+    <h1>&#128717;&#65039; Shop</h1>
+    <p style="color:var(--text2);font-size:14px">Customize your Battleship experience</p>
+  </div>
+  <div id="bsShopContainer" style="width:100%;max-width:500px"></div>
+  <button class="btn btn-outline btn-small" onclick="BS.showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
 </div>
 
 <!-- ======================== -->
@@ -490,6 +517,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
         <div class="stat-box"><div class="stat-val" style="color:var(--gold)">-</div><div class="stat-label">Ships Sunk</div></div>
       </div>
     </div>
+    <h3 class="section-title">&#127942; Achievements</h3>
+    <div id="bsAchievementsGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:24px"></div>
     <h3 class="section-title">Class Leaderboard</h3>
     <div id="leaderboardWrap"><p style="color:var(--text2);font-size:14px;text-align:center;padding:20px">Loading...</p></div>
     <div style="text-align:center;margin-top:20px">
@@ -1519,6 +1548,16 @@ function showResult(won){
     coinsAwarded=true;
     awardCoins(coins, won?'win':'loss', enemySunk);
   }
+
+  // Check achievements
+  let consecutiveHits=0,currentStreak=0;
+  if(myAttacks){
+    for(let r=0;r<10;r++){for(let c=0;c<10;c++){
+      if(myAttacks[r][c]===HIT_MARK){currentStreak++;if(currentStreak>consecutiveHits)consecutiveHits=currentStreak;}
+      else if(myAttacks[r][c]>0){currentStreak=0;}
+    }}
+  }
+  checkBSAchievements(won,myShots,myHits,enemySunk,consecutiveHits);
 }
 
 async function awardCoins(coins,resultType,shipsSunk){
@@ -1564,6 +1603,7 @@ async function awardCoins(coins,resultType,shipsSunk){
 async function loadRecords(){
   const s=sid();
   showScreen('recordsScreen');
+  renderBSAchievements();
 
   // My stats
   try{
@@ -1661,10 +1701,145 @@ document.addEventListener('keydown',e=>{
 });
 
 // ============================================
+// SHOP
+// ============================================
+const BS_SHOP=[
+  // Ocean Themes
+  {id:'ocean_classic',name:'Classic Blue',emoji:'\u{1F30A}',cost:0,slot:'Ocean Theme'},
+  {id:'ocean_deep',name:'Deep Sea',emoji:'\u{1F3CA}',cost:200,slot:'Ocean Theme'},
+  {id:'ocean_tropical',name:'Tropical',emoji:'\u{1F334}',cost:300,slot:'Ocean Theme'},
+  {id:'ocean_arctic',name:'Arctic',emoji:'\u{2744}\uFE0F',cost:500,slot:'Ocean Theme'},
+  // Ship Styles
+  {id:'ship_standard',name:'Standard',emoji:'\u{26F5}',cost:0,slot:'Ship Style'},
+  {id:'ship_stealth',name:'Stealth Black',emoji:'\u{1F5A4}',cost:300,slot:'Ship Style'},
+  {id:'ship_gold',name:'Gold Fleet',emoji:'\u{1F4B0}',cost:600,slot:'Ship Style'},
+  {id:'ship_neon',name:'Neon',emoji:'\u{1F4A1}',cost:400,slot:'Ship Style'},
+  // Hit Effects
+  {id:'hit_standard',name:'Standard',emoji:'\u{1F4A5}',cost:0,slot:'Hit Effect'},
+  {id:'hit_fire',name:'Fire Burst',emoji:'\u{1F525}',cost:200,slot:'Hit Effect'},
+  {id:'hit_lightning',name:'Lightning',emoji:'\u{26A1}',cost:400,slot:'Hit Effect'},
+  {id:'hit_nuclear',name:'Nuclear',emoji:'\u{2622}\uFE0F',cost:800,slot:'Hit Effect'}
+];
+
+function showShopScreen(){
+  sndClick();
+  showScreen('shopScreen');
+  if(typeof odaShop!=='undefined'){
+    odaShop.renderShopPanel('battleship',BS_SHOP,'bsShopContainer',{
+      onEquip:function(){},onBuy:function(){}
+    });
+  }
+}
+
+// ============================================
+// ACHIEVEMENTS
+// ============================================
+const BS_ACHIEVEMENTS=[
+  {id:'firstBlood',name:'First Blood',icon:'\u{1FA78}',desc:'Get your first hit'},
+  {id:'sunk',name:'Sunk!',icon:'\u{1F6A2}',desc:'Sink your first ship'},
+  {id:'fleetDestroyer',name:'Fleet Destroyer',icon:'\u{1F4A3}',desc:'Sink all 5 ships'},
+  {id:'sharpshooter',name:'Sharpshooter',icon:'\u{1F3AF}',desc:'Hit 5 in a row'},
+  {id:'perfectGame',name:'Perfect Game',icon:'\u{2B50}',desc:'Win missing <=5'},
+  {id:'admiral',name:'Admiral',icon:'\u{2693}',desc:'Win 25 games'},
+  {id:'fleetCommander',name:'Fleet Commander',icon:'\u{1F396}\uFE0F',desc:'Win 50 games'},
+  {id:'speedWin',name:'Speed Win',icon:'\u{26A1}',desc:'Win in under 30 shots'},
+  {id:'veteran',name:'Veteran',icon:'\u{1F3C5}',desc:'Play 100 games'},
+  {id:'navalLegend',name:'Naval Legend',icon:'\u{1F451}',desc:'Win 200 games'}
+];
+
+let bsAchievements={};
+const BS_ACH_LS='bsAchievements';
+
+function loadBSAchievements(){
+  try{bsAchievements=JSON.parse(localStorage.getItem(BS_ACH_LS)||'{}');}catch(e){bsAchievements={}}
+}
+
+function saveBSAchievements(){
+  try{localStorage.setItem(BS_ACH_LS,JSON.stringify(bsAchievements));}catch(e){}
+}
+
+function checkBSAchievements(won,myShots,myHits,enemySunk,consecutiveHits){
+  let changed=false;
+  function unlock(id){
+    if(!bsAchievements[id]){bsAchievements[id]=true;changed=true;
+      const a=BS_ACHIEVEMENTS.find(x=>x.id===id);
+      if(a)showBSAchPopup(a);
+    }
+  }
+  if(myHits>=1)unlock('firstBlood');
+  if(enemySunk>=1)unlock('sunk');
+  if(enemySunk>=5)unlock('fleetDestroyer');
+  if(consecutiveHits>=5)unlock('sharpshooter');
+  if(won){
+    const misses=myShots-myHits;
+    if(misses<=5)unlock('perfectGame');
+    if(myShots<=30)unlock('speedWin');
+  }
+  // Win/play milestones from stored records
+  loadBSRecordCounts().then(counts=>{
+    let changed2=false;
+    function unlock2(id){
+      if(!bsAchievements[id]){bsAchievements[id]=true;changed2=true;
+        const a=BS_ACHIEVEMENTS.find(x=>x.id===id);
+        if(a)showBSAchPopup(a);
+      }
+    }
+    if(counts.wins>=25)unlock2('admiral');
+    if(counts.wins>=50)unlock2('fleetCommander');
+    if(counts.wins>=200)unlock2('navalLegend');
+    if(counts.played>=100)unlock2('veteran');
+    if(changed2){saveBSAchievements();renderBSAchievements();}
+  });
+  if(changed){saveBSAchievements();renderBSAchievements();}
+}
+
+async function loadBSRecordCounts(){
+  const s=sid();
+  if(s==='guest')return{wins:0,played:0};
+  try{
+    const fb=await getFirebaseDB();
+    const snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'battleshipRecords',s));
+    if(snap.exists()){const d=snap.data();return{wins:d.wins||0,played:d.gamesPlayed||0};}
+  }catch(e){}
+  return{wins:0,played:0};
+}
+
+let bsAchPopupQueue=[];
+let bsAchPopupShowing=false;
+
+function showBSAchPopup(a){
+  bsAchPopupQueue.push(a);
+  if(!bsAchPopupShowing)processBSAchPopup();
+}
+
+function processBSAchPopup(){
+  if(bsAchPopupQueue.length===0){bsAchPopupShowing=false;return;}
+  bsAchPopupShowing=true;
+  const a=bsAchPopupQueue.shift();
+  const popup=document.createElement('div');
+  popup.className='ach-popup';
+  popup.innerHTML='<div style="font-size:32px">'+a.icon+'</div><div><div style="font-weight:700;font-size:14px">'+a.name+'</div><div style="font-size:12px;color:var(--text2)">'+a.desc+'</div></div>';
+  document.body.appendChild(popup);
+  setTimeout(()=>{popup.remove();processBSAchPopup()},3500);
+}
+
+function renderBSAchievements(){
+  const grid=document.getElementById('bsAchievementsGrid');
+  if(!grid)return;
+  grid.innerHTML='';
+  BS_ACHIEVEMENTS.forEach(a=>{
+    const unlocked=!!bsAchievements[a.id];
+    grid.innerHTML+='<div class="ach-item '+(unlocked?'unlocked':'locked')+'" title="'+esc(a.name)+': '+esc(a.desc)+'"><span class="ach-icon">'+a.icon+'</span><div class="ach-name">'+esc(a.name)+'</div></div>';
+  });
+}
+
+loadBSAchievements();
+
+// ============================================
 // PUBLIC API
 // ============================================
 return {
-  showScreen, showAIPicker, showMultiplayer, showRecords,
+  showScreen, showAIPicker, showMultiplayer, showRecords, showShopScreen,
   startAI, ready, randomizeShips, clearShips, toggleOrientation,
   createRoom, joinRoom, cancelRoom,
   playAgain, goHome, loadRecords

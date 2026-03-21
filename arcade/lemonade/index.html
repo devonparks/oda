@@ -275,6 +275,16 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 @keyframes mrDevonIn{0%{transform:translateX(-100px) scale(0)}60%{transform:translateX(10px) scale(1.1)}100%{transform:translateX(0) scale(1)}}
 .arrest-msg{font-size:16px;font-weight:700;color:var(--accent);margin:8px 0}
 
+/* ===== ACHIEVEMENTS ===== */
+.ach-item{display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 4px;text-align:center;aspect-ratio:1;transition:all .2s}
+.ach-item.locked{opacity:.3;filter:grayscale(1)}
+.ach-item.unlocked{border-color:var(--gold);box-shadow:0 0 12px rgba(255,209,102,.15)}
+.ach-item .ach-icon{font-size:24px}
+.ach-item .ach-name{font-size:8px;color:var(--text2);line-height:1.1;margin-top:2px}
+.ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:250;animation:achSlideIn .5s ease,achFadeOut .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
+@keyframes achSlideIn{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes achFadeOut{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+
 /* ===== RESPONSIVE ===== */
 @media(max-width:500px){
   .supply-grid,.buy-grid,.shop-grid,.report-stats,.go-stats,.my-stats{grid-template-columns:1fr 1fr}
@@ -357,6 +367,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   <div class="home-actions">
     <button class="btn btn-outline btn-small" onclick="showScreen('recordsScreen')">&#127942; Records</button>
     <button class="btn btn-outline btn-small" onclick="continueGame()">&#128190; Continue</button>
+    <button class="btn btn-outline btn-small" onclick="window.showCosmeticShop()">&#128717;&#65039; Cosmetic Shop</button>
   </div>
   <div class="home-stats">
     <div class="stat-pill"><span class="num" id="homeHighScore">$0</span> Best Net Worth</div>
@@ -584,6 +595,16 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   </div>
 </div>
 
+<!-- ===== COSMETIC SHOP SCREEN ===== -->
+<div class="screen" id="cosmeticShopScreen">
+  <div style="text-align:center;margin-top:60px;margin-bottom:8px">
+    <h1>&#128717;&#65039; Cosmetic Shop</h1>
+    <p style="color:var(--text2);font-size:14px">Use ODA Coins to customize your stand</p>
+  </div>
+  <div id="lemonadeShopContainer" style="width:100%;max-width:500px"></div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
+</div>
+
 <!-- ===== RECORDS SCREEN ===== -->
 <div class="screen" id="recordsScreen">
   <div class="records-wrap">
@@ -595,6 +616,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <div class="my-stat"><span class="ms-val" id="recServed">0</span><span class="ms-label">Served</span></div>
       <div class="my-stat"><span class="ms-val" id="recDays">0</span><span class="ms-label">Days</span></div>
     </div>
+    <h3 style="font-size:14px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;margin-top:16px">&#127942; Achievements</h3>
+    <div id="lemonadeAchGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:24px"></div>
     <h3 style="font-size:14px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px">Class Leaderboard</h3>
     <div class="lb-list" id="lbList"><p style="color:var(--text2)">Loading...</p></div>
     <div style="text-align:center;margin-top:20px">
@@ -1817,6 +1840,9 @@ function showReport(profit) {
 
   updateHUD();
   showScreen('reportScreen');
+
+  // Check achievements after each day
+  checkLemAchievements();
 }
 
 function updateSavingsPreview() {
@@ -2405,6 +2431,7 @@ async function awardODACoins(coins) {
 }
 
 async function loadRecords() {
+  renderLemAchievements();
   // My stats
   const netWorth = G.money + G.savings;
   document.getElementById('recNetWorth').textContent = '$' + netWorth.toFixed(0);
@@ -2460,6 +2487,122 @@ function escHtml(str) {
 }
 
 // ============================================
+// COSMETIC SHOP (ODA Coins)
+// ============================================
+const LEMONADE_COSMETIC_SHOP=[
+  // Stand Skins
+  {id:'stand_basic',name:'Basic Wood',emoji:'\u{1FAB5}',cost:0,slot:'Stand Skin'},
+  {id:'stand_painted',name:'Painted',emoji:'\u{1F3A8}',cost:200,slot:'Stand Skin'},
+  {id:'stand_neon',name:'Neon Sign',emoji:'\u{1F4A1}',cost:500,slot:'Stand Skin'},
+  {id:'stand_gold',name:'Gold Cart',emoji:'\u{1F4B0}',cost:1000,slot:'Stand Skin'},
+  // Cup Designs
+  {id:'cup_paper',name:'Paper Cup',emoji:'\u{1FAD6}',cost:0,slot:'Cup Design'},
+  {id:'cup_fancy',name:'Fancy Glass',emoji:'\u{1F378}',cost:150,slot:'Cup Design'},
+  {id:'cup_tropical',name:'Tropical Cup',emoji:'\u{1F379}',cost:300,slot:'Cup Design'},
+  {id:'cup_diamond',name:'Diamond Cup',emoji:'\u{1F48E}',cost:800,slot:'Cup Design'},
+  // Music/Ambiance
+  {id:'music_none',name:'None',emoji:'\u{1F507}',cost:0,slot:'Music'},
+  {id:'music_jazz',name:'Jazz',emoji:'\u{1F3B7}',cost:100,slot:'Music'},
+  {id:'music_lofi',name:'Lo-fi Beats',emoji:'\u{1F3B5}',cost:200,slot:'Music'},
+  {id:'music_summer',name:'Summer Vibes',emoji:'\u{2600}\uFE0F',cost:300,slot:'Music'}
+];
+
+function showCosmeticShop(){
+  showScreen('cosmeticShopScreen');
+  if(typeof odaShop!=='undefined'){
+    odaShop.renderShopPanel('lemonade',LEMONADE_COSMETIC_SHOP,'lemonadeShopContainer',{
+      onEquip:function(){},onBuy:function(){}
+    });
+  }
+}
+
+// ============================================
+// ACHIEVEMENTS
+// ============================================
+const LEMONADE_ACHIEVEMENTS=[
+  {id:'firstSale',name:'First Sale',icon:'\u{1F4B5}',desc:'Serve 1 customer'},
+  {id:'busyDay',name:'Busy Day',icon:'\u{1F465}',desc:'Serve 50 in one day'},
+  {id:'rushHour',name:'Rush Hour',icon:'\u{1F525}',desc:'Serve 100 in one day'},
+  {id:'firstProfit',name:'First Profit',icon:'\u{1F4B0}',desc:'End a day with profit'},
+  {id:'bigMoney',name:'Big Money',icon:'\u{1F4B8}',desc:'Earn $1000 total'},
+  {id:'mogul',name:'Mogul',icon:'\u{1F451}',desc:'Earn $10000 total'},
+  {id:'fiveStar',name:'5 Star Rating',icon:'\u{2B50}',desc:'Reach 5.0 stars'},
+  {id:'survivor',name:'Survivor',icon:'\u{2744}\uFE0F',desc:'Survive winter season'},
+  {id:'multiLoc',name:'Multi-Location',icon:'\u{1F3E2}',desc:'Play at 2 different locations'},
+  {id:'legend',name:'Lemonade Legend',icon:'\u{1F3C6}',desc:'Survive 20 days'}
+];
+
+let lemAchievements={};
+const LEM_ACH_LS='lemonadeAchievements';
+
+function loadLemAchievements(){
+  try{lemAchievements=JSON.parse(localStorage.getItem(LEM_ACH_LS)||'{}');}catch(e){lemAchievements={}}
+}
+
+function saveLemAchievements(){
+  try{localStorage.setItem(LEM_ACH_LS,JSON.stringify(lemAchievements));}catch(e){}
+}
+
+function checkLemAchievements(){
+  let changed=false;
+  function unlock(id){
+    if(!lemAchievements[id]){lemAchievements[id]=true;changed=true;
+      const a=LEMONADE_ACHIEVEMENTS.find(x=>x.id===id);
+      if(a)showLemAchPopup(a);
+    }
+  }
+  if(G.totalServed>=1)unlock('firstSale');
+  if(G.dayServed>=50)unlock('busyDay');
+  if(G.dayServed>=100)unlock('rushHour');
+  if(G.dayRevenue-G.dayCosts>0)unlock('firstProfit');
+  if(G.totalRevenue>=1000)unlock('bigMoney');
+  if(G.totalRevenue>=10000)unlock('mogul');
+  if(G.reputation>=5.0)unlock('fiveStar');
+  // Survive winter = reach day 7 or later (winter is days 5-6 of each 8-day cycle)
+  if(G.day>=7)unlock('survivor');
+  // multiLoc: have played on 2+ different locations across games
+  // legend: reach day 20+
+  const locs=new Set();
+  try{const ld=JSON.parse(localStorage.getItem('lemonadeLocations')||'[]');ld.forEach(l=>locs.add(l));}catch(e){}
+  locs.add(G.location);
+  try{localStorage.setItem('lemonadeLocations',JSON.stringify([...locs]));}catch(e){}
+  if(locs.size>=2)unlock('multiLoc');
+  if(G.day>=20)unlock('legend');
+  if(changed){saveLemAchievements();renderLemAchievements();}
+}
+
+let lemAchPopupQueue=[];
+let lemAchPopupShowing=false;
+
+function showLemAchPopup(a){
+  lemAchPopupQueue.push(a);
+  if(!lemAchPopupShowing)processLemAchPopup();
+}
+
+function processLemAchPopup(){
+  if(lemAchPopupQueue.length===0){lemAchPopupShowing=false;return;}
+  lemAchPopupShowing=true;
+  const a=lemAchPopupQueue.shift();
+  const popup=document.createElement('div');
+  popup.className='ach-popup';
+  popup.innerHTML='<div style="font-size:32px">'+a.icon+'</div><div><div style="font-weight:700;font-size:14px">'+escHtml(a.name)+'</div><div style="font-size:12px;color:var(--text2)">'+escHtml(a.desc)+'</div></div>';
+  document.body.appendChild(popup);
+  setTimeout(()=>{popup.remove();processLemAchPopup()},3500);
+}
+
+function renderLemAchievements(){
+  const grid=document.getElementById('lemonadeAchGrid');
+  if(!grid)return;
+  grid.innerHTML='';
+  LEMONADE_ACHIEVEMENTS.forEach(a=>{
+    const unlocked=!!lemAchievements[a.id];
+    grid.innerHTML+='<div class="ach-item '+(unlocked?'unlocked':'locked')+'" title="'+escHtml(a.name)+': '+escHtml(a.desc)+'"><span class="ach-icon">'+a.icon+'</span><div class="ach-name">'+escHtml(a.name)+'</div></div>';
+  });
+}
+
+loadLemAchievements();
+
+// ============================================
 // WINDOW EXPORTS (for onclick handlers)
 // ============================================
 window.startGame = startGame;
@@ -2490,6 +2633,7 @@ window.handleTheft = handleTheft;
 window.closeTheft = closeTheft;
 window.paySickSettlement = paySickSettlement;
 window.loadRecords = loadRecords;
+window.showCosmeticShop = showCosmeticShop;
 
 // Update home stats on load
 updateHomeStats();
