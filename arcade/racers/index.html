@@ -909,25 +909,24 @@ function startHillClimb() {
   canvas.height = wrap.clientHeight * (window.devicePixelRatio > 1 ? 2 : 1);
 
   hillLastTime = performance.now();
-  hillAnimId = setInterval(hillLoop, 16);
+  // Use a self-checking loop that restarts itself
+  if (hillAnimId) clearInterval(hillAnimId);
+  hillAnimId = setInterval(function() {
+    if (!hillRunning) return;
+    if (hillPaused || hillState.gameOver) return;
+    var now = performance.now();
+    var dt = Math.min((now - hillLastTime) / 1000, 0.05);
+    if (dt <= 0) return;
+    hillLastTime = now;
+    updateHillPhysics(dt);
+    renderHillClimb();
+  }, 16);
 }
 
 function stopHillLoop() {
   hillRunning = false;
   if (hillAnimId) { clearInterval(hillAnimId); hillAnimId = null; }
   stopEngine();
-}
-
-function hillLoop() {
-  if (!hillRunning) { stopHillLoop(); return; }
-  if (hillPaused || hillState.gameOver) return;
-
-  var now = performance.now();
-  var dt = Math.min((now - hillLastTime) / 1000, 0.05);
-  hillLastTime = now;
-
-  updateHillPhysics(dt);
-  renderHillClimb();
 }
 
 function updateHillPhysics(dt) {
@@ -1569,25 +1568,23 @@ function startDragRace(oppId) {
   dragLastTime = performance.now();
   // Start countdown after a beat
   setTimeout(function() { dragState.phase = 'countdown'; dragState.countdownTimer = 0; }, 500);
-  dragAnimId = setInterval(dragLoop, 16);
+  if (dragAnimId) clearInterval(dragAnimId);
+  dragAnimId = setInterval(function() {
+    if (!dragRunning) return;
+    var now = performance.now();
+    var dt = Math.min((now - dragLastTime) / 1000, 0.05);
+    if (dt <= 0) return;
+    dragLastTime = now;
+    updateDragRace(dt);
+    renderDragRace();
+    renderRPMGauge();
+  }, 16);
 }
 
 function stopDragLoop() {
   dragRunning = false;
   if (dragAnimId) { clearInterval(dragAnimId); dragAnimId = null; }
   stopEngine();
-}
-
-function dragLoop() {
-  if (!dragRunning) { stopDragLoop(); return; }
-
-  var now = performance.now();
-  var dt = Math.min((now - dragLastTime) / 1000, 0.05);
-  dragLastTime = now;
-
-  updateDragRace(dt);
-  renderDragRace();
-  renderRPMGauge();
 }
 
 function resetTrafficLights() {
