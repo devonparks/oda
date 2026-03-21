@@ -507,6 +507,21 @@ service cloud.firestore {
       allow delete: if request.auth != null;
     }
 
+    // ODA Racers game saves + leaderboard
+    match /odaRacers/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
+      allow delete: if request.auth != null;
+    }
+
+    match /odaRacersLeaderboard/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
+      allow delete: if request.auth != null;
+    }
+
     // Lemonade Tycoon game saves + leaderboard
     match /lemonadeGame/{docId} {
       allow read: if true;

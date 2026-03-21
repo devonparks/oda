@@ -43,6 +43,7 @@ var GAMES=[
 {id:'wordle',emoji:'\u{1F4DD}',title:'Wordle',desc:'Guess the 5-letter word in 6 tries!',file:'arcade/wordle/index.html'},
 {id:'uno',emoji:'\u{1F3B4}',title:'Uno',desc:'Match colors and numbers — be first to empty your hand!',file:'arcade/uno/index.html'},
 {id:'lemonade',emoji:'\u{1F34B}',title:'Lemonade Tycoon',desc:'Build a lemonade empire! Learn real business skills.',file:'arcade/lemonade/index.html'},
+{id:'racers',emoji:'\u{1F3CE}\uFE0F',title:'ODA Racers',desc:'Hill climb & drag race! Upgrade your ride!',file:'arcade/racers/index.html'},
 ];
 
 var WORD_BANKS={

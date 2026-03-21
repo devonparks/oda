@@ -1,0 +1,2697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ODA Racers - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none;position:relative;display:flex;flex-direction:column;align-items:center}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:10px;padding:8px 16px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+.sound-btn{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:10px;padding:8px 14px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;backdrop-filter:blur(8px);transition:all .2s}
+.sound-btn:hover{border-color:var(--accent);color:var(--text)}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.screen{display:none;width:100%;max-width:700px;padding:16px;min-height:100vh;min-height:100dvh}
+.screen.active{display:flex;flex-direction:column;align-items:center;animation:fadeUp .35s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes coinFloat{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-40px)}}
+@keyframes flashGreen{0%{background:rgba(6,214,160,.4)}100%{background:transparent}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-blue{background:var(--accent2);color:#fff}
+.btn-blue:hover{box-shadow:0 0 24px rgba(17,138,178,.3)}
+.btn-red{background:var(--accent3);color:#fff}
+.btn-red:hover{box-shadow:0 0 24px rgba(239,71,111,.3)}
+.btn-gold{background:var(--gold);color:var(--bg)}
+.btn-gold:hover{box-shadow:0 0 24px rgba(255,209,102,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+.btn-purple{background:var(--purple);color:#fff}
+.btn-purple:hover{box-shadow:0 0 24px rgba(124,58,237,.3)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;transition:all .2s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+.stat-box{text-align:center;padding:12px 16px}
+.stat-box .stat-val{font-size:28px;font-weight:900;font-family:'Fredoka',sans-serif}
+.stat-box .stat-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+/* ===== HOME ===== */
+#homeScreen{padding-top:70px;justify-content:flex-start}
+.home-header{text-align:center;margin-bottom:24px}
+.home-header h1{font-size:clamp(36px,9vw,52px);font-weight:700;margin-bottom:4px}
+.home-header p{color:var(--text2);font-size:15px}
+.coin-display{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px 20px;margin:12px auto 0;font-size:15px;font-weight:700}
+.coin-display .coin-val{color:var(--gold);font-family:'Fredoka',sans-serif;font-size:22px}
+.home-car-display{width:260px;height:120px;margin:16px auto;position:relative}
+.mode-grid{display:flex;flex-direction:column;gap:12px;max-width:380px;width:100%;margin:0 auto 20px}
+.mode-card{cursor:pointer;display:flex;align-items:center;gap:16px;padding:18px 22px;background:var(--surface);border:2px solid var(--border);border-radius:16px;transition:all .2s}
+.mode-card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.3)}
+.mode-card .mode-icon{font-size:28px;flex-shrink:0}
+.mode-card h3{font-size:16px;margin-bottom:2px}
+.mode-card p{font-size:12px;color:var(--text2)}
+.mode-card.hill{border-color:var(--accent)}
+.mode-card.hill:hover{box-shadow:0 0 20px rgba(6,214,160,.2)}
+.mode-card.drag{border-color:var(--gold)}
+.mode-card.drag:hover{box-shadow:0 0 20px rgba(255,209,102,.2)}
+.home-actions{display:flex;flex-direction:column;gap:10px;align-items:center;margin-bottom:20px}
+.quick-stats{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.quick-stats .stat-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:8px 16px;font-size:13px;font-weight:600}
+.quick-stats .stat-pill .stat-num{color:var(--accent);font-weight:800}
+
+/* ===== GAME CANVAS ===== */
+#hillClimbScreen,#dragRaceScreen{padding-top:8px;min-height:auto;justify-content:flex-start}
+.game-hud{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:700px;padding:8px 4px;margin-bottom:4px;flex-wrap:wrap;gap:6px}
+.hud-left,.hud-right,.hud-center{display:flex;align-items:center;gap:10px}
+.hud-item{display:flex;align-items:center;gap:4px;font-weight:700;font-size:14px}
+.hud-item .hud-icon{font-size:16px}
+.hud-item .hud-val{font-family:'Fredoka',sans-serif;color:var(--accent);font-size:18px}
+.fuel-bar-wrap{width:100px;height:12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.fuel-bar{height:100%;background:var(--accent);border-radius:6px;transition:width .2s}
+.fuel-bar.low{background:var(--accent3)}
+.hud-btn{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:18px;transition:all .2s}
+.hud-btn:hover{border-color:var(--accent);color:var(--text)}
+.canvas-wrap{position:relative;width:100%;max-width:700px;aspect-ratio:16/9;background:var(--surface);border:2px solid var(--border);border-radius:16px;overflow:hidden}
+.canvas-wrap canvas{width:100%;height:100%;display:block}
+.pause-overlay{position:absolute;inset:0;background:rgba(10,14,26,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:10;backdrop-filter:blur(4px);border-radius:14px}
+.pause-overlay.active{display:flex}
+.pause-overlay h2{font-size:32px;margin-bottom:8px}
+
+/* Touch controls */
+.touch-controls{display:none;width:100%;max-width:700px;margin-top:12px;gap:16px;justify-content:space-between;padding:0 16px}
+.touch-btn{flex:1;max-width:160px;padding:20px;border-radius:16px;font-size:18px;font-weight:800;text-align:center;background:var(--surface);border:2px solid var(--border);color:var(--text2);cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:all .1s}
+.touch-btn:active,.touch-btn.pressed{background:var(--accent);color:var(--bg);border-color:var(--accent);transform:scale(.95)}
+.touch-btn.brake:active,.touch-btn.brake.pressed{background:var(--accent3);border-color:var(--accent3);color:#fff}
+.touch-btn.nitro:active,.touch-btn.nitro.pressed{background:var(--gold);border-color:var(--gold);color:var(--bg)}
+.touch-btn.shift:active,.touch-btn.shift.pressed{background:var(--accent2);border-color:var(--accent2);color:#fff}
+@media(pointer:coarse){.touch-controls{display:flex}}
+@media(max-width:500px){.canvas-wrap{border-radius:10px}.touch-btn{padding:16px;font-size:16px}}
+
+/* ===== DRAG HUD ===== */
+.rpm-gauge{width:200px;height:110px;margin:8px auto;position:relative}
+.gear-display{font-family:'Fredoka',sans-serif;font-size:32px;font-weight:700;text-align:center;margin:4px 0}
+.drag-status{text-align:center;font-size:14px;color:var(--text2);font-weight:600;margin:4px 0}
+.traffic-lights{display:flex;gap:8px;justify-content:center;margin:8px 0}
+.traffic-light{width:24px;height:24px;border-radius:50%;background:#333;border:2px solid #555;transition:all .3s}
+.traffic-light.red{background:#ef4444;box-shadow:0 0 12px rgba(239,68,68,.6)}
+.traffic-light.yellow{background:#eab308;box-shadow:0 0 12px rgba(234,179,8,.6)}
+.traffic-light.green{background:#22c55e;box-shadow:0 0 12px rgba(34,197,94,.6)}
+
+/* ===== GARAGE ===== */
+#garageScreen{padding-top:70px;justify-content:flex-start;padding-bottom:40px}
+.garage-header{text-align:center;margin-bottom:20px}
+.garage-header h1{font-size:32px;margin-bottom:4px}
+.garage-car-view{width:100%;max-width:340px;height:160px;margin:0 auto 20px;background:var(--surface);border:1px solid var(--border);border-radius:16px;position:relative;overflow:hidden}
+.garage-tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface);border-radius:12px;padding:4px;border:1px solid var(--border);max-width:500px;width:100%}
+.garage-tab{flex:1;padding:10px;text-align:center;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;color:var(--text2);transition:all .2s;border:none;background:none}
+.garage-tab:hover{color:var(--text)}
+.garage-tab.active{background:var(--accent);color:var(--bg)}
+.garage-panel{display:none;width:100%;max-width:500px}
+.garage-panel.show{display:block}
+.upgrade-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.upgrade-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;cursor:pointer;transition:all .2s}
+.upgrade-card:hover{border-color:var(--accent)}
+.upgrade-card .uc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.upgrade-card .uc-name{font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px}
+.upgrade-card .uc-tier{font-size:12px;color:var(--accent);font-weight:700}
+.upgrade-pips{display:flex;gap:3px;margin-bottom:8px}
+.upgrade-pip{width:100%;height:6px;border-radius:3px;background:var(--border)}
+.upgrade-pip.filled{background:var(--accent)}
+.upgrade-cost{font-size:13px;font-weight:700;color:var(--gold);display:flex;align-items:center;gap:4px}
+.upgrade-cost.maxed{color:var(--accent)}
+.color-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.color-swatch{width:100%;aspect-ratio:1;border-radius:14px;cursor:pointer;border:3px solid transparent;transition:all .2s;position:relative}
+.color-swatch:hover{transform:scale(1.05)}
+.color-swatch.selected{border-color:var(--accent);box-shadow:0 0 16px rgba(6,214,160,.3)}
+.color-swatch .swatch-price{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;color:var(--gold);background:rgba(0,0,0,.7);padding:2px 6px;border-radius:4px;white-space:nowrap}
+.color-swatch .swatch-check{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:20px;display:none}
+.color-swatch.owned .swatch-check{display:block}
+.cosmetic-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.cosmetic-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center;cursor:pointer;transition:all .2s}
+.cosmetic-card:hover{border-color:var(--accent)}
+.cosmetic-card.selected{border-color:var(--accent);background:rgba(6,214,160,.05)}
+.cosmetic-card .cc-icon{font-size:28px;margin-bottom:6px}
+.cosmetic-card .cc-name{font-size:13px;font-weight:700;margin-bottom:4px}
+.cosmetic-card .cc-price{font-size:12px;color:var(--gold);font-weight:700}
+.cosmetic-card .cc-price.owned{color:var(--accent)}
+.car-select-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+.car-body-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center;cursor:pointer;transition:all .2s}
+.car-body-card:hover{border-color:var(--accent)}
+.car-body-card.selected{border-color:var(--accent);background:rgba(6,214,160,.05)}
+.car-body-card.locked{opacity:.5;cursor:not-allowed}
+.car-body-card .cb-name{font-size:14px;font-weight:700;margin-bottom:4px}
+.car-body-card .cb-stats{font-size:11px;color:var(--text2)}
+.car-body-card .cb-price{font-size:12px;color:var(--gold);font-weight:700;margin-top:4px}
+
+/* ===== DRAG SETUP ===== */
+#dragSetupScreen{padding-top:70px;justify-content:flex-start;padding-bottom:40px}
+.opponent-grid{display:flex;flex-direction:column;gap:10px;max-width:400px;width:100%;margin:0 auto}
+.opponent-card{display:flex;align-items:center;gap:14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:16px;cursor:pointer;transition:all .2s}
+.opponent-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.opponent-card.boss{border-color:var(--gold)}
+.opponent-card.boss:hover{box-shadow:0 0 20px rgba(255,209,102,.2)}
+.opponent-card .opp-avatar{font-size:36px;flex-shrink:0}
+.opponent-card .opp-info{flex:1}
+.opponent-card .opp-name{font-weight:700;font-size:15px}
+.opponent-card .opp-desc{font-size:12px;color:var(--text2)}
+.opponent-card .opp-diff{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;margin-top:4px;display:inline-block}
+.diff-easy{background:rgba(6,214,160,.15);color:var(--accent)}
+.diff-medium{background:rgba(255,209,102,.15);color:var(--gold)}
+.diff-hard{background:rgba(239,71,111,.15);color:var(--accent3)}
+.diff-boss{background:rgba(124,58,237,.15);color:var(--purple)}
+
+/* ===== RESULTS ===== */
+#resultScreen{padding-top:70px;justify-content:flex-start}
+.result-header{text-align:center;margin-bottom:20px}
+.result-header h1{font-size:36px;margin-bottom:4px}
+.result-header.win h1{color:var(--gold)}
+.result-header.lose h1{color:var(--accent3)}
+.result-header.distance h1{color:var(--accent)}
+.result-score{font-family:'Fredoka',sans-serif;font-size:56px;font-weight:700;text-align:center;margin:8px 0}
+.result-label{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;text-align:center}
+.result-stats{display:flex;gap:16px;justify-content:center;margin:16px 0;flex-wrap:wrap}
+.result-stat{text-align:center;min-width:70px}
+.result-stat .rs-val{font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700}
+.result-stat .rs-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.coins-earned{display:inline-flex;align-items:center;gap:8px;font-size:22px;font-weight:800;color:var(--gold);margin:12px 0;font-family:'Fredoka',sans-serif}
+.new-record-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);color:var(--gold);padding:6px 16px;border-radius:20px;font-size:14px;font-weight:700;animation:pulse 1.5s ease-in-out infinite}
+.result-actions{display:flex;flex-direction:column;gap:12px;align-items:center;margin-top:16px}
+
+/* ===== RECORDS ===== */
+#recordsScreen{padding-top:70px;justify-content:flex-start;padding-bottom:40px}
+.records-header{text-align:center;margin-bottom:24px}
+.records-header h1{font-size:32px;margin-bottom:4px}
+.records-header p{color:var(--text2);font-size:14px}
+.personal-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;max-width:380px;width:100%;margin-bottom:28px}
+.personal-stats .card-static{text-align:center;padding:16px}
+.leaderboard{max-width:440px;width:100%;margin-bottom:20px}
+.lb-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center}
+.lb-row{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;transition:all .2s}
+.lb-row.me{border-color:var(--accent);background:rgba(6,214,160,.05)}
+.lb-rank{font-family:'Fredoka',sans-serif;font-weight:700;font-size:18px;min-width:28px;text-align:center}
+.lb-rank.gold{color:var(--gold)}
+.lb-rank.silver{color:#c0c0c0}
+.lb-rank.bronze{color:#cd7f32}
+.lb-name{flex:1;font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-family:'Fredoka',sans-serif;font-weight:700;color:var(--accent);font-size:16px}
+.lb-empty{text-align:center;color:var(--text2);font-size:14px;padding:20px}
+
+/* ===== SECTION LABELS ===== */
+.section-label{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin:16px 0 10px;text-align:center}
+</style>
+</head>
+<body>
+<a class="back-btn" href="../../student.html" id="backBtn">&#8592; Back</a>
+<div class="sound-btn" id="soundToggle" onclick="toggleSound()">&#128266;</div>
+
+<!-- ======================== -->
+<!-- HOME SCREEN              -->
+<!-- ======================== -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1>&#127950; ODA Racers</h1>
+    <p>Hill Climb &amp; Drag Race!</p>
+    <div class="coin-display">&#129689; Coins: <span class="coin-val" id="homeCoinVal">0</span></div>
+  </div>
+  <canvas id="homeCarCanvas" class="home-car-display" width="260" height="120"></canvas>
+  <p class="section-label">Choose Mode</p>
+  <div class="mode-grid">
+    <div class="mode-card card hill" onclick="showScreen('hillClimbScreen');startHillClimb()">
+      <div class="mode-icon">&#9968;</div>
+      <div><h3>Hill Climb</h3><p>Physics-based side-scroller. Drive as far as you can!</p></div>
+    </div>
+    <div class="mode-card card drag" onclick="showScreen('dragSetupScreen');loadOpponents()">
+      <div class="mode-icon">&#127937;</div>
+      <div><h3>Drag Race</h3><p>Timing-based quarter mile. Shift and nitro to win!</p></div>
+    </div>
+  </div>
+  <div class="home-actions">
+    <button class="btn btn-outline btn-small" onclick="showScreen('garageScreen');openGarage()">&#128295; Garage</button>
+    <button class="btn btn-outline btn-small" onclick="showScreen('recordsScreen');loadRecords()">&#128202; Records</button>
+  </div>
+  <div class="quick-stats" id="quickStats">
+    <div class="stat-pill">&#128663; Runs <span class="stat-num" id="qsRuns">0</span></div>
+    <div class="stat-pill">&#127937; Wins <span class="stat-num" id="qsWins">0</span></div>
+    <div class="stat-pill">&#128176; Earned <span class="stat-num" id="qsEarned">0</span></div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- HILL CLIMB SCREEN        -->
+<!-- ======================== -->
+<div class="screen" id="hillClimbScreen">
+  <div class="game-hud" id="hillHud">
+    <div class="hud-left">
+      <div class="hud-item"><span class="hud-icon">&#128663;</span><span class="hud-val" id="hudSpeed">0</span><span style="font-size:11px;color:var(--text2)">km/h</span></div>
+      <div class="hud-item"><span class="hud-icon">&#129689;</span><span class="hud-val" id="hudCoins">0</span></div>
+    </div>
+    <div class="hud-center">
+      <div class="hud-item"><span class="hud-icon">&#128207;</span><span class="hud-val" id="hudDist">0</span><span style="font-size:11px;color:var(--text2)">m</span></div>
+    </div>
+    <div class="hud-right">
+      <div class="hud-item">
+        <span class="hud-icon">&#9981;</span>
+        <div class="fuel-bar-wrap"><div class="fuel-bar" id="fuelBar" style="width:100%"></div></div>
+      </div>
+      <div class="hud-btn" onclick="toggleHillPause()" title="Pause">&#10074;&#10074;</div>
+    </div>
+  </div>
+  <div class="canvas-wrap" id="hillCanvasWrap">
+    <canvas id="hillCanvas"></canvas>
+    <div class="pause-overlay" id="hillPause">
+      <h2>&#9208;&#65039; Paused</h2>
+      <button class="btn btn-accent" onclick="toggleHillPause()">&#9654;&#65039; Resume</button>
+      <button class="btn btn-outline btn-small" onclick="restartHillClimb()">&#128260; Restart</button>
+      <button class="btn btn-outline btn-small" onclick="quitHill()">&#128682; Quit</button>
+    </div>
+  </div>
+  <div class="touch-controls" id="hillTouchControls">
+    <div class="touch-btn brake" id="btnBrake">&#128219; BRAKE</div>
+    <div class="touch-btn" id="btnGas">&#9981; GAS</div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- DRAG SETUP SCREEN        -->
+<!-- ======================== -->
+<div class="screen" id="dragSetupScreen">
+  <div style="text-align:center;margin-bottom:20px">
+    <h1>&#127937; Drag Race</h1>
+    <p style="color:var(--text2);font-size:14px">Choose your opponent</p>
+  </div>
+  <div class="opponent-grid" id="opponentGrid"></div>
+  <div style="text-align:center;margin-top:20px">
+    <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&#8592; Back</button>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- DRAG RACE SCREEN         -->
+<!-- ======================== -->
+<div class="screen" id="dragRaceScreen">
+  <div class="game-hud" id="dragHud">
+    <div class="hud-left">
+      <div class="hud-item"><span class="hud-icon">&#128663;</span><span class="hud-val" id="dragSpeed">0</span><span style="font-size:11px;color:var(--text2)">km/h</span></div>
+      <div class="gear-display" id="gearDisplay">N</div>
+    </div>
+    <div class="hud-center">
+      <div class="traffic-lights" id="trafficLights">
+        <div class="traffic-light" id="tl1"></div>
+        <div class="traffic-light" id="tl2"></div>
+        <div class="traffic-light" id="tl3"></div>
+        <div class="traffic-light" id="tl4"></div>
+      </div>
+      <div class="drag-status" id="dragStatus">Get Ready...</div>
+    </div>
+    <div class="hud-right">
+      <div class="hud-item"><span style="font-size:12px;color:var(--text2)">VS</span><span class="hud-val" id="oppName" style="font-size:14px"></span></div>
+    </div>
+  </div>
+  <div class="canvas-wrap" id="dragCanvasWrap">
+    <canvas id="dragCanvas"></canvas>
+  </div>
+  <canvas id="rpmCanvas" class="rpm-gauge" width="200" height="110"></canvas>
+  <div class="touch-controls" id="dragTouchControls">
+    <div class="touch-btn shift" id="btnShift">&#128316; SHIFT</div>
+    <div class="touch-btn nitro" id="btnNitro">&#128293; NITRO</div>
+    <div class="touch-btn" id="btnDragGas">&#9981; GAS</div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- GARAGE SCREEN            -->
+<!-- ======================== -->
+<div class="screen" id="garageScreen">
+  <div class="garage-header">
+    <h1>&#128295; Garage</h1>
+    <div class="coin-display" style="margin-bottom:8px">&#129689; <span class="coin-val" id="garageCoinVal">0</span></div>
+  </div>
+  <canvas id="garageCarCanvas" class="garage-car-view" width="340" height="160"></canvas>
+  <div class="garage-tabs" id="garageTabs">
+    <button class="garage-tab active" onclick="showGarageTab('cars')">Cars</button>
+    <button class="garage-tab" onclick="showGarageTab('upgrades')">Upgrades</button>
+    <button class="garage-tab" onclick="showGarageTab('paint')">Paint</button>
+    <button class="garage-tab" onclick="showGarageTab('cosmetics')">Cosmetics</button>
+  </div>
+  <div class="garage-panel show" id="panelCars"></div>
+  <div class="garage-panel" id="panelUpgrades"></div>
+  <div class="garage-panel" id="panelPaint"></div>
+  <div class="garage-panel" id="panelCosmetics"></div>
+  <div style="text-align:center;margin-top:20px">
+    <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen');drawHomeCar()">&#8592; Back</button>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- RESULT SCREEN            -->
+<!-- ======================== -->
+<div class="screen" id="resultScreen">
+  <div class="result-header" id="resultHeader">
+    <h1 id="resultTitle">Run Complete!</h1>
+  </div>
+  <div class="result-label" id="resultLabel">DISTANCE</div>
+  <div class="result-score" id="resultScore">0</div>
+  <div id="resultRecordBadge"></div>
+  <div class="result-stats" id="resultStats"></div>
+  <div class="coins-earned" id="resultCoins">&#129689; +0</div>
+  <div class="result-actions">
+    <button class="btn btn-accent" id="resultPlayAgain" onclick="resultPlayAgain()">&#128260; Play Again</button>
+    <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen');drawHomeCar()">&#128682; Home</button>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- RECORDS SCREEN           -->
+<!-- ======================== -->
+<div class="screen" id="recordsScreen">
+  <div class="records-header">
+    <h1>&#128202; Records</h1>
+    <p>Your stats &amp; class leaderboard</p>
+  </div>
+  <div class="personal-stats">
+    <div class="card-static"><div class="stat-box"><div class="stat-val" id="psBestDist">0</div><div class="stat-label">Best Distance</div></div></div>
+    <div class="card-static"><div class="stat-box"><div class="stat-val" id="psDragWins">0</div><div class="stat-label">Drag Wins</div></div></div>
+    <div class="card-static"><div class="stat-box"><div class="stat-val" id="psRuns">0</div><div class="stat-label">Total Runs</div></div></div>
+    <div class="card-static"><div class="stat-box"><div class="stat-val" id="psCoinsEarned">0</div><div class="stat-label">Coins Earned</div></div></div>
+  </div>
+  <div class="leaderboard">
+    <div class="lb-title">&#127942; Class Leaderboard - Hill Climb</div>
+    <div id="lbBodyHill"><div class="lb-empty">Loading...</div></div>
+  </div>
+  <div class="leaderboard">
+    <div class="lb-title">&#127937; Class Leaderboard - Drag Wins</div>
+    <div id="lbBodyDrag"><div class="lb-empty">Loading...</div></div>
+  </div>
+  <div style="text-align:center;margin-top:16px">
+    <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&#8592; Back</button>
+  </div>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script>
+// =============================================
+// SESSION
+// =============================================
+var studentId = localStorage.getItem('studentId') || '';
+var studentName = localStorage.getItem('studentName') || '';
+var classCode = localStorage.getItem('classCode') || '';
+var isTeacher = localStorage.getItem('userRole') === 'teacher' || localStorage.getItem('odaUserRole') === 'teacher';
+if (isTeacher) document.getElementById('backBtn').href = '../../teacher.html';
+
+// =============================================
+// SCREEN SYSTEM
+// =============================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  // Stop game loops when leaving game screens
+  if (id !== 'hillClimbScreen') stopHillLoop();
+  if (id !== 'dragRaceScreen') stopDragLoop();
+}
+
+// =============================================
+// AUDIO ENGINE
+// =============================================
+var audioCtx = null;
+var soundOn = true;
+var engineOsc = null;
+var engineGain = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function playTone(freq, dur, type, vol, ramp) {
+  if (!soundOn) return;
+  try {
+    var ctx = getAudioCtx();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = type || 'square';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    if (ramp) osc.frequency.linearRampToValueAtTime(ramp, ctx.currentTime + dur);
+    gain.gain.setValueAtTime(vol || 0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + dur);
+  } catch (e) {}
+}
+
+function playCoinSound() { playTone(880, 0.1, 'sine', 0.12); setTimeout(function(){playTone(1320, 0.15, 'sine', 0.1);}, 60); }
+function playCrashSound() { playTone(100, 0.4, 'sawtooth', 0.15, 40); }
+function playShiftSound() { playTone(600, 0.06, 'square', 0.08); }
+function playNitroSound() { playTone(200, 0.6, 'sawtooth', 0.1, 800); }
+function playWinFanfare() { playTone(523,0.15,'sine',0.1); setTimeout(function(){playTone(659,0.15,'sine',0.1)},120); setTimeout(function(){playTone(784,0.3,'sine',0.12)},240); }
+function playLoseSound() { playTone(400,0.3,'sine',0.08,200); }
+function playLaunchPerfect() { playTone(1000,0.1,'sine',0.15); setTimeout(function(){playTone(1500,0.15,'sine',0.12)},80); }
+function playCountdown() { playTone(440,0.15,'square',0.06); }
+function playGo() { playTone(880,0.25,'square',0.1); }
+
+function startEngine() {
+  if (!soundOn) return;
+  try {
+    var ctx = getAudioCtx();
+    engineOsc = ctx.createOscillator();
+    engineGain = ctx.createGain();
+    engineOsc.type = 'sawtooth';
+    engineOsc.frequency.setValueAtTime(80, ctx.currentTime);
+    engineGain.gain.setValueAtTime(0.03, ctx.currentTime);
+    engineOsc.connect(engineGain);
+    engineGain.connect(ctx.destination);
+    engineOsc.start();
+  } catch(e) {}
+}
+
+function updateEngineSound(speed) {
+  if (!engineOsc || !soundOn) return;
+  try {
+    var ctx = getAudioCtx();
+    engineOsc.frequency.setValueAtTime(80 + speed * 1.5, ctx.currentTime);
+    engineGain.gain.setValueAtTime(Math.min(0.04, 0.01 + speed * 0.0002), ctx.currentTime);
+  } catch(e) {}
+}
+
+function stopEngine() {
+  try { if (engineOsc) { engineOsc.stop(); engineOsc = null; engineGain = null; } } catch(e) {}
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  document.getElementById('soundToggle').innerHTML = soundOn ? '&#128266;' : '&#128264;';
+  if (!soundOn) stopEngine();
+  try { localStorage.setItem('odaRacersSound', soundOn ? '1' : '0'); } catch(e) {}
+}
+if (localStorage.getItem('odaRacersSound') === '0') { soundOn = false; document.getElementById('soundToggle').innerHTML = '&#128264;'; }
+
+// =============================================
+// GAME STATE
+// =============================================
+var gameState = {
+  coins: 0,
+  car: 'sedan',
+  paint: '#06d6a0',
+  wheels: 'stock',
+  spoiler: 'none',
+  underglow: 'none',
+  trail: 'none',
+  upgrades: { engine:0, tires:0, weight:0, fuel:0, turbo:0, suspension:0, transmission:0, brakes:0 },
+  ownedPaints: ['#06d6a0','#118ab2','#ef476f','#ffd166','#f0f4ff'],
+  ownedWheels: ['stock'],
+  ownedSpoilers: ['none'],
+  ownedUnderglows: ['none'],
+  ownedTrails: ['none'],
+  ownedCars: ['sedan'],
+  bestDistance: 0,
+  dragWins: 0,
+  totalRuns: 0,
+  totalDragRaces: 0,
+  coinsEarned: 0,
+  bossesBeaten: []
+};
+
+function loadLocalState() {
+  try {
+    var saved = localStorage.getItem('odaRacersState');
+    if (saved) {
+      var parsed = JSON.parse(saved);
+      for (var k in parsed) { if (gameState.hasOwnProperty(k)) gameState[k] = parsed[k]; }
+    }
+  } catch(e) {}
+}
+
+function saveLocalState() {
+  try { localStorage.setItem('odaRacersState', JSON.stringify(gameState)); } catch(e) {}
+}
+
+loadLocalState();
+
+// Update quick stats
+function updateQuickStats() {
+  document.getElementById('qsRuns').textContent = gameState.totalRuns;
+  document.getElementById('qsWins').textContent = gameState.dragWins;
+  document.getElementById('qsEarned').textContent = gameState.coinsEarned;
+  document.getElementById('homeCoinVal').textContent = gameState.coins;
+}
+updateQuickStats();
+
+// =============================================
+// CAR DEFINITIONS
+// =============================================
+var CAR_BODIES = {
+  sedan:     { name:'Sedan',      icon:'&#128663;', speed:3, grip:3, weight:3, fuel:3, cost:0,    unlock:'free' },
+  hatchback: { name:'Hatchback',  icon:'&#128664;', speed:2, grip:4, weight:2, fuel:4, cost:200,  unlock:'buy' },
+  truck:     { name:'Truck',      icon:'&#128666;', speed:2, grip:5, weight:5, fuel:5, cost:0,    unlock:'boss10' },
+  sports:    { name:'Sports Car', icon:'&#127950;', speed:5, grip:3, weight:2, fuel:2, cost:0,    unlock:'boss25' },
+  suv:       { name:'SUV',        icon:'&#128665;', speed:3, grip:4, weight:4, fuel:4, cost:400,  unlock:'buy' },
+  muscle:    { name:'Muscle Car', icon:'&#128661;', speed:5, grip:2, weight:4, fuel:2, cost:0,    unlock:'boss50' },
+  buggy:     { name:'Dune Buggy', icon:'&#127950;', speed:3, grip:5, weight:1, fuel:3, cost:600,  unlock:'buy' },
+  supercar:  { name:'Supercar',   icon:'&#127950;', speed:5, grip:4, weight:2, fuel:1, cost:0,    unlock:'boss100' }
+};
+
+var PAINT_COLORS = [
+  { color:'#06d6a0', name:'Mint',    cost:0 },
+  { color:'#118ab2', name:'Ocean',   cost:0 },
+  { color:'#ef476f', name:'Cherry',  cost:0 },
+  { color:'#ffd166', name:'Lemon',   cost:0 },
+  { color:'#f0f4ff', name:'White',   cost:0 },
+  { color:'#7c3aed', name:'Purple',  cost:50 },
+  { color:'#f97316', name:'Orange',  cost:100 },
+  { color:'#ec4899', name:'Hot Pink', cost:150 },
+  { color:'#14b8a6', name:'Teal',   cost:200 },
+  { color:'#000000', name:'Midnight', cost:500 }
+];
+
+var WHEEL_OPTIONS = [
+  { id:'stock',    name:'Stock',    icon:'&#9898;',  cost:0 },
+  { id:'chrome',   name:'Chrome',   icon:'&#11093;', cost:100 },
+  { id:'gold',     name:'Gold',     icon:'&#127775;', cost:200 },
+  { id:'spinners', name:'Spinners', icon:'&#128171;', cost:300 }
+];
+
+var SPOILER_OPTIONS = [
+  { id:'none',    name:'None',     icon:'&#10060;', cost:0 },
+  { id:'small',   name:'Small',    icon:'&#9653;',  cost:50 },
+  { id:'medium',  name:'Medium',   icon:'&#9651;',  cost:100 },
+  { id:'gt',      name:'GT Wing',  icon:'&#127937;', cost:200 },
+  { id:'massive', name:'Massive',  icon:'&#128640;', cost:300 }
+];
+
+var UNDERGLOW_OPTIONS = [
+  { id:'none',    name:'None',     color:null,       cost:0 },
+  { id:'green',   name:'Green',    color:'#06d6a0',  cost:500 },
+  { id:'blue',    name:'Blue',     color:'#118ab2',  cost:500 },
+  { id:'red',     name:'Red',      color:'#ef476f',  cost:500 },
+  { id:'purple',  name:'Purple',   color:'#7c3aed',  cost:500 },
+  { id:'rainbow', name:'Rainbow',  color:'rainbow',  cost:1000 }
+];
+
+var TRAIL_OPTIONS = [
+  { id:'none',    name:'None',     cost:0 },
+  { id:'smoke',   name:'Smoke',    cost:200 },
+  { id:'sparkle', name:'Sparkle',  cost:300 },
+  { id:'fire',    name:'Fire',     cost:400 },
+  { id:'rainbow', name:'Rainbow',  cost:500 }
+];
+
+var UPGRADE_DEFS = [
+  { id:'engine',       name:'Engine',       icon:'&#9881;',  desc:'Top speed',       mode:'both' },
+  { id:'tires',        name:'Tires',        icon:'&#9898;',  desc:'Grip & traction', mode:'both' },
+  { id:'weight',       name:'Weight Red.',  icon:'&#128171;', desc:'Acceleration',    mode:'both' },
+  { id:'fuel',         name:'Fuel Tank',    icon:'&#9981;',  desc:'Fuel capacity',   mode:'hill' },
+  { id:'turbo',        name:'Turbo',        icon:'&#128293;', desc:'Nitro power',     mode:'drag' },
+  { id:'suspension',   name:'Suspension',   icon:'&#128296;', desc:'Landing safety',  mode:'hill' },
+  { id:'transmission', name:'Transmission', icon:'&#128736;', desc:'Shift zones',     mode:'drag' },
+  { id:'brakes',       name:'Brakes',       icon:'&#128721;', desc:'Braking power',   mode:'both' }
+];
+
+var UPGRADE_COSTS = [100, 250, 500, 1000, 2000];
+
+// =============================================
+// CAR STATS HELPERS
+// =============================================
+function getCarStats() {
+  var base = CAR_BODIES[gameState.car] || CAR_BODIES.sedan;
+  return {
+    maxSpeed: 3 + base.speed * 0.8 + gameState.upgrades.engine * 0.6,
+    grip: 0.6 + base.grip * 0.08 + gameState.upgrades.tires * 0.06,
+    accel: 0.08 + (5 - base.weight) * 0.01 + gameState.upgrades.weight * 0.015,
+    fuelMax: 80 + base.fuel * 8 + gameState.upgrades.fuel * 12,
+    nitro: 1.5 + gameState.upgrades.turbo * 0.5,
+    bounce: 0.7 + gameState.upgrades.suspension * 0.06,
+    gears: 4 + Math.floor(gameState.upgrades.transmission / 2),
+    brakeForce: 0.15 + gameState.upgrades.brakes * 0.04
+  };
+}
+
+// =============================================
+// CAR DRAWING (shared between all canvases)
+// =============================================
+function drawCar(ctx, x, y, w, h, angle, opts) {
+  opts = opts || {};
+  var paint = opts.paint || gameState.paint;
+  var wheelType = opts.wheels || gameState.wheels;
+  var spoiler = opts.spoiler || gameState.spoiler;
+  var uglow = opts.underglow || gameState.underglow;
+  var flip = opts.flip || false;
+
+  ctx.save();
+  ctx.translate(x, y);
+  if (angle) ctx.rotate(angle);
+  if (flip) ctx.scale(-1, 1);
+
+  var bw = w;
+  var bh = h * 0.5;
+  var wheelR = h * 0.22;
+
+  // Underglow
+  if (uglow && uglow !== 'none') {
+    var ugDef = UNDERGLOW_OPTIONS.find(function(u){return u.id===uglow});
+    if (ugDef && ugDef.color) {
+      ctx.save();
+      if (ugDef.color === 'rainbow') {
+        var t = Date.now() * 0.002;
+        var hue = (t * 60) % 360;
+        ctx.shadowColor = 'hsl(' + hue + ',80%,60%)';
+      } else {
+        ctx.shadowColor = ugDef.color;
+      }
+      ctx.shadowBlur = 20;
+      ctx.fillStyle = 'transparent';
+      ctx.fillRect(-bw/2, -bh/4, bw, bh);
+      ctx.restore();
+    }
+  }
+
+  // Car body
+  ctx.fillStyle = paint;
+  ctx.beginPath();
+  var r = bh * 0.35;
+  ctx.roundRect(-bw/2, -bh, bw, bh, r);
+  ctx.fill();
+
+  // Cabin (windshield area)
+  ctx.fillStyle = 'rgba(100,160,220,0.35)';
+  var cabW = bw * 0.4;
+  var cabH = bh * 0.6;
+  ctx.beginPath();
+  ctx.roundRect(-bw * 0.05, -bh - cabH + bh*0.15, cabW, cabH, [r*0.6, r*0.6, 0, 0]);
+  ctx.fill();
+
+  // Windshield shine
+  ctx.strokeStyle = 'rgba(200,230,255,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-bw*0.02, -bh - cabH + bh*0.25);
+  ctx.lineTo(cabW*0.3, -bh - cabH + bh*0.25);
+  ctx.stroke();
+
+  // Spoiler
+  if (spoiler && spoiler !== 'none') {
+    ctx.fillStyle = paint;
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1;
+    var sx = -bw/2 - 2;
+    var spoilerSizes = { small:0.15, medium:0.25, gt:0.35, massive:0.5 };
+    var ss = spoilerSizes[spoiler] || 0.2;
+    ctx.beginPath();
+    ctx.moveTo(sx, -bh);
+    ctx.lineTo(sx - bw*ss*0.3, -bh - bh*ss*1.5);
+    ctx.lineTo(sx + bw*ss*0.1, -bh - bh*ss*1.5);
+    ctx.lineTo(sx + bw*ss*0.05, -bh);
+    ctx.fill();
+    ctx.stroke();
+    // Spoiler top
+    ctx.fillRect(sx - bw*ss*0.4, -bh - bh*ss*1.5 - 2, bw*ss*0.6, 3);
+  }
+
+  // Headlight
+  ctx.fillStyle = '#ffe066';
+  ctx.beginPath();
+  ctx.ellipse(bw/2 - 2, -bh*0.5, 3, 2, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Taillight
+  ctx.fillStyle = '#ef4444';
+  ctx.beginPath();
+  ctx.ellipse(-bw/2 + 2, -bh*0.5, 2, 2, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Wheels
+  var wheelY = 0;
+  var frontWX = bw * 0.3;
+  var rearWX = -bw * 0.3;
+
+  function drawWheel(wx) {
+    ctx.save();
+    ctx.translate(wx, wheelY);
+    // Tire
+    ctx.fillStyle = '#1a1a2e';
+    ctx.beginPath();
+    ctx.arc(0, 0, wheelR, 0, Math.PI*2);
+    ctx.fill();
+    // Rim
+    var rimColors = { stock:'#555', chrome:'#ccc', gold:'#ffd166', spinners:'#aaddff' };
+    ctx.fillStyle = rimColors[wheelType] || '#555';
+    ctx.beginPath();
+    ctx.arc(0, 0, wheelR*0.6, 0, Math.PI*2);
+    ctx.fill();
+    // Spokes
+    ctx.strokeStyle = rimColors[wheelType] || '#555';
+    ctx.lineWidth = 1;
+    var spokes = wheelType === 'spinners' ? 8 : 5;
+    var spokeAngle = opts.wheelAngle || 0;
+    for (var i = 0; i < spokes; i++) {
+      var a = spokeAngle + (Math.PI*2/spokes)*i;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(a)*wheelR*0.55, Math.sin(a)*wheelR*0.55);
+      ctx.stroke();
+    }
+    // Hub
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.arc(0, 0, wheelR*0.15, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  drawWheel(frontWX);
+  drawWheel(rearWX);
+
+  ctx.restore();
+}
+
+// =============================================
+// TERRAIN GENERATION
+// =============================================
+function generateTerrain(length) {
+  var points = [];
+  var x = 0, y = 400;
+  // Flat start
+  for (var fi = 0; fi < 600; fi += 20) {
+    points.push({ x: fi, y: 400 });
+  }
+  x = 600;
+  while (x < length) {
+    var segLen = 40 + Math.random() * 80;
+    var difficulty = Math.min(x / 5000, 1);
+    var heightChange = (Math.random() - 0.45) * (30 + difficulty * 60);
+    y = Math.max(150, Math.min(520, y + heightChange));
+    points.push({ x: x, y: y });
+    x += segLen;
+  }
+  return points;
+}
+
+function getTerrainHeightAt(terrain, px) {
+  // Find the two surrounding terrain points and lerp
+  for (var i = 0; i < terrain.length - 1; i++) {
+    if (terrain[i].x <= px && terrain[i+1].x > px) {
+      var t = (px - terrain[i].x) / (terrain[i+1].x - terrain[i].x);
+      return terrain[i].y + (terrain[i+1].y - terrain[i].y) * t;
+    }
+  }
+  if (terrain.length > 0) return terrain[terrain.length - 1].y;
+  return 400;
+}
+
+function getTerrainAngleAt(terrain, px, span) {
+  span = span || 40;
+  var h1 = getTerrainHeightAt(terrain, px - span/2);
+  var h2 = getTerrainHeightAt(terrain, px + span/2);
+  return Math.atan2(h2 - h1, span);
+}
+
+// =============================================
+// COIN PLACEMENT
+// =============================================
+function generateCoins(terrain) {
+  var coins = [];
+  for (var i = 0; i < terrain.length - 1; i++) {
+    if (terrain[i].x > 400 && Math.random() < 0.15) {
+      var cx = terrain[i].x + Math.random() * 40;
+      var cy = getTerrainHeightAt(terrain, cx) - 40 - Math.random() * 60;
+      coins.push({ x: cx, y: cy, collected: false });
+    }
+  }
+  return coins;
+}
+
+// =============================================
+// FUEL PICKUP PLACEMENT
+// =============================================
+function generateFuelPickups(terrain) {
+  var pickups = [];
+  for (var i = 0; i < terrain.length - 1; i++) {
+    if (terrain[i].x > 800 && Math.random() < 0.03) {
+      var fx = terrain[i].x;
+      var fy = getTerrainHeightAt(terrain, fx) - 30;
+      pickups.push({ x: fx, y: fy, collected: false });
+    }
+  }
+  return pickups;
+}
+
+// =============================================
+// HILL CLIMB GAME
+// =============================================
+var hillState = null;
+var hillAnimId = null;
+var hillPaused = false;
+var hillRunning = false;
+var hillKeys = { gas: false, brake: false };
+var hillLastTime = 0;
+
+function startHillClimb() {
+  var stats = getCarStats();
+  var terrain = generateTerrain(50000);
+  var coins = generateCoins(terrain);
+  var fuels = generateFuelPickups(terrain);
+
+  hillState = {
+    car: {
+      x: 200, y: 350, vx: 0, vy: 0, angle: 0, angVel: 0,
+      fuel: stats.fuelMax,
+      fuelMax: stats.fuelMax,
+      wheelAngle: 0,
+      airTime: 0,
+      airStartAngle: 0,
+      totalFlips: 0,
+      grounded: true
+    },
+    terrain: terrain,
+    coins: coins,
+    fuels: fuels,
+    camera: { x: 0, y: 0 },
+    coinsCollected: 0,
+    distance: 0,
+    maxSpeed: 0,
+    flipBonus: 0,
+    particles: [],
+    coinAnims: [],
+    gameOver: false,
+    gameOverReason: '',
+    stats: stats
+  };
+
+  hillPaused = false;
+  hillRunning = true;
+  hillKeys.gas = false; hillKeys.brake = false;
+  document.getElementById('hillPause').classList.remove('active');
+
+  startEngine();
+
+  // Setup canvas
+  var canvas = document.getElementById('hillCanvas');
+  var wrap = document.getElementById('hillCanvasWrap');
+  canvas.width = wrap.clientWidth * (window.devicePixelRatio > 1 ? 2 : 1);
+  canvas.height = wrap.clientHeight * (window.devicePixelRatio > 1 ? 2 : 1);
+
+  hillLastTime = performance.now();
+  hillAnimId = requestAnimationFrame(hillLoop);
+}
+
+function stopHillLoop() {
+  hillRunning = false;
+  if (hillAnimId) { cancelAnimationFrame(hillAnimId); hillAnimId = null; }
+  stopEngine();
+}
+
+function hillLoop(now) {
+  if (!hillRunning) return;
+  hillAnimId = requestAnimationFrame(hillLoop);
+  if (hillPaused || hillState.gameOver) return;
+
+  var dt = Math.min((now - hillLastTime) / 1000, 0.033);
+  hillLastTime = now;
+
+  updateHillPhysics(dt);
+  renderHillClimb();
+}
+
+function updateHillPhysics(dt) {
+  var s = hillState;
+  var car = s.car;
+  var stats = s.stats;
+  var GRAVITY = 600;
+  var wheelBase = 40;
+
+  // Get terrain heights at wheel positions
+  var frontWheelX = car.x + Math.cos(car.angle) * wheelBase/2;
+  var rearWheelX = car.x - Math.cos(car.angle) * wheelBase/2;
+  var frontTerrainY = getTerrainHeightAt(s.terrain, frontWheelX);
+  var rearTerrainY = getTerrainHeightAt(s.terrain, rearWheelX);
+
+  // Target angle from terrain
+  var targetAngle = Math.atan2(frontTerrainY - rearTerrainY, wheelBase);
+  var terrainMidY = (frontTerrainY + rearTerrainY) / 2;
+
+  // Apply gravity
+  car.vy += GRAVITY * dt;
+
+  // Gas / Brake
+  if (hillKeys.gas && car.fuel > 0) {
+    var power = stats.accel * 300;
+    car.vx += Math.cos(car.angle) * power * dt;
+    car.vy += Math.sin(car.angle) * power * dt * 0.3;
+    car.fuel -= dt * (8 + Math.abs(car.vx) * 0.02);
+  }
+  if (hillKeys.brake) {
+    car.vx *= (1 - stats.brakeForce * dt * 5);
+  }
+
+  // Speed cap
+  var speed = Math.sqrt(car.vx * car.vx + car.vy * car.vy);
+  var maxPx = stats.maxSpeed * 100;
+  if (speed > maxPx) {
+    car.vx *= maxPx / speed;
+    car.vy *= maxPx / speed;
+  }
+
+  // Apply velocity
+  car.x += car.vx * dt;
+  car.y += car.vy * dt;
+
+  // Ground collision
+  var carBottom = car.y;
+  var onGround = false;
+  if (carBottom >= terrainMidY - 15) {
+    car.y = terrainMidY - 15;
+    if (car.vy > 0) {
+      // Landing impact
+      if (!car.grounded && car.vy > 100) {
+        // Landing particles
+        for (var pi = 0; pi < 6; pi++) {
+          s.particles.push({
+            x: car.x + (Math.random()-0.5)*40,
+            y: terrainMidY,
+            vx: (Math.random()-0.5)*80,
+            vy: -Math.random()*60,
+            life: 0.5,
+            color: '#8B7355'
+          });
+        }
+        // Check if landing was too hard (bad angle)
+        var landAngle = Math.abs(car.angle - targetAngle);
+        if (landAngle > 1.2 && car.vy > 200) {
+          // Harsh landing — could flip
+          car.angVel += (Math.random() - 0.5) * 3;
+        }
+      }
+      // Check flip completion
+      if (!car.grounded && car.airTime > 0.3) {
+        var rotDiff = car.angle - car.airStartAngle;
+        var fullFlips = Math.floor(Math.abs(rotDiff) / (Math.PI * 2));
+        if (fullFlips > 0) {
+          s.flipBonus += fullFlips * 5;
+          s.coinAnims.push({x: car.x, y: car.y - 50, text: '+' + (fullFlips * 5) + ' FLIP!', life: 1.5, color: '#ffd166'});
+          playCoinSound();
+        }
+      }
+      car.vy = 0;
+      car.airTime = 0;
+    }
+    car.grounded = true;
+    onGround = true;
+
+    // Terrain friction and grip
+    car.angle += (targetAngle - car.angle) * Math.min(1, stats.grip * dt * 12);
+    car.angVel *= 0.8;
+
+    // Slope effect on speed
+    car.vx += Math.sin(targetAngle) * GRAVITY * dt * 0.3;
+  } else {
+    // In the air
+    car.grounded = false;
+    car.airTime += dt;
+    if (car.airTime === dt) car.airStartAngle = car.angle;
+    // Air rotation
+    car.angle += car.angVel * dt;
+    // Gentle air control
+    if (hillKeys.gas) car.angVel -= dt * 2;
+    if (hillKeys.brake) car.angVel += dt * 2;
+    car.angVel *= 0.98;
+  }
+
+  // Friction when on ground
+  if (onGround && !hillKeys.gas) {
+    car.vx *= (1 - dt * 0.5);
+  }
+
+  // Keep car from going backward past start
+  if (car.x < 50) { car.x = 50; car.vx = Math.max(0, car.vx); }
+
+  // Update distance / speed
+  s.distance = Math.max(s.distance, Math.floor((car.x - 200) / 10));
+  var kmh = Math.abs(car.vx) * 0.36;
+  s.maxSpeed = Math.max(s.maxSpeed, kmh);
+
+  // Wheel animation
+  car.wheelAngle += car.vx * dt * 0.05;
+
+  // Fuel check
+  car.fuel = Math.max(0, car.fuel);
+  if (car.fuel <= 0 && car.vx < 5) {
+    s.gameOver = true;
+    s.gameOverReason = 'Out of fuel!';
+  }
+
+  // Flip check (angle too extreme while on ground)
+  if (onGround && Math.abs(car.angle) > Math.PI * 0.6) {
+    s.gameOver = true;
+    s.gameOverReason = 'Flipped!';
+    playCrashSound();
+  }
+
+  // If car somehow goes way below terrain
+  if (car.y > 700) {
+    s.gameOver = true;
+    s.gameOverReason = 'Fell off!';
+    playCrashSound();
+  }
+
+  // Collect coins
+  for (var ci = 0; ci < s.coins.length; ci++) {
+    var c = s.coins[ci];
+    if (!c.collected) {
+      var dx = car.x - c.x, dy = car.y - c.y;
+      if (dx*dx + dy*dy < 1600) {
+        c.collected = true;
+        s.coinsCollected++;
+        s.coinAnims.push({x: c.x, y: c.y, text: '+1', life: 1, color: '#ffd166'});
+        playCoinSound();
+      }
+    }
+  }
+
+  // Collect fuel
+  for (var fi = 0; fi < s.fuels.length; fi++) {
+    var f = s.fuels[fi];
+    if (!f.collected) {
+      var dx2 = car.x - f.x, dy2 = car.y - f.y;
+      if (dx2*dx2 + dy2*dy2 < 2000) {
+        f.collected = true;
+        car.fuel = Math.min(car.fuelMax, car.fuel + car.fuelMax * 0.3);
+        s.coinAnims.push({x: f.x, y: f.y, text: '+FUEL', life: 1, color: '#06d6a0'});
+        playTone(440, 0.15, 'sine', 0.1);
+      }
+    }
+  }
+
+  // Dust particles when driving
+  if (onGround && Math.abs(car.vx) > 30 && Math.random() < 0.3) {
+    s.particles.push({
+      x: car.x - Math.cos(car.angle) * 25,
+      y: terrainMidY,
+      vx: -car.vx * 0.1 + (Math.random()-0.5)*20,
+      vy: -Math.random()*30,
+      life: 0.4 + Math.random()*0.3,
+      color: '#8B7355'
+    });
+  }
+
+  // Trail effect
+  if (gameState.trail !== 'none' && Math.abs(car.vx) > 20) {
+    var trailColors = { smoke:'rgba(150,150,150,', sparkle:'rgba(255,220,100,', fire:'rgba(255,100,30,', rainbow:'rgba(100,200,255,' };
+    var tc = trailColors[gameState.trail] || 'rgba(150,150,150,';
+    if (Math.random() < 0.4) {
+      s.particles.push({
+        x: car.x - Math.cos(car.angle) * 30,
+        y: car.y + Math.sin(car.angle) * 5,
+        vx: -car.vx * 0.05 + (Math.random()-0.5)*15,
+        vy: (Math.random()-0.5)*20,
+        life: 0.5 + Math.random()*0.3,
+        color: tc + '0.6)',
+        trail: true
+      });
+    }
+  }
+
+  // Update particles
+  for (var pi2 = s.particles.length - 1; pi2 >= 0; pi2--) {
+    var p = s.particles[pi2];
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += 100 * dt;
+    p.life -= dt;
+    if (p.life <= 0) s.particles.splice(pi2, 1);
+  }
+
+  // Update coin anims
+  for (var ai = s.coinAnims.length - 1; ai >= 0; ai--) {
+    var a = s.coinAnims[ai];
+    a.y -= 40 * dt;
+    a.life -= dt;
+    if (a.life <= 0) s.coinAnims.splice(ai, 1);
+  }
+
+  // Update engine sound
+  updateEngineSound(kmh);
+
+  // Update HUD
+  document.getElementById('hudSpeed').textContent = Math.floor(kmh);
+  document.getElementById('hudDist').textContent = s.distance;
+  document.getElementById('hudCoins').textContent = s.coinsCollected + s.flipBonus;
+  var fuelPct = (car.fuel / car.fuelMax) * 100;
+  var fuelBar = document.getElementById('fuelBar');
+  fuelBar.style.width = fuelPct + '%';
+  fuelBar.className = 'fuel-bar' + (fuelPct < 25 ? ' low' : '');
+
+  // Game over
+  if (s.gameOver) {
+    stopEngine();
+    setTimeout(function() { endHillClimb(); }, 500);
+  }
+}
+
+function renderHillClimb() {
+  var canvas = document.getElementById('hillCanvas');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width;
+  var H = canvas.height;
+  var s = hillState;
+  var car = s.car;
+  var scale = W / 700;
+
+  ctx.save();
+  ctx.scale(scale, scale);
+  var vw = 700;
+  var vh = H / scale;
+
+  // Camera
+  var targetCamX = car.x - 180;
+  var targetCamY = car.y - vh * 0.5;
+  s.camera.x += (targetCamX - s.camera.x) * 0.08;
+  s.camera.y += (targetCamY - s.camera.y) * 0.05;
+  s.camera.y = Math.max(-100, Math.min(200, s.camera.y));
+
+  var camX = s.camera.x;
+  var camY = s.camera.y;
+
+  // === SKY ===
+  var skyGrad = ctx.createLinearGradient(0, 0, 0, vh);
+  skyGrad.addColorStop(0, '#1a0a2e');
+  skyGrad.addColorStop(0.4, '#16213e');
+  skyGrad.addColorStop(0.7, '#1e3a5f');
+  skyGrad.addColorStop(1, '#2d6a4f');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, vw, vh);
+
+  // Stars
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  for (var si = 0; si < 30; si++) {
+    var sx = ((si * 137 + 50) % vw);
+    var sy = ((si * 97 + 20) % (vh * 0.4));
+    ctx.fillRect(sx, sy, 1.5, 1.5);
+  }
+
+  // === PARALLAX MOUNTAINS ===
+  ctx.fillStyle = '#1a2744';
+  ctx.beginPath();
+  ctx.moveTo(0, vh);
+  for (var mi = 0; mi <= vw; mi += 60) {
+    var mx = mi + (-camX * 0.05) % 60;
+    var mh = 120 + Math.sin(mx * 0.008 + 1) * 60 + Math.sin(mx * 0.003) * 40;
+    ctx.lineTo(mi, vh - mh - 80 + camY * 0.2);
+  }
+  ctx.lineTo(vw, vh);
+  ctx.fill();
+
+  // Far hills
+  ctx.fillStyle = '#243b55';
+  ctx.beginPath();
+  ctx.moveTo(0, vh);
+  for (var hi = 0; hi <= vw; hi += 40) {
+    var hx = hi + (-camX * 0.1) % 40;
+    var hh = 80 + Math.sin(hx * 0.012) * 40 + Math.sin(hx * 0.005 + 2) * 30;
+    ctx.lineTo(hi, vh - hh - 40 + camY * 0.3);
+  }
+  ctx.lineTo(vw, vh);
+  ctx.fill();
+
+  // Near trees
+  ctx.fillStyle = '#1B4332';
+  ctx.beginPath();
+  ctx.moveTo(0, vh);
+  for (var ti = 0; ti <= vw; ti += 20) {
+    var tx = ti + (-camX * 0.2) % 20;
+    var th = 40 + Math.sin(tx * 0.02) * 20 + Math.sin(tx * 0.007 + 3) * 15;
+    ctx.lineTo(ti, vh - th + camY * 0.5);
+  }
+  ctx.lineTo(vw, vh);
+  ctx.fill();
+
+  // === TERRAIN ===
+  ctx.save();
+  ctx.translate(-camX, -camY);
+
+  // Draw terrain fill
+  var terrGrad = ctx.createLinearGradient(0, 200, 0, 600);
+  terrGrad.addColorStop(0, '#2d6a4f');
+  terrGrad.addColorStop(0.3, '#40916c');
+  terrGrad.addColorStop(1, '#1B4332');
+  ctx.fillStyle = terrGrad;
+  ctx.beginPath();
+  ctx.moveTo(camX - 10, vh + camY + 50);
+
+  var startIdx = 0;
+  var endIdx = s.terrain.length;
+  for (var ti2 = 0; ti2 < s.terrain.length; ti2++) {
+    if (s.terrain[ti2].x > camX - 50 && startIdx === 0) startIdx = Math.max(0, ti2 - 1);
+    if (s.terrain[ti2].x > camX + vw + 50) { endIdx = ti2 + 1; break; }
+  }
+
+  for (var ti3 = startIdx; ti3 < endIdx && ti3 < s.terrain.length; ti3++) {
+    ctx.lineTo(s.terrain[ti3].x, s.terrain[ti3].y);
+  }
+  ctx.lineTo(s.terrain[Math.min(endIdx, s.terrain.length - 1)].x, vh + camY + 50);
+  ctx.fill();
+
+  // Terrain top line
+  ctx.strokeStyle = '#52b788';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  for (var ti4 = startIdx; ti4 < endIdx && ti4 < s.terrain.length; ti4++) {
+    if (ti4 === startIdx) ctx.moveTo(s.terrain[ti4].x, s.terrain[ti4].y);
+    else ctx.lineTo(s.terrain[ti4].x, s.terrain[ti4].y);
+  }
+  ctx.stroke();
+
+  // === FUEL PICKUPS ===
+  for (var fpi = 0; fpi < s.fuels.length; fpi++) {
+    var fp = s.fuels[fpi];
+    if (fp.collected || fp.x < camX - 50 || fp.x > camX + vw + 50) continue;
+    ctx.fillStyle = '#06d6a0';
+    ctx.font = 'bold 18px Fredoka';
+    ctx.textAlign = 'center';
+    ctx.fillText('\u26FD', fp.x, fp.y);
+  }
+
+  // === COINS ===
+  for (var ci2 = 0; ci2 < s.coins.length; ci2++) {
+    var c2 = s.coins[ci2];
+    if (c2.collected || c2.x < camX - 50 || c2.x > camX + vw + 50) continue;
+    var bobY = Math.sin(Date.now() * 0.004 + c2.x) * 4;
+    ctx.fillStyle = '#ffd166';
+    ctx.beginPath();
+    ctx.arc(c2.x, c2.y + bobY, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#b8860b';
+    ctx.font = 'bold 10px Fredoka';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('$', c2.x, c2.y + bobY + 1);
+  }
+
+  // === PARTICLES ===
+  for (var pi3 = 0; pi3 < s.particles.length; pi3++) {
+    var p2 = s.particles[pi3];
+    ctx.globalAlpha = Math.max(0, p2.life * 2);
+    ctx.fillStyle = p2.color;
+    ctx.beginPath();
+    ctx.arc(p2.x, p2.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // === CAR ===
+  drawCar(ctx, car.x, car.y, 60, 28, car.angle, {
+    paint: gameState.paint,
+    wheels: gameState.wheels,
+    spoiler: gameState.spoiler,
+    underglow: gameState.underglow,
+    wheelAngle: car.wheelAngle
+  });
+
+  // === COIN ANIMATIONS ===
+  for (var ai2 = 0; ai2 < s.coinAnims.length; ai2++) {
+    var an = s.coinAnims[ai2];
+    ctx.globalAlpha = Math.max(0, an.life);
+    ctx.fillStyle = an.color;
+    ctx.font = 'bold 16px Fredoka';
+    ctx.textAlign = 'center';
+    ctx.fillText(an.text, an.x, an.y);
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.restore(); // end camera transform
+
+  // === GAME OVER OVERLAY ===
+  if (s.gameOver) {
+    ctx.fillStyle = 'rgba(10,14,26,0.6)';
+    ctx.fillRect(0, 0, vw, vh);
+    ctx.fillStyle = '#ef476f';
+    ctx.font = 'bold 36px Fredoka';
+    ctx.textAlign = 'center';
+    ctx.fillText(s.gameOverReason, vw/2, vh/2 - 10);
+    ctx.fillStyle = '#f0f4ff';
+    ctx.font = '16px Outfit';
+    ctx.fillText(s.distance + 'm', vw/2, vh/2 + 20);
+  }
+
+  ctx.restore(); // end scale
+}
+
+function endHillClimb() {
+  stopHillLoop();
+  var s = hillState;
+  var totalCoins = Math.floor(s.distance / 100) + s.coinsCollected + s.flipBonus;
+  var isNewRecord = s.distance > gameState.bestDistance;
+  if (isNewRecord) gameState.bestDistance = s.distance;
+  gameState.coins += totalCoins;
+  gameState.coinsEarned += totalCoins;
+  gameState.totalRuns++;
+  saveLocalState();
+
+  // Show result screen
+  var header = document.getElementById('resultHeader');
+  header.className = 'result-header distance';
+  document.getElementById('resultTitle').textContent = s.gameOverReason || 'Run Complete!';
+  document.getElementById('resultLabel').textContent = 'DISTANCE';
+  document.getElementById('resultScore').textContent = s.distance + 'm';
+  document.getElementById('resultRecordBadge').innerHTML = isNewRecord ? '<div class="new-record-badge">&#127942; New Record!</div>' : '';
+  document.getElementById('resultStats').innerHTML =
+    '<div class="result-stat"><div class="rs-val">' + Math.floor(s.maxSpeed) + '</div><div class="rs-label">Top Speed</div></div>' +
+    '<div class="result-stat"><div class="rs-val">' + s.coinsCollected + '</div><div class="rs-label">Coins Found</div></div>' +
+    '<div class="result-stat"><div class="rs-val">' + s.flipBonus + '</div><div class="rs-label">Flip Bonus</div></div>' +
+    '<div class="result-stat"><div class="rs-val">' + Math.floor(s.distance/100) + '</div><div class="rs-label">Dist Bonus</div></div>';
+  document.getElementById('resultCoins').innerHTML = '&#129689; +' + totalCoins;
+  lastGameMode = 'hill';
+  showScreen('resultScreen');
+
+  // Save to Firestore
+  awardCoins(totalCoins);
+  saveHillRecord(s.distance, isNewRecord);
+  updateQuickStats();
+}
+
+var lastGameMode = 'hill';
+function resultPlayAgain() {
+  if (lastGameMode === 'hill') {
+    showScreen('hillClimbScreen');
+    startHillClimb();
+  } else {
+    showScreen('dragSetupScreen');
+    loadOpponents();
+  }
+}
+
+function toggleHillPause() {
+  hillPaused = !hillPaused;
+  document.getElementById('hillPause').classList.toggle('active', hillPaused);
+  if (!hillPaused) { hillLastTime = performance.now(); }
+}
+
+function restartHillClimb() {
+  stopHillLoop();
+  startHillClimb();
+}
+
+function quitHill() {
+  stopHillLoop();
+  showScreen('homeScreen');
+  drawHomeCar();
+}
+
+// =============================================
+// HILL CLIMB INPUT
+// =============================================
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { hillKeys.gas = true; e.preventDefault(); }
+  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { hillKeys.brake = true; e.preventDefault(); }
+  if (e.key === 'Escape' && hillRunning) toggleHillPause();
+  // Drag race inputs
+  if (e.key === ' ' || e.key === 'ArrowUp') { handleDragGas(); e.preventDefault(); }
+  if (e.key === 'Shift' || e.key === 's' || e.key === 'S') { handleDragShift(); e.preventDefault(); }
+  if (e.key === 'n' || e.key === 'N') { handleDragNitro(); e.preventDefault(); }
+});
+document.addEventListener('keyup', function(e) {
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') hillKeys.gas = false;
+  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') hillKeys.brake = false;
+  if (e.key === ' ' || e.key === 'ArrowUp') dragGasRelease();
+});
+
+// Touch controls for hill climb
+(function() {
+  var gas = document.getElementById('btnGas');
+  var brake = document.getElementById('btnBrake');
+
+  function addTouch(el, key) {
+    el.addEventListener('touchstart', function(e) { e.preventDefault(); hillKeys[key] = true; el.classList.add('pressed'); }, {passive:false});
+    el.addEventListener('touchend', function(e) { e.preventDefault(); hillKeys[key] = false; el.classList.remove('pressed'); }, {passive:false});
+    el.addEventListener('mousedown', function(e) { hillKeys[key] = true; el.classList.add('pressed'); });
+    el.addEventListener('mouseup', function(e) { hillKeys[key] = false; el.classList.remove('pressed'); });
+  }
+  addTouch(gas, 'gas');
+  addTouch(brake, 'brake');
+})();
+
+// =============================================
+// DRAG RACE - AI OPPONENTS
+// =============================================
+var AI_OPPONENTS = [
+  { id:'steve',  name:'Speedy Steve',  emoji:'&#128526;', desc:'Perfect launches, sloppy shifts',  diff:'easy',   launch:0.95, shift:0.5,  nitroTiming:0.5, color:'#3b82f6' },
+  { id:'sally',  name:'Smooth Sally',  emoji:'&#128522;', desc:'Average launch, perfect shifts',   diff:'easy',   launch:0.6,  shift:0.95, nitroTiming:0.6, color:'#ec4899' },
+  { id:'nick',   name:'Nitro Nick',    emoji:'&#128293;', desc:'Mediocre but massive late nitro',  diff:'medium', launch:0.5,  shift:0.6,  nitroTiming:0.95,color:'#f97316' },
+  { id:'eddie',  name:'Steady Eddie',  emoji:'&#129488;', desc:'Consistently good, no mistakes',   diff:'medium', launch:0.75, shift:0.75, nitroTiming:0.7, color:'#22c55e' },
+  { id:'wanda',  name:'Wild Wanda',    emoji:'&#129321;', desc:'Random - sometimes great, sometimes awful', diff:'hard', launch:0.5, shift:0.5, nitroTiming:0.5, color:'#a855f7' },
+  { id:'lightning', name:'Lightning',   emoji:'&#9889;',   desc:'Near-perfect everything. BOSS RACE!', diff:'boss', launch:0.9, shift:0.9, nitroTiming:0.85, color:'#ffd166' }
+];
+
+var BOSS_MILESTONES = [10, 25, 50, 100, 200];
+
+function loadOpponents() {
+  var grid = document.getElementById('opponentGrid');
+  var html = '';
+  var totalWins = gameState.dragWins;
+
+  AI_OPPONENTS.forEach(function(opp) {
+    var isBoss = opp.diff === 'boss';
+    var nextBoss = null;
+    for (var b = 0; b < BOSS_MILESTONES.length; b++) {
+      if (gameState.bossesBeaten.indexOf(BOSS_MILESTONES[b]) < 0 && totalWins >= BOSS_MILESTONES[b]) {
+        nextBoss = BOSS_MILESTONES[b];
+        break;
+      }
+    }
+    var locked = isBoss && !nextBoss;
+    var diffClass = 'diff-' + opp.diff;
+
+    html += '<div class="opponent-card' + (isBoss ? ' boss' : '') + (locked ? ' locked' : '') + '" ' +
+      (locked ? '' : 'onclick="startDragRace(\'' + opp.id + '\')"') + ' style="' + (locked ? 'opacity:0.4;cursor:not-allowed' : '') + '">' +
+      '<div class="opp-avatar">' + opp.emoji + '</div>' +
+      '<div class="opp-info"><div class="opp-name">' + opp.name + '</div>' +
+      '<div class="opp-desc">' + opp.desc + '</div>' +
+      '<span class="opp-diff ' + diffClass + '">' + opp.diff.toUpperCase() + '</span>' +
+      '</div></div>';
+  });
+
+  grid.innerHTML = html;
+}
+
+// =============================================
+// DRAG RACE GAME
+// =============================================
+var dragState = null;
+var dragAnimId = null;
+var dragRunning = false;
+var dragLastTime = 0;
+var dragGasHeld = false;
+
+function startDragRace(oppId) {
+  var opp = AI_OPPONENTS.find(function(o) { return o.id === oppId; });
+  if (!opp) return;
+
+  var stats = getCarStats();
+
+  // Scale AI based on player upgrades
+  var playerLevel = 0;
+  for (var k in gameState.upgrades) playerLevel += gameState.upgrades[k];
+  var aiScale = 1 + playerLevel * 0.04;
+
+  // Wild Wanda: randomize stats each race
+  var aiLaunch = opp.launch;
+  var aiShift = opp.shift;
+  var aiNitro = opp.nitroTiming;
+  if (opp.id === 'wanda') {
+    aiLaunch = 0.3 + Math.random() * 0.7;
+    aiShift = 0.3 + Math.random() * 0.7;
+    aiNitro = 0.3 + Math.random() * 0.7;
+  }
+
+  dragState = {
+    phase: 'countdown', // countdown, racing, finished
+    countdownStep: 0,
+    countdownTimer: 0,
+    greenTime: 0,
+    player: {
+      pos: 0, speed: 0, rpm: 0, gear: 0, maxGear: stats.gears,
+      rpmTarget: 0, launched: false, launchTime: 0,
+      launchQuality: 0, // 0=not yet, 1=perfect, 2=good, 3=late, -1=false start
+      nitroUsed: false, nitroActive: false, nitroTimer: 0,
+      penaltyTimer: 0,
+      shiftPerfects: 0, shiftTotal: 0
+    },
+    ai: {
+      pos: 0, speed: 0, rpm: 0, gear: 0,
+      launched: false, launchDelay: (1 - aiLaunch) * 0.4 + 0.02,
+      shiftSkill: aiShift, nitroSkill: aiNitro,
+      nitroUsed: false, nitroActive: false, nitroTimer: 0,
+      nextShiftRpm: 0.7 + aiShift * 0.2,
+      nitroTriggered: false
+    },
+    opponent: opp,
+    aiScale: aiScale,
+    stats: stats,
+    raceDistance: 400, // quarter mile in game units
+    roadOffset: 0,
+    particles: [],
+    flashTimer: 0,
+    result: null, // 'win' or 'lose'
+    winCoins: 0
+  };
+
+  dragRunning = true;
+  dragGasHeld = false;
+  document.getElementById('oppName').textContent = opp.name;
+  document.getElementById('dragStatus').textContent = 'Get Ready...';
+  document.getElementById('gearDisplay').textContent = 'N';
+  resetTrafficLights();
+
+  // Setup canvas
+  var canvas = document.getElementById('dragCanvas');
+  var wrap = document.getElementById('dragCanvasWrap');
+  canvas.width = wrap.clientWidth * (window.devicePixelRatio > 1 ? 2 : 1);
+  canvas.height = wrap.clientHeight * (window.devicePixelRatio > 1 ? 2 : 1);
+
+  showScreen('dragRaceScreen');
+  startEngine();
+
+  dragLastTime = performance.now();
+  // Start countdown after a beat
+  setTimeout(function() { dragState.phase = 'countdown'; dragState.countdownTimer = 0; }, 500);
+  dragLoop(performance.now());
+}
+
+function stopDragLoop() {
+  dragRunning = false;
+  if (dragAnimId) { cancelAnimationFrame(dragAnimId); dragAnimId = null; }
+  stopEngine();
+}
+
+function dragLoop(now) {
+  if (!dragRunning) return;
+  dragAnimId = requestAnimationFrame(dragLoop);
+
+  var dt = Math.min((now - dragLastTime) / 1000, 0.033);
+  dragLastTime = now;
+
+  updateDragRace(dt);
+  renderDragRace();
+  renderRPMGauge();
+}
+
+function resetTrafficLights() {
+  for (var i = 1; i <= 4; i++) {
+    var el = document.getElementById('tl' + i);
+    el.className = 'traffic-light';
+  }
+}
+
+function updateDragRace(dt) {
+  var d = dragState;
+  if (!d) return;
+
+  if (d.phase === 'countdown') {
+    d.countdownTimer += dt;
+    // Sequence: 0s=red1, 0.6s=red2, 1.2s=yellow, 1.8s=GREEN
+    if (d.countdownTimer > 0.0 && d.countdownStep < 1) {
+      d.countdownStep = 1;
+      document.getElementById('tl1').className = 'traffic-light red';
+      playCountdown();
+    }
+    if (d.countdownTimer > 0.6 && d.countdownStep < 2) {
+      d.countdownStep = 2;
+      document.getElementById('tl2').className = 'traffic-light red';
+      playCountdown();
+    }
+    if (d.countdownTimer > 1.2 && d.countdownStep < 3) {
+      d.countdownStep = 3;
+      document.getElementById('tl3').className = 'traffic-light yellow';
+      playCountdown();
+    }
+    if (d.countdownTimer > 1.8 && d.countdownStep < 4) {
+      d.countdownStep = 4;
+      document.getElementById('tl4').className = 'traffic-light green';
+      d.greenTime = performance.now();
+      d.phase = 'racing';
+      playGo();
+      document.getElementById('dragStatus').textContent = 'GO!';
+
+      // AI launch timing
+      setTimeout(function() {
+        if (d && d.ai) {
+          d.ai.launched = true;
+          d.ai.gear = 1;
+          d.ai.rpm = 0.3;
+        }
+      }, d.ai.launchDelay * 1000);
+    }
+    return;
+  }
+
+  if (d.phase === 'finished') return;
+
+  // === PLAYER ===
+  var p = d.player;
+  var stats = d.stats;
+
+  // Penalty timer
+  if (p.penaltyTimer > 0) {
+    p.penaltyTimer -= dt;
+    if (p.penaltyTimer <= 0) p.penaltyTimer = 0;
+  }
+
+  // RPM behavior
+  if (p.gear === 0) {
+    // Not launched yet — gas builds RPM in neutral
+    if (dragGasHeld && p.launchQuality >= 0) {
+      p.rpm = Math.min(1, p.rpm + dt * 1.5);
+    } else {
+      p.rpm = Math.max(0, p.rpm - dt * 2);
+    }
+  } else {
+    // In gear — RPM climbs based on speed potential
+    var gearMaxSpeed = (p.gear / p.maxGear) * stats.maxSpeed * 100;
+    if (dragGasHeld && p.penaltyTimer <= 0) {
+      p.rpm = Math.min(1, p.rpm + dt * (1.2 + stats.accel * 3));
+    } else {
+      p.rpm = Math.max(0, p.rpm - dt * 0.8);
+    }
+
+    // Speed from RPM
+    if (dragGasHeld && p.penaltyTimer <= 0) {
+      var accelFactor = stats.accel * 60;
+      if (p.nitroActive) accelFactor *= stats.nitro;
+      if (p.launchQuality === 1) accelFactor *= 1.15; // perfect launch bonus
+      p.speed += accelFactor * dt;
+    }
+
+    // RPM at redline reduces accel
+    if (p.rpm >= 0.95) {
+      p.speed *= (1 - dt * 0.3);
+    }
+  }
+
+  // Nitro
+  if (p.nitroActive) {
+    p.nitroTimer -= dt;
+    if (p.nitroTimer <= 0) { p.nitroActive = false; }
+  }
+
+  // Position
+  p.pos += p.speed * dt;
+
+  // === AI ===
+  var ai = d.ai;
+  if (ai.launched) {
+    ai.rpm += dt * (0.8 + d.aiScale * 0.3);
+
+    // AI shift logic
+    if (ai.rpm >= ai.nextShiftRpm && ai.gear < stats.gears) {
+      ai.gear++;
+      var shiftQual = ai.shiftSkill > Math.random() ? 0.9 : 0.5 + Math.random() * 0.3;
+      ai.rpm = 0.2 + (1 - shiftQual) * 0.3;
+      ai.nextShiftRpm = 0.65 + ai.shiftSkill * 0.25 + Math.random() * 0.1;
+    }
+
+    var aiAccel = (stats.accel * 55 * d.aiScale);
+    if (ai.rpm > 0.5) aiAccel *= (0.8 + ai.rpm * 0.4);
+    if (ai.nitroActive) aiAccel *= stats.nitro * 0.9;
+    ai.speed += aiAccel * dt;
+
+    // AI nitro
+    if (!ai.nitroTriggered && ai.pos > d.raceDistance * (0.3 + (1 - ai.nitroSkill) * 0.4)) {
+      ai.nitroTriggered = true;
+      ai.nitroActive = true;
+      ai.nitroTimer = 2;
+    }
+    if (ai.nitroActive) {
+      ai.nitroTimer -= dt;
+      if (ai.nitroTimer <= 0) ai.nitroActive = false;
+    }
+
+    if (ai.rpm >= 1) ai.rpm = 0.9;
+
+    ai.pos += ai.speed * dt;
+  }
+
+  // Road scroll
+  d.roadOffset += (p.speed + ai.speed) * 0.5 * dt;
+
+  // Speed display
+  var kmh = p.speed * 0.8;
+  document.getElementById('dragSpeed').textContent = Math.floor(kmh);
+  document.getElementById('gearDisplay').textContent = p.gear === 0 ? 'N' : p.gear;
+  updateEngineSound(kmh);
+
+  // Particles
+  if (p.nitroActive && Math.random() < 0.5) {
+    d.particles.push({ x: 140, y: 300, vx: -100-Math.random()*100, vy: (Math.random()-0.5)*30, life:0.4, color:'#ff6600' });
+  }
+  for (var pi = d.particles.length - 1; pi >= 0; pi--) {
+    d.particles[pi].x += d.particles[pi].vx * dt;
+    d.particles[pi].y += d.particles[pi].vy * dt;
+    d.particles[pi].life -= dt;
+    if (d.particles[pi].life <= 0) d.particles.splice(pi, 1);
+  }
+
+  // Flash timer
+  if (d.flashTimer > 0) d.flashTimer -= dt;
+
+  // Status
+  if (d.phase === 'racing') {
+    var pPct = Math.floor((p.pos / d.raceDistance) * 100);
+    var aiPct = Math.floor((ai.pos / d.raceDistance) * 100);
+    if (p.gear > 0) {
+      document.getElementById('dragStatus').textContent = pPct + '% | ' + (p.pos > ai.pos ? 'Leading' : 'Behind');
+    }
+  }
+
+  // Check finish
+  if (p.pos >= d.raceDistance || ai.pos >= d.raceDistance) {
+    d.phase = 'finished';
+    d.result = p.pos >= ai.pos ? 'win' : 'lose';
+
+    if (d.result === 'win') {
+      d.winCoins = 20 + Math.floor(Math.random() * 6);
+      if (p.shiftPerfects > 0) d.winCoins += p.shiftPerfects * 2;
+      if (p.launchQuality === 1) d.winCoins += 5;
+      playWinFanfare();
+    } else {
+      d.winCoins = 5 + Math.floor(Math.random() * 6);
+      playLoseSound();
+    }
+
+    stopEngine();
+    setTimeout(function() { endDragRace(); }, 1500);
+  }
+}
+
+function handleDragGas() {
+  if (!dragState || dragState.phase === 'finished') return;
+  dragGasHeld = true;
+
+  var p = dragState.player;
+  // Launch detection
+  if (dragState.phase === 'racing' && p.gear === 0 && !p.launched && p.launchQuality >= 0) {
+    var elapsed = performance.now() - dragState.greenTime;
+    if (elapsed < 50) {
+      p.launchQuality = 1; // perfect
+      document.getElementById('dragStatus').textContent = 'PERFECT LAUNCH!';
+      dragState.flashTimer = 0.3;
+      playLaunchPerfect();
+    } else if (elapsed < 200) {
+      p.launchQuality = 2; // good
+      document.getElementById('dragStatus').textContent = 'Good launch!';
+    } else {
+      p.launchQuality = 3; // late
+      document.getElementById('dragStatus').textContent = 'Late launch...';
+    }
+    p.launched = true;
+    p.gear = 1;
+    p.rpm = 0.3;
+  }
+
+  // False start
+  if (dragState.phase === 'countdown' && p.launchQuality >= 0) {
+    p.launchQuality = -1;
+    p.penaltyTimer = 1.0;
+    document.getElementById('dragStatus').textContent = 'FALSE START! 1s penalty';
+    playTone(200, 0.5, 'square', 0.1);
+  }
+}
+
+function dragGasRelease() {
+  dragGasHeld = false;
+}
+
+function handleDragShift() {
+  if (!dragState || dragState.phase !== 'racing') return;
+  var p = dragState.player;
+  if (p.gear <= 0 || p.gear >= p.maxGear) return;
+
+  p.shiftTotal++;
+  // Shift quality based on RPM position
+  // Green zone: 0.7 - 0.9
+  var greenLow = 0.65 + gameState.upgrades.transmission * 0.02;
+  var greenHigh = 0.92 + gameState.upgrades.transmission * 0.01;
+  if (p.rpm >= greenLow && p.rpm <= greenHigh) {
+    // Perfect shift
+    p.shiftPerfects++;
+    p.gear++;
+    p.rpm = 0.25;
+    playShiftSound();
+    document.getElementById('dragStatus').textContent = 'Perfect shift!';
+  } else if (p.rpm >= 0.5) {
+    // OK shift
+    p.gear++;
+    p.rpm = 0.35;
+    p.speed *= 0.9;
+    playTone(300, 0.08, 'square', 0.06);
+    document.getElementById('dragStatus').textContent = 'Shift!';
+  } else {
+    // Bad shift — too early
+    p.speed *= 0.7;
+    p.rpm = 0.15;
+    playTone(150, 0.15, 'sawtooth', 0.06);
+    document.getElementById('dragStatus').textContent = 'Bad shift!';
+  }
+}
+
+function handleDragNitro() {
+  if (!dragState || dragState.phase !== 'racing') return;
+  var p = dragState.player;
+  if (p.nitroUsed || p.gear <= 0) return;
+  p.nitroUsed = true;
+  p.nitroActive = true;
+  p.nitroTimer = 2.5;
+  dragState.flashTimer = 0.2;
+  playNitroSound();
+  document.getElementById('dragStatus').textContent = 'NITRO!';
+}
+
+// Touch controls for drag
+(function() {
+  var gasBtn = document.getElementById('btnDragGas');
+  var shiftBtn = document.getElementById('btnShift');
+  var nitroBtn = document.getElementById('btnNitro');
+
+  gasBtn.addEventListener('touchstart', function(e) { e.preventDefault(); handleDragGas(); gasBtn.classList.add('pressed'); }, {passive:false});
+  gasBtn.addEventListener('touchend', function(e) { e.preventDefault(); dragGasRelease(); gasBtn.classList.remove('pressed'); }, {passive:false});
+  gasBtn.addEventListener('mousedown', function() { handleDragGas(); gasBtn.classList.add('pressed'); });
+  gasBtn.addEventListener('mouseup', function() { dragGasRelease(); gasBtn.classList.remove('pressed'); });
+
+  shiftBtn.addEventListener('touchstart', function(e) { e.preventDefault(); handleDragShift(); shiftBtn.classList.add('pressed'); }, {passive:false});
+  shiftBtn.addEventListener('touchend', function(e) { e.preventDefault(); shiftBtn.classList.remove('pressed'); }, {passive:false});
+  shiftBtn.addEventListener('mousedown', function() { handleDragShift(); shiftBtn.classList.add('pressed'); });
+  shiftBtn.addEventListener('mouseup', function() { shiftBtn.classList.remove('pressed'); });
+
+  nitroBtn.addEventListener('touchstart', function(e) { e.preventDefault(); handleDragNitro(); nitroBtn.classList.add('pressed'); }, {passive:false});
+  nitroBtn.addEventListener('touchend', function(e) { e.preventDefault(); nitroBtn.classList.remove('pressed'); }, {passive:false});
+  nitroBtn.addEventListener('mousedown', function() { handleDragNitro(); nitroBtn.classList.add('pressed'); });
+  nitroBtn.addEventListener('mouseup', function() { nitroBtn.classList.remove('pressed'); });
+})();
+
+function renderDragRace() {
+  var canvas = document.getElementById('dragCanvas');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width;
+  var H = canvas.height;
+  var d = dragState;
+  if (!d) return;
+
+  var scale = W / 700;
+  ctx.save();
+  ctx.scale(scale, scale);
+  var vw = 700;
+  var vh = H / scale;
+
+  // Sky
+  var skyGrad = ctx.createLinearGradient(0, 0, 0, vh * 0.4);
+  skyGrad.addColorStop(0, '#1a0a2e');
+  skyGrad.addColorStop(1, '#2d2d5e');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, vw, vh * 0.4);
+
+  // Buildings/crowd silhouette
+  ctx.fillStyle = '#1a1a2e';
+  for (var bi = 0; bi < vw; bi += 50 + Math.sin(bi)*20) {
+    var bh = 40 + Math.sin(bi * 0.1) * 25;
+    ctx.fillRect(bi, vh * 0.4 - bh, 40, bh);
+  }
+
+  // Road
+  ctx.fillStyle = '#2a2a3a';
+  ctx.fillRect(0, vh * 0.35, vw, vh * 0.65);
+
+  // Road lines
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([30, 20]);
+  var lineOffset = -(d.roadOffset * 2) % 50;
+  ctx.beginPath();
+  ctx.moveTo(lineOffset, vh * 0.5);
+  ctx.lineTo(vw + 50, vh * 0.5);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(lineOffset, vh * 0.7);
+  ctx.lineTo(vw + 50, vh * 0.7);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Road edges
+  ctx.fillStyle = '#ef4444';
+  for (var ri = 0; ri < vw + 20; ri += 30) {
+    var rx = (ri + lineOffset) % (vw + 30);
+    ctx.fillStyle = (Math.floor(ri / 30) % 2 === 0) ? '#ef4444' : '#fff';
+    ctx.fillRect(rx - 10, vh * 0.38, 15, 6);
+    ctx.fillRect(rx - 10, vh * 0.85, 15, 6);
+  }
+
+  // Finish line
+  var finishX = 600;
+  var playerPct = d.player.pos / d.raceDistance;
+  if (playerPct > 0.7) {
+    var finishVisX = vw * 0.3 + (1 - playerPct) * vw * 2;
+    if (finishVisX > 0 && finishVisX < vw) {
+      ctx.fillStyle = '#fff';
+      for (var fy = vh * 0.38; fy < vh * 0.86; fy += 12) {
+        for (var fx = 0; fx < 3; fx++) {
+          if ((Math.floor(fy/12) + fx) % 2 === 0) {
+            ctx.fillRect(finishVisX + fx * 6, fy, 6, 12);
+          }
+        }
+      }
+    }
+  }
+
+  // AI car (top lane, smaller)
+  var aiVisX = 200 + (d.ai.pos - d.player.pos) * 0.5;
+  aiVisX = Math.max(50, Math.min(vw - 50, aiVisX));
+  drawCar(ctx, aiVisX, vh * 0.47, 45, 20, 0, {
+    paint: d.opponent.color,
+    wheels: 'chrome',
+    spoiler: 'medium',
+    wheelAngle: d.ai.speed * Date.now() * 0.0001
+  });
+
+  // Player car (bottom lane, larger)
+  var playerVisX = 180;
+  var carBob = d.player.nitroActive ? Math.sin(Date.now() * 0.03) * 2 : 0;
+  drawCar(ctx, playerVisX, vh * 0.73 + carBob, 65, 30, 0, {
+    paint: gameState.paint,
+    wheels: gameState.wheels,
+    spoiler: gameState.spoiler,
+    underglow: gameState.underglow,
+    wheelAngle: d.player.speed * Date.now() * 0.0001
+  });
+
+  // Nitro flames
+  if (d.player.nitroActive) {
+    ctx.fillStyle = 'rgba(255,100,0,' + (0.5 + Math.random()*0.3) + ')';
+    ctx.beginPath();
+    ctx.ellipse(playerVisX - 40 - Math.random()*15, vh * 0.73, 10 + Math.random()*8, 5, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,200,0,' + (0.4 + Math.random()*0.3) + ')';
+    ctx.beginPath();
+    ctx.ellipse(playerVisX - 35 - Math.random()*10, vh * 0.73, 6 + Math.random()*5, 3, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  if (d.ai.nitroActive) {
+    ctx.fillStyle = 'rgba(255,100,0,0.4)';
+    ctx.beginPath();
+    ctx.ellipse(aiVisX - 30 - Math.random()*10, vh * 0.47, 7 + Math.random()*5, 3, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // Particles
+  for (var pi = 0; pi < d.particles.length; pi++) {
+    var part = d.particles[pi];
+    ctx.globalAlpha = Math.max(0, part.life * 2);
+    ctx.fillStyle = part.color;
+    ctx.beginPath();
+    ctx.arc(part.x, part.y, 4, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Flash effect
+  if (d.flashTimer > 0) {
+    ctx.fillStyle = 'rgba(255,255,255,' + (d.flashTimer * 2) + ')';
+    ctx.fillRect(0, 0, vw, vh);
+  }
+
+  // Race progress bar at bottom
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(20, vh - 20, vw - 40, 10);
+  ctx.fillStyle = gameState.paint;
+  ctx.fillRect(20, vh - 20, (vw - 40) * Math.min(1, d.player.pos / d.raceDistance), 5);
+  ctx.fillStyle = d.opponent.color;
+  ctx.fillRect(20, vh - 15, (vw - 40) * Math.min(1, d.ai.pos / d.raceDistance), 5);
+
+  // Finished overlay
+  if (d.phase === 'finished') {
+    ctx.fillStyle = 'rgba(10,14,26,0.5)';
+    ctx.fillRect(0, 0, vw, vh);
+    ctx.font = 'bold 40px Fredoka';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = d.result === 'win' ? '#ffd166' : '#ef476f';
+    ctx.fillText(d.result === 'win' ? 'YOU WIN!' : 'YOU LOSE', vw/2, vh/2);
+  }
+
+  ctx.restore();
+}
+
+function renderRPMGauge() {
+  var canvas = document.getElementById('rpmCanvas');
+  var ctx = canvas.getContext('2d');
+  var W = 200, H = 110;
+  ctx.clearRect(0, 0, W, H);
+
+  if (!dragState) return;
+  var p = dragState.player;
+  var stats = dragState.stats;
+
+  var cx = W / 2, cy = H - 10;
+  var radius = 80;
+
+  // Background arc
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, Math.PI, 0, false);
+  ctx.lineWidth = 14;
+  ctx.strokeStyle = '#1a2235';
+  ctx.stroke();
+
+  // Green zone (shift zone)
+  var greenLow = 0.65 + gameState.upgrades.transmission * 0.02;
+  var greenHigh = 0.92 + gameState.upgrades.transmission * 0.01;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, Math.PI + Math.PI * greenLow, Math.PI + Math.PI * greenHigh, false);
+  ctx.lineWidth = 14;
+  ctx.strokeStyle = 'rgba(6,214,160,0.4)';
+  ctx.stroke();
+
+  // Redline zone
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, Math.PI + Math.PI * 0.92, Math.PI * 2, false);
+  ctx.lineWidth = 14;
+  ctx.strokeStyle = 'rgba(239,71,111,0.4)';
+  ctx.stroke();
+
+  // Active RPM arc
+  var rpmColor = p.rpm > 0.92 ? '#ef476f' : (p.rpm >= greenLow && p.rpm <= greenHigh ? '#06d6a0' : '#118ab2');
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, Math.PI, Math.PI + Math.PI * p.rpm, false);
+  ctx.lineWidth = 14;
+  ctx.strokeStyle = rpmColor;
+  ctx.stroke();
+
+  // Needle
+  var needleAngle = Math.PI + Math.PI * p.rpm;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(needleAngle);
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(radius - 5, 0);
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#f0f4ff';
+  ctx.stroke();
+  // Needle dot
+  ctx.beginPath();
+  ctx.arc(0, 0, 5, 0, Math.PI*2);
+  ctx.fillStyle = '#f0f4ff';
+  ctx.fill();
+  ctx.restore();
+
+  // Labels
+  ctx.fillStyle = '#a8b2c8';
+  ctx.font = '10px Outfit';
+  ctx.textAlign = 'center';
+  ctx.fillText('RPM', cx, cy - 20);
+
+  // Gear indicator inside gauge
+  ctx.fillStyle = '#ffd166';
+  ctx.font = 'bold 24px Fredoka';
+  ctx.fillText(p.gear === 0 ? 'N' : String(p.gear), cx, cy - 35);
+}
+
+function endDragRace() {
+  stopDragLoop();
+  var d = dragState;
+  var coins = d.winCoins;
+  var isWin = d.result === 'win';
+
+  if (isWin) gameState.dragWins++;
+  gameState.totalDragRaces++;
+  gameState.coins += coins;
+  gameState.coinsEarned += coins;
+  gameState.totalRuns++;
+
+  // Check boss beat
+  if (isWin && d.opponent.diff === 'boss') {
+    for (var b = 0; b < BOSS_MILESTONES.length; b++) {
+      if (gameState.bossesBeaten.indexOf(BOSS_MILESTONES[b]) < 0) {
+        gameState.bossesBeaten.push(BOSS_MILESTONES[b]);
+        // Unlock car rewards
+        if (BOSS_MILESTONES[b] === 10 && gameState.ownedCars.indexOf('truck') < 0) gameState.ownedCars.push('truck');
+        if (BOSS_MILESTONES[b] === 25 && gameState.ownedCars.indexOf('sports') < 0) gameState.ownedCars.push('sports');
+        if (BOSS_MILESTONES[b] === 50 && gameState.ownedCars.indexOf('muscle') < 0) gameState.ownedCars.push('muscle');
+        if (BOSS_MILESTONES[b] === 100 && gameState.ownedCars.indexOf('supercar') < 0) gameState.ownedCars.push('supercar');
+        break;
+      }
+    }
+  }
+
+  saveLocalState();
+
+  // Show result
+  var header = document.getElementById('resultHeader');
+  header.className = 'result-header ' + (isWin ? 'win' : 'lose');
+  document.getElementById('resultTitle').textContent = isWin ? 'Victory!' : 'Defeat';
+  document.getElementById('resultLabel').textContent = 'VS ' + d.opponent.name;
+  document.getElementById('resultScore').textContent = isWin ? 'WIN' : 'LOSE';
+  document.getElementById('resultRecordBadge').innerHTML = '';
+
+  var p = d.player;
+  var statsHtml =
+    '<div class="result-stat"><div class="rs-val">' + (p.launchQuality === 1 ? 'Perfect' : p.launchQuality === 2 ? 'Good' : p.launchQuality === 3 ? 'Late' : 'False') + '</div><div class="rs-label">Launch</div></div>' +
+    '<div class="result-stat"><div class="rs-val">' + p.shiftPerfects + '/' + p.shiftTotal + '</div><div class="rs-label">Perfect Shifts</div></div>' +
+    '<div class="result-stat"><div class="rs-val">' + Math.floor(p.speed * 0.8) + '</div><div class="rs-label">Top Speed</div></div>';
+  document.getElementById('resultStats').innerHTML = statsHtml;
+  document.getElementById('resultCoins').innerHTML = '&#129689; +' + coins;
+  lastGameMode = 'drag';
+  showScreen('resultScreen');
+
+  awardCoins(coins);
+  saveDragRecord(isWin);
+  updateQuickStats();
+}
+
+// =============================================
+// GARAGE
+// =============================================
+function openGarage() {
+  document.getElementById('garageCoinVal').textContent = gameState.coins;
+  showGarageTab('cars');
+  drawGarageCar();
+}
+
+function showGarageTab(tab) {
+  document.querySelectorAll('.garage-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.garage-panel').forEach(function(p) { p.classList.remove('show'); });
+
+  var tabNames = ['cars','upgrades','paint','cosmetics'];
+  var idx = tabNames.indexOf(tab);
+  document.querySelectorAll('.garage-tab')[idx].classList.add('active');
+
+  var panelIds = ['panelCars','panelUpgrades','panelPaint','panelCosmetics'];
+  document.getElementById(panelIds[idx]).classList.add('show');
+
+  if (tab === 'cars') renderCarsPanel();
+  if (tab === 'upgrades') renderUpgradesPanel();
+  if (tab === 'paint') renderPaintPanel();
+  if (tab === 'cosmetics') renderCosmeticsPanel();
+}
+
+function renderCarsPanel() {
+  var html = '<div class="car-select-grid">';
+  for (var id in CAR_BODIES) {
+    var car = CAR_BODIES[id];
+    var owned = gameState.ownedCars.indexOf(id) >= 0;
+    var selected = gameState.car === id;
+    var locked = !owned;
+
+    var unlockText = '';
+    if (locked) {
+      if (car.unlock === 'buy') unlockText = car.cost + ' coins';
+      else if (car.unlock.startsWith('boss')) unlockText = 'Beat boss at ' + car.unlock.replace('boss','') + ' wins';
+    }
+
+    html += '<div class="car-body-card' + (selected ? ' selected' : '') + (locked ? ' locked' : '') + '" onclick="selectCar(\'' + id + '\')">' +
+      '<div style="font-size:32px;margin-bottom:4px">' + car.icon + '</div>' +
+      '<div class="cb-name">' + car.name + '</div>' +
+      '<div class="cb-stats">Spd:' + car.speed + ' Grp:' + car.grip + ' Wt:' + car.weight + ' Fl:' + car.fuel + '</div>' +
+      (locked ? '<div class="cb-price">' + unlockText + '</div>' : (selected ? '<div style="color:var(--accent);font-size:12px;font-weight:700">EQUIPPED</div>' : '<div style="color:var(--text2);font-size:12px">Tap to equip</div>')) +
+      '</div>';
+  }
+  html += '</div>';
+  document.getElementById('panelCars').innerHTML = html;
+}
+
+function selectCar(id) {
+  var car = CAR_BODIES[id];
+  if (!car) return;
+  var owned = gameState.ownedCars.indexOf(id) >= 0;
+  if (!owned) {
+    if (car.unlock === 'buy' && gameState.coins >= car.cost) {
+      gameState.coins -= car.cost;
+      gameState.ownedCars.push(id);
+      owned = true;
+    } else {
+      return;
+    }
+  }
+  if (owned) {
+    gameState.car = id;
+    saveLocalState();
+    document.getElementById('garageCoinVal').textContent = gameState.coins;
+    renderCarsPanel();
+    drawGarageCar();
+  }
+}
+
+function renderUpgradesPanel() {
+  var html = '<div class="upgrade-grid">';
+  UPGRADE_DEFS.forEach(function(upg) {
+    var level = gameState.upgrades[upg.id];
+    var maxed = level >= 5;
+    var cost = maxed ? 0 : UPGRADE_COSTS[level];
+    var canBuy = !maxed && gameState.coins >= cost;
+
+    html += '<div class="upgrade-card" onclick="buyUpgrade(\'' + upg.id + '\')" style="' + (canBuy ? '' : maxed ? 'border-color:var(--accent)' : 'opacity:0.7') + '">' +
+      '<div class="uc-header"><span class="uc-name">' + upg.icon + ' ' + upg.name + '</span><span class="uc-tier">' + (maxed ? 'MAX' : 'Lv ' + level) + '</span></div>' +
+      '<div class="upgrade-pips">';
+    for (var i = 0; i < 5; i++) {
+      html += '<div class="upgrade-pip' + (i < level ? ' filled' : '') + '"></div>';
+    }
+    html += '</div>' +
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:4px">' + upg.desc + (upg.mode !== 'both' ? ' (' + upg.mode + ' only)' : '') + '</div>' +
+      '<div class="upgrade-cost' + (maxed ? ' maxed' : '') + '">' + (maxed ? 'Maxed out!' : '&#129689; ' + cost) + '</div>' +
+      '</div>';
+  });
+  html += '</div>';
+  document.getElementById('panelUpgrades').innerHTML = html;
+}
+
+function buyUpgrade(id) {
+  var level = gameState.upgrades[id];
+  if (level >= 5) return;
+  var cost = UPGRADE_COSTS[level];
+  if (gameState.coins < cost) return;
+  gameState.coins -= cost;
+  gameState.upgrades[id]++;
+  saveLocalState();
+  document.getElementById('garageCoinVal').textContent = gameState.coins;
+  renderUpgradesPanel();
+  playTone(660, 0.15, 'sine', 0.1);
+}
+
+function renderPaintPanel() {
+  var html = '<div class="color-grid">';
+  PAINT_COLORS.forEach(function(pc) {
+    var owned = gameState.ownedPaints.indexOf(pc.color) >= 0;
+    var selected = gameState.paint === pc.color;
+    html += '<div class="color-swatch' + (selected ? ' selected' : '') + (owned ? ' owned' : '') + '" ' +
+      'onclick="selectPaint(\'' + pc.color + '\')" ' +
+      'style="background:' + pc.color + '">' +
+      '<div class="swatch-check">&#10003;</div>' +
+      (!owned ? '<div class="swatch-price">&#129689; ' + pc.cost + '</div>' : '') +
+      '</div>';
+  });
+  html += '</div>';
+  document.getElementById('panelPaint').innerHTML = html;
+}
+
+function selectPaint(color) {
+  var pc = PAINT_COLORS.find(function(p) { return p.color === color; });
+  if (!pc) return;
+  var owned = gameState.ownedPaints.indexOf(color) >= 0;
+  if (!owned) {
+    if (gameState.coins >= pc.cost) {
+      gameState.coins -= pc.cost;
+      gameState.ownedPaints.push(color);
+      owned = true;
+    } else return;
+  }
+  if (owned) {
+    gameState.paint = color;
+    saveLocalState();
+    document.getElementById('garageCoinVal').textContent = gameState.coins;
+    renderPaintPanel();
+    drawGarageCar();
+  }
+}
+
+function renderCosmeticsPanel() {
+  var html = '';
+
+  // Wheels
+  html += '<div class="section-label">Wheels</div><div class="cosmetic-grid">';
+  WHEEL_OPTIONS.forEach(function(w) {
+    var owned = gameState.ownedWheels.indexOf(w.id) >= 0;
+    var selected = gameState.wheels === w.id;
+    html += '<div class="cosmetic-card' + (selected ? ' selected' : '') + '" onclick="selectCosmetic(\'wheels\',\'' + w.id + '\',' + w.cost + ')">' +
+      '<div class="cc-icon">' + w.icon + '</div><div class="cc-name">' + w.name + '</div>' +
+      '<div class="cc-price' + (owned ? ' owned' : '') + '">' + (owned ? 'Owned' : '&#129689; ' + w.cost) + '</div></div>';
+  });
+  html += '</div>';
+
+  // Spoilers
+  html += '<div class="section-label">Spoiler</div><div class="cosmetic-grid">';
+  SPOILER_OPTIONS.forEach(function(sp) {
+    var owned = gameState.ownedSpoilers.indexOf(sp.id) >= 0;
+    var selected = gameState.spoiler === sp.id;
+    html += '<div class="cosmetic-card' + (selected ? ' selected' : '') + '" onclick="selectCosmetic(\'spoilers\',\'' + sp.id + '\',' + sp.cost + ')">' +
+      '<div class="cc-icon">' + sp.icon + '</div><div class="cc-name">' + sp.name + '</div>' +
+      '<div class="cc-price' + (owned ? ' owned' : '') + '">' + (owned ? 'Owned' : '&#129689; ' + sp.cost) + '</div></div>';
+  });
+  html += '</div>';
+
+  // Underglow
+  html += '<div class="section-label">Underglow</div><div class="cosmetic-grid">';
+  UNDERGLOW_OPTIONS.forEach(function(ug) {
+    var owned = gameState.ownedUnderglows.indexOf(ug.id) >= 0;
+    var selected = gameState.underglow === ug.id;
+    html += '<div class="cosmetic-card' + (selected ? ' selected' : '') + '" onclick="selectCosmetic(\'underglows\',\'' + ug.id + '\',' + ug.cost + ')">' +
+      '<div class="cc-icon">' + (ug.color ? '<span style="color:' + (ug.color === 'rainbow' ? '#ffd166' : ug.color) + '">&#11044;</span>' : '&#10060;') + '</div>' +
+      '<div class="cc-name">' + ug.name + '</div>' +
+      '<div class="cc-price' + (owned ? ' owned' : '') + '">' + (owned ? 'Owned' : '&#129689; ' + ug.cost) + '</div></div>';
+  });
+  html += '</div>';
+
+  // Trail
+  html += '<div class="section-label">Trail Effect</div><div class="cosmetic-grid">';
+  TRAIL_OPTIONS.forEach(function(tr) {
+    var owned = gameState.ownedTrails.indexOf(tr.id) >= 0;
+    var selected = gameState.trail === tr.id;
+    html += '<div class="cosmetic-card' + (selected ? ' selected' : '') + '" onclick="selectCosmetic(\'trails\',\'' + tr.id + '\',' + tr.cost + ')">' +
+      '<div class="cc-icon">' + (tr.id === 'smoke' ? '&#127787;' : tr.id === 'sparkle' ? '&#10024;' : tr.id === 'fire' ? '&#128293;' : tr.id === 'rainbow' ? '&#127752;' : '&#10060;') + '</div>' +
+      '<div class="cc-name">' + tr.name + '</div>' +
+      '<div class="cc-price' + (owned ? ' owned' : '') + '">' + (owned ? 'Owned' : '&#129689; ' + tr.cost) + '</div></div>';
+  });
+  html += '</div>';
+
+  document.getElementById('panelCosmetics').innerHTML = html;
+}
+
+function selectCosmetic(type, id, cost) {
+  var ownedKey = 'owned' + type.charAt(0).toUpperCase() + type.slice(1);
+  var equipKey = type === 'wheels' ? 'wheels' : type === 'spoilers' ? 'spoiler' : type === 'underglows' ? 'underglow' : 'trail';
+  var owned = gameState[ownedKey].indexOf(id) >= 0;
+
+  if (!owned) {
+    if (gameState.coins >= cost) {
+      gameState.coins -= cost;
+      gameState[ownedKey].push(id);
+      owned = true;
+    } else return;
+  }
+
+  if (owned) {
+    gameState[equipKey] = id;
+    saveLocalState();
+    document.getElementById('garageCoinVal').textContent = gameState.coins;
+    renderCosmeticsPanel();
+    drawGarageCar();
+  }
+}
+
+function drawGarageCar() {
+  var canvas = document.getElementById('garageCarCanvas');
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 340, 160);
+
+  // Floor
+  ctx.fillStyle = '#1a2235';
+  ctx.fillRect(0, 120, 340, 40);
+  ctx.strokeStyle = '#2a3450';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, 120);
+  ctx.lineTo(340, 120);
+  ctx.stroke();
+
+  drawCar(ctx, 170, 105, 90, 42, 0, {
+    paint: gameState.paint,
+    wheels: gameState.wheels,
+    spoiler: gameState.spoiler,
+    underglow: gameState.underglow,
+    wheelAngle: Date.now() * 0.001
+  });
+
+  // Car name
+  var carDef = CAR_BODIES[gameState.car] || CAR_BODIES.sedan;
+  ctx.fillStyle = '#f0f4ff';
+  ctx.font = 'bold 14px Outfit';
+  ctx.textAlign = 'center';
+  ctx.fillText(carDef.name, 170, 25);
+
+  // Stats bar
+  var stats = getCarStats();
+  ctx.fillStyle = '#a8b2c8';
+  ctx.font = '10px Outfit';
+  ctx.fillText('SPD:' + stats.maxSpeed.toFixed(1) + '  GRP:' + stats.grip.toFixed(2) + '  ACC:' + stats.accel.toFixed(3) + '  FUEL:' + stats.fuelMax.toFixed(0), 170, 150);
+}
+
+function drawHomeCar() {
+  var canvas = document.getElementById('homeCarCanvas');
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 260, 120);
+  drawCar(ctx, 130, 80, 80, 36, 0, {
+    paint: gameState.paint,
+    wheels: gameState.wheels,
+    spoiler: gameState.spoiler,
+    underglow: gameState.underglow,
+    wheelAngle: Date.now() * 0.001
+  });
+}
+
+// Draw home car on load
+setTimeout(drawHomeCar, 100);
+
+// =============================================
+// FIRESTORE
+// =============================================
+async function awardCoins(coins) {
+  if (!studentId || studentId.startsWith('anon_')) return;
+  try {
+    var fb = await getFirebaseDB();
+    var ref = fb.fsMod.doc(fb.db, 'students', studentId);
+    await fb.fsMod.updateDoc(ref, { coins: fb.fsMod.increment(coins) });
+  } catch(e) { console.warn('Coin award failed:', e); }
+}
+
+async function saveHillRecord(distance, isNewRecord) {
+  if (!studentId || studentId.startsWith('anon_')) return;
+  try {
+    var fb = await getFirebaseDB();
+    var ref = fb.fsMod.doc(fb.db, 'odaRacers', studentId);
+    var snap = await fb.fsMod.getDoc(ref);
+
+    if (snap.exists()) {
+      var updates = {
+        hillRuns: fb.fsMod.increment(1),
+        totalDistance: fb.fsMod.increment(distance),
+        lastPlayed: new Date().toISOString()
+      };
+      if (isNewRecord) updates.bestDistance = distance;
+      await fb.fsMod.updateDoc(ref, updates);
+    } else {
+      await fb.fsMod.setDoc(ref, {
+        studentId: studentId,
+        studentName: studentName || '',
+        classCode: classCode,
+        bestDistance: distance,
+        hillRuns: 1,
+        totalDistance: distance,
+        dragWins: 0,
+        dragRaces: 0,
+        lastPlayed: new Date().toISOString()
+      });
+    }
+  } catch(e) { console.warn('Save hill record failed:', e); }
+}
+
+async function saveDragRecord(isWin) {
+  if (!studentId || studentId.startsWith('anon_')) return;
+  try {
+    var fb = await getFirebaseDB();
+    var ref = fb.fsMod.doc(fb.db, 'odaRacers', studentId);
+    var snap = await fb.fsMod.getDoc(ref);
+
+    if (snap.exists()) {
+      var updates = {
+        dragRaces: fb.fsMod.increment(1),
+        lastPlayed: new Date().toISOString()
+      };
+      if (isWin) updates.dragWins = fb.fsMod.increment(1);
+      await fb.fsMod.updateDoc(ref, updates);
+    } else {
+      await fb.fsMod.setDoc(ref, {
+        studentId: studentId,
+        studentName: studentName || '',
+        classCode: classCode,
+        bestDistance: 0,
+        hillRuns: 0,
+        totalDistance: 0,
+        dragWins: isWin ? 1 : 0,
+        dragRaces: 1,
+        lastPlayed: new Date().toISOString()
+      });
+    }
+  } catch(e) { console.warn('Save drag record failed:', e); }
+}
+
+async function loadRecords() {
+  // Personal stats from local
+  document.getElementById('psBestDist').textContent = gameState.bestDistance + 'm';
+  document.getElementById('psDragWins').textContent = gameState.dragWins;
+  document.getElementById('psRuns').textContent = gameState.totalRuns;
+  document.getElementById('psCoinsEarned').textContent = gameState.coinsEarned;
+
+  if (!classCode && !studentId) {
+    document.getElementById('lbBodyHill').innerHTML = '<div class="lb-empty">Log in to see the leaderboard</div>';
+    document.getElementById('lbBodyDrag').innerHTML = '<div class="lb-empty">Log in to see the leaderboard</div>';
+    return;
+  }
+
+  try {
+    var fb = await getFirebaseDB();
+
+    // Load personal from Firestore
+    if (studentId && !studentId.startsWith('anon_')) {
+      var myRef = fb.fsMod.doc(fb.db, 'odaRacers', studentId);
+      var mySnap = await fb.fsMod.getDoc(myRef);
+      if (mySnap.exists()) {
+        var myData = mySnap.data();
+        document.getElementById('psBestDist').textContent = (myData.bestDistance || 0) + 'm';
+        document.getElementById('psDragWins').textContent = myData.dragWins || 0;
+        document.getElementById('psRuns').textContent = (myData.hillRuns || 0) + (myData.dragRaces || 0);
+      }
+    }
+
+    // Hill climb leaderboard
+    if (classCode) {
+      var q = fb.fsMod.query(
+        fb.fsMod.collection(fb.db, 'odaRacers'),
+        fb.fsMod.where('classCode', '==', classCode),
+        fb.fsMod.orderBy('bestDistance', 'desc'),
+        fb.fsMod.limit(20)
+      );
+      var snap = await fb.fsMod.getDocs(q);
+      var html = '';
+      var rank = 0;
+      snap.forEach(function(d) {
+        rank++;
+        var data = d.data();
+        var isMe = data.studentId === studentId;
+        var rankClass = rank === 1 ? ' gold' : rank === 2 ? ' silver' : rank === 3 ? ' bronze' : '';
+        html += '<div class="lb-row' + (isMe ? ' me' : '') + '">' +
+          '<div class="lb-rank' + rankClass + '">' + rank + '</div>' +
+          '<div class="lb-name">' + window.esc(data.studentName || 'Unknown') + '</div>' +
+          '<div class="lb-score">' + (data.bestDistance || 0) + 'm</div></div>';
+      });
+      document.getElementById('lbBodyHill').innerHTML = html || '<div class="lb-empty">No records yet</div>';
+
+      // Drag wins leaderboard
+      var q2 = fb.fsMod.query(
+        fb.fsMod.collection(fb.db, 'odaRacers'),
+        fb.fsMod.where('classCode', '==', classCode),
+        fb.fsMod.orderBy('dragWins', 'desc'),
+        fb.fsMod.limit(20)
+      );
+      var snap2 = await fb.fsMod.getDocs(q2);
+      var html2 = '';
+      var rank2 = 0;
+      snap2.forEach(function(d) {
+        rank2++;
+        var data = d.data();
+        var isMe = data.studentId === studentId;
+        var rankClass = rank2 === 1 ? ' gold' : rank2 === 2 ? ' silver' : rank2 === 3 ? ' bronze' : '';
+        html2 += '<div class="lb-row' + (isMe ? ' me' : '') + '">' +
+          '<div class="lb-rank' + rankClass + '">' + rank2 + '</div>' +
+          '<div class="lb-name">' + window.esc(data.studentName || 'Unknown') + '</div>' +
+          '<div class="lb-score">' + (data.dragWins || 0) + ' wins</div></div>';
+      });
+      document.getElementById('lbBodyDrag').innerHTML = html2 || '<div class="lb-empty">No records yet</div>';
+    } else {
+      document.getElementById('lbBodyHill').innerHTML = '<div class="lb-empty">Join a class to see leaderboard</div>';
+      document.getElementById('lbBodyDrag').innerHTML = '<div class="lb-empty">Join a class to see leaderboard</div>';
+    }
+  } catch(e) {
+    console.warn('Load records failed:', e);
+    document.getElementById('lbBodyHill').innerHTML = '<div class="lb-empty">Could not load leaderboard</div>';
+    document.getElementById('lbBodyDrag').innerHTML = '<div class="lb-empty">Could not load leaderboard</div>';
+  }
+}
+
+// =============================================
+// SAVE TO CLOUD (periodic)
+// =============================================
+async function saveGameToCloud() {
+  if (!studentId || studentId.startsWith('anon_')) return;
+  try {
+    var fb = await getFirebaseDB();
+    var ref = fb.fsMod.doc(fb.db, 'odaRacers', studentId);
+    var snap = await fb.fsMod.getDoc(ref);
+    var cloudData = {
+      studentId: studentId,
+      studentName: studentName,
+      classCode: classCode,
+      car: gameState.car,
+      paint: gameState.paint,
+      wheels: gameState.wheels,
+      spoiler: gameState.spoiler,
+      underglow: gameState.underglow,
+      trail: gameState.trail,
+      upgrades: gameState.upgrades,
+      ownedPaints: gameState.ownedPaints,
+      ownedWheels: gameState.ownedWheels,
+      ownedSpoilers: gameState.ownedSpoilers,
+      ownedUnderglows: gameState.ownedUnderglows,
+      ownedTrails: gameState.ownedTrails,
+      ownedCars: gameState.ownedCars,
+      bestDistance: gameState.bestDistance,
+      dragWins: gameState.dragWins,
+      bossesBeaten: gameState.bossesBeaten,
+      lastPlayed: new Date().toISOString()
+    };
+    if (snap.exists()) {
+      await fb.fsMod.updateDoc(ref, cloudData);
+    } else {
+      cloudData.hillRuns = gameState.totalRuns;
+      cloudData.dragRaces = gameState.totalDragRaces;
+      cloudData.totalDistance = 0;
+      await fb.fsMod.setDoc(ref, cloudData);
+    }
+  } catch(e) { console.warn('Cloud save failed:', e); }
+}
+
+// Load game state from cloud on start
+(async function() {
+  if (!studentId || studentId.startsWith('anon_')) return;
+  try {
+    var fb = await getFirebaseDB();
+    var ref = fb.fsMod.doc(fb.db, 'odaRacers', studentId);
+    var snap = await fb.fsMod.getDoc(ref);
+    if (snap.exists()) {
+      var data = snap.data();
+      // Merge cloud data with local — keep the best of both
+      if (data.car && CAR_BODIES[data.car]) gameState.car = data.car;
+      if (data.paint) gameState.paint = data.paint;
+      if (data.wheels) gameState.wheels = data.wheels;
+      if (data.spoiler) gameState.spoiler = data.spoiler;
+      if (data.underglow) gameState.underglow = data.underglow;
+      if (data.trail) gameState.trail = data.trail;
+      if (data.upgrades) {
+        for (var k in data.upgrades) {
+          if (gameState.upgrades.hasOwnProperty(k)) {
+            gameState.upgrades[k] = Math.max(gameState.upgrades[k], data.upgrades[k] || 0);
+          }
+        }
+      }
+      // Merge owned arrays
+      ['ownedPaints','ownedWheels','ownedSpoilers','ownedUnderglows','ownedTrails','ownedCars'].forEach(function(key) {
+        if (data[key]) {
+          data[key].forEach(function(item) {
+            if (gameState[key].indexOf(item) < 0) gameState[key].push(item);
+          });
+        }
+      });
+      if ((data.bestDistance || 0) > gameState.bestDistance) gameState.bestDistance = data.bestDistance;
+      if ((data.dragWins || 0) > gameState.dragWins) gameState.dragWins = data.dragWins;
+      if (data.bossesBeaten) {
+        data.bossesBeaten.forEach(function(b) {
+          if (gameState.bossesBeaten.indexOf(b) < 0) gameState.bossesBeaten.push(b);
+        });
+      }
+      saveLocalState();
+      updateQuickStats();
+      setTimeout(drawHomeCar, 200);
+    }
+  } catch(e) { console.warn('Cloud load failed:', e); }
+})();
+
+// =============================================
+// WINDOW RESIZE HANDLING
+// =============================================
+window.addEventListener('resize', function() {
+  if (hillRunning && hillState) {
+    var canvas = document.getElementById('hillCanvas');
+    var wrap = document.getElementById('hillCanvasWrap');
+    canvas.width = wrap.clientWidth * (window.devicePixelRatio > 1 ? 2 : 1);
+    canvas.height = wrap.clientHeight * (window.devicePixelRatio > 1 ? 2 : 1);
+  }
+  if (dragRunning && dragState) {
+    var canvas2 = document.getElementById('dragCanvas');
+    var wrap2 = document.getElementById('dragCanvasWrap');
+    canvas2.width = wrap2.clientWidth * (window.devicePixelRatio > 1 ? 2 : 1);
+    canvas2.height = wrap2.clientHeight * (window.devicePixelRatio > 1 ? 2 : 1);
+  }
+});
+
+// Save to cloud periodically and on page unload
+setInterval(saveGameToCloud, 60000);
+window.addEventListener('beforeunload', function() { saveGameToCloud(); saveLocalState(); });
+</script>
+</body>
+</html>
