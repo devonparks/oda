@@ -909,21 +909,21 @@ function startHillClimb() {
   canvas.height = wrap.clientHeight * (window.devicePixelRatio > 1 ? 2 : 1);
 
   hillLastTime = performance.now();
-  hillAnimId = requestAnimationFrame(hillLoop);
+  hillAnimId = setInterval(hillLoop, 16);
 }
 
 function stopHillLoop() {
   hillRunning = false;
-  if (hillAnimId) { cancelAnimationFrame(hillAnimId); hillAnimId = null; }
+  if (hillAnimId) { clearInterval(hillAnimId); hillAnimId = null; }
   stopEngine();
 }
 
-function hillLoop(now) {
-  if (!hillRunning) return;
-  hillAnimId = requestAnimationFrame(hillLoop);
+function hillLoop() {
+  if (!hillRunning) { stopHillLoop(); return; }
   if (hillPaused || hillState.gameOver) return;
 
-  var dt = Math.min((now - hillLastTime) / 1000, 0.033);
+  var now = performance.now();
+  var dt = Math.min((now - hillLastTime) / 1000, 0.05);
   hillLastTime = now;
 
   updateHillPhysics(dt);
@@ -1569,20 +1569,20 @@ function startDragRace(oppId) {
   dragLastTime = performance.now();
   // Start countdown after a beat
   setTimeout(function() { dragState.phase = 'countdown'; dragState.countdownTimer = 0; }, 500);
-  dragLoop(performance.now());
+  dragAnimId = setInterval(dragLoop, 16);
 }
 
 function stopDragLoop() {
   dragRunning = false;
-  if (dragAnimId) { cancelAnimationFrame(dragAnimId); dragAnimId = null; }
+  if (dragAnimId) { clearInterval(dragAnimId); dragAnimId = null; }
   stopEngine();
 }
 
-function dragLoop(now) {
-  if (!dragRunning) return;
-  dragAnimId = requestAnimationFrame(dragLoop);
+function dragLoop() {
+  if (!dragRunning) { stopDragLoop(); return; }
 
-  var dt = Math.min((now - dragLastTime) / 1000, 0.033);
+  var now = performance.now();
+  var dt = Math.min((now - dragLastTime) / 1000, 0.05);
   dragLastTime = now;
 
   updateDragRace(dt);
