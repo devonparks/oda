@@ -364,11 +364,11 @@ function openProfile(id) {
   document.getElementById('profileAvatar').textContent = (selectedStudent.name || '?').charAt(0).toUpperCase();
   document.getElementById('profileName').textContent = selectedStudent.name;
   document.getElementById('profileDetail').textContent = 'Grade ' + (selectedStudent.grade || '?') + (selectedStudent.className ? ' \u2022 ' + selectedStudent.className : '') + (selectedStudent.parentCode ? ' \u2022 Parent Code: ' + selectedStudent.parentCode : '');
-  var arcOn = selectedStudent.arcadeUnlocked || false;
+  var arcLocked = selectedStudent.arcadeLocked || false;
   var abtn = document.getElementById('arcadeToggleBtn');
-  abtn.textContent = arcOn ? '\u{1F512} Lock Arcade' : '\u{1F3AE} Unlock Arcade';
-  abtn.style.background = arcOn ? 'var(--accent3)' : '';
-  abtn.style.borderColor = arcOn ? 'var(--accent3)' : '';
+  abtn.textContent = arcLocked ? '\u{1F3AE} Unlock Arcade' : '\u{1F512} Lock Arcade';
+  abtn.style.background = arcLocked ? '' : 'var(--accent3)';
+  abtn.style.borderColor = arcLocked ? '' : 'var(--accent3)';
   renderProfileAssignments();
   loadStudentWork();
 }
@@ -635,17 +635,17 @@ function closeAssignModal() { document.getElementById('assignModal').classList.r
 window.openAssignModal = openAssignModal;
 window.closeAssignModal = closeAssignModal;
 
-/** Toggle arcade unlock for the selected student */
+/** Toggle arcade lock for the selected student */
 async function toggleArcade() {
   if (!selectedStudent) return;
-  var on = !(selectedStudent.arcadeUnlocked);
+  var lock = !(selectedStudent.arcadeLocked);
   try {
-    await window.fbUpdateDoc(window.fbDoc(window.fbDb, 'students', selectedStudent.id), { arcadeUnlocked: on });
-    selectedStudent.arcadeUnlocked = on;
+    await window.fbUpdateDoc(window.fbDoc(window.fbDb, 'students', selectedStudent.id), { arcadeLocked: lock });
+    selectedStudent.arcadeLocked = lock;
     var abtn = document.getElementById('arcadeToggleBtn');
-    abtn.textContent = on ? '\u{1F512} Lock Arcade' : '\u{1F3AE} Unlock Arcade';
-    abtn.style.background = on ? 'var(--accent3)' : '';
-    abtn.style.borderColor = on ? 'var(--accent3)' : '';
+    abtn.textContent = lock ? '\u{1F3AE} Unlock Arcade' : '\u{1F512} Lock Arcade';
+    abtn.style.background = lock ? '' : 'var(--accent3)';
+    abtn.style.borderColor = lock ? '' : 'var(--accent3)';
     loadStudents();
   } catch (e) { console.error(e); }
 }

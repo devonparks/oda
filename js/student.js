@@ -89,15 +89,16 @@ var pending=assigns.filter(function(a){return a.status==='pending'||a.status==='
 var submitted=assigns.filter(function(a){return a.status==='submitted'});
 var graded=assigns.filter(function(a){return a.status==='graded'});
 var completed=assigns.filter(function(a){return a.status==='completed'});
-var arcadeUnlocked=pending.length===0&&submitted.length===0||(window.studentRecord&&window.studentRecord.arcadeUnlocked);
+var arcadeLocked=window.studentRecord&&window.studentRecord.arcadeLocked;
+var arcadeUnlocked=!arcadeLocked;
 
 // Badge
 var badge=document.getElementById('workBadge');
 badge.textContent=pending.length;
 badge.className='tab-badge'+(pending.length===0?' zero':'');
 
-// Unlock banner
-document.getElementById('unlockBanner').className='unlock'+(arcadeUnlocked&&assigns.length>0?' show':'');
+// Unlock banner (only show if teacher locked arcade and student finished work)
+document.getElementById('unlockBanner').className='unlock'+(arcadeLocked&&pending.length===0&&submitted.length===0?' show':'');
 
 // Render assignments
 var el=document.getElementById('assignmentList');
@@ -361,10 +362,11 @@ fireConfetti();
 window.completePitch=completePitch;
 
 function renderArcade(){
+var arcadeLocked=window.studentRecord&&window.studentRecord.arcadeLocked;
 var assigns=window.myAssignments||[];
 var pending=assigns.filter(function(a){return a.status==='pending'||a.status==='returned'});
 var submitted=assigns.filter(function(a){return a.status==='submitted'});
-var arcadeUnlocked=pending.length===0&&submitted.length===0||(window.studentRecord&&window.studentRecord.arcadeUnlocked);
+var locked=arcadeLocked&&(pending.length>0||submitted.length>0);
 var coins=(window.studentRecord&&window.studentRecord.coins)||0;
 var h='';
 // Shop banner at top of arcade
@@ -373,7 +375,6 @@ h+='<span class="game-emoji">\u{1F6CD}\uFE0F</span>';
 h+='<div class="game-title">ODA Shop</div>';
 h+='<div class="game-desc">\u{1FA99} '+coins+' coins \u2014 Buy avatars, colors & more!</div></div>';
 GAMES.forEach(function(g){
-var locked=!arcadeUnlocked&&assigns.length>0;
 h+='<div class="game-card'+(locked?' locked':'')+'" role="button" tabindex="'+(locked?'-1':'0')+'" '+(locked?'':'onclick="location.href=\''+g.file+'\'" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();location.href=\''+g.file+'\'}"')+'>';
 h+='<span class="game-emoji">'+g.emoji+'</span>';
 h+='<div class="game-title">'+g.title+'</div>';
