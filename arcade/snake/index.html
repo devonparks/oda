@@ -711,8 +711,10 @@ function startGame(diff) {
   document.getElementById('specialTimer').style.width = '0%';
 
   spawnFood();
-  requestAnimationFrame(gameLoop);
+  if (snakeLoopId) clearInterval(snakeLoopId);
+  snakeLoopId = setInterval(function() { gameLoop(performance.now()); }, 16);
 }
+var snakeLoopId = null;
 
 // =============================================
 // FOOD / OBSTACLES
@@ -777,12 +779,10 @@ function gameLoop(timestamp) {
   if (deathAnimating) {
     updateDeathAnimation(timestamp);
     drawFrame();
-    if (deathAnimating) requestAnimationFrame(gameLoop);
     return;
   }
 
   if (gamePaused) {
-    requestAnimationFrame(gameLoop);
     return;
   }
 
@@ -799,7 +799,6 @@ function gameLoop(timestamp) {
   }
 
   drawFrame();
-  if (gameActive) requestAnimationFrame(gameLoop);
 }
 
 function updateGame(timestamp) {
@@ -1443,7 +1442,6 @@ function togglePause() {
   document.getElementById('pauseOverlay').classList.toggle('active', gamePaused);
   if (!gamePaused) {
     lastMoveTime = 0;
-    requestAnimationFrame(gameLoop);
   }
 }
 
@@ -1458,6 +1456,7 @@ function quitToHome() {
   gameActive = false;
   gamePaused = false;
   deathAnimating = false;
+  if (snakeLoopId) { clearInterval(snakeLoopId); snakeLoopId = null; }
   document.getElementById('deathOverlay').classList.remove('active', 'show-bg', 'new-record');
   loadLocalStats();
   showScreen('homeScreen');
