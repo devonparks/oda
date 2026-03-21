@@ -340,6 +340,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <h3>Records</h3>
       <p>Stats &amp; leaderboard</p>
     </div>
+    <div class="card-ui mode-card" onclick="showShopScreen()">
+      <span class="mode-icon">&#x1f6cd;&#xfe0f;</span>
+      <h3>Shop</h3>
+      <p>Card backs &amp; grid themes</p>
+    </div>
   </div>
   <div class="quick-stats" id="quickStats"></div>
 </div>
@@ -488,6 +493,20 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   </div>
 </div>
 
+<!-- ======================== -->
+<!-- SHOP SCREEN              -->
+<!-- ======================== -->
+<div class="screen" id="shopScreen">
+  <div class="records-container" style="max-width:520px;width:90%">
+    <h2>&#x1f6cd;&#xfe0f; <span style="color:var(--accent)">Shop</span></h2>
+    <p style="color:var(--text2);font-size:14px;margin-bottom:16px">Customize your cards and grid</p>
+    <div id="memoryShopContainer"></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Back</button>
+    </div>
+  </div>
+</div>
+
 <script src="../../js/oda-core.js"></script>
 <script>
 // =========================================================
@@ -507,6 +526,33 @@ let myCosmetics={};
   if(!sid)return;
   try{const fb=await getFirebaseDB();const snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));if(snap.exists())myCosmetics=snap.data().equipped||{};}catch(e){}
 })();
+
+// =========================================================
+//  SHOP CATALOG
+// =========================================================
+var MEMORY_SHOP = [
+  { id:'back_brain', name:'Brain', emoji:'\u{1F9E0}', cost:0, slot:'Card Back' },
+  { id:'back_star', name:'Stars', emoji:'\u2B50', cost:75, slot:'Card Back' },
+  { id:'back_fire', name:'Fire', emoji:'\u{1F525}', cost:100, slot:'Card Back' },
+  { id:'back_galaxy', name:'Galaxy', emoji:'\u{1F30C}', cost:200, slot:'Card Back' },
+  { id:'back_diamond', name:'Diamond', emoji:'\u{1F48E}', cost:300, slot:'Card Back' },
+  { id:'back_rainbow', name:'Rainbow', emoji:'\u{1F308}', cost:400, slot:'Card Back' },
+  { id:'grid_default', name:'Default', emoji:'\u{1F7E6}', cost:0, slot:'Grid Theme' },
+  { id:'grid_neon', name:'Neon', emoji:'\u{1F49A}', cost:150, slot:'Grid Theme' },
+  { id:'grid_sunset', name:'Sunset', emoji:'\u{1F305}', cost:200, slot:'Grid Theme' },
+  { id:'grid_space', name:'Space', emoji:'\u{1F680}', cost:300, slot:'Grid Theme' }
+];
+
+function showShopScreen() {
+  showScreen('shopScreen');
+  if (window.odaShop) {
+    odaShop.renderShopPanel('memory', MEMORY_SHOP, 'memoryShopContainer', {
+      onEquip: function(item) { console.log('[Memory] Equipped:', item.id); },
+      onBuy: function(item) { console.log('[Memory] Bought:', item.id); }
+    });
+  }
+}
+window.showShopScreen = showShopScreen;
 
 // Game state
 var cards = [];

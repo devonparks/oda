@@ -260,6 +260,11 @@ h2{font-family:'Fredoka',sans-serif;font-size:30px;font-weight:700;text-align:ce
       <div class="mc-title">Records</div>
       <div class="mc-desc">Stats &amp; leaderboard</div>
     </div>
+    <div class="mode-card" onclick="showShopScreen()">
+      <div class="mc-icon">🛍️</div>
+      <div class="mc-title">Shop</div>
+      <div class="mc-desc">Pieces &amp; board themes</div>
+    </div>
   </div>
 </div>
 
@@ -374,6 +379,18 @@ h2{font-family:'Fredoka',sans-serif;font-size:30px;font-weight:700;text-align:ce
   </div>
 </div>
 
+<!-- SHOP SCREEN -->
+<div class="screen" id="shopScreen">
+  <h1>&#x1f6cd;&#xfe0f; <span>Shop</span></h1>
+  <p class="subtitle">Customize your pieces and board</p>
+  <div class="records-container" style="max-width:520px;width:100%">
+    <div id="tttShopContainer"></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Back</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOURNAMENT HOME -->
 <div class="screen" id="tourneyHomeScreen">
   <h1>Tournament <span>Mode</span></h1>
@@ -483,6 +500,30 @@ function applyBoardTheme(){
     board.style.setProperty(prop,val);
   });
 }
+
+// ===== SHOP CATALOG =====
+var TTT_SHOP = [
+  { id:'ttt_classic', name:'Classic', emoji:'\u274C', cost:0, slot:'Piece Style' },
+  { id:'ttt_neon', name:'Neon', emoji:'\u{1F49A}', cost:100, slot:'Piece Style' },
+  { id:'ttt_emoji', name:'Emoji', emoji:'\u{1F60E}', cost:150, slot:'Piece Style' },
+  { id:'ttt_fire', name:'Fire & Ice', emoji:'\u{1F525}', cost:250, slot:'Piece Style' },
+  { id:'ttt_gold', name:'Gold', emoji:'\u{1F451}', cost:300, slot:'Piece Style' },
+  { id:'tttb_default', name:'Default', emoji:'#\uFE0F\u20E3', cost:0, slot:'Board Theme' },
+  { id:'tttb_neon', name:'Neon', emoji:'\u{1F49A}', cost:150, slot:'Board Theme' },
+  { id:'tttb_chalk', name:'Chalkboard', emoji:'\u{1F4DD}', cost:200, slot:'Board Theme' },
+  { id:'tttb_galaxy', name:'Galaxy', emoji:'\u{1F30C}', cost:300, slot:'Board Theme' }
+];
+
+function showShopScreen(){
+  showScreen('shopScreen');
+  if(window.odaShop){
+    odaShop.renderShopPanel('tictactoe', TTT_SHOP, 'tttShopContainer', {
+      onEquip: function(item){ console.log('[TTT] Equipped:', item.id); },
+      onBuy: function(item){ console.log('[TTT] Bought:', item.id); }
+    });
+  }
+}
+window.showShopScreen = showShopScreen;
 
 function applyNameColor(el,color){
   if(!el||!color)return;

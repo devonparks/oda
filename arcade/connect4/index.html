@@ -397,6 +397,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <h3>Records</h3>
       <p>View your stats and class leaderboard</p>
     </div>
+    <div class="card mode-card" onclick="C4.showShopScreen()">
+      <span class="mode-icon">&#x1f6cd;&#xfe0f;</span>
+      <h3>Shop</h3>
+      <p>Piece colors &amp; board themes</p>
+    </div>
   </div>
   <div class="quick-stats" id="quickStats"></div>
 </div>
@@ -554,6 +559,20 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 </div>
 
 <!-- ======================== -->
+<!-- SHOP SCREEN              -->
+<!-- ======================== -->
+<div class="screen" id="shopScreen">
+  <div class="records-container" style="max-width:520px;width:90%">
+    <h2>&#x1f6cd;&#xfe0f; <span style="color:var(--accent)">Shop</span></h2>
+    <p style="color:var(--text2);font-size:14px;margin-bottom:16px">Customize your pieces and board</p>
+    <div id="c4ShopContainer"></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="C4.showScreen('homeScreen')">&larr; Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== -->
 <!-- TOURNAMENT LOBBY         -->
 <!-- ======================== -->
 <div class="screen" id="tourneyLobbyScreen">
@@ -694,6 +713,32 @@ function applyBoardTheme(){
   Object.entries(myCosmetics.boardTheme.vars).forEach(([prop,val])=>{
     board.style.setProperty(prop,val);
   });
+}
+
+/* ===================== */
+/* SHOP CATALOG          */
+/* ===================== */
+var C4_SHOP = [
+  { id:'c4_classic', name:'Classic', emoji:'\u{1F534}', cost:0, slot:'Piece Style', value:{p1:'#ef4444',p2:'#fbbf24'} },
+  { id:'c4_neon', name:'Neon', emoji:'\u{1F49A}', cost:150, slot:'Piece Style', value:{p1:'#06d6a0',p2:'#a855f7'} },
+  { id:'c4_ocean', name:'Ocean', emoji:'\u{1F30A}', cost:200, slot:'Piece Style', value:{p1:'#3b82f6',p2:'#22d3ee'} },
+  { id:'c4_fire_ice', name:'Fire & Ice', emoji:'\u{1F525}', cost:250, slot:'Piece Style', value:{p1:'#ef4444',p2:'#22d3ee'} },
+  { id:'c4_gold', name:'Gold & Silver', emoji:'\u{1F947}', cost:300, slot:'Piece Style', value:{p1:'#fbbf24',p2:'#cbd5e1'} },
+  { id:'c4_galaxy', name:'Galaxy', emoji:'\u{1F30C}', cost:400, slot:'Piece Style', value:{p1:'#a855f7',p2:'#ec4899'} },
+  { id:'c4b_blue', name:'Classic Blue', emoji:'\u{1F7E6}', cost:0, slot:'Board Theme' },
+  { id:'c4b_dark', name:'Midnight', emoji:'\u{1F319}', cost:150, slot:'Board Theme' },
+  { id:'c4b_wood', name:'Wood', emoji:'\u{1FAB5}', cost:200, slot:'Board Theme' },
+  { id:'c4b_neon', name:'Neon', emoji:'\u{1F49A}', cost:300, slot:'Board Theme' }
+];
+
+function showShopScreen(){
+  showScreen('shopScreen');
+  if(window.odaShop){
+    odaShop.renderShopPanel('connect4', C4_SHOP, 'c4ShopContainer', {
+      onEquip: function(item){ console.log('[C4] Equipped:', item.id); },
+      onBuy: function(item){ console.log('[C4] Bought:', item.id); }
+    });
+  }
 }
 
 function applyNameColor(el,color){
@@ -2242,7 +2287,7 @@ window.C4={
   pickFormat,nextSeriesGame,replayDraw,rematchGame,
   showTourneyJoin,joinTourney,leaveTourney,backToTourney,
   showTeacherDashboard,teacherTab,teacherCreateTourney,teacherStartTourney,teacherViewTourney,
-  assignMatch,loadRecords,spectateGame
+  assignMatch,loadRecords,spectateGame,showShopScreen
 };
 </script>
 </body>
