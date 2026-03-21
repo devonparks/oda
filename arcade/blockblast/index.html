@@ -65,7 +65,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .best-pill .bp-label{color:var(--text2)}
 .best-pill .bp-val{color:var(--gold);font-weight:800;font-size:18px;font-family:'Fredoka',sans-serif}
 
-.mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:560px;width:90%;margin:0 auto 24px}
+.mode-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:700px;width:90%;margin:0 auto 24px}
 .mode-card{text-align:center;padding:22px 14px}
 .mode-card .mode-icon{font-size:28px;margin-bottom:8px;display:block}
 .mode-card h3{font-size:16px;margin-bottom:4px}
@@ -280,6 +280,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <h3>Records</h3>
       <p>Stats &amp; leaderboard</p>
     </div>
+    <div class="card mode-card" onclick="showShopScreen()">
+      <div class="mode-icon">&#128722;</div>
+      <h3>Shop</h3>
+      <p>Themes &amp; cosmetics</p>
+    </div>
   </div>
   <div class="home-actions">
     <button class="btn btn-accent" onclick="startGame()">Play</button>
@@ -381,6 +386,18 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   </div>
 </div>
 
+<!-- ======================== -->
+<!-- SHOP SCREEN              -->
+<!-- ======================== -->
+<div class="screen" id="shopScreen" style="padding-top:60px;padding-bottom:40px">
+  <h1>&#128722; <span style="color:var(--accent)">Shop</span></h1>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Block Blast themes &amp; cosmetics</p>
+  <div id="bbShopContainer" style="width:90%;max-width:600px"></div>
+  <div style="text-align:center;margin-top:20px">
+    <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&#8592; Back</button>
+  </div>
+</div>
+
 <script src="../../js/oda-core.js"></script>
 <script>
 // =============================================
@@ -410,12 +427,38 @@ var myCosmetics = {};
 })();
 
 // =============================================
+// SHOP CATALOG
+// =============================================
+var BB_SHOP = [
+  { id:'bb_classic', name:'Classic', emoji:'\uD83D\uDFE6', cost:0, slot:'Color Theme' },
+  { id:'bb_neon', name:'Neon', emoji:'\uD83D\uDC9A', cost:150, slot:'Color Theme' },
+  { id:'bb_pastel', name:'Pastel', emoji:'\uD83C\uDF38', cost:150, slot:'Color Theme' },
+  { id:'bb_fire', name:'Fire', emoji:'\uD83D\uDD25', cost:200, slot:'Color Theme' },
+  { id:'bb_ocean', name:'Ocean', emoji:'\uD83C\uDF0A', cost:200, slot:'Color Theme' },
+  { id:'bb_galaxy', name:'Galaxy', emoji:'\uD83C\uDF0C', cost:300, slot:'Color Theme' },
+  { id:'bb_gold', name:'Gold', emoji:'\uD83D\uDC51', cost:400, slot:'Color Theme' },
+  { id:'bbg_default', name:'Default', emoji:'\u2B1B', cost:0, slot:'Grid Style' },
+  { id:'bbg_neon', name:'Neon Grid', emoji:'\uD83D\uDC9A', cost:200, slot:'Grid Style' },
+  { id:'bbg_space', name:'Space', emoji:'\uD83D\uDE80', cost:300, slot:'Grid Style' }
+];
+
+// =============================================
 // SCREEN SYSTEM
 // =============================================
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
   document.getElementById(id).classList.add('active');
   if (id === 'homeScreen') loadLocalStats();
+}
+
+function showShopScreen() {
+  showScreen('shopScreen');
+  if (window.odaShop) {
+    window.odaShop.renderShopPanel('blockblast', BB_SHOP, 'bbShopContainer', {
+      onEquip: function(item) { console.log('Equipped:', item.id); },
+      onBuy: function(item) { console.log('Bought:', item.id); }
+    });
+  }
 }
 
 // =============================================

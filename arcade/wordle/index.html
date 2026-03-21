@@ -241,6 +241,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <h3>Records</h3>
       <p>Stats and class leaderboard</p>
     </div>
+    <div class="card mode-card" onclick="WDL.showShop()">
+      <span class="mode-icon">&#128722;</span>
+      <h3>Shop</h3>
+      <p>Themes &amp; cosmetics</p>
+    </div>
   </div>
 
   <div class="daily-status" id="dailyStatus" style="display:none">
@@ -343,6 +348,18 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   </div>
 </div>
 
+<!-- ======================== -->
+<!-- SHOP SCREEN              -->
+<!-- ======================== -->
+<div class="screen" id="shopScreen" style="padding-top:60px;padding-bottom:40px">
+  <h1>&#128722; <span style="color:var(--accent)">Shop</span></h1>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Wordle themes &amp; cosmetics</p>
+  <div id="wordleShopContainer" style="width:90%;max-width:600px"></div>
+  <div style="text-align:center;margin-top:20px">
+    <button class="btn btn-outline btn-small" onclick="WDL.goHome()">&#8592; Back</button>
+  </div>
+</div>
+
 <script src="../../js/oda-core.js"></script>
 <script>
 /* ============================================================
@@ -350,6 +367,20 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
    ============================================================ */
 (function(){
 "use strict";
+
+/* ===================== */
+/* SHOP CATALOG          */
+/* ===================== */
+var WORDLE_SHOP = [
+  { id:'wt_classic', name:'Classic', emoji:'\uD83D\uDFE9', cost:0, slot:'Tile Theme' },
+  { id:'wt_neon', name:'Neon', emoji:'\uD83D\uDC9A', cost:100, slot:'Tile Theme' },
+  { id:'wt_ocean', name:'Ocean', emoji:'\uD83C\uDF0A', cost:150, slot:'Tile Theme' },
+  { id:'wt_fire', name:'Fire', emoji:'\uD83D\uDD25', cost:200, slot:'Tile Theme' },
+  { id:'wt_galaxy', name:'Galaxy', emoji:'\uD83C\uDF0C', cost:300, slot:'Tile Theme' },
+  { id:'wk_default', name:'Default', emoji:'\u2328\uFE0F', cost:0, slot:'Keyboard Style' },
+  { id:'wk_neon', name:'Neon', emoji:'\uD83D\uDC9A', cost:150, slot:'Keyboard Style' },
+  { id:'wk_retro', name:'Retro', emoji:'\uD83D\uDD79\uFE0F', cost:200, slot:'Keyboard Style' }
+];
 
 /* ===================== */
 /* WORD LISTS            */
@@ -1246,6 +1277,19 @@ function refreshHomeStats(){
 refreshHomeStats();
 
 /* ===================== */
+/* SHOP                  */
+/* ===================== */
+function showShop() {
+  showScreen('shopScreen');
+  if (window.odaShop) {
+    window.odaShop.renderShopPanel('wordle', WORDLE_SHOP, 'wordleShopContainer', {
+      onEquip: function(item) { console.log('Equipped:', item.id); },
+      onBuy: function(item) { console.log('Bought:', item.id); }
+    });
+  }
+}
+
+/* ===================== */
 /* PUBLIC API            */
 /* ===================== */
 window.WDL = {
@@ -1253,7 +1297,8 @@ window.WDL = {
   loadRecords: loadRecords,
   copyShare: copyShare,
   playAgain: playAgain,
-  goHome: goHome
+  goHome: goHome,
+  showShop: showShop
 };
 
 })();

@@ -230,6 +230,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 
   <div class="home-actions">
     <button class="btn btn-outline btn-small" onclick="showScreen('recordsScreen');loadRecords()">&#128202; Records &amp; Leaderboard</button>
+    <button class="btn btn-outline btn-small" onclick="window.showShopScreen()">&#128717;&#65039; Shop</button>
   </div>
 
   <div class="quick-stats" id="quickStats">
@@ -331,6 +332,18 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   </div>
 
   <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&#8592; Back</button>
+</div>
+
+<!-- ======================== -->
+<!-- SHOP SCREEN              -->
+<!-- ======================== -->
+<div class="screen" id="shopScreen">
+  <div class="records-header">
+    <h1>&#128717;&#65039; Shop</h1>
+    <p>Customize your snake</p>
+  </div>
+  <div id="snakeShopContainer" style="width:100%;max-width:500px"></div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
 </div>
 
 <script src="../../js/oda-core.js"></script>
@@ -455,6 +468,74 @@ function saveLocalStats() {
 loadLocalStats();
 
 // =============================================
+// SHOP SYSTEM
+// =============================================
+var SNAKE_SHOP = [
+  // Skins (snake color)
+  { id:'snake_classic', name:'Classic', emoji:'\u{1F7E2}', cost:0, slot:'Snake Skin', color:'#06d6a0' },
+  { id:'snake_neon', name:'Neon', emoji:'\u{1F49A}', cost:100, slot:'Snake Skin', color:'#39ff14' },
+  { id:'snake_fire', name:'Fire', emoji:'\u{1F525}', cost:200, slot:'Snake Skin', color:'#ef4444' },
+  { id:'snake_ice', name:'Ice', emoji:'\u{2744}\uFE0F', cost:200, slot:'Snake Skin', color:'#22d3ee' },
+  { id:'snake_gold', name:'Gold', emoji:'\u{2728}', cost:300, slot:'Snake Skin', color:'#ffd166' },
+  { id:'snake_purple', name:'Galaxy', emoji:'\u{1F30C}', cost:400, slot:'Snake Skin', color:'#a855f7' },
+  { id:'snake_rainbow', name:'Rainbow', emoji:'\u{1F308}', cost:500, slot:'Snake Skin', color:'rainbow' },
+  // Food styles
+  { id:'food_apple', name:'Apple', emoji:'\u{1F34E}', cost:0, slot:'Food Style' },
+  { id:'food_pizza', name:'Pizza', emoji:'\u{1F355}', cost:50, slot:'Food Style' },
+  { id:'food_donut', name:'Donut', emoji:'\u{1F369}', cost:75, slot:'Food Style' },
+  { id:'food_star', name:'Star', emoji:'\u{2B50}', cost:100, slot:'Food Style' },
+  { id:'food_gem', name:'Gem', emoji:'\u{1F48E}', cost:200, slot:'Food Style' },
+  // Trail effects
+  { id:'trail_none', name:'None', emoji:'\u{2796}', cost:0, slot:'Trail Effect' },
+  { id:'trail_dots', name:'Dots', emoji:'\u{26AA}', cost:150, slot:'Trail Effect' },
+  { id:'trail_sparkle', name:'Sparkle', emoji:'\u{2728}', cost:300, slot:'Trail Effect' },
+  { id:'trail_fire', name:'Fire Trail', emoji:'\u{1F525}', cost:400, slot:'Trail Effect' }
+];
+
+var snakeSkinColor = '#06d6a0';
+var foodEmoji = null; // null = default circle rendering
+var trailEffect = 'none';
+
+function loadEquippedCosmetics() {
+  if (typeof odaShop === 'undefined') return;
+  var skin = odaShop.getEquipped('snake', 'Snake Skin');
+  if (skin && skin.color) {
+    snakeSkinColor = skin.color;
+  } else {
+    snakeSkinColor = '#06d6a0';
+  }
+  var fd = odaShop.getEquipped('snake', 'Food Style');
+  if (fd && fd.id && fd.id !== 'food_apple') {
+    foodEmoji = fd.emoji || null;
+  } else {
+    foodEmoji = null;
+  }
+  var tr = odaShop.getEquipped('snake', 'Trail Effect');
+  if (tr && tr.id) {
+    trailEffect = tr.id.replace('trail_', '');
+  } else {
+    trailEffect = 'none';
+  }
+}
+
+function applyShopCosmetics(item) {
+  loadEquippedCosmetics();
+}
+
+window.showShopScreen = function() {
+  showScreen('shopScreen');
+  if (typeof odaShop !== 'undefined') {
+    odaShop.renderShopPanel('snake', SNAKE_SHOP, 'snakeShopContainer', {
+      onEquip: applyShopCosmetics,
+      onBuy: applyShopCosmetics
+    });
+  }
+};
+
+// Load cosmetics on page load
+loadEquippedCosmetics();
+
+// =============================================
 // GAME STATE
 // =============================================
 var canvas = document.getElementById('gameCanvas');
@@ -520,6 +601,8 @@ function startGame(diff) {
   cols = cfg.cols;
   rows = cfg.rows;
   moveInterval = cfg.baseInterval;
+
+  loadEquippedCosmetics();
 
   showScreen('gameScreen');
   resizeCanvas();
@@ -772,7 +855,7 @@ function triggerDeath() {
         vy: (Math.random() - 0.5) * 8,
         size: cellW * 0.3 + Math.random() * cellW * 0.2,
         alpha: 1,
-        color: i === 0 ? '#06d6a0' : 'hsl(' + (140 + i * 3) + ', 70%, ' + (50 - i * 0.5) + '%)'
+        color: getSnakeSegmentColor(i, snake.length)
       });
     }
   }
@@ -889,6 +972,19 @@ function drawFood() {
   var fy = food.y * cellH + cellH / 2;
   var radius = Math.min(cellW, cellH) * 0.35;
 
+  if (foodEmoji) {
+    // Render emoji food
+    ctx.shadowColor = '#ffd166';
+    ctx.shadowBlur = 8;
+    ctx.font = Math.floor(radius * 2.2) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(foodEmoji, fx, fy + 1);
+    ctx.shadowBlur = 0;
+    return;
+  }
+
+  // Default apple rendering
   // Glow
   ctx.shadowColor = '#ef476f';
   ctx.shadowBlur = 12;
@@ -951,17 +1047,75 @@ function drawSpecialFood() {
   ctx.fillText('$', sx, sy + 1);
 }
 
+function getSnakeSegmentColor(i, len) {
+  if (snakeSkinColor === 'rainbow') {
+    var hue = ((i / len) * 360 + Date.now() / 10) % 360;
+    return 'hsl(' + hue + ', 80%, 55%)';
+  }
+  // Parse hex to derive gradient
+  var baseColor = snakeSkinColor || '#06d6a0';
+  var pct = i / Math.max(len, 1);
+  // Darken along body
+  var alpha = 1 - pct * 0.3;
+  // Use the base color with varying brightness via filter
+  // Simple approach: just darken by mixing toward black
+  var r = parseInt(baseColor.slice(1,3), 16);
+  var g = parseInt(baseColor.slice(3,5), 16);
+  var b = parseInt(baseColor.slice(5,7), 16);
+  var factor = 1 - pct * 0.35;
+  r = Math.round(r * factor);
+  g = Math.round(g * factor);
+  b = Math.round(b * factor);
+  return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
+
 function drawSnake() {
   var len = snake.length;
 
-  // Draw trail
-  ctx.globalAlpha = 0.08;
-  for (var t = Math.max(0, len - 3); t < len; t++) {
-    var ts = snake[t];
-    ctx.fillStyle = '#06d6a0';
-    ctx.fillRect(ts.x * cellW, ts.y * cellH, cellW, cellH);
+  // Draw trail based on trail effect
+  if (trailEffect === 'none') {
+    // Default subtle trail
+    ctx.globalAlpha = 0.08;
+    for (var t = Math.max(0, len - 3); t < len; t++) {
+      var ts = snake[t];
+      ctx.fillStyle = snakeSkinColor === 'rainbow' ? '#fff' : (snakeSkinColor || '#06d6a0');
+      ctx.fillRect(ts.x * cellW, ts.y * cellH, cellW, cellH);
+    }
+    ctx.globalAlpha = 1;
+  } else if (trailEffect === 'dots') {
+    for (var td = Math.max(0, len - 6); td < len; td++) {
+      var tds = snake[td];
+      var tdAlpha = 0.15 - ((len - td) / 6) * 0.12;
+      ctx.globalAlpha = Math.max(tdAlpha, 0.03);
+      ctx.fillStyle = snakeSkinColor === 'rainbow' ? '#fff' : (snakeSkinColor || '#06d6a0');
+      ctx.beginPath();
+      ctx.arc(tds.x * cellW + cellW / 2, tds.y * cellH + cellH / 2, cellW * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  } else if (trailEffect === 'sparkle') {
+    for (var ts2 = Math.max(0, len - 5); ts2 < len; ts2++) {
+      var sps = snake[ts2];
+      ctx.globalAlpha = 0.3 - ((len - ts2) / 5) * 0.25;
+      ctx.fillStyle = '#ffd166';
+      var sparkSize = cellW * 0.12 * (0.5 + Math.random() * 0.5);
+      ctx.beginPath();
+      ctx.arc(sps.x * cellW + cellW * Math.random(), sps.y * cellH + cellH * Math.random(), sparkSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  } else if (trailEffect === 'fire') {
+    for (var tf = Math.max(0, len - 5); tf < len; tf++) {
+      var tfs = snake[tf];
+      ctx.globalAlpha = 0.25 - ((len - tf) / 5) * 0.2;
+      var fireColors = ['#ef4444', '#f97316', '#ffd166'];
+      ctx.fillStyle = fireColors[Math.floor(Math.random() * fireColors.length)];
+      ctx.beginPath();
+      ctx.arc(tfs.x * cellW + cellW * (0.2 + Math.random() * 0.6), tfs.y * cellH + cellH * (0.2 + Math.random() * 0.6), cellW * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
   }
-  ctx.globalAlpha = 1;
 
   // Draw body segments with interpolation
   for (var i = len - 1; i >= 0; i--) {
@@ -980,18 +1134,17 @@ function drawSnake() {
 
     var pad = cellW * 0.06;
 
-    // Color gradient along body
-    var hue = 160 - (i / len) * 30;
-    var light = 55 - (i / len) * 15;
+    // Color from skin cosmetic
     var alpha = 1 - (i / len) * 0.2;
 
     ctx.globalAlpha = alpha;
 
     // Segment shadow
-    ctx.shadowColor = 'rgba(6, 214, 160, 0.3)';
+    var segColor = getSnakeSegmentColor(i, len);
+    ctx.shadowColor = (snakeSkinColor === 'rainbow' ? 'rgba(255,255,255,0.3)' : snakeSkinColor || 'rgba(6, 214, 160, 0.3)');
     ctx.shadowBlur = i === 0 ? 8 : 4;
 
-    ctx.fillStyle = 'hsl(' + hue + ', 70%, ' + light + '%)';
+    ctx.fillStyle = segColor;
     var r = Math.min(cellW, cellH) * 0.2;
     roundRect(ctx, drawX + pad, drawY + pad, cellW - pad * 2, cellH - pad * 2, r, true, false);
 

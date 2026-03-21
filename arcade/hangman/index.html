@@ -396,6 +396,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <h3>Records</h3>
       <p>Stats and class leaderboard</p>
     </div>
+    <div class="card mode-card" onclick="HM.showShop()">
+      <span class="mode-icon">&#128722;</span>
+      <h3>Shop</h3>
+      <p>Themes &amp; cosmetics</p>
+    </div>
   </div>
   <div class="import-section">
     <p class="section-title">Import Words</p>
@@ -625,6 +630,18 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   </div>
 </div>
 
+<!-- ======================== -->
+<!-- SHOP SCREEN              -->
+<!-- ======================== -->
+<div class="screen" id="shopScreen" style="padding-top:60px;padding-bottom:40px">
+  <h1>&#128722; <span style="color:var(--accent)">Shop</span></h1>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Hangman themes &amp; cosmetics</p>
+  <div id="hmShopContainer" style="width:90%;max-width:600px"></div>
+  <div style="text-align:center;margin-top:20px">
+    <button class="btn btn-outline btn-small" onclick="HM.showScreen('homeScreen')">&#8592; Back</button>
+  </div>
+</div>
+
 <script src="../../js/oda-core.js"></script>
 <script>
 /* ====================================================
@@ -661,6 +678,21 @@ async function initFirebase() {
   if (fsMod.deleteDoc) deleteDoc = fsMod.deleteDoc;
   fbReady = true;
 }
+
+/* ===================== */
+/* SHOP CATALOG          */
+/* ===================== */
+const HM_SHOP = [
+  { id:'hm_classic', name:'Classic', emoji:'\uD83E\uDDCD', cost:0, slot:'Character' },
+  { id:'hm_robot', name:'Robot', emoji:'\uD83E\uDD16', cost:150, slot:'Character' },
+  { id:'hm_alien', name:'Alien', emoji:'\uD83D\uDC7D', cost:200, slot:'Character' },
+  { id:'hm_skeleton', name:'Skeleton', emoji:'\uD83D\uDC80', cost:250, slot:'Character' },
+  { id:'hm_ninja', name:'Ninja', emoji:'\uD83E\uDD77', cost:300, slot:'Character' },
+  { id:'hmb_default', name:'Default', emoji:'\uD83C\uDF19', cost:0, slot:'Background' },
+  { id:'hmb_sunset', name:'Sunset', emoji:'\uD83C\uDF05', cost:150, slot:'Background' },
+  { id:'hmb_space', name:'Space', emoji:'\uD83D\uDE80', cost:200, slot:'Background' },
+  { id:'hmb_forest', name:'Forest', emoji:'\uD83C\uDF32', cost:200, slot:'Background' }
+];
 
 /* ===================== */
 /* WORD BANK (~200 words)*/
@@ -2153,6 +2185,19 @@ document.addEventListener('keydown', function(e) {
 loadHomeStats();
 
 /* ===================== */
+/* SHOP                  */
+/* ===================== */
+function showShop() {
+  showScreen('shopScreen');
+  if (window.odaShop) {
+    window.odaShop.renderShopPanel('hangman', HM_SHOP, 'hmShopContainer', {
+      onEquip: function(item) { console.log('Equipped:', item.id); },
+      onBuy: function(item) { console.log('Bought:', item.id); }
+    });
+  }
+}
+
+/* ===================== */
 /* PUBLIC API            */
 /* ===================== */
 window.HM = {
@@ -2178,7 +2223,8 @@ window.HM = {
   importFromFlashcards,
   applySpellingImport,
   applyFlashcardImport,
-  clearImported
+  clearImported,
+  showShop
 };
 
 })();
