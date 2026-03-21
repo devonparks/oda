@@ -244,6 +244,11 @@ h1,h2,h3{font-family:'Fredoka',sans-serif}
       <div class="mc-title">Records</div>
       <div class="mc-desc">Stats &amp; leaderboard</div>
     </div>
+    <div class="mode-card" onclick="showRpsShop()">
+      <div class="mc-icon">&#x1F6CD;&#xFE0F;</div>
+      <div class="mc-title">Shop</div>
+      <div class="mc-desc">Hands, arenas &amp; effects</div>
+    </div>
   </div>
 </div>
 
@@ -370,6 +375,8 @@ h1,h2,h3{font-family:'Fredoka',sans-serif}
   <div class="leaderboard" id="leaderboard">
     <div class="no-records">Loading...</div>
   </div>
+  <h3 style="margin-top:24px;color:var(--accent)">Achievements</h3>
+  <div id="rpsAchievementsContainer" style="max-width:400px;width:100%"></div>
   <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:20px">&larr; Back</button>
 </div>
 
@@ -409,6 +416,18 @@ h1,h2,h3{font-family:'Fredoka',sans-serif}
   </div>
   <div class="bracket-area" id="bracketArea"></div>
   <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&larr; Back</button>
+</div>
+
+<!-- ===== SHOP SCREEN ===== -->
+<div class="screen" id="shopScreen">
+  <div style="max-width:520px;width:90%;margin:0 auto">
+    <h2 style="margin-top:80px;text-align:center">&#128722; <span style="color:var(--accent)">Shop</span></h2>
+    <p style="color:var(--text2);font-size:14px;margin-bottom:16px;text-align:center">Customize your hands, arena &amp; effects</p>
+    <div id="rpsShopContainer"></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&larr; Back</button>
+    </div>
+  </div>
 </div>
 
 <!-- ===== COUNTDOWN OVERLAY ===== -->
@@ -487,6 +506,92 @@ function applyNameColor(el,color){
 function applyPlayerCosmetics(){
   const nameColor=myCosmetics.nameColor;
   if(nameColor)applyNameColor(document.getElementById('p1Name'),nameColor);
+}
+
+// ===== SHOP CATALOG =====
+const RPS_SHOP = [
+  { id:'rps_hand_classic', name:'Classic', emoji:'\u270A', cost:0, slot:'Hand Style' },
+  { id:'rps_hand_neon', name:'Neon Glow', emoji:'\u{1F49A}', cost:200, slot:'Hand Style' },
+  { id:'rps_hand_fire', name:'Fire Hands', emoji:'\u{1F525}', cost:500, slot:'Hand Style' },
+  { id:'rps_hand_ice', name:'Ice Hands', emoji:'\u{1F9CA}', cost:400, slot:'Hand Style' },
+  { id:'rps_arena_default', name:'Default', emoji:'\u{1F3DF}\uFE0F', cost:0, slot:'Arena Theme' },
+  { id:'rps_arena_space', name:'Space', emoji:'\u{1F30C}', cost:300, slot:'Arena Theme' },
+  { id:'rps_arena_underwater', name:'Underwater', emoji:'\u{1F30A}', cost:300, slot:'Arena Theme' },
+  { id:'rps_arena_volcano', name:'Volcano', emoji:'\u{1F30B}', cost:500, slot:'Arena Theme' },
+  { id:'rps_fx_confetti', name:'Confetti', emoji:'\u{1F389}', cost:0, slot:'Win Effect' },
+  { id:'rps_fx_fireworks', name:'Fireworks', emoji:'\u{1F386}', cost:200, slot:'Win Effect' },
+  { id:'rps_fx_lightning', name:'Lightning', emoji:'\u26A1', cost:400, slot:'Win Effect' },
+  { id:'rps_fx_nuclear', name:'Nuclear', emoji:'\u2622\uFE0F', cost:800, slot:'Win Effect' }
+];
+
+window.showRpsShop=function(){
+  showScreen('shopScreen');
+  if(window.odaShop){
+    odaShop.renderShopPanel('rps', RPS_SHOP, 'rpsShopContainer', {
+      onEquip: function(item){ console.log('[RPS] Equipped:', item.id); },
+      onBuy: function(item){ console.log('[RPS] Bought:', item.id); }
+    });
+  }
+};
+
+// ===== ACHIEVEMENTS =====
+const RPS_ACHIEVEMENTS = [
+  { id:'rps_ach_rock_solid', name:'Rock Solid', desc:'Win 10 games with Rock', icon:'\u{1FAA8}', check: function(s){ return (s.rockWins||0) >= 10; } },
+  { id:'rps_ach_paper_trail', name:'Paper Trail', desc:'Win 10 games with Paper', icon:'\u{1F4C4}', check: function(s){ return (s.paperWins||0) >= 10; } },
+  { id:'rps_ach_scissor_master', name:'Scissor Master', desc:'Win 10 games with Scissors', icon:'\u2702\uFE0F', check: function(s){ return (s.scissorWins||0) >= 10; } },
+  { id:'rps_ach_streak5', name:'Streak 5', desc:'Win 5 rounds in a row', icon:'\u{1F525}', check: function(s){ return (s.bestStreak||0) >= 5; } },
+  { id:'rps_ach_streak10', name:'Streak 10', desc:'Win 10 rounds in a row', icon:'\u{1F4A5}', check: function(s){ return (s.bestStreak||0) >= 10; } },
+  { id:'rps_ach_mind_reader', name:'Mind Reader', desc:'Win 20 AI games', icon:'\u{1F9E0}', check: function(s){ return (s.aiWins||0) >= 20; } },
+  { id:'rps_ach_tourney_champ', name:'Tournament Champ', desc:'Win a tournament', icon:'\u{1F3C6}', check: function(s){ return s.tourneyWin; } },
+  { id:'rps_ach_veteran', name:'Veteran', desc:'Play 100 matches', icon:'\u{1F396}\uFE0F', check: function(s){ return (s.gamesPlayed||0) >= 100; } },
+  { id:'rps_ach_unbeatable', name:'Unbeatable', desc:'80%+ win rate after 50 games', icon:'\u{1F48E}', check: function(s){ return (s.gamesPlayed||0) >= 50 && (s.matchWins||0) / (s.gamesPlayed||1) >= 0.8; } },
+  { id:'rps_ach_legend', name:'RPS Legend', desc:'Win 500 matches', icon:'\u{1F451}', check: function(s){ return (s.matchWins||0) >= 500; } }
+];
+
+let rpsUnlockedAch = [];
+let rpsStats = { gamesPlayed:0, matchWins:0, rockWins:0, paperWins:0, scissorWins:0, bestStreak:0, aiWins:0, tourneyWin:false };
+let rpsCurrentStreak = 0;
+
+function loadRpsAchievements(){
+  try{ const s=localStorage.getItem('odaRpsAchievements'); if(s) rpsUnlockedAch=JSON.parse(s); }catch(e){}
+  try{ const s=localStorage.getItem('odaRpsStats'); if(s) rpsStats=JSON.parse(s); }catch(e){}
+}
+loadRpsAchievements();
+
+function saveRpsAchievements(){
+  try{ localStorage.setItem('odaRpsAchievements', JSON.stringify(rpsUnlockedAch)); }catch(e){}
+  try{ localStorage.setItem('odaRpsStats', JSON.stringify(rpsStats)); }catch(e){}
+}
+
+function checkRpsAchievements(){
+  let newAch=[];
+  RPS_ACHIEVEMENTS.forEach(function(ach){
+    if(rpsUnlockedAch.indexOf(ach.id)<0 && ach.check(rpsStats)){
+      rpsUnlockedAch.push(ach.id);
+      newAch.push(ach);
+    }
+  });
+  if(newAch.length>0){
+    saveRpsAchievements();
+    newAch.forEach(function(a){ if(typeof odaToast==='function') odaToast(a.icon+' Achievement: '+a.name+'!','success'); });
+  }
+}
+
+function renderRpsAchievements(containerId){
+  const el=document.getElementById(containerId);
+  if(!el)return;
+  let html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:12px">';
+  RPS_ACHIEVEMENTS.forEach(function(ach){
+    const unlocked=rpsUnlockedAch.indexOf(ach.id)>=0;
+    html+='<div style="background:var(--surface);border:1px solid '+(unlocked?'var(--accent)':'var(--border)')+';border-radius:12px;padding:10px;text-align:center;opacity:'+(unlocked?'1':'.4')+'">';
+    html+='<div style="font-size:24px">'+ach.icon+'</div>';
+    html+='<div style="font-size:12px;font-weight:700;margin-top:4px">'+ach.name+'</div>';
+    html+='<div style="font-size:10px;color:var(--text2);margin-top:2px">'+ach.desc+'</div>';
+    if(unlocked) html+='<div style="font-size:10px;color:var(--accent);font-weight:700;margin-top:4px">\u2705 Unlocked</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+  el.innerHTML=html;
 }
 
 // ===== AUDIO (Web Audio API) =====
@@ -875,6 +980,29 @@ function showMatchResult(){
     coinsAwarded=true;
     awardCoins(coins);
     updateRecord(iWon,isDraw);
+    // Track achievement stats
+    rpsStats.gamesPlayed=(rpsStats.gamesPlayed||0)+1;
+    if(iWon){
+      rpsStats.matchWins=(rpsStats.matchWins||0)+1;
+      if(gameMode==='ai') rpsStats.aiWins=(rpsStats.aiWins||0)+1;
+    }
+    // Track per-choice wins from history
+    history.forEach(function(h){
+      if(h.result==='win'){
+        if(h.myChoice==='rock') rpsStats.rockWins=(rpsStats.rockWins||0)+1;
+        else if(h.myChoice==='paper') rpsStats.paperWins=(rpsStats.paperWins||0)+1;
+        else if(h.myChoice==='scissors') rpsStats.scissorWins=(rpsStats.scissorWins||0)+1;
+      }
+    });
+    // Streak tracking
+    let currentStrk=0, bestStrk=rpsStats.bestStreak||0;
+    history.forEach(function(h){
+      if(h.result==='win'){currentStrk++; if(currentStrk>bestStrk) bestStrk=currentStrk;}
+      else currentStrk=0;
+    });
+    rpsStats.bestStreak=bestStrk;
+    saveRpsAchievements();
+    checkRpsAchievements();
   }
 }
 
@@ -1034,6 +1162,9 @@ window.showRecords=async function(){
   }catch(e){
     lb.innerHTML='<div class="no-records">Could not load leaderboard</div>';
   }
+
+  // Render achievements
+  renderRpsAchievements('rpsAchievementsContainer');
 };
 
 // ===== MULTIPLAYER =====
@@ -1566,7 +1697,12 @@ function awardTourneyCoins(data,champion){
   if(!studentId||studentId.startsWith('anon_'))return;
 
   let coins=5; // participation
-  if(champion.id===studentId)coins=75; // 1st
+  if(champion.id===studentId){
+    coins=75; // 1st
+    rpsStats.tourneyWin=true;
+    saveRpsAchievements();
+    checkRpsAchievements();
+  }
   else{
     // Check if in final (2nd place)
     const finalKey=data.bracket.rounds+'-0';

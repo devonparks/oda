@@ -129,6 +129,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;user
     <button class="top-btn" onclick="undoMove()" title="Undo (Right-click)">Undo</button>
     <button class="top-btn" onclick="showNewGameModal()">New Game</button>
     <button class="top-btn" onclick="showStatsModal()">Stats</button>
+    <button class="top-btn" onclick="showSolShopModal()">Shop</button>
   </div>
 </div>
 
@@ -151,7 +152,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;user
 
 <!-- Stats Modal -->
 <div class="modal-overlay" id="statsModal">
-  <div class="modal">
+  <div class="modal" style="max-width:520px">
     <h2>Your Stats</h2>
     <div class="stats-grid">
       <div class="stats-item"><div class="sv" id="stPlayed">0</div><div class="sl">Games Played</div></div>
@@ -161,6 +162,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;user
       <div class="stats-item"><div class="sv" id="stBestScore">0</div><div class="sl">Best Score</div></div>
       <div class="stats-item"><div class="sv" id="stCoins">0</div><div class="sl">Coins Earned</div></div>
     </div>
+    <div style="margin-top:12px"><button class="close-btn" onclick="closeModal('statsModal');showAchievementsModal()">&#127942; Achievements</button></div>
     <button class="close-btn" onclick="closeModal('statsModal')">Close</button>
   </div>
 </div>
@@ -179,6 +181,25 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;user
       <button class="modal-btn green" onclick="closeModal('winModal');showNewGameModal()">Play Again</button>
       <a href="../../student.html" class="modal-btn blue" id="winBackLink" style="text-decoration:none;text-align:center">Back to Hub</a>
     </div>
+  </div>
+</div>
+
+<!-- Shop Modal -->
+<div class="modal-overlay" id="shopModal">
+  <div class="modal" style="max-width:520px">
+    <h2 style="color:var(--accent)">&#128722; Shop</h2>
+    <p>Customize your cards and table</p>
+    <div id="solShopContainer" style="margin-top:12px"></div>
+    <button class="close-btn" onclick="closeModal('shopModal')">Close</button>
+  </div>
+</div>
+
+<!-- Achievements Modal -->
+<div class="modal-overlay" id="achievementsModal">
+  <div class="modal" style="max-width:520px">
+    <h2 style="color:var(--accent)">&#127942; Achievements</h2>
+    <div id="solAchievementsContainer" style="margin-top:12px"></div>
+    <button class="close-btn" onclick="closeModal('achievementsModal')">Close</button>
   </div>
 </div>
 
@@ -295,6 +316,96 @@ function playSound(type) {
         break;
     }
   } catch(e) {}
+}
+
+// ===== SHOP CATALOG =====
+var SOL_SHOP = [
+  { id:'sol_back_classic', name:'Classic Blue', emoji:'\u{1F0CF}', cost:0, slot:'Card Back' },
+  { id:'sol_back_red', name:'Red Velvet', emoji:'\u2764\uFE0F', cost:150, slot:'Card Back' },
+  { id:'sol_back_galaxy', name:'Galaxy', emoji:'\u{1F30C}', cost:400, slot:'Card Back' },
+  { id:'sol_back_oda', name:'ODA Logo', emoji:'\u{1F393}', cost:100, slot:'Card Back' },
+  { id:'sol_table_green', name:'Green Felt', emoji:'\u{1F7E2}', cost:0, slot:'Table Theme' },
+  { id:'sol_table_dark', name:'Dark Wood', emoji:'\u{1FAB5}', cost:200, slot:'Table Theme' },
+  { id:'sol_table_ocean', name:'Ocean Blue', emoji:'\u{1F30A}', cost:300, slot:'Table Theme' },
+  { id:'sol_table_purple', name:'Purple Royale', emoji:'\u{1F49C}', cost:500, slot:'Table Theme' },
+  { id:'sol_face_standard', name:'Standard', emoji:'\u{1F0A1}', cost:0, slot:'Card Face' },
+  { id:'sol_face_large', name:'Large Print', emoji:'\u{1F50D}', cost:100, slot:'Card Face' },
+  { id:'sol_face_neon', name:'Neon', emoji:'\u{1F49A}', cost:300, slot:'Card Face' },
+  { id:'sol_face_gold', name:'Gold Foil', emoji:'\u{1F4B0}', cost:600, slot:'Card Face' }
+];
+
+function showSolShopModal() {
+  document.getElementById('shopModal').classList.add('active');
+  if (window.odaShop) {
+    odaShop.renderShopPanel('solitaire', SOL_SHOP, 'solShopContainer', {
+      onEquip: function(item) { console.log('[Solitaire] Equipped:', item.id); },
+      onBuy: function(item) { console.log('[Solitaire] Bought:', item.id); }
+    });
+  }
+}
+
+// ===== ACHIEVEMENTS =====
+var SOL_ACHIEVEMENTS = [
+  { id:'sol_ach_first_win', name:'First Win', desc:'Win your first game', icon:'\u{1F3C6}', check: function(s){ return s.won >= 1; } },
+  { id:'sol_ach_quick_win', name:'Quick Win', desc:'Win in under 3 minutes', icon:'\u26A1', check: function(s){ return s.quickWin; } },
+  { id:'sol_ach_perfect', name:'Perfect Game', desc:'Win with no undos', icon:'\u{1F48E}', check: function(s){ return s.perfectGame; } },
+  { id:'sol_ach_streak3', name:'Streak 3', desc:'Win 3 games in a row', icon:'\u{1F525}', check: function(s){ return (s.bestStreak||0) >= 3; } },
+  { id:'sol_ach_persistence', name:'Persistence', desc:'Play 50 games', icon:'\u{1F4AA}', check: function(s){ return s.played >= 50; } },
+  { id:'sol_ach_speed_runner', name:'Speed Runner', desc:'Win in under 2 minutes', icon:'\u{1F3CE}\uFE0F', check: function(s){ return s.speedRunner; } },
+  { id:'sol_ach_card_shark', name:'Card Shark', desc:'Win 25 games', icon:'\u{1F3B4}', check: function(s){ return s.won >= 25; } },
+  { id:'sol_ach_master', name:'Solitaire Master', desc:'Win 100 games', icon:'\u{1F451}', check: function(s){ return s.won >= 100; } },
+  { id:'sol_ach_lucky_draw', name:'Lucky Draw', desc:'Win on first try with hard rules', icon:'\u{1F340}', check: function(s){ return s.luckyDraw; } },
+  { id:'sol_ach_completionist', name:'Completionist', desc:'Win on all 3 difficulties', icon:'\u{1F31F}', check: function(s){ return s.wonEasy && s.wonStandard && s.wonHard; } }
+];
+
+var solUnlockedAch = [];
+var solAchStats = { played:0, won:0, quickWin:false, perfectGame:false, bestStreak:0, currentStreak:0, speedRunner:false, luckyDraw:false, wonEasy:false, wonStandard:false, wonHard:false };
+
+function loadSolAchievements() {
+  try { var s = localStorage.getItem('odaSolAchievements'); if(s) solUnlockedAch = JSON.parse(s); } catch(e) {}
+  try { var s = localStorage.getItem('odaSolAchStats'); if(s) solAchStats = JSON.parse(s); } catch(e) {}
+}
+loadSolAchievements();
+
+function saveSolAchievements() {
+  try { localStorage.setItem('odaSolAchievements', JSON.stringify(solUnlockedAch)); } catch(e) {}
+  try { localStorage.setItem('odaSolAchStats', JSON.stringify(solAchStats)); } catch(e) {}
+}
+
+function checkSolAchievements() {
+  var newAch = [];
+  SOL_ACHIEVEMENTS.forEach(function(ach) {
+    if (solUnlockedAch.indexOf(ach.id) < 0 && ach.check(solAchStats)) {
+      solUnlockedAch.push(ach.id);
+      newAch.push(ach);
+    }
+  });
+  if (newAch.length > 0) {
+    saveSolAchievements();
+    newAch.forEach(function(a) { if (typeof odaToast === 'function') odaToast(a.icon + ' Achievement: ' + a.name + '!', 'success'); });
+  }
+}
+
+function showAchievementsModal() {
+  document.getElementById('achievementsModal').classList.add('active');
+  renderSolAchievements('solAchievementsContainer');
+}
+
+function renderSolAchievements(containerId) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px">';
+  SOL_ACHIEVEMENTS.forEach(function(ach) {
+    var unlocked = solUnlockedAch.indexOf(ach.id) >= 0;
+    html += '<div style="background:var(--surface);border:1px solid ' + (unlocked ? 'var(--accent)' : 'var(--border)') + ';border-radius:12px;padding:10px;text-align:center;opacity:' + (unlocked ? '1' : '.4') + '">';
+    html += '<div style="font-size:24px">' + ach.icon + '</div>';
+    html += '<div style="font-size:12px;font-weight:700;margin-top:4px">' + ach.name + '</div>';
+    html += '<div style="font-size:10px;color:var(--text2);margin-top:2px">' + ach.desc + '</div>';
+    if (unlocked) html += '<div style="font-size:10px;color:var(--accent);font-weight:700;margin-top:4px">\u2705 Unlocked</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 // ===== GAME STATE =====
@@ -647,6 +758,9 @@ function startGame(diff) {
     // Increment games played
     stats.played++;
     saveStats();
+    solAchStats.played = stats.played;
+    solAchStats.currentStreak = 0; // Reset streak on new game start
+    saveSolAchievements();
   });
 
   updateCounters();
@@ -930,6 +1044,21 @@ function onWin() {
   // Save to Firestore
   saveGameRecord(totalCoins);
   awardCoins(totalCoins);
+
+  // Track achievements
+  solAchStats.played = stats.played;
+  solAchStats.won = stats.won;
+  if (elapsed < 180) solAchStats.quickWin = true;
+  if (elapsed < 120) solAchStats.speedRunner = true;
+  if (undoStack.length === 0) solAchStats.perfectGame = true;
+  if (difficulty === 'easy') solAchStats.wonEasy = true;
+  if (difficulty === 'standard') solAchStats.wonStandard = true;
+  if (difficulty === 'hard') solAchStats.wonHard = true;
+  if (difficulty === 'hard' && stats.played === 1) solAchStats.luckyDraw = true;
+  solAchStats.currentStreak = (solAchStats.currentStreak || 0) + 1;
+  if (solAchStats.currentStreak > (solAchStats.bestStreak || 0)) solAchStats.bestStreak = solAchStats.currentStreak;
+  saveSolAchievements();
+  checkSolAchievements();
 
   // Show win modal after delay
   setTimeout(function() {

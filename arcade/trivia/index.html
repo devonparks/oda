@@ -319,6 +319,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <h3>Records</h3>
       <p>Stats, scores & class leaderboard</p>
     </div>
+    <div class="card mode-card" onclick="showTriviaShop()">
+      <span class="mode-icon">&#128722;</span>
+      <h3>Shop</h3>
+      <p>Themes, timers &amp; effects</p>
+    </div>
   </div>
   <div class="import-row">
     <button class="btn btn-outline btn-small" onclick="showImportScreen()">&#128230; Import Quiz</button>
@@ -393,6 +398,18 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   <div class="result-container" id="resultContent"></div>
 </div>
 
+<!-- SHOP SCREEN -->
+<div class="screen" id="shopScreen">
+  <div class="records-container" style="max-width:520px;width:90%">
+    <h2 style="text-align:center">&#128722; <span style="color:var(--accent)">Shop</span></h2>
+    <p style="color:var(--text2);font-size:14px;margin-bottom:16px;text-align:center">Customize your trivia experience</p>
+    <div id="triviaShopContainer"></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&larr; Back</button>
+    </div>
+  </div>
+</div>
+
 <!-- RECORDS SCREEN -->
 <div class="screen" id="recordsScreen">
   <div class="records-container">
@@ -400,6 +417,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <div class="records-tabs">
       <div class="records-tab active" onclick="showRecordsTab('stats',this)">My Stats</div>
       <div class="records-tab" onclick="showRecordsTab('leaderboard',this)">Leaderboard</div>
+      <div class="records-tab" onclick="showRecordsTab('achievements',this)">Achievements</div>
     </div>
     <div id="recordsContent"><div class="loading">Loading...</div></div>
     <div style="text-align:center;margin-top:24px"><button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&larr; Back</button></div>
@@ -510,6 +528,95 @@ function playSlide() {
 function toggleSound() {
   soundEnabled = !soundEnabled;
   document.getElementById('soundToggle').innerHTML = soundEnabled ? '&#128266;' : '&#128264;';
+}
+
+// ============================================
+// SHOP CATALOG
+// ============================================
+var TRIVIA_SHOP = [
+  { id:'trv_ans_default', name:'Default', emoji:'\u{1F7E5}', cost:0, slot:'Answer Theme' },
+  { id:'trv_ans_neon', name:'Neon Buttons', emoji:'\u{1F49A}', cost:200, slot:'Answer Theme' },
+  { id:'trv_ans_candy', name:'Candy Colors', emoji:'\u{1F36C}', cost:300, slot:'Answer Theme' },
+  { id:'trv_ans_galaxy', name:'Galaxy', emoji:'\u{1F30C}', cost:500, slot:'Answer Theme' },
+  { id:'trv_timer_standard', name:'Standard', emoji:'\u23F1\uFE0F', cost:0, slot:'Timer Style' },
+  { id:'trv_timer_digital', name:'Digital Clock', emoji:'\u{1F552}', cost:150, slot:'Timer Style' },
+  { id:'trv_timer_hourglass', name:'Hourglass', emoji:'\u231B', cost:300, slot:'Timer Style' },
+  { id:'trv_timer_bomb', name:'Bomb', emoji:'\u{1F4A3}', cost:500, slot:'Timer Style' },
+  { id:'trv_fx_confetti', name:'Confetti', emoji:'\u{1F389}', cost:0, slot:'Celebration Effect' },
+  { id:'trv_fx_stars', name:'Stars', emoji:'\u2B50', cost:200, slot:'Celebration Effect' },
+  { id:'trv_fx_fireworks', name:'Fireworks', emoji:'\u{1F386}', cost:400, slot:'Celebration Effect' },
+  { id:'trv_fx_rainbow', name:'Rainbow', emoji:'\u{1F308}', cost:600, slot:'Celebration Effect' }
+];
+
+function showTriviaShop() {
+  showScreen('shopScreen');
+  if (window.odaShop) {
+    odaShop.renderShopPanel('trivia', TRIVIA_SHOP, 'triviaShopContainer', {
+      onEquip: function(item) { console.log('[Trivia] Equipped:', item.id); },
+      onBuy: function(item) { console.log('[Trivia] Bought:', item.id); }
+    });
+  }
+}
+
+// ============================================
+// ACHIEVEMENTS
+// ============================================
+var TRIVIA_ACHIEVEMENTS = [
+  { id:'trv_ach_first_answer', name:'First Answer', desc:'Answer your first question', icon:'\u2753', check: function(s){ return (s.totalCorrect||0) >= 1; } },
+  { id:'trv_ach_quick_thinker', name:'Quick Thinker', desc:'Answer in under 2 seconds', icon:'\u26A1', check: function(s){ return s.quickAnswer; } },
+  { id:'trv_ach_perfect_round', name:'Perfect Round', desc:'All correct in one game', icon:'\u{1F4AF}', check: function(s){ return s.perfectRound; } },
+  { id:'trv_ach_knowledge_seeker', name:'Knowledge Seeker', desc:'Play 25 games', icon:'\u{1F4DA}', check: function(s){ return (s.gamesPlayed||0) >= 25; } },
+  { id:'trv_ach_trivia_master', name:'Trivia Master', desc:'Play 100 games', icon:'\u{1F393}', check: function(s){ return (s.gamesPlayed||0) >= 100; } },
+  { id:'trv_ach_speed_demon', name:'Speed Demon', desc:'Win with fastest time bonus', icon:'\u{1F3CE}\uFE0F', check: function(s){ return s.speedDemon; } },
+  { id:'trv_ach_streak5', name:'Streak 5', desc:'Get 5 correct in a row', icon:'\u{1F525}', check: function(s){ return (s.bestStreak||0) >= 5; } },
+  { id:'trv_ach_all_categories', name:'All Categories', desc:'Play all categories', icon:'\u{1F30D}', check: function(s){ return s.catsPlayed && s.catsPlayed.length >= 6; } },
+  { id:'trv_ach_brain_power', name:'Brain Power', desc:'Get 500 total correct', icon:'\u{1F9E0}', check: function(s){ return (s.totalCorrect||0) >= 500; } },
+  { id:'trv_ach_legend', name:'Trivia Legend', desc:'Get 1000 correct answers', icon:'\u{1F451}', check: function(s){ return (s.totalCorrect||0) >= 1000; } }
+];
+
+var triviaUnlockedAch = [];
+var triviaAchStats = { gamesPlayed:0, totalCorrect:0, quickAnswer:false, perfectRound:false, bestStreak:0, speedDemon:false, catsPlayed:[] };
+
+function loadTriviaAchievements() {
+  try { var s = localStorage.getItem('odaTriviaAchievements'); if(s) triviaUnlockedAch = JSON.parse(s); } catch(e) {}
+  try { var s = localStorage.getItem('odaTriviaAchStats'); if(s) triviaAchStats = JSON.parse(s); } catch(e) {}
+}
+loadTriviaAchievements();
+
+function saveTriviaAchievements() {
+  try { localStorage.setItem('odaTriviaAchievements', JSON.stringify(triviaUnlockedAch)); } catch(e) {}
+  try { localStorage.setItem('odaTriviaAchStats', JSON.stringify(triviaAchStats)); } catch(e) {}
+}
+
+function checkTriviaAchievements() {
+  var newAch = [];
+  TRIVIA_ACHIEVEMENTS.forEach(function(ach) {
+    if (triviaUnlockedAch.indexOf(ach.id) < 0 && ach.check(triviaAchStats)) {
+      triviaUnlockedAch.push(ach.id);
+      newAch.push(ach);
+    }
+  });
+  if (newAch.length > 0) {
+    saveTriviaAchievements();
+    newAch.forEach(function(a) { if (typeof odaToast === 'function') odaToast(a.icon + ' Achievement: ' + a.name + '!', 'success'); });
+  }
+}
+
+function renderTriviaAchievements(containerId) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">';
+  TRIVIA_ACHIEVEMENTS.forEach(function(ach) {
+    var unlocked = triviaUnlockedAch.indexOf(ach.id) >= 0;
+    html += '<div style="background:var(--surface);border:1px solid ' + (unlocked ? 'var(--accent)' : 'var(--border)') + ';border-radius:12px;padding:10px;text-align:center;opacity:' + (unlocked ? '1' : '.4') + '">';
+    html += '<div style="font-size:24px">' + ach.icon + '</div>';
+    html += '<div style="font-size:12px;font-weight:700;margin-top:4px">' + ach.name + '</div>';
+    html += '<div style="font-size:10px;color:var(--text2);margin-top:2px">' + ach.desc + '</div>';
+    if (unlocked) html += '<div style="font-size:10px;color:var(--accent);font-weight:700;margin-top:4px">\u2705 Unlocked</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 // ============================================
@@ -1538,6 +1645,9 @@ function selectAnswer(optIndex, btnEl) {
   game.answers.push({correct: isCorrect, points: points, time: elapsed});
   document.getElementById('gameScore').textContent = game.score;
 
+  // Track quick answer for achievement
+  if (isCorrect && elapsed < 2) triviaAchStats.quickAnswer = true;
+
   // Highlight buttons
   var btns = document.querySelectorAll('.answer-btn');
   btns.forEach(function(b) { b.classList.add('disabled'); });
@@ -1690,6 +1800,24 @@ function endPracticeGame() {
   // Save records
   savePracticeRecord(game.score, totalCorrect, game.totalQuestions);
   awardCoins(coins);
+
+  // Track achievements
+  triviaAchStats.gamesPlayed = (triviaAchStats.gamesPlayed || 0) + 1;
+  triviaAchStats.totalCorrect = (triviaAchStats.totalCorrect || 0) + totalCorrect;
+  if (accuracy === 100) triviaAchStats.perfectRound = true;
+  // Quick answer check - already tracked per question in answerQuestion
+  // Track category played
+  if (!triviaAchStats.catsPlayed) triviaAchStats.catsPlayed = [];
+  if (game.category && triviaAchStats.catsPlayed.indexOf(game.category) < 0) triviaAchStats.catsPlayed.push(game.category);
+  // Track streak
+  var currentStrk = 0, bestStrk = triviaAchStats.bestStreak || 0;
+  game.answers.forEach(function(a) {
+    if (a.correct) { currentStrk++; if (currentStrk > bestStrk) bestStrk = currentStrk; }
+    else currentStrk = 0;
+  });
+  triviaAchStats.bestStreak = bestStrk;
+  saveTriviaAchievements();
+  checkTriviaAchievements();
 }
 
 // ============================================
@@ -1787,10 +1915,15 @@ function showRecordsTab(tab, el) {
   else {
     // Called programmatically from showRecordsScreen, highlight the matching tab
     document.querySelectorAll('.records-tab').forEach(function(t) {
-      if ((tab === 'stats' && t.textContent === 'My Stats') || (tab === 'leaderboard' && t.textContent === 'Leaderboard')) t.classList.add('active');
+      if ((tab === 'stats' && t.textContent === 'My Stats') || (tab === 'leaderboard' && t.textContent === 'Leaderboard') || (tab === 'achievements' && t.textContent === 'Achievements')) t.classList.add('active');
     });
   }
   if (tab === 'stats') loadMyStats();
+  else if (tab === 'achievements') {
+    var el2 = document.getElementById('recordsContent');
+    el2.innerHTML = '<div id="triviaAchDisplay"></div>';
+    renderTriviaAchievements('triviaAchDisplay');
+  }
   else loadLeaderboard();
 }
 

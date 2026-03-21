@@ -319,6 +319,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <h3>Records</h3>
       <p>View your stats and class leaderboard</p>
     </div>
+    <div class="card mode-card" onclick="TR.showTypingShop()">
+      <span class="mode-icon">&#128722;</span>
+      <h3>Shop</h3>
+      <p>Keyboards, cars &amp; trail effects</p>
+    </div>
   </div>
   <div class="import-row">
     <button class="btn btn-outline btn-small" onclick="TR.openImportModal()">&#128218; Import Words</button>
@@ -495,6 +500,20 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 </div>
 
 <!-- ======================== -->
+<!-- SHOP SCREEN              -->
+<!-- ======================== -->
+<div class="screen" id="shopScreen">
+  <div class="records-container" style="max-width:520px;width:90%">
+    <h2>&#128722; <span style="color:var(--accent)">Shop</span></h2>
+    <p style="color:var(--text2);font-size:14px;margin-bottom:16px;text-align:center">Customize your keyboard, car &amp; trail</p>
+    <div id="typingShopContainer"></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="TR.showScreen('homeScreen')">&larr; Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== -->
 <!-- RECORDS SCREEN           -->
 <!-- ======================== -->
 <div class="screen" id="recordsScreen">
@@ -513,6 +532,10 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <div class="card-static">
       <div class="section-title">Class Leaderboard</div>
       <div id="leaderboardArea"><p style="color:var(--text2);font-size:14px;text-align:center">Loading...</p></div>
+    </div>
+    <div class="card-static" style="margin-top:24px">
+      <div class="section-title">Achievements</div>
+      <div id="typingAchievementsContainer"></div>
     </div>
     <div style="text-align:center;margin-top:24px">
       <button class="btn btn-outline btn-small" onclick="TR.showScreen('homeScreen')">Back</button>
@@ -575,6 +598,95 @@ async function initFB() {
   increment = fsMod.increment; serverTimestamp = fsMod.serverTimestamp;
   getDocs = fsMod.getDocs; collection = fsMod.collection;
   deleteDoc = fsMod.deleteDoc;
+}
+
+// ============================================
+// Shop Catalog
+// ============================================
+const TYPING_SHOP = [
+  { id:'typ_kb_default', name:'Default', emoji:'\u2328\uFE0F', cost:0, slot:'Keyboard Theme' },
+  { id:'typ_kb_mechanical', name:'Mechanical', emoji:'\u{1F579}\uFE0F', cost:200, slot:'Keyboard Theme' },
+  { id:'typ_kb_rgb', name:'RGB Rainbow', emoji:'\u{1F308}', cost:400, slot:'Keyboard Theme' },
+  { id:'typ_kb_stealth', name:'Stealth Black', emoji:'\u{1F311}', cost:300, slot:'Keyboard Theme' },
+  { id:'typ_car_default', name:'Default Car', emoji:'\u{1F697}', cost:0, slot:'Car Style' },
+  { id:'typ_car_rocket', name:'Rocket', emoji:'\u{1F680}', cost:300, slot:'Car Style' },
+  { id:'typ_car_spaceship', name:'Spaceship', emoji:'\u{1F6F8}', cost:500, slot:'Car Style' },
+  { id:'typ_car_dragon', name:'Dragon', emoji:'\u{1F409}', cost:800, slot:'Car Style' },
+  { id:'typ_trail_none', name:'None', emoji:'\u2B1C', cost:0, slot:'Trail Effect' },
+  { id:'typ_trail_smoke', name:'Smoke', emoji:'\u{1F4A8}', cost:150, slot:'Trail Effect' },
+  { id:'typ_trail_sparkle', name:'Sparkle', emoji:'\u2728', cost:300, slot:'Trail Effect' },
+  { id:'typ_trail_fire', name:'Fire', emoji:'\u{1F525}', cost:500, slot:'Trail Effect' }
+];
+
+function showTypingShop() {
+  showScreen('shopScreen');
+  if (window.odaShop) {
+    odaShop.renderShopPanel('typing', TYPING_SHOP, 'typingShopContainer', {
+      onEquip: function(item) { console.log('[Typing] Equipped:', item.id); },
+      onBuy: function(item) { console.log('[Typing] Bought:', item.id); }
+    });
+  }
+}
+
+// ============================================
+// Achievements
+// ============================================
+const TYPING_ACHIEVEMENTS = [
+  { id:'typ_ach_first_race', name:'First Race', desc:'Complete your first race', icon:'\u{1F3C1}', check: function(s){ return (s.racesCompleted||0) >= 1; } },
+  { id:'typ_ach_speed30', name:'Speed 30', desc:'Reach 30 WPM', icon:'\u{1F422}', check: function(s){ return (s.bestWPM||0) >= 30; } },
+  { id:'typ_ach_speed50', name:'Speed 50', desc:'Reach 50 WPM', icon:'\u{1F407}', check: function(s){ return (s.bestWPM||0) >= 50; } },
+  { id:'typ_ach_speed80', name:'Speed 80', desc:'Reach 80 WPM', icon:'\u{1F3CE}\uFE0F', check: function(s){ return (s.bestWPM||0) >= 80; } },
+  { id:'typ_ach_perfect', name:'Perfect Accuracy', desc:'100% accuracy in a race', icon:'\u{1F4AF}', check: function(s){ return s.perfectAccuracy; } },
+  { id:'typ_ach_marathon', name:'Marathon', desc:'Type 1000 total words', icon:'\u{1F3C3}', check: function(s){ return (s.totalWords||0) >= 1000; } },
+  { id:'typ_ach_race_winner', name:'Race Winner', desc:'Win a multiplayer race', icon:'\u{1F3C6}', check: function(s){ return s.multiWin; } },
+  { id:'typ_ach_streak3', name:'Streak 3', desc:'Win 3 races in a row', icon:'\u{1F525}', check: function(s){ return (s.bestStreak||0) >= 3; } },
+  { id:'typ_ach_master', name:'Typing Master', desc:'Complete 100 races', icon:'\u{1F451}', check: function(s){ return (s.racesCompleted||0) >= 100; } },
+  { id:'typ_ach_speed100', name:'Speed Demon', desc:'Reach 100 WPM', icon:'\u26A1', check: function(s){ return (s.bestWPM||0) >= 100; } }
+];
+
+let typingUnlockedAch = [];
+let typingAchStats = { racesCompleted:0, bestWPM:0, totalWords:0, perfectAccuracy:false, multiWin:false, bestStreak:0, currentStreak:0 };
+
+function loadTypingAchievements() {
+  try { const s = localStorage.getItem('odaTypingAchievements'); if(s) typingUnlockedAch = JSON.parse(s); } catch(e) {}
+  try { const s = localStorage.getItem('odaTypingAchStats'); if(s) typingAchStats = JSON.parse(s); } catch(e) {}
+}
+loadTypingAchievements();
+
+function saveTypingAchievements() {
+  try { localStorage.setItem('odaTypingAchievements', JSON.stringify(typingUnlockedAch)); } catch(e) {}
+  try { localStorage.setItem('odaTypingAchStats', JSON.stringify(typingAchStats)); } catch(e) {}
+}
+
+function checkTypingAchievements() {
+  let newAch = [];
+  TYPING_ACHIEVEMENTS.forEach(function(ach) {
+    if (typingUnlockedAch.indexOf(ach.id) < 0 && ach.check(typingAchStats)) {
+      typingUnlockedAch.push(ach.id);
+      newAch.push(ach);
+    }
+  });
+  if (newAch.length > 0) {
+    saveTypingAchievements();
+    newAch.forEach(function(a) { if (typeof odaToast === 'function') odaToast(a.icon + ' Achievement: ' + a.name + '!', 'success'); });
+  }
+}
+
+function renderTypingAchievements(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">';
+  TYPING_ACHIEVEMENTS.forEach(function(ach) {
+    const unlocked = typingUnlockedAch.indexOf(ach.id) >= 0;
+    html += '<div style="background:var(--surface);border:1px solid ' + (unlocked ? 'var(--accent)' : 'var(--border)') + ';border-radius:12px;padding:10px;text-align:center;opacity:' + (unlocked ? '1' : '.4') + '">';
+    html += '<div style="font-size:24px">' + ach.icon + '</div>';
+    html += '<div style="font-size:12px;font-weight:700;margin-top:4px">' + ach.name + '</div>';
+    html += '<div style="font-size:10px;color:var(--text2);margin-top:2px">' + ach.desc + '</div>';
+    if (unlocked) html += '<div style="font-size:10px;color:var(--accent);font-weight:700;margin-top:4px">\u2705 Unlocked</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 // ============================================
@@ -1171,6 +1283,14 @@ async function endGame() {
     awardCoins(coins);
     saveRecord(finalWPM, finalAcc);
   }
+
+  // Track achievements
+  typingAchStats.racesCompleted = (typingAchStats.racesCompleted || 0) + 1;
+  typingAchStats.totalWords = (typingAchStats.totalWords || 0) + wordsCompleted;
+  if (finalWPM > (typingAchStats.bestWPM || 0)) typingAchStats.bestWPM = finalWPM;
+  if (finalAcc === 100 && charIndex > 10) typingAchStats.perfectAccuracy = true;
+  saveTypingAchievements();
+  checkTypingAchievements();
 }
 
 // ============================================
@@ -1273,6 +1393,8 @@ async function showRecords() {
     console.warn('showRecords:', e);
     document.getElementById('leaderboardArea').innerHTML = '<p style="color:var(--accent3);font-size:14px;text-align:center">Failed to load records.</p>';
   }
+  // Render achievements
+  renderTypingAchievements('typingAchievementsContainer');
 }
 
 // ============================================
@@ -1736,6 +1858,20 @@ function endRaceComplete(data) {
     awardCoins(coins);
   }
 
+  // Track multiplayer achievements
+  typingAchStats.racesCompleted = (typingAchStats.racesCompleted || 0) + 1;
+  typingAchStats.totalWords = (typingAchStats.totalWords || 0) + wordsCompleted;
+  if (myData.wpm > (typingAchStats.bestWPM || 0)) typingAchStats.bestWPM = myData.wpm;
+  if (myRank === 1) {
+    typingAchStats.multiWin = true;
+    typingAchStats.currentStreak = (typingAchStats.currentStreak || 0) + 1;
+    if (typingAchStats.currentStreak > (typingAchStats.bestStreak || 0)) typingAchStats.bestStreak = typingAchStats.currentStreak;
+  } else {
+    typingAchStats.currentStreak = 0;
+  }
+  saveTypingAchievements();
+  checkTypingAchievements();
+
   // Start listening for rematch (other player triggering it)
   listenForRematch();
 }
@@ -1912,7 +2048,8 @@ window.TR = {
   selectLobbyDiff,
   selectLobbyTime,
   rematchGame,
-  goHomeFromResult
+  goHomeFromResult,
+  showTypingShop
 };
 
 })();
