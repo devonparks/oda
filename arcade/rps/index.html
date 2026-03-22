@@ -81,14 +81,14 @@ h1,h2,h3{font-family:'Fredoka',sans-serif}
 .game-best-of{font-size:12px;color:var(--text2);text-align:center;margin-bottom:12px}
 
 /* Arena */
-.arena{width:100%;display:flex;align-items:center;justify-content:center;gap:20px;min-height:220px;position:relative;margin:12px 0}
+.arena{width:100%;display:flex;align-items:center;justify-content:center;gap:20px;min-height:220px;position:relative;margin:12px 0;background:var(--rps-arena-bg,transparent);border-radius:16px;padding:12px}
 .arena-side{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0}
 .arena-emoji{font-size:120px;line-height:1;transition:all .4s cubic-bezier(.4,0,.2,1);filter:grayscale(0)}
 .arena-emoji.hidden{font-size:80px;opacity:.3;filter:grayscale(1)}
 .arena-emoji.shake{animation:shakeHand .15s ease-in-out infinite}
 .arena-emoji.reveal-left{animation:revealFromLeft .5s cubic-bezier(.2,0,.2,1) forwards}
 .arena-emoji.reveal-right{animation:revealFromRight .5s cubic-bezier(.2,0,.2,1) forwards}
-.arena-emoji.winner{filter:drop-shadow(0 0 20px var(--accent));transform:scale(1.15)}
+.arena-emoji.winner{filter:drop-shadow(0 0 20px var(--rps-arena-accent,var(--accent)));transform:scale(1.15)}
 .arena-emoji.loser{opacity:.35;filter:grayscale(1);transform:scale(.85)}
 .arena-emoji.draw-result{filter:drop-shadow(0 0 12px var(--gold))}
 .arena-label{font-size:13px;color:var(--text2);margin-top:8px;font-weight:600}
@@ -107,9 +107,9 @@ h1,h2,h3{font-family:'Fredoka',sans-serif}
 .choice-btn.disabled{opacity:.35;cursor:not-allowed;transform:none!important;box-shadow:none!important}
 .choice-btn .cb-emoji{font-size:48px;line-height:1}
 .choice-btn .cb-label{font-weight:700;font-size:13px;color:var(--text2)}
-.choice-btn.rock{--glow:rgba(160,160,180,.4)}
-.choice-btn.paper{--glow:rgba(100,160,255,.4)}
-.choice-btn.scissors{--glow:rgba(239,71,111,.4)}
+.choice-btn.rock{--glow:var(--rps-rock-glow,rgba(160,160,180,.4));border-color:var(--rps-rock,var(--border))}
+.choice-btn.paper{--glow:var(--rps-paper-glow,rgba(100,160,255,.4));border-color:var(--rps-paper,var(--border))}
+.choice-btn.scissors{--glow:var(--rps-scissors-glow,rgba(239,71,111,.4));border-color:var(--rps-scissors,var(--border))}
 
 /* Countdown overlay */
 .countdown-overlay{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;z-index:200;background:rgba(10,14,26,.85);backdrop-filter:blur(6px);pointer-events:none}
@@ -487,10 +487,26 @@ async function loadMyCosmetics(){
   if(!sid)return;
   try{
     const snap=await getDoc(doc(db,'students',sid));
-    if(snap.exists()){myCosmetics=snap.data().equipped||{};}
+    if(snap.exists()){const d=snap.data();myCosmetics=d.gameCosmetics?.rps?.equipped||{};}
   }catch(e){console.warn('Cosmetics load error:',e);}
+  applyCosmeticStyles();
 }
 loadMyCosmetics();
+
+function applyCosmeticStyles(){
+  const root=document.documentElement;
+  const hs=myCosmetics['Hand Style'];
+  if(hs?.value){
+    root.style.setProperty('--rps-rock',hs.value.rock);
+    root.style.setProperty('--rps-paper',hs.value.paper);
+    root.style.setProperty('--rps-scissors',hs.value.scissors);
+  }
+  const at=myCosmetics['Arena Theme'];
+  if(at?.value){
+    root.style.setProperty('--rps-arena-bg',at.value.bg);
+    root.style.setProperty('--rps-arena-accent',at.value.accent);
+  }
+}
 
 function applyNameColor(el,color){
   if(!el||!color)return;
@@ -510,14 +526,14 @@ function applyPlayerCosmetics(){
 
 // ===== SHOP CATALOG =====
 const RPS_SHOP = [
-  { id:'rps_hand_classic', name:'Classic', emoji:'\u270A', cost:0, slot:'Hand Style' },
-  { id:'rps_hand_neon', name:'Neon Glow', emoji:'\u{1F49A}', cost:200, slot:'Hand Style' },
-  { id:'rps_hand_fire', name:'Fire Hands', emoji:'\u{1F525}', cost:500, slot:'Hand Style' },
-  { id:'rps_hand_ice', name:'Ice Hands', emoji:'\u{1F9CA}', cost:400, slot:'Hand Style' },
-  { id:'rps_arena_default', name:'Default', emoji:'\u{1F3DF}\uFE0F', cost:0, slot:'Arena Theme' },
-  { id:'rps_arena_space', name:'Space', emoji:'\u{1F30C}', cost:300, slot:'Arena Theme' },
-  { id:'rps_arena_underwater', name:'Underwater', emoji:'\u{1F30A}', cost:300, slot:'Arena Theme' },
-  { id:'rps_arena_volcano', name:'Volcano', emoji:'\u{1F30B}', cost:500, slot:'Arena Theme' },
+  { id:'rps_hand_classic', name:'Classic', emoji:'\u270A', cost:0, slot:'Hand Style', value:{rock:'#ef4444',paper:'#3b82f6',scissors:'#fbbf24'} },
+  { id:'rps_hand_neon', name:'Neon Glow', emoji:'\u{1F49A}', cost:200, slot:'Hand Style', value:{rock:'#06d6a0',paper:'#a855f7',scissors:'#ec4899'} },
+  { id:'rps_hand_fire', name:'Fire Hands', emoji:'\u{1F525}', cost:500, slot:'Hand Style', value:{rock:'#ef4444',paper:'#f97316',scissors:'#fbbf24'} },
+  { id:'rps_hand_ice', name:'Ice Hands', emoji:'\u{1F9CA}', cost:400, slot:'Hand Style', value:{rock:'#22d3ee',paper:'#3b82f6',scissors:'#6366f1'} },
+  { id:'rps_arena_default', name:'Default', emoji:'\u{1F3DF}\uFE0F', cost:0, slot:'Arena Theme', value:{bg:'var(--bg)',accent:'var(--accent)'} },
+  { id:'rps_arena_space', name:'Space', emoji:'\u{1F30C}', cost:300, slot:'Arena Theme', value:{bg:'#1a0a00',accent:'#ef4444'} },
+  { id:'rps_arena_underwater', name:'Underwater', emoji:'\u{1F30A}', cost:300, slot:'Arena Theme', value:{bg:'#001a2c',accent:'#22d3ee'} },
+  { id:'rps_arena_volcano', name:'Volcano', emoji:'\u{1F30B}', cost:500, slot:'Arena Theme', value:{bg:'#0a0e1a',accent:'#06d6a0'} },
   { id:'rps_fx_confetti', name:'Confetti', emoji:'\u{1F389}', cost:0, slot:'Win Effect' },
   { id:'rps_fx_fireworks', name:'Fireworks', emoji:'\u{1F386}', cost:200, slot:'Win Effect' },
   { id:'rps_fx_lightning', name:'Lightning', emoji:'\u26A1', cost:400, slot:'Win Effect' },
@@ -528,7 +544,7 @@ window.showRpsShop=function(){
   showScreen('shopScreen');
   if(window.odaShop){
     odaShop.renderShopPanel('rps', RPS_SHOP, 'rpsShopContainer', {
-      onEquip: function(item){ console.log('[RPS] Equipped:', item.id); },
+      onEquip: function(item){ console.log('[RPS] Equipped:', item.id); applyCosmeticStyles(); },
       onBuy: function(item){ console.log('[RPS] Bought:', item.id); }
     });
   }
@@ -1793,6 +1809,16 @@ document.getElementById('codeInput').addEventListener('keydown',e=>{
 });
 document.getElementById('tourneyCodeInput').addEventListener('keydown',e=>{
   if(e.key==='Enter')window.joinTournament();
+});
+
+odaHelp.init({
+  title:'Rock Paper Scissors', emoji:'\u270A', subtitle:'Choose your weapon!',
+  sections:[
+    {title:'Rules', icon:'\u{1F4D6}', items:['Rock beats Scissors','Scissors beats Paper','Paper beats Rock','Win the majority of rounds to win the match']},
+    {title:'Modes', icon:'\u26A1', items:['VS Computer \u2014 Play against AI with 3 difficulty levels','Quick Match \u2014 Challenge a friend with a room code','Tournament \u2014 Bracket-style competition']}
+  ],
+  controls:[{key:'Click',action:'Choose your move'}],
+  tip:'<strong>On Hard mode, the AI reads your patterns!</strong> Mix up your choices randomly to avoid being predictable.'
 });
 
 </script>

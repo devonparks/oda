@@ -148,11 +148,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 
 /* Board */
 .board-area{flex:0 0 auto;position:relative}
-.board-frame{background:var(--surface);border:3px solid var(--border);border-radius:16px;padding:clamp(4px,1vw,10px);display:inline-block;position:relative;box-shadow:var(--board-glow,0 8px 40px rgba(0,0,0,.4))}
+.board-frame{background:var(--surface);border:3px solid var(--chess-border,var(--border));border-radius:16px;padding:clamp(4px,1vw,10px);display:inline-block;position:relative;box-shadow:var(--board-glow,0 8px 40px rgba(0,0,0,.4))}
 .board-grid{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);position:relative}
 .square{width:clamp(44px,8.5vw,72px);height:clamp(44px,8.5vw,72px);display:flex;align-items:center;justify-content:center;font-size:clamp(28px,5.5vw,48px);cursor:pointer;position:relative;transition:background .15s}
-.square.light{background:var(--board-light,#e8dcc8)}
-.square.dark{background:var(--board-dark,#b58863)}
+.square.light{background:var(--chess-light,#e8dcc8)}
+.square.dark{background:var(--chess-dark,#b58863)}
 .square.selected{background:#7fc97f!important;box-shadow:inset 0 0 12px rgba(0,0,0,.2)}
 .square.last-move{background:rgba(255,209,102,.45)!important}
 .square.check-highlight{background:rgba(239,71,111,.55)!important;box-shadow:inset 0 0 16px rgba(239,71,111,.5)}
@@ -670,9 +670,23 @@ let myCosmetics = {};
   try{
     const {db,fsMod} = await window.getFirebaseDB();
     const snap = await fsMod.getDoc(fsMod.doc(db,'students',sid));
-    if(snap.exists()){ myCosmetics = snap.data().equipped || {}; }
+    if(snap.exists()){ const d = snap.data(); myCosmetics = d.gameCosmetics?.chess?.equipped || {}; }
   }catch(e){ console.warn('Cosmetics load error:',e); }
+  applyCosmeticStyles();
 })();
+
+function applyCosmeticStyles(){
+  const root=document.documentElement;
+  const bt=myCosmetics['Board Theme'];
+  if(bt?.value){
+    root.style.setProperty('--chess-light',bt.value.light);
+    root.style.setProperty('--chess-dark',bt.value.dark);
+  }
+  const bb=myCosmetics['Board Border'];
+  if(bb?.value){
+    root.style.setProperty('--chess-border',bb.value.color);
+  }
+}
 
 function applyBoardTheme(){
   const board = document.getElementById('boardFrame');
@@ -706,25 +720,25 @@ function applyPlayerCosmetics(){
 
 // ── Shop Catalog ──────────────────────────────────────────────
 const CHESS_SHOP = [
-  { id:'ch_board_classic', name:'Classic Wood', emoji:'\u{1FA75}', cost:0, slot:'Board Theme' },
-  { id:'ch_board_marble', name:'Marble', emoji:'\u{1FAA8}', cost:200, slot:'Board Theme' },
-  { id:'ch_board_galaxy', name:'Galaxy', emoji:'\u{1F30C}', cost:500, slot:'Board Theme' },
-  { id:'ch_board_neon', name:'Neon', emoji:'\u{1F49A}', cost:300, slot:'Board Theme' },
+  { id:'ch_board_classic', name:'Classic Wood', emoji:'\u{1FA75}', cost:0, slot:'Board Theme', value:{light:'#f0d9b5',dark:'#b58863'} },
+  { id:'ch_board_marble', name:'Marble', emoji:'\u{1FAA8}', cost:200, slot:'Board Theme', value:{light:'#e8e0d4',dark:'#8b8378'} },
+  { id:'ch_board_galaxy', name:'Galaxy', emoji:'\u{1F30C}', cost:500, slot:'Board Theme', value:{light:'#2a1f4e',dark:'#130d2e'} },
+  { id:'ch_board_neon', name:'Neon', emoji:'\u{1F49A}', cost:300, slot:'Board Theme', value:{light:'#0f2027',dark:'#0a1628'} },
   { id:'ch_piece_standard', name:'Standard', emoji:'\u265A', cost:0, slot:'Piece Set' },
   { id:'ch_piece_crystal', name:'Crystal', emoji:'\u{1F48E}', cost:400, slot:'Piece Set' },
   { id:'ch_piece_shadow', name:'Shadow', emoji:'\u{1F311}', cost:600, slot:'Piece Set' },
   { id:'ch_piece_gold', name:'Gold', emoji:'\u{1F451}', cost:1000, slot:'Piece Set' },
-  { id:'ch_border_none', name:'None', emoji:'\u2B1C', cost:0, slot:'Board Border' },
-  { id:'ch_border_silver', name:'Silver Frame', emoji:'\u{1FA9F}', cost:150, slot:'Board Border' },
-  { id:'ch_border_gold', name:'Gold Frame', emoji:'\u{1F3C6}', cost:300, slot:'Board Border' },
-  { id:'ch_border_diamond', name:'Diamond Frame', emoji:'\u{1F48E}', cost:800, slot:'Board Border' }
+  { id:'ch_border_none', name:'None', emoji:'\u2B1C', cost:0, slot:'Board Border', value:{color:'transparent'} },
+  { id:'ch_border_silver', name:'Silver Frame', emoji:'\u{1FA9F}', cost:150, slot:'Board Border', value:{color:'#c0c0c0'} },
+  { id:'ch_border_gold', name:'Gold Frame', emoji:'\u{1F3C6}', cost:300, slot:'Board Border', value:{color:'#9b59b6'} },
+  { id:'ch_border_diamond', name:'Diamond Frame', emoji:'\u{1F48E}', cost:800, slot:'Board Border', value:{color:'#06d6a0'} }
 ];
 
 function showShopScreen(){
   showScreen('shopScreen');
   if(window.odaShop){
     odaShop.renderShopPanel('chess', CHESS_SHOP, 'chessShopContainer', {
-      onEquip: function(item){ console.log('[Chess] Equipped:', item.id); },
+      onEquip: function(item){ console.log('[Chess] Equipped:', item.id); applyCosmeticStyles(); },
       onBuy: function(item){ console.log('[Chess] Bought:', item.id); }
     });
   }
@@ -2572,6 +2586,16 @@ return {
 };
 
 })();
+
+odaHelp.init({
+  title:'Chess', emoji:'\u265A', subtitle:'Think ahead. Outplay. Checkmate.',
+  sections:[
+    {title:'Rules', icon:'\u{1F4D6}', items:['Click a piece to select it, then click a highlighted square to move','Capture opponent pieces by moving to their square','Put the opponent\'s king in checkmate to win','Each piece moves differently: pawns forward, rooks straight, bishops diagonal, etc.']},
+    {title:'Difficulty', icon:'\u26A1', items:['Easy \u2014 Random legal moves, great for beginners','Medium \u2014 2-ply lookahead, blocks and takes pieces','Hard \u2014 Alpha-beta pruning, 3-4 ply depth']}
+  ],
+  controls:[{key:'Click',action:'Select & move'},{key:'Flip Board',action:'Rotate view'}],
+  tip:'<strong>Control the center!</strong> Knights and bishops are strongest when they control central squares. Develop your pieces early before attacking.'
+});
 </script>
 </body>
 </html>

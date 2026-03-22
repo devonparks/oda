@@ -81,21 +81,21 @@ h2{font-family:'Fredoka',sans-serif;font-size:30px;font-weight:700;text-align:ce
 
 /* Board */
 .board-outer{display:flex;justify-content:center}
-.board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:var(--board-dark,var(--surface));border:3px solid var(--border);border-radius:20px;padding:12px;width:fit-content;position:relative;box-shadow:var(--board-glow,none)}
-.cell{width:120px;height:120px;background:var(--board-light,var(--surface2));border:2px solid var(--border);border-radius:16px;cursor:pointer;position:relative;transition:all .15s;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:var(--ttt-bg,var(--surface));border:3px solid var(--ttt-border,var(--border));border-radius:20px;padding:12px;width:fit-content;position:relative;box-shadow:var(--board-glow,none)}
+.cell{width:120px;height:120px;background:var(--ttt-cell,var(--surface2));border:2px solid var(--ttt-border,var(--border));border-radius:16px;cursor:pointer;position:relative;transition:all .15s;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .cell:hover:not(.disabled){border-color:var(--accent);background:rgba(26,34,53,.9)}
 .cell.disabled{cursor:default}
 
 /* X piece */
 .piece-x{width:60%;height:60%;position:relative}
-.piece-x::before,.piece-x::after{content:'';position:absolute;top:50%;left:50%;width:100%;height:6px;background:var(--accent3);border-radius:3px;transform-origin:center}
+.piece-x::before,.piece-x::after{content:'';position:absolute;top:50%;left:50%;width:100%;height:6px;background:var(--ttt-x,var(--accent3));border-radius:3px;transform-origin:center}
 .piece-x::before{transform:translate(-50%,-50%) rotate(45deg)}
 .piece-x::after{transform:translate(-50%,-50%) rotate(-45deg)}
 .piece-x.small{width:50%;height:50%}
 .piece-x.small::before,.piece-x.small::after{height:4px}
 
 /* O piece */
-.piece-o{width:55%;height:55%;border:6px solid var(--accent2);border-radius:50%;position:relative}
+.piece-o{width:55%;height:55%;border:6px solid var(--ttt-o,var(--accent2));border-radius:50%;position:relative}
 .piece-o.small{width:45%;height:45%;border-width:4px}
 
 /* Piece placement animation */
@@ -489,10 +489,26 @@ async function loadMyCosmetics(){
   if(!sid)return;
   try{
     const snap=await getDoc(doc(db,'students',sid));
-    if(snap.exists()){myCosmetics=snap.data().equipped||{};}
+    if(snap.exists()){myCosmetics=snap.data().gameCosmetics?.tictactoe?.equipped||{};}
   }catch(e){console.warn('Cosmetics load error:',e);}
+  applyCosmeticStyles();
 }
 loadMyCosmetics();
+
+function applyCosmeticStyles(){
+  const root=document.documentElement;
+  const ps=myCosmetics['Piece Style'];
+  if(ps?.value){
+    root.style.setProperty('--ttt-x',ps.value.x);
+    root.style.setProperty('--ttt-o',ps.value.o);
+  }
+  const bt=myCosmetics['Board Theme'];
+  if(bt?.value){
+    root.style.setProperty('--ttt-bg',bt.value.bg);
+    root.style.setProperty('--ttt-border',bt.value.border);
+    root.style.setProperty('--ttt-cell',bt.value.cell);
+  }
+}
 
 function applyBoardTheme(){
   const board=document.querySelector('.board');
@@ -504,21 +520,21 @@ function applyBoardTheme(){
 
 // ===== SHOP CATALOG =====
 var TTT_SHOP = [
-  { id:'ttt_classic', name:'Classic', emoji:'\u274C', cost:0, slot:'Piece Style' },
-  { id:'ttt_neon', name:'Neon', emoji:'\u{1F49A}', cost:100, slot:'Piece Style' },
-  { id:'ttt_emoji', name:'Emoji', emoji:'\u{1F60E}', cost:150, slot:'Piece Style' },
-  { id:'ttt_fire', name:'Fire & Ice', emoji:'\u{1F525}', cost:250, slot:'Piece Style' },
-  { id:'ttt_gold', name:'Gold', emoji:'\u{1F451}', cost:300, slot:'Piece Style' },
-  { id:'ttt_neon2', name:'Neon Glow', emoji:'\u{1F4A1}', cost:200, slot:'Piece Style' },
-  { id:'ttt_fireice', name:'Fire & Ice V2', emoji:'\u2744', cost:400, slot:'Piece Style' },
-  { id:'ttt_stars', name:'Stars', emoji:'\u{1F31F}', cost:300, slot:'Piece Style' },
-  { id:'tttb_default', name:'Default', emoji:'#\uFE0F\u20E3', cost:0, slot:'Board Theme' },
-  { id:'tttb_neon', name:'Neon', emoji:'\u{1F49A}', cost:150, slot:'Board Theme' },
-  { id:'tttb_chalk', name:'Chalkboard', emoji:'\u{1F4DD}', cost:200, slot:'Board Theme' },
-  { id:'tttb_galaxy', name:'Galaxy', emoji:'\u{1F30C}', cost:300, slot:'Board Theme' },
-  { id:'tttb_chalk2', name:'Chalk', emoji:'\u{1F58D}', cost:150, slot:'Board Theme' },
-  { id:'tttb_neongrid', name:'Neon Grid', emoji:'\u{1F7E9}', cost:300, slot:'Board Theme' },
-  { id:'tttb_space', name:'Space', emoji:'\u{1F680}', cost:500, slot:'Board Theme' },
+  { id:'ttt_classic', name:'Classic', emoji:'\u274C', cost:0, slot:'Piece Style', value:{x:'#ef476f',o:'#118ab2'} },
+  { id:'ttt_neon', name:'Neon', emoji:'\u{1F49A}', cost:100, slot:'Piece Style', value:{x:'#06d6a0',o:'#a855f7'} },
+  { id:'ttt_emoji', name:'Emoji', emoji:'\u{1F60E}', cost:150, slot:'Piece Style', value:{x:'#ff6b6b',o:'#4ecdc4'} },
+  { id:'ttt_fire', name:'Fire & Ice', emoji:'\u{1F525}', cost:250, slot:'Piece Style', value:{x:'#ef4444',o:'#22d3ee'} },
+  { id:'ttt_gold', name:'Gold', emoji:'\u{1F451}', cost:300, slot:'Piece Style', value:{x:'#fbbf24',o:'#cbd5e1'} },
+  { id:'ttt_neon2', name:'Neon Glow', emoji:'\u{1F4A1}', cost:200, slot:'Piece Style', value:{x:'#39ff14',o:'#ff1493'} },
+  { id:'ttt_fireice', name:'Fire & Ice V2', emoji:'\u2744', cost:400, slot:'Piece Style', value:{x:'#ff6347',o:'#00bfff'} },
+  { id:'ttt_stars', name:'Stars', emoji:'\u{1F31F}', cost:300, slot:'Piece Style', value:{x:'#ffd700',o:'#6366f1'} },
+  { id:'tttb_default', name:'Default', emoji:'#\uFE0F\u20E3', cost:0, slot:'Board Theme', value:{bg:'var(--surface)',border:'var(--border)',cell:'var(--surface2)'} },
+  { id:'tttb_neon', name:'Neon', emoji:'\u{1F49A}', cost:150, slot:'Board Theme', value:{bg:'#0a1628',border:'#06d6a0',cell:'#0f1d32'} },
+  { id:'tttb_chalk', name:'Chalkboard', emoji:'\u{1F4DD}', cost:200, slot:'Board Theme', value:{bg:'#2d4a3e',border:'#4a7c59',cell:'#1e3a2f'} },
+  { id:'tttb_galaxy', name:'Galaxy', emoji:'\u{1F30C}', cost:300, slot:'Board Theme', value:{bg:'#0b0d1a',border:'#6366f1',cell:'#12152a'} },
+  { id:'tttb_chalk2', name:'Chalk', emoji:'\u{1F58D}', cost:150, slot:'Board Theme', value:{bg:'#3d3d3d',border:'#666',cell:'#2a2a2a'} },
+  { id:'tttb_neongrid', name:'Neon Grid', emoji:'\u{1F7E9}', cost:300, slot:'Board Theme', value:{bg:'#0a0e1a',border:'#06d6a0',cell:'#111827'} },
+  { id:'tttb_space', name:'Space', emoji:'\u{1F680}', cost:500, slot:'Board Theme', value:{bg:'#0b0d1a',border:'#a855f7',cell:'#12152a'} },
   { id:'tttw_rainbow', name:'Rainbow Line', emoji:'\u{1F308}', cost:200, slot:'Win Line' },
   { id:'tttw_lightning', name:'Lightning Line', emoji:'\u26A1', cost:400, slot:'Win Line' },
   { id:'tttw_fire', name:'Fire Line', emoji:'\u{1F525}', cost:600, slot:'Win Line' }
@@ -585,7 +601,7 @@ function showShopScreen(){
   showScreen('shopScreen');
   if(window.odaShop){
     odaShop.renderShopPanel('tictactoe', TTT_SHOP, 'tttShopContainer', {
-      onEquip: function(item){ console.log('[TTT] Equipped:', item.id); },
+      onEquip: function(item){ console.log('[TTT] Equipped:', item.id); applyCosmeticStyles(); },
       onBuy: function(item){ console.log('[TTT] Bought:', item.id); }
     });
   }
@@ -1825,6 +1841,16 @@ window.TTT={
   replayDraw,
   rematchGame
 };
+
+odaHelp.init({
+  title:'Tic Tac Toe', emoji:'\u274C', subtitle:'Classic strategy, endless fun!',
+  sections:[
+    {title:'Rules', icon:'\u{1F4D6}', items:['Take turns placing X or O on a 3x3 grid','Get 3 in a row (horizontal, vertical, or diagonal) to win','If all 9 squares are filled with no winner, it\'s a draw']},
+    {title:'Modes', icon:'\u26A1', items:['VS Computer \u2014 3 difficulty levels','Quick Match \u2014 Play a friend online','Tournament \u2014 Bracket competition']}
+  ],
+  controls:[{key:'Click',action:'Place your mark'}],
+  tip:'<strong>Take the center first!</strong> The center square is the most powerful position. If you can\'t get center, take a corner.'
+});
 
 </script>
 </body>

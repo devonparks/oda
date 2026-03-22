@@ -146,14 +146,14 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 
 /* Stand */
 .stand{position:absolute;left:20px;bottom:80px;width:140px;height:180px;display:flex;flex-direction:column;align-items:center}
-.stand-awning{width:160px;height:40px;background:repeating-linear-gradient(90deg,var(--accent3) 0px,var(--accent3) 20px,#fff 20px,#fff 40px);border-radius:12px 12px 0 0;position:relative;z-index:2}
-.stand-body{width:140px;height:100px;background:var(--gold);border-radius:0 0 10px 10px;position:relative;display:flex;align-items:center;justify-content:center;z-index:1}
-.stand-body::before{content:'LEMONADE';position:absolute;top:10px;font-family:'Fredoka',sans-serif;font-size:14px;font-weight:700;color:var(--bg);letter-spacing:1px}
+.stand-awning{width:160px;height:40px;background:repeating-linear-gradient(90deg,var(--lem-stand-accent,var(--accent3)) 0px,var(--lem-stand-accent,var(--accent3)) 20px,#fff 20px,#fff 40px);border-radius:12px 12px 0 0;position:relative;z-index:2}
+.stand-body{width:140px;height:100px;background:var(--lem-stand-color,var(--gold));border-radius:0 0 10px 10px;position:relative;display:flex;align-items:center;justify-content:center;z-index:1}
+.stand-body::before{content:'LEMONADE';position:absolute;top:10px;font-family:'Fredoka',sans-serif;font-size:14px;font-weight:700;color:var(--lem-stand-accent,var(--bg));letter-spacing:1px}
 .stand-legs{display:flex;justify-content:space-between;width:120px}
-.stand-legs div{width:8px;height:50px;background:var(--gold);border-radius:0 0 4px 4px;opacity:.8}
+.stand-legs div{width:8px;height:50px;background:var(--lem-stand-color,var(--gold));border-radius:0 0 4px 4px;opacity:.8}
 .stand-pitcher{font-size:40px;margin-top:16px}
-.stand-sign{position:absolute;top:-24px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:2px 10px;font-size:11px;font-weight:700;color:var(--gold);white-space:nowrap;z-index:3}
-.stand-rep{position:absolute;top:-44px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--gold);white-space:nowrap;font-weight:700}
+.stand-sign{position:absolute;top:-24px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:2px 10px;font-size:11px;font-weight:700;color:var(--lem-stand-color,var(--gold));white-space:nowrap;z-index:3}
+.stand-rep{position:absolute;top:-44px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--lem-stand-color,var(--gold));white-space:nowrap;font-weight:700}
 
 /* Customer lane */
 .customer-lane{position:absolute;bottom:100px;left:180px;right:20px;height:120px}
@@ -668,6 +668,47 @@ const classCode=localStorage.getItem('classCode')||'';
 
 // Teacher back button
 (function(){const t=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher';if(t)document.getElementById('backBtn').href='../../teacher.html'})();
+
+// ============================================
+// COSMETICS
+// ============================================
+let myCosmetics={};
+(async function loadMyCosmetics(){
+  const sid=localStorage.getItem('studentId');
+  if(!sid)return;
+  try{
+    const snap=await getDoc(doc(db,'students',sid));
+    if(snap.exists()){myCosmetics=snap.data().gameCosmetics?.lemonade?.equipped||{};}
+    applyCosmeticStyles();
+  }catch(e){console.warn('Cosmetics load error:',e);}
+})();
+
+function applyCosmeticStyles(){
+  const root=document.documentElement;
+  // Stand Skin
+  const stand=myCosmetics['Stand Skin'];
+  if(stand&&stand.value){
+    root.style.setProperty('--lem-stand-color',stand.value.color);
+    root.style.setProperty('--lem-stand-accent',stand.value.accent);
+  } else {
+    root.style.removeProperty('--lem-stand-color');
+    root.style.removeProperty('--lem-stand-accent');
+  }
+  // Cup Design
+  const cup=myCosmetics['Cup Design'];
+  if(cup&&cup.value){
+    root.style.setProperty('--lem-cup-color',cup.value.color);
+  } else {
+    root.style.removeProperty('--lem-cup-color');
+  }
+  // Music (stored for JS logic, no CSS needed)
+  const music=myCosmetics['Music'];
+  if(music&&music.value){
+    root.style.setProperty('--lem-music-type',music.value.type);
+  } else {
+    root.style.removeProperty('--lem-music-type');
+  }
+}
 
 // ============================================
 // AUDIO ENGINE (Web Audio API)
@@ -2491,27 +2532,27 @@ function escHtml(str) {
 // ============================================
 const LEMONADE_COSMETIC_SHOP=[
   // Stand Skins
-  {id:'stand_basic',name:'Basic Wood',emoji:'\u{1FAB5}',cost:0,slot:'Stand Skin'},
-  {id:'stand_painted',name:'Painted',emoji:'\u{1F3A8}',cost:200,slot:'Stand Skin'},
-  {id:'stand_neon',name:'Neon Sign',emoji:'\u{1F4A1}',cost:500,slot:'Stand Skin'},
-  {id:'stand_gold',name:'Gold Cart',emoji:'\u{1F4B0}',cost:1000,slot:'Stand Skin'},
+  {id:'stand_basic',name:'Basic Wood',emoji:'\u{1FAB5}',cost:0,slot:'Stand Skin',value:{color:'#fbbf24',accent:'#92400e'}},
+  {id:'stand_painted',name:'Painted',emoji:'\u{1F3A8}',cost:200,slot:'Stand Skin',value:{color:'#06d6a0',accent:'#059669'}},
+  {id:'stand_neon',name:'Neon Sign',emoji:'\u{1F4A1}',cost:500,slot:'Stand Skin',value:{color:'#f97316',accent:'#c2410c'}},
+  {id:'stand_gold',name:'Gold Cart',emoji:'\u{1F4B0}',cost:1000,slot:'Stand Skin',value:{color:'#60a5fa',accent:'#1e40af'}},
   // Cup Designs
-  {id:'cup_paper',name:'Paper Cup',emoji:'\u{1FAD6}',cost:0,slot:'Cup Design'},
-  {id:'cup_fancy',name:'Fancy Glass',emoji:'\u{1F378}',cost:150,slot:'Cup Design'},
-  {id:'cup_tropical',name:'Tropical Cup',emoji:'\u{1F379}',cost:300,slot:'Cup Design'},
-  {id:'cup_diamond',name:'Diamond Cup',emoji:'\u{1F48E}',cost:800,slot:'Cup Design'},
+  {id:'cup_paper',name:'Paper Cup',emoji:'\u{1FAD6}',cost:0,slot:'Cup Design',value:{color:'#ffffff'}},
+  {id:'cup_fancy',name:'Fancy Glass',emoji:'\u{1F378}',cost:150,slot:'Cup Design',value:{color:'#06d6a0'}},
+  {id:'cup_tropical',name:'Tropical Cup',emoji:'\u{1F379}',cost:300,slot:'Cup Design',value:{color:'#fbbf24'}},
+  {id:'cup_diamond',name:'Diamond Cup',emoji:'\u{1F48E}',cost:800,slot:'Cup Design',value:{color:'#e0f2fe'}},
   // Music/Ambiance
-  {id:'music_none',name:'None',emoji:'\u{1F507}',cost:0,slot:'Music'},
-  {id:'music_jazz',name:'Jazz',emoji:'\u{1F3B7}',cost:100,slot:'Music'},
-  {id:'music_lofi',name:'Lo-fi Beats',emoji:'\u{1F3B5}',cost:200,slot:'Music'},
-  {id:'music_summer',name:'Summer Vibes',emoji:'\u{2600}\uFE0F',cost:300,slot:'Music'}
+  {id:'music_none',name:'None',emoji:'\u{1F507}',cost:0,slot:'Music',value:{type:'none'}},
+  {id:'music_jazz',name:'Jazz',emoji:'\u{1F3B7}',cost:100,slot:'Music',value:{type:'upbeat'}},
+  {id:'music_lofi',name:'Lo-fi Beats',emoji:'\u{1F3B5}',cost:200,slot:'Music',value:{type:'chill'}},
+  {id:'music_summer',name:'Summer Vibes',emoji:'\u{2600}\uFE0F',cost:300,slot:'Music',value:{type:'retro'}}
 ];
 
 function showCosmeticShop(){
   showScreen('cosmeticShopScreen');
   if(typeof odaShop!=='undefined'){
     odaShop.renderShopPanel('lemonade',LEMONADE_COSMETIC_SHOP,'lemonadeShopContainer',{
-      onEquip:function(){},onBuy:function(){}
+      onEquip:function(){ applyCosmeticStyles(); },onBuy:function(){}
     });
   }
 }
@@ -2646,6 +2687,16 @@ window.showScreen = function(id) {
   }
   showScreen(id);
 };
+
+odaHelp.init({
+  title:'Lemonade Stand', emoji:'\u{1F34B}', subtitle:'Run your own lemonade business!',
+  sections:[
+    {title:'Rules', icon:'\u{1F4D6}', items:['Buy supplies (lemons, sugar, cups, ice) each day','Set your price and recipe','Customers come based on weather, price, and quality','Make as much profit as possible over the game period']},
+    {title:'Tips', icon:'\u{1F4A1}', items:['Hot days = more customers = charge more','Rainy days = fewer customers = lower prices','Quality recipe = happy customers = repeat business','Don\'t overbuy supplies \u2014 they can spoil!']}
+  ],
+  controls:[{key:'Click',action:'Buy supplies & set prices'}],
+  tip:'<strong>Watch the weather forecast!</strong> Adjust your recipe and prices based on tomorrow\'s weather. Hot days are your best friend.'
+});
 </script>
 </body>
 </html>

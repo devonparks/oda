@@ -368,7 +368,7 @@ let myCosmetics={};
 (async()=>{
   const sid=localStorage.getItem('studentId');
   if(!sid)return;
-  try{const fb=await getFirebaseDB();const snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));if(snap.exists())myCosmetics=snap.data().equipped||{};}catch(e){}
+  try{const fb=await getFirebaseDB();const snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));if(snap.exists()){const d=snap.data();myCosmetics=d.gameCosmetics?.snake?.equipped||{};}}catch(e){}
 })();
 
 // =============================================
@@ -473,34 +473,34 @@ loadLocalStats();
 // =============================================
 var SNAKE_SHOP = [
   // Skins (snake color)
-  { id:'snake_classic', name:'Classic', emoji:'\u{1F7E2}', cost:0, slot:'Snake Skin', color:'#06d6a0' },
-  { id:'snake_neon', name:'Neon', emoji:'\u{1F49A}', cost:100, slot:'Snake Skin', color:'#39ff14' },
-  { id:'snake_fire', name:'Fire', emoji:'\u{1F525}', cost:200, slot:'Snake Skin', color:'#ef4444' },
-  { id:'snake_ice', name:'Ice', emoji:'\u{2744}\uFE0F', cost:200, slot:'Snake Skin', color:'#22d3ee' },
-  { id:'snake_gold', name:'Gold', emoji:'\u{2728}', cost:300, slot:'Snake Skin', color:'#ffd166' },
-  { id:'snake_purple', name:'Galaxy', emoji:'\u{1F30C}', cost:400, slot:'Snake Skin', color:'#a855f7' },
-  { id:'snake_rainbow', name:'Rainbow', emoji:'\u{1F308}', cost:500, slot:'Snake Skin', color:'rainbow' },
-  { id:'snake_pixel', name:'Pixel', emoji:'\u{1F3AE}', cost:150, slot:'Snake Skin', color:'#14b8a6' },
-  { id:'snake_lava', name:'Lava', emoji:'\u{1F30B}', cost:400, slot:'Snake Skin', color:'#f97316' },
-  { id:'snake_ocean', name:'Ocean', emoji:'\u{1F30A}', cost:300, slot:'Snake Skin', color:'#0ea5e9' },
-  { id:'snake_diamond', name:'Diamond', emoji:'\u{1F48E}', cost:800, slot:'Snake Skin', color:'#67e8f9' },
+  { id:'snake_classic', name:'Classic', emoji:'\u{1F7E2}', cost:0, slot:'Snake Skin', color:'#06d6a0', value:{color:'#06d6a0'} },
+  { id:'snake_neon', name:'Neon', emoji:'\u{1F49A}', cost:100, slot:'Snake Skin', color:'#39ff14', value:{color:'#39ff14'} },
+  { id:'snake_fire', name:'Fire', emoji:'\u{1F525}', cost:200, slot:'Snake Skin', color:'#ef4444', value:{color:'#ef4444'} },
+  { id:'snake_ice', name:'Ice', emoji:'\u{2744}\uFE0F', cost:200, slot:'Snake Skin', color:'#22d3ee', value:{color:'#22d3ee'} },
+  { id:'snake_gold', name:'Gold', emoji:'\u{2728}', cost:300, slot:'Snake Skin', color:'#ffd166', value:{color:'#ffd166'} },
+  { id:'snake_purple', name:'Galaxy', emoji:'\u{1F30C}', cost:400, slot:'Snake Skin', color:'#a855f7', value:{color:'#a855f7'} },
+  { id:'snake_rainbow', name:'Rainbow', emoji:'\u{1F308}', cost:500, slot:'Snake Skin', color:'rainbow', value:{color:'rainbow'} },
+  { id:'snake_pixel', name:'Pixel', emoji:'\u{1F3AE}', cost:150, slot:'Snake Skin', color:'#14b8a6', value:{color:'#14b8a6'} },
+  { id:'snake_lava', name:'Lava', emoji:'\u{1F30B}', cost:400, slot:'Snake Skin', color:'#f97316', value:{color:'#f97316'} },
+  { id:'snake_ocean', name:'Ocean', emoji:'\u{1F30A}', cost:300, slot:'Snake Skin', color:'#0ea5e9', value:{color:'#0ea5e9'} },
+  { id:'snake_diamond', name:'Diamond', emoji:'\u{1F48E}', cost:800, slot:'Snake Skin', color:'#67e8f9', value:{color:'#67e8f9'} },
   // Food styles
-  { id:'food_apple', name:'Apple', emoji:'\u{1F34E}', cost:0, slot:'Food Style' },
-  { id:'food_pizza', name:'Pizza', emoji:'\u{1F355}', cost:50, slot:'Food Style' },
-  { id:'food_donut', name:'Donut', emoji:'\u{1F369}', cost:75, slot:'Food Style' },
-  { id:'food_star', name:'Star', emoji:'\u{2B50}', cost:100, slot:'Food Style' },
-  { id:'food_gem', name:'Gem', emoji:'\u{1F48E}', cost:200, slot:'Food Style' },
-  { id:'food_pizza2', name:'Pizza Slice', emoji:'\u{1F355}', cost:100, slot:'Food Style' },
-  { id:'food_star2', name:'Shooting Star', emoji:'\u{1F31F}', cost:200, slot:'Food Style' },
-  { id:'food_diamond', name:'Diamond', emoji:'\u{1F4A0}', cost:400, slot:'Food Style' },
+  { id:'food_apple', name:'Apple', emoji:'\u{1F34E}', cost:0, slot:'Food Style', value:{color:'#ef476f'} },
+  { id:'food_pizza', name:'Pizza', emoji:'\u{1F355}', cost:50, slot:'Food Style', value:{color:'#fbbf24'} },
+  { id:'food_donut', name:'Donut', emoji:'\u{1F369}', cost:75, slot:'Food Style', value:{color:'#06d6a0'} },
+  { id:'food_star', name:'Star', emoji:'\u{2B50}', cost:100, slot:'Food Style', value:{color:'#ffd700'} },
+  { id:'food_gem', name:'Gem', emoji:'\u{1F48E}', cost:200, slot:'Food Style', value:{color:'#a855f7'} },
+  { id:'food_pizza2', name:'Pizza Slice', emoji:'\u{1F355}', cost:100, slot:'Food Style', value:{color:'#ef4444'} },
+  { id:'food_star2', name:'Shooting Star', emoji:'\u{1F31F}', cost:200, slot:'Food Style', value:{color:'#67e8f9'} },
+  { id:'food_diamond', name:'Diamond', emoji:'\u{1F4A0}', cost:400, slot:'Food Style', value:{color:'#e0f2fe'} },
   // Trail effects
-  { id:'trail_none', name:'None', emoji:'\u{2796}', cost:0, slot:'Trail Effect' },
-  { id:'trail_dots', name:'Dots', emoji:'\u{26AA}', cost:150, slot:'Trail Effect' },
-  { id:'trail_sparkle', name:'Sparkle', emoji:'\u{2728}', cost:300, slot:'Trail Effect' },
-  { id:'trail_fire', name:'Fire Trail', emoji:'\u{1F525}', cost:400, slot:'Trail Effect' },
-  { id:'trail_bubbles', name:'Bubbles', emoji:'\u{1F4A7}', cost:200, slot:'Trail Effect' },
-  { id:'trail_stars', name:'Stars', emoji:'\u{2B50}', cost:300, slot:'Trail Effect' },
-  { id:'trail_lightning', name:'Lightning', emoji:'\u26A1', cost:500, slot:'Trail Effect' }
+  { id:'trail_none', name:'None', emoji:'\u{2796}', cost:0, slot:'Trail Effect', value:{type:'none'} },
+  { id:'trail_dots', name:'Dots', emoji:'\u{26AA}', cost:150, slot:'Trail Effect', value:{type:'dots'} },
+  { id:'trail_sparkle', name:'Sparkle', emoji:'\u{2728}', cost:300, slot:'Trail Effect', value:{type:'sparkle'} },
+  { id:'trail_fire', name:'Fire Trail', emoji:'\u{1F525}', cost:400, slot:'Trail Effect', value:{type:'fire'} },
+  { id:'trail_bubbles', name:'Bubbles', emoji:'\u{1F4A7}', cost:200, slot:'Trail Effect', value:{type:'bubbles'} },
+  { id:'trail_stars', name:'Stars', emoji:'\u{2B50}', cost:300, slot:'Trail Effect', value:{type:'stars'} },
+  { id:'trail_lightning', name:'Lightning', emoji:'\u26A1', cost:500, slot:'Trail Effect', value:{type:'lightning'} }
 ];
 
 // =============================================
@@ -566,26 +566,41 @@ var snakeSkinColor = '#06d6a0';
 var foodEmoji = null; // null = default circle rendering
 var trailEffect = 'none';
 
+var foodColor = '#ef476f';
+
 function loadEquippedCosmetics() {
   if (typeof odaShop === 'undefined') return;
   var skin = odaShop.getEquipped('snake', 'Snake Skin');
-  if (skin && skin.color) {
+  if (skin && skin.value && skin.value.color) {
+    snakeSkinColor = skin.value.color;
+  } else if (skin && skin.color) {
     snakeSkinColor = skin.color;
   } else {
     snakeSkinColor = '#06d6a0';
   }
   var fd = odaShop.getEquipped('snake', 'Food Style');
+  if (fd && fd.value && fd.value.color) {
+    foodColor = fd.value.color;
+  } else {
+    foodColor = '#ef476f';
+  }
   if (fd && fd.id && fd.id !== 'food_apple') {
     foodEmoji = fd.emoji || null;
   } else {
     foodEmoji = null;
   }
   var tr = odaShop.getEquipped('snake', 'Trail Effect');
-  if (tr && tr.id) {
+  if (tr && tr.value && tr.value.type) {
+    trailEffect = tr.value.type;
+  } else if (tr && tr.id) {
     trailEffect = tr.id.replace('trail_', '');
   } else {
     trailEffect = 'none';
   }
+}
+
+function applyCosmeticStyles() {
+  loadEquippedCosmetics();
 }
 
 function applyShopCosmetics(item) {
@@ -1055,11 +1070,11 @@ function drawFood() {
 
   // Default apple rendering
   // Glow
-  ctx.shadowColor = '#ef476f';
+  ctx.shadowColor = foodColor || '#ef476f';
   ctx.shadowBlur = 12;
 
   // Body
-  ctx.fillStyle = '#ef476f';
+  ctx.fillStyle = foodColor || '#ef476f';
   ctx.beginPath();
   ctx.arc(fx, fy, radius, 0, Math.PI * 2);
   ctx.fill();
@@ -1593,6 +1608,16 @@ document.addEventListener('touchstart', function() { getAudioCtx(); }, { once: t
 
 // Load stats on home
 loadLocalStats();
+
+odaHelp.init({
+  title:'Snake', emoji:'\u{1F40D}', subtitle:'Eat, grow, survive!',
+  sections:[
+    {title:'Rules', icon:'\u{1F4D6}', items:['Control the snake to eat food and grow longer','Avoid hitting your own tail','Easy mode: walls wrap around. Medium: walls kill. Hard: obstacles appear','Each food eaten adds to your score and length']},
+    {title:'Difficulty', icon:'\u26A1', items:['Easy \u2014 Slow speed, walls wrap around','Medium \u2014 Medium speed, walls kill','Hard \u2014 Fast speed, random obstacles appear']}
+  ],
+  controls:[{key:'\u2191',action:'Up'},{key:'\u2193',action:'Down'},{key:'\u2190',action:'Left'},{key:'\u2192',action:'Right'},{key:'Space',action:'Pause'}],
+  tip:'Plan ahead! Don\'t trap yourself in a corner. <strong>Keep the center of the board open</strong> for escape routes.'
+});
 </script>
 </body>
 </html>

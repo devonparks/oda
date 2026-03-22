@@ -104,8 +104,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 /* ======================== */
 /* GAME SCREEN              */
 /* ======================== */
-#gameScreen{padding:0;min-height:100vh;justify-content:center;position:relative}
-.game-container{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;max-width:900px;padding:20px;min-height:100vh;margin:0 auto;position:relative}
+#gameScreen{padding:0;min-height:100vh;justify-content:center;position:relative;background:var(--uno-table-bg,var(--bg))}
+.game-container{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;max-width:900px;padding:20px;min-height:100vh;margin:0 auto;position:relative;background:var(--uno-table-felt,transparent);border-radius:20px}
 
 /* Direction indicator */
 .direction-indicator{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;color:var(--text2);opacity:.3;pointer-events:none;z-index:5;font-weight:700;transition:all .3s}
@@ -119,7 +119,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .opponent-cards{display:flex;gap:2px;justify-content:center;flex-wrap:wrap;max-width:600px}
 
 /* Card back */
-.card-back{width:48px;height:72px;border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #2a3450;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:rgba(255,255,255,.15);position:relative;overflow:hidden;flex-shrink:0}
+.card-back{width:48px;height:72px;border-radius:8px;background:linear-gradient(135deg,var(--uno-card-back,#1a1a2e),color-mix(in srgb,var(--uno-card-back,#16213e) 80%,#000));border:2px solid color-mix(in srgb,var(--uno-card-back,#2a3450) 70%,#fff);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:rgba(255,255,255,.15);position:relative;overflow:hidden;flex-shrink:0}
 .card-back::before{content:'UNO';position:absolute;font-size:10px;font-weight:900;color:rgba(255,255,255,.12);transform:rotate(-30deg)}
 .card-back-small{width:36px;height:54px;border-radius:6px;font-size:14px}
 .card-back-small::before{font-size:8px}
@@ -610,10 +610,40 @@ async function loadMyCosmetics(){
   if(!sid)return;
   try{
     const snap=await getDoc(doc(db,'students',sid));
-    if(snap.exists()){myCosmetics=snap.data().equipped||{};}
+    if(snap.exists()){myCosmetics=snap.data().gameCosmetics?.uno?.equipped||{};}
+    applyCosmeticStyles();
   }catch(e){console.warn('Cosmetics load error:',e);}
 }
 loadMyCosmetics();
+
+function applyCosmeticStyles(){
+  const root=document.documentElement;
+  // Card Back
+  const cb=myCosmetics['Card Back'];
+  if(cb&&cb.value){
+    root.style.setProperty('--uno-card-back',cb.value.color);
+    root.style.setProperty('--uno-card-pattern',cb.value.pattern);
+  } else {
+    root.style.removeProperty('--uno-card-back');
+    root.style.removeProperty('--uno-card-pattern');
+  }
+  // Table Theme
+  const table=myCosmetics['Table Theme'];
+  if(table&&table.value){
+    root.style.setProperty('--uno-table-bg',table.value.bg);
+    root.style.setProperty('--uno-table-felt',table.value.felt);
+  } else {
+    root.style.removeProperty('--uno-table-bg');
+    root.style.removeProperty('--uno-table-felt');
+  }
+  // UNO Call (stored for JS logic, no CSS needed)
+  const call=myCosmetics['UNO Call'];
+  if(call&&call.value){
+    root.style.setProperty('--uno-call-type',call.value.type);
+  } else {
+    root.style.removeProperty('--uno-call-type');
+  }
+}
 
 /* ===================== */
 /* SOUND ENGINE          */
@@ -2531,27 +2561,27 @@ function handlePickColor(color){
 // =====================
 const UNO_SHOP=[
   // Card Back Designs
-  {id:'back_classic',name:'Classic Red',emoji:'\u{2764}\uFE0F',cost:0,slot:'Card Back'},
-  {id:'back_galaxy',name:'Galaxy',emoji:'\u{1F30C}',cost:300,slot:'Card Back'},
-  {id:'back_oda',name:'ODA Logo',emoji:'\u{1F393}',cost:100,slot:'Card Back'},
-  {id:'back_gold',name:'Gold',emoji:'\u{1F4B0}',cost:500,slot:'Card Back'},
+  {id:'back_classic',name:'Classic Red',emoji:'\u{2764}\uFE0F',cost:0,slot:'Card Back',value:{color:'#1e293b',pattern:'standard'}},
+  {id:'back_galaxy',name:'Galaxy',emoji:'\u{1F30C}',cost:300,slot:'Card Back',value:{color:'#1e1b4b',pattern:'stars'}},
+  {id:'back_oda',name:'ODA Logo',emoji:'\u{1F393}',cost:100,slot:'Card Back',value:{color:'#06d6a0',pattern:'neon'}},
+  {id:'back_gold',name:'Gold',emoji:'\u{1F4B0}',cost:500,slot:'Card Back',value:{color:'#92400e',pattern:'foil'}},
   // Table Themes
-  {id:'table_default',name:'Default',emoji:'\u{1F532}',cost:0,slot:'Table Theme'},
-  {id:'table_casino',name:'Casino Green',emoji:'\u{1F0CF}',cost:200,slot:'Table Theme'},
-  {id:'table_space',name:'Space',emoji:'\u{1F680}',cost:400,slot:'Table Theme'},
-  {id:'table_neon',name:'Neon Party',emoji:'\u{1F4A1}',cost:500,slot:'Table Theme'},
+  {id:'table_default',name:'Default',emoji:'\u{1F532}',cost:0,slot:'Table Theme',value:{bg:'var(--bg)',felt:'var(--surface)'}},
+  {id:'table_casino',name:'Casino Green',emoji:'\u{1F0CF}',cost:200,slot:'Table Theme',value:{bg:'#1a472a',felt:'#2d6b3f'}},
+  {id:'table_space',name:'Space',emoji:'\u{1F680}',cost:400,slot:'Table Theme',value:{bg:'#0a2239',felt:'#0d3b66'}},
+  {id:'table_neon',name:'Neon Party',emoji:'\u{1F4A1}',cost:500,slot:'Table Theme',value:{bg:'#4a1515',felt:'#6b2020'}},
   // UNO Call Effects
-  {id:'call_default',name:'Default',emoji:'\u{1F4E2}',cost:0,slot:'UNO Call'},
-  {id:'call_horn',name:'Air Horn',emoji:'\u{1F4EF}',cost:200,slot:'UNO Call'},
-  {id:'call_mega',name:'Megaphone',emoji:'\u{1F4E3}',cost:300,slot:'UNO Call'},
-  {id:'call_thunder',name:'Thunder',emoji:'\u{26A1}',cost:500,slot:'UNO Call'}
+  {id:'call_default',name:'Default',emoji:'\u{1F4E2}',cost:0,slot:'UNO Call',value:{type:'classic'}},
+  {id:'call_horn',name:'Air Horn',emoji:'\u{1F4EF}',cost:200,slot:'UNO Call',value:{type:'airhorn'}},
+  {id:'call_mega',name:'Megaphone',emoji:'\u{1F4E3}',cost:300,slot:'UNO Call',value:{type:'bell'}},
+  {id:'call_thunder',name:'Thunder',emoji:'\u{26A1}',cost:500,slot:'UNO Call',value:{type:'whistle'}}
 ];
 
 function showShopScreen(){
   showScreen('shopScreen');
   if(typeof odaShop!=='undefined'){
     odaShop.renderShopPanel('uno',UNO_SHOP,'unoShopContainer',{
-      onEquip:function(){},onBuy:function(){}
+      onEquip:function(){ applyCosmeticStyles(); },onBuy:function(){}
     });
   }
 }
@@ -2679,6 +2709,16 @@ window.UNO={
   loadRecords,
   showShopScreen
 };
+
+odaHelp.init({
+  title:'Uno', emoji:'\u{1F0CF}', subtitle:'Match colors and numbers, race to empty your hand!',
+  sections:[
+    {title:'Rules', icon:'\u{1F4D6}', items:['Match the top card by color or number','Play special cards: Skip, Reverse, Draw Two','Wild cards can be played on anything and let you choose the color','Wild Draw Four makes the next player draw 4 cards','First player to empty their hand wins!']},
+    {title:'Special Cards', icon:'\u2728', items:['Skip \u2014 Next player loses their turn','Reverse \u2014 Changes direction of play','Draw Two \u2014 Next player draws 2 cards','Wild \u2014 Choose any color','Wild Draw Four \u2014 Choose color + next player draws 4']}
+  ],
+  controls:[{key:'Click',action:'Play a card'},{key:'Draw',action:'Draw from deck'}],
+  tip:'<strong>Save your Wild cards!</strong> Don\'t play them early. Use them strategically when you\'re stuck or close to winning.'
+});
 
 </script>
 </body>

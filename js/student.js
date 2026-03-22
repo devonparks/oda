@@ -45,6 +45,8 @@ var GAMES=[
 {id:'lemonade',emoji:'\u{1F34B}',title:'Lemonade Tycoon',desc:'Build a lemonade empire! Learn real business skills.',file:'arcade/lemonade/index.html'},
 {id:'racers',emoji:'\u{1F3CE}\uFE0F',title:'ODA Racers',desc:'Hill climb & drag race! Upgrade your ride!',file:'arcade/racers/index.html'},
 {id:'coinminer',emoji:'\u{1FA99}',title:'Coin Miner',desc:'Tap to mint coins! Buy upgrades, prestige, get rich!',file:'arcade/coinminer/index.html'},
+{id:'flappy',emoji:'\u{1F426}',title:'Floppy Bird',desc:'Tap to fly, dodge the pipes!',file:'arcade/flappy/index.html'},
+{id:'bowling',emoji:'\u{1F3B3}',title:'Bowling',desc:'Roll strikes in 3D! Wii Bowling style!',file:'arcade/bowling/index.html'},
 ];
 
 var WORD_BANKS={

@@ -38,7 +38,7 @@
   csp.setAttribute('http-equiv', 'Content-Security-Policy');
   csp.setAttribute('content', [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://apis.google.com https://us-central1-oda-hub-d4bef.cloudfunctions.net https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://apis.google.com https://us-central1-oda-hub-d4bef.cloudfunctions.net https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://cdn.jsdelivr.net",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https:",
@@ -849,4 +849,147 @@ window.odaShop = (function() {
   };
 })();
 
-console.log('[ODA] Core loaded v1.4');
+/* ============================================
+   Help / Tutorial System
+   ============================================ */
+window.odaHelp = (function() {
+  var _injected = false;
+
+  function injectStyles() {
+    if (_injected) return;
+    _injected = true;
+    var s = document.createElement('style');
+    s.id = 'odaHelpStyles';
+    s.textContent = [
+      '.oda-help-btn{position:fixed;bottom:16px;right:16px;width:44px;height:44px;border-radius:50%;background:var(--surface,#111827);border:2px solid var(--border,#2a3450);color:var(--accent,#06d6a0);font-size:22px;font-weight:800;font-family:Fredoka,sans-serif;cursor:pointer;z-index:90;display:flex;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 4px 16px rgba(0,0,0,.3)}',
+      '.oda-help-btn:hover{border-color:var(--accent,#06d6a0);transform:scale(1.1);box-shadow:0 0 20px rgba(6,214,160,.3)}',
+      '.oda-help-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;animation:odaHelpFadeIn .25s ease;padding:16px}',
+      '@keyframes odaHelpFadeIn{from{opacity:0}to{opacity:1}}',
+      '.oda-help-modal{background:var(--surface,#111827);border:2px solid var(--border,#2a3450);border-radius:20px;max-width:520px;width:100%;max-height:85vh;overflow-y:auto;padding:28px 24px;position:relative;animation:odaHelpSlideUp .3s ease}',
+      '@keyframes odaHelpSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}',
+      '.oda-help-modal::-webkit-scrollbar{width:5px}',
+      '.oda-help-modal::-webkit-scrollbar-thumb{background:var(--border,#2a3450);border-radius:3px}',
+      '.oda-help-close{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--text2,#a8b2c8);font-size:22px;cursor:pointer;padding:4px 8px;border-radius:8px;transition:all .15s}',
+      '.oda-help-close:hover{color:var(--text,#f0f4ff);background:rgba(255,255,255,.05)}',
+      '.oda-help-title{font-family:Fredoka,sans-serif;font-size:24px;font-weight:700;color:var(--accent,#06d6a0);margin-bottom:4px;padding-right:30px}',
+      '.oda-help-sub{font-size:13px;color:var(--text2,#a8b2c8);margin-bottom:20px}',
+      '.oda-help-section{margin-bottom:18px}',
+      '.oda-help-section-title{font-family:Fredoka,sans-serif;font-size:14px;font-weight:700;color:var(--text,#f0f4ff);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;display:flex;align-items:center;gap:8px}',
+      '.oda-help-section-title .hs-icon{font-size:18px}',
+      '.oda-help-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}',
+      '.oda-help-list li{font-size:13px;color:var(--text2,#a8b2c8);line-height:1.5;padding-left:16px;position:relative}',
+      '.oda-help-list li::before{content:"\\2022";position:absolute;left:0;color:var(--accent,#06d6a0);font-weight:700}',
+      '.oda-help-controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}',
+      '.oda-help-key{background:var(--bg,#0a0e1a);border:1px solid var(--border,#2a3450);border-radius:8px;padding:5px 12px;font-size:13px;font-weight:700;color:var(--text,#f0f4ff);font-family:Outfit,sans-serif;display:inline-flex;align-items:center;gap:6px}',
+      '.oda-help-key .hk-label{color:var(--text2,#a8b2c8);font-weight:500;font-size:12px}',
+      '.oda-help-tip{background:rgba(6,214,160,.06);border:1px solid rgba(6,214,160,.15);border-radius:12px;padding:10px 14px;font-size:13px;color:var(--text2,#a8b2c8);line-height:1.5}',
+      '.oda-help-tip strong{color:var(--accent,#06d6a0)}'
+    ].join('\n');
+    document.head.appendChild(s);
+  }
+
+  /**
+   * Add a floating "?" help button + modal to the page.
+   * @param {Object} config
+   * @param {string} config.title - Game name (e.g. "Chess")
+   * @param {string} [config.emoji] - Title emoji
+   * @param {string} [config.subtitle] - Short tagline
+   * @param {Array}  config.sections - Array of {title, icon, items} or {title, icon, html}
+   *   items: array of strings (rendered as bullet list)
+   *   html: raw HTML string
+   * @param {Array}  [config.controls] - Array of {key, action} for controls section
+   * @param {string} [config.tip] - Pro tip text (supports <strong>)
+   */
+  function init(config) {
+    injectStyles();
+
+    // Create floating button
+    var btn = document.createElement('button');
+    btn.className = 'oda-help-btn';
+    btn.textContent = '?';
+    btn.title = 'How to Play';
+    btn.onclick = function() { show(config); };
+    document.body.appendChild(btn);
+  }
+
+  function show(config) {
+    // Remove existing overlay
+    var existing = document.getElementById('odaHelpOverlay');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.className = 'oda-help-overlay';
+    overlay.id = 'odaHelpOverlay';
+
+    var modal = document.createElement('div');
+    modal.className = 'oda-help-modal';
+
+    var h = '<button class="oda-help-close" onclick="document.getElementById(\'odaHelpOverlay\').remove()">&times;</button>';
+    h += '<div class="oda-help-title">' + (config.emoji ? config.emoji + ' ' : '') + esc(config.title || 'How to Play') + '</div>';
+    if (config.subtitle) h += '<div class="oda-help-sub">' + esc(config.subtitle) + '</div>';
+
+    // Sections
+    if (config.sections) {
+      config.sections.forEach(function(sec) {
+        h += '<div class="oda-help-section">';
+        h += '<div class="oda-help-section-title">' + (sec.icon ? '<span class="hs-icon">' + sec.icon + '</span>' : '') + esc(sec.title) + '</div>';
+        if (sec.items) {
+          h += '<ul class="oda-help-list">';
+          sec.items.forEach(function(item) { h += '<li>' + esc(item) + '</li>'; });
+          h += '</ul>';
+        }
+        if (sec.html) h += sec.html;
+        h += '</div>';
+      });
+    }
+
+    // Controls
+    if (config.controls) {
+      h += '<div class="oda-help-section">';
+      h += '<div class="oda-help-section-title"><span class="hs-icon">\u{1F3AE}</span>Controls</div>';
+      h += '<div class="oda-help-controls">';
+      config.controls.forEach(function(c) {
+        h += '<div class="oda-help-key">' + esc(c.key) + ' <span class="hk-label">' + esc(c.action) + '</span></div>';
+      });
+      h += '</div></div>';
+    }
+
+    // Tip
+    if (config.tip) {
+      h += '<div class="oda-help-section">';
+      h += '<div class="oda-help-section-title"><span class="hs-icon">\u{1F4A1}</span>Pro Tip</div>';
+      h += '<div class="oda-help-tip">' + config.tip + '</div>';
+      h += '</div>';
+    }
+
+    modal.innerHTML = h;
+    overlay.appendChild(modal);
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) overlay.remove();
+    });
+    document.body.appendChild(overlay);
+  }
+
+  /** Generate a How to Play HTML block for home screens */
+  function homeSection(config) {
+    injectStyles();
+    var h = '<div style="max-width:420px;width:90%;margin:0 auto;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px">';
+    h += '<h3 style="font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px">How to Play</h3>';
+    h += '<p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">' + esc(config.summary || '') + '</p>';
+    if (config.controls) {
+      h += '<div style="display:inline-flex;gap:6px;margin-top:10px;flex-wrap:wrap;justify-content:center">';
+      config.controls.forEach(function(c) {
+        h += '<span class="oda-help-key">' + esc(c.key) + '</span>';
+      });
+      h += '</div>';
+    }
+    h += '</div>';
+    return h;
+  }
+
+  function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+  return { init: init, show: show, homeSection: homeSection };
+})();
+
+console.log('[ODA] Core loaded v1.5');

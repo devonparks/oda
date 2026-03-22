@@ -115,8 +115,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 
 /* Grid */
 .grid-wrapper{position:relative;margin:0 auto;touch-action:none}
-.grid-container{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;background:var(--surface2);border:2px solid var(--border);border-radius:14px;padding:6px}
-.grid-cell{aspect-ratio:1;background:rgba(42,52,80,.45);border-radius:6px;position:relative;transition:background .15s}
+.grid-container{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;background:var(--bb-grid-bg, var(--surface2));border:2px solid var(--bb-grid-border, var(--border));border-radius:14px;padding:6px}
+.grid-cell{aspect-ratio:1;background:var(--bb-grid-cell, rgba(42,52,80,.45));border-radius:6px;position:relative;transition:background .15s}
 .grid-cell.ghost{background:rgba(6,214,160,.2);box-shadow:inset 0 0 8px rgba(6,214,160,.15)}
 .grid-cell.ghost-invalid{background:rgba(239,71,111,.15);box-shadow:inset 0 0 8px rgba(239,71,111,.1)}
 .grid-cell.filled{border-radius:6px;transition:background .1s,box-shadow .1s,transform .15s}
@@ -124,10 +124,10 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 @keyframes cellClear{0%{transform:scale(1);opacity:1}40%{transform:scale(1.15);opacity:1;background:var(--accent);box-shadow:0 0 16px var(--accent)}100%{transform:scale(0);opacity:0}}
 
 /* Block colors */
-.grid-cell.color-0{background:var(--accent);box-shadow:inset 0 -2px 4px rgba(0,0,0,.2),0 0 8px rgba(6,214,160,.2)}
-.grid-cell.color-1{background:var(--accent2);box-shadow:inset 0 -2px 4px rgba(0,0,0,.2),0 0 8px rgba(17,138,178,.2)}
-.grid-cell.color-2{background:var(--accent3);box-shadow:inset 0 -2px 4px rgba(0,0,0,.2),0 0 8px rgba(239,71,111,.2)}
-.grid-cell.color-3{background:var(--gold);box-shadow:inset 0 -2px 4px rgba(0,0,0,.2),0 0 8px rgba(255,209,102,.2)}
+.grid-cell.color-0{background:var(--bb-color-0, var(--accent));box-shadow:inset 0 -2px 4px rgba(0,0,0,.2),0 0 8px rgba(6,214,160,.2)}
+.grid-cell.color-1{background:var(--bb-color-1, var(--accent2));box-shadow:inset 0 -2px 4px rgba(0,0,0,.2),0 0 8px rgba(17,138,178,.2)}
+.grid-cell.color-2{background:var(--bb-color-2, var(--accent3));box-shadow:inset 0 -2px 4px rgba(0,0,0,.2),0 0 8px rgba(239,71,111,.2)}
+.grid-cell.color-3{background:var(--bb-color-3, var(--gold));box-shadow:inset 0 -2px 4px rgba(0,0,0,.2),0 0 8px rgba(255,209,102,.2)}
 .grid-cell.color-4{background:#9b59b6;box-shadow:inset 0 -2px 4px rgba(0,0,0,.2),0 0 8px rgba(155,89,182,.2)}
 
 /* Piece Tray */
@@ -417,37 +417,67 @@ if (isTeacher) {
 // COSMETICS
 // =============================================
 var myCosmetics = {};
-(async function() {
+async function loadMyCosmetics() {
   var sid = localStorage.getItem('studentId');
   if (!sid) return;
   try {
     var fb = await getFirebaseDB();
     var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'students', sid));
-    if (snap.exists()) myCosmetics = snap.data().equipped || {};
+    if (snap.exists()) { const d = snap.data(); myCosmetics = d.gameCosmetics?.blockblast?.equipped || {}; }
   } catch(e) {}
-})();
+  applyCosmeticStyles();
+}
+loadMyCosmetics();
+
+function applyCosmeticStyles() {
+  var root = document.documentElement;
+  // Color Theme
+  var ct = myCosmetics['Color Theme'];
+  if (ct && ct.value && ct.value.colors) {
+    root.style.setProperty('--bb-color-0', ct.value.colors[0]);
+    root.style.setProperty('--bb-color-1', ct.value.colors[1]);
+    root.style.setProperty('--bb-color-2', ct.value.colors[2]);
+    root.style.setProperty('--bb-color-3', ct.value.colors[3]);
+  } else {
+    root.style.removeProperty('--bb-color-0');
+    root.style.removeProperty('--bb-color-1');
+    root.style.removeProperty('--bb-color-2');
+    root.style.removeProperty('--bb-color-3');
+  }
+  // Grid Style
+  var gs = myCosmetics['Grid Style'];
+  if (gs && gs.value) {
+    root.style.setProperty('--bb-grid-bg', gs.value.bg);
+    root.style.setProperty('--bb-grid-border', gs.value.border);
+    root.style.setProperty('--bb-grid-cell', gs.value.cell);
+  } else {
+    root.style.removeProperty('--bb-grid-bg');
+    root.style.removeProperty('--bb-grid-border');
+    root.style.removeProperty('--bb-grid-cell');
+  }
+}
 
 // =============================================
 // SHOP CATALOG
 // =============================================
 var BB_SHOP = [
-  { id:'bb_classic', name:'Classic', emoji:'\uD83D\uDFE6', cost:0, slot:'Color Theme' },
-  { id:'bb_neon', name:'Neon', emoji:'\uD83D\uDC9A', cost:150, slot:'Color Theme' },
-  { id:'bb_pastel', name:'Pastel', emoji:'\uD83C\uDF38', cost:150, slot:'Color Theme' },
-  { id:'bb_fire', name:'Fire', emoji:'\uD83D\uDD25', cost:200, slot:'Color Theme' },
-  { id:'bb_ocean', name:'Ocean', emoji:'\uD83C\uDF0A', cost:200, slot:'Color Theme' },
-  { id:'bb_galaxy', name:'Galaxy', emoji:'\uD83C\uDF0C', cost:300, slot:'Color Theme' },
-  { id:'bb_gold', name:'Gold', emoji:'\uD83D\uDC51', cost:400, slot:'Color Theme' },
-  { id:'bb_pastel2', name:'Pastel Dream', emoji:'\uD83C\uDF08', cost:150, slot:'Color Theme' },
-  { id:'bb_mono', name:'Monochrome', emoji:'\u2B1B', cost:200, slot:'Color Theme' },
-  { id:'bb_rainbow', name:'Rainbow', emoji:'\uD83C\uDF08', cost:400, slot:'Color Theme' },
-  { id:'bb_diamond', name:'Diamond', emoji:'\uD83D\uDC8E', cost:800, slot:'Color Theme' },
-  { id:'bbg_default', name:'Default', emoji:'\u2B1B', cost:0, slot:'Grid Style' },
-  { id:'bbg_neon', name:'Neon Grid', emoji:'\uD83D\uDC9A', cost:200, slot:'Grid Style' },
-  { id:'bbg_space', name:'Space', emoji:'\uD83D\uDE80', cost:300, slot:'Grid Style' },
-  { id:'bbg_glow', name:'Glow Grid', emoji:'\u2728', cost:200, slot:'Grid Style' },
-  { id:'bbg_pixel', name:'Pixel Grid', emoji:'\uD83D\uDFE8', cost:150, slot:'Grid Style' },
-  { id:'bbg_crystal', name:'Crystal Grid', emoji:'\uD83D\uDC8E', cost:500, slot:'Grid Style' },
+  { id:'bb_classic', name:'Classic', emoji:'\uD83D\uDFE6', cost:0, slot:'Color Theme', value:{colors:['#06d6a0','#118ab2','#ef476f','#ffd166']} },
+  { id:'bb_neon', name:'Neon', emoji:'\uD83D\uDC9A', cost:150, slot:'Color Theme', value:{colors:['#39ff14','#00bfff','#ff1493','#ffd700']} },
+  { id:'bb_pastel', name:'Pastel', emoji:'\uD83C\uDF38', cost:150, slot:'Color Theme', value:{colors:['#ffb3ba','#bae1ff','#baffc9','#ffffba']} },
+  { id:'bb_fire', name:'Fire', emoji:'\uD83D\uDD25', cost:200, slot:'Color Theme', value:{colors:['#ef4444','#f97316','#fbbf24','#dc2626']} },
+  { id:'bb_ocean', name:'Ocean', emoji:'\uD83C\uDF0A', cost:200, slot:'Color Theme', value:{colors:['#0077b6','#00b4d8','#90e0ef','#caf0f8']} },
+  { id:'bb_galaxy', name:'Galaxy', emoji:'\uD83C\uDF0C', cost:300, slot:'Color Theme', value:{colors:['#a855f7','#6366f1','#ec4899','#8b5cf6']} },
+  { id:'bb_gold', name:'Gold', emoji:'\uD83D\uDC51', cost:400, slot:'Color Theme', value:{colors:['#fbbf24','#f59e0b','#d97706','#eab308']} },
+  { id:'bb_pastel2', name:'Pastel Dream', emoji:'\uD83C\uDF08', cost:150, slot:'Color Theme', value:{colors:['#c4b5fd','#fbcfe8','#a7f3d0','#fde68a']} },
+  { id:'bb_mono', name:'Monochrome', emoji:'\u2B1B', cost:200, slot:'Color Theme', value:{colors:['#e2e8f0','#94a3b8','#64748b','#cbd5e1']} },
+  { id:'bb_rainbow', name:'Rainbow', emoji:'\uD83C\uDF08', cost:400, slot:'Color Theme', value:{colors:['#ef4444','#22c55e','#3b82f6','#eab308']} },
+  { id:'bb_diamond', name:'Diamond', emoji:'\uD83D\uDC8E', cost:800, slot:'Color Theme', value:{colors:['#67e8f9','#c084fc','#f0abfc','#a5f3fc']} },
+  { id:'bbg_default', name:'Default', emoji:'\u2B1B', cost:0, slot:'Grid Style', value:{bg:'var(--surface2)',border:'var(--border)',cell:'rgba(42,52,80,.45)'} },
+  { id:'bbg_neon', name:'Neon Grid', emoji:'\uD83D\uDC9A', cost:200, slot:'Grid Style', value:{bg:'#0a1628',border:'#06d6a0',cell:'rgba(6,214,160,.05)'} },
+  { id:'bbg_space', name:'Space', emoji:'\uD83D\uDE80', cost:300, slot:'Grid Style', value:{bg:'#0b0d1a',border:'#6366f1',cell:'rgba(99,102,241,.05)'} },
+  { id:'bbg_glow', name:'Glow Grid', emoji:'\u2728', cost:200, slot:'Grid Style', value:{bg:'#0f172a',border:'#fbbf24',cell:'rgba(251,191,36,.04)'} },
+  { id:'bbg_pixel', name:'Pixel Grid', emoji:'\uD83D\uDFE8', cost:150, slot:'Grid Style', value:{bg:'#1a1a2e',border:'#374151',cell:'rgba(55,65,81,.4)'} },
+  { id:'bbg_crystal', name:'Crystal Grid', emoji:'\uD83D\uDC8E', cost:500, slot:'Grid Style', value:{bg:'#0c1222',border:'#67e8f9',cell:'rgba(103,232,249,.04)'} },
   { id:'bbe_shatter', name:'Shatter', emoji:'\uD83D\uDCA5', cost:200, slot:'Clear Effect' },
   { id:'bbe_dissolve', name:'Dissolve', emoji:'\uD83C\uDF2B', cost:300, slot:'Clear Effect' },
   { id:'bbe_explosion', name:'Explosion', emoji:'\uD83D\uDD25', cost:500, slot:'Clear Effect' }
@@ -525,8 +555,8 @@ function showShopScreen() {
   showScreen('shopScreen');
   if (window.odaShop) {
     window.odaShop.renderShopPanel('blockblast', BB_SHOP, 'bbShopContainer', {
-      onEquip: function(item) { console.log('Equipped:', item.id); },
-      onBuy: function(item) { console.log('Bought:', item.id); }
+      onEquip: function(item) { loadMyCosmetics(); },
+      onBuy: function(item) { loadMyCosmetics(); }
     });
   }
 }
@@ -1569,6 +1599,16 @@ async function loadRecords() {
 // INIT
 // =============================================
 loadLocalStats();
+
+odaHelp.init({
+  title:'Block Blast', emoji:'\u{1F9F1}', subtitle:'Place blocks, clear lines, chase high scores!',
+  sections:[
+    {title:'Rules', icon:'\u{1F4D6}', items:['Drag blocks from the tray onto the 8x8 grid','Fill a complete row or column to clear it','Clear multiple lines at once for combo bonuses','Game ends when no pieces can fit on the board']},
+    {title:'Modes', icon:'\u26A1', items:['Classic \u2014 Endless mode, no time limit','Timed \u2014 60 seconds, maximize your score']}
+  ],
+  controls:[{key:'Drag',action:'Place blocks'}],
+  tip:'<strong>Keep the board balanced!</strong> Don\'t pile everything on one side. Try to keep rows and columns nearly full so you can clear them together.'
+});
 
 </script>
 </body>

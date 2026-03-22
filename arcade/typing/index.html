@@ -129,14 +129,14 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .progress-bar-wrap{width:100%;height:8px;background:var(--surface2);border-radius:4px;margin-bottom:24px;overflow:hidden}
 .progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:4px;transition:width .3s ease;width:0}
 
-.text-display{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 28px;font-family:'Courier New',Consolas,monospace;font-size:clamp(18px,2.5vw,24px);line-height:2;letter-spacing:.5px;min-height:200px;position:relative;cursor:text;user-select:none;overflow-wrap:break-word;word-break:break-word}
+.text-display{background:var(--typ-kb-bg,var(--surface));border:1px solid var(--border);border-radius:20px;padding:32px 28px;font-family:'Courier New',Consolas,monospace;font-size:clamp(18px,2.5vw,24px);line-height:2;letter-spacing:.5px;min-height:200px;position:relative;cursor:text;user-select:none;overflow-wrap:break-word;word-break:break-word;color:var(--typ-kb-text,var(--text))}
 .text-display:focus{outline:none;border-color:var(--accent);box-shadow:0 0 30px rgba(6,214,160,.1)}
 
 .char{display:inline;position:relative}
 .char.correct{color:var(--accent);opacity:.7}
 .char.incorrect{color:var(--accent3);background:rgba(239,71,111,.15);border-radius:2px;animation:charShake .3s ease}
-.char.current{color:var(--text);border-bottom:3px solid var(--accent);animation:cursorBlink 1s ease-in-out infinite}
-.char.upcoming{color:var(--text2)}
+.char.current{color:var(--typ-kb-text,var(--text));border-bottom:3px solid var(--accent);animation:cursorBlink 1s ease-in-out infinite}
+.char.upcoming{color:var(--typ-kb-text,var(--text2))}
 .char.space-marker.correct{background:rgba(6,214,160,.08)}
 .char.space-marker.incorrect{background:rgba(239,71,111,.2)}
 
@@ -187,8 +187,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .race-lane .lane-car{position:absolute;top:50%;transform:translateY(-50%);left:0;font-size:22px;transition:left .4s ease;z-index:2}
 .race-lane .lane-fill{position:absolute;top:0;left:0;height:100%;border-radius:8px;transition:width .4s ease;opacity:.2}
 .race-lane .lane-wpm{font-size:12px;font-weight:800;width:60px;text-align:right;flex-shrink:0;color:var(--text2)}
-.race-lane.me .lane-name{color:var(--accent)}
-.race-lane.me .lane-fill{opacity:.3}
+.race-lane.me .lane-name{color:var(--typ-car-color,var(--accent))}
+.race-lane.me .lane-fill{opacity:.3;background:var(--typ-car-color,var(--accent))}
 
 .lane-colors{--c1:var(--accent);--c2:var(--accent2);--c3:var(--accent3);--c4:var(--gold);--c5:#9b5de5;--c6:#00f5d4}
 
@@ -604,25 +604,25 @@ async function initFB() {
 // Shop Catalog
 // ============================================
 const TYPING_SHOP = [
-  { id:'typ_kb_default', name:'Default', emoji:'\u2328\uFE0F', cost:0, slot:'Keyboard Theme' },
-  { id:'typ_kb_mechanical', name:'Mechanical', emoji:'\u{1F579}\uFE0F', cost:200, slot:'Keyboard Theme' },
-  { id:'typ_kb_rgb', name:'RGB Rainbow', emoji:'\u{1F308}', cost:400, slot:'Keyboard Theme' },
-  { id:'typ_kb_stealth', name:'Stealth Black', emoji:'\u{1F311}', cost:300, slot:'Keyboard Theme' },
-  { id:'typ_car_default', name:'Default Car', emoji:'\u{1F697}', cost:0, slot:'Car Style' },
-  { id:'typ_car_rocket', name:'Rocket', emoji:'\u{1F680}', cost:300, slot:'Car Style' },
-  { id:'typ_car_spaceship', name:'Spaceship', emoji:'\u{1F6F8}', cost:500, slot:'Car Style' },
-  { id:'typ_car_dragon', name:'Dragon', emoji:'\u{1F409}', cost:800, slot:'Car Style' },
-  { id:'typ_trail_none', name:'None', emoji:'\u2B1C', cost:0, slot:'Trail Effect' },
-  { id:'typ_trail_smoke', name:'Smoke', emoji:'\u{1F4A8}', cost:150, slot:'Trail Effect' },
-  { id:'typ_trail_sparkle', name:'Sparkle', emoji:'\u2728', cost:300, slot:'Trail Effect' },
-  { id:'typ_trail_fire', name:'Fire', emoji:'\u{1F525}', cost:500, slot:'Trail Effect' }
+  { id:'typ_kb_default', name:'Default', emoji:'\u2328\uFE0F', cost:0, slot:'Keyboard Theme', value:{bg:'var(--surface)',key:'var(--surface2)',text:'var(--text)'} },
+  { id:'typ_kb_mechanical', name:'Mechanical', emoji:'\u{1F579}\uFE0F', cost:200, slot:'Keyboard Theme', value:{bg:'#0a0e1a',key:'#1e293b',text:'#f0f4ff'} },
+  { id:'typ_kb_rgb', name:'RGB Rainbow', emoji:'\u{1F308}', cost:400, slot:'Keyboard Theme', value:{bg:'#0a1628',key:'#132035',text:'#06d6a0'} },
+  { id:'typ_kb_stealth', name:'Stealth Black', emoji:'\u{1F311}', cost:300, slot:'Keyboard Theme', value:{bg:'#2d1b00',key:'#4a2f00',text:'#fbbf24'} },
+  { id:'typ_car_default', name:'Default Car', emoji:'\u{1F697}', cost:0, slot:'Car Style', value:{color:'#06d6a0'} },
+  { id:'typ_car_rocket', name:'Rocket', emoji:'\u{1F680}', cost:300, slot:'Car Style', value:{color:'#ef4444'} },
+  { id:'typ_car_spaceship', name:'Spaceship', emoji:'\u{1F6F8}', cost:500, slot:'Car Style', value:{color:'#3b82f6'} },
+  { id:'typ_car_dragon', name:'Dragon', emoji:'\u{1F409}', cost:800, slot:'Car Style', value:{color:'#fbbf24'} },
+  { id:'typ_trail_none', name:'None', emoji:'\u2B1C', cost:0, slot:'Trail Effect', value:{type:'none'} },
+  { id:'typ_trail_smoke', name:'Smoke', emoji:'\u{1F4A8}', cost:150, slot:'Trail Effect', value:{type:'fire',color:'#ef4444'} },
+  { id:'typ_trail_sparkle', name:'Sparkle', emoji:'\u2728', cost:300, slot:'Trail Effect', value:{type:'neon',color:'#06d6a0'} },
+  { id:'typ_trail_fire', name:'Fire', emoji:'\u{1F525}', cost:500, slot:'Trail Effect', value:{type:'rainbow'} }
 ];
 
 function showTypingShop() {
   showScreen('shopScreen');
   if (window.odaShop) {
     odaShop.renderShopPanel('typing', TYPING_SHOP, 'typingShopContainer', {
-      onEquip: function(item) { console.log('[Typing] Equipped:', item.id); },
+      onEquip: function(item) { console.log('[Typing] Equipped:', item.id); applyCosmeticStyles(); },
       onBuy: function(item) { console.log('[Typing] Bought:', item.id); }
     });
   }
@@ -726,9 +726,41 @@ let myCosmetics = {};
   try{
     await initFB();
     const snap = await getDoc(doc(db, 'students', sid));
-    if(snap.exists()){ myCosmetics = snap.data().equipped || {}; }
+    if(snap.exists()){ myCosmetics = snap.data().gameCosmetics?.typing?.equipped || {}; }
+    applyCosmeticStyles();
   }catch(e){ console.warn('Cosmetics load error:', e); }
 })();
+
+function applyCosmeticStyles(){
+  const root = document.documentElement;
+  // Keyboard Theme
+  const kb = myCosmetics['Keyboard Theme'];
+  if(kb && kb.value){
+    root.style.setProperty('--typ-kb-bg', kb.value.bg);
+    root.style.setProperty('--typ-kb-key', kb.value.key);
+    root.style.setProperty('--typ-kb-text', kb.value.text);
+  } else {
+    root.style.removeProperty('--typ-kb-bg');
+    root.style.removeProperty('--typ-kb-key');
+    root.style.removeProperty('--typ-kb-text');
+  }
+  // Car Style
+  const car = myCosmetics['Car Style'];
+  if(car && car.value){
+    root.style.setProperty('--typ-car-color', car.value.color);
+  } else {
+    root.style.removeProperty('--typ-car-color');
+  }
+  // Trail Effect
+  const trail = myCosmetics['Trail Effect'];
+  if(trail && trail.value && trail.value.type !== 'none'){
+    root.style.setProperty('--typ-trail-type', trail.value.type);
+    root.style.setProperty('--typ-trail-color', trail.value.color || '#06d6a0');
+  } else {
+    root.style.removeProperty('--typ-trail-type');
+    root.style.removeProperty('--typ-trail-color');
+  }
+}
 
 function applyNameColor(el, color){
   if(!el || !color) return;
@@ -2053,6 +2085,16 @@ window.TR = {
 };
 
 })();
+
+odaHelp.init({
+  title:'Typing Race', emoji:'\u2328', subtitle:'Test your typing speed and accuracy!',
+  sections:[
+    {title:'Rules', icon:'\u{1F4D6}', items:['Type the displayed text as fast and accurately as you can','Your WPM (words per minute) and accuracy are tracked','Compete against classmates on the leaderboard','Practice different difficulty levels to improve']},
+    {title:'Stats', icon:'\u{1F4CA}', items:['WPM \u2014 Words per minute (speed)','Accuracy \u2014 Percentage of correct keystrokes','Best scores are saved to the leaderboard']}
+  ],
+  controls:[{key:'Type',action:'Match the text'},{key:'Tab',action:'Restart'}],
+  tip:'<strong>Don\'t look at the keyboard!</strong> Focus on the screen and let your muscle memory guide your fingers. Accuracy > Speed.'
+});
 </script>
 </body>
 </html>

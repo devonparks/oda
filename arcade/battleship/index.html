@@ -139,8 +139,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .setup-grid-wrap{position:relative}
 .setup-grid{display:grid;grid-template-columns:repeat(10,36px);grid-template-rows:repeat(10,36px);gap:2px;background:var(--border);padding:2px;border-radius:8px;border:2px solid var(--border);position:relative}
 .setup-grid .cell{width:36px;height:36px;border-radius:4px;cursor:pointer;position:relative;transition:background .15s}
-.setup-grid .cell.water{background:var(--surface2)}
-.setup-grid .cell.ship{background:#6b7280}
+.setup-grid .cell.water{background:var(--bs-water,var(--surface2))}
+.setup-grid .cell.ship{background:var(--bs-ship-color,#6b7280)}
 .setup-grid .cell.valid-hover{background:rgba(6,214,160,.4);box-shadow:inset 0 0 8px rgba(6,214,160,.3)}
 .setup-grid .cell.invalid-hover{background:rgba(239,71,111,.4);box-shadow:inset 0 0 8px rgba(239,71,111,.3)}
 
@@ -186,26 +186,26 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .game-grid .cell{width:var(--cell-size,36px);height:var(--cell-size,36px);border-radius:4px;position:relative;transition:all .15s;cursor:default;overflow:hidden}
 
 /* Water cells with subtle wave animation */
-.game-grid .cell.water{background:var(--surface2)}
+.game-grid .cell.water{background:var(--bs-water,var(--surface2))}
 .game-grid .cell.water::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 40%,rgba(17,138,178,.08) 50%,transparent 60%);animation:wave 4s ease-in-out infinite;opacity:0}
 .game-grid .cell.water:not(.hit):not(.miss)::after{opacity:1}
 @keyframes wave{0%,100%{transform:translateX(-100%)}50%{transform:translateX(100%)}}
 
 /* Ship cells on your board */
-.game-grid .cell.ship{background:#4b5563;border:1px solid #6b7280}
+.game-grid .cell.ship{background:var(--bs-ship-color,#4b5563);border:1px solid var(--bs-border,#6b7280)}
 
 /* Attackable cells on enemy grid */
 .game-grid.attack-grid .cell.water{cursor:crosshair}
 .game-grid.attack-grid .cell.water:hover{background:rgba(17,138,178,.25);box-shadow:inset 0 0 8px rgba(17,138,178,.3)}
 
 /* Hit marker */
-.game-grid .cell.hit{background:#dc2626;animation:hitPop .4s ease}
-.game-grid .cell.hit::after{content:'';position:absolute;inset:20%;background:radial-gradient(circle,#ff6b35,#dc2626);border-radius:50%;animation:none}
+.game-grid .cell.hit{background:var(--bs-hit-color,#dc2626);animation:hitPop .4s ease}
+.game-grid .cell.hit::after{content:'';position:absolute;inset:20%;background:radial-gradient(circle,color-mix(in srgb,var(--bs-hit-color,#ff6b35) 80%,#fff),var(--bs-hit-color,#dc2626));border-radius:50%;animation:none}
 @keyframes hitPop{0%{transform:scale(0);opacity:0}50%{transform:scale(1.3)}100%{transform:scale(1);opacity:1}}
 
 /* Miss marker */
-.game-grid .cell.miss{background:var(--surface2)}
-.game-grid .cell.miss::after{content:'';position:absolute;inset:30%;background:rgba(255,255,255,.5);border-radius:50%;animation:none}
+.game-grid .cell.miss{background:var(--bs-water,var(--surface2))}
+.game-grid .cell.miss::after{content:'';position:absolute;inset:30%;background:var(--bs-miss-color,rgba(255,255,255,.5));border-radius:50%;animation:none}
 
 /* Sunk ship overlay */
 .game-grid .cell.sunk{background:#7f1d1d}
@@ -572,8 +572,39 @@ let myCosmetics={};
 (async()=>{
   const s=localStorage.getItem('studentId');
   if(!s)return;
-  try{const fb=await getFirebaseDB();const snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',s));if(snap.exists())myCosmetics=snap.data().equipped||{};}catch(e){}
+  try{const fb=await getFirebaseDB();const snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',s));if(snap.exists()){const d=snap.data();myCosmetics=d.gameCosmetics?.battleship?.equipped||{};} applyCosmeticStyles();}catch(e){}
 })();
+
+function applyCosmeticStyles(){
+  const root=document.documentElement;
+  // Ocean Theme
+  const ocean=myCosmetics['Ocean Theme'];
+  if(ocean&&ocean.value){
+    root.style.setProperty('--bs-water',ocean.value.water);
+    root.style.setProperty('--bs-grid',ocean.value.grid);
+    root.style.setProperty('--bs-border',ocean.value.border);
+  } else {
+    root.style.removeProperty('--bs-water');
+    root.style.removeProperty('--bs-grid');
+    root.style.removeProperty('--bs-border');
+  }
+  // Ship Style
+  const ship=myCosmetics['Ship Style'];
+  if(ship&&ship.value){
+    root.style.setProperty('--bs-ship-color',ship.value.color);
+  } else {
+    root.style.removeProperty('--bs-ship-color');
+  }
+  // Hit Effect
+  const hit=myCosmetics['Hit Effect'];
+  if(hit&&hit.value){
+    root.style.setProperty('--bs-hit-color',hit.value.hit);
+    root.style.setProperty('--bs-miss-color',hit.value.miss);
+  } else {
+    root.style.removeProperty('--bs-hit-color');
+    root.style.removeProperty('--bs-miss-color');
+  }
+}
 
 // ── Sound Engine ───────────────────────────────────────
 let audioCtx=null;
@@ -1705,20 +1736,20 @@ document.addEventListener('keydown',e=>{
 // ============================================
 const BS_SHOP=[
   // Ocean Themes
-  {id:'ocean_classic',name:'Classic Blue',emoji:'\u{1F30A}',cost:0,slot:'Ocean Theme'},
-  {id:'ocean_deep',name:'Deep Sea',emoji:'\u{1F3CA}',cost:200,slot:'Ocean Theme'},
-  {id:'ocean_tropical',name:'Tropical',emoji:'\u{1F334}',cost:300,slot:'Ocean Theme'},
-  {id:'ocean_arctic',name:'Arctic',emoji:'\u{2744}\uFE0F',cost:500,slot:'Ocean Theme'},
+  {id:'ocean_classic',name:'Classic Blue',emoji:'\u{1F30A}',cost:0,slot:'Ocean Theme',value:{water:'#1e3a5f',grid:'#2a5a8a',border:'#3b7cc0'}},
+  {id:'ocean_deep',name:'Deep Sea',emoji:'\u{1F3CA}',cost:200,slot:'Ocean Theme',value:{water:'#0a1628',grid:'#132035',border:'#1e3a5f'}},
+  {id:'ocean_tropical',name:'Tropical',emoji:'\u{1F334}',cost:300,slot:'Ocean Theme',value:{water:'#064e3b',grid:'#065f46',border:'#059669'}},
+  {id:'ocean_arctic',name:'Arctic',emoji:'\u{2744}\uFE0F',cost:500,slot:'Ocean Theme',value:{water:'#1e293b',grid:'#334155',border:'#64748b'}},
   // Ship Styles
-  {id:'ship_standard',name:'Standard',emoji:'\u{26F5}',cost:0,slot:'Ship Style'},
-  {id:'ship_stealth',name:'Stealth Black',emoji:'\u{1F5A4}',cost:300,slot:'Ship Style'},
-  {id:'ship_gold',name:'Gold Fleet',emoji:'\u{1F4B0}',cost:600,slot:'Ship Style'},
-  {id:'ship_neon',name:'Neon',emoji:'\u{1F4A1}',cost:400,slot:'Ship Style'},
+  {id:'ship_standard',name:'Standard',emoji:'\u{26F5}',cost:0,slot:'Ship Style',value:{color:'#6b7280'}},
+  {id:'ship_stealth',name:'Stealth Black',emoji:'\u{1F5A4}',cost:300,slot:'Ship Style',value:{color:'#1e293b'}},
+  {id:'ship_gold',name:'Gold Fleet',emoji:'\u{1F4B0}',cost:600,slot:'Ship Style',value:{color:'#fbbf24'}},
+  {id:'ship_neon',name:'Neon',emoji:'\u{1F4A1}',cost:400,slot:'Ship Style',value:{color:'#06d6a0'}},
   // Hit Effects
-  {id:'hit_standard',name:'Standard',emoji:'\u{1F4A5}',cost:0,slot:'Hit Effect'},
-  {id:'hit_fire',name:'Fire Burst',emoji:'\u{1F525}',cost:200,slot:'Hit Effect'},
-  {id:'hit_lightning',name:'Lightning',emoji:'\u{26A1}',cost:400,slot:'Hit Effect'},
-  {id:'hit_nuclear',name:'Nuclear',emoji:'\u{2622}\uFE0F',cost:800,slot:'Hit Effect'}
+  {id:'hit_standard',name:'Standard',emoji:'\u{1F4A5}',cost:0,slot:'Hit Effect',value:{hit:'#ef4444',miss:'#6b7280'}},
+  {id:'hit_fire',name:'Fire Burst',emoji:'\u{1F525}',cost:200,slot:'Hit Effect',value:{hit:'#f97316',miss:'#78716c'}},
+  {id:'hit_lightning',name:'Lightning',emoji:'\u{26A1}',cost:400,slot:'Hit Effect',value:{hit:'#06d6a0',miss:'#3b82f6'}},
+  {id:'hit_nuclear',name:'Nuclear',emoji:'\u{2622}\uFE0F',cost:800,slot:'Hit Effect',value:{hit:'#22d3ee',miss:'#6366f1'}}
 ];
 
 function showShopScreen(){
@@ -1726,7 +1757,7 @@ function showShopScreen(){
   showScreen('shopScreen');
   if(typeof odaShop!=='undefined'){
     odaShop.renderShopPanel('battleship',BS_SHOP,'bsShopContainer',{
-      onEquip:function(){},onBuy:function(){}
+      onEquip:function(){ applyCosmeticStyles(); },onBuy:function(){}
     });
   }
 }
@@ -1846,6 +1877,16 @@ return {
 };
 
 })(); // end BS namespace
+
+odaHelp.init({
+  title:'Battleship', emoji:'\u{1F6A2}', subtitle:'Seek and destroy the enemy fleet!',
+  sections:[
+    {title:'Rules', icon:'\u{1F4D6}', items:['Place your ships on the grid during setup phase','Take turns firing at the opponent\'s grid','Hit all squares of a ship to sink it','Sink all enemy ships to win!']},
+    {title:'Ships', icon:'\u2693', items:['Carrier \u2014 5 squares','Battleship \u2014 4 squares','Cruiser \u2014 3 squares','Submarine \u2014 3 squares','Destroyer \u2014 2 squares']}
+  ],
+  controls:[{key:'Click',action:'Fire at square'},{key:'Drag',action:'Place ships'},{key:'R',action:'Rotate ship'}],
+  tip:'<strong>Hunt in a checkerboard pattern!</strong> Since the smallest ship is 2 squares, you can skip every other square to find ships faster.'
+});
 </script>
 </body>
 </html>

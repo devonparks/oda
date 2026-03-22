@@ -9,7 +9,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--cell-size:90px;--grid-gap:12px;--grid-cols:4}
-body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:center}
+body{background:var(--2048-bg, var(--bg));color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:center}
 body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
 body>*{position:relative;z-index:1}
 h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
@@ -93,15 +93,15 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .ctrl-btn:disabled:hover{border-color:var(--border);color:var(--text2)}
 
 /* Grid Container */
-.grid-wrapper{position:relative;background:var(--surface2);border:2px solid var(--border);border-radius:16px;padding:var(--grid-gap);touch-action:none;margin:0 auto}
+.grid-wrapper{position:relative;background:var(--2048-surface, var(--surface2));border:2px solid var(--border);border-radius:16px;padding:var(--grid-gap);touch-action:none;margin:0 auto}
 
-.grid-bg{display:grid;grid-template-columns:repeat(var(--grid-cols),var(--cell-size));grid-template-rows:repeat(var(--grid-cols),var(--cell-size));gap:var(--grid-gap)}
+.grid-bg{display:grid;grid-template-columns:repeat(var(--grid-cols),var(--cell-size));grid-template-rows:repeat(var(--grid-cols),var(--cell-size));gap:var(--grid-gap);position:static;inset:auto;background-image:none;background-size:auto;pointer-events:auto;z-index:auto}
 .grid-cell{background:rgba(42,52,80,.4);border-radius:12px}
 
 .tile-layer{position:absolute;top:var(--grid-gap);left:var(--grid-gap);pointer-events:none}
 
 /* Tiles */
-.tile{position:absolute;width:var(--cell-size);height:var(--cell-size);border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Fredoka',sans-serif;font-weight:700;transition:top .15s ease,left .15s ease;z-index:2;will-change:transform,top,left}
+.tile{position:absolute;width:var(--cell-size);height:var(--cell-size);border-radius:var(--2048-tile-radius, 12px);display:flex;align-items:center;justify-content:center;font-family:'Fredoka',sans-serif;font-weight:700;transition:top .15s ease,left .15s ease;z-index:2;will-change:transform,top,left}
 .tile.merged{animation:tileMerge .25s ease;z-index:3}
 .tile.new{animation:tileNew .2s ease}
 
@@ -360,11 +360,40 @@ const db=getFirestore(app);
 // COSMETICS
 // ===========================
 let myCosmetics={};
-(async()=>{
+async function loadMyCosmetics(){
   const sid=localStorage.getItem('studentId');
   if(!sid)return;
-  try{const snap=await getDoc(doc(db,'students',sid));if(snap.exists())myCosmetics=snap.data().equipped||{};}catch(e){}
-})();
+  try{const snap=await getDoc(doc(db,'students',sid));if(snap.exists()){const d=snap.data();myCosmetics=d.gameCosmetics?.['2048']?.equipped||{};}}catch(e){}
+  applyCosmeticStyles();
+}
+loadMyCosmetics();
+
+function applyCosmeticStyles(){
+  var root=document.documentElement;
+  // Tile Theme
+  var tt=myCosmetics['Tile Theme'];
+  if(tt&&tt.value&&tt.value.accent){
+    root.style.setProperty('--2048-tile-accent',tt.value.accent);
+  }else{
+    root.style.removeProperty('--2048-tile-accent');
+  }
+  // Background Theme
+  var bg=myCosmetics['Background Theme'];
+  if(bg&&bg.value){
+    root.style.setProperty('--2048-bg',bg.value.bg);
+    root.style.setProperty('--2048-surface',bg.value.surface);
+  }else{
+    root.style.removeProperty('--2048-bg');
+    root.style.removeProperty('--2048-surface');
+  }
+  // Tile Shape
+  var ts=myCosmetics['Tile Shape'];
+  if(ts&&ts.value&&ts.value.radius){
+    root.style.setProperty('--2048-tile-radius',ts.value.radius);
+  }else{
+    root.style.removeProperty('--2048-tile-radius');
+  }
+}
 
 // ===========================
 // SESSION
@@ -592,6 +621,7 @@ function buildGrid(){
   const vw=window.innerWidth;
   if(vw<=360)document.documentElement.style.setProperty('--cell-size','60px');
   else if(vw<=480)document.documentElement.style.setProperty('--cell-size','68px');
+  else if(vw>=1024)document.documentElement.style.setProperty('--cell-size','110px');
   else document.documentElement.style.setProperty('--cell-size','90px');
 
   const bgEl=document.getElementById('gridBg');
@@ -1173,32 +1203,28 @@ window.addEventListener('resize',()=>{
 // ===========================
 const SHOP_2048=[
   // Tile Themes
-  {id:'tile_classic',name:'Classic',emoji:'\u{1F7E9}',cost:0,slot:'Tile Theme'},
-  {id:'tile_ocean',name:'Ocean',emoji:'\u{1F30A}',cost:200,slot:'Tile Theme'},
-  {id:'tile_sunset',name:'Sunset',emoji:'\u{1F305}',cost:300,slot:'Tile Theme'},
-  {id:'tile_neon',name:'Neon',emoji:'\u{1F4A1}',cost:500,slot:'Tile Theme'},
+  {id:'tile_classic',name:'Classic',emoji:'\u{1F7E9}',cost:0,slot:'Tile Theme',value:{style:'classic'}},
+  {id:'tile_ocean',name:'Ocean',emoji:'\u{1F30A}',cost:200,slot:'Tile Theme',value:{style:'ocean',accent:'#22d3ee'}},
+  {id:'tile_sunset',name:'Sunset',emoji:'\u{1F305}',cost:300,slot:'Tile Theme',value:{style:'fire',accent:'#ef4444'}},
+  {id:'tile_neon',name:'Neon',emoji:'\u{1F4A1}',cost:500,slot:'Tile Theme',value:{style:'candy',accent:'#ec4899'}},
   // Background Themes
-  {id:'bg_dark',name:'Dark',emoji:'\u{1F311}',cost:0,slot:'Background Theme'},
-  {id:'bg_space',name:'Space',emoji:'\u{1F30C}',cost:200,slot:'Background Theme'},
-  {id:'bg_wood',name:'Wood',emoji:'\u{1FAB5}',cost:150,slot:'Background Theme'},
-  {id:'bg_candy',name:'Candy',emoji:'\u{1F36C}',cost:400,slot:'Background Theme'},
+  {id:'bg_dark',name:'Dark',emoji:'\u{1F311}',cost:0,slot:'Background Theme',value:{bg:'var(--bg)',surface:'var(--surface2)'}},
+  {id:'bg_space',name:'Space',emoji:'\u{1F30C}',cost:200,slot:'Background Theme',value:{bg:'#050810',surface:'#0d1117'}},
+  {id:'bg_wood',name:'Wood',emoji:'\u{1FAB5}',cost:150,slot:'Background Theme',value:{bg:'#1a0a00',surface:'#2d1600'}},
+  {id:'bg_candy',name:'Candy',emoji:'\u{1F36C}',cost:400,slot:'Background Theme',value:{bg:'#0a1628',surface:'#132035'}},
   // Tile Shapes
-  {id:'shape_square',name:'Square',emoji:'\u{25FC}\uFE0F',cost:0,slot:'Tile Shape'},
-  {id:'shape_rounded',name:'Rounded',emoji:'\u{1F532}',cost:100,slot:'Tile Shape'},
-  {id:'shape_circle',name:'Circle',emoji:'\u{26AB}',cost:300,slot:'Tile Shape'},
-  {id:'shape_diamond',name:'Diamond',emoji:'\u{1F537}',cost:500,slot:'Tile Shape'}
+  {id:'shape_square',name:'Square',emoji:'\u{25FC}\uFE0F',cost:0,slot:'Tile Shape',value:{radius:'12px'}},
+  {id:'shape_rounded',name:'Rounded',emoji:'\u{1F532}',cost:100,slot:'Tile Shape',value:{radius:'20px'}},
+  {id:'shape_circle',name:'Circle',emoji:'\u{26AB}',cost:300,slot:'Tile Shape',value:{radius:'50%'}},
+  {id:'shape_diamond',name:'Diamond',emoji:'\u{1F537}',cost:500,slot:'Tile Shape',value:{radius:'4px'}}
 ];
-
-function applyShopCosmetics(item){
-  // cosmetic-only, no gameplay effect
-}
 
 window.showShopScreen=function(){
   showScreen('shopScreen');
   if(typeof odaShop!=='undefined'){
     odaShop.renderShopPanel('2048',SHOP_2048,'shop2048Container',{
-      onEquip:applyShopCosmetics,
-      onBuy:applyShopCosmetics
+      onEquip:function(item){ loadMyCosmetics(); },
+      onBuy:function(item){ loadMyCosmetics(); }
     });
   }
 };
@@ -1320,6 +1346,16 @@ loadLocalData();
 loadAchievements();
 loadAchievementsFromFirestore().then(()=>renderAchievements());
 console.log('[ODA] 2048 loaded');
+
+odaHelp.init({
+  title:'2048', emoji:'\u{1F522}', subtitle:'Slide, merge, and reach the legendary tile!',
+  sections:[
+    {title:'Rules', icon:'\u{1F4D6}', items:['Slide tiles in any direction using arrow keys or swipe','When two tiles with the same number touch, they merge into one','Create a 2048 tile to win — or keep going for a higher score!','A new tile (2 or 4) appears after each move','Game ends when no more moves are possible']},
+    {title:'Scoring', icon:'\u{1F3AF}', items:['Each merge adds the new tile value to your score','Bigger merges = more points','Try to beat your personal best!']}
+  ],
+  controls:[{key:'\u2191',action:'Up'},{key:'\u2193',action:'Down'},{key:'\u2190',action:'Left'},{key:'\u2192',action:'Right'},{key:'Drag',action:'Swipe'}],
+  tip:'Start in a corner! Keep your highest tile in one corner and build around it. <strong>Never push your big tile away from its corner.</strong>'
+});
 
 </script>
 </body>

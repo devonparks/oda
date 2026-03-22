@@ -36,6 +36,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 @keyframes correctFlash{0%{background:rgba(6,214,160,.3)}100%{background:transparent}}
 @keyframes wrongFlash{0%{background:rgba(239,71,111,.3)}100%{background:transparent}}
 
+
 /* Buttons */
 .btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
 .btn:active{transform:scale(.96)}
@@ -141,8 +142,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .game-sound-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:16px;color:var(--text2);transition:all .2s}
 .game-sound-btn:hover{border-color:var(--accent);color:var(--text)}
 
-.timer-bar-wrap{width:100%;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin:8px 0}
-.timer-bar{height:100%;background:var(--accent);border-radius:4px;transition:width .1s linear}
+.timer-bar-wrap{width:100%;height:8px;background:var(--trv-timer-bg, var(--surface2));border-radius:4px;overflow:hidden;margin:8px 0}
+.timer-bar{height:100%;background:var(--trv-timer-color, var(--accent));border-radius:4px;transition:width .1s linear}
 .timer-bar.warning{background:var(--gold)}
 .timer-bar.danger{background:var(--accent3);animation:timerPulse .5s ease-in-out infinite}
 .timer-text{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;text-align:center;margin:4px 0;min-height:28px}
@@ -162,8 +163,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .answer-btn.ans-b{background:var(--kblue)}
 .answer-btn.ans-c{background:var(--kyellow)}
 .answer-btn.ans-d{background:var(--kgreen)}
-.answer-btn.correct-answer{animation:glow .6s ease;box-shadow:0 0 24px rgba(6,214,160,.5);outline:3px solid var(--accent)}
-.answer-btn.wrong-answer{opacity:.5;outline:3px solid var(--accent3)}
+.answer-btn.correct-answer{animation:glow .6s ease;box-shadow:0 0 24px rgba(6,214,160,.5);outline:3px solid var(--trv-correct, var(--accent))}
+.answer-btn.wrong-answer{opacity:.5;outline:3px solid var(--trv-wrong, var(--accent3))}
 .answer-btn.dimmed{opacity:.3}
 
 @media(max-width:500px){
@@ -174,8 +175,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 /* Question feedback overlay */
 .feedback-overlay{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;z-index:200;pointer-events:none}
 .feedback-badge{font-family:'Fredoka',sans-serif;font-size:48px;font-weight:700;animation:popIn .4s ease;text-shadow:0 4px 20px rgba(0,0,0,.5)}
-.feedback-badge.correct{color:var(--accent)}
-.feedback-badge.wrong{color:var(--accent3)}
+.feedback-badge.correct{color:var(--trv-correct, var(--accent))}
+.feedback-badge.wrong{color:var(--trv-wrong, var(--accent3))}
 .feedback-points{font-family:'Fredoka',sans-serif;font-size:24px;font-weight:700;color:var(--gold);margin-top:8px;animation:slideUp .4s ease .1s both}
 
 /* ======================== */
@@ -534,26 +535,26 @@ function toggleSound() {
 // SHOP CATALOG
 // ============================================
 var TRIVIA_SHOP = [
-  { id:'trv_ans_default', name:'Default', emoji:'\u{1F7E5}', cost:0, slot:'Answer Theme' },
-  { id:'trv_ans_neon', name:'Neon Buttons', emoji:'\u{1F49A}', cost:200, slot:'Answer Theme' },
-  { id:'trv_ans_candy', name:'Candy Colors', emoji:'\u{1F36C}', cost:300, slot:'Answer Theme' },
-  { id:'trv_ans_galaxy', name:'Galaxy', emoji:'\u{1F30C}', cost:500, slot:'Answer Theme' },
-  { id:'trv_timer_standard', name:'Standard', emoji:'\u23F1\uFE0F', cost:0, slot:'Timer Style' },
-  { id:'trv_timer_digital', name:'Digital Clock', emoji:'\u{1F552}', cost:150, slot:'Timer Style' },
-  { id:'trv_timer_hourglass', name:'Hourglass', emoji:'\u231B', cost:300, slot:'Timer Style' },
-  { id:'trv_timer_bomb', name:'Bomb', emoji:'\u{1F4A3}', cost:500, slot:'Timer Style' },
-  { id:'trv_fx_confetti', name:'Confetti', emoji:'\u{1F389}', cost:0, slot:'Celebration Effect' },
-  { id:'trv_fx_stars', name:'Stars', emoji:'\u2B50', cost:200, slot:'Celebration Effect' },
-  { id:'trv_fx_fireworks', name:'Fireworks', emoji:'\u{1F386}', cost:400, slot:'Celebration Effect' },
-  { id:'trv_fx_rainbow', name:'Rainbow', emoji:'\u{1F308}', cost:600, slot:'Celebration Effect' }
+  { id:'trv_ans_default', name:'Default', emoji:'\u{1F7E5}', cost:0, slot:'Answer Theme', value:{correct:'#06d6a0',wrong:'#ef476f',bg:'var(--surface)'} },
+  { id:'trv_ans_neon', name:'Neon Buttons', emoji:'\u{1F49A}', cost:200, slot:'Answer Theme', value:{correct:'#39ff14',wrong:'#ff1493',bg:'#0a1628'} },
+  { id:'trv_ans_candy', name:'Candy Colors', emoji:'\u{1F36C}', cost:300, slot:'Answer Theme', value:{correct:'#fbbf24',wrong:'#ef4444',bg:'#1a0f00'} },
+  { id:'trv_ans_galaxy', name:'Galaxy', emoji:'\u{1F30C}', cost:500, slot:'Answer Theme', value:{correct:'#22d3ee',wrong:'#6366f1',bg:'#001a2c'} },
+  { id:'trv_timer_standard', name:'Standard', emoji:'\u23F1\uFE0F', cost:0, slot:'Timer Style', value:{color:'var(--gold)',bg:'var(--surface)'} },
+  { id:'trv_timer_digital', name:'Digital Clock', emoji:'\u{1F552}', cost:150, slot:'Timer Style', value:{color:'#06d6a0',bg:'#0a1628'} },
+  { id:'trv_timer_hourglass', name:'Hourglass', emoji:'\u231B', cost:300, slot:'Timer Style', value:{color:'#ef4444',bg:'#1a0a00'} },
+  { id:'trv_timer_bomb', name:'Bomb', emoji:'\u{1F4A3}', cost:500, slot:'Timer Style', value:{color:'#22d3ee',bg:'#0a1628'} },
+  { id:'trv_fx_confetti', name:'Confetti', emoji:'\u{1F389}', cost:0, slot:'Celebration Effect', value:{type:'confetti'} },
+  { id:'trv_fx_stars', name:'Stars', emoji:'\u2B50', cost:200, slot:'Celebration Effect', value:{type:'stars'} },
+  { id:'trv_fx_fireworks', name:'Fireworks', emoji:'\u{1F386}', cost:400, slot:'Celebration Effect', value:{type:'fireworks'} },
+  { id:'trv_fx_rainbow', name:'Rainbow', emoji:'\u{1F308}', cost:600, slot:'Celebration Effect', value:{type:'rainbow'} }
 ];
 
 function showTriviaShop() {
   showScreen('shopScreen');
   if (window.odaShop) {
     odaShop.renderShopPanel('trivia', TRIVIA_SHOP, 'triviaShopContainer', {
-      onEquip: function(item) { console.log('[Trivia] Equipped:', item.id); },
-      onBuy: function(item) { console.log('[Trivia] Bought:', item.id); }
+      onEquip: function(item) { loadMyCosmetics(); },
+      onBuy: function(item) { loadMyCosmetics(); }
     });
   }
 }
@@ -733,16 +734,42 @@ var playerEmojis = ['&#128663;','&#128665;','&#128661;','&#128667;','&#128641;',
 // COSMETICS
 // ============================================
 var myCosmetics = {};
-(function loadMyCosmetics(){
+function loadMyCosmetics(){
   var sid = localStorage.getItem('studentId');
   if(!sid) return;
   getFirebaseDB().then(function(fb) {
     var fs = fb.fsMod;
     fs.getDoc(fs.doc(fb.db, 'students', sid)).then(function(snap) {
-      if(snap.exists()){ myCosmetics = snap.data().equipped || {}; }
+      if(snap.exists()){ myCosmetics = snap.data().gameCosmetics?.trivia?.equipped || {}; }
+      applyCosmeticStyles();
     }).catch(function(){});
   }).catch(function(){});
-})();
+}
+loadMyCosmetics();
+
+function applyCosmeticStyles(){
+  var root = document.documentElement;
+  // Answer Theme
+  var at = myCosmetics['Answer Theme'];
+  if(at && at.value){
+    root.style.setProperty('--trv-correct', at.value.correct);
+    root.style.setProperty('--trv-wrong', at.value.wrong);
+    root.style.setProperty('--trv-answer-bg', at.value.bg);
+  }else{
+    root.style.removeProperty('--trv-correct');
+    root.style.removeProperty('--trv-wrong');
+    root.style.removeProperty('--trv-answer-bg');
+  }
+  // Timer Style
+  var ts = myCosmetics['Timer Style'];
+  if(ts && ts.value){
+    root.style.setProperty('--trv-timer-color', ts.value.color);
+    root.style.setProperty('--trv-timer-bg', ts.value.bg);
+  }else{
+    root.style.removeProperty('--trv-timer-color');
+    root.style.removeProperty('--trv-timer-bg');
+  }
+}
 
 function applyNameColor(el, color){
   if(!el || !color) return;
@@ -2008,6 +2035,16 @@ function shuffle(arr) {
   }
   return arr;
 }
+
+odaHelp.init({
+  title:'Trivia Race', emoji:'\u{1F3C1}', subtitle:'Race to the finish with your knowledge!',
+  sections:[
+    {title:'Rules', icon:'\u{1F4D6}', items:['Answer multiple-choice trivia questions','Answer correctly and quickly for more points','Race against the clock or other players','Choose from different categories to practice']},
+    {title:'Modes', icon:'\u26A1', items:['Practice \u2014 Solo trivia by category','Multiplayer \u2014 Race against friends in real-time']}
+  ],
+  controls:[{key:'Click',action:'Select answer'},{key:'1-4',action:'Quick select'}],
+  tip:'<strong>Read carefully!</strong> Don\'t rush \u2014 accuracy matters more than speed. Eliminate obviously wrong answers first.'
+});
 </script>
 </body>
 </html>

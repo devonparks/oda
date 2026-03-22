@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Bowling - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e1a;color:#f0f4ff;font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:center}
+body.in-game{overflow:hidden}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+.sound-btn{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;transition:all .2s;backdrop-filter:blur(8px)}
+
+.screen{display:none;width:100%;max-width:600px;min-height:100vh;padding:16px;animation:fadeUp .35s ease}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+
+/* HOME */
+#homeScreen{padding-top:80px;justify-content:flex-start;gap:16px}
+.home-header{text-align:center;margin-bottom:8px}
+.home-header h1{font-size:clamp(44px,10vw,60px);font-weight:700;letter-spacing:-2px}
+.home-header h1 .hl{color:var(--accent)}
+.home-header p{color:var(--text2);font-size:15px;margin-top:4px}
+.best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
+.best-pill .bp-label{color:var(--text2)}
+.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
+.home-actions{display:flex;flex-direction:column;align-items:center;gap:14px}
+.stats-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.stats-row .sr{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+.how-to{max-width:400px;width:100%;margin:0 auto;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px}
+.how-to h3{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.how-to p{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* GAME */
+#gameScreen{padding:0;max-width:100%;width:100%;min-height:100vh;position:relative}
+#canvasWrap{width:100%;height:100vh;height:100dvh;position:relative;overflow:hidden}
+#gameCanvas{display:block;width:100%;height:100%;touch-action:none}
+
+/* HUD overlays */
+.game-hud{position:absolute;top:0;left:0;right:0;pointer-events:none;z-index:5;padding:8px 12px}
+.scoreboard{display:flex;gap:2px;justify-content:center;background:rgba(0,0,0,.55);border-radius:10px;padding:4px 6px;backdrop-filter:blur(4px)}
+.frame-cell{text-align:center;min-width:32px;border:1px solid rgba(255,255,255,.12);border-radius:3px;padding:1px 3px}
+.frame-cell.active{border-color:var(--accent);background:rgba(6,214,160,.1)}
+.frame-cell .fc-num{font-size:7px;color:var(--text2);font-weight:700}
+.frame-cell .fc-balls{font-size:9px;color:#fff;font-weight:700;min-height:12px;display:flex;gap:1px;justify-content:center}
+.frame-cell .fc-total{font-size:10px;color:var(--gold);font-weight:800;font-family:'Fredoka',sans-serif;min-height:12px}
+.frame-cell.f10{min-width:44px}
+.hud-info{display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+.hud-frame{font-family:'Fredoka',sans-serif;font-size:14px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5)}
+.hud-total{font-family:'Fredoka',sans-serif;font-size:22px;color:var(--gold);text-shadow:0 1px 4px rgba(0,0,0,.5)}
+
+/* POWER METER */
+.power-wrap{position:absolute;right:16px;top:50%;transform:translateY(-50%);width:26px;height:180px;z-index:5;display:none}
+.power-bg{width:100%;height:100%;background:rgba(0,0,0,.5);border-radius:13px;border:2px solid rgba(255,255,255,.2);overflow:hidden;position:relative}
+.power-fill{position:absolute;bottom:0;width:100%;background:linear-gradient(to top,#06d6a0,#ffd166,#ef476f);border-radius:0 0 11px 11px;transition:none}
+.power-label{text-align:center;color:#fff;font-size:9px;font-weight:700;margin-top:3px;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+
+.aim-text{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;z-index:5}
+.aim-text span{font-family:'Fredoka',sans-serif;font-size:14px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.5);background:rgba(0,0,0,.4);padding:5px 14px;border-radius:16px;backdrop-filter:blur(4px)}
+
+/* CONTROL PANEL */
+.bowl-controls{position:absolute;bottom:0;left:0;right:0;z-index:6;background:linear-gradient(transparent,rgba(0,0,0,.7) 30%,rgba(0,0,0,.85));padding:12px 16px 20px;display:none}
+.ctrl-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.ctrl-row label{font-family:'Fredoka',sans-serif;font-size:12px;color:var(--text2);min-width:55px;text-align:right}
+.ctrl-row input[type=range]{flex:1;height:6px;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.15);border-radius:3px;outline:none}
+.ctrl-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid #fff}
+.ctrl-row .ctrl-val{font-family:'Fredoka',sans-serif;font-size:13px;color:#fff;min-width:35px;text-align:center}
+.bowl-btn{display:block;width:100%;max-width:300px;margin:8px auto 0;padding:14px;border:none;border-radius:14px;background:var(--accent);color:var(--bg);font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;cursor:pointer;transition:all .15s}
+.bowl-btn:active{transform:scale(.96)}
+.bowl-btn:hover{box-shadow:0 0 24px rgba(6,214,160,.4)}
+
+/* GAME OVER */
+.go-overlay{position:absolute;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:10;gap:10px;padding:24px;animation:fadeUp .3s ease}
+.go-overlay.active{display:flex}
+.go-overlay h2{font-size:28px;font-weight:700;color:var(--accent)}
+.go-overlay .go-score{font-family:'Fredoka',sans-serif;font-size:52px;font-weight:700;color:#fff}
+.go-overlay .go-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.go-overlay .go-sub{font-size:13px;color:var(--text2)}
+.go-overlay .go-best{font-size:15px;color:var(--gold);font-weight:700;font-family:'Fredoka',sans-serif}
+.go-overlay .go-new{color:var(--accent);font-size:13px;font-weight:700}
+.go-overlay .go-coins{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:6px 16px;font-size:15px;font-weight:700;color:var(--gold);font-family:'Fredoka',sans-serif}
+.go-overlay .go-btns{display:flex;gap:10px;margin-top:6px}
+
+/* STRIKE POPUP */
+.strike-popup{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%) scale(0);font-family:'Fredoka',sans-serif;font-size:56px;font-weight:700;color:var(--gold);text-shadow:0 0 30px rgba(255,209,102,.6),0 4px 12px rgba(0,0,0,.5);z-index:8;pointer-events:none;animation:strikePop .8s ease forwards}
+@keyframes strikePop{0%{transform:translate(-50%,-50%) scale(0);opacity:0}30%{transform:translate(-50%,-50%) scale(1.3);opacity:1}50%{transform:translate(-50%,-50%) scale(1)}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
+
+/* LOADING */
+.loading-overlay{position:absolute;inset:0;background:#0a0e1a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;gap:16px}
+.loading-overlay .spinner{width:40px;height:40px;border:4px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* RECORDS */
+#recordsScreen{padding-top:70px;justify-content:flex-start}
+.records-container{width:100%;max-width:420px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.stat-card .sv{font-size:24px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.stat-card .sv.gold{color:var(--gold)}
+.stat-card .sl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-weight:600}
+.lb-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px}
+.lb-row.me{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.lb-rank{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text2);flex-shrink:0}
+.lb-rank.r1{background:rgba(255,209,102,.2);color:var(--gold)}
+.lb-rank.r2{background:rgba(192,192,192,.15);color:#c0c0c0}
+.lb-rank.r3{background:rgba(205,127,50,.15);color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-size:14px;font-weight:800;color:var(--gold);font-family:'Fredoka',sans-serif}
+.lb-empty{text-align:center;color:var(--text2);font-size:14px;padding:24px;font-weight:600}
+
+/* SHOP */
+#shopScreen{padding-top:70px;justify-content:flex-start}
+
+.ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
+@keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../../student.html" id="backBtn" onclick="if(document.getElementById('gameScreen').classList.contains('active')){event.preventDefault();showScreen('homeScreen')}">&#8592; Back</a>
+<button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128264;</button>
+
+<!-- HOME SCREEN -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1>&#127923; <span class="hl">Bowling</span></h1>
+    <p>Roll strikes in 3D! Wii Bowling style!</p>
+  </div>
+  <div class="best-pill"><span class="bp-label">&#127942; Best</span><span class="bp-val" id="homeBest">0</span></div>
+  <div class="home-actions">
+    <button class="btn btn-accent" id="playBtn" style="font-size:18px;padding:16px 48px">&#127923; Play</button>
+    <button class="btn btn-outline btn-small" id="recordsBtn">Records &amp; Leaderboard</button>
+    <button class="btn btn-outline btn-small" id="shopBtn">&#128717;&#65039; Shop</button>
+  </div>
+  <div class="stats-row">
+    <div class="sr">&#127918; Games <span id="homeGames">0</span></div>
+    <div class="sr">&#9889; Strikes <span id="homeStrikes">0</span></div>
+  </div>
+  <div class="how-to"><h3>How to Play</h3><p>Drag left/right to aim. Click &amp; hold to charge power, release to bowl! Knock down all 10 pins for a strike!</p></div>
+</div>
+
+<!-- GAME SCREEN -->
+<div class="screen" id="gameScreen">
+  <div id="canvasWrap">
+    <canvas id="gameCanvas"></canvas>
+    <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div style="color:var(--text2);font-size:14px;font-weight:600">Loading 3D Engine...</div></div>
+    <div class="game-hud" id="gameHud" style="display:none">
+      <div class="scoreboard" id="scoreboard"></div>
+      <div class="hud-info"><div class="hud-frame" id="hudFrame">Frame 1</div><div class="hud-total" id="hudTotal">0</div></div>
+    </div>
+    <div class="power-wrap" id="powerWrap"><div class="power-bg"><div class="power-fill" id="powerFill"></div></div><div class="power-label">POWER</div></div>
+    <div class="aim-text" id="aimText"><span>Use controls below to aim, then Bowl!</span></div>
+    <div class="bowl-controls" id="bowlControls">
+      <div class="ctrl-row"><label>Position</label><input type="range" id="ctrlPos" min="-40" max="40" value="0" step="1"><div class="ctrl-val" id="ctrlPosVal">0</div></div>
+      <div class="ctrl-row"><label>Angle</label><input type="range" id="ctrlAngle" min="-15" max="15" value="0" step="1"><div class="ctrl-val" id="ctrlAngleVal">0&deg;</div></div>
+      <div class="ctrl-row"><label>Spin</label><input type="range" id="ctrlSpin" min="-10" max="10" value="0" step="1"><div class="ctrl-val" id="ctrlSpinVal">0</div></div>
+      <button class="bowl-btn" id="bowlBtn" onclick="startBowl()">&#127923; Bowl!</button>
+    </div>
+    <div class="go-overlay" id="gameOverOverlay">
+      <h2>Game Complete!</h2>
+      <div class="go-label">Final Score</div>
+      <div class="go-score" id="goScore">0</div>
+      <div class="go-sub" id="goSub"></div>
+      <div class="go-best" id="goBest">Best: 0</div>
+      <div class="go-new" id="goNew" style="display:none">New Best! &#127881;</div>
+      <div class="go-coins" id="goCoins">+0 coins</div>
+      <div class="go-btns">
+        <button class="btn btn-accent btn-small" onclick="playGame()">Play Again</button>
+        <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Home</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECORDS SCREEN -->
+<div class="screen" id="recordsScreen">
+  <h1>Your <span style="color:var(--accent)">Records</span></h1>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Bowling stats</p>
+  <div class="records-container">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="sv gold" id="statBest">0</div><div class="sl">Best Score</div></div>
+      <div class="stat-card"><div class="sv" id="statPlayed">0</div><div class="sl">Games Played</div></div>
+      <div class="stat-card"><div class="sv" id="statStrikes">0</div><div class="sl">Total Strikes</div></div>
+      <div class="stat-card"><div class="sv" id="statSpares">0</div><div class="sl">Total Spares</div></div>
+    </div>
+    <div class="lb-title">Class Leaderboard</div>
+    <div class="lb-list" id="leaderboard"><div class="lb-empty">Loading...</div></div>
+    <div style="text-align:center;margin-top:20px"><button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Back</button></div>
+  </div>
+</div>
+
+<!-- SHOP SCREEN -->
+<div class="screen" id="shopScreen">
+  <div style="text-align:center;margin-bottom:8px"><h1>&#128717;&#65039; Shop</h1><p style="color:var(--text2);font-size:14px">Customize your bowling experience</p></div>
+  <div id="bowlingShopContainer" style="width:100%;max-width:500px"></div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","cannon-es":"https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"}}</script>
+<script type="module">
+let THREE,CANNON;
+async function loadEngines(){
+  if(THREE)return;
+  document.getElementById('loadingOverlay').style.display='flex';
+  [THREE,CANNON]=await Promise.all([import('three'),import('cannon-es')]);
+  document.getElementById('loadingOverlay').style.display='none';
+}
+// Pre-load engines in background after page loads
+setTimeout(loadEngines,100);
+
+/* ===================== */
+/* SESSION               */
+/* ===================== */
+const studentId=localStorage.getItem('studentId')||'';
+const studentName=localStorage.getItem('studentName')||'';
+const classCode=localStorage.getItem('classCode')||'';
+const isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+if(isTeacher)document.getElementById('backBtn').href='../../teacher.html';
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+/* ===================== */
+/* SCREENS               */
+/* ===================== */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.body.classList.toggle('in-game',id==='gameScreen');
+  if(id==='homeScreen')loadLocalStats();
+}
+window.showScreen=showScreen;
+
+/* ===================== */
+/* AUDIO                 */
+/* ===================== */
+let audioCtx=null,soundOn=true;
+function getAudioCtx(){if(!audioCtx)try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx}
+function playTone(f,d,t,v,r){if(!soundOn)return;const c=getAudioCtx();if(!c)return;const o=c.createOscillator(),g=c.createGain();o.type=t||'square';o.frequency.setValueAtTime(f,c.currentTime);if(r)o.frequency.linearRampToValueAtTime(r,c.currentTime+d);g.gain.setValueAtTime(v||0.1,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d)}
+function playNoise(d,v){if(!soundOn)return;const c=getAudioCtx();if(!c)return;const b=c.createBuffer(1,c.sampleRate*d,c.sampleRate),ch=b.getChannelData(0);for(let i=0;i<ch.length;i++)ch[i]=Math.random()*2-1;const s=c.createBufferSource();s.buffer=b;const g=c.createGain();g.gain.setValueAtTime(v||0.1,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);s.connect(g);g.connect(c.destination);s.start()}
+function sfxRoll(){playTone(80,0.8,'sine',0.06,50)}
+function sfxPinHit(){playNoise(0.2,0.18);playTone(350,0.1,'square',0.1);setTimeout(()=>playNoise(0.15,0.12),60)}
+function sfxStrike(){playTone(500,0.1,'square',0.12);setTimeout(()=>playTone(700,0.1,'square',0.12),80);setTimeout(()=>playTone(900,0.15,'square',0.12),160)}
+function sfxSpare(){playTone(500,0.1,'square',0.1);setTimeout(()=>playTone(800,0.15,'square',0.1),100)}
+function sfxGutter(){playTone(150,0.4,'sawtooth',0.08,60)}
+window.toggleSound=function(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;'};
+
+/* ===================== */
+/* SHOP                  */
+/* ===================== */
+let myCosmetics={};let ballColor=0xcc2222;
+const BOWLING_SHOP=[
+  {id:'ball_red',name:'Classic Red',emoji:'\u{1F534}',cost:0,slot:'Ball Color',value:{color:'#cc2222'}},
+  {id:'ball_neon',name:'Neon Green',emoji:'\u{1F7E2}',cost:100,slot:'Ball Color',value:{color:'#39ff14'}},
+  {id:'ball_ice',name:'Ice Blue',emoji:'\u2744',cost:150,slot:'Ball Color',value:{color:'#22d3ee'}},
+  {id:'ball_fire',name:'Fire Orange',emoji:'\u{1F525}',cost:200,slot:'Ball Color',value:{color:'#f97316'}},
+  {id:'ball_galaxy',name:'Galaxy Purple',emoji:'\u{1F30C}',cost:300,slot:'Ball Color',value:{color:'#a855f7'}},
+  {id:'ball_gold',name:'Gold',emoji:'\u2728',cost:400,slot:'Ball Color',value:{color:'#ffd166'}},
+  {id:'ball_rainbow',name:'Rainbow',emoji:'\u{1F308}',cost:500,slot:'Ball Color',value:{color:'#ff6b6b'}},
+  {id:'lane_classic',name:'Classic Wood',emoji:'\u{1FAB5}',cost:0,slot:'Lane Theme',value:{color:'#c8956c'}},
+  {id:'lane_dark',name:'Dark Wood',emoji:'\u{1F332}',cost:150,slot:'Lane Theme',value:{color:'#4a3728'}},
+  {id:'lane_neon',name:'Neon',emoji:'\u{1F4A1}',cost:300,slot:'Lane Theme',value:{color:'#1a2a1a'}},
+  {id:'lane_space',name:'Space',emoji:'\u{1F680}',cost:400,slot:'Lane Theme',value:{color:'#1a1a3a'}},
+  {id:'lane_ocean',name:'Ocean',emoji:'\u{1F30A}',cost:350,slot:'Lane Theme',value:{color:'#1a4a5e'}},
+  {id:'pin_classic',name:'Classic White',emoji:'\u{1F3B3}',cost:0,slot:'Pin Style',value:{bodyColor:'#f0f0f0',stripeColor:'#cc2222'}},
+  {id:'pin_gold',name:'Gold',emoji:'\u{1F3C6}',cost:300,slot:'Pin Style',value:{bodyColor:'#ffd166',stripeColor:'#b8860b'}},
+  {id:'pin_neon',name:'Neon',emoji:'\u{1F4A0}',cost:250,slot:'Pin Style',value:{bodyColor:'#e0e0e0',stripeColor:'#39ff14'}},
+  {id:'pin_crystal',name:'Crystal',emoji:'\u{1F48E}',cost:400,slot:'Pin Style',value:{bodyColor:'#e0f2fe',stripeColor:'#67e8f9'}}
+];
+window.showShopScreen=function(){showScreen('shopScreen');if(typeof odaShop!=='undefined')odaShop.renderShopPanel('bowling',BOWLING_SHOP,'bowlingShopContainer',{onEquip:()=>loadMyCosmetics(),onBuy:()=>loadMyCosmetics()})};
+async function loadMyCosmetics(){const sid=localStorage.getItem('studentId');if(!sid)return;try{const fb=await window.getFirebaseDB();const snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));if(snap.exists()){const d=snap.data();myCosmetics=d.gameCosmetics?.bowling?.equipped||{};}}catch(e){}applyCosmeticStyles()}
+function applyCosmeticStyles(){const bc=myCosmetics['Ball Color'];if(bc?.value)ballColor=parseInt(bc.value.color.replace('#',''),16)||0xcc2222;if(ballMesh)ballMesh.material.color.setHex(ballColor)}
+loadMyCosmetics();
+
+/* ===================== */
+/* SCORING               */
+/* ===================== */
+let frames=[],curFrame=0,curBall=0,totalScore=0,gameStrikes=0,gameSpares=0;
+
+function initFrames(){frames=[];for(let i=0;i<10;i++)frames.push({balls:[],score:null,display:[]});curFrame=0;curBall=0;totalScore=0;gameStrikes=0;gameSpares=0}
+function recordBall(pinsDown){
+  const f=frames[curFrame];f.balls.push(pinsDown);
+  if(curFrame<9){
+    if(curBall===0&&pinsDown===10){f.display=['X'];gameStrikes++;sfxStrike();showStrikePopup('STRIKE!');curFrame++;curBall=0;return'strike'}
+    if(curBall===1){
+      if(f.balls[0]+pinsDown===10){f.display=[f.balls[0]===0?'-':String(f.balls[0]),'/'];gameSpares++;sfxSpare();showStrikePopup('SPARE!')}
+      else{f.display=[f.balls[0]===0?'-':String(f.balls[0]),pinsDown===0?'-':String(pinsDown)]}
+      curFrame++;curBall=0;return'next'
+    }
+    curBall=1;f.display=[pinsDown===0?'-':String(pinsDown)];return'second'
+  }else{
+    if(curBall===0){if(pinsDown===10){f.display=['X'];gameStrikes++;sfxStrike();showStrikePopup('STRIKE!');curBall=1;return'tenth-reset'}f.display=[pinsDown===0?'-':String(pinsDown)];curBall=1;return'second'}
+    if(curBall===1){if(f.balls[0]===10){if(pinsDown===10){f.display.push('X');gameStrikes++;sfxStrike();showStrikePopup('STRIKE!');curBall=2;return'tenth-reset'}f.display.push(pinsDown===0?'-':String(pinsDown));curBall=2;return'second'}if(f.balls[0]+pinsDown===10){f.display.push('/');gameSpares++;sfxSpare();showStrikePopup('SPARE!');curBall=2;return'tenth-reset'}f.display.push(pinsDown===0?'-':String(pinsDown));return'done'}
+    if(curBall===2){if(pinsDown===10){f.display.push('X');gameStrikes++;sfxStrike();showStrikePopup('STRIKE!')}else{f.display.push(pinsDown===0?'-':String(pinsDown))}return'done'}
+  }
+  return'done';
+}
+function calcTotalScore(){
+  const allBalls=[];frames.forEach(f=>f.balls.forEach(b=>allBalls.push(b)));
+  let idx=0;totalScore=0;
+  for(let i=0;i<10;i++){
+    if(idx>=allBalls.length)break;
+    if(i<9){
+      if(allBalls[idx]===10){const b1=allBalls[idx+1]||0,b2=allBalls[idx+2]||0;frames[i].score=totalScore+10+b1+b2;totalScore=frames[i].score;idx++}
+      else{const first=allBalls[idx],second=allBalls[idx+1]||0;if(first+second===10){frames[i].score=totalScore+10+(allBalls[idx+2]||0)}else{frames[i].score=totalScore+first+second}totalScore=frames[i].score;idx+=2}
+    }else{let sum=0;frames[i].balls.forEach(b=>sum+=b);frames[i].score=totalScore+sum;totalScore=frames[i].score}
+  }
+  return totalScore;
+}
+function renderScoreboard(){
+  let h='';
+  for(let i=0;i<10;i++){const f=frames[i];const active=i===curFrame?' active':'';h+='<div class="frame-cell'+(i===9?' f10':'')+active+'"><div class="fc-num">'+(i+1)+'</div><div class="fc-balls">';if(f.display.length)f.display.forEach(d=>{h+='<span>'+d+'</span>'});else h+='&nbsp;';h+='</div><div class="fc-total">'+(f.score!==null?f.score:'')+'</div></div>'}
+  document.getElementById('scoreboard').innerHTML=h;
+  document.getElementById('hudFrame').textContent='Frame '+(curFrame+1);
+  document.getElementById('hudTotal').textContent=totalScore;
+}
+function showStrikePopup(text){const el=document.createElement('div');el.className='strike-popup';el.textContent=text;document.getElementById('canvasWrap').appendChild(el);setTimeout(()=>el.remove(),1000)}
+
+/* ===================== */
+/* LOCAL STATS           */
+/* ===================== */
+let localBest=parseInt(localStorage.getItem('bowl_best'))||0;
+let localGames=parseInt(localStorage.getItem('bowl_games'))||0;
+let localStrikes=parseInt(localStorage.getItem('bowl_strikes'))||0;
+let localSpares=parseInt(localStorage.getItem('bowl_spares'))||0;
+function loadLocalStats(){document.getElementById('homeBest').textContent=localBest;document.getElementById('homeGames').textContent=localGames;document.getElementById('homeStrikes').textContent=localStrikes}
+loadLocalStats();
+
+/* ===================== */
+/* THREE.JS + CANNON-ES  */
+/* ===================== */
+let scene,camera,renderer,world;
+let ballMesh,ballBody;
+let pinMeshes=[],pinBodies=[];
+let laneMesh;
+let gameState='home';
+let aimX=0,aimAngle=0;
+let powerLevel=0,powerDir=1,powerActive=false;
+let coinsAwarded=false;
+let pinHitPlayed=false;
+
+// Pin triangle positions
+const PIN_POS=[];
+const rows=[[0],[-.15,.15],[-.3,0,.3],[-.45,-.15,.15,.45]];
+rows.forEach((row,ri)=>row.forEach(xOff=>PIN_POS.push({x:xOff,z:16+ri*0.3})));
+
+function initEngine(){
+  const wrap=document.getElementById('canvasWrap');
+  const canvas=document.getElementById('gameCanvas');
+  const W=wrap.clientWidth,H=wrap.clientHeight;
+
+  // THREE.js
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x1a2a4a);
+  scene.fog=new THREE.Fog(0x1a2a4a,15,25);
+
+  camera=new THREE.PerspectiveCamera(55,W/H,0.1,100);
+  camera.position.set(0,1.2,-0.5);
+  camera.lookAt(0,0.3,10);
+
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+  renderer.setSize(W,H);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.3;
+
+  // Lights
+  const ambient=new THREE.AmbientLight(0x404060,0.6);
+  scene.add(ambient);
+  const dirLight=new THREE.DirectionalLight(0xfff5e6,1.8);
+  dirLight.position.set(2,6,5);
+  dirLight.castShadow=true;
+  dirLight.shadow.mapSize.set(2048,2048);
+  dirLight.shadow.camera.left=-3;dirLight.shadow.camera.right=3;
+  dirLight.shadow.camera.top=20;dirLight.shadow.camera.bottom=-2;
+  dirLight.shadow.camera.near=0.5;dirLight.shadow.camera.far=30;
+  dirLight.shadow.bias=-0.001;
+  scene.add(dirLight);
+  const fillLight=new THREE.DirectionalLight(0xaabbdd,0.4);
+  fillLight.position.set(-2,3,8);
+  scene.add(fillLight);
+
+  // CANNON.js physics
+  world=new CANNON.World({gravity:new CANNON.Vec3(0,-9.82,0)});
+  world.broadphase=new CANNON.SAPBroadphase(world);
+  world.allowSleep=true;
+  world.defaultContactMaterial.friction=0.3;
+  world.defaultContactMaterial.restitution=0.25;
+
+  // Pin-Ball contact material
+  const pinMat=new CANNON.Material('pin');
+  const ballMat=new CANNON.Material('ball');
+  const laneMat=new CANNON.Material('lane');
+  world.addContactMaterial(new CANNON.ContactMaterial(ballMat,pinMat,{friction:0.4,restitution:0.3}));
+  world.addContactMaterial(new CANNON.ContactMaterial(ballMat,laneMat,{friction:0.25,restitution:0.1}));
+  world.addContactMaterial(new CANNON.ContactMaterial(pinMat,laneMat,{friction:0.5,restitution:0.15}));
+  world.addContactMaterial(new CANNON.ContactMaterial(pinMat,pinMat,{friction:0.3,restitution:0.4}));
+
+  // Lane
+  const laneGeo=new THREE.BoxGeometry(1.06,0.08,18);
+  const laneMaterial=new THREE.MeshStandardMaterial({color:0xc8956c,roughness:0.4,metalness:0.05});
+  laneMesh=new THREE.Mesh(laneGeo,laneMaterial);
+  laneMesh.position.set(0,-0.04,9);
+  laneMesh.receiveShadow=true;
+  scene.add(laneMesh);
+  const laneBody=new CANNON.Body({mass:0,shape:new CANNON.Box(new CANNON.Vec3(0.53,0.04,9)),material:laneMat});
+  laneBody.position.set(0,-0.04,9);
+  world.addBody(laneBody);
+
+  // Lane lines
+  for(let i=-4;i<=4;i++){
+    const lineGeo=new THREE.PlaneGeometry(0.005,17);
+    const lineMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.08});
+    const line=new THREE.Mesh(lineGeo,lineMat);
+    line.rotation.x=-Math.PI/2;
+    line.position.set(i*0.12,0.005,9);
+    scene.add(line);
+  }
+
+  // Lane arrows
+  for(let a=-2;a<=2;a++){
+    const arrowGeo=new THREE.ConeGeometry(0.03,0.06,3);
+    const arrowMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.12});
+    const arrow=new THREE.Mesh(arrowGeo,arrowMat);
+    arrow.rotation.x=-Math.PI/2;
+    arrow.position.set(a*0.15,0.005,4.5);
+    scene.add(arrow);
+  }
+
+  // Gutters
+  const gutterGeo=new THREE.BoxGeometry(0.2,0.06,18);
+  const gutterMat=new THREE.MeshStandardMaterial({color:0x3a2a1a,roughness:0.6});
+  const lGutter=new THREE.Mesh(gutterGeo,gutterMat);lGutter.position.set(-0.68,-0.05,9);lGutter.receiveShadow=true;scene.add(lGutter);
+  const rGutter=new THREE.Mesh(gutterGeo,gutterMat);rGutter.position.set(0.68,-0.05,9);rGutter.receiveShadow=true;scene.add(rGutter);
+
+  // Walls
+  const wallMat=new THREE.MeshStandardMaterial({color:0x0a0e1a,roughness:0.9});
+  const wallGeo=new THREE.BoxGeometry(0.08,1.5,18);
+  const lWall=new THREE.Mesh(wallGeo,wallMat);lWall.position.set(-0.95,0.5,9);scene.add(lWall);
+  const rWall=new THREE.Mesh(wallGeo,wallMat);rWall.position.set(0.95,0.5,9);scene.add(rWall);
+  // Invisible physics walls
+  const wallBody1=new CANNON.Body({mass:0,shape:new CANNON.Box(new CANNON.Vec3(0.04,1,9))});wallBody1.position.set(-0.95,0.5,9);world.addBody(wallBody1);
+  const wallBody2=new CANNON.Body({mass:0,shape:new CANNON.Box(new CANNON.Vec3(0.04,1,9))});wallBody2.position.set(0.95,0.5,9);world.addBody(wallBody2);
+  // Back wall
+  const backWallGeo=new THREE.BoxGeometry(2,1.5,0.15);
+  const backWall=new THREE.Mesh(backWallGeo,wallMat);backWall.position.set(0,0.5,18.2);scene.add(backWall);
+  const backBody=new CANNON.Body({mass:0,shape:new CANNON.Box(new CANNON.Vec3(1,0.75,0.075))});backBody.position.set(0,0.5,18.2);world.addBody(backBody);
+
+  // Ball
+  const ballGeo=new THREE.SphereGeometry(0.11,24,24);
+  const ballMaterial=new THREE.MeshStandardMaterial({color:ballColor,roughness:0.15,metalness:0.4});
+  ballMesh=new THREE.Mesh(ballGeo,ballMaterial);
+  ballMesh.castShadow=true;
+  ballMesh.position.set(0,0.11,1);
+  scene.add(ballMesh);
+  ballBody=new CANNON.Body({mass:6,shape:new CANNON.Sphere(0.11),material:ballMat});
+  ballBody.position.set(0,0.11,1);
+  ballBody.linearDamping=0.1;
+  ballBody.angularDamping=0.3;
+  ballBody.ccdSpeedThreshold=1;
+  ballBody.ccdIterations=10;
+  world.addBody(ballBody);
+
+  // Pins
+  createPins();
+
+  // Floor below lane (catches fallen pins)
+  const floorBody=new CANNON.Body({mass:0,shape:new CANNON.Plane()});
+  floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
+  floorBody.position.set(0,-1,0);
+  world.addBody(floorBody);
+
+  document.getElementById('loadingOverlay').style.display='none';
+  document.getElementById('gameHud').style.display='block';
+}
+
+function createPins(){
+  // Remove old
+  pinMeshes.forEach(m=>scene.remove(m));
+  pinBodies.forEach(b=>world.removeBody(b));
+  pinMeshes=[];pinBodies=[];
+
+  const pinMat=new CANNON.Material('pin');
+  PIN_POS.forEach((p,i)=>{
+    // Visual: cylinder body + sphere head
+    const group=new THREE.Group();
+    const bodyGeo=new THREE.CylinderGeometry(0.04,0.055,0.3,12);
+    const bodyMat=new THREE.MeshStandardMaterial({color:0xf0f0f0,roughness:0.3,metalness:0.1});
+    const body=new THREE.Mesh(bodyGeo,bodyMat);
+    body.position.y=0.15;body.castShadow=true;
+    group.add(body);
+    // Neck
+    const neckGeo=new THREE.CylinderGeometry(0.025,0.04,0.08,8);
+    const neck=new THREE.Mesh(neckGeo,bodyMat);
+    neck.position.y=0.3;neck.castShadow=true;
+    group.add(neck);
+    // Head
+    const headGeo=new THREE.SphereGeometry(0.032,10,10);
+    const head=new THREE.Mesh(headGeo,bodyMat);
+    head.position.y=0.36;head.castShadow=true;
+    group.add(head);
+    // Red stripe
+    const stripeGeo=new THREE.CylinderGeometry(0.048,0.05,0.025,12);
+    const stripeMat=new THREE.MeshStandardMaterial({color:0xcc2222,roughness:0.3});
+    const stripe=new THREE.Mesh(stripeGeo,stripeMat);
+    stripe.position.y=0.22;
+    group.add(stripe);
+    const stripe2=new THREE.Mesh(stripeGeo.clone(),stripeMat);
+    stripe2.scale.set(0.9,0.6,0.9);
+    stripe2.position.y=0.19;
+    group.add(stripe2);
+
+    group.position.set(p.x,0,p.z);
+    scene.add(group);
+    pinMeshes.push(group);
+
+    // Physics: single cylinder, low center of mass so pins STAY DOWN when hit
+    const pinBody=new CANNON.Body({mass:1.2,material:pinMat});
+    // Main body as a single cylinder
+    pinBody.addShape(new CANNON.Cylinder(0.045,0.055,0.38,8),new CANNON.Vec3(0,0.19,0));
+    pinBody.position.set(p.x,0.005,p.z);
+    pinBody.linearDamping=0.08;
+    pinBody.angularDamping=0.08;
+    // Don't let pins sleep — they need to fall and stay fallen
+    pinBody.allowSleep=false;
+    world.addBody(pinBody);
+    pinBodies.push(pinBody);
+  });
+}
+
+/* ===================== */
+/* CAMERA (Wii Style)    */
+/* ===================== */
+const CAM_AIM={x:0,y:1.4,z:-1.8};
+const CAM_STOP_Z=11;
+
+function updateCamera(){
+  if(gameState==='aim'){
+    // Behind ball, looking down lane
+    const targetX=aimX*0.4;
+    camera.position.x+=(targetX-camera.position.x)*0.08;
+    camera.position.y+=(CAM_AIM.y-camera.position.y)*0.08;
+    camera.position.z+=(CAM_AIM.z-camera.position.z)*0.08;
+    camera.lookAt(aimX*0.3,0.15,10);
+  }else if(gameState==='rolling'){
+    // Follow ball smoothly but STOP before pins (Wii style)
+    const targetZ=Math.min(ballBody.position.z-2.5,CAM_STOP_Z);
+    camera.position.z+=(targetZ-camera.position.z)*0.05;
+    camera.position.x+=(ballBody.position.x*0.15-camera.position.x)*0.03;
+    camera.position.y+=(1.2-camera.position.y)*0.04;
+    camera.lookAt(ballBody.position.x*0.2,0.25,Math.max(ballBody.position.z+3,16));
+  }else if(gameState==='settling'){
+    // Hold steady, watch pins fall
+    camera.position.y+=(1.4-camera.position.y)*0.02;
+    camera.lookAt(0,0.3,16.5);
+  }
+}
+
+/* ===================== */
+/* GAME LOGIC            */
+/* ===================== */
+async function playGame(){
+  showScreen('gameScreen');
+  coinsAwarded=false;
+  await loadEngines();
+  if(!scene)initEngine();
+  initFrames();
+  createPins();
+  applyCosmeticStyles();
+  enterAimState();
+  renderScoreboard();
+  animate();
+}
+window.playGame=playGame;
+
+let aimSpin=0;
+let aimGuideLine=null;
+
+function createAimGuide(){
+  if(aimGuideLine){scene.remove(aimGuideLine)}
+  const pts=[];
+  const startX=aimX;
+  const startZ=1;
+  // Draw dotted line from ball toward pins following the angle
+  for(let i=0;i<40;i++){
+    const t=i*0.4;
+    const x=startX+Math.sin(aimAngle)*t;
+    const z=startZ+Math.cos(aimAngle)*t;
+    if(z>17)break;
+    pts.push(new THREE.Vector3(x,0.01,z));
+  }
+  if(pts.length<2)return;
+  const geo=new THREE.BufferGeometry().setFromPoints(pts);
+  const mat=new THREE.LineDashedMaterial({color:0x06d6a0,dashSize:0.15,gapSize:0.1,transparent:true,opacity:0.5});
+  aimGuideLine=new THREE.Line(geo,mat);
+  aimGuideLine.computeLineDistances();
+  scene.add(aimGuideLine);
+}
+
+function removeAimGuide(){
+  if(aimGuideLine){scene.remove(aimGuideLine);aimGuideLine=null}
+}
+
+function enterAimState(){
+  gameState='aim';aimX=0;aimAngle=0;aimSpin=0;pinHitPlayed=false;
+  ballBody.velocity.setZero();ballBody.angularVelocity.setZero();
+  ballBody.position.set(0,0.11,1);ballBody.quaternion.set(0,0,0,1);
+  ballBody.wakeUp();ballBody._guttered=false;
+  ballMesh.position.copy(ballBody.position);
+  camera.position.set(0,CAM_AIM.y,CAM_AIM.z);
+  // Show controls
+  document.getElementById('aimText').style.display='block';
+  document.getElementById('aimText').querySelector('span').textContent=curBall===0?'Set position, angle & power, then Bowl!':'Second ball — aim for remaining pins';
+  document.getElementById('bowlControls').style.display='block';
+  document.getElementById('powerWrap').style.display='none';
+  document.getElementById('gameOverOverlay').classList.remove('active');
+  // Reset sliders
+  document.getElementById('ctrlPos').value=0;
+  document.getElementById('ctrlAngle').value=0;
+  document.getElementById('ctrlSpin').value=0;
+  updateControlDisplays();
+  createAimGuide();
+}
+
+function updateControlDisplays(){
+  const pos=parseInt(document.getElementById('ctrlPos').value);
+  const angle=parseInt(document.getElementById('ctrlAngle').value);
+  const spin=parseInt(document.getElementById('ctrlSpin').value);
+  document.getElementById('ctrlPosVal').textContent=pos>0?'R'+pos:pos<0?'L'+Math.abs(pos):'C';
+  document.getElementById('ctrlAngleVal').innerHTML=angle+'&deg;';
+  document.getElementById('ctrlSpinVal').textContent=spin>0?'R'+spin:spin<0?'L'+Math.abs(spin):'-';
+  // Update ball position live
+  aimX=pos/100;
+  aimAngle=angle*Math.PI/180*0.3;
+  aimSpin=spin/10;
+  if(ballBody){
+    ballBody.position.x=aimX;
+    ballMesh.position.x=aimX;
+  }
+  createAimGuide();
+}
+
+function startBowl(){
+  if(gameState!=='aim')return;
+  gameState='power';
+  powerLevel=0;powerDir=1;powerActive=true;
+  document.getElementById('bowlControls').style.display='none';
+  document.getElementById('powerWrap').style.display='block';
+  document.getElementById('aimText').querySelector('span').textContent='Click or press Space to release!';
+  removeAimGuide();
+}
+window.startBowl=startBowl;
+
+function releaseBowl(){
+  if(gameState!=='power')return;
+  gameState='rolling';
+  powerActive=false;
+  document.getElementById('powerWrap').style.display='none';
+  document.getElementById('aimText').style.display='none';
+  const speed=3+powerLevel*8;
+  const vx=Math.sin(aimAngle)*speed;
+  const vz=Math.cos(aimAngle)*speed;
+  ballBody.velocity.set(vx,0,vz);
+  ballBody.angularVelocity.set(aimSpin*5,0,-vx*2);
+  ballBody.wakeUp();
+  sfxRoll();
+}
+
+// Slider event listeners (set up after DOM ready)
+['ctrlPos','ctrlAngle','ctrlSpin'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',updateControlDisplays);
+});
+
+let settleTimer=0;
+function checkGameState(){
+  if(gameState==='rolling'){
+    // Detect when ball reaches pin zone or stops
+    if(ballBody.position.z>15&&!pinHitPlayed){
+      pinHitPlayed=true;
+      sfxPinHit();
+    }
+    if(ballBody.position.z>18||ballBody.velocity.length()<0.3){
+      gameState='settling';
+      settleTimer=180; // 3 seconds at 60fps
+    }
+    // Gutter detection
+    if(Math.abs(ballBody.position.x)>0.55&&ballBody.position.z<15){
+      if(!ballBody._guttered){ballBody._guttered=true;sfxGutter()}
+    }
+  }
+  if(gameState==='settling'){
+    settleTimer--;
+    if(settleTimer<=0){
+      processResults();
+    }
+  }
+}
+
+function countKnockedPins(){
+  let count=0;
+  pinBodies.forEach((b,i)=>{
+    // Check if pin tipped over (up vector deviated >55 degrees) or fell off lane
+    const up=new CANNON.Vec3(0,1,0);
+    const worldUp=b.quaternion.vmult(up);
+    if(worldUp.y<0.55||b.position.y<-0.2){
+      count++;
+    }
+  });
+  return count;
+}
+
+function processResults(){
+  const knocked=countKnockedPins();
+  let newPins;
+  if(curBall===0){
+    newPins=knocked;
+  }else{
+    newPins=knocked-(frames[curFrame].balls[0]||0);
+    if(newPins<0)newPins=0;
+  }
+  if(ballBody._guttered&&curBall===0)newPins=0;
+
+  const result=recordBall(newPins);
+  calcTotalScore();
+  renderScoreboard();
+
+  if(result==='done'||curFrame>=10){
+    endGame();
+  }else if(result==='strike'||result==='next'||result==='tenth-reset'){
+    // Reset all pins
+    setTimeout(()=>{createPins();enterAimState()},1800);
+  }else if(result==='second'){
+    // Keep standing pins, reset ball only
+    setTimeout(()=>{
+      ballBody._guttered=false;
+      enterAimState();
+    },1200);
+  }
+}
+
+function endGame(){
+  gameState='gameover';calcTotalScore();
+  const isNew=totalScore>localBest;
+  if(isNew){localBest=totalScore;localStorage.setItem('bowl_best',localBest)}
+  localGames++;localStrikes+=gameStrikes;localSpares+=gameSpares;
+  localStorage.setItem('bowl_games',localGames);localStorage.setItem('bowl_strikes',localStrikes);localStorage.setItem('bowl_spares',localSpares);
+  let coins=Math.floor(totalScore/15);if(isNew)coins+=10;if(totalScore>=300)coins+=50;if(totalScore>=200)coins+=10;if(coins<1&&totalScore>0)coins=1;
+  document.getElementById('goScore').textContent=totalScore;
+  document.getElementById('goSub').textContent=gameStrikes+' strikes, '+gameSpares+' spares';
+  document.getElementById('goBest').textContent='Best: '+localBest;
+  document.getElementById('goNew').style.display=isNew?'block':'none';
+  document.getElementById('goCoins').textContent='+'+coins+' coins';
+  setTimeout(()=>document.getElementById('gameOverOverlay').classList.add('active'),600);
+  if(!coinsAwarded){coinsAwarded=true;awardCoins(coins);saveRecord(isNew)}
+}
+
+/* ===================== */
+/* GAME LOOP             */
+/* ===================== */
+function animate(){
+  requestAnimationFrame(animate);
+  if(gameState==='home'||gameState==='gameover'&&!renderer)return;
+
+  // Power meter oscillation
+  if(gameState==='power'&&powerActive){
+    powerLevel+=powerDir*0.018;
+    if(powerLevel>=1){powerLevel=1;powerDir=-1}
+    if(powerLevel<=0){powerLevel=0;powerDir=1}
+    document.getElementById('powerFill').style.height=(powerLevel*100)+'%';
+  }
+
+  // Update ball position from sliders during aim
+  if(gameState==='aim'&&ballBody){
+    ballMesh.position.x=ballBody.position.x;
+    ballMesh.position.y=ballBody.position.y;
+    ballMesh.position.z=ballBody.position.z;
+  }
+
+  // Physics step
+  if(gameState==='rolling'||gameState==='settling'){
+    world.step(1/60);
+    // Sync Three.js with Cannon
+    ballMesh.position.copy(ballBody.position);
+    ballMesh.quaternion.copy(ballBody.quaternion);
+    pinBodies.forEach((b,i)=>{
+      pinMeshes[i].position.copy(b.position);
+      pinMeshes[i].quaternion.copy(b.quaternion);
+    });
+  }
+
+  checkGameState();
+  updateCamera();
+  renderer.render(scene,camera);
+}
+
+/* ===================== */
+/* INPUT                 */
+/* ===================== */
+const wrap=document.getElementById('canvasWrap');
+wrap.addEventListener('click',()=>{if(gameState==='power')releaseBowl()});
+wrap.addEventListener('touchstart',e=>{if(gameState==='power'){e.preventDefault();releaseBowl()}},{passive:false});
+
+document.addEventListener('keydown',e=>{
+  if(gameState==='aim'){
+    const posEl=document.getElementById('ctrlPos');
+    const angEl=document.getElementById('ctrlAngle');
+    if(e.key==='ArrowLeft'){posEl.value=Math.max(-40,parseInt(posEl.value)-3);updateControlDisplays()}
+    if(e.key==='ArrowRight'){posEl.value=Math.min(40,parseInt(posEl.value)+3);updateControlDisplays()}
+    if(e.key==='ArrowUp'){angEl.value=Math.min(15,parseInt(angEl.value)+1);updateControlDisplays()}
+    if(e.key==='ArrowDown'){angEl.value=Math.max(-15,parseInt(angEl.value)-1);updateControlDisplays()}
+    if(e.code==='Space'){e.preventDefault();startBowl()}
+  }else if(gameState==='power'){
+    if(e.code==='Space'){e.preventDefault();releaseBowl()}
+  }
+});
+
+// Resize
+window.addEventListener('resize',()=>{
+  if(!renderer)return;
+  const w=wrap.clientWidth,h=wrap.clientHeight;
+  camera.aspect=w/h;camera.updateProjectionMatrix();
+  renderer.setSize(w,h);
+});
+
+/* ===================== */
+/* FIREBASE              */
+/* ===================== */
+async function awardCoins(coins){if(!studentId||studentId.startsWith('anon_'))return;try{const fb=await window.getFirebaseDB();await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{coins:fb.fsMod.increment(coins)})}catch(e){}}
+async function saveRecord(isNew){if(!studentId||studentId.startsWith('anon_'))return;try{const fb=await window.getFirebaseDB();const ref=fb.fsMod.doc(fb.db,'bowlingRecords',studentId);const snap=await fb.fsMod.getDoc(ref);if(snap.exists()){const upd={gamesPlayed:fb.fsMod.increment(1),totalScore:fb.fsMod.increment(totalScore),totalStrikes:fb.fsMod.increment(gameStrikes),totalSpares:fb.fsMod.increment(gameSpares),lastPlayed:new Date().toISOString()};if(isNew)upd.highScore=totalScore;await fb.fsMod.updateDoc(ref,upd)}else{await fb.fsMod.setDoc(ref,{studentId,studentName:studentName||'',classCode,highScore:totalScore,gamesPlayed:1,totalScore,totalStrikes:gameStrikes,totalSpares:gameSpares,lastPlayed:new Date().toISOString()})}}catch(e){console.warn('Save failed:',e)}}
+window.showRecords=async function(){showScreen('recordsScreen');document.getElementById('statBest').textContent=localBest;document.getElementById('statPlayed').textContent=localGames;document.getElementById('statStrikes').textContent=localStrikes;document.getElementById('statSpares').textContent=localSpares;const lb=document.getElementById('leaderboard');lb.innerHTML='<div class="lb-empty">Loading...</div>';if(!classCode){lb.innerHTML='<div class="lb-empty">Join a class to see the leaderboard</div>';return}try{const fb=await window.getFirebaseDB();const q=fb.fsMod.query(fb.fsMod.collection(fb.db,'bowlingRecords'),fb.fsMod.where('classCode','==',classCode),fb.fsMod.orderBy('highScore','desc'),fb.fsMod.limit(20));const snap=await fb.fsMod.getDocs(q);if(snap.empty){lb.innerHTML='<div class="lb-empty">No scores yet!</div>';return}let h='',rank=0;snap.forEach(d=>{rank++;const data=d.data();const isMe=data.studentId===studentId;h+='<div class="lb-row'+(isMe?' me':'')+'"><div class="lb-rank'+(rank<=3?' r'+rank:'')+'">'+rank+'</div><div class="lb-name">'+esc(data.studentName||'Player')+'</div><div class="lb-score">'+data.highScore+'</div></div>'});lb.innerHTML=h}catch(e){lb.innerHTML='<div class="lb-empty">Could not load leaderboard</div>'}};
+
+/* ===================== */
+/* HELP                  */
+/* ===================== */
+if(typeof odaHelp!=='undefined')odaHelp.init({title:'Bowling',emoji:'\u{1F3B3}',subtitle:'Roll strikes in 3D!',sections:[{title:'Rules',icon:'\u{1F4D6}',items:['Drag left/right to position your ball','Click & hold to charge power, release to throw','Knock down all 10 pins for a STRIKE (X)','Clear remaining on second ball for a SPARE (/)','10 frames, standard bowling scoring up to 300']},{title:'Scoring',icon:'\u{1F3AF}',items:['Strike = 10 + next 2 balls bonus','Spare = 10 + next 1 ball bonus','10th frame: extra balls for strikes/spares','Earn coins based on final score']}],controls:[{key:'Drag',action:'Aim'},{key:'Click+Hold',action:'Power'},{key:'Release',action:'Throw'},{key:'\u2190 \u2192',action:'Aim'},{key:'Space',action:'Power'}],tip:'<strong>Aim slightly off-center!</strong> Hitting pins at an angle creates better chain reactions for strikes.'});
+</script>
+<script>
+// Wire up buttons — poll until module has loaded and exposed functions
+(function poll(){
+  if(typeof window.playGame!=='function'){setTimeout(poll,50);return}
+  document.getElementById('playBtn').onclick=function(){window.playGame()};
+  document.getElementById('recordsBtn').onclick=function(){window.showRecords()};
+  document.getElementById('shopBtn').onclick=function(){window.showShopScreen()};
+})();
+</script>
+</body>
+</html>

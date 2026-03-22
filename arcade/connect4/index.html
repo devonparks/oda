@@ -138,8 +138,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .player-panel{flex:0 0 180px;border-radius:20px;padding:20px;text-align:center;transition:all .3s;opacity:.7}
 .player-panel.active-turn{opacity:1;transform:scale(1.02)}
 .player-panel .pp-avatar{width:56px;height:56px;border-radius:50%;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;font-family:'Fredoka',sans-serif}
-.player-panel.p1 .pp-avatar{background:var(--accent3);color:#fff;box-shadow:0 0 20px rgba(239,71,111,.3)}
-.player-panel.p2 .pp-avatar{background:var(--gold);color:var(--bg);box-shadow:0 0 20px rgba(255,209,102,.3)}
+.player-panel.p1 .pp-avatar{background:var(--c4-p1,var(--accent3));color:#fff;box-shadow:0 0 20px color-mix(in srgb,var(--c4-p1,var(--accent3)) 30%,transparent)}
+.player-panel.p2 .pp-avatar{background:var(--c4-p2,var(--gold));color:var(--bg);box-shadow:0 0 20px color-mix(in srgb,var(--c4-p2,var(--gold)) 30%,transparent)}
 .player-panel .pp-name{font-size:15px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .player-panel .pp-record{font-size:12px;color:var(--text2)}
 .player-panel.active-turn{border-color:var(--accent);box-shadow:0 0 30px rgba(6,214,160,.15)}
@@ -158,14 +158,14 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 
 /* Ghost preview piece */
 .ghost-piece{position:absolute;border-radius:50%;opacity:0;transition:opacity .15s;pointer-events:none;z-index:4}
-.ghost-piece.p1{background:rgba(239,71,111,.25);border:2px dashed rgba(239,71,111,.4)}
-.ghost-piece.p2{background:rgba(255,209,102,.25);border:2px dashed rgba(255,209,102,.4)}
+.ghost-piece.p1{background:color-mix(in srgb,var(--c4-p1,var(--accent3)) 25%,transparent);border:2px dashed color-mix(in srgb,var(--c4-p1,var(--accent3)) 40%,transparent)}
+.ghost-piece.p2{background:color-mix(in srgb,var(--c4-p2,var(--gold)) 25%,transparent);border:2px dashed color-mix(in srgb,var(--c4-p2,var(--gold)) 40%,transparent)}
 .col-hover-zone:hover .ghost-piece{opacity:1}
 
 .board-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:clamp(3px,0.6vw,6px);position:relative;z-index:3}
 .cell{width:clamp(44px,10vw,90px);height:clamp(44px,10vw,90px);background:var(--board-light,var(--surface2));border-radius:50%;position:relative;border:2px solid var(--border);transition:border-color .15s}
-.cell.p1{background:var(--accent3);border-color:var(--accent3);box-shadow:inset 0 -4px 10px rgba(0,0,0,.3),0 0 16px rgba(239,71,111,.35)}
-.cell.p2{background:var(--gold);border-color:var(--gold);box-shadow:inset 0 -4px 10px rgba(0,0,0,.2),0 0 16px rgba(255,209,102,.35)}
+.cell.p1{background:var(--c4-p1,var(--accent3));border-color:var(--c4-p1,var(--accent3));box-shadow:inset 0 -4px 10px rgba(0,0,0,.3),0 0 16px color-mix(in srgb,var(--c4-p1,var(--accent3)) 35%,transparent)}
+.cell.p2{background:var(--c4-p2,var(--gold));border-color:var(--c4-p2,var(--gold));box-shadow:inset 0 -4px 10px rgba(0,0,0,.2),0 0 16px color-mix(in srgb,var(--c4-p2,var(--gold)) 35%,transparent)}
 .cell.p1::after,.cell.p2::after{content:'';position:absolute;top:15%;left:20%;width:25%;height:25%;border-radius:50%;background:rgba(255,255,255,.2)}
 
 /* Drop animation with bounce */
@@ -703,17 +703,42 @@ async function loadMyCosmetics(){
   if(!sid)return;
   try{
     const snap=await getDoc(doc(db,'students',sid));
-    if(snap.exists()){myCosmetics=snap.data().equipped||{};}
+    if(snap.exists()){
+      const data=snap.data();
+      myCosmetics=data.gameCosmetics?.connect4?.equipped||{};
+    }
   }catch(e){console.warn('Cosmetics load error:',e);}
+  applyCosmeticStyles();
 }
 loadMyCosmetics();
 
+function applyCosmeticStyles(){
+  const root=document.documentElement;
+  // Piece colors
+  const ps=myCosmetics['Piece Style'];
+  if(ps?.value){
+    root.style.setProperty('--c4-p1',ps.value.p1);
+    root.style.setProperty('--c4-p2',ps.value.p2);
+  }
+  // Board theme
+  applyBoardTheme();
+}
+
 function applyBoardTheme(){
   const board=document.getElementById('boardFrame');
-  if(!board||!myCosmetics.boardTheme?.vars)return;
-  Object.entries(myCosmetics.boardTheme.vars).forEach(([prop,val])=>{
-    board.style.setProperty(prop,val);
-  });
+  if(!board)return;
+  const bt=myCosmetics['Board Theme'];
+  if(bt?.value){
+    board.style.setProperty('--board-bg',bt.value.bg);
+    board.style.setProperty('--board-light',bt.value.cell);
+    board.style.setProperty('--board-border',bt.value.border);
+    board.style.background=bt.value.bg;
+    board.style.borderColor=bt.value.border;
+    board.querySelectorAll('.cell:not(.p1):not(.p2)').forEach(c=>{
+      c.style.background=bt.value.cell;
+      c.style.borderColor=bt.value.border;
+    });
+  }
 }
 
 /* ===================== */
@@ -730,16 +755,16 @@ var C4_SHOP = [
   { id:'c4_galaxy2', name:'Galaxy Nova', emoji:'\u{1F31F}', cost:500, slot:'Piece Style', value:{p1:'#6366f1',p2:'#f472b6'} },
   { id:'c4_rainbow', name:'Rainbow', emoji:'\u{1F308}', cost:400, slot:'Piece Style', value:{p1:'#06d6a0',p2:'#ef476f'} },
   { id:'c4_diamond', name:'Diamond', emoji:'\u{1F48E}', cost:1000, slot:'Piece Style', value:{p1:'#67e8f9',p2:'#c084fc'} },
-  { id:'c4b_blue', name:'Classic Blue', emoji:'\u{1F7E6}', cost:0, slot:'Board Theme' },
-  { id:'c4b_dark', name:'Midnight', emoji:'\u{1F319}', cost:150, slot:'Board Theme' },
-  { id:'c4b_wood', name:'Wood', emoji:'\u{1FAB5}', cost:200, slot:'Board Theme' },
-  { id:'c4b_neon', name:'Neon', emoji:'\u{1F49A}', cost:300, slot:'Board Theme' },
-  { id:'c4b_wood2', name:'Oak Wood', emoji:'\u{1F332}', cost:150, slot:'Board Theme' },
-  { id:'c4b_space', name:'Space', emoji:'\u{1F680}', cost:400, slot:'Board Theme' },
-  { id:'c4b_underwater', name:'Underwater', emoji:'\u{1F420}', cost:300, slot:'Board Theme' },
-  { id:'c4w_explosion', name:'Explosion', emoji:'\u{1F4A5}', cost:200, slot:'Win Animation' },
-  { id:'c4w_fireworks', name:'Fireworks', emoji:'\u{1F386}', cost:400, slot:'Win Animation' },
-  { id:'c4w_lightning', name:'Lightning', emoji:'\u26A1', cost:600, slot:'Win Animation' }
+  { id:'c4b_blue', name:'Classic Blue', emoji:'\u{1F7E6}', cost:0, slot:'Board Theme', value:{bg:'#1e293b',cell:'var(--surface2)',border:'var(--border)'} },
+  { id:'c4b_dark', name:'Midnight', emoji:'\u{1F319}', cost:150, slot:'Board Theme', value:{bg:'#0a0e1a',cell:'#111827',border:'#1e293b'} },
+  { id:'c4b_wood', name:'Wood', emoji:'\u{1FAB5}', cost:200, slot:'Board Theme', value:{bg:'#5c3d2e',cell:'#8b6f47',border:'#a0845c'} },
+  { id:'c4b_neon', name:'Neon', emoji:'\u{1F49A}', cost:300, slot:'Board Theme', value:{bg:'#0a1628',cell:'#0f1d32',border:'#06d6a0'} },
+  { id:'c4b_wood2', name:'Oak Wood', emoji:'\u{1F332}', cost:150, slot:'Board Theme', value:{bg:'#4a3728',cell:'#6b4f3a',border:'#8b6f47'} },
+  { id:'c4b_space', name:'Space', emoji:'\u{1F680}', cost:400, slot:'Board Theme', value:{bg:'#0b0d1a',cell:'#12152a',border:'#6366f1'} },
+  { id:'c4b_underwater', name:'Underwater', emoji:'\u{1F420}', cost:300, slot:'Board Theme', value:{bg:'#0a2239',cell:'#0d3b66',border:'#118ab2'} },
+  { id:'c4w_explosion', name:'Explosion', emoji:'\u{1F4A5}', cost:200, slot:'Win Animation', value:{type:'confetti'} },
+  { id:'c4w_fireworks', name:'Fireworks', emoji:'\u{1F386}', cost:400, slot:'Win Animation', value:{type:'fireworks'} },
+  { id:'c4w_lightning', name:'Lightning', emoji:'\u26A1', cost:600, slot:'Win Animation', value:{type:'lightning'} }
 ];
 
 /* ===================== */
@@ -805,8 +830,8 @@ function showShopScreen(){
   showScreen('shopScreen');
   if(window.odaShop){
     odaShop.renderShopPanel('connect4', C4_SHOP, 'c4ShopContainer', {
-      onEquip: function(item){ console.log('[C4] Equipped:', item.id); },
-      onBuy: function(item){ console.log('[C4] Bought:', item.id); }
+      onEquip: function(item){ loadMyCosmetics(); },
+      onBuy: function(item){ loadMyCosmetics(); }
     });
   }
 }
@@ -1320,6 +1345,9 @@ function renderBoard(board,turn,winner){
       frame.appendChild(zone);
     }
   }
+
+  // Re-apply board theme to new cells
+  applyBoardTheme();
 }
 
 function updateTurnUI(turn){
@@ -1545,7 +1573,7 @@ function showResult(data){
       coins=aiDifficulty==='hard'?30:aiDifficulty==='medium'?20:10;
       recordResult='win';
       AudioEngine.play('win');
-      if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti');
+      if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics['Win Animation']?.value?.type||'confetti');
     }else{
       titleEl.textContent='AI Wins!';
       titleEl.style.color='var(--accent3)';
@@ -1573,7 +1601,7 @@ function showResult(data){
         AudioEngine.play('win');
       }
       recordResult='win';
-      if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti');
+      if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics['Win Animation']?.value?.type||'confetti');
     }else{
       if(iLostSeries&&format>1){
         titleEl.textContent='Series Over';
@@ -2370,6 +2398,16 @@ window.C4={
   showTeacherDashboard,teacherTab,teacherCreateTourney,teacherStartTourney,teacherViewTourney,
   assignMatch,loadRecords,spectateGame,showShopScreen
 };
+
+odaHelp.init({
+  title:'Connect 4', emoji:'\u{1F534}', subtitle:'Drop, connect, conquer!',
+  sections:[
+    {title:'Rules', icon:'\u{1F4D6}', items:['Drop colored discs into a 7-column grid','Discs fall to the lowest available position','Connect 4 of your discs in a row (horizontal, vertical, or diagonal) to win','Block your opponent from getting 4 in a row!']},
+    {title:'Difficulty', icon:'\u26A1', items:['Easy \u2014 Random moves','Medium \u2014 Thinks a few moves ahead','Hard \u2014 Deep minimax search, very tough to beat']}
+  ],
+  controls:[{key:'Click',action:'Drop disc in column'},{key:'Hover',action:'Preview drop position'}],
+  tip:'<strong>Control the center column!</strong> The middle column gives you the most winning opportunities. Build threats in multiple directions at once.'
+});
 </script>
 </body>
 </html>

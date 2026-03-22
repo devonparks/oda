@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Floppy Bird - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:center}
+body.in-game{overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+.sound-btn{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;transition:all .2s;backdrop-filter:blur(8px)}
+.sound-btn:hover{border-color:var(--accent)}
+
+.screen{display:none;width:100%;max-width:1100px;min-height:100vh;min-height:100dvh;padding:16px;animation:fadeUp .35s ease}
+@media(min-width:768px){
+  .home-header h1{font-size:80px!important}
+  .home-header p{font-size:18px}
+  .best-pill{padding:16px 32px;font-size:18px}
+  .best-pill .bp-val{font-size:28px}
+  .btn-accent{font-size:22px!important;padding:20px 64px!important}
+  .btn-outline{font-size:16px;padding:14px 28px}
+  .stats-row .sr{font-size:15px;padding:10px 22px}
+  .how-to{max-width:500px;padding:28px 32px}
+  .how-to h3{font-size:15px}
+  .how-to p{font-size:15px}
+}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+
+/* HOME */
+#homeScreen{padding-top:80px;justify-content:flex-start;gap:16px}
+.home-header{text-align:center;margin-bottom:8px}
+.home-header h1{font-size:clamp(48px,10vw,64px);font-weight:700;letter-spacing:-2px}
+.home-header h1 .hl{color:var(--accent)}
+.home-header p{color:var(--text2);font-size:15px;margin-top:4px}
+.best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
+.best-pill .bp-label{color:var(--text2)}
+.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
+.home-actions{display:flex;flex-direction:column;align-items:center;gap:14px}
+.stats-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.stats-row .sr{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+.how-to{max-width:380px;width:100%;margin:0 auto;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px}
+.how-to h3{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.how-to p{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* GAME */
+#gameScreen{padding:0;max-width:100%;min-height:100vh;min-height:100dvh;justify-content:center;align-items:center;position:relative}
+#canvasWrap{width:100%;height:100vh;height:100dvh;position:relative;overflow:hidden;cursor:pointer;touch-action:manipulation}
+#gameCanvas{display:block;width:100%;height:100%}
+.game-hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:center;padding:20px;pointer-events:none;z-index:5}
+.hud-score{font-family:'Fredoka',sans-serif;font-size:64px;font-weight:700;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.5),0 0 20px rgba(0,0,0,.3)}
+.tap-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;z-index:5;animation:pulse 1.5s ease-in-out infinite}
+.tap-hint .th-icon{font-size:48px;margin-bottom:8px}
+.tap-hint .th-text{font-family:'Fredoka',sans-serif;font-size:20px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.5)}
+@keyframes pulse{0%,100%{opacity:1;transform:translate(-50%,-50%) scale(1)}50%{opacity:.6;transform:translate(-50%,-50%) scale(1.05)}}
+
+/* GAME OVER OVERLAY */
+.go-overlay{position:absolute;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:10;gap:12px;padding:24px;animation:fadeUp .3s ease}
+.go-overlay.active{display:flex}
+.go-overlay h2{font-size:32px;font-weight:700;color:var(--accent3)}
+.go-overlay .go-score{font-family:'Fredoka',sans-serif;font-size:48px;font-weight:700;color:#fff}
+.go-overlay .go-label{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.go-overlay .go-best{font-size:16px;color:var(--gold);font-weight:700;font-family:'Fredoka',sans-serif}
+.go-overlay .go-new{color:var(--accent);font-size:14px;font-weight:700;animation:pulse 1s ease-in-out infinite}
+.go-overlay .go-coins{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:8px 18px;font-size:16px;font-weight:700;color:var(--gold);font-family:'Fredoka',sans-serif}
+.go-overlay .go-btns{display:flex;gap:10px;margin-top:8px}
+
+/* RECORDS */
+#recordsScreen{padding-top:70px;justify-content:flex-start}
+.records-container{width:100%;max-width:420px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.stat-card .sv{font-size:24px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.stat-card .sv.gold{color:var(--gold)}
+.stat-card .sl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-weight:600}
+.lb-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px}
+.lb-row.me{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.lb-rank{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text2);flex-shrink:0}
+.lb-rank.r1{background:rgba(255,209,102,.2);color:var(--gold)}
+.lb-rank.r2{background:rgba(192,192,192,.15);color:#c0c0c0}
+.lb-rank.r3{background:rgba(205,127,50,.15);color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-size:14px;font-weight:800;color:var(--gold);font-family:'Fredoka',sans-serif}
+.lb-empty{text-align:center;color:var(--text2);font-size:14px;padding:24px;font-weight:600}
+
+/* SHOP */
+#shopScreen{padding-top:70px;justify-content:flex-start}
+
+/* ACHIEVEMENTS */
+.ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
+@keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../../student.html" id="backBtn">&#8592; Back</a>
+<button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128264;</button>
+
+<!-- HOME SCREEN -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1>&#128038; <span class="hl">Floppy</span> Bird</h1>
+    <p>Tap to fly, dodge the pipes!</p>
+  </div>
+  <div class="best-pill">
+    <span class="bp-label">&#127942; Best</span>
+    <span class="bp-val" id="homeBest">0</span>
+  </div>
+  <div class="home-actions">
+    <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
+    <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
+    <button class="btn btn-outline btn-small" onclick="showShopScreen()">&#128717;&#65039; Shop</button>
+  </div>
+  <div class="stats-row">
+    <div class="sr">&#127918; Games <span id="homeGames">0</span></div>
+    <div class="sr">&#128175; Longest <span id="homeLongest">0</span></div>
+  </div>
+  <div class="how-to">
+    <h3>How to Play</h3>
+    <p>Tap, click, or press Space to flap your wings. Fly through the gaps between pipes without crashing!</p>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div class="screen" id="gameScreen">
+  <div id="canvasWrap">
+    <canvas id="gameCanvas"></canvas>
+    <div class="game-hud"><div class="hud-score" id="hudScore">0</div></div>
+    <div class="tap-hint" id="tapHint">
+      <div class="th-icon">&#128038;</div>
+      <div class="th-text">Tap to Start</div>
+    </div>
+    <div class="go-overlay" id="gameOverOverlay">
+      <h2>Game Over</h2>
+      <div class="go-label">Score</div>
+      <div class="go-score" id="goScore">0</div>
+      <div class="go-best" id="goBest">Best: 0</div>
+      <div class="go-new" id="goNew" style="display:none">New Best! &#127881;</div>
+      <div class="go-coins" id="goCoins">+0 coins</div>
+      <div class="go-btns">
+        <button class="btn btn-accent btn-small" onclick="startGame()">Play Again</button>
+        <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Home</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECORDS SCREEN -->
+<div class="screen" id="recordsScreen">
+  <h1>Your <span style="color:var(--accent)">Records</span></h1>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Floppy Bird stats &amp; leaderboard</p>
+  <div class="records-container">
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="sv gold" id="statBest">0</div><div class="sl">Best Score</div></div>
+      <div class="stat-card"><div class="sv" id="statPlayed">0</div><div class="sl">Games Played</div></div>
+      <div class="stat-card"><div class="sv" id="statTotal">0</div><div class="sl">Total Pipes</div></div>
+      <div class="stat-card"><div class="sv" id="statCoins">0</div><div class="sl">Coins Earned</div></div>
+    </div>
+    <div class="lb-title" style="margin-top:16px">&#127942; Achievements</div>
+    <div id="achievementsGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:24px"></div>
+    <div class="lb-title">Class Leaderboard</div>
+    <div class="lb-list" id="leaderboard"><div class="lb-empty">Loading...</div></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHOP SCREEN -->
+<div class="screen" id="shopScreen">
+  <div style="text-align:center;margin-bottom:8px">
+    <h1>&#128717;&#65039; Shop</h1>
+    <p style="color:var(--text2);font-size:14px">Customize your Floppy Bird</p>
+  </div>
+  <div id="flappyShopContainer" style="width:100%;max-width:500px"></div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script>
+/* ===================== */
+/* SESSION               */
+/* ===================== */
+var studentId=localStorage.getItem('studentId')||'';
+var studentName=localStorage.getItem('studentName')||'';
+var classCode=localStorage.getItem('classCode')||'';
+var isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+if(isTeacher)document.getElementById('backBtn').href='../../teacher.html';
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+/* ===================== */
+/* SCREEN SYSTEM         */
+/* ===================== */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+  document.getElementById(id).classList.add('active');
+  document.body.classList.toggle('in-game',id==='gameScreen');
+  if(id==='homeScreen')loadLocalStats();
+}
+
+/* ===================== */
+/* AUDIO                 */
+/* ===================== */
+var audioCtx=null,soundOn=true;
+function getAudioCtx(){
+  if(!audioCtx)try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq,dur,type,vol,ramp){
+  if(!soundOn)return;var ctx=getAudioCtx();if(!ctx)return;
+  var osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.type=type||'square';osc.frequency.setValueAtTime(freq,ctx.currentTime);
+  if(ramp)osc.frequency.linearRampToValueAtTime(ramp,ctx.currentTime+dur);
+  gain.gain.setValueAtTime(vol||0.1,ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+  osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+dur);
+}
+function sfxFlap(){playTone(500,0.07,'sine',0.12);setTimeout(function(){playTone(700,0.05,'sine',0.08)},40)}
+function sfxScore(){playTone(600,0.06,'square',0.1);setTimeout(function(){playTone(900,0.08,'square',0.1)},60)}
+function sfxHit(){playTone(200,0.25,'sawtooth',0.12,80)}
+function sfxDie(){playTone(300,0.4,'sawtooth',0.1,50)}
+function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;'}
+
+/* ===================== */
+/* COSMETICS             */
+/* ===================== */
+var myCosmetics={};
+var birdColor='#fbbf24',birdAccent='#f59e0b';
+var pipeColor='#06d6a0',pipeCap='#059669';
+var skyTop='#1a1a2e',skyBottom='#16213e',groundColor='#2a3450';
+
+async function loadMyCosmetics(){
+  var sid=localStorage.getItem('studentId');
+  if(!sid)return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));
+    if(snap.exists()){var d=snap.data();myCosmetics=d.gameCosmetics?.flappy?.equipped||{};}
+  }catch(e){}
+  applyCosmeticStyles();
+}
+loadMyCosmetics();
+
+function applyCosmeticStyles(){
+  var bs=myCosmetics['Bird Skin'];
+  if(bs&&bs.value){birdColor=bs.value.color||'#fbbf24';birdAccent=bs.value.accent||'#f59e0b'}
+  var pt=myCosmetics['Pipe Theme'];
+  if(pt&&pt.value){pipeColor=pt.value.color||'#06d6a0';pipeCap=pt.value.cap||'#059669'}
+  var st=myCosmetics['Sky Theme'];
+  if(st&&st.value){skyTop=st.value.top||'#1a1a2e';skyBottom=st.value.bottom||'#16213e';groundColor=st.value.ground||'#2a3450'}
+}
+
+/* ===================== */
+/* SHOP                  */
+/* ===================== */
+var FLAPPY_SHOP=[
+  {id:'fb_classic',name:'Classic',emoji:'\u{1F426}',cost:0,slot:'Bird Skin',value:{color:'#fbbf24',accent:'#f59e0b'}},
+  {id:'fb_neon',name:'Neon',emoji:'\u{1F49A}',cost:150,slot:'Bird Skin',value:{color:'#06d6a0',accent:'#059669'}},
+  {id:'fb_fire',name:'Fire',emoji:'\u{1F525}',cost:200,slot:'Bird Skin',value:{color:'#ef4444',accent:'#dc2626'}},
+  {id:'fb_ice',name:'Ice',emoji:'\u2744',cost:200,slot:'Bird Skin',value:{color:'#22d3ee',accent:'#0891b2'}},
+  {id:'fb_gold',name:'Gold',emoji:'\u{1F451}',cost:300,slot:'Bird Skin',value:{color:'#ffd700',accent:'#b8860b'}},
+  {id:'fb_purple',name:'Galaxy',emoji:'\u{1F30C}',cost:400,slot:'Bird Skin',value:{color:'#a855f7',accent:'#7c3aed'}},
+  {id:'fb_robot',name:'Robot',emoji:'\u{1F916}',cost:500,slot:'Bird Skin',value:{color:'#94a3b8',accent:'#64748b'}},
+  {id:'fb_angel',name:'Angel',emoji:'\u{1F47C}',cost:600,slot:'Bird Skin',value:{color:'#fef3c7',accent:'#fbbf24'}},
+
+  {id:'fp_classic',name:'Classic',emoji:'\u{1F7E2}',cost:0,slot:'Pipe Theme',value:{color:'#06d6a0',cap:'#059669'}},
+  {id:'fp_neon',name:'Neon',emoji:'\u{1F4A1}',cost:200,slot:'Pipe Theme',value:{color:'#39ff14',cap:'#00cc00'}},
+  {id:'fp_lava',name:'Lava',emoji:'\u{1F30B}',cost:250,slot:'Pipe Theme',value:{color:'#ef4444',cap:'#b91c1c'}},
+  {id:'fp_ocean',name:'Ocean',emoji:'\u{1F30A}',cost:250,slot:'Pipe Theme',value:{color:'#3b82f6',cap:'#1d4ed8'}},
+  {id:'fp_galaxy',name:'Galaxy',emoji:'\u2728',cost:400,slot:'Pipe Theme',value:{color:'#a855f7',cap:'#7c3aed'}},
+
+  {id:'fs_day',name:'Day',emoji:'\u2600',cost:0,slot:'Sky Theme',value:{top:'#1a1a2e',bottom:'#16213e',ground:'#2a3450'}},
+  {id:'fs_night',name:'Night',emoji:'\u{1F319}',cost:200,slot:'Sky Theme',value:{top:'#050510',bottom:'#0a0e1a',ground:'#111827'}},
+  {id:'fs_sunset',name:'Sunset',emoji:'\u{1F305}',cost:300,slot:'Sky Theme',value:{top:'#1a0a00',bottom:'#2d1600',ground:'#44200a'}},
+  {id:'fs_space',name:'Space',emoji:'\u{1F680}',cost:500,slot:'Sky Theme',value:{top:'#000005',bottom:'#0a0015',ground:'#1a0030'}}
+];
+
+function showShopScreen(){
+  showScreen('shopScreen');
+  if(typeof odaShop!=='undefined'){
+    odaShop.renderShopPanel('flappy',FLAPPY_SHOP,'flappyShopContainer',{
+      onEquip:function(){loadMyCosmetics()},
+      onBuy:function(){loadMyCosmetics()}
+    });
+  }
+}
+
+/* ===================== */
+/* ACHIEVEMENTS          */
+/* ===================== */
+var FLAPPY_ACHIEVEMENTS=[
+  {id:'fl_first',name:'First Flight',desc:'Pass 1 pipe',icon:'\u{1F423}',check:function(s){return s.highScore>=1}},
+  {id:'fl_10',name:'Getting Good',desc:'Pass 10 pipes in one game',icon:'\u{1F3AF}',check:function(s){return s.highScore>=10}},
+  {id:'fl_25',name:'Pro Flapper',desc:'Pass 25 pipes in one game',icon:'\u{1F3C5}',check:function(s){return s.highScore>=25}},
+  {id:'fl_50',name:'Legend',desc:'Pass 50 pipes in one game',icon:'\u{1F947}',check:function(s){return s.highScore>=50}},
+  {id:'fl_100',name:'Century',desc:'Pass 100 pipes in one game',icon:'\u{1F4AF}',check:function(s){return s.highScore>=100}},
+  {id:'fl_play50',name:'Iron Bird',desc:'Play 50 games',icon:'\u{1F3AE}',check:function(s){return s.gamesPlayed>=50}}
+];
+var achState={};
+
+async function checkAchievements(extra){
+  var sid=localStorage.getItem('studentId');
+  if(!sid||sid.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'flappyRecords',sid);
+    var snap=await fb.fsMod.getDoc(ref);
+    var data=snap.exists()?snap.data():{};
+    var state=Object.assign({},data,extra||{});
+    achState=data.achievements||{};
+    var newUnlocks=[];
+    FLAPPY_ACHIEVEMENTS.forEach(function(a){
+      if(!achState[a.id]&&a.check(state)){achState[a.id]=Date.now();newUnlocks.push(a)}
+    });
+    if(newUnlocks.length>0){
+      var upd={};newUnlocks.forEach(function(a){upd['achievements.'+a.id]=achState[a.id]});
+      await fb.fsMod.updateDoc(ref,upd);
+      newUnlocks.forEach(function(a){showAchToast(a)});
+    }
+  }catch(e){}
+}
+
+function showAchToast(a){
+  var el=document.createElement('div');el.className='ach-popup';
+  el.innerHTML='<span style="font-size:32px">'+a.icon+'</span><div><div style="color:var(--gold);font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:var(--text);font-size:15px;font-weight:600;font-family:Outfit,sans-serif">'+esc(a.name)+'</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function(){el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(function(){el.remove()},400)},3500);
+}
+
+/* ===================== */
+/* LOCAL STATS           */
+/* ===================== */
+var localBest=parseInt(localStorage.getItem('flappy_best'))||0;
+var localGames=parseInt(localStorage.getItem('flappy_games'))||0;
+var localTotal=parseInt(localStorage.getItem('flappy_total'))||0;
+
+function loadLocalStats(){
+  document.getElementById('homeBest').textContent=localBest;
+  document.getElementById('homeGames').textContent=localGames;
+  document.getElementById('homeLongest').textContent=localBest;
+}
+loadLocalStats();
+
+/* ===================== */
+/* GAME ENGINE           */
+/* ===================== */
+var canvas,ctx,W,H,dpr;
+var bird,pipes,score,gameState,animId,groundY;
+var GRAVITY=0.18,FLAP=-5,PIPE_SPEED=1.8,PIPE_GAP=210,PIPE_WIDTH=60,PIPE_SPACING=450;
+var BIRD_SIZE=28,GROUND_HEIGHT=60;
+var frameCount=0,coinsAwarded=false;
+
+function initCanvas(){
+  canvas=document.getElementById('gameCanvas');
+  ctx=canvas.getContext('2d');
+  var wrap=document.getElementById('canvasWrap');
+  dpr=window.devicePixelRatio||1;
+  W=wrap.clientWidth;H=wrap.clientHeight;
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  groundY=H-GROUND_HEIGHT;
+}
+
+function startGame(){
+  showScreen('gameScreen');
+  initCanvas();
+  bird={x:W*0.25,y:H*0.4,vy:0,rotation:0,flapFrame:0};
+  pipes=[];score=0;frameCount=0;coinsAwarded=false;
+  gameState='waiting';
+  document.getElementById('hudScore').textContent='0';
+  document.getElementById('tapHint').style.display='block';
+  document.getElementById('gameOverOverlay').classList.remove('active');
+  if(animId)cancelAnimationFrame(animId);
+  applyCosmeticStyles();
+  gameLoop();
+}
+
+function flap(){
+  if(gameState==='dead')return;
+  if(gameState==='waiting'){gameState='playing';document.getElementById('tapHint').style.display='none'}
+  bird.vy=FLAP;bird.flapFrame=8;
+  sfxFlap();
+}
+
+function spawnPipe(){
+  var minY=80;var maxY=groundY-PIPE_GAP-80;
+  var gapY=minY+Math.random()*(maxY-minY);
+  // Narrow gap slightly as score increases
+  var gap=Math.max(140,PIPE_GAP-score*0.25);
+  pipes.push({x:W+20,gapY:gapY,gapH:gap,scored:false});
+}
+
+function update(){
+  if(gameState!=='playing')return;
+  frameCount++;
+
+  // Bird physics
+  bird.vy+=GRAVITY;
+  if(bird.vy>4)bird.vy=4; // Cap fall speed so bird never plummets
+  bird.y+=bird.vy;
+  bird.rotation=Math.min(Math.PI/4,Math.max(-Math.PI/4,bird.vy*0.06));
+  if(bird.flapFrame>0)bird.flapFrame--;
+
+  // Spawn pipes
+  var speed=Math.min(3.5,PIPE_SPEED+score*0.015);
+  var pipeSpace=Math.max(PIPE_SPACING,W*0.45);
+  if(pipes.length===0||pipes[pipes.length-1].x<W-pipeSpace){
+    spawnPipe();
+  }
+
+  // Move pipes
+  for(var i=pipes.length-1;i>=0;i--){
+    pipes[i].x-=speed;
+    // Score
+    if(!pipes[i].scored&&pipes[i].x+PIPE_WIDTH<bird.x){
+      pipes[i].scored=true;score++;
+      document.getElementById('hudScore').textContent=score;
+      sfxScore();
+    }
+    // Remove off-screen
+    if(pipes[i].x<-PIPE_WIDTH-10)pipes.splice(i,1);
+  }
+
+  // Collision: ground/ceiling
+  if(bird.y+BIRD_SIZE>groundY||bird.y-BIRD_SIZE<0){
+    die();return;
+  }
+
+  // Collision: pipes
+  for(var j=0;j<pipes.length;j++){
+    var p=pipes[j];
+    if(bird.x+BIRD_SIZE*0.7>p.x&&bird.x-BIRD_SIZE*0.7<p.x+PIPE_WIDTH){
+      if(bird.y-BIRD_SIZE*0.6<p.gapY||bird.y+BIRD_SIZE*0.6>p.gapY+p.gapH){
+        die();return;
+      }
+    }
+  }
+}
+
+function die(){
+  gameState='dead';sfxHit();setTimeout(sfxDie,200);
+  var isNew=score>localBest;
+  if(isNew){localBest=score;localStorage.setItem('flappy_best',localBest)}
+  localGames++;localTotal+=score;
+  localStorage.setItem('flappy_games',localGames);
+  localStorage.setItem('flappy_total',localTotal);
+
+  var coins=Math.floor(score/3);if(isNew)coins+=5;if(coins<1&&score>0)coins=1;
+
+  document.getElementById('goScore').textContent=score;
+  document.getElementById('goBest').textContent='Best: '+localBest;
+  document.getElementById('goNew').style.display=isNew?'block':'none';
+  document.getElementById('goCoins').textContent='+'+coins+' coins';
+  setTimeout(function(){document.getElementById('gameOverOverlay').classList.add('active')},600);
+
+  if(!coinsAwarded){coinsAwarded=true;awardCoins(coins);saveRecord(isNew);checkAchievements({highScore:score,gamesPlayed:localGames})}
+}
+
+function draw(){
+  // Sky gradient
+  var grad=ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,skyTop);grad.addColorStop(0.7,skyBottom);grad.addColorStop(1,groundColor);
+  ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+
+  // Stars (for dark themes)
+  ctx.fillStyle='rgba(255,255,255,0.15)';
+  for(var s=0;s<20;s++){
+    var sx=(s*137+frameCount*0.1)%W,sy=(s*97)%groundY;
+    ctx.fillRect(sx,sy,1.5,1.5);
+  }
+
+  // Ground
+  ctx.fillStyle=groundColor;ctx.fillRect(0,groundY,W,GROUND_HEIGHT);
+  ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,groundY);ctx.lineTo(W,groundY);ctx.stroke();
+
+  // Pipes
+  for(var i=0;i<pipes.length;i++){
+    var p=pipes[i];
+    // Top pipe
+    ctx.fillStyle=pipeColor;
+    ctx.fillRect(p.x,0,PIPE_WIDTH,p.gapY);
+    ctx.fillStyle=pipeCap;
+    ctx.fillRect(p.x-4,p.gapY-20,PIPE_WIDTH+8,20);
+    // Bottom pipe
+    ctx.fillStyle=pipeColor;
+    ctx.fillRect(p.x,p.gapY+p.gapH,PIPE_WIDTH,groundY-p.gapY-p.gapH);
+    ctx.fillStyle=pipeCap;
+    ctx.fillRect(p.x-4,p.gapY+p.gapH,PIPE_WIDTH+8,20);
+    // Highlights
+    ctx.fillStyle='rgba(255,255,255,0.12)';
+    ctx.fillRect(p.x+4,0,6,p.gapY);
+    ctx.fillRect(p.x+4,p.gapY+p.gapH,6,groundY-p.gapY-p.gapH);
+  }
+
+  // Bird
+  ctx.save();
+  ctx.translate(bird.x,bird.y);
+  ctx.rotate(bird.rotation);
+  // Body
+  ctx.fillStyle=birdColor;
+  ctx.beginPath();ctx.ellipse(0,0,BIRD_SIZE,BIRD_SIZE*0.8,0,0,Math.PI*2);ctx.fill();
+  // Wing
+  ctx.fillStyle=birdAccent;
+  var wingY=bird.flapFrame>0?-6:2;
+  ctx.beginPath();ctx.ellipse(-4,wingY,BIRD_SIZE*0.5,BIRD_SIZE*0.35,bird.flapFrame>0?-0.3:0.2,0,Math.PI*2);ctx.fill();
+  // Eye
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.arc(BIRD_SIZE*0.4,-BIRD_SIZE*0.15,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#111';
+  ctx.beginPath();ctx.arc(BIRD_SIZE*0.45,-BIRD_SIZE*0.15,2.5,0,Math.PI*2);ctx.fill();
+  // Beak
+  ctx.fillStyle='#f97316';
+  ctx.beginPath();ctx.moveTo(BIRD_SIZE*0.7,0);ctx.lineTo(BIRD_SIZE*1.1,-4);ctx.lineTo(BIRD_SIZE*1.1,4);ctx.closePath();ctx.fill();
+  ctx.restore();
+}
+
+function gameLoop(){
+  update();draw();
+  animId=requestAnimationFrame(gameLoop);
+}
+
+/* ===================== */
+/* INPUT                 */
+/* ===================== */
+document.addEventListener('keydown',function(e){
+  if(e.code==='Space'||e.key===' '){e.preventDefault();flap()}
+});
+var cw=document.getElementById('canvasWrap');
+cw.addEventListener('click',function(e){e.preventDefault();flap()});
+cw.addEventListener('touchstart',function(e){e.preventDefault();flap()},{passive:false});
+
+/* ===================== */
+/* FIREBASE              */
+/* ===================== */
+async function awardCoins(coins){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{var fb=await window.getFirebaseDB();await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{coins:fb.fsMod.increment(coins)})}catch(e){}
+}
+
+async function saveRecord(isNew){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'flappyRecords',studentId);
+    var snap=await fb.fsMod.getDoc(ref);
+    if(snap.exists()){
+      var upd={gamesPlayed:fb.fsMod.increment(1),totalPipes:fb.fsMod.increment(score),lastPlayed:new Date().toISOString()};
+      if(isNew)upd.highScore=score;
+      await fb.fsMod.updateDoc(ref,upd);
+    }else{
+      await fb.fsMod.setDoc(ref,{studentId:studentId,studentName:studentName||'',classCode:classCode,highScore:score,gamesPlayed:1,totalPipes:score,lastPlayed:new Date().toISOString()});
+    }
+  }catch(e){console.warn('Save failed:',e)}
+}
+
+/* ===================== */
+/* RECORDS & LEADERBOARD */
+/* ===================== */
+async function showRecords(){
+  showScreen('recordsScreen');
+  document.getElementById('statBest').textContent=localBest;
+  document.getElementById('statPlayed').textContent=localGames;
+  document.getElementById('statTotal').textContent=localTotal;
+  document.getElementById('statCoins').textContent=Math.floor(localTotal/3);
+
+  // Achievements grid
+  var ag=document.getElementById('achievementsGrid');ag.innerHTML='';
+  FLAPPY_ACHIEVEMENTS.forEach(function(a){
+    var unlocked=!!achState[a.id];
+    ag.innerHTML+='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:1px solid '+(unlocked?'var(--gold)':'var(--border)')+';border-radius:12px;padding:8px 4px;text-align:center;aspect-ratio:1;'+(unlocked?'box-shadow:0 0 12px rgba(255,209,102,.15)':'opacity:.3;filter:grayscale(1)')+'"><span style="font-size:24px">'+a.icon+'</span><span style="font-size:8px;color:var(--text2);line-height:1.1;margin-top:2px">'+esc(a.name)+'</span></div>';
+  });
+
+  // Leaderboard
+  var lb=document.getElementById('leaderboard');lb.innerHTML='<div class="lb-empty">Loading...</div>';
+  if(!classCode){lb.innerHTML='<div class="lb-empty">Join a class to see the leaderboard</div>';return}
+  try{
+    var fb=await window.getFirebaseDB();
+    var q=fb.fsMod.query(fb.fsMod.collection(fb.db,'flappyRecords'),fb.fsMod.where('classCode','==',classCode),fb.fsMod.orderBy('highScore','desc'),fb.fsMod.limit(20));
+    var snap=await fb.fsMod.getDocs(q);
+    if(snap.empty){lb.innerHTML='<div class="lb-empty">No scores yet. Be the first!</div>';return}
+    var h='',rank=0;
+    snap.forEach(function(d){
+      rank++;var data=d.data();var isMe=data.studentId===studentId;
+      var rc=rank<=3?'r'+rank:'';
+      h+='<div class="lb-row'+(isMe?' me':'')+'"><div class="lb-rank '+rc+'">'+rank+'</div><div class="lb-name">'+esc(data.studentName||'Player')+'</div><div class="lb-score">'+data.highScore+'</div></div>';
+    });
+    lb.innerHTML=h;
+  }catch(e){lb.innerHTML='<div class="lb-empty">Could not load leaderboard</div>'}
+}
+
+/* ===================== */
+/* RESIZE                */
+/* ===================== */
+window.addEventListener('resize',function(){if(gameState==='waiting'||gameState==='dead')initCanvas&&canvas&&initCanvas()});
+
+/* ===================== */
+/* HELP                  */
+/* ===================== */
+odaHelp.init({
+  title:'Floppy Bird',emoji:'\u{1F426}',subtitle:'Tap to fly, dodge the pipes!',
+  sections:[
+    {title:'Rules',icon:'\u{1F4D6}',items:['Tap, click, or press Space to flap your wings','Fly through gaps between pipes without crashing','Each pipe passed scores 1 point','The gap gets narrower as your score increases','Hitting a pipe, the ground, or the ceiling ends the game']},
+    {title:'Scoring',icon:'\u{1F3AF}',items:['1 point per pipe passed','Earn coins based on your score (1 coin per 3 pipes)','Bonus 5 coins for new personal best','Coins can be spent in the shop on cosmetics']}
+  ],
+  controls:[{key:'Space',action:'Flap'},{key:'Click',action:'Flap'},{key:'Tap',action:'Flap (mobile)'}],
+  tip:'<strong>Gentle taps!</strong> Don\'t flap too hard or you\'ll fly too high. Small, controlled taps keep you steady. Aim for the middle of each gap.'
+});
+</script>
+<script>
+// Runs immediately (not deferred like module) — fix teacher back button
+(function(){
+  var isT=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+  if(isT){var b=document.getElementById('backBtn');if(b)b.href='../../teacher.html'}
+})();
+</script>
+</body>
+</html>

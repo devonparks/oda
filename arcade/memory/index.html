@@ -126,7 +126,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .game-area{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;width:100%}
 
 /* Card Grid */
-.card-grid{display:grid;gap:clamp(8px,1.5vw,14px);justify-content:center;perspective:1000px}
+.card-grid{display:grid;gap:clamp(8px,1.5vw,14px);justify-content:center;perspective:1000px;background:var(--mem-grid-bg,transparent);border-radius:16px}
 .card-grid.easy{grid-template-columns:repeat(4,1fr);max-width:560px}
 .card-grid.medium{grid-template-columns:repeat(4,1fr);max-width:600px}
 .card-grid.hard{grid-template-columns:repeat(6,1fr);max-width:840px}
@@ -139,12 +139,12 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .mem-card.match-flash .mem-card-front{animation:matchPulse .6s ease}
 .mem-card.no-match-flash .mem-card-front,.mem-card.no-match-flash .mem-card-back{animation:noMatchShake .4s ease}
 
-.mem-card-face{position:absolute;inset:0;border-radius:clamp(12px,2vw,16px);backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;align-items:center;justify-content:center;border:2px solid var(--border);transition:border-color .3s,box-shadow .3s}
+.mem-card-face{position:absolute;inset:0;border-radius:clamp(12px,2vw,16px);backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;align-items:center;justify-content:center;border:2px solid var(--mem-grid-border,var(--border));transition:border-color .3s,box-shadow .3s}
 
 /* Card Back */
-.mem-card-back{background:linear-gradient(135deg,#1a2744 0%,#0f1a2e 50%,#162038 100%);z-index:2;overflow:hidden}
-.mem-card-back::before{content:'';position:absolute;inset:6px;border:2px solid rgba(6,214,160,.15);border-radius:clamp(8px,1.5vw,12px)}
-.mem-card-back::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 8px,rgba(6,214,160,.04) 8px,rgba(6,214,160,.04) 16px);border-radius:inherit}
+.mem-card-back{background:linear-gradient(135deg,var(--mem-card-color,#1a2744) 0%,color-mix(in srgb,var(--mem-card-color,#0f1a2e),#000 30%) 50%,color-mix(in srgb,var(--mem-card-color,#162038),#000 10%) 100%);z-index:2;overflow:hidden}
+.mem-card-back::before{content:'';position:absolute;inset:6px;border:2px solid var(--mem-card-accent,rgba(6,214,160,.15));border-radius:clamp(8px,1.5vw,12px)}
+.mem-card-back::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 8px,var(--mem-card-accent,rgba(6,214,160,.04)) 8px,var(--mem-card-accent,rgba(6,214,160,.04)) 16px);border-radius:inherit}
 .mem-card-back .back-icon{font-size:clamp(20px,4vw,32px);opacity:.4;z-index:1;filter:grayscale(.3)}
 
 /* Card Front */
@@ -525,33 +525,33 @@ let myCosmetics={};
 (async()=>{
   const sid=localStorage.getItem('studentId');
   if(!sid)return;
-  try{const fb=await getFirebaseDB();const snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));if(snap.exists())myCosmetics=snap.data().equipped||{};}catch(e){}
+  try{const fb=await getFirebaseDB();const snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));if(snap.exists())myCosmetics=snap.data().gameCosmetics?.memory?.equipped||{};}catch(e){}
 })();
 
 // =========================================================
 //  SHOP CATALOG
 // =========================================================
 var MEMORY_SHOP = [
-  { id:'back_brain', name:'Brain', emoji:'\u{1F9E0}', cost:0, slot:'Card Back' },
-  { id:'back_star', name:'Stars', emoji:'\u2B50', cost:75, slot:'Card Back' },
-  { id:'back_fire', name:'Fire', emoji:'\u{1F525}', cost:100, slot:'Card Back' },
-  { id:'back_galaxy', name:'Galaxy', emoji:'\u{1F30C}', cost:200, slot:'Card Back' },
-  { id:'back_diamond', name:'Diamond', emoji:'\u{1F48E}', cost:300, slot:'Card Back' },
-  { id:'back_rainbow', name:'Rainbow', emoji:'\u{1F308}', cost:400, slot:'Card Back' },
-  { id:'back_emoji', name:'Emoji Party', emoji:'\u{1F389}', cost:150, slot:'Card Back' },
-  { id:'back_space', name:'Space', emoji:'\u{1F680}', cost:300, slot:'Card Back' },
-  { id:'back_animals', name:'Animals', emoji:'\u{1F43E}', cost:200, slot:'Card Back' },
-  { id:'back_oda', name:'ODA Special', emoji:'\u{1F3C6}', cost:500, slot:'Card Back' },
-  { id:'grid_default', name:'Default', emoji:'\u{1F7E6}', cost:0, slot:'Grid Theme' },
-  { id:'grid_neon', name:'Neon', emoji:'\u{1F49A}', cost:150, slot:'Grid Theme' },
-  { id:'grid_sunset', name:'Sunset', emoji:'\u{1F305}', cost:200, slot:'Grid Theme' },
-  { id:'grid_space', name:'Space', emoji:'\u{1F680}', cost:300, slot:'Grid Theme' },
-  { id:'grid_sunset2', name:'Sunset Glow', emoji:'\u{1F31F}', cost:200, slot:'Grid Theme' },
-  { id:'grid_ocean', name:'Ocean Deep', emoji:'\u{1F30A}', cost:400, slot:'Grid Theme' },
-  { id:'grid_candy', name:'Candy Land', emoji:'\u{1F36C}', cost:300, slot:'Grid Theme' },
-  { id:'anim_bounce', name:'Bounce', emoji:'\u{1F3C0}', cost:100, slot:'Card Animation' },
-  { id:'anim_spin', name:'Spin', emoji:'\u{1F300}', cost:200, slot:'Card Animation' },
-  { id:'anim_glow', name:'Glow', emoji:'\u{2728}', cost:400, slot:'Card Animation' }
+  { id:'back_brain', name:'Brain', emoji:'\u{1F9E0}', cost:0, slot:'Card Back', value:{color:'#1a2744',accent:'rgba(6,214,160,.15)'} },
+  { id:'back_star', name:'Stars', emoji:'\u2B50', cost:75, slot:'Card Back', value:{color:'#1a1a2e',accent:'rgba(251,191,36,.2)'} },
+  { id:'back_fire', name:'Fire', emoji:'\u{1F525}', cost:100, slot:'Card Back', value:{color:'#2d1200',accent:'rgba(239,68,68,.2)'} },
+  { id:'back_galaxy', name:'Galaxy', emoji:'\u{1F30C}', cost:200, slot:'Card Back', value:{color:'#0f0a2e',accent:'rgba(168,85,247,.2)'} },
+  { id:'back_diamond', name:'Diamond', emoji:'\u{1F48E}', cost:300, slot:'Card Back', value:{color:'#0c1a2e',accent:'rgba(103,232,249,.2)'} },
+  { id:'back_rainbow', name:'Rainbow', emoji:'\u{1F308}', cost:400, slot:'Card Back', value:{color:'#1a0a2e',accent:'rgba(236,72,153,.2)'} },
+  { id:'back_emoji', name:'Emoji Party', emoji:'\u{1F389}', cost:150, slot:'Card Back', value:{color:'#2e1a0a',accent:'rgba(251,191,36,.2)'} },
+  { id:'back_space', name:'Space', emoji:'\u{1F680}', cost:300, slot:'Card Back', value:{color:'#050a1a',accent:'rgba(99,102,241,.2)'} },
+  { id:'back_animals', name:'Animals', emoji:'\u{1F43E}', cost:200, slot:'Card Back', value:{color:'#0a2e1a',accent:'rgba(34,197,94,.2)'} },
+  { id:'back_oda', name:'ODA Special', emoji:'\u{1F3C6}', cost:500, slot:'Card Back', value:{color:'#1a1a00',accent:'rgba(255,209,102,.25)'} },
+  { id:'grid_default', name:'Default', emoji:'\u{1F7E6}', cost:0, slot:'Grid Theme', value:{bg:'transparent',border:'var(--border)'} },
+  { id:'grid_neon', name:'Neon', emoji:'\u{1F49A}', cost:150, slot:'Grid Theme', value:{bg:'rgba(57,255,20,.03)',border:'#39ff14'} },
+  { id:'grid_sunset', name:'Sunset', emoji:'\u{1F305}', cost:200, slot:'Grid Theme', value:{bg:'rgba(249,115,22,.03)',border:'#f97316'} },
+  { id:'grid_space', name:'Space', emoji:'\u{1F680}', cost:300, slot:'Grid Theme', value:{bg:'rgba(99,102,241,.03)',border:'#6366f1'} },
+  { id:'grid_sunset2', name:'Sunset Glow', emoji:'\u{1F31F}', cost:200, slot:'Grid Theme', value:{bg:'rgba(251,191,36,.03)',border:'#fbbf24'} },
+  { id:'grid_ocean', name:'Ocean Deep', emoji:'\u{1F30A}', cost:400, slot:'Grid Theme', value:{bg:'rgba(14,165,233,.03)',border:'#0ea5e9'} },
+  { id:'grid_candy', name:'Candy Land', emoji:'\u{1F36C}', cost:300, slot:'Grid Theme', value:{bg:'rgba(236,72,153,.03)',border:'#ec4899'} },
+  { id:'anim_bounce', name:'Bounce', emoji:'\u{1F3C0}', cost:100, slot:'Card Animation', value:{type:'bounce'} },
+  { id:'anim_spin', name:'Spin', emoji:'\u{1F300}', cost:200, slot:'Card Animation', value:{type:'spin'} },
+  { id:'anim_glow', name:'Glow', emoji:'\u{2728}', cost:400, slot:'Card Animation', value:{type:'glow'} }
 ];
 
 // =========================================================
@@ -617,12 +617,36 @@ function showAchievementToast(a) {
   setTimeout(function() { el.style.transition = 'opacity .4s'; el.style.opacity = '0'; setTimeout(function() { el.remove(); }, 400); }, 3000);
 }
 
+function applyCosmeticStyles() {
+  if (typeof odaShop === 'undefined') return;
+  var root = document.documentElement;
+  var cardBack = odaShop.getEquipped('memory', 'Card Back');
+  if (cardBack && cardBack.value) {
+    root.style.setProperty('--mem-card-color', cardBack.value.color);
+    root.style.setProperty('--mem-card-accent', cardBack.value.accent);
+  } else {
+    root.style.removeProperty('--mem-card-color');
+    root.style.removeProperty('--mem-card-accent');
+  }
+  var grid = odaShop.getEquipped('memory', 'Grid Theme');
+  if (grid && grid.value && grid.id !== 'grid_default') {
+    root.style.setProperty('--mem-grid-bg', grid.value.bg);
+    root.style.setProperty('--mem-grid-border', grid.value.border);
+  } else {
+    root.style.removeProperty('--mem-grid-bg');
+    root.style.removeProperty('--mem-grid-border');
+  }
+}
+
+if (typeof odaShop !== 'undefined') { applyCosmeticStyles(); }
+window.addEventListener('oda-shop-ready', function() { applyCosmeticStyles(); });
+
 function showShopScreen() {
   showScreen('shopScreen');
   if (window.odaShop) {
     odaShop.renderShopPanel('memory', MEMORY_SHOP, 'memoryShopContainer', {
-      onEquip: function(item) { console.log('[Memory] Equipped:', item.id); },
-      onBuy: function(item) { console.log('[Memory] Bought:', item.id); }
+      onEquip: function(item) { applyCosmeticStyles(); },
+      onBuy: function(item) { applyCosmeticStyles(); }
     });
   }
 }
@@ -1494,6 +1518,16 @@ document.addEventListener('keydown', function(e) {
 //  INIT
 // =========================================================
 console.log('[ODA] Memory Match loaded');
+
+odaHelp.init({
+  title:'Memory Match', emoji:'\u{1F9E0}', subtitle:'Test your memory with card matching!',
+  sections:[
+    {title:'Rules', icon:'\u{1F4D6}', items:['Flip two cards per turn to find matching pairs','If the cards match, they stay face up','If they don\'t match, they flip back over','Find all pairs to win the game']},
+    {title:'Scoring', icon:'\u{1F3AF}', items:['Fewer moves = better score','Complete faster for time bonuses','Try different grid sizes for more challenge']}
+  ],
+  controls:[{key:'Click',action:'Flip a card'}],
+  tip:'<strong>Work systematically!</strong> Focus on one area at a time. Try to remember card positions even when they flip back.'
+});
 </script>
 </body>
 </html>
