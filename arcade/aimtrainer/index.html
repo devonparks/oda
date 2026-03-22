@@ -63,8 +63,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .how-to p{font-size:13px;color:var(--text2);line-height:1.6}
 
 /* GAME */
-#gameScreen{padding:0;max-width:100%;min-height:100vh;min-height:100dvh;justify-content:center;align-items:center;position:relative}
-#canvasWrap{width:100%;height:100vh;height:100dvh;position:relative;overflow:hidden;touch-action:manipulation}
+#gameScreen{padding:16px;max-width:100%;min-height:100vh;min-height:100dvh;justify-content:center;align-items:center;position:relative}
+#canvasWrap{width:100%;max-width:1200px;height:78vh;margin:0 auto;position:relative;overflow:hidden;touch-action:manipulation;border-radius:16px;border:2px solid var(--border)}
 #gameCanvas{display:block;width:100%;height:100%;cursor:none}
 .game-hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:center;gap:32px;padding:16px 24px;pointer-events:none;z-index:5}
 .hud-item{display:flex;flex-direction:column;align-items:center;gap:2px}
@@ -240,20 +240,28 @@ function esc(s){var d=document.createElement('div');d.textContent=s;return d.inn
 /* ===================== */
 /* SCREEN SYSTEM         */
 /* ===================== */
+function stopGame(){
+  if(animId){cancelAnimationFrame(animId);animId=null}
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null}
+  gameState='dead';
+  var cw=document.getElementById('canvasWrap');
+  var cv=document.getElementById('gameCanvas');
+  if(cw)cw.style.cursor='default';
+  if(cv)cv.style.cursor='default';
+  document.body.classList.remove('in-game');
+}
+
 function showScreen(id){
-  // Stop game when leaving game screen
-  if(id!=='gameScreen'){
-    if(animId){cancelAnimationFrame(animId);animId=null}
-    if(timerInterval){clearInterval(timerInterval);timerInterval=null}
-    gameState='dead';
-    document.getElementById('canvasWrap').style.cursor='default';
-    document.getElementById('gameCanvas').style.cursor='default';
-  }
+  if(id!=='gameScreen')stopGame();
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
   document.getElementById(id).classList.add('active');
   document.body.classList.toggle('in-game',id==='gameScreen');
   if(id==='homeScreen')loadLocalStats();
 }
+
+// Stop game on page hide/unload
+window.addEventListener('beforeunload',stopGame);
+document.addEventListener('visibilitychange',function(){if(document.hidden&&gameState==='playing')stopGame()});
 
 /* ===================== */
 /* AUDIO                 */
