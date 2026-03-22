@@ -72,13 +72,13 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .pi-box .pi-tiles{font-size:11px;color:var(--text2)}
 
 /* BOARD CANVAS */
-.board-wrap{width:100%;max-width:1000px;margin:0 auto;position:relative;border-radius:16px;overflow:hidden;background:#1a5c2e;box-shadow:inset 0 2px 20px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.3)}
+.board-wrap{width:100%;max-width:1000px;margin:0 auto;position:relative;border-radius:16px;overflow:hidden;background:#1a5c2e;box-shadow:inset 0 2px 20px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.3);min-height:350px}
 .board-wrap canvas{display:block;width:100%;cursor:grab}
 .board-wrap canvas:active{cursor:grabbing}
 .board-empty-msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,.45);font-size:15px;font-weight:600;pointer-events:none;text-align:center}
 
 /* HAND */
-.hand-area{width:100%;max-width:1000px;margin:12px auto 0;padding:0 16px}
+.hand-area{width:100%;max-width:1000px;margin:0 auto;padding:0 16px;position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:5}
 .hand-label{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
 .hand-label .boneyard{color:var(--gold);font-size:11px}
 .hand-tiles{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;padding:8px 0;min-height:90px}
@@ -335,7 +335,7 @@ window.toggleSound=function(){soundOn=!soundOn;document.getElementById('soundBtn
 /* COSMETICS             */
 /* ===================== */
 let myCosmetics={};
-let tileBg='#e8e4df',tileBorder='#a89f95',dotColor='#1a1a1a',tableBg='';
+let tileBg='#f5f0e0',tileBorder='#b8a88a',dotColor='#1a1a1a',tableBg='';
 
 async function loadMyCosmetics(){
   try{myCosmetics=JSON.parse(localStorage.getItem('oda_cosmetics_dominoes')||'{}')}catch(e){myCosmetics={}}
@@ -745,68 +745,106 @@ function drawTileOnCanvas(ctx, cx, cy, valA, valB, horizontal, isDbl, highlight)
   ctx.save();
   ctx.translate(cx, cy);
 
-  const tw = isDbl ? TILE_H : TILE_W;   // tile half-width
-  const th = isDbl ? TILE_W : TILE_H;   // tile half-height
+  const tw = isDbl ? TILE_H : TILE_W;
+  const th = isDbl ? TILE_W : TILE_H;
 
   if(horizontal && !isDbl){
-    // Rotate -90 for horizontal non-double (so valA=left, valB=right)
     ctx.rotate(-Math.PI / 2);
   } else if(isDbl && horizontal) {
-    // Doubles perpendicular to horizontal chain = vertical orientation (no rotate needed)
+    // Doubles perpendicular — no rotate
   } else if(isDbl && !horizontal) {
     ctx.rotate(Math.PI / 2);
   }
 
   const w = TILE_W;
   const h = TILE_H;
+  const r = 5; // corner radius
 
-  // Shadow
-  ctx.shadowColor = 'rgba(0,0,0,.35)';
-  ctx.shadowBlur = 6;
+  // ── Drop shadow (layered for depth) ──
+  ctx.shadowColor = 'rgba(0,0,0,.5)';
+  ctx.shadowBlur = 8;
   ctx.shadowOffsetX = 2;
-  ctx.shadowOffsetY = 3;
+  ctx.shadowOffsetY = 4;
 
-  // Tile body
+  // ── Tile body: ivory/cream base ──
   ctx.beginPath();
-  ctx.roundRect(-w, -h, w * 2, h * 2, 6);
-  ctx.fillStyle = tileBg;
+  ctx.roundRect(-w, -h, w * 2, h * 2, r);
+  const ivoryGrad = ctx.createLinearGradient(-w, -h, w, h);
+  ivoryGrad.addColorStop(0, '#faf5e8');
+  ivoryGrad.addColorStop(0.3, '#f5eed8');
+  ivoryGrad.addColorStop(0.7, '#ebe4cc');
+  ivoryGrad.addColorStop(1, '#e0d8be');
+  ctx.fillStyle = tileBg === '#f5f0e0' || tileBg === '#f0f0f0' ? ivoryGrad : tileBg;
   ctx.fill();
   ctx.shadowColor = 'transparent';
 
-  // Bevel effect — top-left highlight
+  // ── Edge bevel: bright top-left, dark bottom-right ──
   ctx.save();
   ctx.beginPath();
-  ctx.roundRect(-w, -h, w * 2, h * 2, 6);
+  ctx.roundRect(-w, -h, w * 2, h * 2, r);
   ctx.clip();
-  const bevelGrad = ctx.createLinearGradient(-w, -h, w, h);
-  bevelGrad.addColorStop(0, 'rgba(255,255,255,.18)');
-  bevelGrad.addColorStop(0.4, 'rgba(255,255,255,0)');
-  bevelGrad.addColorStop(1, 'rgba(0,0,0,.1)');
-  ctx.fillStyle = bevelGrad;
+  // Top-left highlight
+  const hlGrad = ctx.createLinearGradient(-w, -h, w * 0.5, h * 0.5);
+  hlGrad.addColorStop(0, 'rgba(255,255,255,.35)');
+  hlGrad.addColorStop(0.5, 'rgba(255,255,255,0)');
+  ctx.fillStyle = hlGrad;
+  ctx.fillRect(-w, -h, w * 2, h * 2);
+  // Bottom-right shadow
+  const shGrad = ctx.createLinearGradient(-w * 0.5, -h * 0.5, w, h);
+  shGrad.addColorStop(0.5, 'rgba(0,0,0,0)');
+  shGrad.addColorStop(1, 'rgba(0,0,0,.12)');
+  ctx.fillStyle = shGrad;
   ctx.fillRect(-w, -h, w * 2, h * 2);
   ctx.restore();
 
-  // Border
+  // ── Border ──
   ctx.beginPath();
-  ctx.roundRect(-w, -h, w * 2, h * 2, 6);
-  ctx.strokeStyle = highlight ? '#06d6a0' : tileBorder;
-  ctx.lineWidth = highlight ? 2.5 : 1.5;
+  ctx.roundRect(-w, -h, w * 2, h * 2, r);
+  ctx.strokeStyle = highlight ? '#06d6a0' : '#b8a88a';
+  ctx.lineWidth = highlight ? 2.5 : 1.2;
   ctx.stroke();
 
-  // Divider line
+  // ── Divider groove (recessed line) ──
   ctx.beginPath();
-  ctx.moveTo(-w * 0.65, 0);
-  ctx.lineTo(w * 0.65, 0);
-  ctx.strokeStyle = tileBorder;
-  ctx.lineWidth = 1.5;
-  ctx.globalAlpha = 0.5;
+  ctx.moveTo(-w * 0.7, 0);
+  ctx.lineTo(w * 0.7, 0);
+  ctx.strokeStyle = '#8a7d6a';
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.6;
+  ctx.stroke();
+  // Highlight below divider for groove depth
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.7, 1.5);
+  ctx.lineTo(w * 0.7, 1.5);
+  ctx.strokeStyle = 'rgba(255,255,255,.3)';
+  ctx.lineWidth = 0.8;
   ctx.stroke();
   ctx.globalAlpha = 1;
 
-  // Pips
-  const pipR = Math.max(3, w * 0.13);
-  drawPips(ctx, 0, -h * 0.5, valA, pipR, w * 0.7);
-  drawPips(ctx, 0, h * 0.5, valB, pipR, w * 0.7);
+  // ── Brass spinner/rivet in center ──
+  const spinR = Math.max(2.5, w * 0.07);
+  // Outer ring
+  const brassGrad = ctx.createRadialGradient(-spinR*0.3, -spinR*0.3, 0, 0, 0, spinR);
+  brassGrad.addColorStop(0, '#d4a843');
+  brassGrad.addColorStop(0.5, '#c49b38');
+  brassGrad.addColorStop(1, '#8a6d24');
+  ctx.beginPath();
+  ctx.arc(0, 0, spinR, 0, Math.PI * 2);
+  ctx.fillStyle = brassGrad;
+  ctx.fill();
+  ctx.strokeStyle = '#6b5520';
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+  // Shine dot on spinner
+  ctx.beginPath();
+  ctx.arc(-spinR*0.2, -spinR*0.3, spinR*0.3, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,220,.5)';
+  ctx.fill();
+
+  // ── Pips ──
+  const pipR = Math.max(3.5, w * 0.14);
+  drawPips(ctx, 0, -h * 0.5, valA, pipR, w * 0.68);
+  drawPips(ctx, 0, h * 0.5, valB, pipR, w * 0.68);
 
   ctx.restore();
 }
@@ -815,9 +853,7 @@ function drawTileOnCanvas(ctx, cx, cy, valA, valB, horizontal, isDbl, highlight)
 /* DRAW PIPS (standard domino positions)                       */
 /* =========================================================== */
 function drawPips(ctx, cx, cy, count, radius, area){
-  // Standard pip positions relative to center of half
-  // area = the usable area size (half)
-  const s = area * 0.38; // spread
+  const s = area * 0.36;
   const positions = {
     0: [],
     1: [[0, 0]],
@@ -831,35 +867,58 @@ function drawPips(ctx, cx, cy, count, radius, area){
   const dots = positions[count] || [];
   const dotShape = myCosmetics['Dot Style']?.value?.shape || 'circle';
 
-  ctx.fillStyle = dotColor;
   dots.forEach(([dx, dy]) => {
     const px = cx + dx;
     const py = cy + dy;
 
     if(dotShape === 'square'){
+      ctx.fillStyle = dotColor;
       ctx.fillRect(px - radius, py - radius, radius * 2, radius * 2);
     } else if(dotShape === 'diamond'){
       ctx.save();
       ctx.translate(px, py);
       ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = dotColor;
       ctx.fillRect(-radius * 0.8, -radius * 0.8, radius * 1.6, radius * 1.6);
       ctx.restore();
     } else if(dotShape === 'star'){
       drawStar(ctx, px, py, radius);
     } else {
-      // Default circle
-      ctx.beginPath();
-      ctx.arc(px, py, radius, 0, Math.PI * 2);
-      ctx.fill();
-      // Inner shadow for 3D
+      // Recessed pip: outer shadow ring (indentation effect)
       ctx.save();
-      ctx.globalAlpha = 0.25;
       ctx.beginPath();
-      ctx.arc(px - radius * 0.2, py - radius * 0.2, radius * 0.5, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,.4)';
+      ctx.arc(px, py, radius * 1.15, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,0,0,.08)';
       ctx.fill();
       ctx.restore();
-      ctx.fillStyle = dotColor;
+
+      // Main pip (dark, slightly concave)
+      const pipGrad = ctx.createRadialGradient(px - radius*0.2, py - radius*0.2, 0, px, py, radius);
+      pipGrad.addColorStop(0, '#2a2a2a');
+      pipGrad.addColorStop(0.6, '#1a1a1a');
+      pipGrad.addColorStop(1, '#0f0f0f');
+      ctx.beginPath();
+      ctx.arc(px, py, radius, 0, Math.PI * 2);
+      ctx.fillStyle = dotColor === '#1a1a1a' || dotColor === '#111' ? pipGrad : dotColor;
+      ctx.fill();
+
+      // Concave highlight (light crescent on top-left for depth)
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(px, py, radius, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.beginPath();
+      ctx.arc(px - radius*0.3, py - radius*0.3, radius*0.6, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,.12)';
+      ctx.fill();
+      ctx.restore();
+
+      // Rim shadow at bottom-right for inset look
+      ctx.beginPath();
+      ctx.arc(px, py, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(0,0,0,.15)';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
     }
   });
 }
