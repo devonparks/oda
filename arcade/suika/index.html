@@ -387,7 +387,7 @@ var dangerTimer=0;
 var DANGER_TIME=90; // frames above line before game over (~1.5s at 60fps)
 
 // Physics constants
-var GRAVITY=0.25;
+var GRAVITY=0.3;
 var FRICTION=0.8;
 var BOUNCE=0.3;
 
@@ -516,9 +516,9 @@ function update(){
         var dist=Math.sqrt(dx*dx+dy*dy);
         var minDist=a.r+b.r;
         if(dist<minDist&&dist>0.01){
-          // Wake sleeping fruits on contact
-          if(a.sleeping&&!b.sleeping&&(Math.abs(b.vx)+Math.abs(b.vy))>0.5){a.sleeping=false;}
-          if(b.sleeping&&!a.sleeping&&(Math.abs(a.vx)+Math.abs(a.vy))>0.5){b.sleeping=false;}
+          // Wake sleeping fruits if the other is moving
+          if(a.sleeping&&(Math.abs(b.vx)+Math.abs(b.vy))>0.3){a.sleeping=false;}
+          if(b.sleeping&&(Math.abs(a.vx)+Math.abs(a.vy))>0.3){b.sleeping=false;}
           // Same type => merge
           if(a.type===b.type&&a.type<FRUIT_TYPES.length-1&&a.age>3&&b.age>3){
             a.sleeping=false;b.sleeping=false;
@@ -530,10 +530,16 @@ function update(){
           var nx=dx/dist,ny=dy/dist;
           var massA=a.r*a.r,massB=b.r*b.r;
           var totalMass=massA+massB;
-          var pushA=overlap*(massB/totalMass)*0.7;
-          var pushB=overlap*(massA/totalMass)*0.7;
+          var pushA=overlap*(massB/totalMass)*0.6;
+          var pushB=overlap*(massA/totalMass)*0.6;
           a.x-=nx*pushA;a.y-=ny*pushA;
           b.x+=nx*pushB;b.y+=ny*pushB;
+          // If one fruit is directly on top of another, nudge it sideways to roll off
+          if(Math.abs(ny)>0.7&&Math.abs(nx)<0.3){
+            var nudge=(dx>0?1:-1)*0.3;
+            if(a.y<b.y){a.vx+=nudge;a.sleeping=false;}
+            else{b.vx-=nudge;b.sleeping=false;}
+          }
           // Transfer velocity on first iteration only (skip if both sleeping)
           if(iter===0&&!(a.sleeping&&b.sleeping)){
             var relVx=a.vx-b.vx,relVy=a.vy-b.vy;
@@ -561,9 +567,10 @@ function update(){
     // Cap velocity
     if(f.vx>6)f.vx=6;if(f.vx<-6)f.vx=-6;
     if(f.vy>8)f.vy=8;if(f.vy<-8)f.vy=-8;
-    // Sleep if nearly still and on the ground or on another fruit
+    // Sleep if nearly still for a while (must be old enough and truly stopped)
     var speed=Math.abs(f.vx)+Math.abs(f.vy);
-    if(speed<0.3&&f.age>10){f.vx=0;f.vy=0;f.sleeping=true;}
+    if(speed<0.15&&f.age>60){f.vx=0;f.vy=0;f.sleeping=true;}
+    else{f.sleeping=false;}
   }
 
   // Check danger line (game over if fruit stays above danger line)
