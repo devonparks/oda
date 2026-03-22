@@ -254,13 +254,17 @@ var pipeColor='#06d6a0',pipeCap='#059669';
 var skyTop='#1a1a2e',skyBottom='#16213e',groundColor='#2a3450';
 
 async function loadMyCosmetics(){
+  // Load from localStorage first (always available)
+  try{myCosmetics=JSON.parse(localStorage.getItem('oda_cosmetics_flappy')||'{}');}catch(e){myCosmetics={}}
+  // Try Firestore too (may fail for teachers)
   var sid=localStorage.getItem('studentId');
-  if(!sid)return;
-  try{
-    var fb=await window.getFirebaseDB();
-    var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));
-    if(snap.exists()){var d=snap.data();myCosmetics=d.gameCosmetics?.flappy?.equipped||{};}
-  }catch(e){}
+  if(sid){
+    try{
+      var fb=await window.getFirebaseDB();
+      var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));
+      if(snap.exists()){var d=snap.data();var fc=d.gameCosmetics?.flappy?.equipped;if(fc&&Object.keys(fc).length>0)myCosmetics=fc;}
+    }catch(e){}
+  }
   applyCosmeticStyles();
 }
 loadMyCosmetics();

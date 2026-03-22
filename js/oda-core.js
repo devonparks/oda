@@ -631,6 +631,12 @@ window.odaShop = (function() {
     var sid = _getSid();
     if (!sid || sid.startsWith('anon_')) return false;
     var data = _cache[sid] || await loadShopData();
+    // Always save to localStorage as primary + fallback
+    _saveLocalCosmetic(gameId, slot, itemData);
+    // Update local cache
+    if (!data.gameCosmetics[gameId]) data.gameCosmetics[gameId] = { owned: [], equipped: {} };
+    data.gameCosmetics[gameId].equipped[slot] = itemData;
+    // Try Firestore (may fail for teachers or permission issues)
     try {
       var fb = await window.getFirebaseDB();
       var ref = fb.fsMod.doc(fb.db, 'students', sid);
@@ -638,22 +644,41 @@ window.odaShop = (function() {
       var update = {};
       update[equipKey] = itemData;
       await fb.fsMod.setDoc(ref, update, { merge: true });
-      // Update local cache
-      if (!data.gameCosmetics[gameId]) data.gameCosmetics[gameId] = { owned: [], equipped: {} };
-      data.gameCosmetics[gameId].equipped[slot] = itemData;
-      return true;
     } catch(e) {
-      console.error('[odaShop] Equip failed:', e);
-      return false;
+      console.warn('[odaShop] Firestore equip failed, using localStorage:', e.message);
     }
+    return true;
   }
 
-  /** Get equipped item for a game + slot */
+  /** Save cosmetic to localStorage */
+  function _saveLocalCosmetic(gameId, slot, itemData) {
+    try {
+      var key = 'oda_cosmetics_' + gameId;
+      var stored = JSON.parse(localStorage.getItem(key) || '{}');
+      stored[slot] = itemData;
+      localStorage.setItem(key, JSON.stringify(stored));
+    } catch(e) {}
+  }
+
+  /** Load cosmetics from localStorage */
+  function _loadLocalCosmetics(gameId) {
+    try {
+      return JSON.parse(localStorage.getItem('oda_cosmetics_' + gameId) || '{}');
+    } catch(e) { return {}; }
+  }
+
+  /** Get equipped item for a game + slot (checks cache, then localStorage) */
   function getEquipped(gameId, slot) {
     var sid = _getSid();
     var data = _cache[sid];
-    if (!data || !data.gameCosmetics || !data.gameCosmetics[gameId]) return null;
-    return data.gameCosmetics[gameId].equipped ? data.gameCosmetics[gameId].equipped[slot] : null;
+    // Check Firestore cache first
+    if (data && data.gameCosmetics && data.gameCosmetics[gameId] && data.gameCosmetics[gameId].equipped) {
+      var item = data.gameCosmetics[gameId].equipped[slot];
+      if (item) return item;
+    }
+    // Fallback to localStorage
+    var local = _loadLocalCosmetics(gameId);
+    return local[slot] || null;
   }
 
   /** Get all owned items for a game */
