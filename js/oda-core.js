@@ -612,7 +612,7 @@ window.odaShop = (function() {
       var update = {};
       update.coins = fb.fsMod.increment(-cost);
       update[ownedKey] = fb.fsMod.arrayUnion(itemId);
-      await fb.fsMod.updateDoc(ref, update);
+      await fb.fsMod.setDoc(ref, update, { merge: true });
       // Update local cache
       data.coins -= cost;
       if (!data.gameCosmetics[gameId]) data.gameCosmetics[gameId] = { owned: [], equipped: {} };
@@ -637,7 +637,7 @@ window.odaShop = (function() {
       var equipKey = 'gameCosmetics.' + gameId + '.equipped.' + slot;
       var update = {};
       update[equipKey] = itemData;
-      await fb.fsMod.updateDoc(ref, update);
+      await fb.fsMod.setDoc(ref, update, { merge: true });
       // Update local cache
       if (!data.gameCosmetics[gameId]) data.gameCosmetics[gameId] = { owned: [], equipped: {} };
       data.gameCosmetics[gameId].equipped[slot] = itemData;
