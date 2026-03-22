@@ -67,7 +67,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 #canvasWrap{width:100%;height:100vh;height:100dvh;position:relative;overflow:hidden;cursor:pointer;touch-action:manipulation}
 #gameCanvas{display:block;width:100%;height:100%}
 .game-hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:center;padding:20px;pointer-events:none;z-index:5}
-.hud-score{font-family:'Fredoka',sans-serif;font-size:64px;font-weight:700;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.5),0 0 20px rgba(0,0,0,.3)}
+.hud-score{font-family:'Fredoka',sans-serif;font-size:clamp(64px,12vw,96px);font-weight:900;color:#fff;text-shadow:0 3px 10px rgba(0,0,0,.6),0 0 30px rgba(0,0,0,.4);letter-spacing:-2px;-webkit-text-stroke:2px rgba(0,0,0,.15)}
 .tap-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;z-index:5;animation:pulse 1.5s ease-in-out infinite}
 .tap-hint .th-icon{font-size:48px;margin-bottom:8px}
 .tap-hint .th-text{font-family:'Fredoka',sans-serif;font-size:20px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.5)}
@@ -286,14 +286,14 @@ function applyCosmeticStyles(){
 /* SHOP                  */
 /* ===================== */
 var FLAPPY_SHOP=[
-  {id:'fb_robin',name:'Robin',emoji:'bird',cost:0,slot:'Bird Type',value:{color:'#ef4444',accent:'#dc2626',beak:'#f97316',belly:'#fbbf24'}},
-  {id:'fb_parrot',name:'Parrot',emoji:'bird',cost:100,slot:'Bird Type',value:{color:'#06d6a0',accent:'#059669',beak:'#f97316',belly:'#fef08a'}},
-  {id:'fb_bluebird',name:'Blue Jay',emoji:'bird',cost:150,slot:'Bird Type',value:{color:'#3b82f6',accent:'#2563eb',beak:'#1e293b',belly:'#dbeafe'}},
-  {id:'fb_penguin',name:'Penguin',emoji:'bird',cost:200,slot:'Bird Type',value:{color:'#1e293b',accent:'#0f172a',beak:'#f97316',belly:'#f1f5f9'}},
-  {id:'fb_flamingo',name:'Flamingo',emoji:'bird',cost:250,slot:'Bird Type',value:{color:'#f472b6',accent:'#ec4899',beak:'#111',belly:'#fce7f3'}},
-  {id:'fb_phoenix',name:'Phoenix',emoji:'bird',cost:400,slot:'Bird Type',value:{color:'#f97316',accent:'#ea580c',beak:'#fbbf24',belly:'#fef08a'}},
-  {id:'fb_gold',name:'Gold Bird',emoji:'bird',cost:600,slot:'Bird Type',value:{color:'#fbbf24',accent:'#f59e0b',beak:'#92400e',belly:'#fef3c7'}},
-  {id:'fb_diamond',name:'Diamond Bird',emoji:'bird',cost:1000,slot:'Bird Type',value:{color:'#67e8f9',accent:'#22d3ee',beak:'#cbd5e1',belly:'#ecfeff'}},
+  {id:'fb_robin',name:'Robin',emoji:'\u{1F534}',cost:0,slot:'Bird Type',value:{color:'#ef4444',accent:'#dc2626',beak:'#f97316',belly:'#fbbf24'}},
+  {id:'fb_parrot',name:'Parrot',emoji:'\u{1F7E2}',cost:100,slot:'Bird Type',value:{color:'#06d6a0',accent:'#059669',beak:'#f97316',belly:'#fef08a'}},
+  {id:'fb_bluebird',name:'Blue Jay',emoji:'\u{1F535}',cost:150,slot:'Bird Type',value:{color:'#3b82f6',accent:'#2563eb',beak:'#1e293b',belly:'#dbeafe'}},
+  {id:'fb_penguin',name:'Penguin',emoji:'\u{2B1B}',cost:200,slot:'Bird Type',value:{color:'#1e293b',accent:'#0f172a',beak:'#f97316',belly:'#f1f5f9'}},
+  {id:'fb_flamingo',name:'Flamingo',emoji:'\u{1F7E3}',cost:250,slot:'Bird Type',value:{color:'#f472b6',accent:'#ec4899',beak:'#111',belly:'#fce7f3'}},
+  {id:'fb_phoenix',name:'Phoenix',emoji:'\u{1F7E0}',cost:400,slot:'Bird Type',value:{color:'#f97316',accent:'#ea580c',beak:'#fbbf24',belly:'#fef08a'}},
+  {id:'fb_gold',name:'Gold Bird',emoji:'\u{1F7E1}',cost:600,slot:'Bird Type',value:{color:'#fbbf24',accent:'#f59e0b',beak:'#92400e',belly:'#fef3c7'}},
+  {id:'fb_diamond',name:'Diamond Bird',emoji:'\u{1F4A0}',cost:1000,slot:'Bird Type',value:{color:'#67e8f9',accent:'#22d3ee',beak:'#cbd5e1',belly:'#ecfeff'}},
 
   {id:'ft_classic',name:'Classic',emoji:'\u{1F333}',cost:0,slot:'Theme',value:{pipe:'#06d6a0',cap:'#059669',top:'#1a1a2e',bottom:'#16213e',ground:'#2a3450'}},
   {id:'ft_neon',name:'Neon Night',emoji:'\u{1F4A1}',cost:200,slot:'Theme',value:{pipe:'#39ff14',cap:'#00cc00',top:'#050510',bottom:'#0a0e1a',ground:'#111827'}},
@@ -305,20 +305,33 @@ var FLAPPY_SHOP=[
 
 function showShopScreen(){
   showScreen('shopScreen');
-  // Generate bird icon data URLs before rendering shop
-  FLAPPY_SHOP.forEach(function(item){
-    if(item.emoji!=='bird'||!item.value)return;
-    var c=document.createElement('canvas');c.width=48;c.height=48;
-    drawMiniBird(c,item.value);
-    item._iconUrl=c.toDataURL();
-    item.emoji='<img src="'+item._iconUrl+'" width="32" height="32" style="image-rendering:auto">';
-  });
   if(typeof odaShop!=='undefined'){
     odaShop.renderShopPanel('flappy',FLAPPY_SHOP,'flappyShopContainer',{
-      onEquip:function(){loadMyCosmetics();renderLogoBird()},
-      onBuy:function(){loadMyCosmetics();renderLogoBird()}
+      onEquip:function(){loadMyCosmetics();setTimeout(replaceBirdIcons,60)},
+      onBuy:function(){loadMyCosmetics();setTimeout(replaceBirdIcons,60)}
     });
+    setTimeout(replaceBirdIcons,60);
   }
+}
+
+function replaceBirdIcons(){
+  var container=document.getElementById('flappyShopContainer');
+  if(!container)return;
+  var btns=container.querySelectorAll('.oda-shop-item');
+  var birdItems=FLAPPY_SHOP.filter(function(i){return i.slot==='Bird Type'});
+  btns.forEach(function(btn){
+    var nameEl=btn.querySelector('.oda-shop-item-name');
+    if(!nameEl)return;
+    var name=nameEl.textContent.trim();
+    var item=birdItems.find(function(b){return b.name===name});
+    if(!item||!item.value)return;
+    var iconEl=btn.querySelector('.oda-shop-item-icon');
+    if(!iconEl||iconEl.querySelector('canvas'))return;
+    var c=document.createElement('canvas');c.width=48;c.height=48;c.style.cssText='width:40px;height:40px';
+    drawMiniBird(c,item.value);
+    iconEl.textContent='';
+    iconEl.appendChild(c);
+  });
 }
 
 function renderLogoBird(){
@@ -483,6 +496,9 @@ function startGame(){
   document.getElementById('gameOverOverlay').classList.remove('active');
   if(animId)cancelAnimationFrame(animId);
   applyCosmeticStyles();
+  // Render hint bird with current cosmetic colors
+  var hc=document.getElementById('hintBird');
+  if(hc)drawMiniBird(hc,{color:birdColor,accent:birdAccent,belly:birdBelly,beak:birdBeak});
   gameLoop();
 }
 
@@ -582,10 +598,28 @@ function draw(){
     ctx.fillRect(sx,sy,1.5,1.5);
   }
 
-  // Ground
+  // Ground with grass detail
   ctx.fillStyle=groundColor;ctx.fillRect(0,groundY,W,GROUND_HEIGHT);
-  ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(0,groundY);ctx.lineTo(W,groundY);ctx.stroke();
+  // Grass top edge
+  var grassColor='rgba(6,214,160,0.25)';
+  ctx.fillStyle=grassColor;ctx.fillRect(0,groundY,W,3);
+  // Grass blades
+  ctx.strokeStyle='rgba(6,214,160,0.15)';ctx.lineWidth=1.5;
+  for(var gi=0;gi<W;gi+=12){
+    var gx=gi+((frameCount*0.5)%12);if(gx>W)gx-=W;
+    var gh=4+Math.sin(gi*0.3)*3;
+    ctx.beginPath();ctx.moveTo(gx,groundY);ctx.lineTo(gx-2,groundY-gh);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(gx+4,groundY);ctx.lineTo(gx+6,groundY-gh*0.7);ctx.stroke();
+  }
+  // Ground line
+  ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,groundY+3);ctx.lineTo(W,groundY+3);ctx.stroke();
+  // Ground texture dots
+  ctx.fillStyle='rgba(255,255,255,0.04)';
+  for(var gd=0;gd<30;gd++){
+    var dx=(gd*53+frameCount*0.3)%W,dy=groundY+8+((gd*37)%45);
+    ctx.fillRect(dx,dy,2,2);
+  }
 
   // Pipes
   for(var i=0;i<pipes.length;i++){
@@ -608,7 +642,10 @@ function draw(){
 
   // Bird
   ctx.save();
-  ctx.translate(bird.x,bird.y);
+  var drawY=bird.y;
+  // Gentle bounce when waiting to start
+  if(gameState==='waiting'){drawY=bird.y+Math.sin(frameCount*0.06)*8}
+  ctx.translate(bird.x,drawY);
   ctx.rotate(bird.rotation);
   // Body
   ctx.fillStyle=birdColor;
