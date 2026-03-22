@@ -486,13 +486,18 @@ function update(){
     var f=fruits[i];
     if(f.merging)continue;
     f.age++;
+    // Sleep system: if velocity is tiny, freeze the fruit
+    if(f.sleeping){
+      // Check if something woke it (collision will set sleeping=false)
+      continue;
+    }
     // Gravity
     f.vy+=GRAVITY;
     f.x+=f.vx;
     f.y+=f.vy;
 
     // Dampen horizontal
-    f.vx*=0.98;
+    f.vx*=0.95;
 
     // Container walls
     if(f.x-f.r<WALL_THICK){f.x=WALL_THICK+f.r;f.vx=Math.abs(f.vx)*BOUNCE}
@@ -511,8 +516,12 @@ function update(){
         var dist=Math.sqrt(dx*dx+dy*dy);
         var minDist=a.r+b.r;
         if(dist<minDist&&dist>0.01){
+          // Wake sleeping fruits on contact
+          if(a.sleeping&&!b.sleeping&&(Math.abs(b.vx)+Math.abs(b.vy))>0.5){a.sleeping=false;}
+          if(b.sleeping&&!a.sleeping&&(Math.abs(a.vx)+Math.abs(a.vy))>0.5){b.sleeping=false;}
           // Same type => merge
           if(a.type===b.type&&a.type<FRUIT_TYPES.length-1&&a.age>3&&b.age>3){
+            a.sleeping=false;b.sleeping=false;
             mergeFruits(i,j);
             return; // restart collision loop next frame
           }
@@ -525,8 +534,8 @@ function update(){
           var pushB=overlap*(massA/totalMass)*0.7;
           a.x-=nx*pushA;a.y-=ny*pushA;
           b.x+=nx*pushB;b.y+=ny*pushB;
-          // Transfer velocity on first iteration only
-          if(iter===0){
+          // Transfer velocity on first iteration only (skip if both sleeping)
+          if(iter===0&&!(a.sleeping&&b.sleeping)){
             var relVx=a.vx-b.vx,relVy=a.vy-b.vy;
             var relDot=relVx*nx+relVy*ny;
             if(relDot>0){
@@ -552,6 +561,9 @@ function update(){
     // Cap velocity
     if(f.vx>6)f.vx=6;if(f.vx<-6)f.vx=-6;
     if(f.vy>8)f.vy=8;if(f.vy<-8)f.vy=-8;
+    // Sleep if nearly still and on the ground or on another fruit
+    var speed=Math.abs(f.vx)+Math.abs(f.vy);
+    if(speed<0.3&&f.age>10){f.vx=0;f.vy=0;f.sleeping=true;}
   }
 
   // Check danger line (game over if fruit stays above danger line)
@@ -724,10 +736,7 @@ function draw(){
 
   ctx.restore();
 
-  // Score display at top
-  ctx.fillStyle='rgba(255,255,255,0.08)';
-  ctx.font='bold 14px Outfit';ctx.textAlign='left';
-  ctx.fillText('SCORE',16,containerTop-10);
+  // (score shown in HUD, not on canvas)
 }
 
 function drawFruit(type,x,y,r){
