@@ -122,11 +122,48 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
 @keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
 @keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+
+/* ======================== */
+/* HOME MODE GRID           */
+/* ======================== */
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;max-width:500px;width:90%;margin:0 auto}
+.mode-card{cursor:pointer;text-align:center;padding:24px 16px;background:var(--surface);border:1px solid var(--border);border-radius:20px;transition:all .2s}
+.mode-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.mode-card .mode-icon{font-size:36px;margin-bottom:10px;display:block}
+.mode-card h3{font-size:16px;margin-bottom:4px;font-family:'Fredoka',sans-serif}
+.mode-card p{font-size:12px;color:var(--text2);line-height:1.4}
+
+/* ======================== */
+/* QUICK MATCH SCREEN       */
+/* ======================== */
+#quickMatchScreen{padding-top:80px;justify-content:flex-start;gap:16px}
+.qm-container{text-align:center;max-width:400px;width:90%}
+.qm-container h2{font-size:28px;margin-bottom:8px;font-family:'Fredoka',sans-serif}
+.qm-container .sub{color:var(--text2);font-size:14px;margin-bottom:24px}
+.qm-actions{display:flex;flex-direction:column;gap:14px;align-items:center}
+.qm-divider{display:flex;align-items:center;gap:14px;width:100%;margin:4px 0}
+.qm-divider::before,.qm-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.qm-divider span{color:var(--text2);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px}
+.join-row{display:flex;gap:12px;align-items:center;justify-content:center}
+.code-input{background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:14px 20px;color:var(--text);font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;text-align:center;width:200px;letter-spacing:8px;outline:none;transition:border-color .2s}
+.code-input:focus{border-color:var(--accent)}
+.code-input::placeholder{color:var(--border);letter-spacing:4px;font-size:20px}
+.error-text{color:var(--accent3);font-size:13px;font-weight:600;margin-top:8px;min-height:20px}
+
+/* ======================== */
+/* WAITING SCREEN           */
+/* ======================== */
+#waitingScreen{padding-top:100px;justify-content:flex-start}
+.waiting-container{text-align:center}
+.waiting-container h2{font-size:28px;margin-bottom:12px;font-family:'Fredoka',sans-serif}
+.room-code-big{font-size:clamp(48px,12vw,72px);font-weight:900;font-family:'Fredoka',sans-serif;color:var(--gold);letter-spacing:16px;margin:20px 0;text-shadow:0 0 40px rgba(255,209,102,.3)}
+.waiting-pulse{color:var(--text2);font-size:14px;animation:waitPulse 2s ease-in-out infinite}
+@keyframes waitPulse{0%,100%{opacity:1}50%{opacity:.4}}
 </style>
 </head>
 <body>
 
-<a class="back-btn" href="../../student.html" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();showScreen('homeScreen')}">&#8592; Back</a>
+<a class="back-btn" href="../../student.html" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();if(qmGameMode&&document.getElementById('gameScreen').classList.contains('active')){qmLeaveGame();showScreen('homeScreen')}else{showScreen('homeScreen')}}">&#8592; Back</a>
 <button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128264;</button>
 
 <!-- HOME SCREEN -->
@@ -139,13 +176,19 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <span class="bp-label">&#9917; Best</span>
     <span class="bp-val" id="homeBest">0-0</span>
   </div>
-  <div class="diff-row" style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
-    <button class="diff-btn active" onclick="setDifficulty('easy',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--accent);background:rgba(6,214,160,.15);color:var(--accent);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Easy</button>
-    <button class="diff-btn" onclick="setDifficulty('medium',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Medium</button>
-    <button class="diff-btn" onclick="setDifficulty('hard',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Hard</button>
+  <div class="mode-grid">
+    <div class="mode-card" onclick="showScreen('aiDiffScreen')">
+      <span class="mode-icon">&#129302;</span>
+      <h3>VS Computer</h3>
+      <p>Test your skills against AI opponents</p>
+    </div>
+    <div class="mode-card" onclick="showScreen('quickMatchScreen')">
+      <span class="mode-icon">&#9889;</span>
+      <h3>Quick Match</h3>
+      <p>Play a friend with a room code</p>
+    </div>
   </div>
-  <div class="home-actions">
-    <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
+  <div class="home-actions" style="margin-top:12px">
     <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
     <button class="btn btn-outline btn-small" onclick="showShopScreen()">&#128717;&#65039; Shop</button>
   </div>
@@ -157,6 +200,21 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <h3>How to Play</h3>
     <p>Each round: KICK then SAVE. Click the goal to aim, time the shrinking ring for accuracy, then hit the power bar sweet spot. To save, read the heat zone hint, pick a zone, and time your dive. 5 rounds!</p>
   </div>
+</div>
+
+<!-- AI DIFFICULTY SCREEN -->
+<div class="screen" id="aiDiffScreen">
+  <div style="text-align:center;margin-bottom:16px">
+    <h2 style="font-size:28px;font-family:Fredoka,sans-serif">Choose Difficulty</h2>
+    <p style="color:var(--text2);font-size:14px;margin-top:4px">How tough should the keeper be?</p>
+  </div>
+  <div class="diff-row" style="display:flex;gap:8px;justify-content:center;margin-bottom:16px">
+    <button class="diff-btn active" onclick="setDifficulty('easy',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--accent);background:rgba(6,214,160,.15);color:var(--accent);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Easy</button>
+    <button class="diff-btn" onclick="setDifficulty('medium',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Medium</button>
+    <button class="diff-btn" onclick="setDifficulty('hard',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Hard</button>
+  </div>
+  <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:12px">&#8592; Back</button>
 </div>
 
 <!-- GAME SCREEN -->
@@ -185,8 +243,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <div class="go-new" id="goNew" style="display:none">New Best! &#127881;</div>
       <div class="go-coins" id="goCoins">+0 coins</div>
       <div class="go-btns">
-        <button class="btn btn-accent btn-small" onclick="startGame()">Play Again</button>
-        <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Home</button>
+        <button class="btn btn-accent btn-small" id="goPlayAgain" onclick="startGame()">Play Again</button>
+        <button class="btn btn-outline btn-small" onclick="if(qmGameMode){qmLeaveGame()}showScreen('homeScreen')">Home</button>
       </div>
     </div>
   </div>
@@ -223,6 +281,35 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
 </div>
 
+<!-- QUICK MATCH SCREEN -->
+<div class="screen" id="quickMatchScreen">
+  <div class="qm-container">
+    <h2>Quick Match</h2>
+    <p class="sub">Create a room or join with a code</p>
+    <div class="qm-actions">
+      <button class="btn btn-accent" onclick="qmCreateGame()">Create Room</button>
+      <div class="qm-divider"><span>or join</span></div>
+      <div class="join-row">
+        <input class="code-input" id="qmCodeInput" type="text" maxlength="4" placeholder="CODE" inputmode="numeric">
+        <button class="btn btn-small" style="background:var(--accent2);color:#fff" onclick="qmJoinGame()">Join</button>
+      </div>
+      <div class="error-text" id="qmError"></div>
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:8px">&#8592; Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- WAITING SCREEN -->
+<div class="screen" id="waitingScreen">
+  <div class="waiting-container">
+    <h2>Room Created!</h2>
+    <p style="color:var(--text2);font-size:14px;margin-top:4px">Share this code with your opponent:</p>
+    <div class="room-code-big" id="qmRoomCodeDisplay"></div>
+    <p class="waiting-pulse">Waiting for opponent to join...</p>
+    <button class="btn btn-outline btn-small" onclick="qmCancelGame()" style="margin-top:20px">Cancel</button>
+  </div>
+</div>
+
 <script src="../../js/oda-core.js"></script>
 <script>
 /* ===================== */
@@ -244,7 +331,7 @@ function showScreen(id){
   document.getElementById(id).classList.add('active');
   document.body.classList.toggle('in-game',id==='gameScreen');
   if(id!=='gameScreen')stopGame();
-  if(id==='homeScreen')loadLocalStats();
+  if(id==='homeScreen'){loadLocalStats();if(qmUnsub){qmUnsub();qmUnsub=null}}
 }
 
 /* ===================== */
@@ -564,6 +651,7 @@ function stopGame(){
    ============================================== */
 function startGame(){
   stopGame();
+  qmGameMode=false; // AI mode
   showScreen('gameScreen');
   initCanvas();
   applyCosmeticStyles();
@@ -581,6 +669,12 @@ function startGame(){
   document.getElementById('gameOverOverlay').classList.remove('active');
   document.getElementById('saveZones').classList.remove('active');
   document.getElementById('saveCountdown').classList.remove('active');
+
+  // Reset play again button for AI mode
+  var paBtn=document.getElementById('goPlayAgain');
+  paBtn.textContent='Play Again';
+  paBtn.onclick=function(){startGame()};
+
   updateHUD();
 
   addTimer(function(){beginKickPhase()},600);
@@ -588,12 +682,28 @@ function startGame(){
 }
 
 function updateHUD(){
-  document.getElementById('hudScore').textContent='You '+GS.p1Goals+' - '+GS.p2Goals+' AI';
+  if(qmGameMode){
+    var oppLabel=qmOpponentName||'Opponent';
+    var myGoals=qmMyPlayer===1?GS.p1Goals:GS.p2Goals;
+    var oppGoals=qmMyPlayer===1?GS.p2Goals:GS.p1Goals;
+    document.getElementById('hudScore').textContent='You '+myGoals+' - '+oppGoals+' '+oppLabel;
+  }else{
+    document.getElementById('hudScore').textContent='You '+GS.p1Goals+' - '+GS.p2Goals+' AI';
+  }
   document.getElementById('hudRound').textContent='Round: '+Math.min(GS.round+1,GS.maxRounds)+' / '+GS.maxRounds;
   var phaseLabel='\u26BD Your Kick';
   var sp=GS.phase;
-  if(sp==='save_heat'||sp==='save_choose'||sp==='save_ring'||sp==='save_fly'||sp==='save_result')
-    phaseLabel='\u{1F9E4} Your Save';
+  if(qmGameMode){
+    if(sp==='qm_kick_aim'||sp==='qm_kick_ring'||sp==='qm_kick_power') phaseLabel='\u26BD Your Kick';
+    else if(sp==='qm_save_choose'||sp==='qm_save_ring') phaseLabel='\u{1F9E4} Your Save';
+    else if(sp==='qm_wait_kick') phaseLabel='\u231B Opponent Kicking...';
+    else if(sp==='qm_wait_save') phaseLabel='\u231B Opponent Saving...';
+    else if(sp==='qm_fly'||sp==='qm_result') phaseLabel='\u26BD Ball Flying...';
+    else phaseLabel='\u231B Waiting...';
+  }else{
+    if(sp==='save_heat'||sp==='save_choose'||sp==='save_ring'||sp==='save_fly'||sp==='save_result')
+      phaseLabel='\u{1F9E4} Your Save';
+  }
   document.getElementById('hudPhase').textContent=phaseLabel;
 }
 
@@ -941,6 +1051,10 @@ function positionSaveZones(){
 }
 
 window.pickDive=function(choice){
+  if(GS.phase==='qm_save_choose'){
+    qmPickDive(choice);
+    return;
+  }
   if(GS.phase!=='save_choose')return;
   GS.diveChoice=choice;
   GS.phase='save_ring';
@@ -955,7 +1069,7 @@ window.pickDive=function(choice){
 
   saveRing.active=true;
   saveRing.clicked=false;
-  saveRing.dir=1; // start shrinking
+  saveRing.dir=1;
   saveRing.cx=pos.x;
   saveRing.cy=pos.y;
   saveRing.maxRadius=70;
@@ -1146,14 +1260,14 @@ function update(){
   frameCount++;
 
   /* --- Accuracy Ring oscillating (kick phase) --- */
-  if(GS.phase==='kick_ring'&&ring.active&&!ring.clicked){
+  if((GS.phase==='kick_ring'||GS.phase==='qm_kick_ring')&&ring.active&&!ring.clicked){
     ring.radius-=ring.shrinkSpeed*ring.dir;
     if(ring.radius<=5){ring.radius=5;ring.dir=-1}
     if(ring.radius>=ring.maxRadius){ring.radius=ring.maxRadius;ring.dir=1}
   }
 
   /* --- Power Bar oscillation --- */
-  if(GS.phase==='kick_power'&&powerBar.active&&!powerBar.locked){
+  if((GS.phase==='kick_power'||GS.phase==='qm_kick_power')&&powerBar.active&&!powerBar.locked){
     powerBar.value+=powerBar.speed*powerBar.dir;
     if(powerBar.value>=1){powerBar.value=1;powerBar.dir=-1}
     if(powerBar.value<=0){powerBar.value=0;powerBar.dir=1}
@@ -1181,6 +1295,34 @@ function update(){
     if(ballFlight>=1)resolveKick();
   }
 
+  /* --- QM Ball Flight (both kicker and keeper see the same flight) --- */
+  if(GS.phase==='qm_fly'){
+    ballFlight+=ballFlightSpeed;
+    var tq=Math.min(ballFlight,1);
+    var easeTq=tq<0.5?2*tq*tq:1-Math.pow(-2*tq+2,2)/2;
+
+    ball.x=ballStart.x+(ballTarget.x-ballStart.x)*easeTq;
+    ball.y=ballStart.y+(ballTarget.y-ballStart.y)*easeTq-Math.sin(easeTq*Math.PI)*H*0.15;
+    ball.size=22-easeTq*10;
+
+    // Keeper dive animation (whichever keeper is visible)
+    var activeKeeper=qmViewingAsKeeper?playerKeeper:keeper;
+    if(activeKeeper.diving){
+      activeKeeper.diveProgress+=0.03+easeTq*0.025;
+      if(activeKeeper.diveProgress>1)activeKeeper.diveProgress=1;
+      activeKeeper.x=0.5+(activeKeeper.targetX-0.5)*activeKeeper.diveProgress;
+      if(activeKeeper.diveDir!==0)activeKeeper.bodyY=activeKeeper.diveProgress*25;
+    }
+
+    if(ballFlight>=1)qmResolveFlight();
+  }
+
+  /* --- QM Result timer --- */
+  if(GS.phase==='qm_result'){
+    resultTimer++;
+    updateParticles();
+  }
+
   /* --- Kick Result timer --- */
   if(GS.phase==='kick_result'){
     resultTimer++;
@@ -1188,7 +1330,7 @@ function update(){
   }
 
   /* --- Save Ring oscillating --- */
-  if(GS.phase==='save_ring'&&saveRing.active&&!saveRing.clicked){
+  if((GS.phase==='save_ring'||GS.phase==='qm_save_ring')&&saveRing.active&&!saveRing.clicked){
     saveRing.radius-=saveRing.shrinkSpeed*saveRing.dir;
     if(saveRing.radius<=5){saveRing.radius=5;saveRing.dir=-1}
     if(saveRing.radius>=saveRing.maxRadius){saveRing.radius=saveRing.maxRadius;saveRing.dir=1}
@@ -1230,7 +1372,7 @@ function update(){
   }
 
   /* --- Lingering particles --- */
-  if(particles.length>0&&GS.phase!=='kick_result'&&GS.phase!=='save_result'){
+  if(particles.length>0&&GS.phase!=='kick_result'&&GS.phase!=='save_result'&&GS.phase!=='qm_result'){
     updateParticles();
   }
 }
@@ -1276,19 +1418,24 @@ function draw(){
   drawGoal();
 
   /* --- Zone difficulty shading (during aim phase) --- */
-  if(GS.phase==='kick_aim'){
+  if(GS.phase==='kick_aim'||GS.phase==='qm_kick_aim'){
     drawZoneDifficultyOverlay();
   }
 
   /* --- Keeper --- */
   var isSavePhase=GS.phase==='save_heat'||GS.phase==='save_choose'||
-    GS.phase==='save_ring'||GS.phase==='save_fly'||GS.phase==='save_result';
-  drawKeeper(isSavePhase?playerKeeper:keeper);
+    GS.phase==='save_ring'||GS.phase==='save_fly'||GS.phase==='save_result'||
+    GS.phase==='qm_save_choose'||GS.phase==='qm_save_ring';
+  var isQmFly=GS.phase==='qm_fly'||GS.phase==='qm_result';
+  if(isQmFly){
+    drawKeeper(qmViewingAsKeeper?playerKeeper:keeper);
+  }else{
+    drawKeeper(isSavePhase?playerKeeper:keeper);
+  }
 
   /* --- Crosshair at aim point (kick_aim) --- */
-  if(GS.phase==='kick_aim'){
+  if(GS.phase==='kick_aim'||GS.phase==='qm_kick_aim'){
     drawCrosshair();
-    // Instruction text
     ctx.font='600 '+Math.min(16,W*0.035)+'px Outfit, sans-serif';
     ctx.textAlign='center';
     ctx.fillStyle='rgba(255,255,255,0.6)';
@@ -1296,7 +1443,7 @@ function draw(){
   }
 
   /* --- Accuracy Ring --- */
-  if(GS.phase==='kick_ring'&&ring.active){
+  if((GS.phase==='kick_ring'||GS.phase==='qm_kick_ring')&&ring.active){
     drawAccuracyRing();
     ctx.font='600 '+Math.min(14,W*0.03)+'px Outfit, sans-serif';
     ctx.textAlign='center';
@@ -1305,9 +1452,9 @@ function draw(){
   }
 
   /* --- Power Bar --- */
-  if(GS.phase==='kick_power'||GS.phase==='kick_ring'){
+  if(GS.phase==='kick_power'||GS.phase==='kick_ring'||GS.phase==='qm_kick_power'||GS.phase==='qm_kick_ring'){
     drawPowerBar();
-    if(GS.phase==='kick_power'){
+    if(GS.phase==='kick_power'||GS.phase==='qm_kick_power'){
       ctx.font='600 '+Math.min(14,W*0.03)+'px Outfit, sans-serif';
       ctx.textAlign='center';
       ctx.fillStyle='rgba(255,255,255,0.55)';
@@ -1316,12 +1463,13 @@ function draw(){
   }
 
   /* --- Ball at penalty spot (aiming/ring/power phases) --- */
-  if(GS.phase==='kick_aim'||GS.phase==='kick_ring'||GS.phase==='kick_power'){
+  if(GS.phase==='kick_aim'||GS.phase==='kick_ring'||GS.phase==='kick_power'||
+     GS.phase==='qm_kick_aim'||GS.phase==='qm_kick_ring'||GS.phase==='qm_kick_power'){
     drawBall(W*0.5,H*0.85,20);
   }
 
   /* --- Ball in flight (kick) --- */
-  if(GS.phase==='kick_fly'||GS.phase==='kick_result'){
+  if(GS.phase==='kick_fly'||GS.phase==='kick_result'||GS.phase==='qm_fly'||GS.phase==='qm_result'){
     drawBall(ball.x,ball.y,ball.size);
   }
 
@@ -1331,15 +1479,16 @@ function draw(){
   }
 
   /* --- Save phase instruction --- */
-  if(GS.phase==='save_choose'){
+  if(GS.phase==='save_choose'||GS.phase==='qm_save_choose'){
     ctx.font='bold '+Math.min(22,W*0.05)+'px Fredoka, sans-serif';
     ctx.textAlign='center';
     ctx.fillStyle='rgba(255,255,255,0.7)';
-    ctx.fillText('AI is taking a penalty! Pick your dive zone!',W*0.5,H*0.7);
+    var saveMsg=qmGameMode?'Opponent is kicking! Pick your dive zone!':'AI is taking a penalty! Pick your dive zone!';
+    ctx.fillText(saveMsg,W*0.5,H*0.7);
   }
 
   /* --- Save Ring --- */
-  if(GS.phase==='save_ring'&&saveRing.active){
+  if((GS.phase==='save_ring'||GS.phase==='qm_save_ring')&&saveRing.active){
     drawSaveRing();
     ctx.font='600 '+Math.min(14,W*0.03)+'px Outfit, sans-serif';
     ctx.textAlign='center';
@@ -1350,6 +1499,18 @@ function draw(){
   /* --- AI Ball (save phase) --- */
   if(GS.phase==='save_fly'||GS.phase==='save_result'){
     drawBall(aiBall.x,aiBall.y,aiBall.size);
+  }
+
+  /* --- Waiting for opponent text --- */
+  if(GS.phase==='qm_wait_kick'||GS.phase==='qm_wait_save'){
+    ctx.font='bold '+Math.min(24,W*0.05)+'px Fredoka, sans-serif';
+    ctx.textAlign='center';
+    ctx.fillStyle='rgba(255,255,255,0.6)';
+    var waitMsg=GS.phase==='qm_wait_kick'?'Waiting for opponent to kick...':'Waiting for opponent to save...';
+    ctx.fillText(waitMsg,W*0.5,H*0.45);
+    // Draw pulsing dots
+    var dots=Math.floor(frameCount/20)%4;
+    ctx.fillText('.'.repeat(dots),W*0.5,H*0.52);
   }
 
   /* --- Particles --- */
@@ -1368,7 +1529,7 @@ function draw(){
   }
 
   /* --- Result Text --- */
-  if((GS.phase==='kick_result'||GS.phase==='save_result')&&resultTimer<100){
+  if((GS.phase==='kick_result'||GS.phase==='save_result'||GS.phase==='qm_result')&&resultTimer<100){
     var alpha=resultTimer<80?1:(100-resultTimer)/20;
     ctx.globalAlpha=alpha;
     ctx.font='bold '+Math.min(72,W*0.12)+'px Fredoka, sans-serif';
@@ -1380,7 +1541,7 @@ function draw(){
     ctx.globalAlpha=1;
   }
 
-  /* --- Save heat phase instruction --- */
+  /* --- Save heat phase instruction (AI only) --- */
   if(GS.phase==='save_heat'){
     ctx.font='bold '+Math.min(20,W*0.045)+'px Fredoka, sans-serif';
     ctx.textAlign='center';
@@ -1754,6 +1915,13 @@ function gameLoop(){
   animId=requestAnimationFrame(gameLoop);
 }
 
+function qmIsMyKickTurn(){
+  // In the QM round structure: even sub-rounds = P1 kicks, odd sub-rounds = P2 kicks
+  // subRound 0 = P1 kicks, subRound 1 = P2 kicks, etc.
+  var kickerPlayer=(qmSubRound%2===0)?1:2;
+  return kickerPlayer===qmMyPlayer;
+}
+
 /* ==============================================
    INPUT HANDLERS
    ============================================== */
@@ -1772,10 +1940,9 @@ var hoverAim={x:0.5,y:0.4,active:false};
 var cw=document.getElementById('canvasWrap');
 
 function handlePointerMove(e){
-  if(GS.phase==='kick_aim'){
+  if(GS.phase==='kick_aim'||GS.phase==='qm_kick_aim'){
     var pos=getCanvasCoords(e);
     var g=getGoalPixels();
-    // Check if pointer is within the goal area
     if(pos.x>=g.left&&pos.x<=g.right&&pos.y>=g.top&&pos.y<=g.bottom){
       hoverAim.x=(pos.x-g.left)/g.width;
       hoverAim.y=(pos.y-g.top)/g.height;
@@ -1791,13 +1958,14 @@ function handleClick(e){
   var pos=getCanvasCoords(e);
 
   /* --- KICK AIM: click on goal to set aim target --- */
-  if(GS.phase==='kick_aim'){
+  if(GS.phase==='kick_aim'||GS.phase==='qm_kick_aim'){
     var g=getGoalPixels();
     if(pos.x>=g.left&&pos.x<=g.right&&pos.y>=g.top&&pos.y<=g.bottom){
       GS.kickAimNorm.x=(pos.x-g.left)/g.width;
       GS.kickAimNorm.y=(pos.y-g.top)/g.height;
       sfxCharge();
-      beginAccuracyRing();
+      if(qmGameMode) qmBeginAccuracyRing();
+      else beginAccuracyRing();
     }
     return;
   }
@@ -1807,16 +1975,28 @@ function handleClick(e){
     clickAccuracyRing();
     return;
   }
+  if(GS.phase==='qm_kick_ring'){
+    qmClickAccuracyRing();
+    return;
+  }
 
   /* --- KICK POWER: click to lock power --- */
   if(GS.phase==='kick_power'){
     clickPowerBar();
     return;
   }
+  if(GS.phase==='qm_kick_power'){
+    qmClickPowerBar();
+    return;
+  }
 
   /* --- SAVE RING: click to lock dive timing --- */
   if(GS.phase==='save_ring'){
     clickSaveRing();
+    return;
+  }
+  if(GS.phase==='qm_save_ring'){
+    qmClickSaveRing();
     return;
   }
 }
@@ -1838,15 +2018,703 @@ document.addEventListener('keydown',function(e){
     if(GS.phase==='kick_ring') clickAccuracyRing();
     else if(GS.phase==='kick_power') clickPowerBar();
     else if(GS.phase==='save_ring') clickSaveRing();
+    else if(GS.phase==='qm_kick_ring') qmClickAccuracyRing();
+    else if(GS.phase==='qm_kick_power') qmClickPowerBar();
+    else if(GS.phase==='qm_save_ring') qmClickSaveRing();
   }
 });
+
+/* ==============================================================
+   QUICK MATCH — FIREBASE MULTIPLAYER
+   ==============================================================
+
+   Game Flow:
+   - P1 creates room, waits for P2
+   - P2 joins with room code
+   - 10 sub-rounds: P1 kicks (sub 0), P2 kicks (sub 1), P1 kicks (sub 2)...
+   - Each sub-round: kicker does aim/ring/power locally, writes to Firebase
+   - Keeper picks zone + timing ring locally, writes to Firebase
+   - Once both kick + save data exist, ball flies on BOTH screens
+   - Result determined by comparing kick data vs save data
+   ============================================================== */
+
+var qmGameMode=false;       // true when in Quick Match
+var qmRoomCode=null;        // 4-digit room code
+var qmMyPlayer=0;           // 1 or 2
+var qmUnsub=null;           // Firestore onSnapshot unsubscribe
+var qmOpponentName='';      // opponent display name
+var qmSubRound=0;           // 0-9 (10 sub-rounds: 5 kicks each)
+var qmViewingAsKeeper=false; // true when this player is the keeper during flight
+var qmGameData=null;        // latest snapshot data
+
+function qmGenCode(){return String(Math.floor(1000+Math.random()*9000))}
+
+function qmShowError(msg){
+  var el=document.getElementById('qmError');
+  if(el){el.textContent=msg;setTimeout(function(){el.textContent=''},3000)}
+}
+
+/* ---------- CREATE GAME ---------- */
+window.qmCreateGame=async function(){
+  try{
+    var fb=await window.getFirebaseDB();
+    qmRoomCode=qmGenCode();
+    var ref=fb.fsMod.doc(fb.db,'penaltyKickGames',qmRoomCode);
+    var snap=await fb.fsMod.getDoc(ref);
+    var retries=0;
+    while(snap.exists()&&retries<10){
+      qmRoomCode=qmGenCode();
+      ref=fb.fsMod.doc(fb.db,'penaltyKickGames',qmRoomCode);
+      snap=await fb.fsMod.getDoc(ref);
+      retries++;
+    }
+    await fb.fsMod.setDoc(ref,{
+      roomCode:qmRoomCode,
+      player1:{id:studentId,name:studentName||'Player 1'},
+      player2:null,
+      state:'waiting',
+      round:1,
+      subRound:0,
+      p1Goals:0,p2Goals:0,p1Saves:0,p2Saves:0,
+      currentKick:null,
+      currentSave:null,
+      lastUpdate:new Date().toISOString()
+    });
+    document.getElementById('qmRoomCodeDisplay').textContent=qmRoomCode;
+    qmMyPlayer=1;
+    qmGameMode=true;
+    showScreen('waitingScreen');
+    qmListenToGame();
+  }catch(e){
+    console.error('qmCreateGame error:',e);
+    qmShowError('Failed to create game. Try again.');
+  }
+};
+
+/* ---------- JOIN GAME ---------- */
+window.qmJoinGame=async function(){
+  var code=document.getElementById('qmCodeInput').value.trim();
+  if(code.length!==4){qmShowError('Enter a 4-digit code');return}
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'penaltyKickGames',code);
+    var snap=await fb.fsMod.getDoc(ref);
+    if(!snap.exists()){qmShowError('Room not found');return}
+    var data=snap.data();
+    if(data.state!=='waiting'){qmShowError('Game already in progress');return}
+    if(data.player1&&data.player1.id===studentId){qmShowError("You can't join your own game");return}
+    qmRoomCode=code;
+    qmMyPlayer=2;
+    qmGameMode=true;
+    await fb.fsMod.updateDoc(ref,{
+      player2:{id:studentId,name:studentName||'Player 2'},
+      state:'playing',
+      lastUpdate:new Date().toISOString()
+    });
+    qmListenToGame();
+  }catch(e){
+    console.error('qmJoinGame error:',e);
+    qmShowError('Failed to join. Try again.');
+  }
+};
+
+/* ---------- CANCEL / LEAVE ---------- */
+window.qmCancelGame=async function(){
+  if(qmRoomCode){
+    try{
+      var fb=await window.getFirebaseDB();
+      await fb.fsMod.deleteDoc(fb.fsMod.doc(fb.db,'penaltyKickGames',qmRoomCode));
+    }catch(e){}
+  }
+  qmCleanup();
+  showScreen('homeScreen');
+};
+
+window.qmLeaveGame=function(){
+  if(qmUnsub){qmUnsub();qmUnsub=null}
+  // Try to delete the game doc
+  if(qmRoomCode){
+    (async function(){
+      try{
+        var fb=await window.getFirebaseDB();
+        await fb.fsMod.deleteDoc(fb.fsMod.doc(fb.db,'penaltyKickGames',qmRoomCode));
+      }catch(e){}
+    })();
+  }
+  qmCleanup();
+};
+
+function qmCleanup(){
+  if(qmUnsub){qmUnsub();qmUnsub=null}
+  qmGameMode=false;
+  qmRoomCode=null;
+  qmMyPlayer=0;
+  qmOpponentName='';
+  qmSubRound=0;
+  qmGameData=null;
+  qmViewingAsKeeper=false;
+}
+
+/* ---------- LISTEN TO GAME ---------- */
+function qmListenToGame(){
+  (async function(){
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'penaltyKickGames',qmRoomCode);
+    qmUnsub=fb.fsMod.onSnapshot(ref,function(snap){
+      if(!snap.exists()){
+        // Game was deleted — if game is over that's expected cleanup
+        if(GS.phase==='done')return;
+        // Otherwise opponent left
+        if(document.getElementById('gameScreen').classList.contains('active')||
+           document.getElementById('waitingScreen').classList.contains('active')){
+          qmCleanup();
+          showScreen('homeScreen');
+        }
+        return;
+      }
+      var data=snap.data();
+      qmGameData=data;
+
+      // Still waiting
+      if(data.state==='waiting')return;
+
+      // Game just started — set up and enter game screen
+      if(data.state==='playing'){
+        qmOpponentName=qmMyPlayer===1?(data.player2?data.player2.name:'Opponent'):(data.player1?data.player1.name:'Opponent');
+
+        // Sync scores
+        GS.p1Goals=data.p1Goals||0;
+        GS.p2Goals=data.p2Goals||0;
+        GS.p1Saves=data.p1Saves||0;
+
+        var newSubRound=data.subRound||0;
+        var newRound=data.round||1;
+        GS.round=newRound-1; // GS.round is 0-indexed
+        qmSubRound=newSubRound;
+
+        // If game screen not active, start the game
+        if(!document.getElementById('gameScreen').classList.contains('active')){
+          qmStartGameScreen();
+        }
+
+        // Process the current phase based on data
+        qmProcessState(data);
+      }
+
+      if(data.state==='done'){
+        qmProcessState(data);
+      }
+    });
+  })();
+}
+
+/* ---------- START GAME SCREEN ---------- */
+function qmStartGameScreen(){
+  stopGame();
+  showScreen('gameScreen');
+  initCanvas();
+  applyCosmeticStyles();
+  particles=[];
+
+  GS.phase='idle';
+  GS.p1Goals=0;GS.p2Goals=0;GS.p1Saves=0;
+  GS.consecutiveGoals=0;
+  GS.sessionHatTrick=false;
+  GS.coinsAwarded=false;
+  GS.maxRounds=5;
+
+  document.getElementById('gameOverOverlay').classList.remove('active');
+  document.getElementById('saveZones').classList.remove('active');
+  document.getElementById('saveCountdown').classList.remove('active');
+
+  // Update play again button for QM
+  var paBtn=document.getElementById('goPlayAgain');
+  paBtn.textContent='New Match';
+  paBtn.onclick=function(){qmLeaveGame();showScreen('quickMatchScreen')};
+
+  updateHUD();
+  gameLoop();
+}
+
+/* ---------- PROCESS STATE ---------- */
+function qmProcessState(data){
+  // Sync scores to GS
+  GS.p1Goals=data.p1Goals||0;
+  GS.p2Goals=data.p2Goals||0;
+  GS.p1Saves=data.p1Saves||0;
+  GS.round=(data.round||1)-1;
+  qmSubRound=data.subRound||0;
+  updateHUD();
+
+  if(data.state==='done'){
+    // Game over
+    if(GS.phase!=='done')qmShowGameOver(data);
+    return;
+  }
+
+  // Determine whose turn it is
+  // Even subRound = P1 kicks, P2 saves. Odd subRound = P2 kicks, P1 saves.
+  var kickerPlayer=(qmSubRound%2===0)?1:2;
+  var iAmKicker=(kickerPlayer===qmMyPlayer);
+  var iAmKeeper=!iAmKicker;
+
+  var hasKick=!!data.currentKick;
+  var hasSave=!!data.currentSave;
+
+  // CASE 1: Neither kick nor save data → kicker needs to kick, keeper waits
+  if(!hasKick&&!hasSave){
+    if(iAmKicker){
+      // Start my kick sequence if not already started
+      if(GS.phase!=='qm_kick_aim'&&GS.phase!=='qm_kick_ring'&&GS.phase!=='qm_kick_power'){
+        qmBeginKickPhase();
+      }
+    }else{
+      // I'm the keeper, wait for kicker
+      if(GS.phase!=='qm_wait_kick'){
+        GS.phase='qm_wait_kick';
+        ring.active=false;powerBar.active=false;saveRing.active=false;
+        keeper={x:0.5,targetX:0.5,targetY:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
+        playerKeeper={x:0.5,targetX:0.5,targetY:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
+        resultText='';resultTimer=0;
+        document.getElementById('saveZones').classList.remove('active');
+        document.getElementById('saveCountdown').classList.remove('active');
+        updateHUD();
+      }
+    }
+    return;
+  }
+
+  // CASE 2: Kick data exists but no save → keeper needs to save
+  if(hasKick&&!hasSave){
+    if(iAmKeeper){
+      // Start my save sequence if not already started
+      if(GS.phase!=='qm_save_choose'&&GS.phase!=='qm_save_ring'){
+        qmBeginSavePhase();
+      }
+    }else{
+      // I'm the kicker, wait for keeper to save
+      if(GS.phase!=='qm_wait_save'){
+        GS.phase='qm_wait_save';
+        ring.active=false;powerBar.active=false;saveRing.active=false;
+        document.getElementById('saveZones').classList.remove('active');
+        document.getElementById('saveCountdown').classList.remove('active');
+        updateHUD();
+      }
+    }
+    return;
+  }
+
+  // CASE 3: Both kick and save data exist → play the ball flight animation
+  if(hasKick&&hasSave){
+    if(GS.phase!=='qm_fly'&&GS.phase!=='qm_result'){
+      qmPlayFlight(data);
+    }
+    return;
+  }
+}
+
+/* ---------- QM KICK PHASE ---------- */
+function qmBeginKickPhase(){
+  GS.phase='qm_kick_aim';
+  GS.kickAimNorm={x:0.5,y:0.4};
+  GS.kickAccuracy=0;
+  GS.kickPower=0;
+  GS.kickZone='center';
+  ballMissedOver=false;
+  ring.active=false;ring.clicked=false;
+  powerBar.active=false;powerBar.locked=false;
+  keeper={x:0.5,targetX:0.5,targetY:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
+  playerKeeper={x:0.5,targetX:0.5,targetY:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
+  resultText='';resultTimer=0;
+  document.getElementById('saveZones').classList.remove('active');
+  document.getElementById('saveCountdown').classList.remove('active');
+  updateHUD();
+}
+
+function qmBeginAccuracyRing(){
+  GS.phase='qm_kick_ring';
+  var pos=normToGoalPx(GS.kickAimNorm.x,GS.kickAimNorm.y);
+  var zoneDiff=getAimZoneDifficulty(GS.kickAimNorm.x,GS.kickAimNorm.y);
+  GS.kickZone=zoneDiff;
+  var mult=ZONE_DIFFICULTY[zoneDiff].shrinkMult;
+
+  ring.active=true;
+  ring.clicked=false;
+  ring.dir=1;
+  ring.cx=pos.x;ring.cy=pos.y;
+  ring.maxRadius=80;ring.radius=ring.maxRadius;
+  ring.shrinkSpeed=0.8*mult;
+  ring.finalRadius=ring.maxRadius;
+}
+
+function qmClickAccuracyRing(){
+  if(!ring.active||ring.clicked)return;
+  ring.clicked=true;
+  ring.finalRadius=ring.radius;
+  var r=ring.finalRadius;
+  if(r<10)      GS.kickAccuracy=1.0;
+  else if(r<25) GS.kickAccuracy=0.8;
+  else if(r<40) GS.kickAccuracy=0.5;
+  else          GS.kickAccuracy=0.2;
+  addTimer(function(){qmBeginPowerBar()},400);
+}
+
+function qmBeginPowerBar(){
+  GS.phase='qm_kick_power';
+  powerBar.active=true;
+  powerBar.locked=false;
+  powerBar.value=0;
+  powerBar.dir=1;
+  powerBar.speed=0.018;
+  powerBar.finalValue=0;
+}
+
+function qmClickPowerBar(){
+  if(!powerBar.active||powerBar.locked)return;
+  powerBar.locked=true;
+  powerBar.finalValue=powerBar.value;
+  GS.kickPower=powerBar.value;
+
+  // Calculate ball target same as AI mode
+  var missedOver=GS.kickPower>0.90;
+  var baseX=GS.kickAimNorm.x;
+  var baseY=GS.kickAimNorm.y;
+  var accScore=GS.kickAccuracy;
+  var offsetScale=(1-accScore);
+  var randX=(Math.random()-0.5)*0.4*offsetScale;
+  var randY=(Math.random()-0.5)*0.3*offsetScale;
+  var finalNormX=Math.max(-0.05,Math.min(1.05,baseX+randX));
+  var finalNormY=Math.max(-0.05,Math.min(1.05,baseY+randY));
+
+  if(missedOver){
+    finalNormY=-0.4; // above the bar
+  }
+
+  // Write kick data to Firebase
+  sfxKick();
+  addTimer(function(){
+    qmWriteKick({
+      aimNorm:{x:GS.kickAimNorm.x,y:GS.kickAimNorm.y},
+      accuracy:GS.kickAccuracy,
+      power:GS.kickPower,
+      ballTarget:{x:finalNormX,y:finalNormY},
+      missedOver:missedOver
+    });
+  },300);
+}
+
+async function qmWriteKick(kickData){
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'penaltyKickGames',qmRoomCode);
+    await fb.fsMod.updateDoc(ref,{
+      currentKick:kickData,
+      lastUpdate:new Date().toISOString()
+    });
+    // Now wait for save data (handled by processState via listener)
+    GS.phase='qm_wait_save';
+    updateHUD();
+  }catch(e){console.error('qmWriteKick error:',e)}
+}
+
+/* ---------- QM SAVE PHASE ---------- */
+function qmBeginSavePhase(){
+  GS.phase='qm_save_choose';
+  GS.diveChoice=null;
+  GS.diveTimingScore=0;
+  resultText='';resultTimer=0;
+  saveRing.active=false;saveRing.clicked=false;
+  keeper={x:0.5,targetX:0.5,targetY:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
+  playerKeeper={x:0.5,targetX:0.5,targetY:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
+
+  positionSaveZones();
+  document.getElementById('saveZones').classList.add('active');
+  document.getElementById('saveCountdown').classList.add('active');
+  document.getElementById('saveCountdown').textContent='Opponent is kicking! Pick your dive zone!';
+
+  // Auto-pick after 10 seconds
+  addTimer(function(){
+    if(GS.phase==='qm_save_choose'){
+      var auto=['topLeft','topRight','bottomLeft','center','bottomRight'];
+      qmPickDive(auto[Math.floor(Math.random()*5)]);
+    }
+  },10000);
+
+  updateHUD();
+}
+
+function qmPickDive(choice){
+  if(GS.phase!=='qm_save_choose')return;
+  GS.diveChoice=choice;
+  GS.phase='qm_save_ring';
+
+  document.getElementById('saveZones').classList.remove('active');
+  document.getElementById('saveCountdown').classList.remove('active');
+
+  var zc=zoneCenter(choice);
+  var pos=normToGoalPx(zc.x,zc.y);
+
+  saveRing.active=true;
+  saveRing.clicked=false;
+  saveRing.dir=1;
+  saveRing.cx=pos.x;saveRing.cy=pos.y;
+  saveRing.maxRadius=70;
+  saveRing.radius=saveRing.maxRadius;
+  saveRing.shrinkSpeed=0.7;
+  saveRing.finalRadius=saveRing.maxRadius;
+}
+
+function qmClickSaveRing(){
+  if(!saveRing.active||saveRing.clicked)return;
+  saveRing.clicked=true;
+  saveRing.finalRadius=saveRing.radius;
+  var r=saveRing.finalRadius;
+  if(r<10)      GS.diveTimingScore=1.0;
+  else if(r<25) GS.diveTimingScore=0.8;
+  else if(r<40) GS.diveTimingScore=0.5;
+  else          GS.diveTimingScore=0.2;
+
+  addTimer(function(){
+    qmWriteSave({
+      zone:GS.diveChoice,
+      timing:GS.diveTimingScore
+    });
+  },300);
+}
+
+async function qmWriteSave(saveData){
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'penaltyKickGames',qmRoomCode);
+    await fb.fsMod.updateDoc(ref,{
+      currentSave:saveData,
+      lastUpdate:new Date().toISOString()
+    });
+    // Flight will be triggered by processState when both exist
+  }catch(e){console.error('qmWriteSave error:',e)}
+}
+
+/* ---------- QM PLAY FLIGHT ---------- */
+function qmPlayFlight(data){
+  GS.phase='qm_fly';
+  var kickData=data.currentKick;
+  var saveData=data.currentSave;
+
+  var kickerPlayer=(qmSubRound%2===0)?1:2;
+  var iAmKicker=(kickerPlayer===qmMyPlayer);
+  qmViewingAsKeeper=!iAmKicker;
+
+  // Reset keepers
+  keeper={x:0.5,targetX:0.5,targetY:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
+  playerKeeper={x:0.5,targetX:0.5,targetY:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
+
+  document.getElementById('saveZones').classList.remove('active');
+  document.getElementById('saveCountdown').classList.remove('active');
+  ring.active=false;
+  powerBar.active=false;
+  saveRing.active=false;
+
+  // Set up ball flight from kick data
+  var g=getGoalPixels();
+  ballStart={x:W*0.5,y:H*0.88};
+  ballMissedOver=!!kickData.missedOver;
+
+  if(kickData.missedOver){
+    ballTarget={
+      x:g.left+kickData.ballTarget.x*g.width,
+      y:g.top-g.height*0.4,
+      normX:kickData.ballTarget.x,
+      normY:-0.4
+    };
+  }else{
+    ballTarget={
+      x:g.left+kickData.ballTarget.x*g.width,
+      y:g.top+kickData.ballTarget.y*g.height,
+      normX:kickData.ballTarget.x,
+      normY:kickData.ballTarget.y
+    };
+  }
+
+  ball={x:ballStart.x,y:ballStart.y,size:22};
+  ballFlight=0;
+  var powerFactor=0.5+kickData.power*0.5;
+  ballFlightSpeed=0.018*powerFactor+0.005;
+
+  // Set up keeper dive from save data
+  var zc=zoneCenter(saveData.zone);
+  var activeKeeper=qmViewingAsKeeper?playerKeeper:keeper;
+  activeKeeper.targetX=zc.x;
+  activeKeeper.targetY=zc.y;
+  activeKeeper.diveDir=zc.x<0.35?-1:(zc.x>0.65?1:0);
+  activeKeeper.diving=true;
+  activeKeeper.diveProgress=0;
+
+  sfxKick();
+  updateHUD();
+}
+
+/* ---------- QM RESOLVE FLIGHT ---------- */
+function qmResolveFlight(){
+  GS.phase='qm_result';
+  resultTimer=0;
+
+  var data=qmGameData;
+  var kickData=data.currentKick;
+  var saveData=data.currentSave;
+
+  var kickerPlayer=(qmSubRound%2===0)?1:2;
+
+  // Determine result
+  if(kickData.missedOver){
+    resultText='MISS!';resultColor='#ef4444';
+    sfxMiss();
+  }else{
+    var nx=kickData.ballTarget.x,ny=kickData.ballTarget.y;
+    if(nx<-0.02||nx>1.02||ny<-0.02||ny>1.02){
+      resultText='MISS!';resultColor='#ef4444';
+      sfxMiss();
+    }else{
+      // Check save
+      var chosenZC=zoneCenter(saveData.zone);
+      var dist=Math.sqrt(Math.pow(chosenZC.x-nx,2)+Math.pow(chosenZC.y-ny,2));
+      var baseReach=0.15+saveData.timing*0.20;
+
+      // Perfect corner check
+      var isPerfectCorner=kickData.accuracy>=0.8&&
+        (getAimZoneDifficulty(kickData.aimNorm.x,kickData.aimNorm.y)==='topCorner');
+      var saved=!isPerfectCorner&&dist<baseReach;
+
+      if(saved){
+        resultText='SAVE!';resultColor='#06d6a0';
+        sfxSave();
+        spawnCelebration(ball.x,ball.y);
+      }else{
+        resultText='GOAL!';resultColor='#fbbf24';
+        sfxGoal();
+        spawnCelebration(ball.x,ball.y);
+      }
+    }
+  }
+
+  updateHUD();
+
+  // After showing result, advance to next sub-round via Firebase (only kicker writes)
+  var iAmKicker=(kickerPlayer===qmMyPlayer);
+  if(iAmKicker){
+    addTimer(function(){qmAdvanceRound()},2000);
+  }else{
+    // Keeper just waits; processState will pick up the new state
+  }
+}
+
+async function qmAdvanceRound(){
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'penaltyKickGames',qmRoomCode);
+    var snap=await fb.fsMod.getDoc(ref);
+    if(!snap.exists())return;
+    var data=snap.data();
+
+    var kickData=data.currentKick;
+    var saveData=data.currentSave;
+    var kickerPlayer=(qmSubRound%2===0)?1:2;
+
+    // Compute the result
+    var isGoal=false;
+    var isSave=false;
+    if(!kickData.missedOver){
+      var nx=kickData.ballTarget.x,ny=kickData.ballTarget.y;
+      if(nx>=-0.02&&nx<=1.02&&ny>=-0.02&&ny<=1.02){
+        var chosenZC=zoneCenter(saveData.zone);
+        var dist=Math.sqrt(Math.pow(chosenZC.x-nx,2)+Math.pow(chosenZC.y-ny,2));
+        var baseReach=0.15+saveData.timing*0.20;
+        var isPerfectCorner=kickData.accuracy>=0.8&&
+          (getAimZoneDifficulty(kickData.aimNorm.x,kickData.aimNorm.y)==='topCorner');
+        if(!isPerfectCorner&&dist<baseReach){
+          isSave=true;
+        }else{
+          isGoal=true;
+        }
+      }
+    }
+
+    // Build update
+    var upd={
+      currentKick:null,
+      currentSave:null,
+      lastUpdate:new Date().toISOString()
+    };
+
+    if(isGoal){
+      if(kickerPlayer===1)upd.p1Goals=fb.fsMod.increment(1);
+      else upd.p2Goals=fb.fsMod.increment(1);
+    }
+    if(isSave){
+      // The saver is the non-kicker
+      if(kickerPlayer===1)upd.p2Saves=fb.fsMod.increment(1);
+      else upd.p1Saves=fb.fsMod.increment(1);
+    }
+
+    var nextSubRound=qmSubRound+1;
+    upd.subRound=nextSubRound;
+    // Round increments every 2 sub-rounds (after both players kick)
+    upd.round=Math.floor(nextSubRound/2)+1;
+
+    // Check if game is over (10 sub-rounds = 5 rounds each)
+    if(nextSubRound>=10){
+      upd.state='done';
+    }
+
+    await fb.fsMod.updateDoc(ref,upd);
+  }catch(e){console.error('qmAdvanceRound error:',e)}
+}
+
+/* ---------- QM GAME OVER ---------- */
+function qmShowGameOver(data){
+  GS.phase='done';
+
+  var myGoals=qmMyPlayer===1?data.p1Goals:data.p2Goals;
+  var oppGoals=qmMyPlayer===1?data.p2Goals:data.p1Goals;
+  var mySaves=qmMyPlayer===1?data.p1Saves:data.p2Saves;
+
+  var won=myGoals>oppGoals;
+  var drew=myGoals===oppGoals;
+  var title=won?'You Win!':(drew?'Draw!':'You Lose!');
+
+  document.getElementById('goTitle').textContent=title;
+  document.getElementById('goScore').textContent='You '+myGoals+' - '+oppGoals+' '+qmOpponentName;
+  document.getElementById('goBest').textContent='Saves: '+mySaves;
+  document.getElementById('goNew').style.display='none';
+
+  var coins=myGoals*5+mySaves*3;
+  if(won)coins+=10;
+  document.getElementById('goCoins').textContent='+'+coins+' coins';
+  sfxWhistle();
+
+  addTimer(function(){document.getElementById('gameOverOverlay').classList.add('active')},400);
+
+  if(!GS.coinsAwarded){
+    GS.coinsAwarded=true;
+    awardCoins(coins);
+  }
+
+  // Clean up the game doc after a delay
+  addTimer(function(){
+    (async function(){
+      try{
+        var fb=await window.getFirebaseDB();
+        await fb.fsMod.deleteDoc(fb.fsMod.doc(fb.db,'penaltyKickGames',qmRoomCode));
+      }catch(e){}
+    })();
+  },5000);
+}
 
 /* ==============================================
    STOP ON NAVIGATE
    ============================================== */
-window.addEventListener('beforeunload',function(){stopGame()});
+window.addEventListener('beforeunload',function(){stopGame();if(qmGameMode)qmLeaveGame()});
 document.addEventListener('visibilitychange',function(){
-  if(document.hidden&&GS.phase!=='idle'&&GS.phase!=='done')stopGame();
+  if(document.hidden&&GS.phase!=='idle'&&GS.phase!=='done'&&!qmGameMode)stopGame();
 });
 
 /* ===================== */

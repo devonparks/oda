@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Brick Breaker - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:center}
+body.in-game{overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+.sound-btn{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;transition:all .2s;backdrop-filter:blur(8px)}
+.sound-btn:hover{border-color:var(--accent)}
+
+.screen{display:none;width:100%;max-width:1100px;min-height:100vh;min-height:100dvh;padding:16px;animation:fadeUp .35s ease}
+@media(min-width:768px){
+  .home-header h1{font-size:80px!important}
+  .home-header p{font-size:18px}
+  .best-pill{padding:16px 32px;font-size:18px}
+  .best-pill .bp-val{font-size:28px}
+  .btn-accent{font-size:22px!important;padding:20px 64px!important}
+  .btn-outline{font-size:16px;padding:14px 28px}
+  .stats-row .sr{font-size:15px;padding:10px 22px}
+  .how-to{max-width:500px;padding:28px 32px}
+  .how-to h3{font-size:15px}
+  .how-to p{font-size:15px}
+}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+
+/* HOME */
+#homeScreen{padding-top:80px;justify-content:flex-start;gap:16px}
+.home-header{text-align:center;margin-bottom:8px}
+.home-header h1{font-size:clamp(48px,10vw,64px);font-weight:700;letter-spacing:-2px}
+.home-header h1 .hl{color:var(--accent)}
+.home-header p{color:var(--text2);font-size:15px;margin-top:4px}
+.best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
+.best-pill .bp-label{color:var(--text2)}
+.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
+.home-actions{display:flex;flex-direction:column;align-items:center;gap:14px}
+.stats-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.stats-row .sr{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+.how-to{max-width:380px;width:100%;margin:0 auto;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px}
+.how-to h3{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.how-to p{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* GAME */
+#gameScreen{padding:0;max-width:100%;min-height:100vh;min-height:100dvh;justify-content:center;align-items:center;position:relative}
+#canvasWrap{width:100%;max-width:1100px;height:75vh;margin:0 auto;position:relative;overflow:hidden;cursor:pointer;touch-action:none;border-radius:16px;border:2px solid var(--border)}
+#gameCanvas{display:block;width:100%;height:100%}
+.game-hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:12px 20px;pointer-events:none;z-index:5}
+.hud-score{font-family:'Fredoka',sans-serif;font-size:clamp(24px,5vw,36px);font-weight:900;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.5)}
+.hud-info{display:flex;gap:12px;align-items:center}
+.hud-lives{font-size:clamp(16px,3vw,22px);text-shadow:0 2px 6px rgba(0,0,0,.5)}
+.hud-level{font-family:'Fredoka',sans-serif;font-size:clamp(14px,2.5vw,18px);font-weight:700;color:var(--accent);text-shadow:0 2px 6px rgba(0,0,0,.5)}
+.tap-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;z-index:5;animation:pulse 1.5s ease-in-out infinite}
+.tap-hint .th-icon{font-size:48px;margin-bottom:8px}
+.tap-hint .th-text{font-family:'Fredoka',sans-serif;font-size:20px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.5)}
+@keyframes pulse{0%,100%{opacity:1;transform:translate(-50%,-50%) scale(1)}50%{opacity:.6;transform:translate(-50%,-50%) scale(1.05)}}
+
+/* GAME OVER OVERLAY */
+.go-overlay{position:absolute;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:10;gap:12px;padding:24px;animation:fadeUp .3s ease}
+.go-overlay.active{display:flex}
+.go-overlay h2{font-size:32px;font-weight:700;color:var(--accent3)}
+.go-overlay .go-score{font-family:'Fredoka',sans-serif;font-size:48px;font-weight:700;color:#fff}
+.go-overlay .go-label{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.go-overlay .go-best{font-size:16px;color:var(--gold);font-weight:700;font-family:'Fredoka',sans-serif}
+.go-overlay .go-new{color:var(--accent);font-size:14px;font-weight:700;animation:pulse 1s ease-in-out infinite}
+.go-overlay .go-coins{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:8px 18px;font-size:16px;font-weight:700;color:var(--gold);font-family:'Fredoka',sans-serif}
+.go-overlay .go-btns{display:flex;gap:10px;margin-top:8px}
+
+/* RECORDS */
+#recordsScreen{padding-top:70px;justify-content:flex-start}
+.records-container{width:100%;max-width:420px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.stat-card .sv{font-size:24px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.stat-card .sv.gold{color:var(--gold)}
+.stat-card .sl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-weight:600}
+.lb-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px}
+.lb-row.me{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.lb-rank{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text2);flex-shrink:0}
+.lb-rank.r1{background:rgba(255,209,102,.2);color:var(--gold)}
+.lb-rank.r2{background:rgba(192,192,192,.15);color:#c0c0c0}
+.lb-rank.r3{background:rgba(205,127,50,.15);color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-size:14px;font-weight:800;color:var(--gold);font-family:'Fredoka',sans-serif}
+.lb-empty{text-align:center;color:var(--text2);font-size:14px;padding:24px;font-weight:600}
+
+/* SHOP */
+#shopScreen{padding-top:70px;justify-content:flex-start}
+
+/* ACHIEVEMENTS */
+.ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
+@keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../../student.html" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();showScreen('homeScreen')}">&#8592; Back</a>
+<button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128264;</button>
+
+<!-- HOME SCREEN -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1><span class="hl">Brick</span> Breaker</h1>
+    <p>Smash bricks, earn points, break records!</p>
+  </div>
+  <div class="best-pill">
+    <span class="bp-label">&#127942; Best</span>
+    <span class="bp-val" id="homeBest">0</span>
+  </div>
+  <div class="home-actions">
+    <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
+    <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
+    <button class="btn btn-outline btn-small" onclick="showShopScreen()">&#128717;&#65039; Shop</button>
+  </div>
+  <div class="stats-row">
+    <div class="sr">&#127918; Games <span id="homeGames">0</span></div>
+    <div class="sr">&#128175; Best Level <span id="homeBestLevel">1</span></div>
+  </div>
+  <div class="how-to">
+    <h3>How to Play</h3>
+    <p>Move your paddle to bounce the ball and break all the bricks! Catch power-ups for bonuses. Clear each level to advance. You have 3 lives.</p>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div class="screen" id="gameScreen">
+  <div id="canvasWrap">
+    <canvas id="gameCanvas"></canvas>
+    <div class="game-hud">
+      <div class="hud-score" id="hudScore">0</div>
+      <div class="hud-info">
+        <div class="hud-level" id="hudLevel">Level 1</div>
+        <div class="hud-lives" id="hudLives">&#10084;&#10084;&#10084;</div>
+      </div>
+    </div>
+    <div class="tap-hint" id="tapHint">
+      <div class="th-icon">&#127863;</div>
+      <div class="th-text">Click to Launch</div>
+    </div>
+    <div class="go-overlay" id="gameOverOverlay">
+      <h2 id="goTitle">Game Over</h2>
+      <div class="go-label">Score</div>
+      <div class="go-score" id="goScore">0</div>
+      <div class="go-best" id="goBest">Best: 0</div>
+      <div class="go-new" id="goNew" style="display:none">New Best! &#127881;</div>
+      <div class="go-coins" id="goCoins">+0 coins</div>
+      <div class="go-btns">
+        <button class="btn btn-accent btn-small" onclick="startGame()">Play Again</button>
+        <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Home</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECORDS SCREEN -->
+<div class="screen" id="recordsScreen">
+  <h1>Your <span style="color:var(--accent)">Records</span></h1>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Brick Breaker stats &amp; leaderboard</p>
+  <div class="records-container">
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="sv gold" id="statBest">0</div><div class="sl">Best Score</div></div>
+      <div class="stat-card"><div class="sv" id="statPlayed">0</div><div class="sl">Games Played</div></div>
+      <div class="stat-card"><div class="sv" id="statLevel">1</div><div class="sl">Best Level</div></div>
+      <div class="stat-card"><div class="sv" id="statCoins">0</div><div class="sl">Coins Earned</div></div>
+    </div>
+    <div class="lb-title" style="margin-top:16px">&#127942; Achievements</div>
+    <div id="achievementsGrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:24px"></div>
+    <div class="lb-title">Class Leaderboard</div>
+    <div class="lb-list" id="leaderboard"><div class="lb-empty">Loading...</div></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHOP SCREEN -->
+<div class="screen" id="shopScreen">
+  <div style="text-align:center;margin-bottom:8px">
+    <h1>&#128717;&#65039; Shop</h1>
+    <p style="color:var(--text2);font-size:14px">Customize your Brick Breaker</p>
+  </div>
+  <div id="breakerShopContainer" style="width:100%;max-width:500px"></div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script>
+/* ===================== */
+/* SESSION               */
+/* ===================== */
+var studentId=localStorage.getItem('studentId')||'';
+var studentName=localStorage.getItem('studentName')||'';
+var classCode=localStorage.getItem('classCode')||'';
+var isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+if(isTeacher)document.getElementById('backBtn').href='../../teacher.html';
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+/* ===================== */
+/* SCREEN SYSTEM         */
+/* ===================== */
+function showScreen(id){
+  stopGame();
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+  document.getElementById(id).classList.add('active');
+  document.body.classList.toggle('in-game',id==='gameScreen');
+  if(id==='homeScreen')loadLocalStats();
+}
+
+function stopGame(){
+  if(animId){cancelAnimationFrame(animId);animId=null;}
+  gameState='idle';
+}
+
+/* Stop on navigate away / tab hidden */
+window.addEventListener('beforeunload',stopGame);
+document.addEventListener('visibilitychange',function(){if(document.hidden)stopGame()});
+
+/* ===================== */
+/* AUDIO                 */
+/* ===================== */
+var audioCtx=null,soundOn=true;
+function getAudioCtx(){
+  if(!audioCtx)try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq,dur,type,vol,ramp){
+  if(!soundOn)return;var ctx=getAudioCtx();if(!ctx)return;
+  var osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.type=type||'square';osc.frequency.setValueAtTime(freq,ctx.currentTime);
+  if(ramp)osc.frequency.linearRampToValueAtTime(ramp,ctx.currentTime+dur);
+  gain.gain.setValueAtTime(vol||0.1,ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+  osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+dur);
+}
+function sfxBrickHit(){playTone(800,0.06,'square',0.1);setTimeout(function(){playTone(1000,0.04,'square',0.08)},30)}
+function sfxPaddleHit(){playTone(500,0.06,'sine',0.1);setTimeout(function(){playTone(700,0.05,'sine',0.08)},30)}
+function sfxWallHit(){playTone(350,0.04,'sine',0.06)}
+function sfxLoseLife(){playTone(250,0.3,'sawtooth',0.1,100)}
+function sfxPowerUp(){playTone(600,0.08,'square',0.1);setTimeout(function(){playTone(900,0.08,'square',0.1)},60);setTimeout(function(){playTone(1200,0.1,'square',0.12)},120)}
+function sfxLevelUp(){playTone(500,0.1,'square',0.12);setTimeout(function(){playTone(700,0.1,'square',0.12)},100);setTimeout(function(){playTone(1000,0.15,'square',0.14)},200)}
+function sfxGameOver(){playTone(400,0.2,'sawtooth',0.1,100);setTimeout(function(){playTone(250,0.4,'sawtooth',0.1,80)},200)}
+function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;'}
+
+/* ===================== */
+/* COSMETICS             */
+/* ===================== */
+var myCosmetics={};
+var paddleColor='#ffffff';
+var ballColor='#ffffff',ballTrailColor='#ffffff';
+var brickColors=['#ef4444','#f97316','#eab308','#22c55e','#3b82f6'];
+
+async function loadMyCosmetics(){
+  try{myCosmetics=JSON.parse(localStorage.getItem('oda_cosmetics_brickbreaker')||'{}');}catch(e){myCosmetics={}}
+  var sid=localStorage.getItem('studentId');
+  if(sid){
+    try{
+      var fb=await window.getFirebaseDB();
+      var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));
+      if(snap.exists()){var d=snap.data();var fc=d.gameCosmetics?.brickbreaker?.equipped;if(fc&&Object.keys(fc).length>0)myCosmetics=fc;}
+    }catch(e){}
+  }
+  applyCosmeticStyles();
+}
+loadMyCosmetics();
+
+function applyCosmeticStyles(){
+  var ps=myCosmetics['Paddle Style'];
+  if(ps&&ps.value){paddleColor=ps.value.color||'#ffffff'}
+  var bs=myCosmetics['Ball Style'];
+  if(bs&&bs.value){ballColor=bs.value.color||'#ffffff';ballTrailColor=bs.value.trail||'#ffffff'}
+  var bt=myCosmetics['Brick Theme'];
+  if(bt&&bt.value&&bt.value.colors){brickColors=bt.value.colors}
+}
+
+/* ===================== */
+/* SHOP                  */
+/* ===================== */
+var BREAKER_SHOP=[
+  {id:'bp_classic',name:'Classic',emoji:'\u26AA',cost:0,slot:'Paddle Style',value:{color:'#ffffff'}},
+  {id:'bp_neon_green',name:'Neon Green',emoji:'\u{1F7E2}',cost:80,slot:'Paddle Style',value:{color:'#39ff14'}},
+  {id:'bp_fire_red',name:'Fire Red',emoji:'\u{1F534}',cost:100,slot:'Paddle Style',value:{color:'#ff4444'}},
+  {id:'bp_ice_blue',name:'Ice Blue',emoji:'\u{1F535}',cost:120,slot:'Paddle Style',value:{color:'#00d4ff'}},
+  {id:'bp_gold',name:'Gold',emoji:'\u{1F7E1}',cost:200,slot:'Paddle Style',value:{color:'#ffd166'}},
+
+  {id:'bb_classic',name:'Classic',emoji:'\u26AA',cost:0,slot:'Ball Style',value:{color:'#ffffff',trail:'#ffffff'}},
+  {id:'bb_neon',name:'Neon',emoji:'\u{1F7E2}',cost:100,slot:'Ball Style',value:{color:'#39ff14',trail:'#00cc00'}},
+  {id:'bb_fire',name:'Fire',emoji:'\u{1F525}',cost:150,slot:'Ball Style',value:{color:'#ff6b35',trail:'#ff2222'}},
+  {id:'bb_galaxy',name:'Galaxy',emoji:'\u{1F52E}',cost:250,slot:'Ball Style',value:{color:'#c77dff',trail:'#7b2ff7'}},
+
+  {id:'bt_classic',name:'Classic',emoji:'\u{1F9F1}',cost:0,slot:'Brick Theme',value:{colors:['#ef4444','#f97316','#eab308','#22c55e','#3b82f6']}},
+  {id:'bt_neon',name:'Neon',emoji:'\u{1F4A1}',cost:150,slot:'Brick Theme',value:{colors:['#ff006e','#ff5400','#ffbe0b','#00f5d4','#8338ec']}},
+  {id:'bt_pastel',name:'Pastel',emoji:'\u{1F338}',cost:200,slot:'Brick Theme',value:{colors:['#ffa5ab','#ffc3a0','#fff59d','#a8e6cf','#a0c4ff']}},
+  {id:'bt_retro',name:'Retro',emoji:'\u{1F579}\uFE0F',cost:250,slot:'Brick Theme',value:{colors:['#e63946','#f4a261','#e9c46a','#2a9d8f','#264653']}}
+];
+
+function showShopScreen(){
+  showScreen('shopScreen');
+  if(typeof odaShop!=='undefined'){
+    odaShop.renderShopPanel('brickbreaker',BREAKER_SHOP,'breakerShopContainer',{
+      onEquip:function(){loadMyCosmetics()},
+      onBuy:function(){loadMyCosmetics()}
+    });
+  }
+}
+
+/* ===================== */
+/* ACHIEVEMENTS          */
+/* ===================== */
+var BB_ACHIEVEMENTS=[
+  {id:'bb_first',name:'First Break',desc:'Break your first brick',icon:'\u{1F9F1}',check:function(s){return s.totalBricks>=1}},
+  {id:'bb_lv3',name:'Level 3',desc:'Reach level 3',icon:'\u{1F525}',check:function(s){return s.bestLevel>=3}},
+  {id:'bb_lv5',name:'Level 5',desc:'Reach level 5',icon:'\u{1F4A5}',check:function(s){return s.bestLevel>=5}},
+  {id:'bb_combo',name:'Combo King',desc:'10 bricks without missing',icon:'\u26A1',check:function(s){return s.bestCombo>=10}},
+  {id:'bb_perfect',name:'Perfect Clear',desc:'Clear all bricks, no lives lost',icon:'\u{1F4AF}',check:function(s){return s.perfectClears>=1}},
+  {id:'bb_play25',name:'Dedicated',desc:'Play 25 games',icon:'\u{1F3AE}',check:function(s){return s.gamesPlayed>=25}}
+];
+var achState={};
+
+async function checkAchievements(extra){
+  var sid=localStorage.getItem('studentId');
+  if(!sid||sid.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'brickbreakerRecords',sid);
+    var snap=await fb.fsMod.getDoc(ref);
+    var data=snap.exists()?snap.data():{};
+    var state=Object.assign({},data,extra||{});
+    achState=data.achievements||{};
+    var newUnlocks=[];
+    BB_ACHIEVEMENTS.forEach(function(a){
+      if(!achState[a.id]&&a.check(state)){achState[a.id]=Date.now();newUnlocks.push(a)}
+    });
+    if(newUnlocks.length>0){
+      var upd={};newUnlocks.forEach(function(a){upd['achievements.'+a.id]=achState[a.id]});
+      await fb.fsMod.updateDoc(ref,upd);
+      newUnlocks.forEach(function(a){showAchToast(a)});
+    }
+  }catch(e){}
+}
+
+function showAchToast(a){
+  var el=document.createElement('div');el.className='ach-popup';
+  el.innerHTML='<span style="font-size:32px">'+a.icon+'</span><div><div style="color:var(--gold);font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:var(--text);font-size:15px;font-weight:600;font-family:Outfit,sans-serif">'+esc(a.name)+'</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function(){el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(function(){el.remove()},400)},3500);
+}
+
+/* ===================== */
+/* LOCAL STATS           */
+/* ===================== */
+var localBest=parseInt(localStorage.getItem('bb_best'))||0;
+var localGames=parseInt(localStorage.getItem('bb_games'))||0;
+var localBestLevel=parseInt(localStorage.getItem('bb_best_level'))||1;
+var localTotalBricks=parseInt(localStorage.getItem('bb_total_bricks'))||0;
+var localCoinsEarned=parseInt(localStorage.getItem('bb_coins_earned'))||0;
+var localBestCombo=parseInt(localStorage.getItem('bb_best_combo'))||0;
+var localPerfectClears=parseInt(localStorage.getItem('bb_perfect_clears'))||0;
+
+function loadLocalStats(){
+  document.getElementById('homeBest').textContent=localBest;
+  document.getElementById('homeGames').textContent=localGames;
+  document.getElementById('homeBestLevel').textContent=localBestLevel;
+}
+loadLocalStats();
+
+/* ===================== */
+/* GAME ENGINE           */
+/* ===================== */
+var canvas,ctx,W,H,dpr;
+var paddle,balls,bricks,score,lives,level,gameState,animId;
+var particles=[],scorePopups=[],powerups=[];
+var combo=0,maxCombo=0;
+var coinsAwarded=false;
+var livesLostThisGame=0;
+
+/* Brick layout constants */
+var BRICK_COLS=8;
+var BRICK_ROWS_BASE=5;
+var BRICK_PADDING=4;
+var PADDLE_HEIGHT=14;
+var BALL_RADIUS=7;
+var BALL_SPEED_BASE=4;
+var BALL_SPEED_INCREMENT=0.15;
+var PADDLE_RADIUS=8;
+
+/* Row point values from top to bottom */
+var ROW_POINTS=[50,40,30,20,10];
+
+/* Power-up types */
+var POWERUP_TYPES=[
+  {type:'wide',color:'#22c55e',label:'W',desc:'Wide Paddle'},
+  {type:'multi',color:'#3b82f6',label:'M',desc:'Multi-Ball'},
+  {type:'life',color:'#ef4444',label:'\u2665',desc:'Extra Life'}
+];
+
+var widePaddleTimer=null;
+var paddleWidthBase=100;
+var mouseX=null;
+var keysDown={};
+
+function initCanvas(){
+  canvas=document.getElementById('gameCanvas');
+  ctx=canvas.getContext('2d');
+  var wrap=document.getElementById('canvasWrap');
+  dpr=window.devicePixelRatio||1;
+  W=wrap.clientWidth;H=wrap.clientHeight;
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+function createBricks(){
+  bricks=[];
+  var rows=BRICK_ROWS_BASE+Math.min(level-1,5);
+  var brickW=(W-BRICK_PADDING*(BRICK_COLS+1))/BRICK_COLS;
+  var brickH=Math.min(28,H*0.04);
+  var topOffset=50;
+  for(var r=0;r<rows;r++){
+    var colorIdx=Math.min(r,brickColors.length-1);
+    var points=ROW_POINTS[Math.min(r,ROW_POINTS.length-1)];
+    for(var c=0;c<BRICK_COLS;c++){
+      bricks.push({
+        x:BRICK_PADDING+(brickW+BRICK_PADDING)*c,
+        y:topOffset+r*(brickH+BRICK_PADDING),
+        w:brickW,
+        h:brickH,
+        color:brickColors[colorIdx],
+        points:points,
+        alive:true
+      });
+    }
+  }
+}
+
+function createBall(x,y,vx,vy){
+  var speed=BALL_SPEED_BASE+(level-1)*0.3;
+  return {
+    x:x||paddle.x+paddle.w/2,
+    y:y||(paddle.y-BALL_RADIUS-1),
+    vx:vx||(Math.random()*2-1),
+    vy:vy||(-speed),
+    speed:speed,
+    trail:[],
+    onPaddle:(!vx&&!vy)
+  };
+}
+
+function startGame(){
+  showScreen('gameScreen');
+  initCanvas();
+  applyCosmeticStyles();
+
+  paddleWidthBase=Math.min(120,W*0.15);
+  if(paddleWidthBase<80)paddleWidthBase=80;
+
+  level=1;
+  score=0;
+  lives=3;
+  combo=0;maxCombo=0;
+  coinsAwarded=false;
+  livesLostThisGame=0;
+  particles=[];scorePopups=[];powerups=[];
+
+  paddle={x:W/2-paddleWidthBase/2,y:H-40,w:paddleWidthBase,h:PADDLE_HEIGHT};
+  balls=[createBall()];
+  createBricks();
+
+  gameState='waiting';
+  mouseX=null;
+
+  updateHUD();
+  document.getElementById('tapHint').style.display='block';
+  document.getElementById('gameOverOverlay').classList.remove('active');
+  if(animId)cancelAnimationFrame(animId);
+  if(widePaddleTimer){clearTimeout(widePaddleTimer);widePaddleTimer=null;}
+  gameLoop();
+}
+
+function updateHUD(){
+  document.getElementById('hudScore').textContent=score;
+  document.getElementById('hudLevel').textContent='Level '+level;
+  var hearts='';for(var i=0;i<lives;i++)hearts+='\u2764';
+  document.getElementById('hudLives').innerHTML=hearts;
+}
+
+function launchBall(){
+  if(gameState==='waiting'){
+    gameState='playing';
+    document.getElementById('tapHint').style.display='none';
+    balls.forEach(function(b){
+      if(b.onPaddle){
+        b.onPaddle=false;
+        var speed=BALL_SPEED_BASE+(level-1)*0.3;
+        var angle=-Math.PI/2+(Math.random()*0.6-0.3);
+        b.vx=speed*Math.cos(angle);
+        b.vy=speed*Math.sin(angle);
+        b.speed=speed;
+      }
+    });
+    sfxPaddleHit();
+  }
+}
+
+function spawnParticles(x,y,color,count){
+  for(var i=0;i<count;i++){
+    var angle=Math.random()*Math.PI*2;
+    var speed=1+Math.random()*3;
+    particles.push({
+      x:x,y:y,
+      vx:Math.cos(angle)*speed,
+      vy:Math.sin(angle)*speed,
+      life:1,
+      decay:0.02+Math.random()*0.03,
+      color:color,
+      size:2+Math.random()*3
+    });
+  }
+}
+
+function spawnScorePopup(x,y,text,color){
+  scorePopups.push({x:x,y:y,text:text,life:1,color:color||'#fff'});
+}
+
+function update(){
+  if(gameState!=='playing')return;
+
+  /* Paddle movement */
+  if(mouseX!==null){
+    var targetX=mouseX-paddle.w/2;
+    targetX=Math.max(0,Math.min(W-paddle.w,targetX));
+    paddle.x+=(targetX-paddle.x)*0.3;
+  }
+  if(keysDown['ArrowLeft']||keysDown['KeyA']){
+    paddle.x=Math.max(0,paddle.x-8);
+  }
+  if(keysDown['ArrowRight']||keysDown['KeyD']){
+    paddle.x=Math.min(W-paddle.w,paddle.x+8);
+  }
+
+  /* Balls */
+  var ballsToRemove=[];
+  for(var bi=0;bi<balls.length;bi++){
+    var b=balls[bi];
+
+    if(b.onPaddle){
+      b.x=paddle.x+paddle.w/2;
+      b.y=paddle.y-BALL_RADIUS-1;
+      continue;
+    }
+
+    /* Trail */
+    b.trail.push({x:b.x,y:b.y});
+    if(b.trail.length>5)b.trail.shift();
+
+    b.x+=b.vx;
+    b.y+=b.vy;
+
+    /* Wall collisions */
+    if(b.x-BALL_RADIUS<=0){b.x=BALL_RADIUS;b.vx=Math.abs(b.vx);sfxWallHit()}
+    if(b.x+BALL_RADIUS>=W){b.x=W-BALL_RADIUS;b.vx=-Math.abs(b.vx);sfxWallHit()}
+    if(b.y-BALL_RADIUS<=0){b.y=BALL_RADIUS;b.vy=Math.abs(b.vy);sfxWallHit()}
+
+    /* Ball fell below */
+    if(b.y-BALL_RADIUS>H){
+      ballsToRemove.push(bi);
+      continue;
+    }
+
+    /* Paddle collision */
+    if(b.vy>0&&b.y+BALL_RADIUS>=paddle.y&&b.y+BALL_RADIUS<=paddle.y+paddle.h+4&&b.x>=paddle.x-BALL_RADIUS&&b.x<=paddle.x+paddle.w+BALL_RADIUS){
+      b.y=paddle.y-BALL_RADIUS;
+      /* Angle based on where ball hits paddle */
+      var hitPos=(b.x-paddle.x)/paddle.w;
+      hitPos=Math.max(0,Math.min(1,hitPos));
+      var angle=-(Math.PI*0.15+hitPos*Math.PI*0.7);
+      b.speed+=BALL_SPEED_INCREMENT;
+      var spd=b.speed;
+      b.vx=spd*Math.cos(angle);
+      b.vy=spd*Math.sin(angle);
+      /* Reset combo on paddle hit */
+      combo=0;
+      sfxPaddleHit();
+    }
+
+    /* Brick collisions */
+    for(var bri=0;bri<bricks.length;bri++){
+      var br=bricks[bri];
+      if(!br.alive)continue;
+
+      if(b.x+BALL_RADIUS>br.x&&b.x-BALL_RADIUS<br.x+br.w&&b.y+BALL_RADIUS>br.y&&b.y-BALL_RADIUS<br.y+br.h){
+        br.alive=false;
+        combo++;
+        if(combo>maxCombo)maxCombo=combo;
+
+        var comboMult=Math.max(1,combo);
+        var pts=br.points*comboMult;
+        score+=pts;
+
+        spawnParticles(br.x+br.w/2,br.y+br.h/2,br.color,8);
+        var popText='+'+pts;
+        if(combo>1)popText+=' x'+combo;
+        spawnScorePopup(br.x+br.w/2,br.y,popText,br.color);
+
+        updateHUD();
+        sfxBrickHit();
+
+        /* Determine bounce direction */
+        var overlapLeft=b.x+BALL_RADIUS-br.x;
+        var overlapRight=br.x+br.w-(b.x-BALL_RADIUS);
+        var overlapTop=b.y+BALL_RADIUS-br.y;
+        var overlapBottom=br.y+br.h-(b.y-BALL_RADIUS);
+        var minOverlap=Math.min(overlapLeft,overlapRight,overlapTop,overlapBottom);
+        if(minOverlap===overlapLeft||minOverlap===overlapRight){b.vx=-b.vx}
+        else{b.vy=-b.vy}
+
+        /* Power-up drop (15% chance) */
+        if(Math.random()<0.15){
+          var pu=POWERUP_TYPES[Math.floor(Math.random()*POWERUP_TYPES.length)];
+          powerups.push({
+            x:br.x+br.w/2,
+            y:br.y+br.h/2,
+            type:pu.type,
+            color:pu.color,
+            label:pu.label,
+            vy:1.5
+          });
+        }
+        break;
+      }
+    }
+  }
+
+  /* Remove fallen balls */
+  for(var ri=ballsToRemove.length-1;ri>=0;ri--){
+    balls.splice(ballsToRemove[ri],1);
+  }
+
+  /* If all balls lost */
+  if(balls.length===0){
+    lives--;
+    livesLostThisGame++;
+    updateHUD();
+    sfxLoseLife();
+    if(lives<=0){
+      endGame();
+      return;
+    }
+    /* Reset ball on paddle */
+    balls=[createBall()];
+    balls[0].onPaddle=true;
+    gameState='waiting';
+    document.getElementById('tapHint').style.display='block';
+  }
+
+  /* Power-ups movement & collection */
+  for(var pi=powerups.length-1;pi>=0;pi--){
+    var pu=powerups[pi];
+    pu.y+=pu.vy;
+    /* Check paddle collision */
+    if(pu.y+10>=paddle.y&&pu.y-10<=paddle.y+paddle.h&&pu.x>=paddle.x&&pu.x<=paddle.x+paddle.w){
+      applyPowerUp(pu);
+      powerups.splice(pi,1);
+      continue;
+    }
+    /* Remove if off screen */
+    if(pu.y>H+20){powerups.splice(pi,1)}
+  }
+
+  /* Check level clear */
+  var allDead=bricks.every(function(br){return !br.alive});
+  if(allDead){
+    level++;
+    if(level>localBestLevel){
+      localBestLevel=level;
+      localStorage.setItem('bb_best_level',localBestLevel);
+    }
+    sfxLevelUp();
+    createBricks();
+    balls=[createBall()];
+    balls[0].onPaddle=true;
+    powerups=[];
+    gameState='waiting';
+    document.getElementById('tapHint').style.display='block';
+    updateHUD();
+  }
+
+  /* Update particles */
+  for(var pk=particles.length-1;pk>=0;pk--){
+    var pp=particles[pk];
+    pp.x+=pp.vx;pp.y+=pp.vy;
+    pp.vy+=0.05;
+    pp.life-=pp.decay;
+    if(pp.life<=0)particles.splice(pk,1);
+  }
+
+  /* Update score popups */
+  for(var si=scorePopups.length-1;si>=0;si--){
+    scorePopups[si].y-=1.2;
+    scorePopups[si].life-=0.02;
+    if(scorePopups[si].life<=0)scorePopups.splice(si,1);
+  }
+}
+
+function applyPowerUp(pu){
+  sfxPowerUp();
+  if(pu.type==='wide'){
+    paddle.w=paddleWidthBase*2;
+    if(widePaddleTimer)clearTimeout(widePaddleTimer);
+    widePaddleTimer=setTimeout(function(){
+      paddle.w=paddleWidthBase;
+      widePaddleTimer=null;
+    },10000);
+    spawnScorePopup(paddle.x+paddle.w/2,paddle.y-20,'Wide Paddle!','#22c55e');
+  }else if(pu.type==='multi'){
+    var newBalls=[];
+    for(var i=0;i<balls.length;i++){
+      var ob=balls[i];
+      if(ob.onPaddle)continue;
+      /* Create 2 extra balls at slight angles */
+      var ang1=Math.atan2(ob.vy,ob.vx)+0.3;
+      var ang2=Math.atan2(ob.vy,ob.vx)-0.3;
+      newBalls.push(createBall(ob.x,ob.y,ob.speed*Math.cos(ang1),ob.speed*Math.sin(ang1)));
+      newBalls.push(createBall(ob.x,ob.y,ob.speed*Math.cos(ang2),ob.speed*Math.sin(ang2)));
+      newBalls[newBalls.length-1].onPaddle=false;
+      newBalls[newBalls.length-1].speed=ob.speed;
+      newBalls[newBalls.length-2].onPaddle=false;
+      newBalls[newBalls.length-2].speed=ob.speed;
+    }
+    balls=balls.concat(newBalls);
+    spawnScorePopup(paddle.x+paddle.w/2,paddle.y-20,'Multi-Ball!','#3b82f6');
+  }else if(pu.type==='life'){
+    lives++;
+    updateHUD();
+    spawnScorePopup(paddle.x+paddle.w/2,paddle.y-20,'+1 Life!','#ef4444');
+  }
+}
+
+function draw(){
+  /* Dark background with subtle grid */
+  ctx.fillStyle='#0a1220';
+  ctx.fillRect(0,0,W,H);
+
+  /* Grid pattern */
+  ctx.strokeStyle='rgba(255,255,255,0.03)';
+  ctx.lineWidth=1;
+  var gridSize=30;
+  for(var gx=0;gx<W;gx+=gridSize){
+    ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke();
+  }
+  for(var gy=0;gy<H;gy+=gridSize){
+    ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();
+  }
+
+  /* Bricks */
+  for(var i=0;i<bricks.length;i++){
+    var br=bricks[i];
+    if(!br.alive)continue;
+    /* Main brick */
+    ctx.fillStyle=br.color;
+    ctx.beginPath();
+    roundRect(ctx,br.x,br.y,br.w,br.h,3);
+    ctx.fill();
+    /* 3D bevel - lighter top */
+    ctx.fillStyle='rgba(255,255,255,0.25)';
+    ctx.fillRect(br.x+1,br.y,br.w-2,2);
+    /* 3D bevel - darker bottom */
+    ctx.fillStyle='rgba(0,0,0,0.25)';
+    ctx.fillRect(br.x+1,br.y+br.h-2,br.w-2,2);
+    /* Left highlight */
+    ctx.fillStyle='rgba(255,255,255,0.1)';
+    ctx.fillRect(br.x,br.y+1,2,br.h-2);
+  }
+
+  /* Power-ups */
+  for(var pi=0;pi<powerups.length;pi++){
+    var pu=powerups[pi];
+    ctx.fillStyle=pu.color;
+    ctx.shadowColor=pu.color;
+    ctx.shadowBlur=12;
+    ctx.beginPath();
+    ctx.arc(pu.x,pu.y,12,0,Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur=0;
+    /* Label */
+    ctx.fillStyle='#fff';
+    ctx.font='bold 12px Fredoka,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(pu.label,pu.x,pu.y);
+  }
+
+  /* Ball trails */
+  for(var bi=0;bi<balls.length;bi++){
+    var b=balls[bi];
+    if(b.trail){
+      for(var t=0;t<b.trail.length;t++){
+        var alpha=(t/b.trail.length)*0.3;
+        var sz=BALL_RADIUS*(0.3+0.7*t/b.trail.length);
+        ctx.fillStyle=hexToRgba(ballTrailColor,alpha);
+        ctx.beginPath();
+        ctx.arc(b.trail[t].x,b.trail[t].y,sz,0,Math.PI*2);
+        ctx.fill();
+      }
+    }
+  }
+
+  /* Balls */
+  for(var bi2=0;bi2<balls.length;bi2++){
+    var b2=balls[bi2];
+    ctx.shadowColor=ballColor;
+    ctx.shadowBlur=12;
+    ctx.fillStyle=ballColor;
+    ctx.beginPath();
+    ctx.arc(b2.x,b2.y,BALL_RADIUS,0,Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur=0;
+    /* Highlight */
+    ctx.fillStyle='rgba(255,255,255,0.4)';
+    ctx.beginPath();
+    ctx.arc(b2.x-2,b2.y-2,BALL_RADIUS*0.35,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  /* Paddle */
+  ctx.shadowColor=paddleColor;
+  ctx.shadowBlur=12;
+  ctx.fillStyle=paddleColor;
+  ctx.beginPath();
+  roundRect(ctx,paddle.x,paddle.y,paddle.w,paddle.h,PADDLE_RADIUS);
+  ctx.fill();
+  ctx.shadowBlur=0;
+  /* Paddle glossy highlight */
+  ctx.fillStyle='rgba(255,255,255,0.25)';
+  ctx.beginPath();
+  roundRect(ctx,paddle.x+4,paddle.y+2,paddle.w-8,paddle.h*0.4,4);
+  ctx.fill();
+
+  /* Particles */
+  for(var pk=0;pk<particles.length;pk++){
+    var pp=particles[pk];
+    ctx.globalAlpha=pp.life;
+    ctx.fillStyle=pp.color;
+    ctx.fillRect(pp.x-pp.size/2,pp.y-pp.size/2,pp.size,pp.size);
+  }
+  ctx.globalAlpha=1;
+
+  /* Score popups */
+  for(var si=0;si<scorePopups.length;si++){
+    var sp=scorePopups[si];
+    ctx.globalAlpha=sp.life;
+    ctx.fillStyle=sp.color;
+    ctx.font='bold 16px Fredoka,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(sp.text,sp.x,sp.y);
+  }
+  ctx.globalAlpha=1;
+
+  /* Combo display */
+  if(combo>1&&gameState==='playing'){
+    ctx.fillStyle='rgba(255,255,255,0.7)';
+    ctx.font='bold 14px Outfit,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='bottom';
+    ctx.fillText('Combo x'+combo,W/2,H-60);
+  }
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+function hexToRgba(hex,alpha){
+  var r=0,g=0,b=0;
+  if(hex.length===4){r=parseInt(hex[1]+hex[1],16);g=parseInt(hex[2]+hex[2],16);b=parseInt(hex[3]+hex[3],16)}
+  else if(hex.length===7){r=parseInt(hex.slice(1,3),16);g=parseInt(hex.slice(3,5),16);b=parseInt(hex.slice(5,7),16)}
+  return 'rgba('+r+','+g+','+b+','+alpha+')';
+}
+
+function gameLoop(){
+  update();draw();
+  animId=requestAnimationFrame(gameLoop);
+}
+
+function endGame(){
+  gameState='dead';
+  sfxGameOver();
+
+  var isNew=score>localBest;
+  if(isNew){localBest=score;localStorage.setItem('bb_best',localBest)}
+  localGames++;
+  localStorage.setItem('bb_games',localGames);
+
+  localTotalBricks+=bricks.filter(function(br){return !br.alive}).length;
+  localStorage.setItem('bb_total_bricks',localTotalBricks);
+
+  if(maxCombo>localBestCombo){localBestCombo=maxCombo;localStorage.setItem('bb_best_combo',localBestCombo)}
+
+  /* Check perfect clear (all bricks cleared, never lost a life across all levels) */
+  var allDead=bricks.every(function(br){return !br.alive});
+  if(allDead&&livesLostThisGame===0&&level>1){
+    localPerfectClears++;
+    localStorage.setItem('bb_perfect_clears',localPerfectClears);
+  }
+
+  var coins=Math.floor(score/100);
+  if(isNew)coins+=5;
+  if(coins<1&&score>0)coins=1;
+  localCoinsEarned+=coins;
+  localStorage.setItem('bb_coins_earned',localCoinsEarned);
+
+  document.getElementById('goTitle').textContent=level>1?'Level '+level+' - Game Over':'Game Over';
+  document.getElementById('goScore').textContent=score;
+  document.getElementById('goBest').textContent='Best: '+localBest;
+  document.getElementById('goNew').style.display=isNew?'block':'none';
+  document.getElementById('goCoins').textContent='+'+coins+' coins';
+
+  setTimeout(function(){document.getElementById('gameOverOverlay').classList.add('active')},600);
+
+  if(!coinsAwarded){
+    coinsAwarded=true;
+    if(coins>0)awardCoins(coins);
+    saveRecord(isNew);
+    checkAchievements({
+      highScore:score,
+      bestLevel:localBestLevel,
+      totalBricks:localTotalBricks,
+      bestCombo:localBestCombo,
+      perfectClears:localPerfectClears,
+      gamesPlayed:localGames
+    });
+  }
+}
+
+/* ===================== */
+/* INPUT                 */
+/* ===================== */
+var cw=document.getElementById('canvasWrap');
+
+cw.addEventListener('mousemove',function(e){
+  var rect=canvas.getBoundingClientRect();
+  mouseX=e.clientX-rect.left;
+});
+
+cw.addEventListener('click',function(e){
+  e.preventDefault();
+  if(gameState==='waiting')launchBall();
+});
+
+cw.addEventListener('touchmove',function(e){
+  e.preventDefault();
+  var rect=canvas.getBoundingClientRect();
+  mouseX=e.touches[0].clientX-rect.left;
+},{passive:false});
+
+cw.addEventListener('touchstart',function(e){
+  e.preventDefault();
+  var rect=canvas.getBoundingClientRect();
+  mouseX=e.touches[0].clientX-rect.left;
+  if(gameState==='waiting')launchBall();
+},{passive:false});
+
+document.addEventListener('keydown',function(e){
+  keysDown[e.code]=true;
+  if(e.code==='Space'||e.key===' '){e.preventDefault();if(gameState==='waiting')launchBall()}
+  if(e.code==='ArrowLeft'||e.code==='ArrowRight')e.preventDefault();
+});
+document.addEventListener('keyup',function(e){
+  delete keysDown[e.code];
+});
+
+/* ===================== */
+/* FIREBASE              */
+/* ===================== */
+async function awardCoins(coins){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{var fb=await window.getFirebaseDB();await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{coins:fb.fsMod.increment(coins)})}catch(e){}
+}
+
+async function saveRecord(isNew){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'brickbreakerRecords',studentId);
+    var snap=await fb.fsMod.getDoc(ref);
+    if(snap.exists()){
+      var upd={gamesPlayed:fb.fsMod.increment(1),totalBricks:fb.fsMod.increment(bricks.filter(function(br){return !br.alive}).length),lastPlayed:new Date().toISOString()};
+      if(isNew)upd.highScore=score;
+      if(level>=(snap.data().bestLevel||1))upd.bestLevel=level;
+      if(maxCombo>(snap.data().bestCombo||0))upd.bestCombo=maxCombo;
+      if(localPerfectClears>(snap.data().perfectClears||0))upd.perfectClears=localPerfectClears;
+      await fb.fsMod.updateDoc(ref,upd);
+    }else{
+      await fb.fsMod.setDoc(ref,{
+        studentId:studentId,
+        studentName:studentName||'',
+        classCode:classCode,
+        highScore:score,
+        bestLevel:level,
+        bestCombo:maxCombo,
+        perfectClears:localPerfectClears,
+        totalBricks:bricks.filter(function(br){return !br.alive}).length,
+        gamesPlayed:1,
+        lastPlayed:new Date().toISOString()
+      });
+    }
+  }catch(e){console.warn('Save failed:',e)}
+}
+
+/* ===================== */
+/* RECORDS & LEADERBOARD */
+/* ===================== */
+async function showRecords(){
+  showScreen('recordsScreen');
+  document.getElementById('statBest').textContent=localBest;
+  document.getElementById('statPlayed').textContent=localGames;
+  document.getElementById('statLevel').textContent=localBestLevel;
+  document.getElementById('statCoins').textContent=localCoinsEarned;
+
+  /* Achievements grid */
+  var ag=document.getElementById('achievementsGrid');ag.innerHTML='';
+  BB_ACHIEVEMENTS.forEach(function(a){
+    var unlocked=!!achState[a.id];
+    ag.innerHTML+='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:1px solid '+(unlocked?'var(--gold)':'var(--border)')+';border-radius:12px;padding:8px 4px;text-align:center;aspect-ratio:1;'+(unlocked?'box-shadow:0 0 12px rgba(255,209,102,.15)':'opacity:.3;filter:grayscale(1)')+'"><span style="font-size:24px">'+a.icon+'</span><span style="font-size:8px;color:var(--text2);line-height:1.1;margin-top:2px">'+esc(a.name)+'</span></div>';
+  });
+
+  /* Leaderboard */
+  var lb=document.getElementById('leaderboard');lb.innerHTML='<div class="lb-empty">Loading...</div>';
+  if(!classCode){lb.innerHTML='<div class="lb-empty">Join a class to see the leaderboard</div>';return}
+  try{
+    var fb=await window.getFirebaseDB();
+    var q=fb.fsMod.query(fb.fsMod.collection(fb.db,'brickbreakerRecords'),fb.fsMod.where('classCode','==',classCode),fb.fsMod.orderBy('highScore','desc'),fb.fsMod.limit(20));
+    var snap=await fb.fsMod.getDocs(q);
+    if(snap.empty){lb.innerHTML='<div class="lb-empty">No scores yet. Be the first!</div>';return}
+    var h='',rank=0;
+    snap.forEach(function(d){
+      rank++;var data=d.data();var isMe=data.studentId===studentId;
+      var rc=rank<=3?'r'+rank:'';
+      h+='<div class="lb-row'+(isMe?' me':'')+'"><div class="lb-rank '+rc+'">'+rank+'</div><div class="lb-name">'+esc(data.studentName||'Player')+'</div><div class="lb-score">'+data.highScore+'</div></div>';
+    });
+    lb.innerHTML=h;
+  }catch(e){lb.innerHTML='<div class="lb-empty">Could not load leaderboard</div>'}
+}
+
+/* ===================== */
+/* RESIZE                */
+/* ===================== */
+window.addEventListener('resize',function(){if(gameState==='waiting'||gameState==='dead'||gameState==='idle')if(canvas)initCanvas()});
+
+/* ===================== */
+/* HELP                  */
+/* ===================== */
+odaHelp.init({
+  title:'Brick Breaker',emoji:'\u{1F9F1}',subtitle:'Smash bricks, earn points!',
+  sections:[
+    {title:'Rules',icon:'\u{1F4D6}',items:['Move your paddle to bounce the ball','Break all bricks to advance to the next level','Each level adds more rows and slightly faster ball','You have 3 lives \u2014 lose a life when the ball falls','Catch power-ups dropped from broken bricks!']},
+    {title:'Power-Ups',icon:'\u26A1',items:['Green (W): Wide Paddle for 10 seconds','Blue (M): Splits into 3 balls','Red (\u2665): Extra life','15% chance to drop from any brick']},
+    {title:'Scoring',icon:'\u{1F3AF}',items:['Red bricks (top): 50 pts','Orange bricks: 40 pts','Yellow bricks: 30 pts','Green bricks: 20 pts','Blue bricks (bottom): 10 pts','Combo multiplier for consecutive hits without paddle bounce','Coins = score / 100 (bonus 5 for new best)']}
+  ],
+  controls:[{key:'Mouse',action:'Move paddle'},{key:'Touch',action:'Move paddle (mobile)'},{key:'\u2190/\u2192',action:'Move paddle'},{key:'Click/Space',action:'Launch ball'}],
+  tip:'<strong>Aim for the top!</strong> Red bricks are worth the most points. Try to break through the sides to get the ball above the bricks for massive combos!'
+});
+</script>
+<script>
+(function(){
+  var isT=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+  if(isT){var b=document.getElementById('backBtn');if(b)b.href='../../teacher.html'}
+})();
+</script>
+</body>
+</html>

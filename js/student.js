@@ -53,6 +53,8 @@ var GAMES=[
 {id:'pingpong',emoji:'\u{1F3D3}',title:'Ping Pong',desc:'Classic pong — beat the AI!',file:'arcade/pingpong/index.html'},
 {id:'aimtrainer',emoji:'\u{1F3AF}',title:'Aim Trainer',desc:'Test your reflexes — hit targets fast!',file:'arcade/aimtrainer/index.html'},
 {id:'penaltykick',emoji:'\u26BD',title:'Penalty Kick',desc:'Aim, shoot, score past the keeper!',file:'arcade/penaltykick/index.html'},
+{id:'brickbreaker',emoji:'\u{1F9F1}',title:'Brick Breaker',desc:'Smash bricks, earn combos, break records!',file:'arcade/brickbreaker/index.html'},
+{id:'whackamole',emoji:'\u{1F439}',title:'Whack-a-Mole',desc:'Whack the moles before they hide!',file:'arcade/whackamole/index.html'},
 ];
 
 var WORD_BANKS={
