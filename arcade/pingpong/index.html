@@ -64,7 +64,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 
 /* GAME */
 #gameScreen{padding:0;max-width:100%;min-height:100vh;min-height:100dvh;justify-content:center;align-items:center;position:relative}
-#canvasWrap{width:100%;height:100vh;height:100dvh;position:relative;overflow:hidden;cursor:pointer;touch-action:none}
+#canvasWrap{width:100%;max-width:900px;height:70vh;margin:0 auto;position:relative;overflow:hidden;cursor:pointer;touch-action:none;border-radius:16px}
 #gameCanvas{display:block;width:100%;height:100%}
 .game-hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:center;padding:20px;pointer-events:none;z-index:5}
 .hud-score{font-family:'Fredoka',sans-serif;font-size:clamp(48px,10vw,72px);font-weight:900;color:#fff;text-shadow:0 3px 10px rgba(0,0,0,.6),0 0 30px rgba(0,0,0,.4);letter-spacing:-2px;-webkit-text-stroke:2px rgba(0,0,0,.15);display:flex;gap:40px;align-items:center}
@@ -135,7 +135,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <button class="diff-btn" onclick="setDifficulty('hard',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Hard</button>
   </div>
   <div class="home-actions">
-    <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
+    <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; VS Computer</button>
+    <button class="btn btn-blue btn-small" onclick="showQuickMatch()">&#9889; Quick Match</button>
     <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
     <button class="btn btn-outline btn-small" onclick="showShopScreen()">&#128717;&#65039; Shop</button>
   </div>
@@ -210,6 +211,38 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
 </div>
 
+<!-- QUICK MATCH SCREEN -->
+<div class="screen" id="quickMatchScreen">
+  <div style="text-align:center;margin-top:80px">
+    <h1>&#9889; Quick <span style="color:var(--accent)">Match</span></h1>
+    <p style="color:var(--text2);font-size:14px;margin-bottom:24px">Play a friend with a room code!</p>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:14px;max-width:380px;margin:0 auto">
+    <button class="btn btn-accent" onclick="createRoom()" style="width:100%">Create Room</button>
+    <div style="display:flex;align-items:center;gap:14px;width:100%">
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <span style="color:var(--text2);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px">or</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;width:100%">
+      <input type="text" id="joinCodeInput" placeholder="Enter room code" maxlength="4" style="flex:1;padding:14px 20px;border-radius:14px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-family:Outfit,sans-serif;font-size:18px;font-weight:700;text-align:center;text-transform:uppercase;letter-spacing:4px;outline:none" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+      <button class="btn btn-accent btn-small" onclick="joinRoom()">Join</button>
+    </div>
+    <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:8px">&#8592; Back</button>
+  </div>
+</div>
+
+<!-- WAITING SCREEN -->
+<div class="screen" id="waitingScreen">
+  <div style="text-align:center;margin-top:120px">
+    <div style="font-size:48px;margin-bottom:16px">&#9889;</div>
+    <h2>Waiting for opponent...</h2>
+    <p style="color:var(--text2);font-size:14px;margin-top:8px">Share this code with a friend:</p>
+    <div id="roomCodeDisplay" style="font-family:Fredoka,sans-serif;font-size:48px;font-weight:700;color:var(--accent);letter-spacing:8px;margin:16px 0"></div>
+    <button class="btn btn-outline btn-small" onclick="cancelRoom()">Cancel</button>
+  </div>
+</div>
+
 <script src="../../js/oda-core.js"></script>
 <script>
 /* ===================== */
@@ -230,6 +263,10 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
   document.getElementById(id).classList.add('active');
   document.body.classList.toggle('in-game',id==='gameScreen');
+  if(id!=='gameScreen'){
+    if(animId){cancelAnimationFrame(animId);animId=null;}
+    gameState='idle';
+  }
   if(id==='homeScreen')loadLocalStats();
 }
 
@@ -865,6 +902,88 @@ window.addEventListener('resize',function(){if(gameState==='waiting'||gameState=
 /* ===================== */
 /* HELP                  */
 /* ===================== */
+/* ===================== */
+/* QUICK MATCH           */
+/* ===================== */
+var roomCode=null,roomUnsub=null;
+
+function genCode(){return Math.random().toString(36).slice(2,6).toUpperCase()}
+
+function showQuickMatch(){showScreen('quickMatchScreen');document.getElementById('joinCodeInput').value=''}
+
+async function createRoom(){
+  var code=genCode();
+  try{
+    var fb=await window.getFirebaseDB();
+    await fb.fsMod.setDoc(fb.fsMod.doc(fb.db,'pongGames',code),{
+      host:studentId,hostName:studentName||'Player 1',
+      guest:null,guestName:null,
+      status:'waiting',created:new Date().toISOString()
+    });
+    roomCode=code;
+    document.getElementById('roomCodeDisplay').textContent=code;
+    showScreen('waitingScreen');
+    listenForGuest();
+  }catch(e){console.error('Create room failed:',e)}
+}
+
+async function joinRoom(){
+  var code=document.getElementById('joinCodeInput').value.trim().toUpperCase();
+  if(code.length!==4)return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'pongGames',code);
+    var snap=await fb.fsMod.getDoc(ref);
+    if(!snap.exists()||snap.data().status!=='waiting'){alert('Room not found or already full');return}
+    await fb.fsMod.updateDoc(ref,{guest:studentId,guestName:studentName||'Player 2',status:'playing'});
+    roomCode=code;
+    // Start game as guest (right paddle)
+    startMultiplayerGame(snap.data().hostName||'Player 1','guest');
+  }catch(e){console.error('Join failed:',e)}
+}
+
+function listenForGuest(){
+  if(!roomCode)return;
+  (async function(){
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'pongGames',roomCode);
+    roomUnsub=fb.fsMod.onSnapshot(ref,function(snap){
+      if(!snap.exists())return;
+      var d=snap.data();
+      if(d.status==='playing'&&d.guest){
+        if(roomUnsub)roomUnsub();
+        startMultiplayerGame(d.guestName||'Player 2','host');
+      }
+    });
+  })();
+}
+
+function cancelRoom(){
+  if(roomUnsub)roomUnsub();
+  roomCode=null;
+  showScreen('homeScreen');
+}
+
+function startMultiplayerGame(opponentName,role){
+  // For now, start a local game — true multiplayer would need real-time sync
+  // This sets up the match display with the opponent's name
+  showScreen('gameScreen');
+  initCanvas();
+  player={x:20,y:H/2-60,w:12,h:120,vy:0};
+  ai={x:W-32,y:H/2-60,w:12,h:120};
+  ball={x:W/2,y:H/2,vx:5,vy:3,r:8,speed:5};
+  playerScore=0;aiScore=0;rallyCount=0;
+  gameState='playing';coinsAwarded=false;
+  if(animId)cancelAnimationFrame(animId);
+  applyCosmeticStyles();
+  gameLoop();
+}
+
+window.showQuickMatch=showQuickMatch;
+window.createRoom=createRoom;
+window.joinRoom=joinRoom;
+window.cancelRoom=cancelRoom;
+
 odaHelp.init({
   title:'Ping Pong',emoji:'\u{1F3D3}',subtitle:'Classic arcade table tennis!',
   sections:[
