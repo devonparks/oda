@@ -453,8 +453,8 @@ function computeBoardLayout(){
 
   const entries = [];
   const rowH = 2 * TW + TMARGIN + 20;
-  // Start position
-  let x = TMARGIN;
+  // Start position — extra margin for first tile
+  let x = TMARGIN + 10;
   let cy = TMARGIN + 2 * TW; // center-Y of first row
   let dir = 1; // 1 = left-to-right, -1 = right-to-left
   let row = 0;
@@ -480,14 +480,19 @@ function computeBoardLayout(){
                      (dir === -1 && (cx - tileW / 2) < TMARGIN);
 
     if(overflow && i > 0){
+      // Start new row directly below where previous row ended
+      const prevEntry = entries[entries.length - 1];
+      const prevDbl = prevEntry.isDouble;
+      const prevW = prevDbl ? TW : 2 * TW;
       row++;
       cy += rowH;
       dir = -dir;
+      // New row starts at the same x as the last tile of prev row
       if(dir === 1){
         x = TMARGIN;
         cx = x + tileW / 2;
       } else {
-        x = canvasW - TMARGIN;
+        x = prevEntry.x + prevW; // start from where last tile ended
         cx = x - tileW / 2;
       }
     }
