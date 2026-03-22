@@ -452,86 +452,45 @@ function computeBoardLayout(){
   if(board.length === 0) return;
 
   const entries = [];
-  const rowH = 2 * TW + TMARGIN + 20;
-  // Start position — extra margin for first tile
-  let x = TMARGIN + 10;
-  let cy = TMARGIN + 2 * TW; // center-Y of first row
-  let dir = 1; // 1 = left-to-right, -1 = right-to-left
-  let row = 0;
+  const cy = canvasH / 2; // vertically centered
+
+  // Single row, left to right, no wrapping. Pan to navigate.
+  let x = TMARGIN + 2 * TW; // start with enough room for first tile
 
   for(let i = 0; i < board.length; i++){
     const entry = board[i];
     const dbl = isDouble(entry.tile);
-    // Width this tile occupies
     const tileW = dbl ? (2 * TW) : (4 * TW);
-
-    // Calculate where center of this tile will be
-    let cx;
-    if(dir === 1){
-      cx = x + tileW / 2;
-    } else {
-      cx = x - tileW / 2;
-    }
-
-    // Check overflow
-    const rightEdge = dir === 1 ? cx + tileW / 2 : cx + tileW / 2;
-    const leftEdge = dir === 1 ? cx - tileW / 2 : cx - tileW / 2;
-    const overflow = (dir === 1 && (cx + tileW / 2) > canvasW - TMARGIN) ||
-                     (dir === -1 && (cx - tileW / 2) < TMARGIN);
-
-    if(overflow && i > 0){
-      // Start new row directly below where previous row ended
-      const prevEntry = entries[entries.length - 1];
-      const prevDbl = prevEntry.isDouble;
-      const prevW = prevDbl ? TW : 2 * TW;
-      row++;
-      cy += rowH;
-      dir = -dir;
-      // New row starts at the same x as the last tile of prev row
-      if(dir === 1){
-        x = TMARGIN;
-        cx = x + tileW / 2;
-      } else {
-        x = prevEntry.x + prevW; // start from where last tile ended
-        cx = x - tileW / 2;
-      }
-    }
+    const cx = x + tileW / 2 + boardPanX;
 
     entries.push({
       tile: entry.tile,
       leftVal: entry.leftVal,
       rightVal: entry.rightVal,
-      x: cx + boardPanX,
+      x: cx,
       y: cy,
-      isDouble: dbl,
-      row: row
+      isDouble: dbl
     });
 
-    // Advance x
-    if(dir === 1){
-      x = cx + tileW / 2 + TGAP;
-    } else {
-      x = cx - tileW / 2 - TGAP;
-    }
+    x += tileW + TGAP;
   }
 
   boardEntries = entries;
+}
 
-  // Grow canvas height if needed
-  const maxY = entries.length > 0 ? Math.max(...entries.map(e => e.y)) + 2 * TW + TMARGIN : canvasH;
-  if(maxY > canvasH){
-    canvasH = Math.ceil(maxY);
-    const cvs = document.getElementById('boardCanvas');
-    if(cvs){
-      cvs.height = canvasH * (window.devicePixelRatio || 1);
-      cvs.style.height = canvasH + 'px';
-    }
+// Auto-pan so the last placed tile is visible
+function autoPanToEnd(){
+  if(boardEntries.length === 0) return;
+  const last = boardEntries[boardEntries.length - 1];
+  const lastRight = last.x + (last.isDouble ? TW : 2 * TW);
+  if(lastRight > canvasW - TMARGIN){
+    boardPanX -= (lastRight - canvasW + TMARGIN + 40);
+    computeBoardLayout();
   }
 }
 
 function panBoard(dir){
-  boardPanX += dir * 80;
-  boardLayoutDirty = true;
+  boardPanX += dir * 100;
   computeBoardLayout();
   drawBoard();
 }
@@ -1272,6 +1231,8 @@ window.startAiGame = startAiGame;
 /* =========================================================== */
 function renderGame(){
   boardLayoutDirty = true;
+  computeBoardLayout();
+  autoPanToEnd();
   drawBoard();
   renderHand();
   document.getElementById('piYouScore').textContent = myScore;
