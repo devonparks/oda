@@ -115,7 +115,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 </head>
 <body>
 
-<a class="back-btn" href="../../student.html" id="backBtn">&#8592; Back</a>
+<a class="back-btn" href="../../student.html" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();showScreen('homeScreen')}">&#8592; Back</a>
 <button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128264;</button>
 
 <!-- HOME SCREEN -->
@@ -315,45 +315,41 @@ function showShopScreen(){
   }
 }
 
+function drawMiniBird(canvas,v){
+  var g=canvas.getContext('2d');
+  var cx=24,cy=24,sz=14;
+  g.clearRect(0,0,48,48);
+  g.fillStyle=v.color;
+  g.beginPath();g.ellipse(cx,cy,sz,sz*0.8,0,0,Math.PI*2);g.fill();
+  g.fillStyle=v.belly;
+  g.beginPath();g.ellipse(cx+sz*0.15,cy+sz*0.15,sz*0.45,sz*0.4,0,0,Math.PI*2);g.fill();
+  g.fillStyle=v.accent;
+  g.beginPath();g.ellipse(cx-3,cy-2,sz*0.5,sz*0.3,-0.3,0,Math.PI*2);g.fill();
+  g.fillStyle='#fff';
+  g.beginPath();g.arc(cx+sz*0.35,cy-sz*0.2,3.5,0,Math.PI*2);g.fill();
+  g.fillStyle='#111';
+  g.beginPath();g.arc(cx+sz*0.4,cy-sz*0.2,1.8,0,Math.PI*2);g.fill();
+  g.fillStyle='#fff';
+  g.beginPath();g.arc(cx+sz*0.43,cy-sz*0.25,0.8,0,Math.PI*2);g.fill();
+  g.fillStyle=v.beak;
+  g.beginPath();g.moveTo(cx+sz*0.7,cy-1);g.lineTo(cx+sz*1.1,cy-2);g.lineTo(cx+sz*1.1,cy+2);g.lineTo(cx+sz*0.7,cy+2);g.closePath();g.fill();
+}
+
 function renderBirdIcons(){
-  var icons=document.querySelectorAll('#flappyShopContainer .oda-shop-item-icon');
+  var container=document.getElementById('flappyShopContainer');
+  if(!container)return;
+  // Find all icon elements that contain "bird" text
+  var icons=container.querySelectorAll('.oda-shop-item-icon');
+  var birdItems=FLAPPY_SHOP.filter(function(i){return i.emoji==='bird'});
+  var birdIdx=0;
   icons.forEach(function(el){
-    if(el.textContent!=='bird')return;
-    // Find the item data from the button's onclick
-    var btn=el.closest('.oda-shop-item');
-    if(!btn)return;
-    var itemId=btn.getAttribute('onclick');
-    if(!itemId)return;
-    var match=itemId.match(/'([^']+)'/g);
-    if(!match||match.length<2)return;
-    var id=match[1].replace(/'/g,'');
-    var item=FLAPPY_SHOP.find(function(i){return i.id===id});
-    if(!item||!item.value)return;
-    // Create mini canvas
+    if(el.textContent.trim()!=='bird')return;
+    if(birdIdx>=birdItems.length)return;
+    var item=birdItems[birdIdx];birdIdx++;
+    if(!item.value)return;
     var c=document.createElement('canvas');
     c.width=48;c.height=48;c.style.width='48px';c.style.height='48px';
-    var g=c.getContext('2d');
-    var v=item.value;
-    var cx=24,cy=24,sz=14;
-    // Body
-    g.fillStyle=v.color;
-    g.beginPath();g.ellipse(cx,cy,sz,sz*0.8,0,0,Math.PI*2);g.fill();
-    // Belly
-    g.fillStyle=v.belly;
-    g.beginPath();g.ellipse(cx+sz*0.15,cy+sz*0.15,sz*0.45,sz*0.4,0,0,Math.PI*2);g.fill();
-    // Wing
-    g.fillStyle=v.accent;
-    g.beginPath();g.ellipse(cx-3,cy-2,sz*0.5,sz*0.3,-0.3,0,Math.PI*2);g.fill();
-    // Eye
-    g.fillStyle='#fff';
-    g.beginPath();g.arc(cx+sz*0.35,cy-sz*0.2,3.5,0,Math.PI*2);g.fill();
-    g.fillStyle='#111';
-    g.beginPath();g.arc(cx+sz*0.4,cy-sz*0.2,1.8,0,Math.PI*2);g.fill();
-    g.fillStyle='#fff';
-    g.beginPath();g.arc(cx+sz*0.43,cy-sz*0.25,0.8,0,Math.PI*2);g.fill();
-    // Beak
-    g.fillStyle=v.beak;
-    g.beginPath();g.moveTo(cx+sz*0.7,cy-1);g.lineTo(cx+sz*1.1,cy-2);g.lineTo(cx+sz*1.1,cy+2);g.lineTo(cx+sz*0.7,cy+2);g.closePath();g.fill();
+    drawMiniBird(c,item.value);
     el.textContent='';
     el.appendChild(c);
   });
