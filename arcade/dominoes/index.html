@@ -437,6 +437,7 @@ const MARGIN = 40;    // margin from canvas edges before turning
 const ROW_GAP = 20;   // vertical gap between rows when chain turns
 
 let boardEntries = []; // computed positions for drawing
+let boardScale = 1;
 let canvasW = 960, canvasH = 240;
 let panX = 0, panY = 0; // pan offset for scrolling
 let boardLayoutDirty = true; // flag to avoid recomputing layout every animation frame
@@ -447,77 +448,50 @@ function computeBoardLayout(force){
   boardEntries = [];
   if(board.length === 0) return;
 
-  // We lay tiles in a chain. Chain direction starts going RIGHT from center.
-  // When we hit the right edge, we drop down and go LEFT. Hit left edge, drop down go RIGHT. etc.
-  // board[] stores in logical order: index 0 = leftmost tile, last = rightmost.
-  // We'll compute positions from left to right.
-
-  let dir = 1; // 1 = going right, -1 = going left
-  let cx = MARGIN + TILE_H; // start x
-  let cy = MARGIN + TILE_W + 10; // start y — first row
-  let rowStartX = cx;
-
-  // First pass: compute all positions
+  // Single horizontal row, centered. If chain is wider than canvas, scale down.
   const entries = [];
+
+  // First: compute total chain width at full scale
+  let totalWidth = 0;
+  for(let i = 0; i < board.length; i++){
+    const dbl = isDouble(board[i].tile);
+    totalWidth += dbl ? TILE_W * 2 : TILE_H * 2;
+    if(i < board.length - 1) totalWidth += GAP;
+  }
+
+  // Scale factor to fit within canvas
+  const availW = canvasW - MARGIN * 2;
+  const scale = Math.min(1, availW / totalWidth);
+  boardScale = scale;
+
+  // Compute positions centered on canvas
+  const scaledTotal = totalWidth * scale;
+  let cx = (canvasW - scaledTotal) / 2;
+  const cy = canvasH / 2;
 
   for(let i = 0; i < board.length; i++){
     const entry = board[i];
     const dbl = isDouble(entry.tile);
+    const horizontal = !dbl;
+    const extent = (dbl ? TILE_W : TILE_H) * scale;
 
-    // In the chain direction:
-    // Non-doubles: long axis aligned with chain direction (horizontal when going L/R)
-    // Doubles: short axis aligned with chain (vertical when going L/R = perpendicular)
-    const horizontal = !dbl; // non-doubles are horizontal in the chain
-    const halfLong = TILE_H;
-    const halfShort = TILE_W;
-
-    // How much space this tile takes along the chain direction
-    const extent = dbl ? halfShort : halfLong;
-
-    // Check if we'd go past the edge
-    let nextX = cx + dir * extent;
-    const maxX = canvasW - MARGIN;
-    const minX = MARGIN;
-
-    if((dir === 1 && nextX + extent > maxX) || (dir === -1 && nextX - extent < minX)){
-      // Need to turn: drop down, reverse direction
-      cy += halfShort * 2 + halfLong + ROW_GAP;
-      dir = -dir;
-      cx = (dir === 1) ? MARGIN + extent : canvasW - MARGIN - extent;
-      nextX = cx;
-    }
+    cx += extent; // move to center of tile
 
     entries.push({
       tile: entry.tile,
       topVal: entry.topVal !== undefined ? entry.topVal : entry.tile.a,
       botVal: entry.botVal !== undefined ? entry.botVal : entry.tile.b,
-      x: nextX,
+      x: cx,
       y: cy,
       horizontal: horizontal,
-      isDouble: dbl
+      isDouble: dbl,
+      scale: scale
     });
 
-    // Advance cursor
-    const nextExtent = (i + 1 < board.length && isDouble(board[i+1].tile)) ? halfShort : halfLong;
-    cx = nextX + dir * (extent + GAP + (nextExtent > 0 ? 0 : 0));
-    // More precise: advance by this tile's extent + gap
-    cx = nextX + dir * (extent + GAP);
+    cx += extent + GAP * scale; // move past tile + gap
   }
 
   boardEntries = entries;
-
-  // Compute needed canvas height
-  if(entries.length > 0){
-    const maxY = Math.max(...entries.map(e => e.y)) + TILE_H + MARGIN;
-    if(maxY > canvasH){
-      canvasH = Math.ceil(maxY);
-      const cvs = document.getElementById('boardCanvas');
-      if(cvs){
-        cvs.height = canvasH * (window.devicePixelRatio || 1);
-        cvs.style.height = canvasH + 'px';
-      }
-    }
-  }
 }
 
 /* =========================================================== */
@@ -706,7 +680,7 @@ function drawBoard(){
 
   // Draw tiles
   boardEntries.forEach(entry => {
-    drawTileOnCanvas(ctx, entry.x, entry.y, entry.topVal, entry.botVal, entry.horizontal, entry.isDouble, false);
+    drawTileOnCanvas(ctx, entry.x, entry.y, entry.topVal, entry.botVal, entry.horizontal, entry.isDouble, false, entry.scale);
   });
 
   ctx.restore();
@@ -741,9 +715,11 @@ function drawEndGlow(ctx, x, y, horizontal, side){
 /* =========================================================== */
 /* DRAW A SINGLE TILE ON CANVAS                                */
 /* =========================================================== */
-function drawTileOnCanvas(ctx, cx, cy, valA, valB, horizontal, isDbl, highlight){
+function drawTileOnCanvas(ctx, cx, cy, valA, valB, horizontal, isDbl, highlight, scale){
   ctx.save();
   ctx.translate(cx, cy);
+  const s = scale || 1;
+  ctx.scale(s, s);
 
   const tw = isDbl ? TILE_H : TILE_W;
   const th = isDbl ? TILE_W : TILE_H;
