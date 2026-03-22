@@ -527,15 +527,15 @@ function update(){
           b.x+=nx*overlap*(massA/totalMass);
           b.y+=ny*overlap*(massA/totalMass);
 
-          // On first pass only: dampen velocity along collision normal
+          // Kill velocity moving them toward each other (first pass only)
           if(iter===0){
-            var aVn=a.vx*nx+a.vy*ny;
-            var bVn=b.vx*nx+b.vy*ny;
-            // If they're moving toward each other, cancel that component
-            if(aVn-bVn>0){
-              a.vx-=aVn*nx*0.8;a.vy-=aVn*ny*0.8;
-              b.vx+=bVn*nx*0.8;b.vy+=bVn*ny*0.8;
-            }
+            // a's velocity toward b along normal
+            var aToward=a.vx*nx+a.vy*ny;
+            // b's velocity toward a along normal (negative direction)
+            var bToward=-(b.vx*nx+b.vy*ny);
+            // Only cancel if moving toward each other
+            if(aToward>0){a.vx-=aToward*nx;a.vy-=aToward*ny;}
+            if(bToward>0){b.vx+=bToward*nx;b.vy+=bToward*ny;}
           }
         }
       }
