@@ -71,15 +71,12 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .hud-info{position:absolute;top:20px;left:20px;display:flex;flex-direction:column;gap:6px;pointer-events:none;z-index:5}
 .hud-info span{font-family:'Fredoka',sans-serif;font-size:16px;font-weight:700;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.5)}
 
-/* SAVE PHASE BUTTONS */
-.save-btns{position:absolute;bottom:20%;left:50%;transform:translateX(-50%);display:none;gap:10px;z-index:8;pointer-events:auto}
-.save-btns.active{display:flex}
-.save-btn{padding:14px 22px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:800;font-size:15px;cursor:pointer;color:#fff;transition:all .15s;min-width:100px;text-align:center;touch-action:manipulation;text-shadow:0 1px 4px rgba(0,0,0,.4)}
-.save-btn:active{transform:scale(.93)}
-.save-btn.left{background:linear-gradient(135deg,#3b82f6,#2563eb)}
-.save-btn.center{background:linear-gradient(135deg,#8b5cf6,#7c3aed)}
-.save-btn.right{background:linear-gradient(135deg,#f59e0b,#d97706)}
-.save-btn:hover{filter:brightness(1.15);box-shadow:0 0 16px rgba(255,255,255,.2)}
+/* SAVE PHASE ZONE OVERLAYS */
+.save-zones{position:absolute;top:0;left:0;right:0;bottom:0;display:none;z-index:8;pointer-events:none}
+.save-zones.active{display:block;pointer-events:auto}
+.save-zone{position:absolute;border:2px solid rgba(255,255,255,.25);border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:clamp(11px,2.5vw,15px);color:rgba(255,255,255,.7);transition:all .15s;touch-action:manipulation;text-shadow:0 1px 4px rgba(0,0,0,.5);background:rgba(255,255,255,.04)}
+.save-zone:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.5)}
+.save-zone:active{transform:scale(.96);background:rgba(255,255,255,.18)}
 
 /* SAVE COUNTDOWN */
 .save-countdown{position:absolute;top:12%;left:50%;transform:translateX(-50%);font-family:'Fredoka',sans-serif;font-size:clamp(18px,4vw,26px);font-weight:700;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.6);pointer-events:none;z-index:8;display:none;text-align:center}
@@ -158,7 +155,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   </div>
   <div class="how-to">
     <h3>How to Play</h3>
-    <p>Each round you KICK then SAVE. Aim at the goal, click &amp; hold to charge accuracy, release to kick. Then pick Dive Left, Stay, or Dive Right to save the AI's shot. 5 rounds total!</p>
+    <p>Each round: KICK then SAVE. Click the goal to aim, time the shrinking ring for accuracy, then hit the power bar sweet spot. To save, read the heat zone hint, pick a zone, and time your dive. 5 rounds!</p>
   </div>
 </div>
 
@@ -171,11 +168,13 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <span id="hudRound">Round: 1 / 5</span>
       <span id="hudPhase">&#9917; Your Kick</span>
     </div>
-    <!-- Save phase buttons -->
-    <div class="save-btns" id="saveBtns">
-      <button class="save-btn left" onclick="pickDive('left')">&#11013; Dive Left</button>
-      <button class="save-btn center" onclick="pickDive('center')">&#129485; Stay</button>
-      <button class="save-btn right" onclick="pickDive('right')">Dive Right &#10145;</button>
+    <!-- Save phase zone overlays (positioned dynamically by JS) -->
+    <div class="save-zones" id="saveZones">
+      <div class="save-zone" id="zoneTL" onclick="pickDive('topLeft')">&#8598; Top Left</div>
+      <div class="save-zone" id="zoneTR" onclick="pickDive('topRight')">Top Right &#8599;</div>
+      <div class="save-zone" id="zoneBL" onclick="pickDive('bottomLeft')">&#8601; Bot Left</div>
+      <div class="save-zone" id="zoneC" onclick="pickDive('center')">&#129485; Center</div>
+      <div class="save-zone" id="zoneBR" onclick="pickDive('bottomRight')">Bot Right &#8600;</div>
     </div>
     <div class="save-countdown" id="saveCountdown"></div>
     <div class="go-overlay" id="gameOverOverlay">
@@ -400,11 +399,6 @@ loadLocalStats();
 /* DIFFICULTY            */
 /* ===================== */
 var difficulty='easy';
-var DIFFICULTIES={
-  easy:{keeperSpeed:0.012,diveRange:0.4,readsAim:false,readChance:0},
-  medium:{keeperSpeed:0.022,diveRange:0.6,readsAim:false,readChance:0},
-  hard:{keeperSpeed:0.032,diveRange:0.8,readsAim:true,readChance:0.5}
-};
 
 window.setDifficulty=function(diff,btn){
   difficulty=diff;
@@ -419,58 +413,121 @@ var canvas,ctx,W,H,dpr;
 var animId=null,frameCount=0;
 var gameTimers=[];
 
-/* ---------- Game State (multiplayer-ready) ---------- */
+/* ---------- Game State ---------- */
 var GS={
-  round:0,          // 0-indexed, 5 rounds total
-  phase:'idle',     // idle, kick_aim, kick_charge, kick_fly, kick_result, save_choose, save_fly, save_result, done
+  round:0,
+  phase:'idle',
+  // Phases: idle, kick_aim, kick_ring, kick_power, kick_fly, kick_result,
+  //         save_heat, save_choose, save_ring, save_fly, save_result, done
   maxRounds:5,
-  p1Goals:0,        // player goals (kick phase)
-  p2Goals:0,        // AI goals (save phase)
-  p1Saves:0,        // player saves
+  p1Goals:0,        // player goals scored
+  p2Goals:0,        // AI goals scored
+  p1Saves:0,        // player saves made
   consecutiveGoals:0,
   sessionHatTrick:false,
   coinsAwarded:false,
-  // kick data
-  kickAim:{x:0.5,y:0.4},
-  kickAccuracy:0,
-  // save data
-  diveChoice:null,   // 'left','center','right'
-  aiAimZone:null,    // 'left','center','right'
+  // Kick data
+  kickAimNorm:{x:0.5,y:0.4}, // normalized 0-1 within goal
+  kickAccuracy:0,             // 0-1 accuracy score from ring
+  kickPower:0,                // 0-1 power score from bar
+  kickZone:'center',          // 'center','side','topCorner','bottomCorner'
+  // Save data
+  diveChoice:null,   // 'topLeft','topRight','bottomLeft','center','bottomRight'
+  diveTimingScore:0, // 0-1 dive timing quality
+  aiAimZone:null,    // same zone names
+  aiAimPos:{x:0.5,y:0.5}, // exact AI aim position (normalized)
 };
 
-// Aim
-var aimX=0.5,aimY=0.4;
+/* ---------- Accuracy Ring State ---------- */
+var ring={
+  active:false,
+  cx:0,cy:0,         // center pixel position
+  radius:80,          // current radius (shrinks)
+  maxRadius:80,
+  shrinkSpeed:0.8,    // px per frame (varies by zone difficulty)
+  clicked:false,
+  finalRadius:80,     // radius when player clicked
+};
 
-// Accuracy meter (oscillating)
-var accuracy=0,charging=false,accDir=1;
-var ACC_SPEED=0.016;
+/* ---------- Power Bar State ---------- */
+var powerBar={
+  active:false,
+  value:0,            // 0-1 oscillating value
+  dir:1,              // oscillation direction
+  speed:0.018,        // oscillation speed
+  locked:false,
+  finalValue:0,
+};
 
-// Ball flight (kick phase)
-var ball={},ballFlying=false;
-var ballStart={},ballTarget={},ballFlight=0,ballFlightSpeed=0.022;
+/* ---------- Save Ring State (dive timing) ---------- */
+var saveRing={
+  active:false,
+  cx:0,cy:0,
+  radius:70,
+  maxRadius:70,
+  shrinkSpeed:0.7,
+  clicked:false,
+  finalRadius:70,
+};
 
-// AI ball flight (save phase)
-var aiBall={},aiBallFlying=false;
+/* ---------- Heat Zone Hint ---------- */
+var heatZone={
+  active:false,
+  cx:0,cy:0,
+  radius:0,
+  opacity:0,
+  fadeTimer:0,
+  maxTime:60, // frames
+};
+
+/* ---------- Ball ---------- */
+var ball={x:0,y:0,size:20};
+var ballStart={},ballTarget={},ballFlight=0,ballFlightSpeed=0.020;
+var ballMissedOver=false; // true if power too high
+
+/* ---------- AI Ball (save phase) ---------- */
+var aiBall={x:0,y:0,size:10};
 var aiBallStart={},aiBallTarget={},aiBallFlight=0;
 
-// Goalkeeper (kick phase — AI keeper)
-var keeper={x:0.5,targetX:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
+/* ---------- Keepers ---------- */
+var keeper={x:0.5,targetX:0.5,targetY:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
+var playerKeeper={x:0.5,targetX:0.5,targetY:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
 
-// Player keeper (save phase)
-var playerKeeper={x:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
-
-// Result display
+/* ---------- Results & Particles ---------- */
 var resultText='',resultColor='#fff',resultTimer=0;
-
-// Celebration particles
 var particles=[];
 
-// Save phase countdown
-var saveCountdown=3,saveCountdownTimer=null;
-
-// Goal dimensions (normalized percentages of canvas)
+/* ---------- Goal Dimensions (normalized % of canvas) ---------- */
 var GOAL={left:0.2,right:0.8,top:0.15,bottom:0.55};
 
+/* ---------- Zone Definitions ---------- */
+// 5 zones for the goal, each with a name, normalized rect, and difficulty
+var GOAL_ZONES=[
+  {name:'topLeft',     label:'TL', x:0,   y:0,   w:0.35, h:0.45, difficulty:'topCorner'},
+  {name:'topRight',    label:'TR', x:0.65,y:0,   w:0.35, h:0.45, difficulty:'topCorner'},
+  {name:'bottomLeft',  label:'BL', x:0,   y:0.45,w:0.35, h:0.55, difficulty:'bottomCorner'},
+  {name:'center',      label:'C',  x:0.25,y:0.25,w:0.50, h:0.55, difficulty:'center'},
+  {name:'bottomRight', label:'BR', x:0.65,y:0.45,w:0.35, h:0.55, difficulty:'bottomCorner'},
+];
+
+// Zone difficulty => ring shrink speed multiplier and timing window
+var ZONE_DIFFICULTY={
+  center:      {shrinkMult:0.7, label:'Easy'},
+  side:        {shrinkMult:1.0, label:'Medium'},
+  topCorner:   {shrinkMult:1.5, label:'Hard'},
+  bottomCorner:{shrinkMult:1.2, label:'Hard'},
+};
+
+/* ---------- Difficulty Settings for AI ---------- */
+var DIFF_SETTINGS={
+  easy:  {keeperReadChance:0.20, keeperSpeed:0.015, keeperReach:0.30, heatRadius:60, heatTime:90,  aiAccuracy:0.5},
+  medium:{keeperReadChance:0.40, keeperSpeed:0.025, keeperReach:0.45, heatRadius:40, heatTime:60,  aiAccuracy:0.7},
+  hard:  {keeperReadChance:0.60, keeperSpeed:0.035, keeperReach:0.60, heatRadius:25, heatTime:30,  aiAccuracy:0.85},
+};
+
+/* ==============================================
+   CANVAS & TIMER HELPERS
+   ============================================== */
 function initCanvas(){
   canvas=document.getElementById('gameCanvas');
   ctx=canvas.getContext('2d');
@@ -491,12 +548,18 @@ function stopGame(){
   if(animId){cancelAnimationFrame(animId);animId=null}
   gameTimers.forEach(function(id){clearTimeout(id)});
   gameTimers=[];
-  if(saveCountdownTimer){clearInterval(saveCountdownTimer);saveCountdownTimer=null}
   GS.phase='idle';
-  document.getElementById('saveBtns').classList.remove('active');
+  ring.active=false;
+  powerBar.active=false;
+  saveRing.active=false;
+  heatZone.active=false;
+  document.getElementById('saveZones').classList.remove('active');
   document.getElementById('saveCountdown').classList.remove('active');
 }
 
+/* ==============================================
+   START / HUD
+   ============================================== */
 function startGame(){
   stopGame();
   showScreen('gameScreen');
@@ -514,108 +577,261 @@ function startGame(){
   GS.coinsAwarded=false;
 
   document.getElementById('gameOverOverlay').classList.remove('active');
-  document.getElementById('saveBtns').classList.remove('active');
+  document.getElementById('saveZones').classList.remove('active');
   document.getElementById('saveCountdown').classList.remove('active');
   updateHUD();
 
-  // Start first round kick phase after short delay
   addTimer(function(){beginKickPhase()},600);
   gameLoop();
 }
 
-/* ---------- HUD ---------- */
 function updateHUD(){
   document.getElementById('hudScore').textContent='You '+GS.p1Goals+' - '+GS.p2Goals+' AI';
   document.getElementById('hudRound').textContent='Round: '+Math.min(GS.round+1,GS.maxRounds)+' / '+GS.maxRounds;
   var phaseLabel='\u26BD Your Kick';
-  if(GS.phase==='save_choose'||GS.phase==='save_fly'||GS.phase==='save_result')phaseLabel='\u{1F9E4} Your Save';
+  var sp=GS.phase;
+  if(sp==='save_heat'||sp==='save_choose'||sp==='save_ring'||sp==='save_fly'||sp==='save_result')
+    phaseLabel='\u{1F9E4} Your Save';
   document.getElementById('hudPhase').textContent=phaseLabel;
 }
 
-/* ---------- Goal Zone Helpers ---------- */
+/* ==============================================
+   GOAL PIXEL HELPERS
+   ============================================== */
 function getGoalPixels(){
   var gL=W*GOAL.left,gR=W*GOAL.right,gT=H*GOAL.top,gB=H*GOAL.bottom;
   return {left:gL,right:gR,top:gT,bottom:gB,width:gR-gL,height:gB-gT,cx:(gL+gR)/2,cy:(gT+gB)/2};
 }
 
-function aimToGoalPos(ax,ay){
+function normToGoalPx(nx,ny){
   var g=getGoalPixels();
-  return {x:g.left+ax*g.width,y:g.top+ay*g.height};
+  return {x:g.left+nx*g.width,y:g.top+ny*g.height};
 }
 
-/* ---------- KICK PHASE ---------- */
+// Determine which difficulty zone a normalized aim point falls in
+function getAimZoneDifficulty(nx,ny){
+  // Top corners
+  if(ny<0.35 && (nx<0.25||nx>0.75)) return 'topCorner';
+  // Bottom corners
+  if(ny>=0.35 && (nx<0.2||nx>0.8)) return 'bottomCorner';
+  // Sides
+  if(nx<0.3||nx>0.7) return 'side';
+  // Center
+  return 'center';
+}
+
+// Map a zone name to its center in normalized coords
+function zoneCenter(zoneName){
+  var map={
+    topLeft:    {x:0.15,y:0.20},
+    topRight:   {x:0.85,y:0.20},
+    bottomLeft: {x:0.15,y:0.75},
+    center:     {x:0.50,y:0.55},
+    bottomRight:{x:0.85,y:0.75},
+  };
+  return map[zoneName]||{x:0.5,y:0.5};
+}
+
+/* ==============================================
+   KICK PHASE — STEP 1: AIM
+   ============================================== */
 function beginKickPhase(){
   GS.phase='kick_aim';
-  charging=false;accuracy=0;accDir=1;
-  ballFlying=false;ballFlight=0;
-  keeper={x:0.5,targetX:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
+  GS.kickAimNorm={x:0.5,y:0.4};
+  GS.kickAccuracy=0;
+  GS.kickPower=0;
+  GS.kickZone='center';
+  ballMissedOver=false;
+  ring.active=false;ring.clicked=false;
+  powerBar.active=false;powerBar.locked=false;
+  keeper={x:0.5,targetX:0.5,targetY:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
   resultText='';resultTimer=0;
-  aimX=0.5;aimY=0.4;
   updateHUD();
 }
 
-function chooseKeeperDive(){
-  var diff=DIFFICULTIES[difficulty];
-  var targetNormX;
-  if(diff.readsAim&&Math.random()<diff.readChance){
-    // Keeper reads aim direction
-    targetNormX=aimX;
-    // Add some imprecision
-    targetNormX+=((Math.random()-0.5)*0.2);
-    targetNormX=Math.max(0.1,Math.min(0.9,targetNormX));
-  }else{
-    // Random dive
-    targetNormX=0.1+Math.random()*0.8;
-  }
-  keeper.targetX=targetNormX;
-  keeper.diveDir=targetNormX<0.4?-1:(targetNormX>0.6?1:0);
-  keeper.diving=true;
-  keeper.diveProgress=0;
+/* ==============================================
+   KICK PHASE — STEP 2: ACCURACY RING
+   ============================================== */
+function beginAccuracyRing(){
+  GS.phase='kick_ring';
+  var pos=normToGoalPx(GS.kickAimNorm.x,GS.kickAimNorm.y);
+  var zoneDiff=getAimZoneDifficulty(GS.kickAimNorm.x,GS.kickAimNorm.y);
+  GS.kickZone=zoneDiff;
+  var mult=ZONE_DIFFICULTY[zoneDiff].shrinkMult;
+
+  ring.active=true;
+  ring.clicked=false;
+  ring.cx=pos.x;
+  ring.cy=pos.y;
+  ring.maxRadius=80;
+  ring.radius=ring.maxRadius;
+  ring.shrinkSpeed=0.8*mult; // faster for harder zones
+  ring.finalRadius=ring.maxRadius;
 }
 
-function doKick(){
-  if(GS.phase!=='kick_charge')return;
+function clickAccuracyRing(){
+  if(!ring.active||ring.clicked)return;
+  ring.clicked=true;
+  ring.finalRadius=ring.radius;
+
+  // Calculate accuracy score based on ring radius at click time
+  var r=ring.finalRadius;
+  if(r<10)       GS.kickAccuracy=1.0;
+  else if(r<25)  GS.kickAccuracy=0.8;
+  else if(r<40)  GS.kickAccuracy=0.5;
+  else           GS.kickAccuracy=0.2;
+
+  // Brief pause then move to power bar
+  addTimer(function(){beginPowerBar()},400);
+}
+
+/* ==============================================
+   KICK PHASE — STEP 3: POWER BAR
+   ============================================== */
+function beginPowerBar(){
+  GS.phase='kick_power';
+  powerBar.active=true;
+  powerBar.locked=false;
+  powerBar.value=0;
+  powerBar.dir=1;
+  powerBar.speed=0.018;
+  powerBar.finalValue=0;
+}
+
+function clickPowerBar(){
+  if(!powerBar.active||powerBar.locked)return;
+  powerBar.locked=true;
+  powerBar.finalValue=powerBar.value;
+  GS.kickPower=powerBar.value;
+
+  // Brief pause then fire kick
+  addTimer(function(){fireKick()},300);
+}
+
+/* ==============================================
+   KICK PHASE — STEP 4: BALL FLIES
+   ============================================== */
+function fireKick(){
   GS.phase='kick_fly';
   sfxKick();
 
-  GS.kickAim={x:aimX,y:aimY};
-  GS.kickAccuracy=accuracy;
+  // Determine if ball goes over the bar (power > 90%)
+  if(GS.kickPower>0.90){
+    ballMissedOver=true;
+  }
 
-  // Higher accuracy = ball closer to aim. Lower = more random offset
-  var offsetScale=(1-accuracy); // 0 when perfect, 1 when worst
-  var randX=(Math.random()-0.5)*0.35*offsetScale;
-  var randY=(Math.random()-0.5)*0.25*offsetScale;
+  // Calculate final ball position
+  var baseX=GS.kickAimNorm.x;
+  var baseY=GS.kickAimNorm.y;
 
-  var targetAimX=Math.max(-0.02,Math.min(1.02,aimX+randX));
-  var targetAimY=Math.max(-0.02,Math.min(1.02,aimY+randY));
+  // Accuracy offset — worse accuracy = more random deviation
+  var accScore=GS.kickAccuracy;
+  var offsetScale=(1-accScore); // 0 when perfect, 1 when terrible
+  var randX=(Math.random()-0.5)*0.4*offsetScale;
+  var randY=(Math.random()-0.5)*0.3*offsetScale;
 
+  var finalNormX=Math.max(-0.05,Math.min(1.05,baseX+randX));
+  var finalNormY=Math.max(-0.05,Math.min(1.05,baseY+randY));
+
+  // Ball start = penalty spot
   ballStart={x:W*0.5,y:H*0.88};
-  var g=getGoalPixels();
-  ballTarget={
-    x:g.left+targetAimX*g.width,
-    y:g.top+targetAimY*g.height,
-    normX:targetAimX,
-    normY:targetAimY
-  };
+
+  if(ballMissedOver){
+    // Ball goes above the crossbar
+    var g=getGoalPixels();
+    ballTarget={
+      x:g.left+finalNormX*g.width,
+      y:g.top-g.height*0.4, // above the bar
+      normX:finalNormX,
+      normY:-0.4
+    };
+  }else{
+    var g=getGoalPixels();
+    ballTarget={
+      x:g.left+finalNormX*g.width,
+      y:g.top+finalNormY*g.height,
+      normX:finalNormX,
+      normY:finalNormY
+    };
+  }
 
   ball={x:ballStart.x,y:ballStart.y,size:22};
   ballFlight=0;
-  ballFlying=true;
-  ballFlightSpeed=0.020;
 
+  // Power affects flight speed: weak shot = slower
+  var powerFactor=0.5+GS.kickPower*0.5;
+  ballFlightSpeed=0.018*powerFactor+0.005;
+
+  // Step 5: AI keeper decides where to dive
   chooseKeeperDive();
+}
+
+/* ==============================================
+   KICK PHASE — STEP 5: KEEPER REACTION
+   ============================================== */
+function chooseKeeperDive(){
+  var diff=DIFF_SETTINGS[difficulty];
+  var targetNormX,targetNormY;
+
+  if(Math.random()<diff.keeperReadChance){
+    // Keeper reads the aim zone correctly
+    targetNormX=GS.kickAimNorm.x;
+    targetNormY=GS.kickAimNorm.y;
+    // Add some imprecision
+    targetNormX+=(Math.random()-0.5)*0.15;
+    targetNormY+=(Math.random()-0.5)*0.1;
+  }else{
+    // Random dive
+    targetNormX=0.1+Math.random()*0.8;
+    targetNormY=0.2+Math.random()*0.6;
+  }
+
+  targetNormX=Math.max(0.05,Math.min(0.95,targetNormX));
+  targetNormY=Math.max(0.05,Math.min(0.95,targetNormY));
+
+  keeper.targetX=targetNormX;
+  keeper.targetY=targetNormY;
+  keeper.diveDir=targetNormX<0.4?-1:(targetNormX>0.6?1:0);
+  keeper.diving=true;
+  keeper.diveProgress=0;
 }
 
 function resolveKick(){
   GS.phase='kick_result';
   resultTimer=0;
 
-  // Check if keeper saves
-  var diff=DIFFICULTIES[difficulty];
-  var keeperReach=diff.diveRange;
-  var dist=Math.abs(keeper.x-Math.max(0,Math.min(1,ballTarget.normX)));
-  var vertOk=ballTarget.normY>0.15;
-  var saved=dist<keeperReach*0.18&&(vertOk||Math.random()<0.4);
+  // Missed over the bar?
+  if(ballMissedOver){
+    resultText='MISS!';resultColor='#ef4444';
+    sfxMiss();
+    GS.consecutiveGoals=0;
+    addTimer(function(){beginSavePhase()},2000);
+    return;
+  }
+
+  // Check if ball is within the goal frame
+  var nx=ballTarget.normX,ny=ballTarget.normY;
+  if(nx<-0.02||nx>1.02||ny<-0.02||ny>1.02){
+    resultText='MISS!';resultColor='#ef4444';
+    sfxMiss();
+    GS.consecutiveGoals=0;
+    addTimer(function(){beginSavePhase()},2000);
+    return;
+  }
+
+  // Check keeper save
+  var diff=DIFF_SETTINGS[difficulty];
+  var keeperDist=Math.sqrt(
+    Math.pow(keeper.x-nx,2)+
+    Math.pow((keeper.targetY||0.5)-ny,2)
+  );
+  var reachThreshold=diff.keeperReach*0.25;
+
+  // Perfect corner shot is unsaveable
+  var isPerfectCorner=GS.kickAccuracy>=0.8&&
+    (GS.kickZone==='topCorner'||GS.kickZone==='bottomCorner');
+
+  var saved=!isPerfectCorner&&keeperDist<reachThreshold;
 
   if(saved){
     resultText='SAVED!';resultColor='#fbbf24';
@@ -631,93 +847,191 @@ function resolveKick(){
     updateHUD();
   }
 
-  // After 2s, transition to save phase
   addTimer(function(){beginSavePhase()},2000);
 }
 
-/* ---------- SAVE PHASE ---------- */
+/* ==============================================
+   SAVE PHASE — STEP 1: HEAT ZONE HINT
+   ============================================== */
 function beginSavePhase(){
-  GS.phase='save_choose';
+  GS.phase='save_heat';
   GS.diveChoice=null;
+  GS.diveTimingScore=0;
   resultText='';resultTimer=0;
-  aiBallFlying=false;aiBallFlight=0;
+  saveRing.active=false;saveRing.clicked=false;
 
-  // Reset player keeper to center
-  playerKeeper={x:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
+  // Reset player keeper
+  playerKeeper={x:0.5,targetX:0.5,targetY:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
 
-  // AI picks a random zone to aim at
-  var zones=['left','center','right'];
-  GS.aiAimZone=zones[Math.floor(Math.random()*3)];
+  // AI picks a target zone
+  var zoneNames=['topLeft','topRight','bottomLeft','center','bottomRight'];
+  GS.aiAimZone=zoneNames[Math.floor(Math.random()*5)];
 
-  // Show save buttons and countdown
-  document.getElementById('saveBtns').classList.add('active');
-  document.getElementById('saveCountdown').classList.add('active');
-  saveCountdown=3;
-  document.getElementById('saveCountdown').textContent='AI is shooting! Pick a side: '+saveCountdown+'s';
+  // AI aim position = zone center + some random offset based on difficulty
+  var zc=zoneCenter(GS.aiAimZone);
+  var diff=DIFF_SETTINGS[difficulty];
+  var scatter=(1-diff.aiAccuracy)*0.3;
+  GS.aiAimPos={
+    x:Math.max(0.05,Math.min(0.95,zc.x+(Math.random()-0.5)*scatter)),
+    y:Math.max(0.05,Math.min(0.95,zc.y+(Math.random()-0.5)*scatter))
+  };
+
+  // Show heat zone hint
+  var hintPos=normToGoalPx(zc.x,zc.y);
+  heatZone.active=true;
+  heatZone.cx=hintPos.x;
+  heatZone.cy=hintPos.y;
+  heatZone.radius=diff.heatRadius;
+  heatZone.opacity=0.6;
+  heatZone.fadeTimer=0;
+  heatZone.maxTime=diff.heatTime;
 
   updateHUD();
 
-  if(saveCountdownTimer){clearInterval(saveCountdownTimer);saveCountdownTimer=null}
-  saveCountdownTimer=setInterval(function(){
-    saveCountdown--;
-    if(saveCountdown<=0){
-      clearInterval(saveCountdownTimer);saveCountdownTimer=null;
-      if(GS.phase==='save_choose'){
-        // Auto-pick random
-        var auto=['left','center','right'];
-        pickDive(auto[Math.floor(Math.random()*3)]);
-      }
-    }else{
-      document.getElementById('saveCountdown').textContent='AI is shooting! Pick a side: '+saveCountdown+'s';
+  // After heat zone fades, show dive zone buttons
+  addTimer(function(){
+    heatZone.active=false;
+    beginSaveChoose();
+  },diff.heatTime*16.67+200); // convert frames to ms approx
+}
+
+/* ==============================================
+   SAVE PHASE — STEP 2: CHOOSE DIVE ZONE
+   ============================================== */
+function beginSaveChoose(){
+  GS.phase='save_choose';
+
+  // Position the 5 zone overlays on the goal
+  positionSaveZones();
+  document.getElementById('saveZones').classList.add('active');
+  document.getElementById('saveCountdown').classList.add('active');
+  document.getElementById('saveCountdown').textContent='Pick your dive zone!';
+
+  // Auto-pick after 4 seconds if no choice made
+  addTimer(function(){
+    if(GS.phase==='save_choose'){
+      var auto=['topLeft','topRight','bottomLeft','center','bottomRight'];
+      pickDive(auto[Math.floor(Math.random()*5)]);
     }
-  },1000);
-  // Also push the interval into timers for cleanup (store as negative to distinguish)
+  },4000);
+}
+
+function positionSaveZones(){
+  var g=getGoalPixels();
+  var wrap=document.getElementById('canvasWrap');
+  var wrapRect=wrap.getBoundingClientRect();
+  var canvasRect=canvas.getBoundingClientRect();
+  // Offset of canvas within wrap
+  var offX=canvasRect.left-wrapRect.left;
+  var offY=canvasRect.top-wrapRect.top;
+  var scaleX=canvasRect.width/W;
+  var scaleY=canvasRect.height/H;
+
+  // Zone rects in CSS pixels relative to canvasWrap
+  var zones={
+    zoneTL: {x:g.left,        y:g.top,                       w:g.width*0.4,  h:g.height*0.45},
+    zoneTR: {x:g.left+g.width*0.6, y:g.top,                  w:g.width*0.4,  h:g.height*0.45},
+    zoneBL: {x:g.left,        y:g.top+g.height*0.45,         w:g.width*0.35, h:g.height*0.55},
+    zoneC:  {x:g.left+g.width*0.25,y:g.top+g.height*0.3,     w:g.width*0.50, h:g.height*0.55},
+    zoneBR: {x:g.left+g.width*0.65,y:g.top+g.height*0.45,    w:g.width*0.35, h:g.height*0.55},
+  };
+
+  Object.keys(zones).forEach(function(id){
+    var z=zones[id];
+    var el=document.getElementById(id);
+    if(!el)return;
+    el.style.left=(offX+z.x*scaleX)+'px';
+    el.style.top=(offY+z.y*scaleY)+'px';
+    el.style.width=(z.w*scaleX)+'px';
+    el.style.height=(z.h*scaleY)+'px';
+  });
 }
 
 window.pickDive=function(choice){
   if(GS.phase!=='save_choose')return;
   GS.diveChoice=choice;
-  GS.phase='save_fly';
-  if(saveCountdownTimer){clearInterval(saveCountdownTimer);saveCountdownTimer=null}
+  GS.phase='save_ring';
 
-  // Hide buttons/countdown
-  document.getElementById('saveBtns').classList.remove('active');
+  // Hide zone overlays and countdown
+  document.getElementById('saveZones').classList.remove('active');
   document.getElementById('saveCountdown').classList.remove('active');
 
-  // Animate player keeper diving
-  var diveTargets={left:0.15,center:0.5,right:0.85};
-  playerKeeper.targetX=diveTargets[choice];
-  playerKeeper.diveDir=choice==='left'?-1:(choice==='right'?1:0);
+  // Start dive timing ring
+  var zc=zoneCenter(choice);
+  var pos=normToGoalPx(zc.x,zc.y);
+
+  saveRing.active=true;
+  saveRing.clicked=false;
+  saveRing.cx=pos.x;
+  saveRing.cy=pos.y;
+  saveRing.maxRadius=70;
+  saveRing.radius=saveRing.maxRadius;
+  saveRing.shrinkSpeed=0.7;
+  saveRing.finalRadius=saveRing.maxRadius;
+};
+
+function clickSaveRing(){
+  if(!saveRing.active||saveRing.clicked)return;
+  saveRing.clicked=true;
+  saveRing.finalRadius=saveRing.radius;
+
+  // Calculate dive timing score
+  var r=saveRing.finalRadius;
+  if(r<10)       GS.diveTimingScore=1.0;
+  else if(r<25)  GS.diveTimingScore=0.8;
+  else if(r<40)  GS.diveTimingScore=0.5;
+  else           GS.diveTimingScore=0.2;
+
+  // Brief pause then fire AI shot
+  addTimer(function(){fireSaveShot()},300);
+}
+
+/* ==============================================
+   SAVE PHASE — STEP 3 & 4: AI SHOOTS, PLAYER DIVES
+   ============================================== */
+function fireSaveShot(){
+  GS.phase='save_fly';
+
+  // Animate player keeper diving to chosen zone
+  var zc=zoneCenter(GS.diveChoice);
+  playerKeeper.targetX=zc.x;
+  playerKeeper.targetY=zc.y;
+  playerKeeper.diveDir=zc.x<0.35?-1:(zc.x>0.65?1:0);
   playerKeeper.diving=true;
   playerKeeper.diveProgress=0;
 
-  // AI ball flies toward AI's chosen zone
+  // AI ball flies toward AI's aim position
   var g=getGoalPixels();
-  var aiTargets={left:0.2,center:0.5,right:0.8};
-  var aiNormX=aiTargets[GS.aiAimZone]+(Math.random()-0.5)*0.15;
-  var aiNormY=0.2+Math.random()*0.5;
-
   aiBallStart={x:W*0.5,y:H*0.05};
   aiBallTarget={
-    x:g.left+aiNormX*g.width,
-    y:g.top+aiNormY*g.height,
-    normX:aiNormX,normY:aiNormY
+    x:g.left+GS.aiAimPos.x*g.width,
+    y:g.top+GS.aiAimPos.y*g.height,
+    normX:GS.aiAimPos.x,
+    normY:GS.aiAimPos.y
   };
   aiBall={x:aiBallStart.x,y:aiBallStart.y,size:10};
   aiBallFlight=0;
-  aiBallFlying=true;
 
   sfxKick();
   updateHUD();
-};
+}
 
 function resolveSave(){
   GS.phase='save_result';
   resultTimer=0;
 
-  var saved=GS.diveChoice===GS.aiAimZone;
-  // Also check "close enough" — left covers left, right covers right, center covers center
-  // They must match exactly for a save
+  // Did the player pick the right zone?
+  // Check if AI aim position falls within the player's chosen zone
+  var chosenZC=zoneCenter(GS.diveChoice);
+  var aiX=GS.aiAimPos.x,aiY=GS.aiAimPos.y;
+
+  // Distance between player's dive center and ball landing
+  var dist=Math.sqrt(Math.pow(chosenZC.x-aiX,2)+Math.pow(chosenZC.y-aiY,2));
+
+  // Base reach depends on dive timing
+  var baseReach=0.15+GS.diveTimingScore*0.20; // 0.15 to 0.35
+
+  var saved=dist<baseReach;
 
   if(saved){
     resultText='SAVE!';resultColor='#06d6a0';
@@ -731,7 +1045,7 @@ function resolveSave(){
   }
   updateHUD();
 
-  // After 2s, go to next round or end
+  // Next round or end
   addTimer(function(){
     GS.round++;
     if(GS.round>=GS.maxRounds){
@@ -742,7 +1056,9 @@ function resolveSave(){
   },2000);
 }
 
-/* ---------- Celebration ---------- */
+/* ==============================================
+   CELEBRATION PARTICLES
+   ============================================== */
 function spawnCelebration(cx,cy){
   cx=cx||W*0.5;cy=cy||H*0.35;
   if(celebrationType==='fireworks'){
@@ -774,13 +1090,14 @@ function spawnCelebration(cx,cy){
   }
 }
 
-/* ---------- End Game ---------- */
+/* ==============================================
+   END GAME
+   ============================================== */
 function endGame(){
   GS.phase='done';
-  var scoreVal=GS.p1Goals-GS.p2Goals; // net score for "best"
+  var scoreVal=GS.p1Goals-GS.p2Goals;
   var scoreStr=GS.p1Goals+'-'+GS.p2Goals;
 
-  // Best = highest net score (p1Goals - p2Goals), but store as string too
   var oldBestNet=localBest;
   var isNew=scoreVal>oldBestNet;
   if(isNew){
@@ -828,76 +1145,108 @@ function endGame(){
   }
 }
 
-/* ===================== */
-/* UPDATE                */
-/* ===================== */
+/* ==============================================
+   UPDATE (runs every frame)
+   ============================================== */
 function update(){
   frameCount++;
 
-  // --- Kick Phase: Accuracy Meter ---
-  if(GS.phase==='kick_charge'){
-    accuracy+=ACC_SPEED*accDir;
-    if(accuracy>=1){accuracy=1;accDir=-1}
-    if(accuracy<=0){accuracy=0;accDir=1}
-    if(frameCount%4===0)sfxCharge();
+  /* --- Accuracy Ring shrinking (kick phase) --- */
+  if(GS.phase==='kick_ring'&&ring.active&&!ring.clicked){
+    ring.radius-=ring.shrinkSpeed;
+    if(ring.radius<=0){
+      // Missed entirely — terrible accuracy
+      ring.radius=0;
+      ring.clicked=true;
+      ring.finalRadius=999; // worst
+      GS.kickAccuracy=0.1;
+      addTimer(function(){beginPowerBar()},400);
+    }
   }
 
-  // --- Kick Phase: Ball Flight ---
+  /* --- Power Bar oscillation --- */
+  if(GS.phase==='kick_power'&&powerBar.active&&!powerBar.locked){
+    powerBar.value+=powerBar.speed*powerBar.dir;
+    if(powerBar.value>=1){powerBar.value=1;powerBar.dir=-1}
+    if(powerBar.value<=0){powerBar.value=0;powerBar.dir=1}
+  }
+
+  /* --- Kick: Ball Flight --- */
   if(GS.phase==='kick_fly'){
     ballFlight+=ballFlightSpeed;
-    var t=ballFlight;
+    var t=Math.min(ballFlight,1);
     var easeT=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 
     ball.x=ballStart.x+(ballTarget.x-ballStart.x)*easeT;
     ball.y=ballStart.y+(ballTarget.y-ballStart.y)*easeT-Math.sin(easeT*Math.PI)*H*0.15;
     ball.size=22-easeT*10;
 
-    // Keeper dive
+    // Keeper dive animation
     if(keeper.diving){
-      var diff=DIFFICULTIES[difficulty];
-      keeper.diveProgress+=diff.keeperSpeed+easeT*0.03;
+      var diff=DIFF_SETTINGS[difficulty];
+      keeper.diveProgress+=diff.keeperSpeed+easeT*0.025;
       if(keeper.diveProgress>1)keeper.diveProgress=1;
       keeper.x=0.5+(keeper.targetX-0.5)*keeper.diveProgress;
-      if(keeper.diveDir!==0){keeper.bodyY=keeper.diveProgress*25}
+      if(keeper.diveDir!==0)keeper.bodyY=keeper.diveProgress*25;
     }
 
-    if(ballFlight>=1){resolveKick()}
+    if(ballFlight>=1)resolveKick();
   }
 
-  // --- Kick Result ---
+  /* --- Kick Result timer --- */
   if(GS.phase==='kick_result'){
     resultTimer++;
     updateParticles();
   }
 
-  // --- Save Phase: AI Ball Flight ---
+  /* --- Save Ring shrinking --- */
+  if(GS.phase==='save_ring'&&saveRing.active&&!saveRing.clicked){
+    saveRing.radius-=saveRing.shrinkSpeed;
+    if(saveRing.radius<=0){
+      saveRing.radius=0;
+      saveRing.clicked=true;
+      saveRing.finalRadius=999;
+      GS.diveTimingScore=0.1;
+      addTimer(function(){fireSaveShot()},300);
+    }
+  }
+
+  /* --- Heat Zone fade --- */
+  if(heatZone.active){
+    heatZone.fadeTimer++;
+    var progress=heatZone.fadeTimer/heatZone.maxTime;
+    heatZone.opacity=0.6*(1-progress);
+    if(heatZone.fadeTimer>=heatZone.maxTime)heatZone.active=false;
+  }
+
+  /* --- Save: AI Ball Flight --- */
   if(GS.phase==='save_fly'){
     aiBallFlight+=0.020;
-    var t2=aiBallFlight;
+    var t2=Math.min(aiBallFlight,1);
     var easeT2=t2<0.5?2*t2*t2:1-Math.pow(-2*t2+2,2)/2;
 
     aiBall.x=aiBallStart.x+(aiBallTarget.x-aiBallStart.x)*easeT2;
     aiBall.y=aiBallStart.y+(aiBallTarget.y-aiBallStart.y)*easeT2;
     aiBall.size=10+easeT2*12;
 
-    // Player keeper dive
+    // Player keeper dive animation
     if(playerKeeper.diving){
       playerKeeper.diveProgress+=0.04;
       if(playerKeeper.diveProgress>1)playerKeeper.diveProgress=1;
       playerKeeper.x=0.5+(playerKeeper.targetX-0.5)*playerKeeper.diveProgress;
-      if(playerKeeper.diveDir!==0){playerKeeper.bodyY=playerKeeper.diveProgress*25}
+      if(playerKeeper.diveDir!==0)playerKeeper.bodyY=playerKeeper.diveProgress*25;
     }
 
-    if(aiBallFlight>=1){resolveSave()}
+    if(aiBallFlight>=1)resolveSave();
   }
 
-  // --- Save Result ---
+  /* --- Save Result timer --- */
   if(GS.phase==='save_result'){
     resultTimer++;
     updateParticles();
   }
 
-  // --- Idle particles ---
+  /* --- Lingering particles --- */
   if(particles.length>0&&GS.phase!=='kick_result'&&GS.phase!=='save_result'){
     updateParticles();
   }
@@ -911,83 +1260,122 @@ function updateParticles(){
   }
 }
 
-/* ===================== */
-/* DRAW                  */
-/* ===================== */
+/* ==============================================
+   DRAW (runs every frame)
+   ============================================== */
 function draw(){
-  // Sky
+  /* --- Sky gradient --- */
   var grad=ctx.createLinearGradient(0,0,0,H);
   grad.addColorStop(0,skyColor);
   grad.addColorStop(0.6,'#0d1117');
   grad.addColorStop(1,grassColor);
   ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
 
-  // Stars
+  /* --- Stars --- */
   ctx.fillStyle='rgba(255,255,255,0.12)';
   for(var s=0;s<25;s++){
     var sx=(s*137+11)%W,sy=(s*97+7)%(H*0.4);
     ctx.fillRect(sx,sy,1.5,1.5);
   }
 
-  // Pitch / ground
+  /* --- Ground --- */
   var pitchY=H*0.55;
   ctx.fillStyle=grassColor;
   ctx.fillRect(0,pitchY,W,H-pitchY);
-
-  // Pitch lines
   ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=2;
   ctx.beginPath();ctx.moveTo(0,pitchY);ctx.lineTo(W,pitchY);ctx.stroke();
 
-  // Penalty spot
+  /* --- Penalty spot --- */
   ctx.fillStyle='rgba(255,255,255,0.3)';
   ctx.beginPath();ctx.arc(W*0.5,H*0.82,4,0,Math.PI*2);ctx.fill();
 
-  // Draw goal
+  /* --- Goal --- */
   drawGoal();
 
-  // Determine which keeper to draw based on phase
-  var isSavePhase=GS.phase==='save_choose'||GS.phase==='save_fly'||GS.phase==='save_result';
-
-  if(isSavePhase){
-    drawKeeper(playerKeeper);
-  }else{
-    drawKeeper(keeper);
+  /* --- Zone difficulty shading (during aim phase) --- */
+  if(GS.phase==='kick_aim'){
+    drawZoneDifficultyOverlay();
   }
 
-  // Draw aim cursor (kick phases)
-  if(GS.phase==='kick_aim'||GS.phase==='kick_charge'){
-    drawAimCursor();
+  /* --- Keeper --- */
+  var isSavePhase=GS.phase==='save_heat'||GS.phase==='save_choose'||
+    GS.phase==='save_ring'||GS.phase==='save_fly'||GS.phase==='save_result';
+  drawKeeper(isSavePhase?playerKeeper:keeper);
+
+  /* --- Crosshair at aim point (kick_aim) --- */
+  if(GS.phase==='kick_aim'){
+    drawCrosshair();
+    // Instruction text
+    ctx.font='600 '+Math.min(16,W*0.035)+'px Outfit, sans-serif';
+    ctx.textAlign='center';
+    ctx.fillStyle='rgba(255,255,255,0.6)';
+    ctx.fillText('Click on the goal to set your aim point',W*0.5,H*0.96);
   }
 
-  // Draw accuracy bar (kick phases)
-  if(GS.phase==='kick_aim'||GS.phase==='kick_charge'){
-    drawAccuracyBar();
+  /* --- Accuracy Ring --- */
+  if(GS.phase==='kick_ring'&&ring.active){
+    drawAccuracyRing();
+    ctx.font='600 '+Math.min(14,W*0.03)+'px Outfit, sans-serif';
+    ctx.textAlign='center';
+    ctx.fillStyle='rgba(255,255,255,0.55)';
+    ctx.fillText('Click when the ring is smallest!',W*0.5,H*0.96);
   }
 
-  // Draw ball in flight (kick phase)
+  /* --- Power Bar --- */
+  if(GS.phase==='kick_power'||GS.phase==='kick_ring'){
+    drawPowerBar();
+    if(GS.phase==='kick_power'){
+      ctx.font='600 '+Math.min(14,W*0.03)+'px Outfit, sans-serif';
+      ctx.textAlign='center';
+      ctx.fillStyle='rgba(255,255,255,0.55)';
+      ctx.fillText('Click to set power! Hit the green zone',W*0.5,H*0.96);
+    }
+  }
+
+  /* --- Ball at penalty spot (aiming/ring/power phases) --- */
+  if(GS.phase==='kick_aim'||GS.phase==='kick_ring'||GS.phase==='kick_power'){
+    drawBall(W*0.5,H*0.85,20);
+  }
+
+  /* --- Ball in flight (kick) --- */
   if(GS.phase==='kick_fly'||GS.phase==='kick_result'){
     drawBall(ball.x,ball.y,ball.size);
   }
 
-  // Draw ball at penalty spot (kick aiming)
-  if(GS.phase==='kick_aim'||GS.phase==='kick_charge'){
-    drawBall(W*0.5,H*0.85,20);
+  /* --- Heat Zone hint (save phase) --- */
+  if(heatZone.active){
+    drawHeatZone();
   }
 
-  // Draw AI ball (save phase)
+  /* --- Save phase instruction --- */
+  if(GS.phase==='save_choose'){
+    ctx.font='bold '+Math.min(22,W*0.05)+'px Fredoka, sans-serif';
+    ctx.textAlign='center';
+    ctx.fillStyle='rgba(255,255,255,0.7)';
+    ctx.fillText('AI is taking a penalty! Pick your dive zone!',W*0.5,H*0.7);
+  }
+
+  /* --- Save Ring --- */
+  if(GS.phase==='save_ring'&&saveRing.active){
+    drawSaveRing();
+    ctx.font='600 '+Math.min(14,W*0.03)+'px Outfit, sans-serif';
+    ctx.textAlign='center';
+    ctx.fillStyle='rgba(255,255,255,0.55)';
+    ctx.fillText('Click to time your dive!',W*0.5,H*0.96);
+  }
+
+  /* --- AI Ball (save phase) --- */
   if(GS.phase==='save_fly'||GS.phase==='save_result'){
     drawBall(aiBall.x,aiBall.y,aiBall.size);
   }
 
-  // Draw particles
+  /* --- Particles --- */
   for(var i=0;i<particles.length;i++){
     var p=particles[i];
     ctx.globalAlpha=Math.min(1,p.life/20);
     ctx.fillStyle=p.color;
     if(p.confetti){
-      ctx.save();
-      ctx.translate(p.x,p.y);
-      ctx.rotate(p.life*0.1);
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.life*0.1);
       ctx.fillRect(-p.size/2,-p.size/4,p.size,p.size/2);
       ctx.restore();
     }else{
@@ -996,7 +1384,7 @@ function draw(){
     ctx.globalAlpha=1;
   }
 
-  // Result text
+  /* --- Result Text --- */
   if((GS.phase==='kick_result'||GS.phase==='save_result')&&resultTimer<100){
     var alpha=resultTimer<80?1:(100-resultTimer)/20;
     ctx.globalAlpha=alpha;
@@ -1009,26 +1397,21 @@ function draw(){
     ctx.globalAlpha=1;
   }
 
-  // Phase instruction text
-  if(GS.phase==='kick_aim'){
-    ctx.font='600 '+Math.min(16,W*0.035)+'px Outfit, sans-serif';
-    ctx.textAlign='center';
-    ctx.fillStyle='rgba(255,255,255,0.6)';
-    ctx.fillText('Move to aim \u2022 Click & hold for accuracy \u2022 Release to kick',W*0.5,H*0.96);
-  }
-  if(GS.phase==='save_choose'){
-    // "AI is about to kick" text drawn on canvas as well
-    ctx.font='bold '+Math.min(22,W*0.05)+'px Fredoka, sans-serif';
+  /* --- Save heat phase instruction --- */
+  if(GS.phase==='save_heat'){
+    ctx.font='bold '+Math.min(20,W*0.045)+'px Fredoka, sans-serif';
     ctx.textAlign='center';
     ctx.fillStyle='rgba(255,255,255,0.7)';
-    ctx.fillText('AI is taking a penalty!',W*0.5,H*0.7);
+    ctx.fillText('Watch for the heat zone hint!',W*0.5,H*0.7);
   }
 }
+
+/* ---------- Draw Sub-functions ---------- */
 
 function drawGoal(){
   var g=getGoalPixels();
 
-  // Goal shadow on ground
+  // Shadow
   ctx.fillStyle='rgba(0,0,0,0.15)';
   ctx.fillRect(g.left-5,g.bottom,g.width+10,15);
 
@@ -1037,8 +1420,7 @@ function drawGoal(){
   ctx.fillRect(g.left,g.top,g.width,g.height);
 
   // Net pattern
-  ctx.strokeStyle='rgba(255,255,255,0.1)';
-  ctx.lineWidth=0.5;
+  ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=0.5;
   var netSpacing=Math.max(12,g.width/20);
   for(var nx=g.left;nx<=g.right;nx+=netSpacing){
     ctx.beginPath();ctx.moveTo(nx,g.top);ctx.lineTo(nx,g.bottom);ctx.stroke();
@@ -1047,7 +1429,7 @@ function drawGoal(){
     ctx.beginPath();ctx.moveTo(g.left,ny);ctx.lineTo(g.right,ny);ctx.stroke();
   }
 
-  // Goal posts (white)
+  // Posts
   var postW=Math.max(4,g.width*0.015);
   ctx.fillStyle='#ffffff';
   ctx.fillRect(g.left-postW/2,g.top,postW,g.height);
@@ -1061,6 +1443,65 @@ function drawGoal(){
   ctx.fillRect(g.left-postW/2,g.top-postW/2,g.width+postW,postW*0.3);
 }
 
+function drawZoneDifficultyOverlay(){
+  var g=getGoalPixels();
+  // Show subtle colored zones so player understands difficulty
+  var zones=[
+    // Top corners — hard (red tint)
+    {x:0,y:0,w:0.25,h:0.35,color:'rgba(239,68,68,0.08)',label:'HARD'},
+    {x:0.75,y:0,w:0.25,h:0.35,color:'rgba(239,68,68,0.08)',label:'HARD'},
+    // Bottom corners — hard (orange tint)
+    {x:0,y:0.65,w:0.2,h:0.35,color:'rgba(245,158,11,0.07)',label:'HARD'},
+    {x:0.8,y:0.65,w:0.2,h:0.35,color:'rgba(245,158,11,0.07)',label:'HARD'},
+    // Sides — medium (yellow tint)
+    {x:0,y:0.35,w:0.25,h:0.3,color:'rgba(251,191,36,0.05)',label:'MED'},
+    {x:0.75,y:0.35,w:0.25,h:0.3,color:'rgba(251,191,36,0.05)',label:'MED'},
+    // Center — easy (green tint)
+    {x:0.25,y:0.15,w:0.5,h:0.7,color:'rgba(6,214,160,0.05)',label:'EASY'},
+  ];
+  zones.forEach(function(z){
+    ctx.fillStyle=z.color;
+    ctx.fillRect(g.left+z.x*g.width,g.top+z.y*g.height,z.w*g.width,z.h*g.height);
+  });
+}
+
+function drawCrosshair(){
+  if(!hoverAim.active)return;
+  var pos=normToGoalPx(hoverAim.x,hoverAim.y);
+
+  // Dashed line from penalty spot to aim
+  ctx.setLineDash([6,8]);
+  ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(W*0.5,H*0.85);ctx.lineTo(pos.x,pos.y);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Crosshair circle
+  var cSize=12;
+  ctx.strokeStyle='rgba(255,255,255,0.6)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(pos.x,pos.y,cSize,0,Math.PI*2);ctx.stroke();
+
+  // Crosshair lines
+  ctx.beginPath();ctx.moveTo(pos.x-cSize-4,pos.y);ctx.lineTo(pos.x-cSize+4,pos.y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pos.x+cSize-4,pos.y);ctx.lineTo(pos.x+cSize+4,pos.y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pos.x,pos.y-cSize-4);ctx.lineTo(pos.x,pos.y-cSize+4);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pos.x,pos.y+cSize-4);ctx.lineTo(pos.x,pos.y+cSize+4);ctx.stroke();
+
+  // Center dot
+  ctx.fillStyle='rgba(255,255,255,0.7)';
+  ctx.beginPath();ctx.arc(pos.x,pos.y,3,0,Math.PI*2);ctx.fill();
+
+  // Zone difficulty label
+  var zone=getAimZoneDifficulty(hoverAim.x,hoverAim.y);
+  var zLabel=ZONE_DIFFICULTY[zone].label;
+  ctx.font='bold 11px Outfit, sans-serif';
+  ctx.textAlign='center';
+  var lColor=zone==='center'?'rgba(6,214,160,0.7)':
+             zone==='side'?'rgba(251,191,36,0.7)':
+             'rgba(239,68,68,0.7)';
+  ctx.fillStyle=lColor;
+  ctx.fillText(zLabel,pos.x,pos.y+cSize+16);
+}
+
 function drawKeeper(k){
   var g=getGoalPixels();
   var kx=g.left+k.x*g.width;
@@ -1068,7 +1509,6 @@ function drawKeeper(k){
   var kHeight=g.height*0.55;
   var kWidth=g.width*0.06;
 
-  var diveOffsetY=k.bodyY||0;
   var diveAngle=0;
   if(k.diving&&k.diveDir!==0){
     diveAngle=k.diveDir*(k.diveProgress||0)*0.6;
@@ -1078,107 +1518,197 @@ function drawKeeper(k){
   ctx.translate(kx,ky);
   ctx.rotate(diveAngle);
 
+  // Arms
   var armExtend=k.diving?(k.diveProgress||0)*kWidth*2.5:0;
   ctx.fillStyle='#fbbf24';
   ctx.fillRect(-kWidth*0.6-armExtend,-(kHeight*0.7),armExtend+kWidth*0.4,kHeight*0.08);
   ctx.fillRect(kWidth*0.2,-(kHeight*0.7),armExtend+kWidth*0.4,kHeight*0.08);
 
+  // Gloves
   if(k.diving){
     ctx.fillStyle='#06d6a0';
     ctx.beginPath();ctx.arc(-kWidth*0.6-armExtend,-(kHeight*0.67),kHeight*0.06,0,Math.PI*2);ctx.fill();
     ctx.beginPath();ctx.arc(kWidth*0.6+armExtend,-(kHeight*0.67),kHeight*0.06,0,Math.PI*2);ctx.fill();
   }
 
+  // Shirt
   ctx.fillStyle='#fbbf24';
   ctx.fillRect(-kWidth*0.5,-(kHeight*0.65),kWidth,kHeight*0.35);
 
+  // Shorts
   ctx.fillStyle='#1e293b';
   ctx.fillRect(-kWidth*0.5,-(kHeight*0.3),kWidth,kHeight*0.15);
 
+  // Legs
   ctx.fillStyle='#f5d0a9';
   ctx.fillRect(-kWidth*0.35,-(kHeight*0.15),kWidth*0.3,kHeight*0.15);
   ctx.fillRect(kWidth*0.05,-(kHeight*0.15),kWidth*0.3,kHeight*0.15);
 
+  // Head
   ctx.fillStyle='#f5d0a9';
   ctx.beginPath();ctx.arc(0,-(kHeight*0.78),kHeight*0.13,0,Math.PI*2);ctx.fill();
 
+  // Hair
   ctx.fillStyle='#1e293b';
   ctx.beginPath();ctx.arc(0,-(kHeight*0.84),kHeight*0.1,Math.PI,Math.PI*2);ctx.fill();
 
   ctx.restore();
 }
 
-function drawAimCursor(){
-  var pos=aimToGoalPos(aimX,aimY);
+function drawAccuracyRing(){
+  var r=ring.radius;
+  var color;
+  if(r<15)      color='#06d6a0'; // green — good
+  else if(r<35) color='#fbbf24'; // yellow — ok
+  else          color='#ef4444'; // red — bad
 
-  ctx.setLineDash([6,8]);
-  ctx.strokeStyle='rgba(255,255,255,0.2)';
-  ctx.lineWidth=1.5;
+  // Outer ring
+  ctx.strokeStyle=color;
+  ctx.lineWidth=3;
+  ctx.globalAlpha=0.8;
   ctx.beginPath();
-  ctx.moveTo(W*0.5,H*0.85);
-  ctx.lineTo(pos.x,pos.y);
+  ctx.arc(ring.cx,ring.cy,Math.max(r,1),0,Math.PI*2);
   ctx.stroke();
-  ctx.setLineDash([]);
+  ctx.globalAlpha=1;
 
-  var cSize=12;
-  ctx.strokeStyle='rgba(255,255,255,0.7)';
-  ctx.lineWidth=2;
-  ctx.beginPath();ctx.arc(pos.x,pos.y,cSize,0,Math.PI*2);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(pos.x-cSize-4,pos.y);ctx.lineTo(pos.x-cSize+4,pos.y);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(pos.x+cSize-4,pos.y);ctx.lineTo(pos.x+cSize+4,pos.y);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(pos.x,pos.y-cSize-4);ctx.lineTo(pos.x,pos.y-cSize+4);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(pos.x,pos.y+cSize-4);ctx.lineTo(pos.x,pos.y+cSize+4);ctx.stroke();
+  // Aim dot at center
+  ctx.fillStyle='rgba(255,255,255,0.8)';
+  ctx.beginPath();ctx.arc(ring.cx,ring.cy,4,0,Math.PI*2);ctx.fill();
 
-  ctx.fillStyle=charging?'#ef4444':'rgba(255,255,255,0.8)';
-  ctx.beginPath();ctx.arc(pos.x,pos.y,3,0,Math.PI*2);ctx.fill();
+  // Crosshair lines at aim point
+  var cSize=10;
+  ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(ring.cx-cSize,ring.cy);ctx.lineTo(ring.cx+cSize,ring.cy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(ring.cx,ring.cy-cSize);ctx.lineTo(ring.cx,ring.cy+cSize);ctx.stroke();
+
+  // If clicked, show the frozen ring
+  if(ring.clicked&&ring.finalRadius<200){
+    ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1;
+    ctx.setLineDash([4,4]);
+    ctx.beginPath();ctx.arc(ring.cx,ring.cy,ring.finalRadius,0,Math.PI*2);ctx.stroke();
+    ctx.setLineDash([]);
+  }
 }
 
-function drawAccuracyBar(){
-  var barW=24,barH=H*0.35;
-  var barX=W-50,barY=H*0.3;
+function drawPowerBar(){
+  var barW=28,barH=H*0.40;
+  var barX=W-55,barY=H*0.22;
 
   // Background
-  ctx.fillStyle='rgba(0,0,0,0.4)';
+  ctx.fillStyle='rgba(0,0,0,0.45)';
   roundRect(ctx,barX,barY,barW,barH,8);ctx.fill();
 
   // Border
   ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1.5;
   roundRect(ctx,barX,barY,barW,barH,8);ctx.stroke();
 
-  // Fill (bottom=red/low, top=green/high accuracy)
-  if(accuracy>0){
-    var fillH=barH*accuracy;
-    var fillY=barY+barH-fillH;
-    ctx.save();
-    ctx.beginPath();
-    roundRect(ctx,barX,barY,barW,barH,8);
-    ctx.clip();
+  // Zone labels (inside the bar)
+  ctx.save();
+  ctx.beginPath();roundRect(ctx,barX,barY,barW,barH,8);ctx.clip();
 
-    var aGrad=ctx.createLinearGradient(0,barY+barH,0,barY);
-    aGrad.addColorStop(0,'#ef4444');
-    aGrad.addColorStop(0.4,'#fbbf24');
-    aGrad.addColorStop(0.8,'#06d6a0');
-    aGrad.addColorStop(1,'#06d6a0');
-    ctx.fillStyle=aGrad;
-    ctx.fillRect(barX,fillY,barW,fillH);
-    ctx.restore();
+  // Miss zone (top 10%)
+  ctx.fillStyle='rgba(239,68,68,0.25)';
+  ctx.fillRect(barX,barY,barW,barH*0.10);
+
+  // Sweet spot (15-30% from top = 70-85% power value)
+  ctx.fillStyle='rgba(6,214,160,0.20)';
+  ctx.fillRect(barX,barY+barH*0.15,barW,barH*0.15);
+
+  // Weak zone (bottom 50%)
+  ctx.fillStyle='rgba(100,100,100,0.10)';
+  ctx.fillRect(barX,barY+barH*0.50,barW,barH*0.50);
+
+  ctx.restore();
+
+  // Labels outside bar
+  ctx.font='bold 9px Outfit, sans-serif';
+  ctx.textAlign='right';
+  ctx.fillStyle='rgba(239,68,68,0.7)';
+  ctx.fillText('MISS',barX-4,barY+barH*0.06);
+  ctx.fillStyle='rgba(6,214,160,0.8)';
+  ctx.fillText('PERFECT',barX-4,barY+barH*0.24);
+  ctx.fillStyle='rgba(150,150,150,0.5)';
+  ctx.fillText('WEAK',barX-4,barY+barH*0.80);
+
+  // Oscillating marker (value 0=bottom, 1=top)
+  if(powerBar.active){
+    var markerY=barY+barH*(1-powerBar.value);
+    var markerColor;
+    if(powerBar.value>0.90) markerColor='#ef4444';
+    else if(powerBar.value>=0.70&&powerBar.value<=0.85) markerColor='#06d6a0';
+    else if(powerBar.value<0.50) markerColor='#6b7280';
+    else markerColor='#fbbf24';
+
+    ctx.fillStyle=markerColor;
+    ctx.fillRect(barX-2,markerY-2,barW+4,4);
+
+    // Arrow indicator
+    ctx.beginPath();
+    ctx.moveTo(barX-6,markerY);
+    ctx.lineTo(barX-2,markerY-5);
+    ctx.lineTo(barX-2,markerY+5);
+    ctx.closePath();
+    ctx.fill();
   }
 
-  // Label
+  // If locked, show the locked position
+  if(powerBar.locked){
+    var lockY=barY+barH*(1-powerBar.finalValue);
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(barX,lockY);ctx.lineTo(barX+barW,lockY);ctx.stroke();
+  }
+
+  // Title
   ctx.font='bold 10px Outfit, sans-serif';
   ctx.textAlign='center';
   ctx.fillStyle='rgba(255,255,255,0.5)';
-  ctx.fillText('ACCURACY',barX+barW/2,barY-8);
+  ctx.fillText('POWER',barX+barW/2,barY-8);
+}
 
-  // Percentage when charging
-  if(GS.phase==='kick_charge'){
-    ctx.font='bold 14px Fredoka, sans-serif';
-    ctx.fillStyle='#fff';
-    ctx.fillText(Math.round(accuracy*100)+'%',barX+barW/2,barY+barH+22);
+function drawHeatZone(){
+  if(heatZone.opacity<=0)return;
+  ctx.save();
+  ctx.globalAlpha=heatZone.opacity;
+
+  // Pulsing glow
+  var pulse=1+Math.sin(frameCount*0.15)*0.15;
+  var r=heatZone.radius*pulse;
+
+  var gradient=ctx.createRadialGradient(heatZone.cx,heatZone.cy,0,heatZone.cx,heatZone.cy,r);
+  gradient.addColorStop(0,'rgba(239,68,68,0.5)');
+  gradient.addColorStop(0.5,'rgba(239,68,68,0.2)');
+  gradient.addColorStop(1,'rgba(239,68,68,0)');
+  ctx.fillStyle=gradient;
+  ctx.beginPath();ctx.arc(heatZone.cx,heatZone.cy,r,0,Math.PI*2);ctx.fill();
+
+  ctx.restore();
+}
+
+function drawSaveRing(){
+  var r=saveRing.radius;
+  var color;
+  if(r<15)      color='#06d6a0';
+  else if(r<35) color='#fbbf24';
+  else          color='#ef4444';
+
+  ctx.strokeStyle=color;ctx.lineWidth=3;ctx.globalAlpha=0.8;
+  ctx.beginPath();ctx.arc(saveRing.cx,saveRing.cy,Math.max(r,1),0,Math.PI*2);ctx.stroke();
+  ctx.globalAlpha=1;
+
+  // Center dot
+  ctx.fillStyle='rgba(255,255,255,0.8)';
+  ctx.beginPath();ctx.arc(saveRing.cx,saveRing.cy,4,0,Math.PI*2);ctx.fill();
+
+  if(saveRing.clicked&&saveRing.finalRadius<200){
+    ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1;
+    ctx.setLineDash([4,4]);
+    ctx.beginPath();ctx.arc(saveRing.cx,saveRing.cy,saveRing.finalRadius,0,Math.PI*2);ctx.stroke();
+    ctx.setLineDash([]);
   }
 }
 
 function drawBall(x,y,size){
+  // Shadow
   if(GS.phase==='kick_fly'){
     ctx.fillStyle='rgba(0,0,0,0.2)';
     ctx.beginPath();ctx.ellipse(x,H*0.55+10,size*0.6,size*0.2,0,0,Math.PI*2);ctx.fill();
@@ -1190,12 +1720,14 @@ function drawBall(x,y,size){
   ctx.strokeStyle='rgba(0,0,0,0.3)';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.arc(x,y,size,0,Math.PI*2);ctx.stroke();
 
+  // Pentagon pattern
   ctx.fillStyle='rgba(0,0,0,0.15)';
   var pentR=size*0.35;
   drawPentagon(ctx,x,y,pentR);
   drawPentagon(ctx,x-size*0.45,y-size*0.2,pentR*0.6);
   drawPentagon(ctx,x+size*0.4,y+size*0.25,pentR*0.5);
 
+  // Highlight
   ctx.fillStyle='rgba(255,255,255,0.35)';
   ctx.beginPath();ctx.arc(x-size*0.25,y-size*0.25,size*0.3,0,Math.PI*2);ctx.fill();
 }
@@ -1221,87 +1753,105 @@ function roundRect(ctx,x,y,w,h,r){
   ctx.closePath();
 }
 
-/* ===================== */
-/* GAME LOOP             */
-/* ===================== */
+/* ==============================================
+   GAME LOOP
+   ============================================== */
 function gameLoop(){
   if(GS.phase==='idle'&&!document.getElementById('gameScreen').classList.contains('active'))return;
   update();draw();
   animId=requestAnimationFrame(gameLoop);
 }
 
-/* ===================== */
-/* INPUT                 */
-/* ===================== */
+/* ==============================================
+   INPUT HANDLERS
+   ============================================== */
 function getCanvasCoords(e){
   var rect=canvas.getBoundingClientRect();
   var clientX,clientY;
-  if(e.touches){clientX=e.touches[0].clientX;clientY=e.touches[0].clientY}
+  if(e.touches&&e.touches.length>0){clientX=e.touches[0].clientX;clientY=e.touches[0].clientY}
+  else if(e.changedTouches&&e.changedTouches.length>0){clientX=e.changedTouches[0].clientX;clientY=e.changedTouches[0].clientY}
   else{clientX=e.clientX;clientY=e.clientY}
   return {x:(clientX-rect.left)*(W/rect.width),y:(clientY-rect.top)*(H/rect.height)};
 }
 
-function updateAim(e){
-  if(GS.phase!=='kick_aim'&&GS.phase!=='kick_charge')return;
-  var pos=getCanvasCoords(e);
-  var g=getGoalPixels();
-  aimX=Math.max(0,Math.min(1,(pos.x-g.left)/g.width));
-  aimY=Math.max(0,Math.min(1,(pos.y-g.top)/g.height));
-}
+// Track mouse/touch position for hover aim during kick_aim
+var hoverAim={x:0.5,y:0.4,active:false};
 
 var cw=document.getElementById('canvasWrap');
 
-cw.addEventListener('mousemove',function(e){updateAim(e)});
-cw.addEventListener('touchmove',function(e){e.preventDefault();updateAim(e)},{passive:false});
-
-cw.addEventListener('mousedown',function(e){
-  e.preventDefault();
+function handlePointerMove(e){
   if(GS.phase==='kick_aim'){
-    GS.phase='kick_charge';charging=true;accuracy=0;accDir=1;
+    var pos=getCanvasCoords(e);
+    var g=getGoalPixels();
+    // Check if pointer is within the goal area
+    if(pos.x>=g.left&&pos.x<=g.right&&pos.y>=g.top&&pos.y<=g.bottom){
+      hoverAim.x=(pos.x-g.left)/g.width;
+      hoverAim.y=(pos.y-g.top)/g.height;
+      hoverAim.active=true;
+    }else{
+      hoverAim.active=false;
+    }
   }
-});
+}
+
+function handleClick(e){
+  e.preventDefault();
+  var pos=getCanvasCoords(e);
+
+  /* --- KICK AIM: click on goal to set aim target --- */
+  if(GS.phase==='kick_aim'){
+    var g=getGoalPixels();
+    if(pos.x>=g.left&&pos.x<=g.right&&pos.y>=g.top&&pos.y<=g.bottom){
+      GS.kickAimNorm.x=(pos.x-g.left)/g.width;
+      GS.kickAimNorm.y=(pos.y-g.top)/g.height;
+      sfxCharge();
+      beginAccuracyRing();
+    }
+    return;
+  }
+
+  /* --- KICK RING: click to lock accuracy --- */
+  if(GS.phase==='kick_ring'){
+    clickAccuracyRing();
+    return;
+  }
+
+  /* --- KICK POWER: click to lock power --- */
+  if(GS.phase==='kick_power'){
+    clickPowerBar();
+    return;
+  }
+
+  /* --- SAVE RING: click to lock dive timing --- */
+  if(GS.phase==='save_ring'){
+    clickSaveRing();
+    return;
+  }
+}
+
+cw.addEventListener('mousemove',function(e){handlePointerMove(e)});
+cw.addEventListener('touchmove',function(e){e.preventDefault();handlePointerMove(e)},{passive:false});
+
+cw.addEventListener('mousedown',function(e){handleClick(e)});
 cw.addEventListener('touchstart',function(e){
   e.preventDefault();
-  updateAim(e);
-  if(GS.phase==='kick_aim'){
-    GS.phase='kick_charge';charging=true;accuracy=0;accDir=1;
-  }
+  handlePointerMove(e);
+  handleClick(e);
 },{passive:false});
 
-cw.addEventListener('mouseup',function(e){
-  e.preventDefault();
-  if(GS.phase==='kick_charge'){charging=false;doKick()}
-});
-cw.addEventListener('touchend',function(e){
-  e.preventDefault();
-  if(GS.phase==='kick_charge'){charging=false;doKick()}
-},{passive:false});
-
-// Keyboard: space to charge/release
+// Keyboard: space as universal click action
 document.addEventListener('keydown',function(e){
   if(e.code==='Space'||e.key===' '){
     e.preventDefault();
-    if(GS.phase==='kick_aim'){
-      GS.phase='kick_charge';charging=true;accuracy=0;accDir=1;
-    }
-  }
-  // Keyboard shortcuts for save phase
-  if(GS.phase==='save_choose'){
-    if(e.code==='ArrowLeft'||e.key==='a'||e.key==='A')pickDive('left');
-    else if(e.code==='ArrowDown'||e.key==='s'||e.key==='S')pickDive('center');
-    else if(e.code==='ArrowRight'||e.key==='d'||e.key==='D')pickDive('right');
-  }
-});
-document.addEventListener('keyup',function(e){
-  if(e.code==='Space'||e.key===' '){
-    e.preventDefault();
-    if(GS.phase==='kick_charge'){charging=false;doKick()}
+    if(GS.phase==='kick_ring') clickAccuracyRing();
+    else if(GS.phase==='kick_power') clickPowerBar();
+    else if(GS.phase==='save_ring') clickSaveRing();
   }
 });
 
-/* ===================== */
-/* STOP ON NAVIGATE      */
-/* ===================== */
+/* ==============================================
+   STOP ON NAVIGATE
+   ============================================== */
 window.addEventListener('beforeunload',function(){stopGame()});
 document.addEventListener('visibilitychange',function(){
   if(document.hidden&&GS.phase!=='idle'&&GS.phase!=='done')stopGame();
@@ -1384,11 +1934,12 @@ window.addEventListener('resize',function(){if(canvas&&document.getElementById('
 odaHelp.init({
   title:'Penalty Kick',emoji:'\u26BD',subtitle:'Kick & Save shootout!',
   sections:[
-    {title:'Rules',icon:'\u{1F4D6}',items:['Each round: YOU kick, then YOU save','Aim at the goal, click & hold to charge accuracy, release to kick','Higher accuracy = ball goes closer to your aim point','Then pick Dive Left, Stay, or Dive Right to save the AI shot','5 rounds total (10 kicks: 5 yours, 5 AI)']},
-    {title:'Scoring',icon:'\u{1F3AF}',items:['5 coins per goal you score','3 coins per save you make','Bonus 5 coins for new personal best','Harder difficulty = smarter goalkeeper on your kicks']}
+    {title:'Kicking',icon:'\u26BD',items:['Click the goal to set your aim point','A ring shrinks toward your aim \u2014 click when it\'s smallest for best accuracy','Then time the power bar \u2014 hit the green sweet spot (too high = over the bar!)','Corner shots are harder to time but harder for the keeper to save']},
+    {title:'Saving',icon:'\u{1F9E4}',items:['Watch for the glowing heat zone hint on the goal','Pick one of 5 zones: Top Left, Top Right, Bottom Left, Center, Bottom Right','Time the dive ring for maximum reach','Even the right zone needs good timing to make the save!']},
+    {title:'Scoring',icon:'\u{1F3AF}',items:['5 coins per goal you score','3 coins per save you make','Bonus 5 coins for new personal best','5 rounds total \u2014 highest goals wins']}
   ],
-  controls:[{key:'Mouse',action:'Aim at goal'},{key:'Click+Hold',action:'Charge accuracy'},{key:'Release',action:'Kick'},{key:'Space',action:'Charge/Kick'},{key:'\u2190 / A',action:'Dive Left'},{key:'\u2193 / S',action:'Stay Center'},{key:'\u2192 / D',action:'Dive Right'}],
-  tip:'<strong>High accuracy matters!</strong> Hold the bar near the top (green zone) for a precise shot. During saves, watch for patterns in where the AI aims!'
+  controls:[{key:'Click Goal',action:'Set aim point'},{key:'Click',action:'Time accuracy ring'},{key:'Click',action:'Time power bar'},{key:'Click Zone',action:'Pick dive direction'},{key:'Click',action:'Time dive ring'}],
+  tip:'<strong>Corners are king!</strong> Top corner shots with perfect timing are unsaveable. But bad timing means the ball flies wide. Watch the heat zone hint to anticipate AI shots!'
 });
 </script>
 <script>
