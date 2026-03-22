@@ -73,6 +73,10 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 
 /* BOARD CANVAS */
 .board-wrap{width:100%;max-width:1000px;margin:0 auto;position:relative;border-radius:16px;overflow:hidden;background:#1a5c2e;box-shadow:inset 0 2px 20px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.3);min-height:350px}
+.board-pan-btn{position:absolute;top:50%;transform:translateY(-50%);z-index:3;background:rgba(0,0,0,.4);border:none;color:#fff;font-size:20px;width:32px;height:60px;border-radius:8px;cursor:pointer;opacity:0.6;transition:opacity .2s}
+.board-pan-btn:hover{opacity:1}
+.pan-left{left:4px}
+.pan-right{right:4px}
 .board-wrap canvas{display:block;width:100%;cursor:grab}
 .board-wrap canvas:active{cursor:grabbing}
 .board-empty-msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,.45);font-size:15px;font-weight:600;pointer-events:none;text-align:center}
@@ -206,7 +210,9 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     </div>
   </div>
   <div class="board-wrap" id="boardWrap">
+    <button class="board-pan-btn pan-left" onclick="panBoard(1)" title="Pan left">&#9664;</button>
     <canvas id="boardCanvas" width="960" height="240"></canvas>
+    <button class="board-pan-btn pan-right" onclick="panBoard(-1)" title="Pan right">&#9654;</button>
     <div class="board-empty-msg" id="boardEmptyMsg">Play a tile to start</div>
   </div>
   <div class="hand-area">
@@ -442,38 +448,25 @@ let canvasW = 960, canvasH = 240;
 let panX = 0, panY = 0; // pan offset for scrolling
 let boardLayoutDirty = true; // flag to avoid recomputing layout every animation frame
 
+let boardPanX = 0; // user-controlled pan offset
+
 function computeBoardLayout(force){
   if(!force && !boardLayoutDirty && boardEntries.length === board.length) return;
   boardLayoutDirty = false;
   boardEntries = [];
   if(board.length === 0) return;
 
-  // Single horizontal row, full size. Board pans to keep latest action visible.
+  // Lay tiles left-to-right in rows. When a row fills up, start a new row below
+  // connected with a vertical connector tile at the turn point.
   const entries = [];
   boardScale = 1;
-
-  // Compute total chain width at full scale
-  let totalWidth = 0;
-  for(let i = 0; i < board.length; i++){
-    const dbl = isDouble(board[i].tile);
-    totalWidth += dbl ? TILE_W * 2 : TILE_H * 2;
-    if(i < board.length - 1) totalWidth += GAP;
-  }
-
-  // Center the chain if it fits; otherwise offset so the right end is visible
   const availW = canvasW - MARGIN * 2;
-  let startX;
-  if(totalWidth <= availW){
-    startX = (canvasW - totalWidth) / 2;
-  } else {
-    // Pan so the rightmost tile is visible with some margin
-    startX = canvasW - MARGIN - totalWidth;
-    // But don't let left side go too far off screen either
-    startX = Math.max(startX, -(totalWidth - availW) - MARGIN);
-  }
+  const rowH = TILE_H * 2 + 20; // height per row
 
-  let cx = startX;
-  const cy = canvasH / 2;
+  let cx = MARGIN + TILE_H;
+  let cy = MARGIN + TILE_W + 10;
+  let dir = 1; // 1=right, -1=left
+  let row = 0;
 
   for(let i = 0; i < board.length; i++){
     const entry = board[i];
@@ -481,23 +474,52 @@ function computeBoardLayout(force){
     const horizontal = !dbl;
     const extent = dbl ? TILE_W : TILE_H;
 
-    cx += extent; // move to center of tile
+    // Check if this tile would overflow the current row
+    const nextEdge = dir === 1 ? cx + extent * 2 + GAP : cx - extent * 2 - GAP;
+    const overflow = (dir === 1 && nextEdge > canvasW - MARGIN) || (dir === -1 && nextEdge < MARGIN);
+
+    if(overflow && i > 0){
+      // Drop to next row, reverse direction
+      cy += rowH;
+      row++;
+      dir = -dir;
+      cx = dir === 1 ? MARGIN + TILE_H : canvasW - MARGIN - TILE_H;
+    }
 
     entries.push({
       tile: entry.tile,
       topVal: entry.topVal !== undefined ? entry.topVal : entry.tile.a,
       botVal: entry.botVal !== undefined ? entry.botVal : entry.tile.b,
-      x: cx,
+      x: cx + boardPanX,
       y: cy,
       horizontal: horizontal,
       isDouble: dbl,
-      scale: 1
+      scale: 1,
+      row: row
     });
 
-    cx += extent + GAP; // move past tile + gap
+    cx += dir * (extent * 2 + GAP);
   }
 
   boardEntries = entries;
+
+  // Grow canvas height if needed
+  const maxY = entries.length > 0 ? Math.max(...entries.map(e => e.y)) + TILE_H + MARGIN : canvasH;
+  if(maxY > canvasH){
+    canvasH = Math.ceil(maxY);
+    const cvs = document.getElementById('boardCanvas');
+    if(cvs){
+      cvs.height = canvasH * (window.devicePixelRatio || 1);
+      cvs.style.height = canvasH + 'px';
+    }
+  }
+}
+
+function panBoard(dir){
+  boardPanX += dir * 80;
+  boardLayoutDirty = true;
+  computeBoardLayout(true);
+  drawBoard();
 }
 
 /* =========================================================== */
@@ -1267,6 +1289,7 @@ function placeTile(side){
   if(aiMode) setTimeout(() => aiTurn(), 600 + Math.random() * 400);
 }
 window.placeTile = placeTile;
+window.panBoard = panBoard;
 window._dbg = function(){ return {board:board.map(e=>({a:e.tile.a,b:e.tile.b,top:e.topVal,bot:e.botVal})),leftEnd,rightEnd} };
 
 function drawFromBoneyard(){
