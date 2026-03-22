@@ -775,10 +775,11 @@ window.odaShop = (function() {
         '.oda-shop-section{margin-bottom:16px}',
         '.oda-shop-section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2,#a8b2c8);margin-bottom:8px;padding:0 4px}',
         '.oda-shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px}',
-        '.oda-shop-item{background:var(--surface,#111827);border:2px solid var(--border,#2a3450);border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .15s;font-family:Outfit,sans-serif}',
-        '.oda-shop-item:hover{border-color:var(--accent,#06d6a0);transform:translateY(-2px)}',
+        '.oda-shop-item{background:var(--surface,#111827);border:2px solid var(--border,#2a3450);border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .2s;font-family:Outfit,sans-serif;position:relative}',
+        '.oda-shop-item:hover{border-color:var(--accent,#06d6a0);transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.3)}',
         '.oda-shop-item:active{transform:scale(.96)}',
-        '.oda-shop-item.equipped{border-color:var(--accent,#06d6a0);background:rgba(6,214,160,.08)}',
+        '.oda-shop-item.equipped{border-color:var(--accent,#06d6a0);background:rgba(6,214,160,.1);box-shadow:0 0 12px rgba(6,214,160,.15)}',
+        '.oda-shop-item.equipped::after{content:"\\2713";position:absolute;top:-6px;right:-6px;width:20px;height:20px;background:var(--accent,#06d6a0);color:var(--bg,#0a0e1a);border-radius:50%;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3)}',
         '.oda-shop-item.locked{opacity:.5;cursor:not-allowed}',
         '.oda-shop-item-icon{font-size:32px;margin-bottom:4px}',
         '.oda-shop-item-name{font-size:11px;font-weight:700;color:var(--text,#f0f4ff);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
@@ -787,7 +788,21 @@ window.odaShop = (function() {
         '.oda-shop-item-status.owned{color:var(--text2,#a8b2c8)}',
         '.oda-shop-item-cost{font-size:11px;font-weight:700;color:var(--gold,#ffd166)}',
         '.oda-shop-item-cost.cant-afford{color:var(--accent3,#ef476f)}',
-        '@media(min-width:768px){.oda-shop-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}}'
+        '@media(min-width:768px){.oda-shop-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}}',
+        /* Buy confirmation modal */
+        '.oda-shop-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;animation:odaShopFadeIn .2s ease}',
+        '@keyframes odaShopFadeIn{from{opacity:0}to{opacity:1}}',
+        '.oda-shop-modal{background:var(--surface,#111827);border:2px solid var(--border,#2a3450);border-radius:20px;padding:32px;text-align:center;max-width:320px;width:90%;animation:odaShopSlideUp .3s ease}',
+        '@keyframes odaShopSlideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}',
+        '.oda-shop-modal-icon{font-size:64px;margin-bottom:12px}',
+        '.oda-shop-modal-name{font-family:Fredoka,sans-serif;font-size:22px;font-weight:700;color:var(--text,#f0f4ff);margin-bottom:4px}',
+        '.oda-shop-modal-slot{font-size:12px;color:var(--text2,#a8b2c8);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px}',
+        '.oda-shop-modal-price{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:8px 20px;font-size:18px;font-weight:700;color:var(--gold,#ffd166);font-family:Fredoka,sans-serif;margin-bottom:20px}',
+        '.oda-shop-modal-btns{display:flex;gap:10px;justify-content:center}',
+        '.oda-shop-modal-btn{padding:10px 28px;border:none;border-radius:12px;font-family:Outfit,sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .15s}',
+        '.oda-shop-modal-btn:active{transform:scale(.95)}',
+        '.oda-shop-modal-btn.confirm{background:var(--accent,#06d6a0);color:var(--bg,#0a0e1a)}',
+        '.oda-shop-modal-btn.cancel{background:none;border:2px solid var(--border,#2a3450);color:var(--text2,#a8b2c8)}'
       ].join('\n');
       document.head.appendChild(style);
     }
@@ -795,6 +810,27 @@ window.odaShop = (function() {
     // Store catalog + opts for click handler
     if (!window._odaShopCatalogs) window._odaShopCatalogs = {};
     window._odaShopCatalogs[gameId] = { catalog: catalog, containerId: containerId, opts: opts };
+  }
+
+  /** Buy confirmation modal */
+  function _showBuyModal(item) {
+    return new Promise(function(resolve) {
+      var bg = document.createElement('div');
+      bg.className = 'oda-shop-modal-bg';
+      bg.innerHTML = '<div class="oda-shop-modal">' +
+        '<div class="oda-shop-modal-icon">' + (item.emoji || '\u2728') + '</div>' +
+        '<div class="oda-shop-modal-name">' + esc(item.name) + '</div>' +
+        '<div class="oda-shop-modal-slot">' + esc(item.slot || '') + '</div>' +
+        '<div class="oda-shop-modal-price">\u{1FA99} ' + item.cost + ' coins</div>' +
+        '<div class="oda-shop-modal-btns">' +
+        '<button class="oda-shop-modal-btn cancel">Cancel</button>' +
+        '<button class="oda-shop-modal-btn confirm">Buy & Equip</button>' +
+        '</div></div>';
+      document.body.appendChild(bg);
+      bg.querySelector('.confirm').onclick = function() { bg.remove(); resolve(true); };
+      bg.querySelector('.cancel').onclick = function() { bg.remove(); resolve(false); };
+      bg.onclick = function(e) { if (e.target === bg) { bg.remove(); resolve(false); } };
+    });
   }
 
   /** Internal click handler */
@@ -838,8 +874,9 @@ window.odaShop = (function() {
       return;
     }
 
-    // Confirm purchase
-    if (!confirm('Buy ' + item.name + ' for ' + item.cost + ' coins?')) return;
+    // Show buy confirmation modal
+    var confirmed = await _showBuyModal(item);
+    if (!confirmed) return;
 
     var success = await buy(gameId, item.id, item.cost);
     if (success) {
