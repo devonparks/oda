@@ -402,9 +402,9 @@ function initCanvas(){
 
 var gameDifficulty='easy';
 var diffSettings={
-  easy:{spawnInterval:220,minSpawn:150,bombChance:0.04,launchMult:1,gravityMult:0.8,maxFruits:1,missLimit:5},
-  medium:{spawnInterval:150,minSpawn:100,bombChance:0.10,launchMult:1.05,gravityMult:1,maxFruits:2,missLimit:3},
-  hard:{spawnInterval:100,minSpawn:60,bombChance:0.15,launchMult:1.15,gravityMult:1.2,maxFruits:3,missLimit:2}
+  easy:{spawnInterval:260,minSpawn:180,bombChance:0.03,launchMult:1,gravityMult:0.65,maxFruits:1,missLimit:5,sizeMult:1.4},
+  medium:{spawnInterval:150,minSpawn:100,bombChance:0.10,launchMult:1.05,gravityMult:1,maxFruits:2,missLimit:3,sizeMult:1},
+  hard:{spawnInterval:100,minSpawn:60,bombChance:0.15,launchMult:1.15,gravityMult:1.2,maxFruits:3,missLimit:2,sizeMult:0.85}
 };
 
 function startGame(diff){
@@ -446,7 +446,8 @@ function spawnFruit(){
   // with gravity 0.22, vy=-13 peaks at ~400px up in ~60 frames (1 sec)
   var launchSpeed=(14+Math.random()*5)*(ds.launchMult||1);
   var vy=-launchSpeed;
-  var r=isBomb?36:(fruitDef.radius*(0.9+Math.random()*0.2));
+  var sm=ds.sizeMult||1;
+  var r=isBomb?(36*sm):(fruitDef.radius*(0.9+Math.random()*0.2)*sm);
   fruits.push({
     x:x,y:H+r+10,
     vx:vx,vy:vy,
