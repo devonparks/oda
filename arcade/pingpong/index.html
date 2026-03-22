@@ -444,7 +444,7 @@ window.setDifficulty=function(diff,btn){
 };
 
 var mouseY=null;
-var ballSpeedBase=5;
+var ballSpeedBase=3.5;
 var ballSpeedIncrement=0.3;
 
 function initCanvas(){
@@ -457,16 +457,28 @@ function initCanvas(){
   ctx.setTransform(dpr,0,0,dpr,0,0);
 }
 
+var serving=false;
+
 function resetBall(dir){
   ball={
     x:W/2,
     y:H/2,
-    vx:ballSpeedBase*(dir||1),
-    vy:(Math.random()*4-2),
+    vx:0,
+    vy:0,
     speed:ballSpeedBase,
-    trail:[]
+    trail:[],
+    serveDir:dir||1
   };
   rallyCount=0;
+  serving=true;
+  // Pause then serve
+  setTimeout(function(){
+    if(gameState==='playing'&&serving){
+      ball.vx=ballSpeedBase*ball.serveDir;
+      ball.vy=(Math.random()*3-1.5);
+      serving=false;
+    }
+  },1200);
 }
 
 function startGame(){
@@ -479,7 +491,7 @@ function startGame(){
   playerScore=0;aiScore=0;
   maxRallyThisGame=0;rallyCount=0;
   coinsAwarded=false;
-  ballSpeedBase=5;
+  ballSpeedBase=3.5;
 
   resetBall(1);
   gameState='waiting';
@@ -585,7 +597,7 @@ function update(){
     document.getElementById('hudAI').textContent=aiScore;
     sfxLose();
     if(aiScore>=WIN_SCORE){endGame();return}
-    ballSpeedBase=5+Math.min(playerScore+aiScore,8)*0.2;
+    ballSpeedBase=3.5+Math.min(playerScore+aiScore,8)*0.15;
     resetBall(1);
   }
 
@@ -595,7 +607,7 @@ function update(){
     document.getElementById('hudPlayer').textContent=playerScore;
     sfxScore();
     if(playerScore>=WIN_SCORE){endGame();return}
-    ballSpeedBase=5+Math.min(playerScore+aiScore,8)*0.2;
+    ballSpeedBase=3.5+Math.min(playerScore+aiScore,8)*0.15;
     resetBall(-1);
   }
 }
