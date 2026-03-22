@@ -1458,36 +1458,38 @@ function drawZoneDifficultyOverlay(){
 function drawCrosshair(){
   if(!hoverAim.active)return;
   var pos=normToGoalPx(hoverAim.x,hoverAim.y);
+  var zone=getAimZoneDifficulty(hoverAim.x,hoverAim.y);
 
-  // Dashed line from penalty spot to aim
+  // Zone-matched color
+  var zoneColor=zone==='center'?'rgba(6,214,160,':'rgba(251,191,36,';
+  if(zone==='topCorner')zoneColor='rgba(239,68,68,';
+
+  // Dashed line from penalty spot to aim — colored by zone
   ctx.setLineDash([6,8]);
-  ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1.5;
+  ctx.strokeStyle=zoneColor+'0.25)';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.moveTo(W*0.5,H*0.85);ctx.lineTo(pos.x,pos.y);ctx.stroke();
   ctx.setLineDash([]);
 
-  // Crosshair circle
-  var cSize=12;
-  ctx.strokeStyle='rgba(255,255,255,0.6)';ctx.lineWidth=2;
+  // Crosshair circle — colored by zone
+  var cSize=14;
+  ctx.strokeStyle=zoneColor+'0.8)';ctx.lineWidth=2.5;
   ctx.beginPath();ctx.arc(pos.x,pos.y,cSize,0,Math.PI*2);ctx.stroke();
 
-  // Crosshair lines
-  ctx.beginPath();ctx.moveTo(pos.x-cSize-4,pos.y);ctx.lineTo(pos.x-cSize+4,pos.y);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(pos.x+cSize-4,pos.y);ctx.lineTo(pos.x+cSize+4,pos.y);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(pos.x,pos.y-cSize-4);ctx.lineTo(pos.x,pos.y-cSize+4);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(pos.x,pos.y+cSize-4);ctx.lineTo(pos.x,pos.y+cSize+4);ctx.stroke();
+  // Crosshair lines — colored by zone
+  ctx.beginPath();ctx.moveTo(pos.x-cSize-5,pos.y);ctx.lineTo(pos.x-cSize+5,pos.y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pos.x+cSize-5,pos.y);ctx.lineTo(pos.x+cSize+5,pos.y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pos.x,pos.y-cSize-5);ctx.lineTo(pos.x,pos.y-cSize+5);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pos.x,pos.y+cSize-5);ctx.lineTo(pos.x,pos.y+cSize+5);ctx.stroke();
 
   // Center dot
-  ctx.fillStyle='rgba(255,255,255,0.7)';
+  ctx.fillStyle=zoneColor+'0.9)';
   ctx.beginPath();ctx.arc(pos.x,pos.y,3,0,Math.PI*2);ctx.fill();
 
-  // Zone difficulty label
-  var zone=getAimZoneDifficulty(hoverAim.x,hoverAim.y);
+  // Zone difficulty label — colored by zone
   var zLabel=ZONE_DIFFICULTY[zone].label;
-  ctx.font='bold 11px Outfit, sans-serif';
+  ctx.font='bold 12px Outfit, sans-serif';
   ctx.textAlign='center';
-  var lColor=zone==='center'?'rgba(6,214,160,0.7)':
-             zone==='side'?'rgba(251,191,36,0.7)':
-             'rgba(239,68,68,0.7)';
+  var lColor=zoneColor+'0.85)';
   ctx.fillStyle=lColor;
   ctx.fillText(zLabel,pos.x,pos.y+cSize+16);
 }
