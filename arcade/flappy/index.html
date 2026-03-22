@@ -121,7 +121,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 <!-- HOME SCREEN -->
 <div class="screen active" id="homeScreen">
   <div class="home-header">
-    <h1>&#128038; <span class="hl">Floppy</span> Bird</h1>
+    <h1><canvas id="logoBird" width="64" height="64" style="width:64px;height:64px;vertical-align:middle;margin-right:4px"></canvas> <span class="hl">Floppy</span> Bird</h1>
     <p>Tap to fly, dodge the pipes!</p>
   </div>
   <div class="best-pill">
@@ -154,7 +154,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <canvas id="gameCanvas"></canvas>
     <div class="game-hud"><div class="hud-score" id="hudScore">0</div></div>
     <div class="tap-hint" id="tapHint">
-      <div class="th-icon">&#128038;</div>
+      <div class="th-icon"><canvas id="hintBird" width="48" height="48" style="width:48px;height:48px"></canvas></div>
       <div class="th-text">Tap to Start</div>
     </div>
     <div class="go-overlay" id="gameOverOverlay">
@@ -305,15 +305,41 @@ var FLAPPY_SHOP=[
 
 function showShopScreen(){
   showScreen('shopScreen');
+  // Generate bird icon data URLs before rendering shop
+  FLAPPY_SHOP.forEach(function(item){
+    if(item.emoji!=='bird'||!item.value)return;
+    var c=document.createElement('canvas');c.width=48;c.height=48;
+    drawMiniBird(c,item.value);
+    item._iconUrl=c.toDataURL();
+    item.emoji='<img src="'+item._iconUrl+'" width="32" height="32" style="image-rendering:auto">';
+  });
   if(typeof odaShop!=='undefined'){
     odaShop.renderShopPanel('flappy',FLAPPY_SHOP,'flappyShopContainer',{
-      onEquip:function(){loadMyCosmetics()},
-      onBuy:function(){loadMyCosmetics()}
+      onEquip:function(){loadMyCosmetics();renderLogoBird()},
+      onBuy:function(){loadMyCosmetics();renderLogoBird()}
     });
-    // Replace emoji icons with canvas-drawn birds for Bird Type items
-    setTimeout(function(){renderBirdIcons()},50);
   }
 }
+
+function renderLogoBird(){
+  var c=document.getElementById('logoBird');
+  if(!c)return;
+  var v={color:birdColor,accent:birdAccent,belly:birdBelly,beak:birdBeak};
+  var g=c.getContext('2d');g.clearRect(0,0,64,64);
+  var cx=32,cy=32,sz=20;
+  g.fillStyle=v.color;g.beginPath();g.ellipse(cx,cy,sz,sz*0.8,0,0,Math.PI*2);g.fill();
+  g.fillStyle=v.belly;g.beginPath();g.ellipse(cx+sz*0.15,cy+sz*0.15,sz*0.45,sz*0.4,0,0,Math.PI*2);g.fill();
+  g.fillStyle=v.accent;g.beginPath();g.ellipse(cx-4,cy-3,sz*0.5,sz*0.3,-0.3,0,Math.PI*2);g.fill();
+  g.fillStyle='#fff';g.beginPath();g.arc(cx+sz*0.35,cy-sz*0.2,5,0,Math.PI*2);g.fill();
+  g.fillStyle='#111';g.beginPath();g.arc(cx+sz*0.4,cy-sz*0.2,2.5,0,Math.PI*2);g.fill();
+  g.fillStyle='#fff';g.beginPath();g.arc(cx+sz*0.44,cy-sz*0.27,1,0,Math.PI*2);g.fill();
+  g.fillStyle=v.beak;g.beginPath();g.moveTo(cx+sz*0.7,cy-2);g.lineTo(cx+sz*1.1,cy-3);g.lineTo(cx+sz*1.1,cy+3);g.lineTo(cx+sz*0.7,cy+3);g.closePath();g.fill();
+  // Also render hint bird
+  var hc=document.getElementById('hintBird');
+  if(hc){var v2={color:birdColor,accent:birdAccent,belly:birdBelly,beak:birdBeak};drawMiniBird(hc,v2)}
+}
+// Render logo bird on load and after cosmetics change
+setTimeout(renderLogoBird,200);
 
 function drawMiniBird(canvas,v){
   var g=canvas.getContext('2d');
