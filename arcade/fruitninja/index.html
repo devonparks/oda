@@ -371,12 +371,12 @@ loadLocalStats();
 /* FRUIT DEFINITIONS     */
 /* ===================== */
 var FRUITS=[
-  {name:'Watermelon',color:'#22c55e',inner:'#86efac',radius:30},
-  {name:'Orange',color:'#f97316',inner:'#fdba74',radius:24},
-  {name:'Apple',color:'#ef4444',inner:'#fca5a5',radius:22},
-  {name:'Banana',color:'#eab308',inner:'#fde047',radius:20},
-  {name:'Grape',color:'#a855f7',inner:'#d8b4fe',radius:18},
-  {name:'Kiwi',color:'#65a30d',inner:'#a3e635',radius:20}
+  {name:'Watermelon',color:'#22c55e',inner:'#86efac',radius:50},
+  {name:'Orange',color:'#f97316',inner:'#fdba74',radius:42},
+  {name:'Apple',color:'#ef4444',inner:'#fca5a5',radius:38},
+  {name:'Banana',color:'#eab308',inner:'#fde047',radius:36},
+  {name:'Grape',color:'#a855f7',inner:'#d8b4fe',radius:32},
+  {name:'Kiwi',color:'#65a30d',inner:'#a3e635',radius:36}
 ];
 
 /* ===================== */
@@ -426,9 +426,9 @@ function spawnFruit(){
   var margin=60;
   var x=margin+Math.random()*(W-margin*2);
   var vx=(Math.random()-0.5)*3;
-  // Fruits fly up from below
-  var vy=-(7+Math.random()*4+Math.min(frameCount/1500,3));
-  var r=isBomb?26:(fruitDef.radius*(0.9+Math.random()*0.2));
+  // Fruits fly up high with floaty arc
+  var vy=-(12+Math.random()*5+Math.min(frameCount/2000,3));
+  var r=isBomb?36:(fruitDef.radius*(0.9+Math.random()*0.2));
   fruits.push({
     x:x,y:H+r+10,
     vx:vx,vy:vy,
@@ -490,7 +490,7 @@ function update(){
     var f=fruits[i];
     if(f.sliced){fruits.splice(i,1);continue}
     f.x+=f.vx;
-    f.vy+=0.15; // gravity
+    f.vy+=0.09; // gentle gravity — fruits float at the peak
     f.y+=f.vy;
     f.rotation+=f.rotSpeed;
     // Check if fallen off screen (missed)
