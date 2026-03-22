@@ -486,11 +486,6 @@ function update(){
     var f=fruits[i];
     if(f.merging)continue;
     f.age++;
-    // Sleep system: if velocity is tiny, freeze the fruit
-    if(f.sleeping){
-      // Check if something woke it (collision will set sleeping=false)
-      continue;
-    }
     // Gravity
     f.vy+=GRAVITY;
     f.x+=f.vx;
@@ -506,8 +501,9 @@ function update(){
     if(f.y+f.r>CH){f.y=CH-f.r;f.vy=-Math.abs(f.vy)*BOUNCE;if(Math.abs(f.vy)<0.5)f.vy=0;f.vx*=FRICTION}
   }
 
-  // Fruit-fruit collision — multiple iterations for stable stacking
-  for(var iter=0;iter<3;iter++){
+  // Fruit-fruit collision — position-only correction, no velocity vibration
+  // Multiple passes for stable stacking
+  for(var iter=0;iter<5;iter++){
     for(var i=0;i<fruits.length;i++){
       for(var j=i+1;j<fruits.length;j++){
         var a=fruits[i],b=fruits[j];
@@ -516,43 +512,29 @@ function update(){
         var dist=Math.sqrt(dx*dx+dy*dy);
         var minDist=a.r+b.r;
         if(dist<minDist&&dist>0.01){
-          // Wake sleeping fruits if the other is moving
-          if(a.sleeping&&(Math.abs(b.vx)+Math.abs(b.vy))>0.3){a.sleeping=false;}
-          if(b.sleeping&&(Math.abs(a.vx)+Math.abs(a.vy))>0.3){b.sleeping=false;}
           // Same type => merge
           if(a.type===b.type&&a.type<FRUIT_TYPES.length-1&&a.age>3&&b.age>3){
-            a.sleeping=false;b.sleeping=false;
             mergeFruits(i,j);
-            return; // restart collision loop next frame
+            return;
           }
-          // Push apart — push 60% of overlap (over-correct to prevent sinking)
+          // Position correction only — push apart by full overlap
           var overlap=minDist-dist;
           var nx=dx/dist,ny=dy/dist;
           var massA=a.r*a.r,massB=b.r*b.r;
           var totalMass=massA+massB;
-          var pushA=overlap*(massB/totalMass)*0.6;
-          var pushB=overlap*(massA/totalMass)*0.6;
-          a.x-=nx*pushA;a.y-=ny*pushA;
-          b.x+=nx*pushB;b.y+=ny*pushB;
-          // If one fruit is directly on top of another, shove it sideways hard
-          if(Math.abs(ny)>0.6&&Math.abs(nx)<0.4){
-            var topFruit=a.y<b.y?a:b;
-            // Pick a direction — bias toward whichever side has more room
-            var centerX=(CW-WALL_THICK*2)/2+WALL_THICK;
-            var dir=topFruit.x>centerX?-1:1;
-            topFruit.vx+=dir*1.5;
-            topFruit.sleeping=false;
-          }
-          // Transfer velocity on first iteration only (skip if both sleeping)
-          if(iter===0&&!(a.sleeping&&b.sleeping)){
-            var relVx=a.vx-b.vx,relVy=a.vy-b.vy;
-            var relDot=relVx*nx+relVy*ny;
-            if(relDot>0){
-              var impulse=relDot*0.6;
-              a.vx-=impulse*nx*(massB/totalMass);
-              a.vy-=impulse*ny*(massB/totalMass);
-              b.vx+=impulse*nx*(massA/totalMass);
-              b.vy+=impulse*ny*(massA/totalMass);
+          a.x-=nx*overlap*(massB/totalMass);
+          a.y-=ny*overlap*(massB/totalMass);
+          b.x+=nx*overlap*(massA/totalMass);
+          b.y+=ny*overlap*(massA/totalMass);
+
+          // On first pass only: dampen velocity along collision normal
+          if(iter===0){
+            var aVn=a.vx*nx+a.vy*ny;
+            var bVn=b.vx*nx+b.vy*ny;
+            // If they're moving toward each other, cancel that component
+            if(aVn-bVn>0){
+              a.vx-=aVn*nx*0.8;a.vy-=aVn*ny*0.8;
+              b.vx+=bVn*nx*0.8;b.vy+=bVn*ny*0.8;
             }
           }
         }
@@ -560,20 +542,13 @@ function update(){
     }
   }
 
-  // Re-clamp after collision resolution
+  // Clamp to container and dampen
   for(var i=0;i<fruits.length;i++){
     var f=fruits[i];
     if(f.merging)continue;
-    if(f.x-f.r<WALL_THICK){f.x=WALL_THICK+f.r;f.vx=0}
-    if(f.x+f.r>CW-WALL_THICK){f.x=CW-WALL_THICK-f.r;f.vx=0}
-    if(f.y+f.r>CH){f.y=CH-f.r;f.vy=0;f.vx*=FRICTION}
-    // Cap velocity
-    if(f.vx>6)f.vx=6;if(f.vx<-6)f.vx=-6;
-    if(f.vy>8)f.vy=8;if(f.vy<-8)f.vy=-8;
-    // Sleep if nearly still for a while (must be old enough and truly stopped)
-    var speed=Math.abs(f.vx)+Math.abs(f.vy);
-    if(speed<0.15&&f.age>60){f.vx=0;f.vy=0;f.sleeping=true;}
-    else{f.sleeping=false;}
+    if(f.x-f.r<WALL_THICK){f.x=WALL_THICK+f.r;f.vx=Math.abs(f.vx)*0.2}
+    if(f.x+f.r>CW-WALL_THICK){f.x=CW-WALL_THICK-f.r;f.vx=-Math.abs(f.vx)*0.2}
+    if(f.y+f.r>CH){f.y=CH-f.r;if(Math.abs(f.vy)<1)f.vy=0;else f.vy*=-0.15;f.vx*=FRICTION}
   }
 
   // Check danger line (game over if fruit stays above danger line)
