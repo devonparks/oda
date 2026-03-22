@@ -402,9 +402,9 @@ function initCanvas(){
 
 var gameDifficulty='easy';
 var diffSettings={
-  easy:{spawnInterval:160,minSpawn:90,bombChance:0.05,gravityMult:0.7,maxFruits:2,missLimit:5},
-  medium:{spawnInterval:120,minSpawn:65,bombChance:0.10,gravityMult:0.85,maxFruits:3,missLimit:3},
-  hard:{spawnInterval:80,minSpawn:40,bombChance:0.15,gravityMult:1,maxFruits:4,missLimit:2}
+  easy:{spawnInterval:240,minSpawn:150,bombChance:0.03,gravityMult:0.5,maxFruits:1,missLimit:5},
+  medium:{spawnInterval:160,minSpawn:100,bombChance:0.08,gravityMult:0.7,maxFruits:2,missLimit:3},
+  hard:{spawnInterval:100,minSpawn:60,bombChance:0.14,gravityMult:1,maxFruits:3,missLimit:2}
 };
 
 function startGame(diff){
@@ -489,16 +489,16 @@ function update(){
 
   // Ramp difficulty — gradually decrease spawn interval from starting value
   var ds=diffSettings[gameDifficulty];
-  var rampedInterval=ds.spawnInterval-Math.floor(frameCount/300);
+  var rampedInterval=ds.spawnInterval-Math.floor(frameCount/600);
   spawnInterval=Math.max(ds.minSpawn,rampedInterval);
 
-  // Spawn fruits
+  // Spawn fruits — one at a time on easy, multiples only on harder modes late game
   spawnTimer++;
   if(spawnTimer>=spawnInterval){
     spawnTimer=0;
     var count=1;
-    if(frameCount>1200)count=Math.random()<0.3?2:1;
-    if(frameCount>3000)count=Math.random()<0.2?3:count;
+    if(gameDifficulty!=='easy'&&frameCount>2000)count=Math.random()<0.25?2:1;
+    if(gameDifficulty==='hard'&&frameCount>4000)count=Math.random()<0.15?3:count;
     for(var c=0;c<count;c++){
       setTimeout(function(){if(gameState==='playing')spawnFruit()},c*150);
     }
@@ -509,7 +509,7 @@ function update(){
     var f=fruits[i];
     if(f.sliced){fruits.splice(i,1);continue}
     f.x+=f.vx;
-    f.vy+=0.065*(diffSettings[gameDifficulty]?.gravityMult||1); // gentle base gravity
+    f.vy+=0.05*(diffSettings[gameDifficulty]?.gravityMult||1); // very gentle gravity
     f.y+=f.vy;
     f.rotation+=f.rotSpeed;
     // Check if fallen off screen (missed)
