@@ -25,37 +25,38 @@ if(typeof odaToast==='function')odaToast('Unable to check for updates. Check you
 });
 }
 var GAMES=[
-{id:'connect4',emoji:'\u{1F534}',title:'Connect 4',desc:'Challenge a friend! Drop 4 in a row.',file:'arcade/connect4/index.html'},
-{id:'tictactoe',emoji:'\u274C',title:'Tic Tac Toe',desc:'Classic X vs O — outsmart your opponent!',file:'arcade/tictactoe/index.html'},
-{id:'rps',emoji:'\u270A',title:'Rock Paper Scissors',desc:'Best of 3! Can you read your opponent?',file:'arcade/rps/index.html'},
-{id:'solitaire',emoji:'\u{1F0CF}',title:'Solitaire',desc:'Classic card game — clear the board!',file:'arcade/solitaire/index.html'},
-{id:'chess',emoji:'\u265A',title:'Chess',desc:'The ultimate strategy game — checkmate your opponent!',file:'arcade/chess/index.html'},
-{id:'checkers',emoji:'⛀',title:'Checkers',desc:'Jump and capture — king your pieces!',file:'arcade/checkers/index.html'},
-{id:'hangman',emoji:'\u{1F634}',title:'Hangman',desc:'Guess the word before time runs out!',file:'arcade/hangman/index.html'},
-{id:'memory',emoji:'\u{1F9E0}',title:'Memory Match',desc:'Flip cards and find matching pairs!',file:'arcade/memory/index.html'},
-{id:'trivia',emoji:'\u{1F3C1}',title:'Trivia Race',desc:'Race to answer questions — speed matters!',file:'arcade/trivia/index.html'},
-{id:'snake',emoji:'\u{1F40D}',title:'Snake',desc:'Eat, grow, and don\'t hit the walls!',file:'arcade/snake/index.html'},
-{id:'2048',emoji:'\u{1F522}',title:'2048',desc:'Slide and merge tiles to reach 2048!',file:'arcade/2048/index.html'},
-{id:'typing',emoji:'\u2328\uFE0F',title:'Typing Race',desc:'Type fast and race your classmates!',file:'arcade/typing/index.html'},
-{id:'keyboard',emoji:'\u{1F3AE}',title:'Keyboard Warriors',desc:'Type to defeat enemies! Improve your typing speed.',file:'keyboard.html'},
-{id:'blockblast',emoji:'\u{1F9F1}',title:'Block Blast',desc:'Place blocks, clear lines, chain combos!',file:'arcade/blockblast/index.html'},
-{id:'battleship',emoji:'\u{1F6A2}',title:'Battleship',desc:'Find and sink your opponent\'s fleet!',file:'arcade/battleship/index.html'},
-{id:'wordle',emoji:'\u{1F4DD}',title:'Wordle',desc:'Guess the 5-letter word in 6 tries!',file:'arcade/wordle/index.html'},
-{id:'uno',emoji:'\u{1F3B4}',title:'Uno',desc:'Match colors and numbers — be first to empty your hand!',file:'arcade/uno/index.html'},
-// {id:'lemonade',emoji:'\u{1F34B}',title:'Lemonade Tycoon',desc:'Build a lemonade empire! Learn real business skills.',file:'arcade/lemonade/index.html'},
-// {id:'racers',emoji:'\u{1F3CE}\uFE0F',title:'ODA Racers',desc:'Hill climb & drag race! Upgrade your ride!',file:'arcade/racers/index.html'},
-{id:'coinminer',emoji:'\u{1FA99}',title:'Coin Miner',desc:'Tap to mint coins! Buy upgrades, prestige, get rich!',file:'arcade/coinminer/index.html'},
-{id:'flappy',emoji:'\u{1F426}',title:'Floppy Bird',desc:'Tap to fly, dodge the pipes!',file:'arcade/flappy/index.html'},
-{id:'bowling',emoji:'\u{1F3B3}',title:'Bowling',desc:'Roll strikes in 3D! Wii Bowling style!',file:'arcade/bowling/index.html'},
-{id:'dominoes',emoji:'\u{1F3B2}',title:'Dominoes',desc:'Match tiles and outsmart your opponent!',file:'arcade/dominoes/index.html'},
-{id:'suika',emoji:'\u{1F349}',title:'Suika Game',desc:'Drop & merge fruits to make a watermelon!',file:'arcade/suika/index.html'},
-{id:'fruitninja',emoji:'\u{1F52A}',title:'Fruit Ninja',desc:'Slash fruits, avoid bombs, get combos!',file:'arcade/fruitninja/index.html'},
-{id:'pingpong',emoji:'\u{1F3D3}',title:'Ping Pong',desc:'Classic pong — beat the AI!',file:'arcade/pingpong/index.html'},
-{id:'aimtrainer',emoji:'\u{1F3AF}',title:'Aim Trainer',desc:'Test your reflexes — hit targets fast!',file:'arcade/aimtrainer/index.html'},
-{id:'penaltykick',emoji:'\u26BD',title:'Penalty Kick',desc:'Aim, shoot, score past the keeper!',file:'arcade/penaltykick/index.html'},
-{id:'brickbreaker',emoji:'\u{1F9F1}',title:'Brick Breaker',desc:'Smash bricks, earn combos, break records!',file:'arcade/brickbreaker/index.html'},
-{id:'whackamole',emoji:'\u{1F439}',title:'Whack-a-Mole',desc:'Whack the moles before they hide!',file:'arcade/whackamole/index.html'},
-{id:'simonsays',emoji:'\u{1F3B5}',title:'Simon Says',desc:'Watch, listen, repeat the pattern!',file:'arcade/simonsays/index.html'},
+// Multiplayer
+{id:'connect4',emoji:'\u{1F534}',title:'Connect 4',desc:'Drop 4 in a row to win!',file:'arcade/connect4/index.html',cat:'multiplayer',colors:['#ef4444','#fbbf24']},
+{id:'tictactoe',emoji:'\u274C',title:'Tic Tac Toe',desc:'Classic X vs O strategy',file:'arcade/tictactoe/index.html',cat:'multiplayer',colors:['#ef476f','#118ab2']},
+{id:'rps',emoji:'\u270A',title:'Rock Paper Scissors',desc:'Best of 3 — read your opponent!',file:'arcade/rps/index.html',cat:'multiplayer',colors:['#06d6a0','#ffd166']},
+{id:'chess',emoji:'\u265A',title:'Chess',desc:'The ultimate strategy game',file:'arcade/chess/index.html',cat:'strategy',colors:['#1a1a2e','#e2d5b7']},
+{id:'checkers',emoji:'⛀',title:'Checkers',desc:'Jump, capture, king your pieces!',file:'arcade/checkers/index.html',cat:'strategy',colors:['#dc2626','#111827']},
+{id:'battleship',emoji:'\u{1F6A2}',title:'Battleship',desc:'Find and sink the fleet!',file:'arcade/battleship/index.html',cat:'multiplayer',colors:['#1e3a5f','#22d3ee']},
+{id:'uno',emoji:'\u{1F3B4}',title:'Uno',desc:'Match colors, empty your hand!',file:'arcade/uno/index.html',cat:'multiplayer',colors:['#ef4444','#fbbf24']},
+{id:'dominoes',emoji:'\u{1F3B2}',title:'Dominoes',desc:'Match tiles, outsmart your opponent',file:'arcade/dominoes/index.html',cat:'multiplayer',colors:['#f5f0e8','#1a1a2e']},
+{id:'penaltykick',emoji:'\u26BD',title:'Penalty Kick',desc:'Aim, shoot, save — score goals!',file:'arcade/penaltykick/index.html',cat:'multiplayer',colors:['#16a34a','#fafafa']},
+{id:'pingpong',emoji:'\u{1F3D3}',title:'Ping Pong',desc:'Classic pong — beat the AI!',file:'arcade/pingpong/index.html',cat:'multiplayer',colors:['#1e293b','#06d6a0']},
+// Arcade
+{id:'snake',emoji:'\u{1F40D}',title:'Snake',desc:'Eat, grow, survive!',file:'arcade/snake/index.html',cat:'arcade',colors:['#06d6a0','#0a0e1a']},
+{id:'flappy',emoji:'\u{1F426}',title:'Floppy Bird',desc:'Tap to fly, dodge the pipes!',file:'arcade/flappy/index.html',cat:'arcade',colors:['#fbbf24','#1e3a5f']},
+{id:'fruitninja',emoji:'\u{1F52A}',title:'Fruit Ninja',desc:'Slash fruits, get combos!',file:'arcade/fruitninja/index.html',cat:'arcade',colors:['#ef4444','#16a34a']},
+{id:'brickbreaker',emoji:'\u{1F9F1}',title:'Brick Breaker',desc:'Smash bricks, earn power-ups!',file:'arcade/brickbreaker/index.html',cat:'arcade',colors:['#ef4444','#3b82f6']},
+{id:'whackamole',emoji:'\u{1F439}',title:'Whack-a-Mole',desc:'Whack moles before they hide!',file:'arcade/whackamole/index.html',cat:'arcade',colors:['#854d0e','#16a34a']},
+{id:'aimtrainer',emoji:'\u{1F3AF}',title:'Aim Trainer',desc:'Test your reflexes!',file:'arcade/aimtrainer/index.html',cat:'arcade',colors:['#dc2626','#fafafa']},
+{id:'coinminer',emoji:'\u{1FA99}',title:'Coin Miner',desc:'Tap to mine, buy upgrades!',file:'arcade/coinminer/index.html',cat:'arcade',colors:['#fbbf24','#7c3aed']},
+// Puzzle
+{id:'2048',emoji:'\u{1F522}',title:'2048',desc:'Slide and merge to 2048!',file:'arcade/2048/index.html',cat:'puzzle',colors:['#f59e0b','#1a1a2e']},
+{id:'solitaire',emoji:'\u{1F0CF}',title:'Solitaire',desc:'Classic card game!',file:'arcade/solitaire/index.html',cat:'puzzle',colors:['#16a34a','#dc2626']},
+{id:'blockblast',emoji:'\u{1F9F1}',title:'Block Blast',desc:'Place blocks, clear lines!',file:'arcade/blockblast/index.html',cat:'puzzle',colors:['#3b82f6','#ec4899']},
+{id:'suika',emoji:'\u{1F349}',title:'Suika Game',desc:'Drop & merge fruits!',file:'arcade/suika/index.html',cat:'puzzle',colors:['#16a34a','#ef4444']},
+{id:'simonsays',emoji:'\u{1F3B5}',title:'Simon Says',desc:'Watch, listen, repeat!',file:'arcade/simonsays/index.html',cat:'puzzle',colors:['#ef4444','#3b82f6']},
+{id:'memory',emoji:'\u{1F9E0}',title:'Memory Match',desc:'Find matching pairs!',file:'arcade/memory/index.html',cat:'puzzle',colors:['#8b5cf6','#06d6a0']},
+// Word
+{id:'wordle',emoji:'\u{1F4DD}',title:'Wordle',desc:'Guess the word in 6 tries!',file:'arcade/wordle/index.html',cat:'word',colors:['#16a34a','#fbbf24']},
+{id:'hangman',emoji:'\u{1F634}',title:'Hangman',desc:'Guess the word in time!',file:'arcade/hangman/index.html',cat:'word',colors:['#6366f1','#f59e0b']},
+{id:'trivia',emoji:'\u{1F3C1}',title:'Trivia Race',desc:'Race to answer questions!',file:'arcade/trivia/index.html',cat:'word',colors:['#dc2626','#fbbf24']},
+{id:'typing',emoji:'\u2328\uFE0F',title:'Typing Race',desc:'Type fast, race classmates!',file:'arcade/typing/index.html',cat:'word',colors:['#06d6a0','#1e293b']},
+{id:'keyboard',emoji:'\u{1F3AE}',title:'Keyboard Warriors',desc:'Type to defeat enemies!',file:'keyboard.html',cat:'word',colors:['#7c3aed','#ef4444']},
 ];
 
 var WORD_BANKS={
@@ -374,6 +375,32 @@ fireConfetti();
 }
 window.completePitch=completePitch;
 
+var arcadeFilter='all';
+var coverCache={};
+
+function generateCover(g){
+  if(coverCache[g.id])return coverCache[g.id];
+  var c=document.createElement('canvas');c.width=280;c.height=180;
+  var ctx=c.getContext('2d');
+  var grad=ctx.createLinearGradient(0,0,280,180);
+  grad.addColorStop(0,g.colors?g.colors[0]:'#1a1a2e');
+  grad.addColorStop(1,g.colors?g.colors[1]:'#16213e');
+  ctx.fillStyle=grad;ctx.fillRect(0,0,280,180);
+  // Decorative shapes
+  ctx.globalAlpha=0.07;ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.arc(230,25,90,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(30,160,70,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=0.04;
+  ctx.beginPath();ctx.arc(140,90,120,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=1;
+  // Large emoji
+  ctx.font='60px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(g.emoji,140,85);
+  var url=c.toDataURL('image/jpeg',0.8);
+  coverCache[g.id]=url;
+  return url;
+}
+
 function renderArcade(){
 var arcadeLocked=window.studentRecord&&window.studentRecord.arcadeLocked;
 var assigns=window.myAssignments||[];
@@ -382,17 +409,47 @@ var submitted=assigns.filter(function(a){return a.status==='submitted'});
 var locked=arcadeLocked&&(pending.length>0||submitted.length>0);
 var coins=(window.studentRecord&&window.studentRecord.coins)||0;
 var h='';
-// Shop banner at top of arcade
-h+='<div class="game-card shop-card" role="button" tabindex="0" onclick="location.href=\'shop.html\'" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();location.href=\'shop.html\'}">';
-h+='<span class="game-emoji">\u{1F6CD}\uFE0F</span>';
-h+='<div class="game-title">ODA Shop</div>';
-h+='<div class="game-desc">\u{1FA99} '+coins+' coins \u2014 Buy avatars, colors & more!</div></div>';
-GAMES.forEach(function(g){
-h+='<div class="game-card'+(locked?' locked':'')+'" role="button" tabindex="'+(locked?'-1':'0')+'" '+(locked?'':'onclick="location.href=\''+g.file+'\'" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();location.href=\''+g.file+'\'}"')+'>';
-h+='<span class="game-emoji">'+g.emoji+'</span>';
-h+='<div class="game-title">'+g.title+'</div>';
-h+='<div class="game-desc">'+(locked?'Finish your work first!':g.desc)+'</div></div>';
+
+// Category filter tabs
+var cats=[
+  {id:'all',label:'All Games',icon:'\u{1F3AE}'},
+  {id:'multiplayer',label:'Multiplayer',icon:'\u{1F91D}'},
+  {id:'arcade',label:'Arcade',icon:'\u{1F579}\uFE0F'},
+  {id:'puzzle',label:'Puzzle',icon:'\u{1F9E9}'},
+  {id:'word',label:'Word & Trivia',icon:'\u{1F4DA}'},
+  {id:'strategy',label:'Strategy',icon:'\u265F\uFE0F'}
+];
+h+='<div class="arcade-tabs" id="arcadeTabs">';
+cats.forEach(function(c){
+  h+='<button class="arcade-tab'+(arcadeFilter===c.id?' active':'')+'" onclick="arcadeFilter=\''+c.id+'\';renderArcade()" data-cat="'+c.id+'">';
+  h+='<span>'+c.icon+'</span> '+c.label+'</button>';
 });
+h+='</div>';
+
+// Shop banner
+h+='<div class="game-cover-card shop-banner" role="button" tabindex="0" onclick="location.href=\'shop.html\'">';
+h+='<div class="shop-banner-inner"><span style="font-size:32px">\u{1F6CD}\uFE0F</span>';
+h+='<div><div style="font-weight:800;font-size:16px;font-family:Fredoka,sans-serif">ODA Shop</div>';
+h+='<div style="color:var(--text2);font-size:13px">\u{1FA99} '+coins+' coins \u2014 Avatars, colors & more</div></div></div></div>';
+
+// Game cards with cover images
+var filtered=arcadeFilter==='all'?GAMES:GAMES.filter(function(g){return g.cat===arcadeFilter});
+h+='<div class="game-cover-grid">';
+filtered.forEach(function(g){
+  var cover=generateCover(g);
+  h+='<div class="game-cover-card'+(locked?' locked':'')+'" role="button" tabindex="'+(locked?'-1':'0')+'" '+(locked?'':'onclick="location.href=\''+g.file+'\'"')+'>';
+  var catColors={multiplayer:'#06d6a0',arcade:'#ef476f',puzzle:'#118ab2',word:'#ffd166',strategy:'#a855f7'};
+  var catLabels={multiplayer:'MULTIPLAYER',arcade:'ARCADE',puzzle:'PUZZLE',word:'WORD',strategy:'STRATEGY'};
+  h+='<div class="game-cover-img" style="background-image:url('+cover+')">';
+  h+='<span class="game-cat-badge" style="background:'+( catColors[g.cat]||'#06d6a0')+'">'+(catLabels[g.cat]||'')+'</span>';
+  h+='</div>';
+  h+='<div class="game-cover-info">';
+  h+='<div class="game-cover-title">'+g.title+'</div>';
+  h+='<div class="game-cover-desc">'+(locked?'Finish your work first!':g.desc)+'</div>';
+  h+='</div></div>';
+});
+h+='</div>';
+
 document.getElementById('gameGrid').innerHTML=h;
 }
 
