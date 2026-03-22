@@ -64,7 +64,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 
 /* GAME */
 #gameScreen{padding:0;max-width:100%;min-height:100vh;min-height:100dvh;justify-content:center;align-items:center;position:relative}
-#canvasWrap{position:relative;overflow:hidden;cursor:pointer;touch-action:manipulation;display:flex;justify-content:center;align-items:flex-start;width:100%;height:100vh;height:100dvh}
+#canvasWrap{position:relative;overflow:hidden;cursor:pointer;touch-action:manipulation;display:flex;justify-content:center;align-items:center;width:100%;height:100vh;height:100dvh;padding-top:20px}
 #gameCanvas{display:block}
 .game-hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:center;padding:20px;pointer-events:none;z-index:5}
 .hud-score{font-family:'Fredoka',sans-serif;font-size:clamp(32px,8vw,48px);font-weight:900;color:#fff;text-shadow:0 3px 10px rgba(0,0,0,.6),0 0 30px rgba(0,0,0,.4);letter-spacing:-2px;-webkit-text-stroke:2px rgba(0,0,0,.15)}
@@ -387,7 +387,7 @@ var dangerTimer=0;
 var DANGER_TIME=90; // frames above line before game over (~1.5s at 60fps)
 
 // Physics constants
-var GRAVITY=0.35;
+var GRAVITY=0.25;
 var FRICTION=0.8;
 var BOUNCE=0.3;
 
@@ -501,37 +501,42 @@ function update(){
     if(f.y+f.r>CH){f.y=CH-f.r;f.vy=-Math.abs(f.vy)*BOUNCE;if(Math.abs(f.vy)<0.5)f.vy=0;f.vx*=FRICTION}
   }
 
-  // Fruit-fruit collision
-  for(var i=0;i<fruits.length;i++){
-    for(var j=i+1;j<fruits.length;j++){
-      var a=fruits[i],b=fruits[j];
-      if(a.merging||b.merging)continue;
-      var dx=b.x-a.x,dy=b.y-a.y;
-      var dist=Math.sqrt(dx*dx+dy*dy);
-      var minDist=a.r+b.r;
-      if(dist<minDist&&dist>0){
-        // Same type => merge
-        if(a.type===b.type&&a.type<FRUIT_TYPES.length-1&&a.age>3&&b.age>3){
-          mergeFruits(i,j);
-          return; // restart collision loop next frame
-        }
-        // Push apart
-        var overlap=minDist-dist;
-        var nx=dx/dist,ny=dy/dist;
-        var pushX=nx*overlap*0.5,pushY=ny*overlap*0.5;
-        a.x-=pushX;a.y-=pushY;
-        b.x+=pushX;b.y+=pushY;
-        // Transfer some velocity
-        var relVx=a.vx-b.vx,relVy=a.vy-b.vy;
-        var relDot=relVx*nx+relVy*ny;
-        if(relDot>0){
+  // Fruit-fruit collision — multiple iterations for stable stacking
+  for(var iter=0;iter<3;iter++){
+    for(var i=0;i<fruits.length;i++){
+      for(var j=i+1;j<fruits.length;j++){
+        var a=fruits[i],b=fruits[j];
+        if(a.merging||b.merging)continue;
+        var dx=b.x-a.x,dy=b.y-a.y;
+        var dist=Math.sqrt(dx*dx+dy*dy);
+        var minDist=a.r+b.r;
+        if(dist<minDist&&dist>0.01){
+          // Same type => merge
+          if(a.type===b.type&&a.type<FRUIT_TYPES.length-1&&a.age>3&&b.age>3){
+            mergeFruits(i,j);
+            return; // restart collision loop next frame
+          }
+          // Push apart — push 60% of overlap (over-correct to prevent sinking)
+          var overlap=minDist-dist;
+          var nx=dx/dist,ny=dy/dist;
           var massA=a.r*a.r,massB=b.r*b.r;
           var totalMass=massA+massB;
-          var impulse=relDot*0.8;
-          a.vx-=impulse*nx*(massB/totalMass);
-          a.vy-=impulse*ny*(massB/totalMass);
-          b.vx+=impulse*nx*(massA/totalMass);
-          b.vy+=impulse*ny*(massA/totalMass);
+          var pushA=overlap*(massB/totalMass)*0.7;
+          var pushB=overlap*(massA/totalMass)*0.7;
+          a.x-=nx*pushA;a.y-=ny*pushA;
+          b.x+=nx*pushB;b.y+=ny*pushB;
+          // Transfer velocity on first iteration only
+          if(iter===0){
+            var relVx=a.vx-b.vx,relVy=a.vy-b.vy;
+            var relDot=relVx*nx+relVy*ny;
+            if(relDot>0){
+              var impulse=relDot*0.6;
+              a.vx-=impulse*nx*(massB/totalMass);
+              a.vy-=impulse*ny*(massB/totalMass);
+              b.vx+=impulse*nx*(massA/totalMass);
+              b.vy+=impulse*ny*(massA/totalMass);
+            }
+          }
         }
       }
     }
@@ -541,12 +546,12 @@ function update(){
   for(var i=0;i<fruits.length;i++){
     var f=fruits[i];
     if(f.merging)continue;
-    if(f.x-f.r<WALL_THICK){f.x=WALL_THICK+f.r}
-    if(f.x+f.r>CW-WALL_THICK){f.x=CW-WALL_THICK-f.r}
-    if(f.y+f.r>CH){f.y=CH-f.r}
+    if(f.x-f.r<WALL_THICK){f.x=WALL_THICK+f.r;f.vx=0}
+    if(f.x+f.r>CW-WALL_THICK){f.x=CW-WALL_THICK-f.r;f.vx=0}
+    if(f.y+f.r>CH){f.y=CH-f.r;f.vy=0;f.vx*=FRICTION}
     // Cap velocity
-    if(f.vx>8)f.vx=8;if(f.vx<-8)f.vx=-8;
-    if(f.vy>10)f.vy=10;if(f.vy<-10)f.vy=-10;
+    if(f.vx>6)f.vx=6;if(f.vx<-6)f.vx=-6;
+    if(f.vy>8)f.vy=8;if(f.vy<-8)f.vy=-8;
   }
 
   // Check danger line (game over if fruit stays above danger line)
