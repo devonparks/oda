@@ -448,10 +448,11 @@ function computeBoardLayout(force){
   boardEntries = [];
   if(board.length === 0) return;
 
-  // Single horizontal row, centered. If chain is wider than canvas, scale down.
+  // Single horizontal row, full size. Board pans to keep latest action visible.
   const entries = [];
+  boardScale = 1;
 
-  // First: compute total chain width at full scale
+  // Compute total chain width at full scale
   let totalWidth = 0;
   for(let i = 0; i < board.length; i++){
     const dbl = isDouble(board[i].tile);
@@ -459,21 +460,26 @@ function computeBoardLayout(force){
     if(i < board.length - 1) totalWidth += GAP;
   }
 
-  // Scale factor to fit within canvas
+  // Center the chain if it fits; otherwise offset so the right end is visible
   const availW = canvasW - MARGIN * 2;
-  const scale = Math.min(1, availW / totalWidth);
-  boardScale = scale;
+  let startX;
+  if(totalWidth <= availW){
+    startX = (canvasW - totalWidth) / 2;
+  } else {
+    // Pan so the rightmost tile is visible with some margin
+    startX = canvasW - MARGIN - totalWidth;
+    // But don't let left side go too far off screen either
+    startX = Math.max(startX, -(totalWidth - availW) - MARGIN);
+  }
 
-  // Compute positions centered on canvas
-  const scaledTotal = totalWidth * scale;
-  let cx = (canvasW - scaledTotal) / 2;
+  let cx = startX;
   const cy = canvasH / 2;
 
   for(let i = 0; i < board.length; i++){
     const entry = board[i];
     const dbl = isDouble(entry.tile);
     const horizontal = !dbl;
-    const extent = (dbl ? TILE_W : TILE_H) * scale;
+    const extent = dbl ? TILE_W : TILE_H;
 
     cx += extent; // move to center of tile
 
@@ -485,10 +491,10 @@ function computeBoardLayout(force){
       y: cy,
       horizontal: horizontal,
       isDouble: dbl,
-      scale: scale
+      scale: 1
     });
 
-    cx += extent + GAP * scale; // move past tile + gap
+    cx += extent + GAP; // move past tile + gap
   }
 
   boardEntries = entries;
