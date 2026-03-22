@@ -128,6 +128,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <span class="bp-label">&#127942; Best</span>
     <span class="bp-val" id="homeBest">0</span>
   </div>
+  <div class="diff-row" style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
+    <button class="diff-btn active" onclick="setDifficulty('easy',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--accent);background:rgba(6,214,160,.15);color:var(--accent);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Easy</button>
+    <button class="diff-btn" onclick="setDifficulty('medium',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Medium</button>
+    <button class="diff-btn" onclick="setDifficulty('hard',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Hard</button>
+  </div>
   <div class="home-actions">
     <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
     <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
@@ -249,7 +254,7 @@ function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').inne
 /* COSMETICS             */
 /* ===================== */
 var myCosmetics={};
-var birdColor='#fbbf24',birdAccent='#f59e0b';
+var birdColor='#ef4444',birdAccent='#dc2626';
 var pipeColor='#06d6a0',pipeCap='#059669';
 var skyTop='#1a1a2e',skyBottom='#16213e',groundColor='#2a3450';
 
@@ -269,9 +274,10 @@ async function loadMyCosmetics(){
 }
 loadMyCosmetics();
 
+var birdBeak='#f97316',birdBelly='#fbbf24';
 function applyCosmeticStyles(){
-  var bs=myCosmetics['Bird Skin'];
-  if(bs&&bs.value){birdColor=bs.value.color||'#fbbf24';birdAccent=bs.value.accent||'#f59e0b'}
+  var bs=myCosmetics['Bird Type'];
+  if(bs&&bs.value){birdColor=bs.value.color||'#ef4444';birdAccent=bs.value.accent||'#dc2626';birdBeak=bs.value.beak||'#f97316';birdBelly=bs.value.belly||'#fbbf24'}
   var pt=myCosmetics['Pipe Theme'];
   if(pt&&pt.value){pipeColor=pt.value.color||'#06d6a0';pipeCap=pt.value.cap||'#059669'}
   var st=myCosmetics['Sky Theme'];
@@ -282,14 +288,14 @@ function applyCosmeticStyles(){
 /* SHOP                  */
 /* ===================== */
 var FLAPPY_SHOP=[
-  {id:'fb_classic',name:'Classic',emoji:'\u{1F426}',cost:0,slot:'Bird Skin',value:{color:'#fbbf24',accent:'#f59e0b'}},
-  {id:'fb_neon',name:'Neon',emoji:'\u{1F49A}',cost:150,slot:'Bird Skin',value:{color:'#06d6a0',accent:'#059669'}},
-  {id:'fb_fire',name:'Fire',emoji:'\u{1F525}',cost:200,slot:'Bird Skin',value:{color:'#ef4444',accent:'#dc2626'}},
-  {id:'fb_ice',name:'Ice',emoji:'\u2744',cost:200,slot:'Bird Skin',value:{color:'#22d3ee',accent:'#0891b2'}},
-  {id:'fb_gold',name:'Gold',emoji:'\u{1F451}',cost:300,slot:'Bird Skin',value:{color:'#ffd700',accent:'#b8860b'}},
-  {id:'fb_purple',name:'Galaxy',emoji:'\u{1F30C}',cost:400,slot:'Bird Skin',value:{color:'#a855f7',accent:'#7c3aed'}},
-  {id:'fb_robot',name:'Robot',emoji:'\u{1F916}',cost:500,slot:'Bird Skin',value:{color:'#94a3b8',accent:'#64748b'}},
-  {id:'fb_angel',name:'Angel',emoji:'\u{1F47C}',cost:600,slot:'Bird Skin',value:{color:'#fef3c7',accent:'#fbbf24'}},
+  {id:'fb_robin',name:'Robin',emoji:'\u{1F426}',cost:0,slot:'Bird Type',value:{color:'#ef4444',accent:'#dc2626',beak:'#f97316',belly:'#fbbf24'}},
+  {id:'fb_parrot',name:'Parrot',emoji:'\u{1F99C}',cost:100,slot:'Bird Type',value:{color:'#06d6a0',accent:'#059669',beak:'#f97316',belly:'#fef08a'}},
+  {id:'fb_owl',name:'Owl',emoji:'\u{1F989}',cost:150,slot:'Bird Type',value:{color:'#78716c',accent:'#57534e',beak:'#92400e',belly:'#d6d3d1'}},
+  {id:'fb_penguin',name:'Penguin',emoji:'\u{1F427}',cost:200,slot:'Bird Type',value:{color:'#1e293b',accent:'#0f172a',beak:'#f97316',belly:'#f1f5f9'}},
+  {id:'fb_flamingo',name:'Flamingo',emoji:'\u{1FA69}',cost:250,slot:'Bird Type',value:{color:'#f472b6',accent:'#ec4899',beak:'#111',belly:'#fce7f3'}},
+  {id:'fb_eagle',name:'Eagle',emoji:'\u{1F985}',cost:350,slot:'Bird Type',value:{color:'#78350f',accent:'#451a03',beak:'#fbbf24',belly:'#fef3c7'}},
+  {id:'fb_phoenix',name:'Phoenix',emoji:'\u{1F525}',cost:500,slot:'Bird Type',value:{color:'#f97316',accent:'#ea580c',beak:'#fbbf24',belly:'#fef08a'}},
+  {id:'fb_dragon',name:'Dragon',emoji:'\u{1F409}',cost:750,slot:'Bird Type',value:{color:'#7c3aed',accent:'#6d28d9',beak:'#06d6a0',belly:'#c4b5fd'}},
 
   {id:'fp_classic',name:'Classic',emoji:'\u{1F7E2}',cost:0,slot:'Pipe Theme',value:{color:'#06d6a0',cap:'#059669'}},
   {id:'fp_neon',name:'Neon',emoji:'\u{1F4A1}',cost:200,slot:'Pipe Theme',value:{color:'#39ff14',cap:'#00cc00'}},
@@ -374,7 +380,21 @@ loadLocalStats();
 /* ===================== */
 var canvas,ctx,W,H,dpr;
 var bird,pipes,score,gameState,animId,groundY;
-var GRAVITY=0.18,FLAP=-5,PIPE_SPEED=1.8,PIPE_GAP=210,PIPE_WIDTH=60,PIPE_SPACING=450;
+var difficulty='easy';
+var DIFFICULTIES={
+  easy:{gravity:0.2,flap:-5.2,speed:2.0,gap:210,spacing:480,gapShrink:0.15,speedRamp:0.01,maxSpeed:3.2,minGap:150},
+  medium:{gravity:0.28,flap:-5.8,speed:2.5,gap:175,spacing:400,gapShrink:0.3,speedRamp:0.02,maxSpeed:4.5,minGap:120},
+  hard:{gravity:0.35,flap:-6.5,speed:3.0,gap:145,spacing:340,gapShrink:0.5,speedRamp:0.03,maxSpeed:6,minGap:95}
+};
+var GRAVITY,FLAP,PIPE_SPEED,PIPE_GAP,PIPE_WIDTH=60,PIPE_SPACING;
+function applyDifficulty(){var d=DIFFICULTIES[difficulty];GRAVITY=d.gravity;FLAP=d.flap;PIPE_SPEED=d.speed;PIPE_GAP=d.gap;PIPE_SPACING=d.spacing}
+applyDifficulty();
+
+window.setDifficulty=function(diff,btn){
+  difficulty=diff;applyDifficulty();
+  document.querySelectorAll('.diff-btn').forEach(function(b){b.style.borderColor='var(--border)';b.style.background='none';b.style.color='var(--text2)'});
+  if(btn){btn.style.borderColor='var(--accent)';btn.style.background='rgba(6,214,160,.15)';btn.style.color='var(--accent)'}
+};
 var BIRD_SIZE=28,GROUND_HEIGHT=60;
 var frameCount=0,coinsAwarded=false;
 
@@ -391,6 +411,7 @@ function initCanvas(){
 
 function startGame(){
   showScreen('gameScreen');
+  applyDifficulty();
   initCanvas();
   bird={x:W*0.25,y:H*0.4,vy:0,rotation:0,flapFrame:0};
   pipes=[];score=0;frameCount=0;coinsAwarded=false;
@@ -414,7 +435,8 @@ function spawnPipe(){
   var minY=80;var maxY=groundY-PIPE_GAP-80;
   var gapY=minY+Math.random()*(maxY-minY);
   // Narrow gap slightly as score increases
-  var gap=Math.max(140,PIPE_GAP-score*0.25);
+  var d=DIFFICULTIES[difficulty];
+  var gap=Math.max(d.minGap,PIPE_GAP-score*d.gapShrink);
   pipes.push({x:W+20,gapY:gapY,gapH:gap,scored:false});
 }
 
@@ -430,7 +452,8 @@ function update(){
   if(bird.flapFrame>0)bird.flapFrame--;
 
   // Spawn pipes
-  var speed=Math.min(3.5,PIPE_SPEED+score*0.015);
+  var d2=DIFFICULTIES[difficulty];
+  var speed=Math.min(d2.maxSpeed,PIPE_SPEED+score*d2.speedRamp);
   var pipeSpace=Math.max(PIPE_SPACING,W*0.45);
   if(pipes.length===0||pipes[pipes.length-1].x<W-pipeSpace){
     spawnPipe();
@@ -528,18 +551,28 @@ function draw(){
   // Body
   ctx.fillStyle=birdColor;
   ctx.beginPath();ctx.ellipse(0,0,BIRD_SIZE,BIRD_SIZE*0.8,0,0,Math.PI*2);ctx.fill();
+  // Belly
+  ctx.fillStyle=birdBelly;
+  ctx.beginPath();ctx.ellipse(BIRD_SIZE*0.15,BIRD_SIZE*0.15,BIRD_SIZE*0.45,BIRD_SIZE*0.4,0,0,Math.PI*2);ctx.fill();
   // Wing
   ctx.fillStyle=birdAccent;
-  var wingY=bird.flapFrame>0?-6:2;
-  ctx.beginPath();ctx.ellipse(-4,wingY,BIRD_SIZE*0.5,BIRD_SIZE*0.35,bird.flapFrame>0?-0.3:0.2,0,Math.PI*2);ctx.fill();
-  // Eye
+  var wingY=bird.flapFrame>0?-8:3;
+  var wingAngle=bird.flapFrame>0?-0.4:0.25;
+  ctx.beginPath();ctx.ellipse(-4,wingY,BIRD_SIZE*0.55,BIRD_SIZE*0.3,wingAngle,0,Math.PI*2);ctx.fill();
+  // Eye (bigger, more expressive)
   ctx.fillStyle='#fff';
-  ctx.beginPath();ctx.arc(BIRD_SIZE*0.4,-BIRD_SIZE*0.15,5,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(BIRD_SIZE*0.35,-BIRD_SIZE*0.2,6,0,Math.PI*2);ctx.fill();
   ctx.fillStyle='#111';
-  ctx.beginPath();ctx.arc(BIRD_SIZE*0.45,-BIRD_SIZE*0.15,2.5,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(BIRD_SIZE*0.4,-BIRD_SIZE*0.2,3,0,Math.PI*2);ctx.fill();
+  // Eye highlight
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.arc(BIRD_SIZE*0.43,-BIRD_SIZE*0.25,1.2,0,Math.PI*2);ctx.fill();
   // Beak
-  ctx.fillStyle='#f97316';
-  ctx.beginPath();ctx.moveTo(BIRD_SIZE*0.7,0);ctx.lineTo(BIRD_SIZE*1.1,-4);ctx.lineTo(BIRD_SIZE*1.1,4);ctx.closePath();ctx.fill();
+  ctx.fillStyle=birdBeak;
+  ctx.beginPath();ctx.moveTo(BIRD_SIZE*0.7,-2);ctx.lineTo(BIRD_SIZE*1.15,-3);ctx.lineTo(BIRD_SIZE*1.15,3);ctx.lineTo(BIRD_SIZE*0.7,4);ctx.closePath();ctx.fill();
+  // Beak line
+  ctx.strokeStyle='rgba(0,0,0,0.2)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(BIRD_SIZE*0.7,1);ctx.lineTo(BIRD_SIZE*1.1,0);ctx.stroke();
   ctx.restore();
 }
 
