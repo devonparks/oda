@@ -63,13 +63,27 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .how-to p{font-size:13px;color:var(--text2);line-height:1.6}
 
 /* GAME */
-#gameScreen{padding:0;max-width:100%;min-height:100vh;min-height:100dvh;justify-content:center;align-items:center;position:relative}
-#canvasWrap{width:100%;height:100vh;height:100dvh;position:relative;overflow:hidden;cursor:crosshair;touch-action:manipulation}
+#gameScreen{padding:0;max-width:1100px;min-height:auto;justify-content:center;align-items:center;position:relative}
+#canvasWrap{width:100%;max-width:1100px;height:75vh;position:relative;overflow:hidden;cursor:crosshair;touch-action:manipulation}
 #gameCanvas{display:block;width:100%;height:100%}
 .game-hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:center;padding:20px;pointer-events:none;z-index:5}
-.hud-score{font-family:'Fredoka',sans-serif;font-size:clamp(32px,8vw,48px);font-weight:900;color:#fff;text-shadow:0 3px 10px rgba(0,0,0,.6),0 0 30px rgba(0,0,0,.4);letter-spacing:-1px;-webkit-text-stroke:1px rgba(0,0,0,.15)}
+.hud-score{font-family:'Fredoka',sans-serif;font-size:clamp(28px,7vw,42px);font-weight:900;color:#fff;text-shadow:0 3px 10px rgba(0,0,0,.6),0 0 30px rgba(0,0,0,.4);letter-spacing:-1px;-webkit-text-stroke:1px rgba(0,0,0,.15)}
 .hud-info{position:absolute;top:20px;left:20px;display:flex;flex-direction:column;gap:6px;pointer-events:none;z-index:5}
 .hud-info span{font-family:'Fredoka',sans-serif;font-size:16px;font-weight:700;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.5)}
+
+/* SAVE PHASE BUTTONS */
+.save-btns{position:absolute;bottom:20%;left:50%;transform:translateX(-50%);display:none;gap:10px;z-index:8;pointer-events:auto}
+.save-btns.active{display:flex}
+.save-btn{padding:14px 22px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:800;font-size:15px;cursor:pointer;color:#fff;transition:all .15s;min-width:100px;text-align:center;touch-action:manipulation;text-shadow:0 1px 4px rgba(0,0,0,.4)}
+.save-btn:active{transform:scale(.93)}
+.save-btn.left{background:linear-gradient(135deg,#3b82f6,#2563eb)}
+.save-btn.center{background:linear-gradient(135deg,#8b5cf6,#7c3aed)}
+.save-btn.right{background:linear-gradient(135deg,#f59e0b,#d97706)}
+.save-btn:hover{filter:brightness(1.15);box-shadow:0 0 16px rgba(255,255,255,.2)}
+
+/* SAVE COUNTDOWN */
+.save-countdown{position:absolute;top:12%;left:50%;transform:translateX(-50%);font-family:'Fredoka',sans-serif;font-size:clamp(18px,4vw,26px);font-weight:700;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.6);pointer-events:none;z-index:8;display:none;text-align:center}
+.save-countdown.active{display:block}
 
 /* GAME OVER OVERLAY */
 .go-overlay{position:absolute;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:10;gap:12px;padding:24px;animation:fadeUp .3s ease}
@@ -122,11 +136,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 <div class="screen active" id="homeScreen">
   <div class="home-header">
     <h1><span class="hl">Penalty</span> Kick</h1>
-    <p>Aim, power up, and score!</p>
+    <p>Kick &amp; Save &mdash; 5 rounds of shootout!</p>
   </div>
   <div class="best-pill">
     <span class="bp-label">&#9917; Best</span>
-    <span class="bp-val" id="homeBest">0/5</span>
+    <span class="bp-val" id="homeBest">0-0</span>
   </div>
   <div class="diff-row" style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
     <button class="diff-btn active" onclick="setDifficulty('easy',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--accent);background:rgba(6,214,160,.15);color:var(--accent);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Easy</button>
@@ -144,7 +158,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   </div>
   <div class="how-to">
     <h3>How to Play</h3>
-    <p>Move your mouse to aim at the goal. Click &amp; hold to charge power, release to kick! Too much power and you'll miss high. Score as many goals as you can in 5 kicks!</p>
+    <p>Each round you KICK then SAVE. Aim at the goal, click &amp; hold to charge accuracy, release to kick. Then pick Dive Left, Stay, or Dive Right to save the AI's shot. 5 rounds total!</p>
   </div>
 </div>
 
@@ -152,16 +166,23 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 <div class="screen" id="gameScreen">
   <div id="canvasWrap">
     <canvas id="gameCanvas"></canvas>
-    <div class="game-hud"><div class="hud-score" id="hudScore">0 / 5</div></div>
+    <div class="game-hud"><div class="hud-score" id="hudScore">You 0 - 0 AI</div></div>
     <div class="hud-info">
-      <span id="hudGoals">&#9917; Goals: 0</span>
-      <span id="hudKick">Kick: 1 / 5</span>
+      <span id="hudRound">Round: 1 / 5</span>
+      <span id="hudPhase">&#9917; Your Kick</span>
     </div>
+    <!-- Save phase buttons -->
+    <div class="save-btns" id="saveBtns">
+      <button class="save-btn left" onclick="pickDive('left')">&#11013; Dive Left</button>
+      <button class="save-btn center" onclick="pickDive('center')">&#129485; Stay</button>
+      <button class="save-btn right" onclick="pickDive('right')">Dive Right &#10145;</button>
+    </div>
+    <div class="save-countdown" id="saveCountdown"></div>
     <div class="go-overlay" id="gameOverOverlay">
       <h2 id="goTitle">Full Time!</h2>
-      <div class="go-label">Goals Scored</div>
-      <div class="go-score" id="goScore">0 / 5</div>
-      <div class="go-best" id="goBest">Best: 0/5</div>
+      <div class="go-label">Final Score</div>
+      <div class="go-score" id="goScore">0 - 0</div>
+      <div class="go-best" id="goBest">Best: 0-0</div>
       <div class="go-new" id="goNew" style="display:none">New Best! &#127881;</div>
       <div class="go-coins" id="goCoins">+0 coins</div>
       <div class="go-btns">
@@ -178,7 +199,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Penalty Kick stats &amp; leaderboard</p>
   <div class="records-container">
     <div class="stats-grid" id="statsGrid">
-      <div class="stat-card"><div class="sv gold" id="statBest">0/5</div><div class="sl">Best Score</div></div>
+      <div class="stat-card"><div class="sv gold" id="statBest">0-0</div><div class="sl">Best Score</div></div>
       <div class="stat-card"><div class="sv" id="statPlayed">0</div><div class="sl">Games Played</div></div>
       <div class="stat-card"><div class="sv" id="statTotalGoals">0</div><div class="sl">Total Goals</div></div>
       <div class="stat-card"><div class="sv" id="statCoins">0</div><div class="sl">Coins Earned</div></div>
@@ -223,6 +244,7 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
   document.getElementById(id).classList.add('active');
   document.body.classList.toggle('in-game',id==='gameScreen');
+  if(id!=='gameScreen')stopGame();
   if(id==='homeScreen')loadLocalStats();
 }
 
@@ -365,9 +387,10 @@ var localTotalGoals=parseInt(localStorage.getItem('pk_totalGoals'))||0;
 var localTotalCoins=parseInt(localStorage.getItem('pk_totalCoins'))||0;
 var localHatTrick=localStorage.getItem('pk_hatTrick')==='true';
 var localHardWin=localStorage.getItem('pk_hardWin')==='true';
+var localBestStr=localStorage.getItem('pk_bestStr')||'0-0';
 
 function loadLocalStats(){
-  document.getElementById('homeBest').textContent=localBest+'/5';
+  document.getElementById('homeBest').textContent=localBestStr;
   document.getElementById('homeGames').textContent=localGames;
   document.getElementById('homeTotalGoals').textContent=localTotalGoals;
 }
@@ -378,9 +401,9 @@ loadLocalStats();
 /* ===================== */
 var difficulty='easy';
 var DIFFICULTIES={
-  easy:{keeperSpeed:0.015,diveRange:0.55,readsAim:false,reactionDelay:0.15},
-  medium:{keeperSpeed:0.025,diveRange:0.7,readsAim:false,reactionDelay:0.08},
-  hard:{keeperSpeed:0.035,diveRange:0.85,readsAim:true,reactionDelay:0.02}
+  easy:{keeperSpeed:0.012,diveRange:0.4,readsAim:false,readChance:0},
+  medium:{keeperSpeed:0.022,diveRange:0.6,readsAim:false,readChance:0},
+  hard:{keeperSpeed:0.032,diveRange:0.8,readsAim:true,readChance:0.5}
 };
 
 window.setDifficulty=function(diff,btn){
@@ -393,35 +416,57 @@ window.setDifficulty=function(diff,btn){
 /* GAME ENGINE           */
 /* ===================== */
 var canvas,ctx,W,H,dpr;
-var animId,frameCount=0;
+var animId=null,frameCount=0;
+var gameTimers=[];
 
-// Game state
-var gamePhase='aiming'; // aiming, charging, flying, result, done
-var goals=0,kicks=0,maxKicks=5;
-var coinsAwarded=false;
-var consecutiveGoals=0;
-var sessionHatTrick=false;
+/* ---------- Game State (multiplayer-ready) ---------- */
+var GS={
+  round:0,          // 0-indexed, 5 rounds total
+  phase:'idle',     // idle, kick_aim, kick_charge, kick_fly, kick_result, save_choose, save_fly, save_result, done
+  maxRounds:5,
+  p1Goals:0,        // player goals (kick phase)
+  p2Goals:0,        // AI goals (save phase)
+  p1Saves:0,        // player saves
+  consecutiveGoals:0,
+  sessionHatTrick:false,
+  coinsAwarded:false,
+  // kick data
+  kickAim:{x:0.5,y:0.4},
+  kickAccuracy:0,
+  // save data
+  diveChoice:null,   // 'left','center','right'
+  aiAimZone:null,    // 'left','center','right'
+};
 
 // Aim
-var aimX=0.5,aimY=0.4; // normalized 0-1 within goal area
+var aimX=0.5,aimY=0.4;
 
-// Power
-var power=0,charging=false,powerDir=1;
-var POWER_SPEED=0.018;
+// Accuracy meter (oscillating)
+var accuracy=0,charging=false,accDir=1;
+var ACC_SPEED=0.016;
 
-// Ball flight
+// Ball flight (kick phase)
 var ball={},ballFlying=false;
-var ballStart={},ballTarget={},ballFlight=0,ballFlightSpeed=0.025;
+var ballStart={},ballTarget={},ballFlight=0,ballFlightSpeed=0.022;
 
-// Goalkeeper
+// AI ball flight (save phase)
+var aiBall={},aiBallFlying=false;
+var aiBallStart={},aiBallTarget={},aiBallFlight=0;
+
+// Goalkeeper (kick phase — AI keeper)
 var keeper={x:0.5,targetX:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
-var KEEPER_ZONES=['left','center-left','center','center-right','right'];
+
+// Player keeper (save phase)
+var playerKeeper={x:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
 
 // Result display
-var resultText='',resultTimer=0;
+var resultText='',resultColor='#fff',resultTimer=0;
 
 // Celebration particles
 var particles=[];
+
+// Save phase countdown
+var saveCountdown=3,saveCountdownTimer=null;
 
 // Goal dimensions (normalized percentages of canvas)
 var GOAL={left:0.2,right:0.8,top:0.15,bottom:0.55};
@@ -436,245 +481,270 @@ function initCanvas(){
   ctx.setTransform(dpr,0,0,dpr,0,0);
 }
 
+function addTimer(fn,ms){
+  var id=setTimeout(fn,ms);
+  gameTimers.push(id);
+  return id;
+}
+
+function stopGame(){
+  if(animId){cancelAnimationFrame(animId);animId=null}
+  gameTimers.forEach(function(id){clearTimeout(id)});
+  gameTimers=[];
+  if(saveCountdownTimer){clearInterval(saveCountdownTimer);saveCountdownTimer=null}
+  GS.phase='idle';
+  document.getElementById('saveBtns').classList.remove('active');
+  document.getElementById('saveCountdown').classList.remove('active');
+}
+
 function startGame(){
+  stopGame();
   showScreen('gameScreen');
   initCanvas();
-  goals=0;kicks=0;coinsAwarded=false;consecutiveGoals=0;sessionHatTrick=false;
-  particles=[];
   applyCosmeticStyles();
-  resetKick();
+  particles=[];
+
+  GS.round=0;
+  GS.phase='idle';
+  GS.p1Goals=0;
+  GS.p2Goals=0;
+  GS.p1Saves=0;
+  GS.consecutiveGoals=0;
+  GS.sessionHatTrick=false;
+  GS.coinsAwarded=false;
+
   document.getElementById('gameOverOverlay').classList.remove('active');
+  document.getElementById('saveBtns').classList.remove('active');
+  document.getElementById('saveCountdown').classList.remove('active');
   updateHUD();
-  if(animId)cancelAnimationFrame(animId);
+
+  // Start first round kick phase after short delay
+  addTimer(function(){beginKickPhase()},600);
   gameLoop();
 }
 
-function resetKick(){
-  gamePhase='aiming';
-  power=0;charging=false;powerDir=1;
-  ballFlying=false;ballFlight=0;
-  keeper={x:0.5,targetX:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
-  resultText='';resultTimer=0;
-  aimX=0.5;aimY=0.4;
-}
-
+/* ---------- HUD ---------- */
 function updateHUD(){
-  document.getElementById('hudScore').textContent=goals+' / '+kicks;
-  document.getElementById('hudGoals').textContent='\u26BD Goals: '+goals;
-  document.getElementById('hudKick').textContent='Kick: '+Math.min(kicks+1,maxKicks)+' / '+maxKicks;
+  document.getElementById('hudScore').textContent='You '+GS.p1Goals+' - '+GS.p2Goals+' AI';
+  document.getElementById('hudRound').textContent='Round: '+Math.min(GS.round+1,GS.maxRounds)+' / '+GS.maxRounds;
+  var phaseLabel='\u26BD Your Kick';
+  if(GS.phase==='save_choose'||GS.phase==='save_fly'||GS.phase==='save_result')phaseLabel='\u{1F9E4} Your Save';
+  document.getElementById('hudPhase').textContent=phaseLabel;
 }
 
-/* ===================== */
-/* GOAL ZONE HELPERS     */
-/* ===================== */
+/* ---------- Goal Zone Helpers ---------- */
 function getGoalPixels(){
-  // Returns goal rect in pixel coordinates
   var gL=W*GOAL.left,gR=W*GOAL.right,gT=H*GOAL.top,gB=H*GOAL.bottom;
   return {left:gL,right:gR,top:gT,bottom:gB,width:gR-gL,height:gB-gT,cx:(gL+gR)/2,cy:(gT+gB)/2};
 }
 
 function aimToGoalPos(ax,ay){
-  // Converts normalized aim (0-1) to pixel position on goal
   var g=getGoalPixels();
-  return {x:g.left+ax*g.width, y:g.top+ay*g.height};
+  return {x:g.left+ax*g.width,y:g.top+ay*g.height};
 }
 
-function getAimZone(ax){
-  // Returns which zone the aim is in (0-4)
-  if(ax<0.2)return 0; // left
-  if(ax<0.4)return 1; // center-left
-  if(ax<0.6)return 2; // center
-  if(ax<0.8)return 3; // center-right
-  return 4; // right
+/* ---------- KICK PHASE ---------- */
+function beginKickPhase(){
+  GS.phase='kick_aim';
+  charging=false;accuracy=0;accDir=1;
+  ballFlying=false;ballFlight=0;
+  keeper={x:0.5,targetX:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
+  resultText='';resultTimer=0;
+  aimX=0.5;aimY=0.4;
+  updateHUD();
 }
 
-/* ===================== */
-/* KEEPER AI             */
-/* ===================== */
 function chooseKeeperDive(){
   var diff=DIFFICULTIES[difficulty];
-  var zone;
-  if(diff.readsAim){
-    // Hard mode: keeper reads aim direction with some randomness
-    var aimZone=getAimZone(aimX);
-    if(Math.random()<0.6){
-      zone=aimZone; // 60% chance keeper reads correctly
-    }else{
-      zone=Math.floor(Math.random()*5);
-    }
+  var targetNormX;
+  if(diff.readsAim&&Math.random()<diff.readChance){
+    // Keeper reads aim direction
+    targetNormX=aimX;
+    // Add some imprecision
+    targetNormX+=((Math.random()-0.5)*0.2);
+    targetNormX=Math.max(0.1,Math.min(0.9,targetNormX));
   }else{
-    zone=Math.floor(Math.random()*5);
+    // Random dive
+    targetNormX=0.1+Math.random()*0.8;
   }
-  // Convert zone to x position (0-1)
-  var positions=[0.15,0.3,0.5,0.7,0.85];
-  keeper.targetX=positions[zone];
-  keeper.diveDir=zone<2?-1:(zone>2?1:0);
+  keeper.targetX=targetNormX;
+  keeper.diveDir=targetNormX<0.4?-1:(targetNormX>0.6?1:0);
   keeper.diving=true;
   keeper.diveProgress=0;
 }
 
-/* ===================== */
-/* KICK LOGIC            */
-/* ===================== */
 function doKick(){
-  if(gamePhase!=='charging')return;
-  gamePhase='flying';
+  if(GS.phase!=='kick_charge')return;
+  GS.phase='kick_fly';
   sfxKick();
 
-  // Calculate target based on aim + power randomness
-  var powerFactor=power;
-  var accuracy=1-Math.pow(power,1.5)*0.6; // More power = less accuracy
-  var randX=(Math.random()-0.5)*0.15*(1-accuracy+0.2);
-  var randY=(Math.random()-0.5)*0.1*(1-accuracy+0.2);
+  GS.kickAim={x:aimX,y:aimY};
+  GS.kickAccuracy=accuracy;
 
-  // If power is too high (>0.9), ball sails over
-  var overBar=false;
-  var targetAimY=aimY+randY;
-  if(power>0.88){
-    targetAimY=-0.3-Math.random()*0.3; // Goes way above
-    overBar=true;
-  }else if(power>0.78){
-    // Slight chance of going over
-    if(Math.random()<(power-0.78)*5){
-      targetAimY=-0.1-Math.random()*0.2;
-      overBar=true;
-    }
-  }
+  // Higher accuracy = ball closer to aim. Lower = more random offset
+  var offsetScale=(1-accuracy); // 0 when perfect, 1 when worst
+  var randX=(Math.random()-0.5)*0.35*offsetScale;
+  var randY=(Math.random()-0.5)*0.25*offsetScale;
 
-  var targetAimX=aimX+randX;
-  targetAimX=Math.max(-0.05,Math.min(1.05,targetAimX));
+  var targetAimX=Math.max(-0.02,Math.min(1.02,aimX+randX));
+  var targetAimY=Math.max(-0.02,Math.min(1.02,aimY+randY));
 
-  // Ball start position (bottom center)
   ballStart={x:W*0.5,y:H*0.88};
-
-  // Target on goal
   var g=getGoalPixels();
   ballTarget={
     x:g.left+targetAimX*g.width,
     y:g.top+targetAimY*g.height,
     normX:targetAimX,
-    normY:targetAimY,
-    overBar:overBar,
-    wide:targetAimX<-0.03||targetAimX>1.03
+    normY:targetAimY
   };
 
   ball={x:ballStart.x,y:ballStart.y,size:22};
   ballFlight=0;
   ballFlying=true;
-  ballFlightSpeed=0.018+power*0.012;
+  ballFlightSpeed=0.020;
 
-  // Keeper dives
   chooseKeeperDive();
 }
 
-/* ===================== */
-/* UPDATE                */
-/* ===================== */
-function update(){
-  frameCount++;
-
-  if(gamePhase==='charging'){
-    power+=POWER_SPEED*powerDir;
-    if(power>=1){power=1;powerDir=-1}
-    if(power<=0){power=0;powerDir=1}
-    if(frameCount%4===0)sfxCharge();
-  }
-
-  if(gamePhase==='flying'){
-    ballFlight+=ballFlightSpeed;
-    // Ease the ball flight
-    var t=ballFlight;
-    var easeT=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2; // easeInOutQuad
-
-    // Ball position: lerp from start to target with arc
-    ball.x=ballStart.x+(ballTarget.x-ballStart.x)*easeT;
-    ball.y=ballStart.y+(ballTarget.y-ballStart.y)*easeT-Math.sin(easeT*Math.PI)*H*0.15;
-    ball.size=22-easeT*10; // Ball gets smaller as it goes into distance
-
-    // Keeper dive animation
-    if(keeper.diving){
-      var diff=DIFFICULTIES[difficulty];
-      keeper.diveProgress+=diff.keeperSpeed+easeT*0.03;
-      if(keeper.diveProgress>1)keeper.diveProgress=1;
-      keeper.x=0.5+(keeper.targetX-0.5)*keeper.diveProgress;
-      // Keeper body leans/dives
-      if(keeper.diveDir!==0){
-        keeper.bodyY=keeper.diveProgress*25;
-      }
-    }
-
-    // Check result when ball reaches goal
-    if(ballFlight>=1){
-      resolveKick();
-    }
-  }
-
-  if(gamePhase==='result'){
-    resultTimer++;
-    // Update particles
-    for(var i=particles.length-1;i>=0;i--){
-      var p=particles[i];
-      p.x+=p.vx;p.y+=p.vy;p.vy+=0.15;p.life--;
-      if(p.life<=0)particles.splice(i,1);
-    }
-    if(resultTimer>120){
-      kicks++;
-      if(kicks>=maxKicks){
-        endGame();
-      }else{
-        resetKick();
-        updateHUD();
-      }
-    }
-  }
-}
-
 function resolveKick(){
-  gamePhase='result';
+  GS.phase='kick_result';
   resultTimer=0;
-  var missed=ballTarget.overBar||ballTarget.wide;
 
-  if(missed){
-    resultText='MISS!';
-    sfxMiss();
-    consecutiveGoals=0;
+  // Check if keeper saves
+  var diff=DIFFICULTIES[difficulty];
+  var keeperReach=diff.diveRange;
+  var dist=Math.abs(keeper.x-Math.max(0,Math.min(1,ballTarget.normX)));
+  var vertOk=ballTarget.normY>0.15;
+  var saved=dist<keeperReach*0.18&&(vertOk||Math.random()<0.4);
+
+  if(saved){
+    resultText='SAVED!';resultColor='#fbbf24';
+    sfxSave();
+    GS.consecutiveGoals=0;
   }else{
-    // Check if keeper saves
-    var keeperZone=getAimZone(keeper.x);
-    var ballZone=getAimZone(Math.max(0,Math.min(1,ballTarget.normX)));
-    var diff=DIFFICULTIES[difficulty];
-
-    // Keeper saves if in same zone
-    var saved=false;
-    var keeperReach=diff.diveRange;
-    var dist=Math.abs(keeper.x-Math.max(0,Math.min(1,ballTarget.normX)));
-    if(dist<keeperReach*0.2){
-      // Close enough to save — also check vertical
-      var verticalOk=ballTarget.normY>0.15; // Keeper can't reach very top corners easily
-      if(verticalOk||Math.random()<0.5){
-        saved=true;
-      }
-    }
-
-    if(saved){
-      resultText='SAVED!';
-      sfxSave();
-      consecutiveGoals=0;
-    }else{
-      resultText='GOAL!';
-      goals++;
-      consecutiveGoals++;
-      if(consecutiveGoals>=3)sessionHatTrick=true;
-      sfxGoal();
-      spawnCelebration();
-      updateHUD();
-    }
+    resultText='GOAL!';resultColor='#06d6a0';
+    GS.p1Goals++;
+    GS.consecutiveGoals++;
+    if(GS.consecutiveGoals>=3)GS.sessionHatTrick=true;
+    sfxGoal();
+    spawnCelebration(ball.x,ball.y);
+    updateHUD();
   }
+
+  // After 2s, transition to save phase
+  addTimer(function(){beginSavePhase()},2000);
 }
 
-function spawnCelebration(){
+/* ---------- SAVE PHASE ---------- */
+function beginSavePhase(){
+  GS.phase='save_choose';
+  GS.diveChoice=null;
+  resultText='';resultTimer=0;
+  aiBallFlying=false;aiBallFlight=0;
+
+  // Reset player keeper to center
+  playerKeeper={x:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
+
+  // AI picks a random zone to aim at
+  var zones=['left','center','right'];
+  GS.aiAimZone=zones[Math.floor(Math.random()*3)];
+
+  // Show save buttons and countdown
+  document.getElementById('saveBtns').classList.add('active');
+  document.getElementById('saveCountdown').classList.add('active');
+  saveCountdown=3;
+  document.getElementById('saveCountdown').textContent='AI is shooting! Pick a side: '+saveCountdown+'s';
+
+  updateHUD();
+
+  if(saveCountdownTimer){clearInterval(saveCountdownTimer);saveCountdownTimer=null}
+  saveCountdownTimer=setInterval(function(){
+    saveCountdown--;
+    if(saveCountdown<=0){
+      clearInterval(saveCountdownTimer);saveCountdownTimer=null;
+      if(GS.phase==='save_choose'){
+        // Auto-pick random
+        var auto=['left','center','right'];
+        pickDive(auto[Math.floor(Math.random()*3)]);
+      }
+    }else{
+      document.getElementById('saveCountdown').textContent='AI is shooting! Pick a side: '+saveCountdown+'s';
+    }
+  },1000);
+  // Also push the interval into timers for cleanup (store as negative to distinguish)
+}
+
+window.pickDive=function(choice){
+  if(GS.phase!=='save_choose')return;
+  GS.diveChoice=choice;
+  GS.phase='save_fly';
+  if(saveCountdownTimer){clearInterval(saveCountdownTimer);saveCountdownTimer=null}
+
+  // Hide buttons/countdown
+  document.getElementById('saveBtns').classList.remove('active');
+  document.getElementById('saveCountdown').classList.remove('active');
+
+  // Animate player keeper diving
+  var diveTargets={left:0.15,center:0.5,right:0.85};
+  playerKeeper.targetX=diveTargets[choice];
+  playerKeeper.diveDir=choice==='left'?-1:(choice==='right'?1:0);
+  playerKeeper.diving=true;
+  playerKeeper.diveProgress=0;
+
+  // AI ball flies toward AI's chosen zone
   var g=getGoalPixels();
-  var cx=ball.x||g.cx,cy=ball.y||g.cy;
+  var aiTargets={left:0.2,center:0.5,right:0.8};
+  var aiNormX=aiTargets[GS.aiAimZone]+(Math.random()-0.5)*0.15;
+  var aiNormY=0.2+Math.random()*0.5;
+
+  aiBallStart={x:W*0.5,y:H*0.05};
+  aiBallTarget={
+    x:g.left+aiNormX*g.width,
+    y:g.top+aiNormY*g.height,
+    normX:aiNormX,normY:aiNormY
+  };
+  aiBall={x:aiBallStart.x,y:aiBallStart.y,size:10};
+  aiBallFlight=0;
+  aiBallFlying=true;
+
+  sfxKick();
+  updateHUD();
+};
+
+function resolveSave(){
+  GS.phase='save_result';
+  resultTimer=0;
+
+  var saved=GS.diveChoice===GS.aiAimZone;
+  // Also check "close enough" — left covers left, right covers right, center covers center
+  // They must match exactly for a save
+
+  if(saved){
+    resultText='SAVE!';resultColor='#06d6a0';
+    GS.p1Saves++;
+    sfxSave();
+    spawnCelebration(aiBall.x,aiBall.y);
+  }else{
+    resultText='GOAL!';resultColor='#ef4444';
+    GS.p2Goals++;
+    sfxGoal();
+  }
+  updateHUD();
+
+  // After 2s, go to next round or end
+  addTimer(function(){
+    GS.round++;
+    if(GS.round>=GS.maxRounds){
+      endGame();
+    }else{
+      beginKickPhase();
+    }
+  },2000);
+}
+
+/* ---------- Celebration ---------- */
+function spawnCelebration(cx,cy){
+  cx=cx||W*0.5;cy=cy||H*0.35;
   if(celebrationType==='fireworks'){
     for(var i=0;i<40;i++){
       var angle=Math.random()*Math.PI*2;
@@ -690,13 +760,11 @@ function spawnCelebration(){
         size:4+Math.random()*4,life:80+Math.random()*40,confetti:true});
     }
   }else if(celebrationType==='slide'){
-    // Keeper slides — just visual particles trailing
     for(var i=0;i<20;i++){
       particles.push({x:cx+Math.random()*60-30,y:cy+Math.random()*20,vx:(Math.random()-0.5)*2,vy:-1-Math.random()*2,
         color:'#2d8a4e',size:3+Math.random()*3,life:30+Math.random()*20});
     }
   }else{
-    // Default small burst
     for(var i=0;i<15;i++){
       var angle=Math.random()*Math.PI*2;
       var speed=1+Math.random()*3;
@@ -706,42 +774,140 @@ function spawnCelebration(){
   }
 }
 
+/* ---------- End Game ---------- */
 function endGame(){
-  gamePhase='done';
-  var isNew=goals>localBest;
-  if(isNew){localBest=goals;localStorage.setItem('pk_best',localBest)}
-  localGames++;localTotalGoals+=goals;
+  GS.phase='done';
+  var scoreVal=GS.p1Goals-GS.p2Goals; // net score for "best"
+  var scoreStr=GS.p1Goals+'-'+GS.p2Goals;
+
+  // Best = highest net score (p1Goals - p2Goals), but store as string too
+  var oldBestNet=localBest;
+  var isNew=scoreVal>oldBestNet;
+  if(isNew){
+    localBest=scoreVal;
+    localBestStr=scoreStr;
+    localStorage.setItem('pk_best',localBest);
+    localStorage.setItem('pk_bestStr',localBestStr);
+  }
+
+  localGames++;localTotalGoals+=GS.p1Goals;
   localStorage.setItem('pk_games',localGames);
   localStorage.setItem('pk_totalGoals',localTotalGoals);
-  if(sessionHatTrick){localHatTrick=true;localStorage.setItem('pk_hatTrick','true')}
-  if(difficulty==='hard'&&goals>=3){localHardWin=true;localStorage.setItem('pk_hardWin','true')}
+  if(GS.sessionHatTrick){localHatTrick=true;localStorage.setItem('pk_hatTrick','true')}
+  if(difficulty==='hard'&&GS.p1Goals>GS.p2Goals){localHardWin=true;localStorage.setItem('pk_hardWin','true')}
 
-  var coins=goals*5;
-  if(isNew&&goals>0)coins+=5;
+  var coins=GS.p1Goals*5+GS.p1Saves*3;
+  if(isNew&&GS.p1Goals>0)coins+=5;
   localTotalCoins+=coins;
   localStorage.setItem('pk_totalCoins',localTotalCoins);
 
-  var title=goals>=4?'Amazing!':goals>=3?'Great Job!':goals>=1?'Full Time!':'Tough Luck!';
+  var won=GS.p1Goals>GS.p2Goals;
+  var drew=GS.p1Goals===GS.p2Goals;
+  var title=won?(GS.p1Goals>=4?'Amazing!':'You Win!'):(drew?'Draw!':'You Lose!');
+
   document.getElementById('goTitle').textContent=title;
-  document.getElementById('goScore').textContent=goals+' / '+maxKicks;
-  document.getElementById('goBest').textContent='Best: '+localBest+'/5';
+  document.getElementById('goScore').textContent='You '+GS.p1Goals+' - '+GS.p2Goals+' AI';
+  document.getElementById('goBest').textContent='Best: '+localBestStr;
   document.getElementById('goNew').style.display=isNew?'block':'none';
   document.getElementById('goCoins').textContent='+'+coins+' coins';
   sfxWhistle();
 
-  setTimeout(function(){document.getElementById('gameOverOverlay').classList.add('active')},400);
+  addTimer(function(){document.getElementById('gameOverOverlay').classList.add('active')},400);
 
-  if(!coinsAwarded){
-    coinsAwarded=true;
+  if(!GS.coinsAwarded){
+    GS.coinsAwarded=true;
     awardCoins(coins);
     saveRecord(isNew);
     checkAchievements({
-      bestScore:goals,
+      bestScore:GS.p1Goals,
       gamesPlayed:localGames,
       totalGoals:localTotalGoals,
-      hatTrick:sessionHatTrick||localHatTrick,
-      hardWin:(difficulty==='hard'&&goals>=3)||localHardWin
+      hatTrick:GS.sessionHatTrick||localHatTrick,
+      hardWin:(difficulty==='hard'&&GS.p1Goals>GS.p2Goals)||localHardWin
     });
+  }
+}
+
+/* ===================== */
+/* UPDATE                */
+/* ===================== */
+function update(){
+  frameCount++;
+
+  // --- Kick Phase: Accuracy Meter ---
+  if(GS.phase==='kick_charge'){
+    accuracy+=ACC_SPEED*accDir;
+    if(accuracy>=1){accuracy=1;accDir=-1}
+    if(accuracy<=0){accuracy=0;accDir=1}
+    if(frameCount%4===0)sfxCharge();
+  }
+
+  // --- Kick Phase: Ball Flight ---
+  if(GS.phase==='kick_fly'){
+    ballFlight+=ballFlightSpeed;
+    var t=ballFlight;
+    var easeT=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+
+    ball.x=ballStart.x+(ballTarget.x-ballStart.x)*easeT;
+    ball.y=ballStart.y+(ballTarget.y-ballStart.y)*easeT-Math.sin(easeT*Math.PI)*H*0.15;
+    ball.size=22-easeT*10;
+
+    // Keeper dive
+    if(keeper.diving){
+      var diff=DIFFICULTIES[difficulty];
+      keeper.diveProgress+=diff.keeperSpeed+easeT*0.03;
+      if(keeper.diveProgress>1)keeper.diveProgress=1;
+      keeper.x=0.5+(keeper.targetX-0.5)*keeper.diveProgress;
+      if(keeper.diveDir!==0){keeper.bodyY=keeper.diveProgress*25}
+    }
+
+    if(ballFlight>=1){resolveKick()}
+  }
+
+  // --- Kick Result ---
+  if(GS.phase==='kick_result'){
+    resultTimer++;
+    updateParticles();
+  }
+
+  // --- Save Phase: AI Ball Flight ---
+  if(GS.phase==='save_fly'){
+    aiBallFlight+=0.020;
+    var t2=aiBallFlight;
+    var easeT2=t2<0.5?2*t2*t2:1-Math.pow(-2*t2+2,2)/2;
+
+    aiBall.x=aiBallStart.x+(aiBallTarget.x-aiBallStart.x)*easeT2;
+    aiBall.y=aiBallStart.y+(aiBallTarget.y-aiBallStart.y)*easeT2;
+    aiBall.size=10+easeT2*12;
+
+    // Player keeper dive
+    if(playerKeeper.diving){
+      playerKeeper.diveProgress+=0.04;
+      if(playerKeeper.diveProgress>1)playerKeeper.diveProgress=1;
+      playerKeeper.x=0.5+(playerKeeper.targetX-0.5)*playerKeeper.diveProgress;
+      if(playerKeeper.diveDir!==0){playerKeeper.bodyY=playerKeeper.diveProgress*25}
+    }
+
+    if(aiBallFlight>=1){resolveSave()}
+  }
+
+  // --- Save Result ---
+  if(GS.phase==='save_result'){
+    resultTimer++;
+    updateParticles();
+  }
+
+  // --- Idle particles ---
+  if(particles.length>0&&GS.phase!=='kick_result'&&GS.phase!=='save_result'){
+    updateParticles();
+  }
+}
+
+function updateParticles(){
+  for(var i=particles.length-1;i>=0;i--){
+    var p=particles[i];
+    p.x+=p.vx;p.y+=p.vy;p.vy+=0.15;p.life--;
+    if(p.life<=0)particles.splice(i,1);
   }
 }
 
@@ -779,27 +945,38 @@ function draw(){
   // Draw goal
   drawGoal();
 
-  // Draw goalkeeper
-  drawKeeper();
+  // Determine which keeper to draw based on phase
+  var isSavePhase=GS.phase==='save_choose'||GS.phase==='save_fly'||GS.phase==='save_result';
 
-  // Draw aim cursor (only when aiming/charging)
-  if(gamePhase==='aiming'||gamePhase==='charging'){
+  if(isSavePhase){
+    drawKeeper(playerKeeper);
+  }else{
+    drawKeeper(keeper);
+  }
+
+  // Draw aim cursor (kick phases)
+  if(GS.phase==='kick_aim'||GS.phase==='kick_charge'){
     drawAimCursor();
   }
 
-  // Draw power bar (when charging or aiming)
-  if(gamePhase==='aiming'||gamePhase==='charging'){
-    drawPowerBar();
+  // Draw accuracy bar (kick phases)
+  if(GS.phase==='kick_aim'||GS.phase==='kick_charge'){
+    drawAccuracyBar();
   }
 
-  // Draw ball in flight
-  if(gamePhase==='flying'||gamePhase==='result'){
+  // Draw ball in flight (kick phase)
+  if(GS.phase==='kick_fly'||GS.phase==='kick_result'){
     drawBall(ball.x,ball.y,ball.size);
   }
 
-  // Draw ball at penalty spot when aiming
-  if(gamePhase==='aiming'||gamePhase==='charging'){
+  // Draw ball at penalty spot (kick aiming)
+  if(GS.phase==='kick_aim'||GS.phase==='kick_charge'){
     drawBall(W*0.5,H*0.85,20);
+  }
+
+  // Draw AI ball (save phase)
+  if(GS.phase==='save_fly'||GS.phase==='save_result'){
+    drawBall(aiBall.x,aiBall.y,aiBall.size);
   }
 
   // Draw particles
@@ -820,25 +997,31 @@ function draw(){
   }
 
   // Result text
-  if(gamePhase==='result'&&resultTimer<100){
+  if((GS.phase==='kick_result'||GS.phase==='save_result')&&resultTimer<100){
     var alpha=resultTimer<80?1:(100-resultTimer)/20;
     ctx.globalAlpha=alpha;
     ctx.font='bold '+Math.min(72,W*0.12)+'px Fredoka, sans-serif';
     ctx.textAlign='center';
-    var rColor=resultText==='GOAL!'?'#06d6a0':(resultText==='SAVED!'?'#fbbf24':'#ef4444');
-    ctx.fillStyle=rColor;
-    ctx.shadowColor=rColor;ctx.shadowBlur=20;
+    ctx.fillStyle=resultColor;
+    ctx.shadowColor=resultColor;ctx.shadowBlur=20;
     ctx.fillText(resultText,W*0.5,H*0.4);
     ctx.shadowBlur=0;
     ctx.globalAlpha=1;
   }
 
-  // Kick instruction when aiming
-  if(gamePhase==='aiming'){
+  // Phase instruction text
+  if(GS.phase==='kick_aim'){
     ctx.font='600 '+Math.min(16,W*0.035)+'px Outfit, sans-serif';
     ctx.textAlign='center';
     ctx.fillStyle='rgba(255,255,255,0.6)';
-    ctx.fillText('Move to aim \u2022 Click & hold to charge \u2022 Release to kick',W*0.5,H*0.96);
+    ctx.fillText('Move to aim \u2022 Click & hold for accuracy \u2022 Release to kick',W*0.5,H*0.96);
+  }
+  if(GS.phase==='save_choose'){
+    // "AI is about to kick" text drawn on canvas as well
+    ctx.font='bold '+Math.min(22,W*0.05)+'px Fredoka, sans-serif';
+    ctx.textAlign='center';
+    ctx.fillStyle='rgba(255,255,255,0.7)';
+    ctx.fillText('AI is taking a penalty!',W*0.5,H*0.7);
   }
 }
 
@@ -857,11 +1040,9 @@ function drawGoal(){
   ctx.strokeStyle='rgba(255,255,255,0.1)';
   ctx.lineWidth=0.5;
   var netSpacing=Math.max(12,g.width/20);
-  // Vertical net lines
   for(var nx=g.left;nx<=g.right;nx+=netSpacing){
     ctx.beginPath();ctx.moveTo(nx,g.top);ctx.lineTo(nx,g.bottom);ctx.stroke();
   }
-  // Horizontal net lines
   for(var ny=g.top;ny<=g.bottom;ny+=netSpacing){
     ctx.beginPath();ctx.moveTo(g.left,ny);ctx.lineTo(g.right,ny);ctx.stroke();
   }
@@ -869,11 +1050,8 @@ function drawGoal(){
   // Goal posts (white)
   var postW=Math.max(4,g.width*0.015);
   ctx.fillStyle='#ffffff';
-  // Left post
   ctx.fillRect(g.left-postW/2,g.top,postW,g.height);
-  // Right post
   ctx.fillRect(g.right-postW/2,g.top,postW,g.height);
-  // Crossbar
   ctx.fillRect(g.left-postW/2,g.top-postW/2,g.width+postW,postW);
 
   // Post highlights
@@ -883,57 +1061,47 @@ function drawGoal(){
   ctx.fillRect(g.left-postW/2,g.top-postW/2,g.width+postW,postW*0.3);
 }
 
-function drawKeeper(){
+function drawKeeper(k){
   var g=getGoalPixels();
-  var kx=g.left+keeper.x*g.width;
+  var kx=g.left+k.x*g.width;
   var ky=g.bottom-2;
   var kHeight=g.height*0.55;
   var kWidth=g.width*0.06;
 
-  // Body offset for diving
-  var diveOffsetY=keeper.bodyY||0;
+  var diveOffsetY=k.bodyY||0;
   var diveAngle=0;
-  if(keeper.diving&&keeper.diveDir!==0){
-    diveAngle=keeper.diveDir*keeper.diveProgress*0.6;
+  if(k.diving&&k.diveDir!==0){
+    diveAngle=k.diveDir*(k.diveProgress||0)*0.6;
   }
 
   ctx.save();
   ctx.translate(kx,ky);
   ctx.rotate(diveAngle);
 
-  // Arms (extended when diving)
-  var armExtend=keeper.diving?keeper.diveProgress*kWidth*2.5:0;
+  var armExtend=k.diving?(k.diveProgress||0)*kWidth*2.5:0;
   ctx.fillStyle='#fbbf24';
-  // Left arm
   ctx.fillRect(-kWidth*0.6-armExtend,-(kHeight*0.7),armExtend+kWidth*0.4,kHeight*0.08);
-  // Right arm
   ctx.fillRect(kWidth*0.2,-(kHeight*0.7),armExtend+kWidth*0.4,kHeight*0.08);
 
-  // Gloves
-  if(keeper.diving){
+  if(k.diving){
     ctx.fillStyle='#06d6a0';
     ctx.beginPath();ctx.arc(-kWidth*0.6-armExtend,-(kHeight*0.67),kHeight*0.06,0,Math.PI*2);ctx.fill();
     ctx.beginPath();ctx.arc(kWidth*0.6+armExtend,-(kHeight*0.67),kHeight*0.06,0,Math.PI*2);ctx.fill();
   }
 
-  // Body (jersey)
   ctx.fillStyle='#fbbf24';
   ctx.fillRect(-kWidth*0.5,-(kHeight*0.65),kWidth,kHeight*0.35);
 
-  // Shorts
   ctx.fillStyle='#1e293b';
   ctx.fillRect(-kWidth*0.5,-(kHeight*0.3),kWidth,kHeight*0.15);
 
-  // Legs
   ctx.fillStyle='#f5d0a9';
   ctx.fillRect(-kWidth*0.35,-(kHeight*0.15),kWidth*0.3,kHeight*0.15);
   ctx.fillRect(kWidth*0.05,-(kHeight*0.15),kWidth*0.3,kHeight*0.15);
 
-  // Head
   ctx.fillStyle='#f5d0a9';
   ctx.beginPath();ctx.arc(0,-(kHeight*0.78),kHeight*0.13,0,Math.PI*2);ctx.fill();
 
-  // Hair
   ctx.fillStyle='#1e293b';
   ctx.beginPath();ctx.arc(0,-(kHeight*0.84),kHeight*0.1,Math.PI,Math.PI*2);ctx.fill();
 
@@ -941,10 +1109,8 @@ function drawKeeper(){
 }
 
 function drawAimCursor(){
-  var g=getGoalPixels();
   var pos=aimToGoalPos(aimX,aimY);
 
-  // Dotted aim line from ball to aim point
   ctx.setLineDash([6,8]);
   ctx.strokeStyle='rgba(255,255,255,0.2)';
   ctx.lineWidth=1.5;
@@ -954,24 +1120,20 @@ function drawAimCursor(){
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Aim crosshair
   var cSize=12;
   ctx.strokeStyle='rgba(255,255,255,0.7)';
   ctx.lineWidth=2;
-  // Circle
   ctx.beginPath();ctx.arc(pos.x,pos.y,cSize,0,Math.PI*2);ctx.stroke();
-  // Cross lines
   ctx.beginPath();ctx.moveTo(pos.x-cSize-4,pos.y);ctx.lineTo(pos.x-cSize+4,pos.y);ctx.stroke();
   ctx.beginPath();ctx.moveTo(pos.x+cSize-4,pos.y);ctx.lineTo(pos.x+cSize+4,pos.y);ctx.stroke();
   ctx.beginPath();ctx.moveTo(pos.x,pos.y-cSize-4);ctx.lineTo(pos.x,pos.y-cSize+4);ctx.stroke();
   ctx.beginPath();ctx.moveTo(pos.x,pos.y+cSize-4);ctx.lineTo(pos.x,pos.y+cSize+4);ctx.stroke();
 
-  // Center dot
   ctx.fillStyle=charging?'#ef4444':'rgba(255,255,255,0.8)';
   ctx.beginPath();ctx.arc(pos.x,pos.y,3,0,Math.PI*2);ctx.fill();
 }
 
-function drawPowerBar(){
+function drawAccuracyBar(){
   var barW=24,barH=H*0.35;
   var barX=W-50,barY=H*0.3;
 
@@ -983,69 +1145,57 @@ function drawPowerBar(){
   ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1.5;
   roundRect(ctx,barX,barY,barW,barH,8);ctx.stroke();
 
-  // Fill (bottom to top, green->yellow->red)
-  if(power>0){
-    var fillH=barH*power;
+  // Fill (bottom=red/low, top=green/high accuracy)
+  if(accuracy>0){
+    var fillH=barH*accuracy;
     var fillY=barY+barH-fillH;
     ctx.save();
     ctx.beginPath();
     roundRect(ctx,barX,barY,barW,barH,8);
     ctx.clip();
 
-    var pGrad=ctx.createLinearGradient(0,barY+barH,0,barY);
-    pGrad.addColorStop(0,'#06d6a0');
-    pGrad.addColorStop(0.5,'#fbbf24');
-    pGrad.addColorStop(0.8,'#ef4444');
-    pGrad.addColorStop(1,'#dc2626');
-    ctx.fillStyle=pGrad;
+    var aGrad=ctx.createLinearGradient(0,barY+barH,0,barY);
+    aGrad.addColorStop(0,'#ef4444');
+    aGrad.addColorStop(0.4,'#fbbf24');
+    aGrad.addColorStop(0.8,'#06d6a0');
+    aGrad.addColorStop(1,'#06d6a0');
+    ctx.fillStyle=aGrad;
     ctx.fillRect(barX,fillY,barW,fillH);
     ctx.restore();
   }
 
-  // Labels
-  ctx.font='bold 11px Outfit, sans-serif';
+  // Label
+  ctx.font='bold 10px Outfit, sans-serif';
   ctx.textAlign='center';
   ctx.fillStyle='rgba(255,255,255,0.5)';
-  ctx.fillText('POWER',barX+barW/2,barY-8);
+  ctx.fillText('ACCURACY',barX+barW/2,barY-8);
 
-  // Danger zone marker
-  ctx.fillStyle='rgba(239,68,68,0.4)';
-  ctx.fillRect(barX+2,barY+2,barW-4,barH*0.15);
-  ctx.font='bold 8px Outfit, sans-serif';
-  ctx.fillStyle='rgba(255,255,255,0.3)';
-  ctx.fillText('MISS',barX+barW/2,barY+barH*0.1);
-
-  // Power percentage
-  if(charging){
+  // Percentage when charging
+  if(GS.phase==='kick_charge'){
     ctx.font='bold 14px Fredoka, sans-serif';
     ctx.fillStyle='#fff';
-    ctx.fillText(Math.round(power*100)+'%',barX+barW/2,barY+barH+22);
+    ctx.fillText(Math.round(accuracy*100)+'%',barX+barW/2,barY+barH+22);
   }
 }
 
 function drawBall(x,y,size){
-  // Ball shadow
-  if(gamePhase==='flying'){
+  if(GS.phase==='kick_fly'){
     ctx.fillStyle='rgba(0,0,0,0.2)';
     ctx.beginPath();ctx.ellipse(x,H*0.55+10,size*0.6,size*0.2,0,0,Math.PI*2);ctx.fill();
   }
 
-  // Ball body
   ctx.fillStyle=ballColor;
   ctx.beginPath();ctx.arc(x,y,size,0,Math.PI*2);ctx.fill();
 
-  // Ball outline
   ctx.strokeStyle='rgba(0,0,0,0.3)';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.arc(x,y,size,0,Math.PI*2);ctx.stroke();
 
-  // Pentagon pattern on ball
   ctx.fillStyle='rgba(0,0,0,0.15)';
   var pentR=size*0.35;
   drawPentagon(ctx,x,y,pentR);
   drawPentagon(ctx,x-size*0.45,y-size*0.2,pentR*0.6);
   drawPentagon(ctx,x+size*0.4,y+size*0.25,pentR*0.5);
 
-  // Highlight
   ctx.fillStyle='rgba(255,255,255,0.35)';
   ctx.beginPath();ctx.arc(x-size*0.25,y-size*0.25,size*0.3,0,Math.PI*2);ctx.fill();
 }
@@ -1075,13 +1225,9 @@ function roundRect(ctx,x,y,w,h,r){
 /* GAME LOOP             */
 /* ===================== */
 function gameLoop(){
+  if(GS.phase==='idle'&&!document.getElementById('gameScreen').classList.contains('active'))return;
   update();draw();
-  if(gamePhase!=='done'){
-    animId=requestAnimationFrame(gameLoop);
-  }else{
-    // Keep drawing for overlay
-    animId=requestAnimationFrame(function renderDone(){draw();animId=requestAnimationFrame(renderDone)});
-  }
+  animId=requestAnimationFrame(gameLoop);
 }
 
 /* ===================== */
@@ -1096,10 +1242,9 @@ function getCanvasCoords(e){
 }
 
 function updateAim(e){
-  if(gamePhase!=='aiming'&&gamePhase!=='charging')return;
+  if(GS.phase!=='kick_aim'&&GS.phase!=='kick_charge')return;
   var pos=getCanvasCoords(e);
   var g=getGoalPixels();
-  // Map position to aim (0-1 within goal)
   aimX=Math.max(0,Math.min(1,(pos.x-g.left)/g.width));
   aimY=Math.max(0,Math.min(1,(pos.y-g.top)/g.height));
 }
@@ -1111,41 +1256,55 @@ cw.addEventListener('touchmove',function(e){e.preventDefault();updateAim(e)},{pa
 
 cw.addEventListener('mousedown',function(e){
   e.preventDefault();
-  if(gamePhase==='aiming'){
-    gamePhase='charging';charging=true;power=0;powerDir=1;
+  if(GS.phase==='kick_aim'){
+    GS.phase='kick_charge';charging=true;accuracy=0;accDir=1;
   }
 });
 cw.addEventListener('touchstart',function(e){
   e.preventDefault();
   updateAim(e);
-  if(gamePhase==='aiming'){
-    gamePhase='charging';charging=true;power=0;powerDir=1;
+  if(GS.phase==='kick_aim'){
+    GS.phase='kick_charge';charging=true;accuracy=0;accDir=1;
   }
 },{passive:false});
 
 cw.addEventListener('mouseup',function(e){
   e.preventDefault();
-  if(gamePhase==='charging'){charging=false;doKick()}
+  if(GS.phase==='kick_charge'){charging=false;doKick()}
 });
 cw.addEventListener('touchend',function(e){
   e.preventDefault();
-  if(gamePhase==='charging'){charging=false;doKick()}
+  if(GS.phase==='kick_charge'){charging=false;doKick()}
 },{passive:false});
 
 // Keyboard: space to charge/release
 document.addEventListener('keydown',function(e){
   if(e.code==='Space'||e.key===' '){
     e.preventDefault();
-    if(gamePhase==='aiming'){
-      gamePhase='charging';charging=true;power=0;powerDir=1;
+    if(GS.phase==='kick_aim'){
+      GS.phase='kick_charge';charging=true;accuracy=0;accDir=1;
     }
+  }
+  // Keyboard shortcuts for save phase
+  if(GS.phase==='save_choose'){
+    if(e.code==='ArrowLeft'||e.key==='a'||e.key==='A')pickDive('left');
+    else if(e.code==='ArrowDown'||e.key==='s'||e.key==='S')pickDive('center');
+    else if(e.code==='ArrowRight'||e.key==='d'||e.key==='D')pickDive('right');
   }
 });
 document.addEventListener('keyup',function(e){
   if(e.code==='Space'||e.key===' '){
     e.preventDefault();
-    if(gamePhase==='charging'){charging=false;doKick()}
+    if(GS.phase==='kick_charge'){charging=false;doKick()}
   }
+});
+
+/* ===================== */
+/* STOP ON NAVIGATE      */
+/* ===================== */
+window.addEventListener('beforeunload',function(){stopGame()});
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden&&GS.phase!=='idle'&&GS.phase!=='done')stopGame();
 });
 
 /* ===================== */
@@ -1163,16 +1322,16 @@ async function saveRecord(isNew){
     var ref=fb.fsMod.doc(fb.db,'penaltykickRecords',studentId);
     var snap=await fb.fsMod.getDoc(ref);
     if(snap.exists()){
-      var upd={gamesPlayed:fb.fsMod.increment(1),totalGoals:fb.fsMod.increment(goals),lastPlayed:new Date().toISOString()};
-      if(isNew)upd.bestScore=goals;
-      if(sessionHatTrick)upd.hatTrick=true;
-      if(difficulty==='hard'&&goals>=3)upd.hardWin=true;
+      var upd={gamesPlayed:fb.fsMod.increment(1),totalGoals:fb.fsMod.increment(GS.p1Goals),lastPlayed:new Date().toISOString()};
+      if(isNew)upd.bestScore=GS.p1Goals;
+      if(GS.sessionHatTrick)upd.hatTrick=true;
+      if(difficulty==='hard'&&GS.p1Goals>GS.p2Goals)upd.hardWin=true;
       await fb.fsMod.updateDoc(ref,upd);
     }else{
       await fb.fsMod.setDoc(ref,{
         studentId:studentId,studentName:studentName||'',classCode:classCode,
-        bestScore:goals,gamesPlayed:1,totalGoals:goals,
-        hatTrick:sessionHatTrick,hardWin:difficulty==='hard'&&goals>=3,
+        bestScore:GS.p1Goals,gamesPlayed:1,totalGoals:GS.p1Goals,
+        hatTrick:GS.sessionHatTrick,hardWin:difficulty==='hard'&&GS.p1Goals>GS.p2Goals,
         lastPlayed:new Date().toISOString()
       });
     }
@@ -1184,7 +1343,7 @@ async function saveRecord(isNew){
 /* ===================== */
 async function showRecords(){
   showScreen('recordsScreen');
-  document.getElementById('statBest').textContent=localBest+'/5';
+  document.getElementById('statBest').textContent=localBestStr;
   document.getElementById('statPlayed').textContent=localGames;
   document.getElementById('statTotalGoals').textContent=localTotalGoals;
   document.getElementById('statCoins').textContent=localTotalCoins;
@@ -1217,19 +1376,19 @@ async function showRecords(){
 /* ===================== */
 /* RESIZE                */
 /* ===================== */
-window.addEventListener('resize',function(){if(canvas)initCanvas()});
+window.addEventListener('resize',function(){if(canvas&&document.getElementById('gameScreen').classList.contains('active'))initCanvas()});
 
 /* ===================== */
 /* HELP                  */
 /* ===================== */
 odaHelp.init({
-  title:'Penalty Kick',emoji:'\u26BD',subtitle:'Aim, power up, and score!',
+  title:'Penalty Kick',emoji:'\u26BD',subtitle:'Kick & Save shootout!',
   sections:[
-    {title:'Rules',icon:'\u{1F4D6}',items:['Move your mouse/finger to aim at the goal','Click and hold to charge power, release to kick','Too much power and the ball sails over the bar','The goalkeeper dives to try to save your shot','Score as many goals as you can in 5 kicks']},
-    {title:'Scoring',icon:'\u{1F3AF}',items:['5 coins per goal scored','Bonus 5 coins for new personal best','Harder difficulty = smarter goalkeeper','On Hard mode, the keeper reads your aim direction']}
+    {title:'Rules',icon:'\u{1F4D6}',items:['Each round: YOU kick, then YOU save','Aim at the goal, click & hold to charge accuracy, release to kick','Higher accuracy = ball goes closer to your aim point','Then pick Dive Left, Stay, or Dive Right to save the AI shot','5 rounds total (10 kicks: 5 yours, 5 AI)']},
+    {title:'Scoring',icon:'\u{1F3AF}',items:['5 coins per goal you score','3 coins per save you make','Bonus 5 coins for new personal best','Harder difficulty = smarter goalkeeper on your kicks']}
   ],
-  controls:[{key:'Mouse',action:'Aim'},{key:'Click+Hold',action:'Charge power'},{key:'Release',action:'Kick'},{key:'Space',action:'Charge/Kick'}],
-  tip:'<strong>Control your power!</strong> The sweet spot is 40-70% power. Too much and the ball flies over the bar. Aim for the corners to beat the keeper!'
+  controls:[{key:'Mouse',action:'Aim at goal'},{key:'Click+Hold',action:'Charge accuracy'},{key:'Release',action:'Kick'},{key:'Space',action:'Charge/Kick'},{key:'\u2190 / A',action:'Dive Left'},{key:'\u2193 / S',action:'Stay Center'},{key:'\u2192 / D',action:'Dive Right'}],
+  tip:'<strong>High accuracy matters!</strong> Hold the bar near the top (green zone) for a precise shot. During saves, watch for patterns in where the AI aims!'
 });
 </script>
 <script>
