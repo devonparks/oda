@@ -154,7 +154,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   </div>
   <div class="how-to">
     <h3>How to Play</h3>
-    <p>Click the targets before they shrink away! You have 60 seconds. Earn bonus points for high accuracy. Targets get smaller and faster on higher difficulties.</p>
+    <p>Click the targets before they shrink away! You have 30 seconds. Earn bonus points for high accuracy. Targets get smaller and faster on higher difficulties.</p>
   </div>
 </div>
 
@@ -163,7 +163,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   <div id="canvasWrap">
     <canvas id="gameCanvas"></canvas>
     <div class="game-hud">
-      <div class="hud-item"><div class="hud-val timer" id="hudTimer">60</div><div class="hud-label">Time</div></div>
+      <div class="hud-item"><div class="hud-val timer" id="hudTimer">30</div><div class="hud-label">Time</div></div>
       <div class="hud-item"><div class="hud-val" id="hudHits">0</div><div class="hud-label">Hits</div></div>
       <div class="hud-item"><div class="hud-val" id="hudAccuracy">100%</div><div class="hud-label">Accuracy</div></div>
       <div class="hud-item"><div class="hud-val" id="hudScore">0</div><div class="hud-label">Score</div></div>
@@ -241,6 +241,14 @@ function esc(s){var d=document.createElement('div');d.textContent=s;return d.inn
 /* SCREEN SYSTEM         */
 /* ===================== */
 function showScreen(id){
+  // Stop game when leaving game screen
+  if(id!=='gameScreen'){
+    if(animId){cancelAnimationFrame(animId);animId=null}
+    if(timerInterval){clearInterval(timerInterval);timerInterval=null}
+    gameState='dead';
+    document.getElementById('canvasWrap').style.cursor='default';
+    document.getElementById('gameCanvas').style.cursor='default';
+  }
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
   document.getElementById(id).classList.add('active');
   document.body.classList.toggle('in-game',id==='gameScreen');
@@ -395,7 +403,7 @@ loadLocalStats();
 /* ===================== */
 var canvas,ctx,W,H,dpr;
 var targets=[],particles=[],score,hits,misses,totalClicks,gameState,animId;
-var timeLeft=60,timerInterval=null;
+var timeLeft=30,timerInterval=null;
 var reactionTimes=[];
 var difficulty='easy';
 var mouseX=0,mouseY=0;
@@ -462,8 +470,8 @@ function startGame(){
   applyCosmeticStyles();
   targets=[];particles=[];score=0;hits=0;misses=0;totalClicks=0;
   reactionTimes=[];frameCount=0;coinsAwarded=false;
-  timeLeft=60;gameState='waiting';
-  document.getElementById('hudTimer').textContent='60';
+  timeLeft=30;gameState='waiting';
+  document.getElementById('hudTimer').textContent='30';
   document.getElementById('hudHits').textContent='0';
   document.getElementById('hudAccuracy').textContent='100%';
   document.getElementById('hudScore').textContent='0';
@@ -779,6 +787,13 @@ function endGame(){
   gameState='dead';
   sfxEnd();
   if(animId)cancelAnimationFrame(animId);
+  if(timerInterval)clearInterval(timerInterval);
+  // Restore cursor
+  document.body.classList.remove('in-game');
+  var cw=document.getElementById('canvasWrap');
+  if(cw)cw.style.cursor='default';
+  var cv=document.getElementById('gameCanvas');
+  if(cv)cv.style.cursor='default';
 
   var accuracy=totalClicks>0?Math.round((hits/totalClicks)*100):0;
   var accBonus=accuracy>=100?2:1+(accuracy/100);
@@ -918,7 +933,7 @@ window.addEventListener('resize',function(){if(gameState==='waiting'||gameState=
 odaHelp.init({
   title:'Aim Trainer',emoji:'\u{1F3AF}',subtitle:'Click targets as fast as you can!',
   sections:[
-    {title:'Rules',icon:'\u{1F4D6}',items:['Click on targets before they shrink away','You have 60 seconds per round','Targets shrink over time \u2014 click them fast!','Missed clicks and expired targets count as misses','Your score = hits \u00D7 accuracy bonus']},
+    {title:'Rules',icon:'\u{1F4D6}',items:['Click on targets before they shrink away','You have 30 seconds per round','Targets shrink over time \u2014 click them fast!','Missed clicks and expired targets count as misses','Your score = hits \u00D7 accuracy bonus']},
     {title:'Scoring',icon:'\u{1F3AF}',items:['100% accuracy = 2x score multiplier','Accuracy bonus scales with your hit rate','Earn coins: 1 coin per 3 hits','Bonus 5 coins for new personal best','Coins can be spent in the shop on cosmetics']},
     {title:'Difficulty',icon:'\u{26A1}',items:['Easy: Large targets, slow shrink, 1 at a time','Medium: Smaller targets, faster shrink, up to 2','Hard: Tiny targets, very fast, up to 3 at once']}
   ],
