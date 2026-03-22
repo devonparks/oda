@@ -497,7 +497,7 @@ function update(){
     f.y+=f.vy;
 
     // Dampen horizontal
-    f.vx*=0.95;
+    f.vx*=0.97;
 
     // Container walls
     if(f.x-f.r<WALL_THICK){f.x=WALL_THICK+f.r;f.vx=Math.abs(f.vx)*BOUNCE}
@@ -534,11 +534,14 @@ function update(){
           var pushB=overlap*(massA/totalMass)*0.6;
           a.x-=nx*pushA;a.y-=ny*pushA;
           b.x+=nx*pushB;b.y+=ny*pushB;
-          // If one fruit is directly on top of another, nudge it sideways to roll off
-          if(Math.abs(ny)>0.7&&Math.abs(nx)<0.3){
-            var nudge=(dx>0?1:-1)*0.3;
-            if(a.y<b.y){a.vx+=nudge;a.sleeping=false;}
-            else{b.vx-=nudge;b.sleeping=false;}
+          // If one fruit is directly on top of another, shove it sideways hard
+          if(Math.abs(ny)>0.6&&Math.abs(nx)<0.4){
+            var topFruit=a.y<b.y?a:b;
+            // Pick a direction — bias toward whichever side has more room
+            var centerX=(CW-WALL_THICK*2)/2+WALL_THICK;
+            var dir=topFruit.x>centerX?-1:1;
+            topFruit.vx+=dir*1.5;
+            topFruit.sleeping=false;
           }
           // Transfer velocity on first iteration only (skip if both sleeping)
           if(iter===0&&!(a.sleeping&&b.sleeping)){
