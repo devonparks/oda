@@ -227,6 +227,11 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
   document.getElementById(id).classList.add('active');
   document.body.classList.toggle('in-game',id==='gameScreen');
+  if(id!=='gameScreen'){
+    // Stop the game loop and audio when leaving game screen
+    if(animId){cancelAnimationFrame(animId);animId=null;}
+    gameState='idle';
+  }
   if(id==='homeScreen')loadLocalStats();
 }
 
