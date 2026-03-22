@@ -47,6 +47,7 @@ var GAMES=[
 {id:'coinminer',emoji:'\u{1FA99}',title:'Coin Miner',desc:'Tap to mint coins! Buy upgrades, prestige, get rich!',file:'arcade/coinminer/index.html'},
 {id:'flappy',emoji:'\u{1F426}',title:'Floppy Bird',desc:'Tap to fly, dodge the pipes!',file:'arcade/flappy/index.html'},
 {id:'bowling',emoji:'\u{1F3B3}',title:'Bowling',desc:'Roll strikes in 3D! Wii Bowling style!',file:'arcade/bowling/index.html'},
+{id:'dominoes',emoji:'\u{1F3B2}',title:'Dominoes',desc:'Match tiles and outsmart your opponent!',file:'arcade/dominoes/index.html'},
 ];
 
 var WORD_BANKS={

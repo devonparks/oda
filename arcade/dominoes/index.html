@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Dominoes - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:center}
+/* clean background — no dots */
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+.sound-btn{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;transition:all .2s;backdrop-filter:blur(8px)}
+.sound-btn:hover{border-color:var(--accent)}
+
+.screen{display:none;width:100%;max-width:1100px;min-height:100vh;min-height:100dvh;padding:16px;animation:fadeUp .35s ease}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-blue{background:var(--accent2);color:#fff}
+.btn-blue:hover{box-shadow:0 0 24px rgba(17,138,178,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+.btn-gold{background:var(--gold);color:var(--bg)}
+.btn-gold:hover{box-shadow:0 0 24px rgba(255,209,102,.3)}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;transition:all .2s;cursor:pointer;text-align:center}
+.card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.card .card-icon{font-size:36px;margin-bottom:8px}
+.card .card-title{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;margin-bottom:4px}
+.card .card-desc{font-size:13px;color:var(--text2)}
+
+/* HOME */
+#homeScreen{padding-top:60px;justify-content:flex-start}
+.home-header{text-align:center;margin-bottom:24px}
+.home-header h1{font-size:clamp(40px,8vw,56px);font-weight:700;letter-spacing:-2px}
+.home-header h1 .hl{color:var(--accent)}
+.home-header p{color:var(--text2);font-size:15px;margin-top:4px}
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;width:100%;max-width:800px;margin-bottom:20px}
+
+/* DIFFICULTY */
+#aiScreen{padding-top:80px;justify-content:flex-start}
+.diff-card{background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;max-width:400px;width:100%}
+.diff-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.diff-card .diff-icon{font-size:28px;margin-bottom:4px}
+.diff-card h3{font-family:'Fredoka',sans-serif;font-size:18px;margin-bottom:2px}
+.diff-card p{font-size:13px;color:var(--text2)}
+.diff-card.easy{border-color:var(--accent)}.diff-card.easy:hover{box-shadow:0 0 20px rgba(6,214,160,.2)}
+.diff-card.medium{border-color:var(--gold)}.diff-card.medium:hover{box-shadow:0 0 20px rgba(255,209,102,.2)}
+.diff-card.hard{border-color:var(--accent3)}.diff-card.hard:hover{box-shadow:0 0 20px rgba(239,71,111,.2)}
+
+/* GAME SCREEN */
+#gameScreen{padding-top:60px;padding-bottom:20px;max-width:100%}
+.game-top{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:1000px;margin:0 auto 12px;padding:0 16px}
+.game-title{font-family:'Fredoka',sans-serif;font-size:24px;font-weight:700;color:var(--accent)}
+.player-info{display:flex;gap:20px;align-items:center}
+.pi-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 16px;text-align:center;min-width:80px}
+.pi-box.active{border-color:var(--accent);box-shadow:0 0 12px rgba(6,214,160,.15)}
+.pi-box .pi-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.pi-box .pi-val{font-size:18px;font-weight:800;font-family:'Fredoka',sans-serif}
+.pi-box .pi-tiles{font-size:11px;color:var(--text2)}
+
+/* BOARD CANVAS */
+.board-wrap{width:100%;max-width:1000px;margin:0 auto;position:relative;border-radius:16px;overflow:hidden;background:#1a5c2e;box-shadow:inset 0 2px 20px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.3)}
+.board-wrap canvas{display:block;width:100%;cursor:grab}
+.board-wrap canvas:active{cursor:grabbing}
+.board-empty-msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,.45);font-size:15px;font-weight:600;pointer-events:none;text-align:center}
+
+/* HAND */
+.hand-area{width:100%;max-width:1000px;margin:12px auto 0;padding:0 16px}
+.hand-label{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.hand-label .boneyard{color:var(--gold);font-size:11px}
+.hand-tiles{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;padding:8px 0;min-height:90px}
+
+/* HAND TILE (DOM) */
+.htile{position:relative;width:48px;height:90px;border-radius:10px;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s,opacity .15s;flex-shrink:0;border:2.5px solid var(--domino-border,#a89f95);background:var(--domino-bg,#e8e4df);box-shadow:0 3px 10px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.15);overflow:hidden}
+.htile:hover{transform:translateY(-8px);box-shadow:0 8px 24px rgba(0,0,0,.35);border-color:var(--accent);z-index:2}
+.htile.selected{transform:translateY(-14px);border-color:var(--accent);box-shadow:0 10px 30px rgba(6,214,160,.35);z-index:3}
+.htile.unplayable{opacity:.35;cursor:not-allowed;filter:grayscale(.3)}
+.htile.unplayable:hover{transform:none;box-shadow:0 3px 10px rgba(0,0,0,.25);border-color:var(--domino-border,#a89f95)}
+.htile canvas{display:block;width:100%;height:100%;pointer-events:none}
+
+/* GHOST TILE (drag preview) */
+.ghost-tile{position:fixed;pointer-events:none;z-index:200;opacity:.7;transform:translate(-50%,-50%);filter:drop-shadow(0 4px 12px rgba(6,214,160,.4))}
+
+/* PLACEMENT BUTTONS */
+.place-btns{display:flex;gap:12px;justify-content:center;margin-top:8px;min-height:42px}
+.place-btn{padding:10px 24px;border:2px solid var(--accent);border-radius:12px;background:rgba(6,214,160,.1);color:var(--accent);font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;display:none}
+.place-btn:hover{background:var(--accent);color:var(--bg)}
+.place-btn.visible{display:inline-flex}
+
+.draw-btn{padding:10px 24px;border:2px solid var(--gold);border-radius:12px;background:rgba(255,209,102,.1);color:var(--gold);font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .15s}
+.draw-btn:hover{background:var(--gold);color:var(--bg)}
+.pass-btn{padding:10px 24px;border:2px solid var(--accent3);border-radius:12px;background:rgba(239,71,111,.1);color:var(--accent3);font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .15s}
+.pass-btn:hover{background:var(--accent3);color:#fff}
+
+.turn-msg{text-align:center;margin-top:8px;font-size:14px;font-weight:700;color:var(--accent);min-height:24px}
+
+/* RESULT */
+#resultScreen{padding-top:80px;justify-content:flex-start}
+.result-container{text-align:center;max-width:400px;width:100%}
+.result-container h2{font-size:32px;margin-bottom:8px}
+.result-score{font-family:'Fredoka',sans-serif;font-size:48px;font-weight:700;color:var(--gold);margin-bottom:4px}
+.result-sub{font-size:14px;color:var(--text2);margin-bottom:16px}
+.coins-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:8px 18px;font-size:16px;font-weight:700;color:var(--gold);font-family:'Fredoka',sans-serif;margin-bottom:16px}
+.result-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+/* RECORDS */
+#recordsScreen{padding-top:70px;justify-content:flex-start}
+.records-container{width:100%;max-width:500px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.stat-card .sv{font-size:24px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.stat-card .sv.gold{color:var(--gold)}
+.stat-card .sl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-weight:600}
+.lb-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px}
+.lb-row.me{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.lb-rank{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text2);flex-shrink:0}
+.lb-rank.r1{background:rgba(255,209,102,.2);color:var(--gold)}
+.lb-rank.r2{background:rgba(192,192,192,.15);color:#c0c0c0}
+.lb-rank.r3{background:rgba(205,127,50,.15);color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-size:14px;font-weight:800;color:var(--gold);font-family:'Fredoka',sans-serif}
+.lb-empty{text-align:center;color:var(--text2);font-size:14px;padding:24px;font-weight:600}
+
+/* QUICK MATCH */
+#quickMatchScreen{padding-top:80px;justify-content:flex-start}
+.qm-container{text-align:center;max-width:400px;width:100%}
+.qm-container h2{font-size:28px;margin-bottom:8px}
+.qm-container .sub{color:var(--text2);font-size:14px;margin-bottom:24px}
+.code-input{padding:14px 20px;border:2px solid var(--border);border-radius:14px;background:var(--surface);color:var(--text);font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;text-align:center;letter-spacing:8px;width:180px;outline:none;text-transform:uppercase}
+.code-input:focus{border-color:var(--accent)}
+.code-display{font-family:'Fredoka',sans-serif;font-size:36px;font-weight:700;color:var(--accent);letter-spacing:6px;margin:16px 0}
+
+/* SHOP */
+#shopScreen{padding-top:70px;justify-content:flex-start}
+
+/* ACHIEVEMENT TOAST */
+.ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
+@keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+
+/* Desktop sizing */
+@media(min-width:768px){
+  .htile{width:56px;height:104px;border-radius:12px}
+  .board-wrap{min-height:220px}
+}
+@media(min-width:1024px){
+  .htile{width:64px;height:118px;border-radius:13px}
+  .board-wrap{min-height:260px}
+  .hand-tiles{gap:12px}
+}
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../../student.html" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();showScreen('homeScreen')}">&#8592; Back</a>
+<button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128264;</button>
+
+<!-- HOME -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1><span class="hl">Dominoes</span></h1>
+    <p>Match tiles and outsmart your opponent!</p>
+  </div>
+  <div class="mode-grid">
+    <div class="card" onclick="showScreen('aiScreen')"><div class="card-icon">&#129302;</div><div class="card-title">VS Computer</div><div class="card-desc">Test your skills against AI opponents</div></div>
+    <div class="card" onclick="showQuickMatch()"><div class="card-icon">&#9889;</div><div class="card-title">Quick Match</div><div class="card-desc">Play a friend with a room code</div></div>
+    <div class="card" onclick="showRecords()"><div class="card-icon">&#127942;</div><div class="card-title">Records</div><div class="card-desc">Stats &amp; class leaderboard</div></div>
+    <div class="card" onclick="showShopScreen()"><div class="card-icon">&#128717;&#65039;</div><div class="card-title">Shop</div><div class="card-desc">Tile themes &amp; dot styles</div></div>
+  </div>
+</div>
+
+<!-- AI DIFFICULTY -->
+<div class="screen" id="aiScreen">
+  <h2 style="font-size:28px;margin-bottom:8px">Choose <span style="color:var(--accent)">Difficulty</span></h2>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:24px">How smart should the AI be?</p>
+  <div style="display:flex;flex-direction:column;gap:14px;max-width:400px;width:100%">
+    <div class="diff-card easy" onclick="startAiGame('easy')"><div class="diff-icon">&#128522;</div><h3>Easy</h3><p>Random moves, great for learning</p></div>
+    <div class="diff-card medium" onclick="startAiGame('medium')"><div class="diff-icon">&#128526;</div><h3>Medium</h3><p>Smart tile choices, a fair challenge</p></div>
+    <div class="diff-card hard" onclick="startAiGame('hard')"><div class="diff-icon">&#128520;</div><h3>Hard</h3><p>Strategic blocking, good luck!</p></div>
+  </div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:20px">&#8592; Back</button>
+</div>
+
+<!-- GAME SCREEN -->
+<div class="screen" id="gameScreen">
+  <div class="game-top">
+    <div class="game-title">Dominoes</div>
+    <div class="player-info">
+      <div class="pi-box" id="piYou"><div class="pi-label">You</div><div class="pi-val" id="piYouScore">0</div><div class="pi-tiles" id="piYouTiles">7 tiles</div></div>
+      <div class="pi-box" id="piOpp"><div class="pi-label" id="piOppName">AI</div><div class="pi-val" id="piOppScore">0</div><div class="pi-tiles" id="piOppTiles">7 tiles</div></div>
+    </div>
+  </div>
+  <div class="board-wrap" id="boardWrap">
+    <canvas id="boardCanvas" width="960" height="240"></canvas>
+    <div class="board-empty-msg" id="boardEmptyMsg">Play a tile to start</div>
+  </div>
+  <div class="hand-area">
+    <div class="hand-label">Your Hand <span class="boneyard" id="boneyardCount">Boneyard: 14</span></div>
+    <div class="hand-tiles" id="handTiles"></div>
+    <div class="place-btns" id="placeBtns">
+      <button class="place-btn" id="placeLeftBtn">&#8592; Place Left</button>
+      <button class="place-btn" id="placeRightBtn">Place Right &#8594;</button>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:8px">
+      <button class="draw-btn" id="drawBtn" style="display:none">&#127922; Draw Tile</button>
+      <button class="pass-btn" id="passBtn" style="display:none">Pass</button>
+    </div>
+    <div class="turn-msg" id="turnMsg"></div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="resultScreen">
+  <div class="result-container">
+    <h2 id="resultTitle" style="color:var(--accent)">You Win!</h2>
+    <div class="result-sub" id="resultSub">You played all your tiles!</div>
+    <div class="result-score" id="resultScore">0</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">points scored</div>
+    <div class="coins-badge" id="resultCoins">+0 coins</div>
+    <div class="result-btns">
+      <button class="btn btn-accent btn-small" onclick="playAgain()">Play Again</button>
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK MATCH -->
+<div class="screen" id="quickMatchScreen">
+  <div class="qm-container">
+    <h2>Quick <span style="color:var(--accent)">Match</span></h2>
+    <p class="sub">Play a friend with a room code</p>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:14px">
+      <button class="btn btn-accent" onclick="createRoom()">Create Room</button>
+      <div style="display:flex;align-items:center;gap:14px;width:100%"><div style="flex:1;height:1px;background:var(--border)"></div><span style="color:var(--text2);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px">or</span><div style="flex:1;height:1px;background:var(--border)"></div></div>
+      <input class="code-input" id="joinCodeInput" type="text" maxlength="4" placeholder="CODE" autocomplete="off">
+      <button class="btn btn-blue btn-small" onclick="joinRoom()">Join Room</button>
+    </div>
+    <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:20px">&#8592; Back</button>
+  </div>
+</div>
+
+<!-- WAITING -->
+<div class="screen" id="waitingScreen">
+  <div style="text-align:center">
+    <h2>Waiting for <span style="color:var(--accent)">Opponent</span></h2>
+    <p style="color:var(--text2);margin-bottom:16px">Share this code with a friend:</p>
+    <div class="code-display" id="waitingCode">----</div>
+    <div style="margin-top:16px"><button class="btn btn-outline btn-small" onclick="cancelRoom()">Cancel</button></div>
+  </div>
+</div>
+
+<!-- RECORDS -->
+<div class="screen" id="recordsScreen">
+  <h1>Your <span style="color:var(--accent)">Records</span></h1>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Dominoes stats &amp; leaderboard</p>
+  <div class="records-container">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="sv gold" id="statWins">0</div><div class="sl">Wins</div></div>
+      <div class="stat-card"><div class="sv" id="statLosses">0</div><div class="sl">Losses</div></div>
+      <div class="stat-card"><div class="sv" id="statPlayed">0</div><div class="sl">Games</div></div>
+      <div class="stat-card"><div class="sv" id="statScore">0</div><div class="sl">Total Score</div></div>
+    </div>
+    <div class="lb-title">Class Leaderboard</div>
+    <div class="lb-list" id="leaderboard"><div class="lb-empty">Loading...</div></div>
+    <div style="text-align:center;margin-top:20px"><button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Back</button></div>
+  </div>
+</div>
+
+<!-- SHOP -->
+<div class="screen" id="shopScreen">
+  <div style="text-align:center;margin-bottom:8px">
+    <h1>&#128717;&#65039; Shop</h1>
+    <p style="color:var(--text2);font-size:14px">Customize your dominoes</p>
+  </div>
+  <div id="dominoShopContainer" style="width:100%;max-width:500px"></div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script type="module">
+/* roundRect polyfill for older browsers */
+if(!CanvasRenderingContext2D.prototype.roundRect){CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){if(typeof r==='number')r=[r,r,r,r];const[tl,tr,br,bl]=r;this.beginPath();this.moveTo(x+tl,y);this.lineTo(x+w-tr,y);this.quadraticCurveTo(x+w,y,x+w,y+tr);this.lineTo(x+w,y+h-br);this.quadraticCurveTo(x+w,y+h,x+w-br,y+h);this.lineTo(x+bl,y+h);this.quadraticCurveTo(x,y+h,x,y+h-bl);this.lineTo(x,y+tl);this.quadraticCurveTo(x,y,x+tl,y);this.closePath();return this}}
+
+import{initializeApp,getApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import{getFirestore,doc,getDoc,setDoc,updateDoc,increment,collection,query,where,orderBy,limit,getDocs,onSnapshot,deleteDoc}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+const cfg=ODA_CONFIG.firebase;
+let app;try{app=getApp()}catch(e){app=initializeApp(cfg)}
+const db=getFirestore(app);
+
+/* ===================== */
+/* SESSION               */
+/* ===================== */
+const studentId=localStorage.getItem('studentId')||'anon_'+Math.random().toString(36).slice(2,8);
+const studentName=localStorage.getItem('studentName')||'Player';
+const classCode=localStorage.getItem('classCode')||'';
+const isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+if(isTeacher)document.getElementById('backBtn').href='../../teacher.html';
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+/* ===================== */
+/* SCREENS               */
+/* ===================== */
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='gameScreen')requestAnimationFrame(()=>{initBoardCanvas();drawBoard()})}
+window.showScreen=showScreen;
+
+/* ===================== */
+/* AUDIO                 */
+/* ===================== */
+let audioCtx=null,soundOn=true;
+function getAudioCtx(){if(!audioCtx)try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx}
+function playTone(f,d,t,v){if(!soundOn)return;var c=getAudioCtx();if(!c)return;var o=c.createOscillator(),g=c.createGain();o.type=t||'square';o.frequency.setValueAtTime(f,c.currentTime);g.gain.setValueAtTime(v||0.1,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d)}
+function sfxPlace(){playTone(400,0.06,'sine',0.12);setTimeout(()=>playTone(600,0.05,'sine',0.08),40)}
+function sfxDraw(){playTone(300,0.08,'triangle',0.08)}
+function sfxWin(){playTone(500,0.1,'square',0.1);setTimeout(()=>playTone(700,0.1,'square',0.1),80);setTimeout(()=>playTone(900,0.15,'square',0.1),160)}
+function sfxLose(){playTone(300,0.3,'sawtooth',0.08)}
+window.toggleSound=function(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;'};
+
+/* ===================== */
+/* COSMETICS             */
+/* ===================== */
+let myCosmetics={};
+let tileBg='#e8e4df',tileBorder='#a89f95',dotColor='#1a1a1a',tableBg='';
+
+async function loadMyCosmetics(){
+  try{myCosmetics=JSON.parse(localStorage.getItem('oda_cosmetics_dominoes')||'{}')}catch(e){myCosmetics={}}
+  var sid=localStorage.getItem('studentId');
+  if(sid){try{var fb=await window.getFirebaseDB();var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));if(snap.exists()){var d=snap.data();var fc=d.gameCosmetics?.dominoes?.equipped;if(fc&&Object.keys(fc).length>0)myCosmetics=fc;}}catch(e){}}
+  applyCosmeticStyles();
+}
+loadMyCosmetics();
+
+function applyCosmeticStyles(){
+  var tt=myCosmetics['Tile Theme'];
+  if(tt&&tt.value){tileBg=tt.value.tileBg||'#f0f0f0';tileBorder=tt.value.tileBorder||'#999';dotColor=tt.value.dotColor||'#111';tableBg=tt.value.tableBg||''}
+  var ds=myCosmetics['Dot Style'];
+  // Dot style affects rendering shape — handled in drawPips
+  document.documentElement.style.setProperty('--domino-bg',tileBg);
+  document.documentElement.style.setProperty('--domino-border',tileBorder);
+  document.documentElement.style.setProperty('--domino-dot',dotColor);
+}
+
+/* ===================== */
+/* SHOP                  */
+/* ===================== */
+var DOMINO_SHOP=[
+  {id:'dt_classic',name:'Classic',emoji:'\u{1F3B2}',cost:0,slot:'Tile Theme',value:{tileBg:'#e8e4df',tileBorder:'#a89f95',dotColor:'#1a1a1a',tableBg:''}},
+  {id:'dt_neon',name:'Neon',emoji:'\u{1F49A}',cost:150,slot:'Tile Theme',value:{tileBg:'#0a1a0a',tileBorder:'#06d6a0',dotColor:'#39ff14',tableBg:'rgba(6,214,160,.03)'}},
+  {id:'dt_ocean',name:'Ocean',emoji:'\u{1F30A}',cost:200,slot:'Tile Theme',value:{tileBg:'#0c2d48',tileBorder:'#118ab2',dotColor:'#22d3ee',tableBg:'rgba(17,138,178,.03)'}},
+  {id:'dt_royal',name:'Royal',emoji:'\u{1F451}',cost:300,slot:'Tile Theme',value:{tileBg:'#1a0a2e',tileBorder:'#a855f7',dotColor:'#c084fc',tableBg:'rgba(168,85,247,.03)'}},
+  {id:'dt_wood',name:'Wood',emoji:'\u{1FAB5}',cost:200,slot:'Tile Theme',value:{tileBg:'#4a3728',tileBorder:'#8b6f47',dotColor:'#fef3c7',tableBg:'rgba(139,111,71,.03)'}},
+  {id:'dt_midnight',name:'Midnight',emoji:'\u{1F319}',cost:250,slot:'Tile Theme',value:{tileBg:'#111827',tileBorder:'#374151',dotColor:'#9ca3af',tableBg:'rgba(55,65,81,.03)'}},
+  {id:'dt_gold',name:'Gold',emoji:'\u2728',cost:500,slot:'Tile Theme',value:{tileBg:'#1a1400',tileBorder:'#fbbf24',dotColor:'#ffd700',tableBg:'rgba(251,191,36,.03)'}},
+
+  {id:'dd_circles',name:'Circles',emoji:'\u26AB',cost:0,slot:'Dot Style',value:{shape:'circle'}},
+  {id:'dd_squares',name:'Squares',emoji:'\u25A0',cost:100,slot:'Dot Style',value:{shape:'square'}},
+  {id:'dd_stars',name:'Stars',emoji:'\u2B50',cost:200,slot:'Dot Style',value:{shape:'star'}},
+  {id:'dd_diamonds',name:'Diamonds',emoji:'\u{1F48E}',cost:150,slot:'Dot Style',value:{shape:'diamond'}}
+];
+
+function showShopScreen(){
+  showScreen('shopScreen');
+  if(typeof odaShop!=='undefined'){
+    odaShop.renderShopPanel('dominoes',DOMINO_SHOP,'dominoShopContainer',{
+      onEquip:function(){loadMyCosmetics()},
+      onBuy:function(){loadMyCosmetics()}
+    });
+  }
+}
+window.showShopScreen=showShopScreen;
+
+/* ===================== */
+/* TILE SET              */
+/* ===================== */
+function generateTileSet(){
+  const tiles=[];
+  for(let a=0;a<=6;a++)for(let b=a;b<=6;b++)tiles.push({a,b,id:a+'-'+b});
+  return tiles;
+}
+
+function shuffleTiles(arr){
+  for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]}
+  return arr;
+}
+
+function pipCount(tile){return tile.a+tile.b}
+function isDouble(tile){return tile.a===tile.b}
+
+/* =========================================================== */
+/* GAME STATE                                                   */
+/* =========================================================== */
+let aiMode=false,aiDifficulty='medium';
+let myHand=[],oppHand=[],boneyard=[];
+let board=[];          // Array of placed tile entries (see boardModel below)
+let leftEnd=-1,rightEnd=-1;
+let myTurn=true,gameOver=false,selectedTile=null;
+let myScore=0,oppScore=0,coinsAwarded=false;
+let roomCode=null,unsub=null;
+
+/* =========================================================== */
+/* BOARD MODEL — 2D chain with direction changes               */
+/* =========================================================== */
+/*
+  Each placed tile is stored as:
+  {
+    tile: {a,b,id},
+    topVal: number,   // value at the "first" half (top or left depending on orientation)
+    botVal: number,   // value at the "second" half
+    x: number,        // center x on canvas
+    y: number,        // center y on canvas
+    horizontal: bool, // true = laid sideways, false = vertical
+    isDouble: bool
+  }
+  The chain grows from center. Non-doubles align with the chain direction.
+  Doubles are perpendicular to the chain direction.
+  When the chain reaches the canvas edge, it turns down and reverses direction.
+*/
+const TILE_W = 30;   // half-width of a non-double tile (short axis)
+const TILE_H = 56;   // half-height of a non-double tile (long axis)
+const GAP = 3;        // gap between tiles
+const MARGIN = 40;    // margin from canvas edges before turning
+const ROW_GAP = 20;   // vertical gap between rows when chain turns
+
+let boardEntries = []; // computed positions for drawing
+let canvasW = 960, canvasH = 240;
+let panX = 0, panY = 0; // pan offset for scrolling
+let boardLayoutDirty = true; // flag to avoid recomputing layout every animation frame
+
+function computeBoardLayout(force){
+  if(!force && !boardLayoutDirty && boardEntries.length === board.length) return;
+  boardLayoutDirty = false;
+  boardEntries = [];
+  if(board.length === 0) return;
+
+  // We lay tiles in a chain. Chain direction starts going RIGHT from center.
+  // When we hit the right edge, we drop down and go LEFT. Hit left edge, drop down go RIGHT. etc.
+  // board[] stores in logical order: index 0 = leftmost tile, last = rightmost.
+  // We'll compute positions from left to right.
+
+  let dir = 1; // 1 = going right, -1 = going left
+  let cx = MARGIN + TILE_H; // start x
+  let cy = MARGIN + TILE_W + 10; // start y — first row
+  let rowStartX = cx;
+
+  // First pass: compute all positions
+  const entries = [];
+
+  for(let i = 0; i < board.length; i++){
+    const entry = board[i];
+    const dbl = isDouble(entry.tile);
+
+    // In the chain direction:
+    // Non-doubles: long axis aligned with chain direction (horizontal when going L/R)
+    // Doubles: short axis aligned with chain (vertical when going L/R = perpendicular)
+    const horizontal = !dbl; // non-doubles are horizontal in the chain
+    const halfLong = TILE_H;
+    const halfShort = TILE_W;
+
+    // How much space this tile takes along the chain direction
+    const extent = dbl ? halfShort : halfLong;
+
+    // Check if we'd go past the edge
+    let nextX = cx + dir * extent;
+    const maxX = canvasW - MARGIN;
+    const minX = MARGIN;
+
+    if((dir === 1 && nextX + extent > maxX) || (dir === -1 && nextX - extent < minX)){
+      // Need to turn: drop down, reverse direction
+      cy += halfShort * 2 + halfLong + ROW_GAP;
+      dir = -dir;
+      cx = (dir === 1) ? MARGIN + extent : canvasW - MARGIN - extent;
+      nextX = cx;
+    }
+
+    entries.push({
+      tile: entry.tile,
+      topVal: entry.topVal !== undefined ? entry.topVal : entry.tile.a,
+      botVal: entry.botVal !== undefined ? entry.botVal : entry.tile.b,
+      x: nextX,
+      y: cy,
+      horizontal: horizontal,
+      isDouble: dbl
+    });
+
+    // Advance cursor
+    const nextExtent = (i + 1 < board.length && isDouble(board[i+1].tile)) ? halfShort : halfLong;
+    cx = nextX + dir * (extent + GAP + (nextExtent > 0 ? 0 : 0));
+    // More precise: advance by this tile's extent + gap
+    cx = nextX + dir * (extent + GAP);
+  }
+
+  boardEntries = entries;
+
+  // Compute needed canvas height
+  if(entries.length > 0){
+    const maxY = Math.max(...entries.map(e => e.y)) + TILE_H + MARGIN;
+    if(maxY > canvasH){
+      canvasH = Math.ceil(maxY);
+      const cvs = document.getElementById('boardCanvas');
+      if(cvs){
+        cvs.height = canvasH * (window.devicePixelRatio || 1);
+        cvs.style.height = canvasH + 'px';
+      }
+    }
+  }
+}
+
+/* =========================================================== */
+/* CANVAS BOARD RENDERER                                       */
+/* =========================================================== */
+let boardCanvas = null, boardCtx = null;
+const dpr = window.devicePixelRatio || 1;
+
+function initBoardCanvas(){
+  boardCanvas = document.getElementById('boardCanvas');
+  if(!boardCanvas) return;
+  boardCtx = boardCanvas.getContext('2d');
+
+  const wrap = document.getElementById('boardWrap');
+  const w = wrap.clientWidth || 960;
+  const h = Math.max(200, Math.min(300, Math.round(w * 0.28)));
+  canvasW = w;
+  canvasH = h;
+  boardLayoutDirty = true;
+
+  boardCanvas.width = Math.round(w * dpr);
+  boardCanvas.height = Math.round(h * dpr);
+  boardCanvas.style.width = w + 'px';
+  boardCanvas.style.height = h + 'px';
+  boardCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // Board panning with mouse/touch
+  setupBoardPan();
+}
+
+function setupBoardPan(){
+  // Simple drag-to-pan for when board gets large
+  const cvs = document.getElementById('boardCanvas');
+  if(!cvs) return;
+  let dragging = false, startX = 0, startY = 0, startPanX = 0, startPanY = 0;
+
+  cvs.addEventListener('mousedown', e => {
+    if(e.button !== 0) return;
+    dragging = true; startX = e.clientX; startY = e.clientY;
+    startPanX = panX; startPanY = panY;
+  });
+  window.addEventListener('mousemove', e => {
+    if(!dragging) return;
+    panX = startPanX + (e.clientX - startX);
+    panY = startPanY + (e.clientY - startY);
+    drawBoard();
+  });
+  window.addEventListener('mouseup', () => { dragging = false; });
+
+  // Touch
+  cvs.addEventListener('touchstart', e => {
+    if(e.touches.length !== 1) return;
+    dragging = true; startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+    startPanX = panX; startPanY = panY;
+  }, {passive:true});
+  cvs.addEventListener('touchmove', e => {
+    if(!dragging || e.touches.length !== 1) return;
+    panX = startPanX + (e.touches[0].clientX - startX);
+    panY = startPanY + (e.touches[0].clientY - startY);
+    drawBoard();
+  }, {passive:true});
+  cvs.addEventListener('touchend', () => { dragging = false; }, {passive:true});
+
+  // Click on board ends for placement
+  cvs.addEventListener('click', e => {
+    if(!selectedTile || !myTurn || gameOver || board.length === 0) return;
+    const rect = cvs.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (canvasW / rect.width) - panX;
+    const my = (e.clientY - rect.top) * (canvasH / rect.height) - panY;
+
+    if(boardEntries.length === 0) return;
+    const leftEntry = boardEntries[0];
+    const rightEntry = boardEntries[boardEntries.length - 1];
+
+    const distL = Math.hypot(mx - leftEntry.x, my - leftEntry.y);
+    const distR = Math.hypot(mx - rightEntry.x, my - rightEntry.y);
+    const threshold = TILE_H * 2;
+
+    const canLeft = canMatch(selectedTile, leftEnd);
+    const canRight = canMatch(selectedTile, rightEnd);
+
+    if(distL < threshold && distL < distR && canLeft){
+      placeTile('left');
+    } else if(distR < threshold && canRight){
+      placeTile('right');
+    }
+  });
+}
+
+function drawBoard(){
+  if(!boardCtx) return;
+  const ctx = boardCtx;
+
+  // Reset transform and clear
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // Green felt background
+  const feltGrad = ctx.createLinearGradient(0, 0, canvasW, canvasH);
+  feltGrad.addColorStop(0, '#1a5c2e');
+  feltGrad.addColorStop(0.5, '#1e6b35');
+  feltGrad.addColorStop(1, '#175428');
+  ctx.fillStyle = feltGrad;
+  ctx.fillRect(0, 0, canvasW, canvasH);
+
+  // Felt texture (subtle noise — seeded so it doesn't flicker)
+  ctx.save();
+  ctx.globalAlpha = 0.04;
+  for(let i = 0; i < 200; i++){
+    const sx = ((i * 7919 + 104729) % 10007) / 10007;
+    const sy = ((i * 6271 + 83203) % 10007) / 10007;
+    ctx.fillStyle = i % 2 === 0 ? '#000' : '#fff';
+    ctx.fillRect(sx * canvasW, sy * canvasH, 1.5, 1.5);
+  }
+  ctx.restore();
+
+  // Inner border / rail
+  ctx.strokeStyle = 'rgba(0,0,0,.25)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(4, 4, canvasW - 8, canvasH - 8, 12);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,.06)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(6, 6, canvasW - 12, canvasH - 12, 11);
+  ctx.stroke();
+
+  // Custom table bg overlay
+  if(tableBg){
+    ctx.fillStyle = tableBg;
+    ctx.fillRect(0, 0, canvasW, canvasH);
+  }
+
+  // Empty message
+  const emptyMsg = document.getElementById('boardEmptyMsg');
+  if(board.length === 0){
+    if(emptyMsg) emptyMsg.style.display = 'block';
+    return;
+  }
+  if(emptyMsg) emptyMsg.style.display = 'none';
+
+  computeBoardLayout();
+
+  // Auto-pan to keep chain centered
+  if(boardEntries.length > 0){
+    const allX = boardEntries.map(e => e.x);
+    const minX = Math.min(...allX) - TILE_H;
+    const maxX = Math.max(...allX) + TILE_H;
+    const chainW = maxX - minX;
+    if(chainW > canvasW - MARGIN * 2){
+      // Pan so the most recent placement is visible
+      const lastEntry = boardEntries[boardEntries.length - 1];
+      panX = canvasW / 2 - lastEntry.x;
+    } else {
+      // Center the chain
+      const mid = (minX + maxX) / 2;
+      panX = canvasW / 2 - mid;
+    }
+    const allY = boardEntries.map(e => e.y);
+    const minY = Math.min(...allY) - TILE_H;
+    const maxY = Math.max(...allY) + TILE_H;
+    const chainH = maxY - minY;
+    if(chainH > canvasH){
+      panY = canvasH / 2 - (minY + maxY) / 2;
+    } else {
+      panY = 0;
+    }
+  }
+
+  ctx.save();
+  ctx.translate(panX, panY);
+
+  // Draw placement previews (glowing ends)
+  if(selectedTile && !gameOver && myTurn && boardEntries.length > 0){
+    const canLeft = canMatch(selectedTile, leftEnd);
+    const canRight = canMatch(selectedTile, rightEnd);
+    if(canLeft){
+      const le = boardEntries[0];
+      drawEndGlow(ctx, le.x, le.y, le.horizontal, -1);
+    }
+    if(canRight){
+      const re = boardEntries[boardEntries.length - 1];
+      drawEndGlow(ctx, re.x, re.y, re.horizontal, 1);
+    }
+  }
+
+  // Draw tiles
+  boardEntries.forEach(entry => {
+    drawTileOnCanvas(ctx, entry.x, entry.y, entry.topVal, entry.botVal, entry.horizontal, entry.isDouble, false);
+  });
+
+  ctx.restore();
+}
+
+function drawEndGlow(ctx, x, y, horizontal, side){
+  // Draw a pulsing glow near the end of the chain
+  ctx.save();
+  const glowX = horizontal ? x + side * (TILE_H + 20) : x;
+  const glowY = horizontal ? y : y + side * (TILE_H + 20);
+  const pulse = 0.4 + 0.3 * Math.sin(Date.now() / 300);
+  ctx.globalAlpha = pulse;
+  ctx.fillStyle = '#06d6a0';
+  ctx.shadowColor = '#06d6a0';
+  ctx.shadowBlur = 20;
+  ctx.beginPath();
+  ctx.arc(glowX, glowY, 14, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = pulse * 0.6;
+  ctx.font = 'bold 14px Fredoka';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff';
+  ctx.shadowBlur = 0;
+  ctx.fillText(side === -1 ? '\u25C0' : '\u25B6', glowX, glowY);
+  ctx.restore();
+
+  // Animate glow
+  if(selectedTile && !gameOver) requestAnimationFrame(() => drawBoard());
+}
+
+/* =========================================================== */
+/* DRAW A SINGLE TILE ON CANVAS                                */
+/* =========================================================== */
+function drawTileOnCanvas(ctx, cx, cy, valA, valB, horizontal, isDbl, highlight){
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  const tw = isDbl ? TILE_H : TILE_W;   // tile half-width
+  const th = isDbl ? TILE_W : TILE_H;   // tile half-height
+
+  if(horizontal && !isDbl){
+    // Rotate 90 for horizontal non-double
+    ctx.rotate(Math.PI / 2);
+  } else if(isDbl && horizontal) {
+    // Doubles perpendicular to horizontal chain = vertical orientation (no rotate needed)
+  } else if(isDbl && !horizontal) {
+    ctx.rotate(Math.PI / 2);
+  }
+
+  const w = TILE_W;
+  const h = TILE_H;
+
+  // Shadow
+  ctx.shadowColor = 'rgba(0,0,0,.35)';
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetX = 2;
+  ctx.shadowOffsetY = 3;
+
+  // Tile body
+  ctx.beginPath();
+  ctx.roundRect(-w, -h, w * 2, h * 2, 6);
+  ctx.fillStyle = tileBg;
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+
+  // Bevel effect — top-left highlight
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(-w, -h, w * 2, h * 2, 6);
+  ctx.clip();
+  const bevelGrad = ctx.createLinearGradient(-w, -h, w, h);
+  bevelGrad.addColorStop(0, 'rgba(255,255,255,.18)');
+  bevelGrad.addColorStop(0.4, 'rgba(255,255,255,0)');
+  bevelGrad.addColorStop(1, 'rgba(0,0,0,.1)');
+  ctx.fillStyle = bevelGrad;
+  ctx.fillRect(-w, -h, w * 2, h * 2);
+  ctx.restore();
+
+  // Border
+  ctx.beginPath();
+  ctx.roundRect(-w, -h, w * 2, h * 2, 6);
+  ctx.strokeStyle = highlight ? '#06d6a0' : tileBorder;
+  ctx.lineWidth = highlight ? 2.5 : 1.5;
+  ctx.stroke();
+
+  // Divider line
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.65, 0);
+  ctx.lineTo(w * 0.65, 0);
+  ctx.strokeStyle = tileBorder;
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = 0.5;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // Pips
+  const pipR = Math.max(3, w * 0.13);
+  drawPips(ctx, 0, -h * 0.5, valA, pipR, w * 0.7);
+  drawPips(ctx, 0, h * 0.5, valB, pipR, w * 0.7);
+
+  ctx.restore();
+}
+
+/* =========================================================== */
+/* DRAW PIPS (standard domino positions)                       */
+/* =========================================================== */
+function drawPips(ctx, cx, cy, count, radius, area){
+  // Standard pip positions relative to center of half
+  // area = the usable area size (half)
+  const s = area * 0.38; // spread
+  const positions = {
+    0: [],
+    1: [[0, 0]],
+    2: [[-s, -s], [s, s]],
+    3: [[-s, -s], [0, 0], [s, s]],
+    4: [[-s, -s], [s, -s], [-s, s], [s, s]],
+    5: [[-s, -s], [s, -s], [0, 0], [-s, s], [s, s]],
+    6: [[-s, -s], [s, -s], [-s, 0], [s, 0], [-s, s], [s, s]]
+  };
+
+  const dots = positions[count] || [];
+  const dotShape = myCosmetics['Dot Style']?.value?.shape || 'circle';
+
+  ctx.fillStyle = dotColor;
+  dots.forEach(([dx, dy]) => {
+    const px = cx + dx;
+    const py = cy + dy;
+
+    if(dotShape === 'square'){
+      ctx.fillRect(px - radius, py - radius, radius * 2, radius * 2);
+    } else if(dotShape === 'diamond'){
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillRect(-radius * 0.8, -radius * 0.8, radius * 1.6, radius * 1.6);
+      ctx.restore();
+    } else if(dotShape === 'star'){
+      drawStar(ctx, px, py, radius);
+    } else {
+      // Default circle
+      ctx.beginPath();
+      ctx.arc(px, py, radius, 0, Math.PI * 2);
+      ctx.fill();
+      // Inner shadow for 3D
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+      ctx.beginPath();
+      ctx.arc(px - radius * 0.2, py - radius * 0.2, radius * 0.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,.4)';
+      ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = dotColor;
+    }
+  });
+}
+
+function drawStar(ctx, x, y, r){
+  ctx.beginPath();
+  for(let i = 0; i < 5; i++){
+    const angle = (i * 4 * Math.PI / 5) - Math.PI / 2;
+    const px = x + r * Math.cos(angle);
+    const py = y + r * Math.sin(angle);
+    if(i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+/* =========================================================== */
+/* HAND RENDERING — DOM with addEventListener                  */
+/* =========================================================== */
+function renderHand(){
+  const container = document.getElementById('handTiles');
+  container.innerHTML = '';
+
+  const playable = (!gameOver && myTurn) ? getPlayableTiles(myHand) : [];
+
+  myHand.forEach(tile => {
+    const canPlay = playable.some(p => p.id === tile.id);
+    const isSel = selectedTile && selectedTile.id === tile.id;
+
+    const el = document.createElement('div');
+    el.className = 'htile' + (isSel ? ' selected' : '') + (!canPlay && myTurn && !gameOver ? ' unplayable' : '');
+    el.dataset.id = tile.id;
+
+    // Mini canvas for the tile face
+    const cvs = document.createElement('canvas');
+    const elW = 64, elH = 118;
+    cvs.width = Math.round(elW * dpr);
+    cvs.height = Math.round(elH * dpr);
+    cvs.style.width = '100%';
+    cvs.style.height = '100%';
+    const c = cvs.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // Tile background already from CSS, just draw content
+    drawHandTile(c, elW / 2, elH / 2, tile.a, tile.b, isSel);
+
+    el.appendChild(cvs);
+
+    // Click handler
+    if(canPlay && myTurn && !gameOver){
+      el.addEventListener('click', () => selectTile(tile.id));
+
+      // Drag support
+      el.addEventListener('mousedown', e => startDrag(e, tile, el));
+      el.addEventListener('touchstart', e => startDrag(e, tile, el), {passive: false});
+    }
+
+    container.appendChild(el);
+  });
+
+  // Draw/Pass buttons
+  const canDraw = boneyard.length > 0 && playable.length === 0;
+  const mustPass = boneyard.length === 0 && playable.length === 0;
+  document.getElementById('drawBtn').style.display = (myTurn && !gameOver && canDraw) ? 'inline-flex' : 'none';
+  document.getElementById('passBtn').style.display = (myTurn && !gameOver && mustPass) ? 'inline-flex' : 'none';
+
+  updatePlaceBtns();
+}
+
+function drawHandTile(ctx, cx, cy, valA, valB, selected){
+  const w = cx * 0.82;
+  const h = cy * 0.9;
+
+  // Divider
+  ctx.beginPath();
+  ctx.moveTo(cx - w * 0.7, cy);
+  ctx.lineTo(cx + w * 0.7, cy);
+  ctx.strokeStyle = tileBorder;
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = 0.5;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // Pips
+  const pipR = Math.max(3.5, w * 0.13);
+  drawPips(ctx, cx, cy - h * 0.45, valA, pipR, w * 1.4);
+  drawPips(ctx, cx, cy + h * 0.45, valB, pipR, w * 1.4);
+}
+
+/* =========================================================== */
+/* DRAG AND DROP                                               */
+/* =========================================================== */
+let dragTile = null, ghostEl = null, dragStarted = false;
+let dragStartX = 0, dragStartY = 0;
+
+function startDrag(e, tile, el){
+  if(!myTurn || gameOver) return;
+  const isTouch = e.type === 'touchstart';
+  const clientX = isTouch ? e.touches[0].clientX : e.clientX;
+  const clientY = isTouch ? e.touches[0].clientY : e.clientY;
+
+  dragTile = tile;
+  dragStarted = false;
+  dragStartX = clientX;
+  dragStartY = clientY;
+
+  const onMove = ev => {
+    const cx = isTouch ? ev.touches[0].clientX : ev.clientX;
+    const cy = isTouch ? ev.touches[0].clientY : ev.clientY;
+    const dist = Math.hypot(cx - dragStartX, cy - dragStartY);
+
+    if(!dragStarted && dist > 8){
+      dragStarted = true;
+      // Create ghost
+      ghostEl = document.createElement('div');
+      ghostEl.className = 'ghost-tile';
+      const gCvs = document.createElement('canvas');
+      const gW = 52, gH = 96;
+      gCvs.width = Math.round(gW * dpr);
+      gCvs.height = Math.round(gH * dpr);
+      gCvs.style.width = gW + 'px';
+      gCvs.style.height = gH + 'px';
+      const gc = gCvs.getContext('2d');
+      gc.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // Draw tile on ghost
+      gc.fillStyle = tileBg;
+      gc.beginPath();
+      gc.roundRect(0, 0, gW, gH, 8);
+      gc.fill();
+      gc.strokeStyle = '#06d6a0';
+      gc.lineWidth = 2;
+      gc.stroke();
+      drawHandTile(gc, gW / 2, gH / 2, tile.a, tile.b, true);
+      ghostEl.appendChild(gCvs);
+      document.body.appendChild(ghostEl);
+      el.style.opacity = '0.3';
+    }
+
+    if(dragStarted && ghostEl){
+      ghostEl.style.left = cx + 'px';
+      ghostEl.style.top = cy + 'px';
+      if(isTouch) ev.preventDefault();
+    }
+  };
+
+  const onEnd = ev => {
+    if(isTouch){
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+    } else {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+    }
+
+    if(ghostEl){
+      ghostEl.remove();
+      ghostEl = null;
+    }
+    el.style.opacity = '';
+
+    if(dragStarted){
+      // Determine drop target
+      const cx2 = isTouch ? (ev.changedTouches ? ev.changedTouches[0].clientX : dragStartX) : ev.clientX;
+      const cy2 = isTouch ? (ev.changedTouches ? ev.changedTouches[0].clientY : dragStartY) : ev.clientY;
+      handleDrop(tile, cx2, cy2);
+    }
+
+    dragTile = null;
+    dragStarted = false;
+  };
+
+  if(isTouch){
+    document.addEventListener('touchmove', onMove, {passive: false});
+    document.addEventListener('touchend', onEnd);
+  } else {
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+  }
+}
+
+function handleDrop(tile, clientX, clientY){
+  // Check if dropped over the board canvas
+  const cvs = document.getElementById('boardCanvas');
+  if(!cvs) return;
+  const rect = cvs.getBoundingClientRect();
+
+  if(clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom){
+    // Over the board!
+    if(board.length === 0){
+      selectedTile = tile;
+      placeTile('left');
+      return;
+    }
+
+    // Determine which end is closer
+    const mx = (clientX - rect.left) * (canvasW / rect.width) - panX;
+
+    if(boardEntries.length > 0){
+      const leftEntry = boardEntries[0];
+      const rightEntry = boardEntries[boardEntries.length - 1];
+      const distL = Math.abs(mx - leftEntry.x);
+      const distR = Math.abs(mx - rightEntry.x);
+
+      const canLeft = canMatch(tile, leftEnd);
+      const canRight = canMatch(tile, rightEnd);
+
+      if(distL < distR && canLeft){
+        selectedTile = tile;
+        placeTile('left');
+      } else if(canRight){
+        selectedTile = tile;
+        placeTile('right');
+      } else if(canLeft){
+        selectedTile = tile;
+        placeTile('left');
+      }
+    }
+  }
+}
+
+/* =========================================================== */
+/* PLACEMENT BUTTONS                                           */
+/* =========================================================== */
+function updatePlaceBtns(){
+  const lb = document.getElementById('placeLeftBtn');
+  const rb = document.getElementById('placeRightBtn');
+  lb.classList.remove('visible');
+  rb.classList.remove('visible');
+  if(!selectedTile || gameOver || !myTurn) return;
+
+  if(board.length === 0){
+    lb.textContent = 'Place Tile';
+    lb.classList.add('visible');
+    return;
+  }
+
+  const canLeft = canMatch(selectedTile, leftEnd);
+  const canRight = canMatch(selectedTile, rightEnd);
+
+  if(canLeft && canRight && leftEnd !== rightEnd){
+    lb.textContent = '\u2190 Left (' + leftEnd + ')';
+    lb.classList.add('visible');
+    rb.textContent = 'Right (' + rightEnd + ') \u2192';
+    rb.classList.add('visible');
+  } else if(canLeft){
+    lb.textContent = 'Place Left';
+    lb.classList.add('visible');
+  } else if(canRight){
+    rb.textContent = 'Place Right';
+    rb.classList.add('visible');
+  }
+}
+
+// Wire up placement buttons with addEventListener
+document.getElementById('placeLeftBtn').addEventListener('click', () => placeTile('left'));
+document.getElementById('placeRightBtn').addEventListener('click', () => placeTile('right'));
+document.getElementById('drawBtn').addEventListener('click', () => drawFromBoneyard());
+document.getElementById('passBtn').addEventListener('click', () => passTurn());
+
+/* =========================================================== */
+/* START AI GAME                                               */
+/* =========================================================== */
+function startAiGame(diff){
+  aiMode = true; aiDifficulty = diff;
+  const tiles = shuffleTiles(generateTileSet());
+  myHand = tiles.splice(0, 7);
+  oppHand = tiles.splice(0, 7);
+  boneyard = tiles;
+  board = []; leftEnd = -1; rightEnd = -1;
+  myTurn = true; gameOver = false; selectedTile = null;
+  myScore = 0; oppScore = 0; coinsAwarded = false;
+  panX = 0; panY = 0; boardEntries = [];
+  showScreen('gameScreen');
+  document.getElementById('piOppName').textContent = 'AI (' + diff.charAt(0).toUpperCase() + diff.slice(1) + ')';
+  renderGame();
+  updateTurnUI();
+}
+window.startAiGame = startAiGame;
+
+/* =========================================================== */
+/* RENDER GAME                                                 */
+/* =========================================================== */
+function renderGame(){
+  boardLayoutDirty = true;
+  drawBoard();
+  renderHand();
+  document.getElementById('piYouScore').textContent = myScore;
+  document.getElementById('piOppScore').textContent = oppScore;
+  document.getElementById('piYouTiles').textContent = myHand.length + ' tiles';
+  document.getElementById('piOppTiles').textContent = oppHand.length + ' tiles';
+  document.getElementById('boneyardCount').textContent = 'Boneyard: ' + boneyard.length;
+}
+
+/* =========================================================== */
+/* GAME LOGIC                                                  */
+/* =========================================================== */
+function canMatch(tile, endVal){
+  return tile.a === endVal || tile.b === endVal;
+}
+
+function getPlayableTiles(hand){
+  if(board.length === 0) return hand.slice();
+  return hand.filter(t => canMatch(t, leftEnd) || canMatch(t, rightEnd));
+}
+
+function selectTile(id){
+  const tile = myHand.find(t => t.id === id);
+  if(!tile) return;
+  if(selectedTile && selectedTile.id === id){ selectedTile = null; }
+  else { selectedTile = tile; }
+  renderHand();
+  drawBoard();
+}
+window.selectTile = selectTile;
+
+function placeTile(side){
+  if(!selectedTile || !myTurn || gameOver) return;
+
+  if(board.length === 0){
+    // First tile
+    board.push({tile: selectedTile, topVal: selectedTile.a, botVal: selectedTile.b});
+    leftEnd = selectedTile.a;
+    rightEnd = selectedTile.b;
+  } else if(side === 'left'){
+    // Place on left end — the matching value faces inward (connects to leftEnd)
+    let topVal, botVal;
+    if(selectedTile.b === leftEnd){
+      topVal = selectedTile.a; botVal = selectedTile.b;
+    } else {
+      topVal = selectedTile.b; botVal = selectedTile.a;
+    }
+    board.unshift({tile: selectedTile, topVal, botVal});
+    leftEnd = topVal; // new exposed end
+  } else {
+    // Place on right end — the matching value faces inward (connects to rightEnd)
+    let topVal, botVal;
+    if(selectedTile.a === rightEnd){
+      topVal = selectedTile.a; botVal = selectedTile.b;
+    } else {
+      topVal = selectedTile.b; botVal = selectedTile.a;
+    }
+    board.push({tile: selectedTile, topVal, botVal});
+    rightEnd = botVal; // new exposed end
+  }
+
+  myHand = myHand.filter(t => t.id !== selectedTile.id);
+  selectedTile = null;
+  sfxPlace();
+
+  if(myHand.length === 0){
+    endRound('player'); return;
+  }
+
+  myTurn = false;
+  renderGame(); updateTurnUI();
+
+  if(aiMode) setTimeout(() => aiTurn(), 600 + Math.random() * 400);
+}
+window.placeTile = placeTile;
+
+function drawFromBoneyard(){
+  if(!myTurn || boneyard.length === 0 || gameOver) return;
+  const tile = boneyard.pop();
+  myHand.push(tile);
+  sfxDraw();
+  renderGame(); updateTurnUI();
+}
+window.drawFromBoneyard = drawFromBoneyard;
+
+function passTurn(){
+  if(!myTurn || gameOver) return;
+  myTurn = false;
+  renderGame(); updateTurnUI();
+  if(aiMode) setTimeout(() => aiTurn(), 600 + Math.random() * 400);
+}
+window.passTurn = passTurn;
+
+function updateTurnUI(){
+  const msg = document.getElementById('turnMsg');
+  const youBox = document.getElementById('piYou');
+  const oppBox = document.getElementById('piOpp');
+  youBox.classList.toggle('active', myTurn && !gameOver);
+  oppBox.classList.toggle('active', !myTurn && !gameOver);
+  if(gameOver){ msg.textContent = ''; }
+  else if(myTurn){
+    const playable = getPlayableTiles(myHand);
+    if(playable.length > 0) msg.innerHTML = '<span style="color:var(--accent)">Your turn!</span> Select a tile to play';
+    else if(boneyard.length > 0) msg.innerHTML = '<span style="color:var(--gold)">No playable tiles.</span> Draw from the boneyard';
+    else msg.innerHTML = '<span style="color:var(--accent3)">No moves!</span> You must pass';
+  } else { msg.innerHTML = '<span style="color:var(--text2)">Opponent\'s turn...</span>'; }
+}
+
+/* =========================================================== */
+/* AI                                                          */
+/* =========================================================== */
+function aiTurn(){
+  if(gameOver) return;
+
+  const playable = getPlayableTiles(oppHand);
+
+  if(playable.length === 0){
+    if(boneyard.length > 0){
+      const tile = boneyard.pop(); oppHand.push(tile);
+      setTimeout(() => aiTurn(), 300);
+      renderGame();
+      return;
+    } else {
+      const myPlayable = getPlayableTiles(myHand);
+      if(myPlayable.length === 0){ endRound('blocked'); return; }
+      myTurn = true; renderGame(); updateTurnUI();
+      return;
+    }
+  }
+
+  let chosen, side;
+
+  if(aiDifficulty === 'easy'){
+    chosen = playable[Math.floor(Math.random() * playable.length)];
+  } else if(aiDifficulty === 'medium'){
+    const doubles = playable.filter(t => isDouble(t));
+    if(doubles.length > 0) chosen = doubles.reduce((a, b) => pipCount(a) > pipCount(b) ? a : b);
+    else chosen = playable.reduce((a, b) => pipCount(a) > pipCount(b) ? a : b);
+  } else {
+    // Hard
+    let bestScore = -Infinity;
+    playable.forEach(t => {
+      let score = pipCount(t) * 2;
+      if(isDouble(t)) score += 5;
+      const sidesAvail = [];
+      if(board.length === 0){ sidesAvail.push(t.a, t.b); }
+      else {
+        if(canMatch(t, leftEnd)){ const newEnd = t.a === leftEnd ? t.b : t.a; sidesAvail.push(newEnd); }
+        if(canMatch(t, rightEnd)){ const newEnd = t.a === rightEnd ? t.b : t.a; sidesAvail.push(newEnd); }
+      }
+      sidesAvail.forEach(v => {
+        let countInPlay = 0;
+        myHand.forEach(h => { if(h.a === v || h.b === v) countInPlay++; });
+        score -= countInPlay;
+      });
+      if(score > bestScore){ bestScore = score; chosen = t; }
+    });
+  }
+
+  // Determine side
+  if(board.length === 0){ side = 'left'; }
+  else {
+    const canL = canMatch(chosen, leftEnd);
+    const canR = canMatch(chosen, rightEnd);
+    if(canL && !canR) side = 'left';
+    else if(canR && !canL) side = 'right';
+    else side = Math.random() < 0.5 ? 'left' : 'right';
+  }
+
+  // Place the tile
+  if(board.length === 0){
+    board.push({tile: chosen, topVal: chosen.a, botVal: chosen.b});
+    leftEnd = chosen.a; rightEnd = chosen.b;
+  } else if(side === 'left'){
+    let topVal, botVal;
+    if(chosen.b === leftEnd){ topVal = chosen.a; botVal = chosen.b; }
+    else { topVal = chosen.b; botVal = chosen.a; }
+    board.unshift({tile: chosen, topVal, botVal});
+    leftEnd = topVal;
+  } else {
+    let topVal, botVal;
+    if(chosen.a === rightEnd){ topVal = chosen.a; botVal = chosen.b; }
+    else { topVal = chosen.b; botVal = chosen.a; }
+    board.push({tile: chosen, topVal, botVal});
+    rightEnd = botVal;
+  }
+
+  oppHand = oppHand.filter(t => t.id !== chosen.id);
+  sfxPlace();
+
+  if(oppHand.length === 0){ endRound('opponent'); return; }
+
+  myTurn = true;
+  renderGame(); updateTurnUI();
+}
+
+/* =========================================================== */
+/* END ROUND                                                   */
+/* =========================================================== */
+function endRound(winner){
+  gameOver = true;
+  let playerPips = myHand.reduce((s, t) => s + pipCount(t), 0);
+  let oppPips = oppHand.reduce((s, t) => s + pipCount(t), 0);
+  let title, sub, points, recordResult;
+
+  if(winner === 'player'){
+    title = 'You Win!'; sub = 'You played all your tiles!'; points = oppPips; recordResult = 'win';
+    myScore += oppPips; sfxWin();
+  } else if(winner === 'opponent'){
+    title = 'You Lost'; sub = 'Opponent played all their tiles'; points = 0; recordResult = 'loss';
+    oppScore += playerPips; sfxLose();
+  } else {
+    if(playerPips < oppPips){
+      title = 'You Win!'; sub = 'Blocked game \u2014 you had fewer pips'; points = oppPips - playerPips; recordResult = 'win';
+      myScore += oppPips - playerPips; sfxWin();
+    } else if(oppPips < playerPips){
+      title = 'You Lost'; sub = 'Blocked game \u2014 opponent had fewer pips'; points = 0; recordResult = 'loss';
+      oppScore += playerPips - oppPips; sfxLose();
+    } else {
+      title = 'Draw!'; sub = 'Blocked game \u2014 tied pip count'; points = 0; recordResult = 'draw';
+    }
+  }
+
+  var coins = Math.floor(points / 2);
+  if(recordResult === 'win') coins += 10;
+  if(coins < 1 && recordResult === 'win') coins = 1;
+
+  document.getElementById('resultTitle').textContent = title;
+  document.getElementById('resultTitle').style.color = recordResult === 'win' ? 'var(--accent)' : recordResult === 'loss' ? 'var(--accent3)' : 'var(--gold)';
+  document.getElementById('resultSub').textContent = sub;
+  document.getElementById('resultScore').textContent = points;
+  document.getElementById('resultCoins').textContent = '+' + coins + ' coins';
+
+  renderGame();
+  setTimeout(() => showScreen('resultScreen'), 1200);
+
+  if(!coinsAwarded){ coinsAwarded = true; if(coins > 0) awardCoins(coins); saveRecord(recordResult, points); }
+}
+
+function playAgain(){
+  if(aiMode) startAiGame(aiDifficulty);
+  else showScreen('homeScreen');
+}
+window.playAgain = playAgain;
+
+/* =========================================================== */
+/* QUICK MATCH                                                 */
+/* =========================================================== */
+function genCode(){ return Math.random().toString(36).slice(2, 6).toUpperCase(); }
+
+function showQuickMatch(){ showScreen('quickMatchScreen'); document.getElementById('joinCodeInput').value = ''; }
+window.showQuickMatch = showQuickMatch;
+
+async function createRoom(){
+  roomCode = genCode();
+  const tiles = shuffleTiles(generateTileSet());
+  const h1 = tiles.splice(0, 7), h2 = tiles.splice(0, 7);
+  await setDoc(doc(db, 'dominoGames', roomCode), {
+    player1: studentId, player1Name: studentName, player2: null, player2Name: null,
+    hand1: JSON.stringify(h1), hand2: JSON.stringify(h2), boneyard: JSON.stringify(tiles),
+    board: '[]', leftEnd: -1, rightEnd: -1, turn: 1, status: 'waiting', winner: null,
+    classCode: classCode, createdAt: new Date().toISOString()
+  });
+  document.getElementById('waitingCode').textContent = roomCode;
+  showScreen('waitingScreen');
+  listenToGame();
+}
+window.createRoom = createRoom;
+
+async function joinRoom(){
+  const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+  if(code.length !== 4){ if(typeof odaToast === 'function') odaToast('Enter a 4-letter code', 'error'); return; }
+  const snap = await getDoc(doc(db, 'dominoGames', code));
+  if(!snap.exists() || snap.data().status !== 'waiting'){ if(typeof odaToast === 'function') odaToast('Room not found', 'error'); return; }
+  roomCode = code;
+  await updateDoc(doc(db, 'dominoGames', roomCode), {player2: studentId, player2Name: studentName, status: 'playing'});
+  listenToGame();
+}
+window.joinRoom = joinRoom;
+
+async function cancelRoom(){
+  if(roomCode){ try{ await deleteDoc(doc(db, 'dominoGames', roomCode)); }catch(e){} }
+  if(unsub){ unsub(); unsub = null; }
+  roomCode = null; showScreen('homeScreen');
+}
+window.cancelRoom = cancelRoom;
+
+function listenToGame(){
+  if(unsub) unsub();
+  unsub = onSnapshot(doc(db, 'dominoGames', roomCode), snap => {
+    if(!snap.exists()){ showScreen('homeScreen'); return; }
+    const data = snap.data();
+    if(data.status === 'playing'){
+      const amP1 = data.player1 === studentId;
+      myHand = JSON.parse(amP1 ? data.hand1 : data.hand2);
+      oppHand = [];
+      boneyard = JSON.parse(data.boneyard);
+      board = JSON.parse(data.board);
+      leftEnd = data.leftEnd; rightEnd = data.rightEnd;
+      myTurn = (data.turn === 1 && amP1) || (data.turn === 2 && !amP1);
+      gameOver = !!data.winner;
+      aiMode = false;
+      document.getElementById('piOppName').textContent = amP1 ? esc(data.player2Name || 'Opponent') : esc(data.player1Name || 'Opponent');
+      showScreen('gameScreen');
+      renderGame(); updateTurnUI();
+      if(data.winner) endRound(data.winner === studentId ? 'player' : 'opponent');
+    }
+  });
+}
+
+/* ===================== */
+/* FIREBASE              */
+/* ===================== */
+async function awardCoins(coins){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{await updateDoc(doc(db,'students',studentId),{coins:increment(coins)})}catch(e){
+    try{await setDoc(doc(db,'students',studentId),{coins:coins},{merge:true})}catch(e2){}
+  }
+}
+
+async function saveRecord(result,points){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    const ref=doc(db,'dominoRecords',studentId);const snap=await getDoc(ref);
+    if(snap.exists()){
+      const upd={gamesPlayed:increment(1),totalScore:increment(points||0),lastPlayed:new Date().toISOString()};
+      if(result==='win')upd.wins=increment(1);
+      if(result==='loss')upd.losses=increment(1);
+      if(result==='draw')upd.draws=increment(1);
+      await updateDoc(ref,upd);
+    }else{
+      await setDoc(ref,{studentId,studentName:studentName||'',classCode,
+        wins:result==='win'?1:0,losses:result==='loss'?1:0,draws:result==='draw'?1:0,
+        gamesPlayed:1,totalScore:points||0,lastPlayed:new Date().toISOString()});
+    }
+  }catch(e){console.warn('Save failed:',e)}
+}
+
+async function showRecords(){
+  showScreen('recordsScreen');
+  try{
+    const snap=await getDoc(doc(db,'dominoRecords',studentId));
+    if(snap.exists()){const d=snap.data();
+      document.getElementById('statWins').textContent=d.wins||0;
+      document.getElementById('statLosses').textContent=d.losses||0;
+      document.getElementById('statPlayed').textContent=d.gamesPlayed||0;
+      document.getElementById('statScore').textContent=d.totalScore||0;
+    }
+  }catch(e){}
+  const lb=document.getElementById('leaderboard');lb.innerHTML='<div class="lb-empty">Loading...</div>';
+  if(!classCode){lb.innerHTML='<div class="lb-empty">Join a class to see the leaderboard</div>';return}
+  try{
+    const q2=query(collection(db,'dominoRecords'),where('classCode','==',classCode),orderBy('wins','desc'),limit(20));
+    const snap2=await getDocs(q2);
+    if(snap2.empty){lb.innerHTML='<div class="lb-empty">No games yet!</div>';return}
+    let h='',rank=0;
+    snap2.forEach(d=>{rank++;const data=d.data();const isMe=data.studentId===studentId;
+      h+='<div class="lb-row'+(isMe?' me':'')+'"><div class="lb-rank'+(rank<=3?' r'+rank:'')+'">'+rank+'</div><div class="lb-name">'+esc(data.studentName||'Player')+'</div><div class="lb-score">'+data.wins+' W</div></div>';
+    });lb.innerHTML=h;
+  }catch(e){lb.innerHTML='<div class="lb-empty">Could not load</div>'}
+}
+window.showRecords=showRecords;
+
+/* ===================== */
+/* ACHIEVEMENTS          */
+/* ===================== */
+var DOMINO_ACHIEVEMENTS=[
+  {id:'dom_first',name:'First Win',desc:'Win your first game',icon:'\u{1F3AF}',check:s=>s.wins>=1},
+  {id:'dom_10',name:'Win 10',desc:'Win 10 games',icon:'\u{1F3C5}',check:s=>s.wins>=10},
+  {id:'dom_50',name:'Domino Master',desc:'Win 50 games',icon:'\u{1F947}',check:s=>s.wins>=50},
+  {id:'dom_domino',name:'Domino!',desc:'Play all your tiles',icon:'\u{1F3B2}',check:s=>s.dominoWins>=1},
+  {id:'dom_block',name:'Block Win',desc:'Win a blocked game',icon:'\u{1F6AB}',check:s=>s.blockWins>=1},
+  {id:'dom_big',name:'Big Score',desc:'Score 30+ in one round',icon:'\u{1F4AF}',check:s=>s.bestRoundScore>=30},
+  {id:'dom_play50',name:'Regular',desc:'Play 50 games',icon:'\u{1F3AE}',check:s=>s.gamesPlayed>=50}
+];
+
+/* ===================== */
+/* HELP                  */
+/* ===================== */
+if(typeof odaHelp!=='undefined')odaHelp.init({
+  title:'Dominoes',emoji:'\u{1F3B2}',subtitle:'Match tiles and outsmart your opponent!',
+  sections:[
+    {title:'Rules',icon:'\u{1F4D6}',items:['Each player starts with 7 tiles from a double-six set (28 tiles)','Take turns matching a tile end to an open end on the board','If you can\'t play, draw from the boneyard (or pass if empty)','First player to play all tiles wins! Blocked game = lowest pips wins','Score = sum of opponent\'s remaining pips']},
+    {title:'Strategy',icon:'\u{1F9E0}',items:['Play high-pip tiles early to avoid getting stuck with them','Watch what your opponent draws \u2014 they\'re missing those numbers','Doubles are powerful \u2014 they can be played on either end','Try to set up the board so only you can play']}
+  ],
+  controls:[{key:'Click',action:'Select tile'},{key:'Drag',action:'Drag tile to board'},{key:'Left/Right',action:'Choose which end to place'}],
+  tip:'<strong>Count the tiles!</strong> There are 7 tiles for each number (0-6). If you track what\'s been played, you can predict what your opponent has.'
+});
+</script>
+<script>
+// Teacher back button fix + button wiring (runs immediately)
+(function(){
+  var isT=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+  if(isT){var b=document.getElementById('backBtn');if(b)b.href='../../teacher.html'}
+})();
+</script>
+</body>
+</html>
