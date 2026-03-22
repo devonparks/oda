@@ -749,8 +749,8 @@ function drawTileOnCanvas(ctx, cx, cy, valA, valB, horizontal, isDbl, highlight)
   const th = isDbl ? TILE_W : TILE_H;   // tile half-height
 
   if(horizontal && !isDbl){
-    // Rotate 90 for horizontal non-double
-    ctx.rotate(Math.PI / 2);
+    // Rotate -90 for horizontal non-double (so valA=left, valB=right)
+    ctx.rotate(-Math.PI / 2);
   } else if(isDbl && horizontal) {
     // Doubles perpendicular to horizontal chain = vertical orientation (no rotate needed)
   } else if(isDbl && !horizontal) {
@@ -1179,6 +1179,12 @@ window.selectTile = selectTile;
 function placeTile(side){
   if(!selectedTile || !myTurn || gameOver) return;
 
+  // Validate the move
+  if(board.length > 0){
+    if(side === 'left' && !canMatch(selectedTile, leftEnd)){console.error('INVALID LEFT',selectedTile,leftEnd);return}
+    if(side === 'right' && !canMatch(selectedTile, rightEnd)){console.error('INVALID RIGHT',selectedTile,rightEnd);return}
+  }
+
   if(board.length === 0){
     // First tile
     board.push({tile: selectedTile, topVal: selectedTile.a, botVal: selectedTile.b});
@@ -1220,6 +1226,7 @@ function placeTile(side){
   if(aiMode) setTimeout(() => aiTurn(), 600 + Math.random() * 400);
 }
 window.placeTile = placeTile;
+window._dbg = function(){ return {board:board.map(e=>({a:e.tile.a,b:e.tile.b,top:e.topVal,bot:e.botVal})),leftEnd,rightEnd} };
 
 function drawFromBoneyard(){
   if(!myTurn || boneyard.length === 0 || gameOver) return;
@@ -1312,6 +1319,12 @@ function aiTurn(){
     if(canL && !canR) side = 'left';
     else if(canR && !canL) side = 'right';
     else side = Math.random() < 0.5 ? 'left' : 'right';
+  }
+
+  // Validate AI move
+  if(board.length > 0){
+    if(side === 'left' && !canMatch(chosen, leftEnd)){console.error('AI INVALID LEFT',chosen,leftEnd);myTurn=true;renderGame();updateTurnUI();return}
+    if(side === 'right' && !canMatch(chosen, rightEnd)){console.error('AI INVALID RIGHT',chosen,rightEnd);myTurn=true;renderGame();updateTurnUI();return}
   }
 
   // Place the tile
