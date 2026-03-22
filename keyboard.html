@@ -169,7 +169,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 <body>
 <div class="grid-bg"></div>
 <div class="app">
-<a href="student.html" class="back" id="backLink">&#8592; Back to Hub</a>
+<a href="student.html" class="back" id="backLink" onclick="return handleBack(event)">&#8592; Back</a>
 <div class="header">
 <span class="emoji">&#9000;&#65039;</span>
 <h1>Keyboard Warriors</h1>
@@ -496,6 +496,24 @@ function getSave() {
   } catch(e) { return { campaignProgress: {}, highScores: [], achievements: [], totalWords: 0, bestWpm: 0, timePlayed: 0 }; }
 }
 function putSave(s) { try { localStorage.setItem('kw_save', JSON.stringify(s)); } catch(e) {} }
+
+/* ---- Back Button ---- */
+function handleBack(e) {
+  // Find which screen is active
+  var active = document.querySelector('.screen.active');
+  if (!active) return true; // let link navigate to hub
+  var id = active.id;
+  // If on menu screen, go to hub
+  if (id === 'menuScreen') return true;
+  // If in a game, quit the game
+  if (id === 'gameScreen' || id === 'practiceGameScreen') { e.preventDefault(); quitGame(); return false; }
+  // If on summary, go back to campaign/menu
+  if (id === 'summaryScreen') { e.preventDefault(); showScreen('menuScreen'); return false; }
+  // For any sub-screen, go back to menu
+  e.preventDefault();
+  showScreen('menuScreen');
+  return false;
+}
 
 /* ---- Screen Management ---- */
 function showScreen(id) {
