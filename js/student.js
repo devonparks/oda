@@ -55,6 +55,7 @@ var GAMES=[
 {id:'penaltykick',emoji:'\u26BD',title:'Penalty Kick',desc:'Aim, shoot, score past the keeper!',file:'arcade/penaltykick/index.html'},
 {id:'brickbreaker',emoji:'\u{1F9F1}',title:'Brick Breaker',desc:'Smash bricks, earn combos, break records!',file:'arcade/brickbreaker/index.html'},
 {id:'whackamole',emoji:'\u{1F439}',title:'Whack-a-Mole',desc:'Whack the moles before they hide!',file:'arcade/whackamole/index.html'},
+{id:'simonsays',emoji:'\u{1F3B5}',title:'Simon Says',desc:'Watch, listen, repeat the pattern!',file:'arcade/simonsays/index.html'},
 ];
 
 var WORD_BANKS={
