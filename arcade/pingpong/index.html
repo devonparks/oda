@@ -459,6 +459,8 @@ function initCanvas(){
 
 var serving=false;
 
+var serveTimer=null;
+
 function resetBall(dir){
   ball={
     x:W/2,
@@ -471,14 +473,21 @@ function resetBall(dir){
   };
   rallyCount=0;
   serving=true;
-  // Pause then serve
-  setTimeout(function(){
-    if(gameState==='playing'&&serving){
-      ball.vx=ballSpeedBase*ball.serveDir;
-      ball.vy=(Math.random()*3-1.5);
-      serving=false;
-    }
-  },1200);
+  if(serveTimer)clearTimeout(serveTimer);
+  // AI serves automatically after 1.5s, player clicks to serve
+  // 5s timeout as fallback
+  var autoDelay=ball.serveDir<0?1500:5000;
+  serveTimer=setTimeout(function(){
+    if(gameState==='playing'&&serving)doServe();
+  },autoDelay);
+}
+
+function doServe(){
+  if(!serving||gameState!=='playing')return;
+  ball.vx=ballSpeedBase*ball.serveDir;
+  ball.vy=(Math.random()*3-1.5);
+  serving=false;
+  sfxHit();
 }
 
 function startGame(){
@@ -699,6 +708,17 @@ function draw(){
     ctx.fill();
   }
 
+  // Click to serve text
+  if(serving&&gameState==='playing'){
+    ctx.fillStyle='rgba(255,255,255,0.7)';
+    ctx.font='bold 20px Fredoka,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('Click to Serve',W/2,H/2-30);
+    ctx.font='14px Outfit,sans-serif';
+    ctx.fillStyle='rgba(255,255,255,0.4)';
+    ctx.fillText(ball.serveDir>0?'Your serve':'AI serving...',W/2,H/2);
+  }
+
   // Score display on court (subtle)
   ctx.fillStyle='rgba(255,255,255,0.04)';
   ctx.font='bold '+Math.min(200,H*0.25)+'px Fredoka,sans-serif';
@@ -826,6 +846,14 @@ cw.addEventListener('touchstart',function(e){
   mouseY=e.touches[0].clientY-rect.top;
   if(gameState==='waiting'){gameState='playing';document.getElementById('tapHint').style.display='none'}
 },{passive:false});
+
+cw.addEventListener('click',function(){
+  if(serving&&gameState==='playing')doServe();
+});
+
+document.addEventListener('keydown',function(e){
+  if(e.code==='Space'&&serving&&gameState==='playing'){e.preventDefault();doServe()}
+});
 
 /* ===================== */
 /* FIREBASE              */
