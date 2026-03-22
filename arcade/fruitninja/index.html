@@ -487,16 +487,18 @@ function update(){
   if(gameState!=='playing')return;
   frameCount++;
 
-  // Ramp difficulty
-  spawnInterval=Math.max(minSpawnInterval,90-Math.floor(frameCount/120));
+  // Ramp difficulty — gradually decrease spawn interval from starting value
+  var ds=diffSettings[gameDifficulty];
+  var rampedInterval=ds.spawnInterval-Math.floor(frameCount/300);
+  spawnInterval=Math.max(ds.minSpawn,rampedInterval);
 
   // Spawn fruits
   spawnTimer++;
   if(spawnTimer>=spawnInterval){
     spawnTimer=0;
     var count=1;
-    if(frameCount>600)count=Math.random()<0.4?2:1;
-    if(frameCount>1800)count=Math.random()<0.3?3:count;
+    if(frameCount>1200)count=Math.random()<0.3?2:1;
+    if(frameCount>3000)count=Math.random()<0.2?3:count;
     for(var c=0;c<count;c++){
       setTimeout(function(){if(gameState==='playing')spawnFruit()},c*150);
     }
@@ -507,7 +509,7 @@ function update(){
     var f=fruits[i];
     if(f.sliced){fruits.splice(i,1);continue}
     f.x+=f.vx;
-    f.vy+=0.09*(diffSettings[gameDifficulty]?.gravityMult||1); // gravity scaled by difficulty
+    f.vy+=0.065*(diffSettings[gameDifficulty]?.gravityMult||1); // gentle base gravity
     f.y+=f.vy;
     f.rotation+=f.rotSpeed;
     // Check if fallen off screen (missed)
