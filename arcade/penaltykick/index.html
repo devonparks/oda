@@ -442,9 +442,10 @@ var GS={
 var ring={
   active:false,
   cx:0,cy:0,         // center pixel position
-  radius:80,          // current radius (shrinks)
+  radius:80,          // current radius (oscillates)
   maxRadius:80,
   shrinkSpeed:0.8,    // px per frame (varies by zone difficulty)
+  dir:1,              // 1=shrinking, -1=growing
   clicked:false,
   finalRadius:80,     // radius when player clicked
 };
@@ -466,6 +467,7 @@ var saveRing={
   radius:70,
   maxRadius:70,
   shrinkSpeed:0.7,
+  dir:1,
   clicked:false,
   finalRadius:70,
 };
@@ -610,14 +612,12 @@ function normToGoalPx(nx,ny){
 
 // Determine which difficulty zone a normalized aim point falls in
 function getAimZoneDifficulty(nx,ny){
-  // Top corners
-  if(ny<0.35 && (nx<0.25||nx>0.75)) return 'topCorner';
-  // Bottom corners
-  if(ny>=0.35 && (nx<0.2||nx>0.8)) return 'bottomCorner';
-  // Sides
-  if(nx<0.3||nx>0.7) return 'side';
-  // Center
-  return 'center';
+  // Matches the 5-zone layout: TL, TR (top corners), BL, BR (sides), Center
+  if(nx<0.333 && ny<0.5) return 'topCorner';    // Top Left
+  if(nx>0.667 && ny<0.5) return 'topCorner';    // Top Right
+  if(nx<0.333 && ny>=0.5) return 'side';         // Bottom Left
+  if(nx>0.667 && ny>=0.5) return 'side';         // Bottom Right
+  return 'center';                                // Center
 }
 
 // Map a zone name to its center in normalized coords
@@ -661,6 +661,7 @@ function beginAccuracyRing(){
 
   ring.active=true;
   ring.clicked=false;
+  ring.dir=1; // start shrinking
   ring.cx=pos.x;
   ring.cy=pos.y;
   ring.maxRadius=80;
@@ -954,6 +955,7 @@ window.pickDive=function(choice){
 
   saveRing.active=true;
   saveRing.clicked=false;
+  saveRing.dir=1; // start shrinking
   saveRing.cx=pos.x;
   saveRing.cy=pos.y;
   saveRing.maxRadius=70;
@@ -1143,17 +1145,11 @@ function endGame(){
 function update(){
   frameCount++;
 
-  /* --- Accuracy Ring shrinking (kick phase) --- */
+  /* --- Accuracy Ring oscillating (kick phase) --- */
   if(GS.phase==='kick_ring'&&ring.active&&!ring.clicked){
-    ring.radius-=ring.shrinkSpeed;
-    if(ring.radius<=0){
-      // Missed entirely — terrible accuracy
-      ring.radius=0;
-      ring.clicked=true;
-      ring.finalRadius=999; // worst
-      GS.kickAccuracy=0.1;
-      addTimer(function(){beginPowerBar()},400);
-    }
+    ring.radius-=ring.shrinkSpeed*ring.dir;
+    if(ring.radius<=5){ring.radius=5;ring.dir=-1}
+    if(ring.radius>=ring.maxRadius){ring.radius=ring.maxRadius;ring.dir=1}
   }
 
   /* --- Power Bar oscillation --- */
@@ -1191,16 +1187,11 @@ function update(){
     updateParticles();
   }
 
-  /* --- Save Ring shrinking --- */
+  /* --- Save Ring oscillating --- */
   if(GS.phase==='save_ring'&&saveRing.active&&!saveRing.clicked){
-    saveRing.radius-=saveRing.shrinkSpeed;
-    if(saveRing.radius<=0){
-      saveRing.radius=0;
-      saveRing.clicked=true;
-      saveRing.finalRadius=999;
-      GS.diveTimingScore=0.1;
-      addTimer(function(){fireSaveShot()},300);
-    }
+    saveRing.radius-=saveRing.shrinkSpeed*saveRing.dir;
+    if(saveRing.radius<=5){saveRing.radius=5;saveRing.dir=-1}
+    if(saveRing.radius>=saveRing.maxRadius){saveRing.radius=saveRing.maxRadius;saveRing.dir=1}
   }
 
   /* --- Heat Zone fade --- */
@@ -1437,23 +1428,30 @@ function drawGoal(){
 
 function drawZoneDifficultyOverlay(){
   var g=getGoalPixels();
-  // Show subtle colored zones so player understands difficulty
+  // Clear zone layout matching the 5 save zones - tiles the full goal
   var zones=[
-    // Top corners — hard (red tint)
-    {x:0,y:0,w:0.25,h:0.35,color:'rgba(239,68,68,0.08)',label:'HARD'},
-    {x:0.75,y:0,w:0.25,h:0.35,color:'rgba(239,68,68,0.08)',label:'HARD'},
-    // Bottom corners — hard (orange tint)
-    {x:0,y:0.65,w:0.2,h:0.35,color:'rgba(245,158,11,0.07)',label:'HARD'},
-    {x:0.8,y:0.65,w:0.2,h:0.35,color:'rgba(245,158,11,0.07)',label:'HARD'},
-    // Sides — medium (yellow tint)
-    {x:0,y:0.35,w:0.25,h:0.3,color:'rgba(251,191,36,0.05)',label:'MED'},
-    {x:0.75,y:0.35,w:0.25,h:0.3,color:'rgba(251,191,36,0.05)',label:'MED'},
-    // Center — easy (green tint)
-    {x:0.25,y:0.15,w:0.5,h:0.7,color:'rgba(6,214,160,0.05)',label:'EASY'},
+    // Top left corner — hard
+    {x:0,y:0,w:0.333,h:0.5,fill:'rgba(239,68,68,0.12)',border:'rgba(239,68,68,0.25)',label:'HARD',lx:0.167,ly:0.25},
+    // Center — easy (full height)
+    {x:0.333,y:0,w:0.334,h:1.0,fill:'rgba(6,214,160,0.10)',border:'rgba(6,214,160,0.2)',label:'EASY',lx:0.5,ly:0.5},
+    // Top right corner — hard
+    {x:0.667,y:0,w:0.333,h:0.5,fill:'rgba(239,68,68,0.12)',border:'rgba(239,68,68,0.25)',label:'HARD',lx:0.833,ly:0.25},
+    // Bottom left — medium
+    {x:0,y:0.5,w:0.333,h:0.5,fill:'rgba(251,191,36,0.08)',border:'rgba(251,191,36,0.2)',label:'MED',lx:0.167,ly:0.75},
+    // Bottom right — medium
+    {x:0.667,y:0.5,w:0.333,h:0.5,fill:'rgba(251,191,36,0.08)',border:'rgba(251,191,36,0.2)',label:'MED',lx:0.833,ly:0.75},
   ];
   zones.forEach(function(z){
-    ctx.fillStyle=z.color;
-    ctx.fillRect(g.left+z.x*g.width,g.top+z.y*g.height,z.w*g.width,z.h*g.height);
+    var rx=g.left+z.x*g.width,ry=g.top+z.y*g.height,rw=z.w*g.width,rh=z.h*g.height;
+    ctx.fillStyle=z.fill;
+    ctx.fillRect(rx,ry,rw,rh);
+    ctx.strokeStyle=z.border;ctx.lineWidth=1;
+    ctx.strokeRect(rx,ry,rw,rh);
+    // Label in center of zone
+    ctx.font='bold 10px Outfit,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=z.border.replace(/[\d.]+\)$/,'0.6)');
+    ctx.fillText(z.label,g.left+z.lx*g.width,g.top+z.ly*g.height);
   });
 }
 
