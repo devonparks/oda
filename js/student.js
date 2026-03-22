@@ -48,6 +48,11 @@ var GAMES=[
 {id:'flappy',emoji:'\u{1F426}',title:'Floppy Bird',desc:'Tap to fly, dodge the pipes!',file:'arcade/flappy/index.html'},
 {id:'bowling',emoji:'\u{1F3B3}',title:'Bowling',desc:'Roll strikes in 3D! Wii Bowling style!',file:'arcade/bowling/index.html'},
 {id:'dominoes',emoji:'\u{1F3B2}',title:'Dominoes',desc:'Match tiles and outsmart your opponent!',file:'arcade/dominoes/index.html'},
+{id:'suika',emoji:'\u{1F349}',title:'Suika Game',desc:'Drop & merge fruits to make a watermelon!',file:'arcade/suika/index.html'},
+{id:'fruitninja',emoji:'\u{1F52A}',title:'Fruit Ninja',desc:'Slash fruits, avoid bombs, get combos!',file:'arcade/fruitninja/index.html'},
+{id:'pingpong',emoji:'\u{1F3D3}',title:'Ping Pong',desc:'Classic pong — beat the AI!',file:'arcade/pingpong/index.html'},
+{id:'aimtrainer',emoji:'\u{1F3AF}',title:'Aim Trainer',desc:'Test your reflexes — hit targets fast!',file:'arcade/aimtrainer/index.html'},
+{id:'penaltykick',emoji:'\u26BD',title:'Penalty Kick',desc:'Aim, shoot, score past the keeper!',file:'arcade/penaltykick/index.html'},
 ];
 
 var WORD_BANKS={

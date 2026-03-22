@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Penalty Kick - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:center}
+body.in-game{overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+.sound-btn{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;transition:all .2s;backdrop-filter:blur(8px)}
+.sound-btn:hover{border-color:var(--accent)}
+
+.screen{display:none;width:100%;max-width:1100px;min-height:100vh;min-height:100dvh;padding:16px;animation:fadeUp .35s ease}
+@media(min-width:768px){
+  .home-header h1{font-size:80px!important}
+  .home-header p{font-size:18px}
+  .best-pill{padding:16px 32px;font-size:18px}
+  .best-pill .bp-val{font-size:28px}
+  .btn-accent{font-size:22px!important;padding:20px 64px!important}
+  .btn-outline{font-size:16px;padding:14px 28px}
+  .stats-row .sr{font-size:15px;padding:10px 22px}
+  .how-to{max-width:500px;padding:28px 32px}
+  .how-to h3{font-size:15px}
+  .how-to p{font-size:15px}
+}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+
+/* HOME */
+#homeScreen{padding-top:80px;justify-content:flex-start;gap:16px}
+.home-header{text-align:center;margin-bottom:8px}
+.home-header h1{font-size:clamp(48px,10vw,64px);font-weight:700;letter-spacing:-2px}
+.home-header h1 .hl{color:var(--accent)}
+.home-header p{color:var(--text2);font-size:15px;margin-top:4px}
+.best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
+.best-pill .bp-label{color:var(--text2)}
+.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
+.home-actions{display:flex;flex-direction:column;align-items:center;gap:14px}
+.stats-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.stats-row .sr{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+.how-to{max-width:380px;width:100%;margin:0 auto;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px}
+.how-to h3{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.how-to p{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* GAME */
+#gameScreen{padding:0;max-width:100%;min-height:100vh;min-height:100dvh;justify-content:center;align-items:center;position:relative}
+#canvasWrap{width:100%;height:100vh;height:100dvh;position:relative;overflow:hidden;cursor:crosshair;touch-action:manipulation}
+#gameCanvas{display:block;width:100%;height:100%}
+.game-hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:center;padding:20px;pointer-events:none;z-index:5}
+.hud-score{font-family:'Fredoka',sans-serif;font-size:clamp(32px,8vw,48px);font-weight:900;color:#fff;text-shadow:0 3px 10px rgba(0,0,0,.6),0 0 30px rgba(0,0,0,.4);letter-spacing:-1px;-webkit-text-stroke:1px rgba(0,0,0,.15)}
+.hud-info{position:absolute;top:20px;left:20px;display:flex;flex-direction:column;gap:6px;pointer-events:none;z-index:5}
+.hud-info span{font-family:'Fredoka',sans-serif;font-size:16px;font-weight:700;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.5)}
+
+/* GAME OVER OVERLAY */
+.go-overlay{position:absolute;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:10;gap:12px;padding:24px;animation:fadeUp .3s ease}
+.go-overlay.active{display:flex}
+.go-overlay h2{font-size:32px;font-weight:700;color:var(--accent3)}
+.go-overlay .go-score{font-family:'Fredoka',sans-serif;font-size:48px;font-weight:700;color:#fff}
+.go-overlay .go-label{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.go-overlay .go-best{font-size:16px;color:var(--gold);font-weight:700;font-family:'Fredoka',sans-serif}
+.go-overlay .go-new{color:var(--accent);font-size:14px;font-weight:700;animation:pulse 1s ease-in-out infinite}
+.go-overlay .go-coins{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:8px 18px;font-size:16px;font-weight:700;color:var(--gold);font-family:'Fredoka',sans-serif}
+.go-overlay .go-btns{display:flex;gap:10px;margin-top:8px}
+
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.05)}}
+
+/* RECORDS */
+#recordsScreen{padding-top:70px;justify-content:flex-start}
+.records-container{width:100%;max-width:420px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.stat-card .sv{font-size:24px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.stat-card .sv.gold{color:var(--gold)}
+.stat-card .sl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-weight:600}
+.lb-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px}
+.lb-row.me{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.lb-rank{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text2);flex-shrink:0}
+.lb-rank.r1{background:rgba(255,209,102,.2);color:var(--gold)}
+.lb-rank.r2{background:rgba(192,192,192,.15);color:#c0c0c0}
+.lb-rank.r3{background:rgba(205,127,50,.15);color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-size:14px;font-weight:800;color:var(--gold);font-family:'Fredoka',sans-serif}
+.lb-empty{text-align:center;color:var(--text2);font-size:14px;padding:24px;font-weight:600}
+
+/* SHOP */
+#shopScreen{padding-top:70px;justify-content:flex-start}
+
+/* ACHIEVEMENTS */
+.ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
+@keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../../student.html" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();showScreen('homeScreen')}">&#8592; Back</a>
+<button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128264;</button>
+
+<!-- HOME SCREEN -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1><span class="hl">Penalty</span> Kick</h1>
+    <p>Aim, power up, and score!</p>
+  </div>
+  <div class="best-pill">
+    <span class="bp-label">&#9917; Best</span>
+    <span class="bp-val" id="homeBest">0/5</span>
+  </div>
+  <div class="diff-row" style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
+    <button class="diff-btn active" onclick="setDifficulty('easy',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--accent);background:rgba(6,214,160,.15);color:var(--accent);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Easy</button>
+    <button class="diff-btn" onclick="setDifficulty('medium',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Medium</button>
+    <button class="diff-btn" onclick="setDifficulty('hard',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Hard</button>
+  </div>
+  <div class="home-actions">
+    <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
+    <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
+    <button class="btn btn-outline btn-small" onclick="showShopScreen()">&#128717;&#65039; Shop</button>
+  </div>
+  <div class="stats-row">
+    <div class="sr">&#127918; Games <span id="homeGames">0</span></div>
+    <div class="sr">&#9917; Total Goals <span id="homeTotalGoals">0</span></div>
+  </div>
+  <div class="how-to">
+    <h3>How to Play</h3>
+    <p>Move your mouse to aim at the goal. Click &amp; hold to charge power, release to kick! Too much power and you'll miss high. Score as many goals as you can in 5 kicks!</p>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div class="screen" id="gameScreen">
+  <div id="canvasWrap">
+    <canvas id="gameCanvas"></canvas>
+    <div class="game-hud"><div class="hud-score" id="hudScore">0 / 5</div></div>
+    <div class="hud-info">
+      <span id="hudGoals">&#9917; Goals: 0</span>
+      <span id="hudKick">Kick: 1 / 5</span>
+    </div>
+    <div class="go-overlay" id="gameOverOverlay">
+      <h2 id="goTitle">Full Time!</h2>
+      <div class="go-label">Goals Scored</div>
+      <div class="go-score" id="goScore">0 / 5</div>
+      <div class="go-best" id="goBest">Best: 0/5</div>
+      <div class="go-new" id="goNew" style="display:none">New Best! &#127881;</div>
+      <div class="go-coins" id="goCoins">+0 coins</div>
+      <div class="go-btns">
+        <button class="btn btn-accent btn-small" onclick="startGame()">Play Again</button>
+        <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Home</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECORDS SCREEN -->
+<div class="screen" id="recordsScreen">
+  <h1>Your <span style="color:var(--accent)">Records</span></h1>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Penalty Kick stats &amp; leaderboard</p>
+  <div class="records-container">
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="sv gold" id="statBest">0/5</div><div class="sl">Best Score</div></div>
+      <div class="stat-card"><div class="sv" id="statPlayed">0</div><div class="sl">Games Played</div></div>
+      <div class="stat-card"><div class="sv" id="statTotalGoals">0</div><div class="sl">Total Goals</div></div>
+      <div class="stat-card"><div class="sv" id="statCoins">0</div><div class="sl">Coins Earned</div></div>
+    </div>
+    <div class="lb-title" style="margin-top:16px">&#127942; Achievements</div>
+    <div id="achievementsGrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:24px"></div>
+    <div class="lb-title">Class Leaderboard</div>
+    <div class="lb-list" id="leaderboard"><div class="lb-empty">Loading...</div></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHOP SCREEN -->
+<div class="screen" id="shopScreen">
+  <div style="text-align:center;margin-bottom:8px">
+    <h1>&#128717;&#65039; Shop</h1>
+    <p style="color:var(--text2);font-size:14px">Customize your Penalty Kick</p>
+  </div>
+  <div id="penaltyShopContainer" style="width:100%;max-width:500px"></div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script>
+/* ===================== */
+/* SESSION               */
+/* ===================== */
+var studentId=localStorage.getItem('studentId')||'';
+var studentName=localStorage.getItem('studentName')||'';
+var classCode=localStorage.getItem('classCode')||'';
+var isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+if(isTeacher)document.getElementById('backBtn').href='../../teacher.html';
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+/* ===================== */
+/* SCREEN SYSTEM         */
+/* ===================== */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+  document.getElementById(id).classList.add('active');
+  document.body.classList.toggle('in-game',id==='gameScreen');
+  if(id==='homeScreen')loadLocalStats();
+}
+
+/* ===================== */
+/* AUDIO                 */
+/* ===================== */
+var audioCtx=null,soundOn=true;
+function getAudioCtx(){
+  if(!audioCtx)try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq,dur,type,vol,ramp){
+  if(!soundOn)return;var ctx=getAudioCtx();if(!ctx)return;
+  var osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.type=type||'square';osc.frequency.setValueAtTime(freq,ctx.currentTime);
+  if(ramp)osc.frequency.linearRampToValueAtTime(ramp,ctx.currentTime+dur);
+  gain.gain.setValueAtTime(vol||0.1,ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+  osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+dur);
+}
+function sfxKick(){playTone(120,0.15,'sine',0.15);setTimeout(function(){playTone(80,0.1,'sine',0.1)},30)}
+function sfxGoal(){playTone(523,0.1,'square',0.12);setTimeout(function(){playTone(659,0.1,'square',0.12)},100);setTimeout(function(){playTone(784,0.15,'square',0.12)},200)}
+function sfxSave(){playTone(200,0.3,'sawtooth',0.1,80)}
+function sfxMiss(){playTone(300,0.4,'sawtooth',0.08,50)}
+function sfxWhistle(){playTone(900,0.12,'sine',0.1);setTimeout(function(){playTone(900,0.12,'sine',0.1)},200);setTimeout(function(){playTone(1100,0.3,'sine',0.1)},400)}
+function sfxCharge(){playTone(200,0.05,'sine',0.04)}
+function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;'}
+
+/* ===================== */
+/* COSMETICS             */
+/* ===================== */
+var myCosmetics={};
+var ballColor='#fff';
+var grassColor='#2d8a4e',skyColor='#1a1a2e';
+var celebrationType='none';
+
+async function loadMyCosmetics(){
+  try{myCosmetics=JSON.parse(localStorage.getItem('oda_cosmetics_penaltykick')||'{}');}catch(e){myCosmetics={}}
+  var sid=localStorage.getItem('studentId');
+  if(sid){
+    try{
+      var fb=await window.getFirebaseDB();
+      var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));
+      if(snap.exists()){var d=snap.data();var fc=d.gameCosmetics?.penaltykick?.equipped;if(fc&&Object.keys(fc).length>0)myCosmetics=fc;}
+    }catch(e){}
+  }
+  applyCosmeticStyles();
+}
+loadMyCosmetics();
+
+function applyCosmeticStyles(){
+  var bs=myCosmetics['Ball Skin'];
+  if(bs&&bs.value){ballColor=bs.value.color||'#fff'}else{ballColor='#fff'}
+  var pt=myCosmetics['Pitch Theme'];
+  if(pt&&pt.value){grassColor=pt.value.grass||'#2d8a4e';skyColor=pt.value.sky||'#1a1a2e'}else{grassColor='#2d8a4e';skyColor='#1a1a2e'}
+  var cl=myCosmetics['Celebration'];
+  if(cl&&cl.value){celebrationType=cl.value.type||'none'}else{celebrationType='none'}
+}
+
+/* ===================== */
+/* SHOP                  */
+/* ===================== */
+var PENALTY_SHOP=[
+  {id:'pk_classic',name:'Classic',emoji:'\u26BD',cost:0,slot:'Ball Skin',value:{color:'#ffffff'}},
+  {id:'pk_gold',name:'Gold',emoji:'\u{1F7E1}',cost:100,slot:'Ball Skin',value:{color:'#fbbf24'}},
+  {id:'pk_fire',name:'Fire',emoji:'\u{1F525}',cost:150,slot:'Ball Skin',value:{color:'#ef4444'}},
+  {id:'pk_neon',name:'Neon',emoji:'\u{1F7E2}',cost:200,slot:'Ball Skin',value:{color:'#39ff14'}},
+  {id:'pk_galaxy',name:'Galaxy',emoji:'\u{1F30C}',cost:300,slot:'Ball Skin',value:{color:'#a855f7'}},
+
+  {id:'pt_classic',name:'Classic',emoji:'\u{1F3DF}',cost:0,slot:'Pitch Theme',value:{grass:'#2d8a4e',sky:'#1a1a2e'}},
+  {id:'pt_night',name:'Night Match',emoji:'\u{1F303}',cost:150,slot:'Pitch Theme',value:{grass:'#1a5c32',sky:'#050510'}},
+  {id:'pt_snow',name:'Snow',emoji:'\u{2744}',cost:200,slot:'Pitch Theme',value:{grass:'#e8e8e8',sky:'#4a6880'}},
+  {id:'pt_desert',name:'Desert',emoji:'\u{1F3DC}',cost:250,slot:'Pitch Theme',value:{grass:'#c2a83e',sky:'#1a0a00'}},
+
+  {id:'pc_none',name:'None',emoji:'\u274C',cost:0,slot:'Celebration',value:{type:'none'}},
+  {id:'pc_fireworks',name:'Fireworks',emoji:'\u{1F386}',cost:120,slot:'Celebration',value:{type:'fireworks'}},
+  {id:'pc_confetti',name:'Confetti',emoji:'\u{1F389}',cost:120,slot:'Celebration',value:{type:'confetti'}},
+  {id:'pc_slide',name:'Slide',emoji:'\u{1F6F7}',cost:150,slot:'Celebration',value:{type:'slide'}}
+];
+
+function showShopScreen(){
+  showScreen('shopScreen');
+  if(typeof odaShop!=='undefined'){
+    odaShop.renderShopPanel('penaltykick',PENALTY_SHOP,'penaltyShopContainer',{
+      onEquip:function(){loadMyCosmetics()},
+      onBuy:function(){loadMyCosmetics()}
+    });
+  }
+}
+
+/* ===================== */
+/* ACHIEVEMENTS          */
+/* ===================== */
+var PK_ACHIEVEMENTS=[
+  {id:'pk_first',name:'First Goal',desc:'Score your first goal',icon:'\u26BD',check:function(s){return s.totalGoals>=1}},
+  {id:'pk_perfect',name:'Perfect 5',desc:'Score 5/5 in one game',icon:'\u{1F3C6}',check:function(s){return s.bestScore>=5}},
+  {id:'pk_hard',name:'Hard Winner',desc:'Win on Hard difficulty',icon:'\u{1F525}',check:function(s){return s.hardWin}},
+  {id:'pk_20',name:'Goal Machine',desc:'Score 20 total goals',icon:'\u{1F3AF}',check:function(s){return s.totalGoals>=20}},
+  {id:'pk_hatrick',name:'Hat Trick',desc:'3 goals in a row',icon:'\u{1F3A9}',check:function(s){return s.hatTrick}},
+  {id:'pk_play10',name:'Regular',desc:'Play 10 games',icon:'\u{1F3AE}',check:function(s){return s.gamesPlayed>=10}}
+];
+var achState={};
+
+async function checkAchievements(extra){
+  var sid=localStorage.getItem('studentId');
+  if(!sid||sid.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'penaltykickRecords',sid);
+    var snap=await fb.fsMod.getDoc(ref);
+    var data=snap.exists()?snap.data():{};
+    var state=Object.assign({},data,extra||{});
+    achState=data.achievements||{};
+    var newUnlocks=[];
+    PK_ACHIEVEMENTS.forEach(function(a){
+      if(!achState[a.id]&&a.check(state)){achState[a.id]=Date.now();newUnlocks.push(a)}
+    });
+    if(newUnlocks.length>0){
+      var upd={};newUnlocks.forEach(function(a){upd['achievements.'+a.id]=achState[a.id]});
+      await fb.fsMod.updateDoc(ref,upd);
+      newUnlocks.forEach(function(a){showAchToast(a)});
+    }
+  }catch(e){}
+}
+
+function showAchToast(a){
+  var el=document.createElement('div');el.className='ach-popup';
+  el.innerHTML='<span style="font-size:32px">'+a.icon+'</span><div><div style="color:var(--gold);font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:var(--text);font-size:15px;font-weight:600;font-family:Outfit,sans-serif">'+esc(a.name)+'</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function(){el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(function(){el.remove()},400)},3500);
+}
+
+/* ===================== */
+/* LOCAL STATS           */
+/* ===================== */
+var localBest=parseInt(localStorage.getItem('pk_best'))||0;
+var localGames=parseInt(localStorage.getItem('pk_games'))||0;
+var localTotalGoals=parseInt(localStorage.getItem('pk_totalGoals'))||0;
+var localTotalCoins=parseInt(localStorage.getItem('pk_totalCoins'))||0;
+var localHatTrick=localStorage.getItem('pk_hatTrick')==='true';
+var localHardWin=localStorage.getItem('pk_hardWin')==='true';
+
+function loadLocalStats(){
+  document.getElementById('homeBest').textContent=localBest+'/5';
+  document.getElementById('homeGames').textContent=localGames;
+  document.getElementById('homeTotalGoals').textContent=localTotalGoals;
+}
+loadLocalStats();
+
+/* ===================== */
+/* DIFFICULTY            */
+/* ===================== */
+var difficulty='easy';
+var DIFFICULTIES={
+  easy:{keeperSpeed:0.015,diveRange:0.55,readsAim:false,reactionDelay:0.15},
+  medium:{keeperSpeed:0.025,diveRange:0.7,readsAim:false,reactionDelay:0.08},
+  hard:{keeperSpeed:0.035,diveRange:0.85,readsAim:true,reactionDelay:0.02}
+};
+
+window.setDifficulty=function(diff,btn){
+  difficulty=diff;
+  document.querySelectorAll('.diff-btn').forEach(function(b){b.style.borderColor='var(--border)';b.style.background='none';b.style.color='var(--text2)'});
+  if(btn){btn.style.borderColor='var(--accent)';btn.style.background='rgba(6,214,160,.15)';btn.style.color='var(--accent)'}
+};
+
+/* ===================== */
+/* GAME ENGINE           */
+/* ===================== */
+var canvas,ctx,W,H,dpr;
+var animId,frameCount=0;
+
+// Game state
+var gamePhase='aiming'; // aiming, charging, flying, result, done
+var goals=0,kicks=0,maxKicks=5;
+var coinsAwarded=false;
+var consecutiveGoals=0;
+var sessionHatTrick=false;
+
+// Aim
+var aimX=0.5,aimY=0.4; // normalized 0-1 within goal area
+
+// Power
+var power=0,charging=false,powerDir=1;
+var POWER_SPEED=0.018;
+
+// Ball flight
+var ball={},ballFlying=false;
+var ballStart={},ballTarget={},ballFlight=0,ballFlightSpeed=0.025;
+
+// Goalkeeper
+var keeper={x:0.5,targetX:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
+var KEEPER_ZONES=['left','center-left','center','center-right','right'];
+
+// Result display
+var resultText='',resultTimer=0;
+
+// Celebration particles
+var particles=[];
+
+// Goal dimensions (normalized percentages of canvas)
+var GOAL={left:0.2,right:0.8,top:0.15,bottom:0.55};
+
+function initCanvas(){
+  canvas=document.getElementById('gameCanvas');
+  ctx=canvas.getContext('2d');
+  var wrap=document.getElementById('canvasWrap');
+  dpr=window.devicePixelRatio||1;
+  W=wrap.clientWidth;H=wrap.clientHeight;
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+function startGame(){
+  showScreen('gameScreen');
+  initCanvas();
+  goals=0;kicks=0;coinsAwarded=false;consecutiveGoals=0;sessionHatTrick=false;
+  particles=[];
+  applyCosmeticStyles();
+  resetKick();
+  document.getElementById('gameOverOverlay').classList.remove('active');
+  updateHUD();
+  if(animId)cancelAnimationFrame(animId);
+  gameLoop();
+}
+
+function resetKick(){
+  gamePhase='aiming';
+  power=0;charging=false;powerDir=1;
+  ballFlying=false;ballFlight=0;
+  keeper={x:0.5,targetX:0.5,diveDir:0,diving:false,diveProgress:0,bodyY:0};
+  resultText='';resultTimer=0;
+  aimX=0.5;aimY=0.4;
+}
+
+function updateHUD(){
+  document.getElementById('hudScore').textContent=goals+' / '+kicks;
+  document.getElementById('hudGoals').textContent='\u26BD Goals: '+goals;
+  document.getElementById('hudKick').textContent='Kick: '+Math.min(kicks+1,maxKicks)+' / '+maxKicks;
+}
+
+/* ===================== */
+/* GOAL ZONE HELPERS     */
+/* ===================== */
+function getGoalPixels(){
+  // Returns goal rect in pixel coordinates
+  var gL=W*GOAL.left,gR=W*GOAL.right,gT=H*GOAL.top,gB=H*GOAL.bottom;
+  return {left:gL,right:gR,top:gT,bottom:gB,width:gR-gL,height:gB-gT,cx:(gL+gR)/2,cy:(gT+gB)/2};
+}
+
+function aimToGoalPos(ax,ay){
+  // Converts normalized aim (0-1) to pixel position on goal
+  var g=getGoalPixels();
+  return {x:g.left+ax*g.width, y:g.top+ay*g.height};
+}
+
+function getAimZone(ax){
+  // Returns which zone the aim is in (0-4)
+  if(ax<0.2)return 0; // left
+  if(ax<0.4)return 1; // center-left
+  if(ax<0.6)return 2; // center
+  if(ax<0.8)return 3; // center-right
+  return 4; // right
+}
+
+/* ===================== */
+/* KEEPER AI             */
+/* ===================== */
+function chooseKeeperDive(){
+  var diff=DIFFICULTIES[difficulty];
+  var zone;
+  if(diff.readsAim){
+    // Hard mode: keeper reads aim direction with some randomness
+    var aimZone=getAimZone(aimX);
+    if(Math.random()<0.6){
+      zone=aimZone; // 60% chance keeper reads correctly
+    }else{
+      zone=Math.floor(Math.random()*5);
+    }
+  }else{
+    zone=Math.floor(Math.random()*5);
+  }
+  // Convert zone to x position (0-1)
+  var positions=[0.15,0.3,0.5,0.7,0.85];
+  keeper.targetX=positions[zone];
+  keeper.diveDir=zone<2?-1:(zone>2?1:0);
+  keeper.diving=true;
+  keeper.diveProgress=0;
+}
+
+/* ===================== */
+/* KICK LOGIC            */
+/* ===================== */
+function doKick(){
+  if(gamePhase!=='charging')return;
+  gamePhase='flying';
+  sfxKick();
+
+  // Calculate target based on aim + power randomness
+  var powerFactor=power;
+  var accuracy=1-Math.pow(power,1.5)*0.6; // More power = less accuracy
+  var randX=(Math.random()-0.5)*0.15*(1-accuracy+0.2);
+  var randY=(Math.random()-0.5)*0.1*(1-accuracy+0.2);
+
+  // If power is too high (>0.9), ball sails over
+  var overBar=false;
+  var targetAimY=aimY+randY;
+  if(power>0.88){
+    targetAimY=-0.3-Math.random()*0.3; // Goes way above
+    overBar=true;
+  }else if(power>0.78){
+    // Slight chance of going over
+    if(Math.random()<(power-0.78)*5){
+      targetAimY=-0.1-Math.random()*0.2;
+      overBar=true;
+    }
+  }
+
+  var targetAimX=aimX+randX;
+  targetAimX=Math.max(-0.05,Math.min(1.05,targetAimX));
+
+  // Ball start position (bottom center)
+  ballStart={x:W*0.5,y:H*0.88};
+
+  // Target on goal
+  var g=getGoalPixels();
+  ballTarget={
+    x:g.left+targetAimX*g.width,
+    y:g.top+targetAimY*g.height,
+    normX:targetAimX,
+    normY:targetAimY,
+    overBar:overBar,
+    wide:targetAimX<-0.03||targetAimX>1.03
+  };
+
+  ball={x:ballStart.x,y:ballStart.y,size:22};
+  ballFlight=0;
+  ballFlying=true;
+  ballFlightSpeed=0.018+power*0.012;
+
+  // Keeper dives
+  chooseKeeperDive();
+}
+
+/* ===================== */
+/* UPDATE                */
+/* ===================== */
+function update(){
+  frameCount++;
+
+  if(gamePhase==='charging'){
+    power+=POWER_SPEED*powerDir;
+    if(power>=1){power=1;powerDir=-1}
+    if(power<=0){power=0;powerDir=1}
+    if(frameCount%4===0)sfxCharge();
+  }
+
+  if(gamePhase==='flying'){
+    ballFlight+=ballFlightSpeed;
+    // Ease the ball flight
+    var t=ballFlight;
+    var easeT=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2; // easeInOutQuad
+
+    // Ball position: lerp from start to target with arc
+    ball.x=ballStart.x+(ballTarget.x-ballStart.x)*easeT;
+    ball.y=ballStart.y+(ballTarget.y-ballStart.y)*easeT-Math.sin(easeT*Math.PI)*H*0.15;
+    ball.size=22-easeT*10; // Ball gets smaller as it goes into distance
+
+    // Keeper dive animation
+    if(keeper.diving){
+      var diff=DIFFICULTIES[difficulty];
+      keeper.diveProgress+=diff.keeperSpeed+easeT*0.03;
+      if(keeper.diveProgress>1)keeper.diveProgress=1;
+      keeper.x=0.5+(keeper.targetX-0.5)*keeper.diveProgress;
+      // Keeper body leans/dives
+      if(keeper.diveDir!==0){
+        keeper.bodyY=keeper.diveProgress*25;
+      }
+    }
+
+    // Check result when ball reaches goal
+    if(ballFlight>=1){
+      resolveKick();
+    }
+  }
+
+  if(gamePhase==='result'){
+    resultTimer++;
+    // Update particles
+    for(var i=particles.length-1;i>=0;i--){
+      var p=particles[i];
+      p.x+=p.vx;p.y+=p.vy;p.vy+=0.15;p.life--;
+      if(p.life<=0)particles.splice(i,1);
+    }
+    if(resultTimer>120){
+      kicks++;
+      if(kicks>=maxKicks){
+        endGame();
+      }else{
+        resetKick();
+        updateHUD();
+      }
+    }
+  }
+}
+
+function resolveKick(){
+  gamePhase='result';
+  resultTimer=0;
+  var missed=ballTarget.overBar||ballTarget.wide;
+
+  if(missed){
+    resultText='MISS!';
+    sfxMiss();
+    consecutiveGoals=0;
+  }else{
+    // Check if keeper saves
+    var keeperZone=getAimZone(keeper.x);
+    var ballZone=getAimZone(Math.max(0,Math.min(1,ballTarget.normX)));
+    var diff=DIFFICULTIES[difficulty];
+
+    // Keeper saves if in same zone
+    var saved=false;
+    var keeperReach=diff.diveRange;
+    var dist=Math.abs(keeper.x-Math.max(0,Math.min(1,ballTarget.normX)));
+    if(dist<keeperReach*0.2){
+      // Close enough to save — also check vertical
+      var verticalOk=ballTarget.normY>0.15; // Keeper can't reach very top corners easily
+      if(verticalOk||Math.random()<0.5){
+        saved=true;
+      }
+    }
+
+    if(saved){
+      resultText='SAVED!';
+      sfxSave();
+      consecutiveGoals=0;
+    }else{
+      resultText='GOAL!';
+      goals++;
+      consecutiveGoals++;
+      if(consecutiveGoals>=3)sessionHatTrick=true;
+      sfxGoal();
+      spawnCelebration();
+      updateHUD();
+    }
+  }
+}
+
+function spawnCelebration(){
+  var g=getGoalPixels();
+  var cx=ball.x||g.cx,cy=ball.y||g.cy;
+  if(celebrationType==='fireworks'){
+    for(var i=0;i<40;i++){
+      var angle=Math.random()*Math.PI*2;
+      var speed=2+Math.random()*4;
+      particles.push({x:cx,y:cy,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-2,
+        color:['#fbbf24','#ef4444','#06d6a0','#3b82f6','#a855f7'][Math.floor(Math.random()*5)],
+        size:3+Math.random()*3,life:40+Math.random()*30});
+    }
+  }else if(celebrationType==='confetti'){
+    for(var i=0;i<50;i++){
+      particles.push({x:Math.random()*W,y:-10-Math.random()*50,vx:(Math.random()-0.5)*3,vy:1+Math.random()*3,
+        color:['#fbbf24','#ef4444','#06d6a0','#3b82f6','#f472b6','#a855f7'][Math.floor(Math.random()*6)],
+        size:4+Math.random()*4,life:80+Math.random()*40,confetti:true});
+    }
+  }else if(celebrationType==='slide'){
+    // Keeper slides — just visual particles trailing
+    for(var i=0;i<20;i++){
+      particles.push({x:cx+Math.random()*60-30,y:cy+Math.random()*20,vx:(Math.random()-0.5)*2,vy:-1-Math.random()*2,
+        color:'#2d8a4e',size:3+Math.random()*3,life:30+Math.random()*20});
+    }
+  }else{
+    // Default small burst
+    for(var i=0;i<15;i++){
+      var angle=Math.random()*Math.PI*2;
+      var speed=1+Math.random()*3;
+      particles.push({x:cx,y:cy,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-1,
+        color:'#fbbf24',size:2+Math.random()*2,life:25+Math.random()*15});
+    }
+  }
+}
+
+function endGame(){
+  gamePhase='done';
+  var isNew=goals>localBest;
+  if(isNew){localBest=goals;localStorage.setItem('pk_best',localBest)}
+  localGames++;localTotalGoals+=goals;
+  localStorage.setItem('pk_games',localGames);
+  localStorage.setItem('pk_totalGoals',localTotalGoals);
+  if(sessionHatTrick){localHatTrick=true;localStorage.setItem('pk_hatTrick','true')}
+  if(difficulty==='hard'&&goals>=3){localHardWin=true;localStorage.setItem('pk_hardWin','true')}
+
+  var coins=goals*5;
+  if(isNew&&goals>0)coins+=5;
+  localTotalCoins+=coins;
+  localStorage.setItem('pk_totalCoins',localTotalCoins);
+
+  var title=goals>=4?'Amazing!':goals>=3?'Great Job!':goals>=1?'Full Time!':'Tough Luck!';
+  document.getElementById('goTitle').textContent=title;
+  document.getElementById('goScore').textContent=goals+' / '+maxKicks;
+  document.getElementById('goBest').textContent='Best: '+localBest+'/5';
+  document.getElementById('goNew').style.display=isNew?'block':'none';
+  document.getElementById('goCoins').textContent='+'+coins+' coins';
+  sfxWhistle();
+
+  setTimeout(function(){document.getElementById('gameOverOverlay').classList.add('active')},400);
+
+  if(!coinsAwarded){
+    coinsAwarded=true;
+    awardCoins(coins);
+    saveRecord(isNew);
+    checkAchievements({
+      bestScore:goals,
+      gamesPlayed:localGames,
+      totalGoals:localTotalGoals,
+      hatTrick:sessionHatTrick||localHatTrick,
+      hardWin:(difficulty==='hard'&&goals>=3)||localHardWin
+    });
+  }
+}
+
+/* ===================== */
+/* DRAW                  */
+/* ===================== */
+function draw(){
+  // Sky
+  var grad=ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,skyColor);
+  grad.addColorStop(0.6,'#0d1117');
+  grad.addColorStop(1,grassColor);
+  ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+
+  // Stars
+  ctx.fillStyle='rgba(255,255,255,0.12)';
+  for(var s=0;s<25;s++){
+    var sx=(s*137+11)%W,sy=(s*97+7)%(H*0.4);
+    ctx.fillRect(sx,sy,1.5,1.5);
+  }
+
+  // Pitch / ground
+  var pitchY=H*0.55;
+  ctx.fillStyle=grassColor;
+  ctx.fillRect(0,pitchY,W,H-pitchY);
+
+  // Pitch lines
+  ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(0,pitchY);ctx.lineTo(W,pitchY);ctx.stroke();
+
+  // Penalty spot
+  ctx.fillStyle='rgba(255,255,255,0.3)';
+  ctx.beginPath();ctx.arc(W*0.5,H*0.82,4,0,Math.PI*2);ctx.fill();
+
+  // Draw goal
+  drawGoal();
+
+  // Draw goalkeeper
+  drawKeeper();
+
+  // Draw aim cursor (only when aiming/charging)
+  if(gamePhase==='aiming'||gamePhase==='charging'){
+    drawAimCursor();
+  }
+
+  // Draw power bar (when charging or aiming)
+  if(gamePhase==='aiming'||gamePhase==='charging'){
+    drawPowerBar();
+  }
+
+  // Draw ball in flight
+  if(gamePhase==='flying'||gamePhase==='result'){
+    drawBall(ball.x,ball.y,ball.size);
+  }
+
+  // Draw ball at penalty spot when aiming
+  if(gamePhase==='aiming'||gamePhase==='charging'){
+    drawBall(W*0.5,H*0.85,20);
+  }
+
+  // Draw particles
+  for(var i=0;i<particles.length;i++){
+    var p=particles[i];
+    ctx.globalAlpha=Math.min(1,p.life/20);
+    ctx.fillStyle=p.color;
+    if(p.confetti){
+      ctx.save();
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.life*0.1);
+      ctx.fillRect(-p.size/2,-p.size/4,p.size,p.size/2);
+      ctx.restore();
+    }else{
+      ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }
+
+  // Result text
+  if(gamePhase==='result'&&resultTimer<100){
+    var alpha=resultTimer<80?1:(100-resultTimer)/20;
+    ctx.globalAlpha=alpha;
+    ctx.font='bold '+Math.min(72,W*0.12)+'px Fredoka, sans-serif';
+    ctx.textAlign='center';
+    var rColor=resultText==='GOAL!'?'#06d6a0':(resultText==='SAVED!'?'#fbbf24':'#ef4444');
+    ctx.fillStyle=rColor;
+    ctx.shadowColor=rColor;ctx.shadowBlur=20;
+    ctx.fillText(resultText,W*0.5,H*0.4);
+    ctx.shadowBlur=0;
+    ctx.globalAlpha=1;
+  }
+
+  // Kick instruction when aiming
+  if(gamePhase==='aiming'){
+    ctx.font='600 '+Math.min(16,W*0.035)+'px Outfit, sans-serif';
+    ctx.textAlign='center';
+    ctx.fillStyle='rgba(255,255,255,0.6)';
+    ctx.fillText('Move to aim \u2022 Click & hold to charge \u2022 Release to kick',W*0.5,H*0.96);
+  }
+}
+
+function drawGoal(){
+  var g=getGoalPixels();
+
+  // Goal shadow on ground
+  ctx.fillStyle='rgba(0,0,0,0.15)';
+  ctx.fillRect(g.left-5,g.bottom,g.width+10,15);
+
+  // Net background
+  ctx.fillStyle='rgba(200,200,200,0.08)';
+  ctx.fillRect(g.left,g.top,g.width,g.height);
+
+  // Net pattern
+  ctx.strokeStyle='rgba(255,255,255,0.1)';
+  ctx.lineWidth=0.5;
+  var netSpacing=Math.max(12,g.width/20);
+  // Vertical net lines
+  for(var nx=g.left;nx<=g.right;nx+=netSpacing){
+    ctx.beginPath();ctx.moveTo(nx,g.top);ctx.lineTo(nx,g.bottom);ctx.stroke();
+  }
+  // Horizontal net lines
+  for(var ny=g.top;ny<=g.bottom;ny+=netSpacing){
+    ctx.beginPath();ctx.moveTo(g.left,ny);ctx.lineTo(g.right,ny);ctx.stroke();
+  }
+
+  // Goal posts (white)
+  var postW=Math.max(4,g.width*0.015);
+  ctx.fillStyle='#ffffff';
+  // Left post
+  ctx.fillRect(g.left-postW/2,g.top,postW,g.height);
+  // Right post
+  ctx.fillRect(g.right-postW/2,g.top,postW,g.height);
+  // Crossbar
+  ctx.fillRect(g.left-postW/2,g.top-postW/2,g.width+postW,postW);
+
+  // Post highlights
+  ctx.fillStyle='rgba(255,255,255,0.3)';
+  ctx.fillRect(g.left-postW/2,g.top,postW*0.4,g.height);
+  ctx.fillRect(g.right-postW/2,g.top,postW*0.4,g.height);
+  ctx.fillRect(g.left-postW/2,g.top-postW/2,g.width+postW,postW*0.3);
+}
+
+function drawKeeper(){
+  var g=getGoalPixels();
+  var kx=g.left+keeper.x*g.width;
+  var ky=g.bottom-2;
+  var kHeight=g.height*0.55;
+  var kWidth=g.width*0.06;
+
+  // Body offset for diving
+  var diveOffsetY=keeper.bodyY||0;
+  var diveAngle=0;
+  if(keeper.diving&&keeper.diveDir!==0){
+    diveAngle=keeper.diveDir*keeper.diveProgress*0.6;
+  }
+
+  ctx.save();
+  ctx.translate(kx,ky);
+  ctx.rotate(diveAngle);
+
+  // Arms (extended when diving)
+  var armExtend=keeper.diving?keeper.diveProgress*kWidth*2.5:0;
+  ctx.fillStyle='#fbbf24';
+  // Left arm
+  ctx.fillRect(-kWidth*0.6-armExtend,-(kHeight*0.7),armExtend+kWidth*0.4,kHeight*0.08);
+  // Right arm
+  ctx.fillRect(kWidth*0.2,-(kHeight*0.7),armExtend+kWidth*0.4,kHeight*0.08);
+
+  // Gloves
+  if(keeper.diving){
+    ctx.fillStyle='#06d6a0';
+    ctx.beginPath();ctx.arc(-kWidth*0.6-armExtend,-(kHeight*0.67),kHeight*0.06,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(kWidth*0.6+armExtend,-(kHeight*0.67),kHeight*0.06,0,Math.PI*2);ctx.fill();
+  }
+
+  // Body (jersey)
+  ctx.fillStyle='#fbbf24';
+  ctx.fillRect(-kWidth*0.5,-(kHeight*0.65),kWidth,kHeight*0.35);
+
+  // Shorts
+  ctx.fillStyle='#1e293b';
+  ctx.fillRect(-kWidth*0.5,-(kHeight*0.3),kWidth,kHeight*0.15);
+
+  // Legs
+  ctx.fillStyle='#f5d0a9';
+  ctx.fillRect(-kWidth*0.35,-(kHeight*0.15),kWidth*0.3,kHeight*0.15);
+  ctx.fillRect(kWidth*0.05,-(kHeight*0.15),kWidth*0.3,kHeight*0.15);
+
+  // Head
+  ctx.fillStyle='#f5d0a9';
+  ctx.beginPath();ctx.arc(0,-(kHeight*0.78),kHeight*0.13,0,Math.PI*2);ctx.fill();
+
+  // Hair
+  ctx.fillStyle='#1e293b';
+  ctx.beginPath();ctx.arc(0,-(kHeight*0.84),kHeight*0.1,Math.PI,Math.PI*2);ctx.fill();
+
+  ctx.restore();
+}
+
+function drawAimCursor(){
+  var g=getGoalPixels();
+  var pos=aimToGoalPos(aimX,aimY);
+
+  // Dotted aim line from ball to aim point
+  ctx.setLineDash([6,8]);
+  ctx.strokeStyle='rgba(255,255,255,0.2)';
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.moveTo(W*0.5,H*0.85);
+  ctx.lineTo(pos.x,pos.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Aim crosshair
+  var cSize=12;
+  ctx.strokeStyle='rgba(255,255,255,0.7)';
+  ctx.lineWidth=2;
+  // Circle
+  ctx.beginPath();ctx.arc(pos.x,pos.y,cSize,0,Math.PI*2);ctx.stroke();
+  // Cross lines
+  ctx.beginPath();ctx.moveTo(pos.x-cSize-4,pos.y);ctx.lineTo(pos.x-cSize+4,pos.y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pos.x+cSize-4,pos.y);ctx.lineTo(pos.x+cSize+4,pos.y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pos.x,pos.y-cSize-4);ctx.lineTo(pos.x,pos.y-cSize+4);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pos.x,pos.y+cSize-4);ctx.lineTo(pos.x,pos.y+cSize+4);ctx.stroke();
+
+  // Center dot
+  ctx.fillStyle=charging?'#ef4444':'rgba(255,255,255,0.8)';
+  ctx.beginPath();ctx.arc(pos.x,pos.y,3,0,Math.PI*2);ctx.fill();
+}
+
+function drawPowerBar(){
+  var barW=24,barH=H*0.35;
+  var barX=W-50,barY=H*0.3;
+
+  // Background
+  ctx.fillStyle='rgba(0,0,0,0.4)';
+  roundRect(ctx,barX,barY,barW,barH,8);ctx.fill();
+
+  // Border
+  ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1.5;
+  roundRect(ctx,barX,barY,barW,barH,8);ctx.stroke();
+
+  // Fill (bottom to top, green->yellow->red)
+  if(power>0){
+    var fillH=barH*power;
+    var fillY=barY+barH-fillH;
+    ctx.save();
+    ctx.beginPath();
+    roundRect(ctx,barX,barY,barW,barH,8);
+    ctx.clip();
+
+    var pGrad=ctx.createLinearGradient(0,barY+barH,0,barY);
+    pGrad.addColorStop(0,'#06d6a0');
+    pGrad.addColorStop(0.5,'#fbbf24');
+    pGrad.addColorStop(0.8,'#ef4444');
+    pGrad.addColorStop(1,'#dc2626');
+    ctx.fillStyle=pGrad;
+    ctx.fillRect(barX,fillY,barW,fillH);
+    ctx.restore();
+  }
+
+  // Labels
+  ctx.font='bold 11px Outfit, sans-serif';
+  ctx.textAlign='center';
+  ctx.fillStyle='rgba(255,255,255,0.5)';
+  ctx.fillText('POWER',barX+barW/2,barY-8);
+
+  // Danger zone marker
+  ctx.fillStyle='rgba(239,68,68,0.4)';
+  ctx.fillRect(barX+2,barY+2,barW-4,barH*0.15);
+  ctx.font='bold 8px Outfit, sans-serif';
+  ctx.fillStyle='rgba(255,255,255,0.3)';
+  ctx.fillText('MISS',barX+barW/2,barY+barH*0.1);
+
+  // Power percentage
+  if(charging){
+    ctx.font='bold 14px Fredoka, sans-serif';
+    ctx.fillStyle='#fff';
+    ctx.fillText(Math.round(power*100)+'%',barX+barW/2,barY+barH+22);
+  }
+}
+
+function drawBall(x,y,size){
+  // Ball shadow
+  if(gamePhase==='flying'){
+    ctx.fillStyle='rgba(0,0,0,0.2)';
+    ctx.beginPath();ctx.ellipse(x,H*0.55+10,size*0.6,size*0.2,0,0,Math.PI*2);ctx.fill();
+  }
+
+  // Ball body
+  ctx.fillStyle=ballColor;
+  ctx.beginPath();ctx.arc(x,y,size,0,Math.PI*2);ctx.fill();
+
+  // Ball outline
+  ctx.strokeStyle='rgba(0,0,0,0.3)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(x,y,size,0,Math.PI*2);ctx.stroke();
+
+  // Pentagon pattern on ball
+  ctx.fillStyle='rgba(0,0,0,0.15)';
+  var pentR=size*0.35;
+  drawPentagon(ctx,x,y,pentR);
+  drawPentagon(ctx,x-size*0.45,y-size*0.2,pentR*0.6);
+  drawPentagon(ctx,x+size*0.4,y+size*0.25,pentR*0.5);
+
+  // Highlight
+  ctx.fillStyle='rgba(255,255,255,0.35)';
+  ctx.beginPath();ctx.arc(x-size*0.25,y-size*0.25,size*0.3,0,Math.PI*2);ctx.fill();
+}
+
+function drawPentagon(ctx,cx,cy,r){
+  ctx.beginPath();
+  for(var i=0;i<5;i++){
+    var angle=i*Math.PI*2/5-Math.PI/2;
+    var px=cx+Math.cos(angle)*r;
+    var py=cy+Math.sin(angle)*r;
+    if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+  }
+  ctx.closePath();ctx.fill();
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+/* ===================== */
+/* GAME LOOP             */
+/* ===================== */
+function gameLoop(){
+  update();draw();
+  if(gamePhase!=='done'){
+    animId=requestAnimationFrame(gameLoop);
+  }else{
+    // Keep drawing for overlay
+    animId=requestAnimationFrame(function renderDone(){draw();animId=requestAnimationFrame(renderDone)});
+  }
+}
+
+/* ===================== */
+/* INPUT                 */
+/* ===================== */
+function getCanvasCoords(e){
+  var rect=canvas.getBoundingClientRect();
+  var clientX,clientY;
+  if(e.touches){clientX=e.touches[0].clientX;clientY=e.touches[0].clientY}
+  else{clientX=e.clientX;clientY=e.clientY}
+  return {x:(clientX-rect.left)*(W/rect.width),y:(clientY-rect.top)*(H/rect.height)};
+}
+
+function updateAim(e){
+  if(gamePhase!=='aiming'&&gamePhase!=='charging')return;
+  var pos=getCanvasCoords(e);
+  var g=getGoalPixels();
+  // Map position to aim (0-1 within goal)
+  aimX=Math.max(0,Math.min(1,(pos.x-g.left)/g.width));
+  aimY=Math.max(0,Math.min(1,(pos.y-g.top)/g.height));
+}
+
+var cw=document.getElementById('canvasWrap');
+
+cw.addEventListener('mousemove',function(e){updateAim(e)});
+cw.addEventListener('touchmove',function(e){e.preventDefault();updateAim(e)},{passive:false});
+
+cw.addEventListener('mousedown',function(e){
+  e.preventDefault();
+  if(gamePhase==='aiming'){
+    gamePhase='charging';charging=true;power=0;powerDir=1;
+  }
+});
+cw.addEventListener('touchstart',function(e){
+  e.preventDefault();
+  updateAim(e);
+  if(gamePhase==='aiming'){
+    gamePhase='charging';charging=true;power=0;powerDir=1;
+  }
+},{passive:false});
+
+cw.addEventListener('mouseup',function(e){
+  e.preventDefault();
+  if(gamePhase==='charging'){charging=false;doKick()}
+});
+cw.addEventListener('touchend',function(e){
+  e.preventDefault();
+  if(gamePhase==='charging'){charging=false;doKick()}
+},{passive:false});
+
+// Keyboard: space to charge/release
+document.addEventListener('keydown',function(e){
+  if(e.code==='Space'||e.key===' '){
+    e.preventDefault();
+    if(gamePhase==='aiming'){
+      gamePhase='charging';charging=true;power=0;powerDir=1;
+    }
+  }
+});
+document.addEventListener('keyup',function(e){
+  if(e.code==='Space'||e.key===' '){
+    e.preventDefault();
+    if(gamePhase==='charging'){charging=false;doKick()}
+  }
+});
+
+/* ===================== */
+/* FIREBASE              */
+/* ===================== */
+async function awardCoins(coins){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{var fb=await window.getFirebaseDB();await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{coins:fb.fsMod.increment(coins)})}catch(e){}
+}
+
+async function saveRecord(isNew){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'penaltykickRecords',studentId);
+    var snap=await fb.fsMod.getDoc(ref);
+    if(snap.exists()){
+      var upd={gamesPlayed:fb.fsMod.increment(1),totalGoals:fb.fsMod.increment(goals),lastPlayed:new Date().toISOString()};
+      if(isNew)upd.bestScore=goals;
+      if(sessionHatTrick)upd.hatTrick=true;
+      if(difficulty==='hard'&&goals>=3)upd.hardWin=true;
+      await fb.fsMod.updateDoc(ref,upd);
+    }else{
+      await fb.fsMod.setDoc(ref,{
+        studentId:studentId,studentName:studentName||'',classCode:classCode,
+        bestScore:goals,gamesPlayed:1,totalGoals:goals,
+        hatTrick:sessionHatTrick,hardWin:difficulty==='hard'&&goals>=3,
+        lastPlayed:new Date().toISOString()
+      });
+    }
+  }catch(e){console.warn('Save failed:',e)}
+}
+
+/* ===================== */
+/* RECORDS & LEADERBOARD */
+/* ===================== */
+async function showRecords(){
+  showScreen('recordsScreen');
+  document.getElementById('statBest').textContent=localBest+'/5';
+  document.getElementById('statPlayed').textContent=localGames;
+  document.getElementById('statTotalGoals').textContent=localTotalGoals;
+  document.getElementById('statCoins').textContent=localTotalCoins;
+
+  // Achievements grid
+  var ag=document.getElementById('achievementsGrid');ag.innerHTML='';
+  PK_ACHIEVEMENTS.forEach(function(a){
+    var unlocked=!!achState[a.id];
+    ag.innerHTML+='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:1px solid '+(unlocked?'var(--gold)':'var(--border)')+';border-radius:12px;padding:8px 4px;text-align:center;aspect-ratio:1;'+(unlocked?'box-shadow:0 0 12px rgba(255,209,102,.15)':'opacity:.3;filter:grayscale(1)')+'"><span style="font-size:24px">'+a.icon+'</span><span style="font-size:8px;color:var(--text2);line-height:1.1;margin-top:2px">'+esc(a.name)+'</span></div>';
+  });
+
+  // Leaderboard
+  var lb=document.getElementById('leaderboard');lb.innerHTML='<div class="lb-empty">Loading...</div>';
+  if(!classCode){lb.innerHTML='<div class="lb-empty">Join a class to see the leaderboard</div>';return}
+  try{
+    var fb=await window.getFirebaseDB();
+    var q=fb.fsMod.query(fb.fsMod.collection(fb.db,'penaltykickRecords'),fb.fsMod.where('classCode','==',classCode),fb.fsMod.orderBy('bestScore','desc'),fb.fsMod.limit(20));
+    var snap=await fb.fsMod.getDocs(q);
+    if(snap.empty){lb.innerHTML='<div class="lb-empty">No scores yet. Be the first!</div>';return}
+    var h='',rank=0;
+    snap.forEach(function(d){
+      rank++;var data=d.data();var isMe=data.studentId===studentId;
+      var rc=rank<=3?'r'+rank:'';
+      h+='<div class="lb-row'+(isMe?' me':'')+'"><div class="lb-rank '+rc+'">'+rank+'</div><div class="lb-name">'+esc(data.studentName||'Player')+'</div><div class="lb-score">'+data.bestScore+'/5</div></div>';
+    });
+    lb.innerHTML=h;
+  }catch(e){lb.innerHTML='<div class="lb-empty">Could not load leaderboard</div>'}
+}
+
+/* ===================== */
+/* RESIZE                */
+/* ===================== */
+window.addEventListener('resize',function(){if(canvas)initCanvas()});
+
+/* ===================== */
+/* HELP                  */
+/* ===================== */
+odaHelp.init({
+  title:'Penalty Kick',emoji:'\u26BD',subtitle:'Aim, power up, and score!',
+  sections:[
+    {title:'Rules',icon:'\u{1F4D6}',items:['Move your mouse/finger to aim at the goal','Click and hold to charge power, release to kick','Too much power and the ball sails over the bar','The goalkeeper dives to try to save your shot','Score as many goals as you can in 5 kicks']},
+    {title:'Scoring',icon:'\u{1F3AF}',items:['5 coins per goal scored','Bonus 5 coins for new personal best','Harder difficulty = smarter goalkeeper','On Hard mode, the keeper reads your aim direction']}
+  ],
+  controls:[{key:'Mouse',action:'Aim'},{key:'Click+Hold',action:'Charge power'},{key:'Release',action:'Kick'},{key:'Space',action:'Charge/Kick'}],
+  tip:'<strong>Control your power!</strong> The sweet spot is 40-70% power. Too much and the ball flies over the bar. Aim for the corners to beat the keeper!'
+});
+</script>
+<script>
+(function(){
+  var isT=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+  if(isT){var b=document.getElementById('backBtn');if(b)b.href='../../teacher.html'}
+})();
+</script>
+</body>
+</html>
