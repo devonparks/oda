@@ -73,10 +73,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 
 /* BOARD CANVAS */
 .board-wrap{width:100%;max-width:1000px;margin:0 auto;position:relative;border-radius:16px;overflow:hidden;background:#1a5c2e;box-shadow:inset 0 2px 20px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.3);min-height:350px}
-.board-pan-btn{position:absolute;top:50%;transform:translateY(-50%);z-index:3;background:rgba(0,0,0,.4);border:none;color:#fff;font-size:20px;width:32px;height:60px;border-radius:8px;cursor:pointer;opacity:0.6;transition:opacity .2s}
-.board-pan-btn:hover{opacity:1}
-.pan-left{left:4px}
-.pan-right{right:4px}
+.pan-controls{position:absolute;top:50%;transform:translateY(-50%);z-index:3;display:flex;flex-direction:column;gap:4px}
+.pan-controls-left{left:4px}
+.pan-controls-right{right:4px}
+.board-pan-btn{background:rgba(0,0,0,.4);border:none;color:#fff;font-size:16px;width:32px;height:36px;border-radius:8px;cursor:pointer;opacity:0.6;transition:opacity .2s}
+.board-pan-btn:hover{opacity:1;background:rgba(0,0,0,.6)}
 .board-wrap canvas{display:block;width:100%;cursor:grab}
 .board-wrap canvas:active{cursor:grabbing}
 .board-empty-msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,.45);font-size:15px;font-weight:600;pointer-events:none;text-align:center}
@@ -210,9 +211,15 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     </div>
   </div>
   <div class="board-wrap" id="boardWrap">
-    <button class="board-pan-btn pan-left" onclick="panBoard(1)" title="Pan left">&#9664;</button>
+    <div class="pan-controls pan-controls-left">
+      <button class="board-pan-btn" onclick="panToStart()" title="Jump to start">&#9664;&#9664;</button>
+      <button class="board-pan-btn" onclick="panBoard(1)" title="Pan left">&#9664;</button>
+    </div>
     <canvas id="boardCanvas" width="960" height="240"></canvas>
-    <button class="board-pan-btn pan-right" onclick="panBoard(-1)" title="Pan right">&#9654;</button>
+    <div class="pan-controls pan-controls-right">
+      <button class="board-pan-btn" onclick="panBoard(-1)" title="Pan right">&#9654;</button>
+      <button class="board-pan-btn" onclick="panToEnd()" title="Jump to end">&#9654;&#9654;</button>
+    </div>
     <div class="board-empty-msg" id="boardEmptyMsg">Play a tile to start</div>
   </div>
   <div class="hand-area">
@@ -490,10 +497,41 @@ function autoPanToEnd(){
 }
 
 function panBoard(dir){
-  boardPanX += dir * 100;
+  boardPanX += dir * 120;
   computeBoardLayout();
   drawBoard();
 }
+
+function panToStart(){
+  boardPanX = 0;
+  computeBoardLayout();
+  drawBoard();
+}
+
+function panToEnd(){
+  if(boardEntries.length === 0) return;
+  // Calculate how far right the chain extends
+  computeBoardLayout();
+  const last = boardEntries[boardEntries.length - 1];
+  const lastRight = last.x + (last.isDouble ? TW : 2*TW);
+  if(lastRight > canvasW - TMARGIN){
+    boardPanX -= (lastRight - canvasW + TMARGIN + 40);
+    computeBoardLayout();
+  }
+  drawBoard();
+}
+
+// Pan to show a specific side ('left' or 'right') after placement
+function panToSide(side){
+  if(side === 'left'){
+    panToStart();
+  } else {
+    panToEnd();
+  }
+}
+
+window.panToStart = panToStart;
+window.panToEnd = panToEnd;
 
 /* =========================================================== */
 /* CANVAS BOARD RENDERER                                       */
@@ -1309,9 +1347,11 @@ function placeTile(side){
   }
 
   myTurn = false;
-  renderGame(); updateTurnUI();
+  renderGame();
+  panToSide(side);
+  updateTurnUI();
 
-  if(aiMode) setTimeout(() => aiTurn(), 600 + Math.random() * 400);
+  if(aiMode) setTimeout(() => aiTurn(), 1500 + Math.random() * 500);
 }
 window.placeTile = placeTile;
 window.panBoard = panBoard;
@@ -1437,10 +1477,18 @@ function aiTurn(){
   oppHand = oppHand.filter(t => t.id !== chosen.id);
   sfxPlace();
 
-  if(oppHand.length === 0){ endRound('opponent'); return; }
+  // Show AI's placement — pan to where it was placed
+  renderGame();
+  panToSide(side);
+  updateTurnUI();
 
-  myTurn = true;
-  renderGame(); updateTurnUI();
+  // Delay before handing back to player so they can see what AI did
+  if(oppHand.length === 0){ setTimeout(() => endRound('opponent'), 1500); return; }
+
+  setTimeout(function(){
+    myTurn = true;
+    renderGame(); updateTurnUI();
+  }, 2000);
 }
 
 /* =========================================================== */
