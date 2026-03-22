@@ -503,11 +503,11 @@ var GOAL={left:0.2,right:0.8,top:0.15,bottom:0.55};
 /* ---------- Zone Definitions ---------- */
 // 5 zones for the goal, each with a name, normalized rect, and difficulty
 var GOAL_ZONES=[
-  {name:'topLeft',     label:'TL', x:0,   y:0,   w:0.35, h:0.45, difficulty:'topCorner'},
-  {name:'topRight',    label:'TR', x:0.65,y:0,   w:0.35, h:0.45, difficulty:'topCorner'},
-  {name:'bottomLeft',  label:'BL', x:0,   y:0.45,w:0.35, h:0.55, difficulty:'bottomCorner'},
-  {name:'center',      label:'C',  x:0.25,y:0.25,w:0.50, h:0.55, difficulty:'center'},
-  {name:'bottomRight', label:'BR', x:0.65,y:0.45,w:0.35, h:0.55, difficulty:'bottomCorner'},
+  {name:'topLeft',     label:'Top Left',  x:0,    y:0,  w:0.333, h:0.5, difficulty:'topCorner'},
+  {name:'topRight',    label:'Top Right', x:0.667,y:0,  w:0.333, h:0.5, difficulty:'topCorner'},
+  {name:'bottomLeft',  label:'Bot Left',  x:0,    y:0.5,w:0.333, h:0.5, difficulty:'side'},
+  {name:'center',      label:'Center',    x:0.333,y:0,  w:0.334, h:1.0, difficulty:'center'},
+  {name:'bottomRight', label:'Bot Right', x:0.667,y:0.5,w:0.333, h:0.5, difficulty:'side'},
 ];
 
 // Zone difficulty => ring shrink speed multiplier and timing window
@@ -907,13 +907,13 @@ function beginSaveChoose(){
   document.getElementById('saveCountdown').classList.add('active');
   document.getElementById('saveCountdown').textContent='Pick your dive zone!';
 
-  // Auto-pick after 4 seconds if no choice made
+  // Auto-pick after 10 seconds if no choice made
   addTimer(function(){
     if(GS.phase==='save_choose'){
       var auto=['topLeft','topRight','bottomLeft','center','bottomRight'];
       pickDive(auto[Math.floor(Math.random()*5)]);
     }
-  },4000);
+  },10000);
 }
 
 function positionSaveZones(){
@@ -921,29 +921,21 @@ function positionSaveZones(){
   var wrap=document.getElementById('canvasWrap');
   var wrapRect=wrap.getBoundingClientRect();
   var canvasRect=canvas.getBoundingClientRect();
-  // Offset of canvas within wrap
   var offX=canvasRect.left-wrapRect.left;
   var offY=canvasRect.top-wrapRect.top;
   var scaleX=canvasRect.width/W;
   var scaleY=canvasRect.height/H;
 
-  // Zone rects in CSS pixels relative to canvasWrap
-  var zones={
-    zoneTL: {x:g.left,        y:g.top,                       w:g.width*0.4,  h:g.height*0.45},
-    zoneTR: {x:g.left+g.width*0.6, y:g.top,                  w:g.width*0.4,  h:g.height*0.45},
-    zoneBL: {x:g.left,        y:g.top+g.height*0.45,         w:g.width*0.35, h:g.height*0.55},
-    zoneC:  {x:g.left+g.width*0.25,y:g.top+g.height*0.3,     w:g.width*0.50, h:g.height*0.55},
-    zoneBR: {x:g.left+g.width*0.65,y:g.top+g.height*0.45,    w:g.width*0.35, h:g.height*0.55},
-  };
-
-  Object.keys(zones).forEach(function(id){
-    var z=zones[id];
-    var el=document.getElementById(id);
+  // Use GOAL_ZONES data to tile the full goal with no gaps
+  var ids=['zoneTL','zoneTR','zoneBL','zoneC','zoneBR'];
+  GOAL_ZONES.forEach(function(zone,i){
+    var el=document.getElementById(ids[i]);
     if(!el)return;
-    el.style.left=(offX+z.x*scaleX)+'px';
-    el.style.top=(offY+z.y*scaleY)+'px';
-    el.style.width=(z.w*scaleX)+'px';
-    el.style.height=(z.h*scaleY)+'px';
+    el.style.left=(offX+(g.left+zone.x*g.width)*scaleX)+'px';
+    el.style.top=(offY+(g.top+zone.y*g.height)*scaleY)+'px';
+    el.style.width=(zone.w*g.width*scaleX)+'px';
+    el.style.height=(zone.h*g.height*scaleY)+'px';
+    el.textContent=zone.label;
   });
 }
 
