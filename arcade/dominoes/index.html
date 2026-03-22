@@ -419,92 +419,101 @@ let myScore=0,oppScore=0,coinsAwarded=false;
 let roomCode=null,unsub=null;
 
 /* =========================================================== */
-/* BOARD MODEL — 2D chain with direction changes               */
+/* BOARD MODEL — SIMPLIFIED                                    */
+/* Each board entry: {tile, leftVal, rightVal}                 */
+/* leftVal = pip value shown on LEFT side of tile              */
+/* rightVal = pip value shown on RIGHT side of tile            */
+/* Connection rule: board[i].rightVal === board[i+1].leftVal   */
 /* =========================================================== */
 /*
-  Each placed tile is stored as:
-  {
-    tile: {a,b,id},
-    topVal: number,   // value at the "first" half (top or left depending on orientation)
-    botVal: number,   // value at the "second" half
-    x: number,        // center x on canvas
-    y: number,        // center y on canvas
-    horizontal: bool, // true = laid sideways, false = vertical
-    isDouble: bool
-  }
-  The chain grows from center. Non-doubles align with the chain direction.
-  Doubles are perpendicular to the chain direction.
-  When the chain reaches the canvas edge, it turns down and reverses direction.
+  SIMPLIFIED MODEL:
+  board[] = array of {tile:{a,b,id}, leftVal:number, rightVal:number}
+  - leftVal = what shows on the LEFT half of this tile
+  - rightVal = what shows on the RIGHT half
+  - Connection: board[i].rightVal must equal board[i+1].leftVal
+  - Doubles: leftVal === rightVal (drawn as vertical/perpendicular tile)
 */
-const TILE_W = 30;   // half-width of a non-double tile (short axis)
-const TILE_H = 56;   // half-height of a non-double tile (long axis)
-const GAP = 3;        // gap between tiles
-const MARGIN = 40;    // margin from canvas edges before turning
-const ROW_GAP = 20;   // vertical gap between rows when chain turns
+// Tile sizing
+const TW = 36;  // half-width of one domino half (so full tile = 4*TW wide, 2*TW tall for non-double)
+const TGAP = 4; // gap between tiles
+const TMARGIN = 20;
 
-let boardEntries = []; // computed positions for drawing
-let boardScale = 1;
-let canvasW = 960, canvasH = 240;
-let panX = 0, panY = 0; // pan offset for scrolling
-let boardLayoutDirty = true; // flag to avoid recomputing layout every animation frame
+let boardEntries = [];
+let canvasW = 960, canvasH = 280;
+let boardLayoutDirty = true;
 
-let boardPanX = 0; // user-controlled pan offset
+let boardPanX = 0;
 
-function computeBoardLayout(force){
-  if(!force && !boardLayoutDirty && boardEntries.length === board.length) return;
-  boardLayoutDirty = false;
+/* =========================================================== */
+/* BOARD LAYOUT (left-to-right row, wrapping)                  */
+/* =========================================================== */
+function computeBoardLayout(){
   boardEntries = [];
   if(board.length === 0) return;
 
-  // Lay tiles left-to-right in rows. When a row fills up, start a new row below
-  // connected with a vertical connector tile at the turn point.
   const entries = [];
-  boardScale = 1;
-  const availW = canvasW - MARGIN * 2;
-  const rowH = TILE_H * 2 + 20; // height per row
-
-  let cx = MARGIN + TILE_H;
-  let cy = MARGIN + TILE_W + 10;
-  let dir = 1; // 1=right, -1=left
+  const rowH = 2 * TW + TMARGIN + 20;
+  // Start position
+  let x = TMARGIN;
+  let cy = TMARGIN + 2 * TW; // center-Y of first row
+  let dir = 1; // 1 = left-to-right, -1 = right-to-left
   let row = 0;
 
   for(let i = 0; i < board.length; i++){
     const entry = board[i];
     const dbl = isDouble(entry.tile);
-    const horizontal = !dbl;
-    const extent = dbl ? TILE_W : TILE_H;
+    // Width this tile occupies
+    const tileW = dbl ? (2 * TW) : (4 * TW);
 
-    // Check if this tile would overflow the current row
-    const nextEdge = dir === 1 ? cx + extent * 2 + GAP : cx - extent * 2 - GAP;
-    const overflow = (dir === 1 && nextEdge > canvasW - MARGIN) || (dir === -1 && nextEdge < MARGIN);
+    // Calculate where center of this tile will be
+    let cx;
+    if(dir === 1){
+      cx = x + tileW / 2;
+    } else {
+      cx = x - tileW / 2;
+    }
+
+    // Check overflow
+    const rightEdge = dir === 1 ? cx + tileW / 2 : cx + tileW / 2;
+    const leftEdge = dir === 1 ? cx - tileW / 2 : cx - tileW / 2;
+    const overflow = (dir === 1 && (cx + tileW / 2) > canvasW - TMARGIN) ||
+                     (dir === -1 && (cx - tileW / 2) < TMARGIN);
 
     if(overflow && i > 0){
-      // Drop to next row, reverse direction
-      cy += rowH;
       row++;
+      cy += rowH;
       dir = -dir;
-      cx = dir === 1 ? MARGIN + TILE_H : canvasW - MARGIN - TILE_H;
+      if(dir === 1){
+        x = TMARGIN;
+        cx = x + tileW / 2;
+      } else {
+        x = canvasW - TMARGIN;
+        cx = x - tileW / 2;
+      }
     }
 
     entries.push({
       tile: entry.tile,
-      topVal: entry.topVal !== undefined ? entry.topVal : entry.tile.a,
-      botVal: entry.botVal !== undefined ? entry.botVal : entry.tile.b,
+      leftVal: entry.leftVal,
+      rightVal: entry.rightVal,
       x: cx + boardPanX,
       y: cy,
-      horizontal: horizontal,
       isDouble: dbl,
-      scale: 1,
       row: row
     });
 
-    cx += dir * (extent * 2 + GAP);
+    // Advance x
+    if(dir === 1){
+      x = cx + tileW / 2 + TGAP;
+    } else {
+      x = cx - tileW / 2 - TGAP;
+    }
   }
 
   boardEntries = entries;
 
   // Grow canvas height if needed
-  const maxY = entries.length > 0 ? Math.max(...entries.map(e => e.y)) + TILE_H + MARGIN : canvasH;
+  const maxY = entries.length > 0 ? Math.max(...entries.map(e => e.y)) + 2 * TW + TMARGIN : canvasH;
   if(maxY > canvasH){
     canvasH = Math.ceil(maxY);
     const cvs = document.getElementById('boardCanvas');
@@ -518,7 +527,7 @@ function computeBoardLayout(force){
 function panBoard(dir){
   boardPanX += dir * 80;
   boardLayoutDirty = true;
-  computeBoardLayout(true);
+  computeBoardLayout();
   drawBoard();
 }
 
@@ -535,7 +544,7 @@ function initBoardCanvas(){
 
   const wrap = document.getElementById('boardWrap');
   const w = wrap.clientWidth || 960;
-  const h = Math.max(200, Math.min(300, Math.round(w * 0.28)));
+  const h = Math.max(220, Math.min(350, Math.round(w * 0.32)));
   canvasW = w;
   canvasH = h;
   boardLayoutDirty = true;
@@ -546,39 +555,36 @@ function initBoardCanvas(){
   boardCanvas.style.height = h + 'px';
   boardCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  // Board panning with mouse/touch
   setupBoardPan();
 }
 
 function setupBoardPan(){
-  // Simple drag-to-pan for when board gets large
   const cvs = document.getElementById('boardCanvas');
   if(!cvs) return;
-  let dragging = false, startX = 0, startY = 0, startPanX = 0, startPanY = 0;
+  let dragging = false, startX = 0, startPanX = 0;
 
   cvs.addEventListener('mousedown', e => {
     if(e.button !== 0) return;
-    dragging = true; startX = e.clientX; startY = e.clientY;
-    startPanX = panX; startPanY = panY;
+    dragging = true; startX = e.clientX;
+    startPanX = boardPanX;
   });
   window.addEventListener('mousemove', e => {
     if(!dragging) return;
-    panX = startPanX + (e.clientX - startX);
-    panY = startPanY + (e.clientY - startY);
+    boardPanX = startPanX + (e.clientX - startX);
+    computeBoardLayout();
     drawBoard();
   });
   window.addEventListener('mouseup', () => { dragging = false; });
 
-  // Touch
   cvs.addEventListener('touchstart', e => {
     if(e.touches.length !== 1) return;
-    dragging = true; startX = e.touches[0].clientX; startY = e.touches[0].clientY;
-    startPanX = panX; startPanY = panY;
+    dragging = true; startX = e.touches[0].clientX;
+    startPanX = boardPanX;
   }, {passive:true});
   cvs.addEventListener('touchmove', e => {
     if(!dragging || e.touches.length !== 1) return;
-    panX = startPanX + (e.touches[0].clientX - startX);
-    panY = startPanY + (e.touches[0].clientY - startY);
+    boardPanX = startPanX + (e.touches[0].clientX - startX);
+    computeBoardLayout();
     drawBoard();
   }, {passive:true});
   cvs.addEventListener('touchend', () => { dragging = false; }, {passive:true});
@@ -587,16 +593,15 @@ function setupBoardPan(){
   cvs.addEventListener('click', e => {
     if(!selectedTile || !myTurn || gameOver || board.length === 0) return;
     const rect = cvs.getBoundingClientRect();
-    const mx = (e.clientX - rect.left) * (canvasW / rect.width) - panX;
-    const my = (e.clientY - rect.top) * (canvasH / rect.height) - panY;
+    const mx = (e.clientX - rect.left) * (canvasW / rect.width);
 
     if(boardEntries.length === 0) return;
     const leftEntry = boardEntries[0];
     const rightEntry = boardEntries[boardEntries.length - 1];
 
-    const distL = Math.hypot(mx - leftEntry.x, my - leftEntry.y);
-    const distR = Math.hypot(mx - rightEntry.x, my - rightEntry.y);
-    const threshold = TILE_H * 2;
+    const distL = Math.abs(mx - leftEntry.x);
+    const distR = Math.abs(mx - rightEntry.x);
+    const threshold = 4 * TW + 20;
 
     const canLeft = canMatch(selectedTile, leftEnd);
     const canRight = canMatch(selectedTile, rightEnd);
@@ -609,11 +614,13 @@ function setupBoardPan(){
   });
 }
 
+/* =========================================================== */
+/* DRAW BOARD                                                  */
+/* =========================================================== */
 function drawBoard(){
   if(!boardCtx) return;
   const ctx = boardCtx;
 
-  // Reset transform and clear
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   // Green felt background
@@ -624,7 +631,7 @@ function drawBoard(){
   ctx.fillStyle = feltGrad;
   ctx.fillRect(0, 0, canvasW, canvasH);
 
-  // Felt texture (subtle noise — seeded so it doesn't flicker)
+  // Felt texture
   ctx.save();
   ctx.globalAlpha = 0.04;
   for(let i = 0; i < 200; i++){
@@ -663,62 +670,35 @@ function drawBoard(){
 
   computeBoardLayout();
 
-  // Auto-pan to keep chain centered
-  if(boardEntries.length > 0){
-    const allX = boardEntries.map(e => e.x);
-    const minX = Math.min(...allX) - TILE_H;
-    const maxX = Math.max(...allX) + TILE_H;
-    const chainW = maxX - minX;
-    if(chainW > canvasW - MARGIN * 2){
-      // Pan so the most recent placement is visible
-      const lastEntry = boardEntries[boardEntries.length - 1];
-      panX = canvasW / 2 - lastEntry.x;
-    } else {
-      // Center the chain
-      const mid = (minX + maxX) / 2;
-      panX = canvasW / 2 - mid;
-    }
-    const allY = boardEntries.map(e => e.y);
-    const minY = Math.min(...allY) - TILE_H;
-    const maxY = Math.max(...allY) + TILE_H;
-    const chainH = maxY - minY;
-    if(chainH > canvasH){
-      panY = canvasH / 2 - (minY + maxY) / 2;
-    } else {
-      panY = 0;
-    }
-  }
-
-  ctx.save();
-  ctx.translate(panX, panY);
-
   // Draw placement previews (glowing ends)
   if(selectedTile && !gameOver && myTurn && boardEntries.length > 0){
     const canLeft = canMatch(selectedTile, leftEnd);
     const canRight = canMatch(selectedTile, rightEnd);
     if(canLeft){
       const le = boardEntries[0];
-      drawEndGlow(ctx, le.x, le.y, le.horizontal, -1);
+      drawEndGlow(ctx, le, -1);
     }
     if(canRight){
       const re = boardEntries[boardEntries.length - 1];
-      drawEndGlow(ctx, re.x, re.y, re.horizontal, 1);
+      drawEndGlow(ctx, re, 1);
     }
   }
 
   // Draw tiles
   boardEntries.forEach(entry => {
-    drawTileOnCanvas(ctx, entry.x, entry.y, entry.topVal, entry.botVal, entry.horizontal, entry.isDouble, false, entry.scale);
+    drawTileOnCanvas(ctx, entry.x, entry.y, entry.leftVal, entry.rightVal, entry.isDouble);
   });
-
-  ctx.restore();
 }
 
-function drawEndGlow(ctx, x, y, horizontal, side){
-  // Draw a pulsing glow near the end of the chain
+/* =========================================================== */
+/* END GLOW                                                    */
+/* =========================================================== */
+function drawEndGlow(ctx, entry, side){
   ctx.save();
-  const glowX = horizontal ? x + side * (TILE_H + 20) : x;
-  const glowY = horizontal ? y : y + side * (TILE_H + 20);
+  const dbl = entry.isDouble;
+  const tileW = dbl ? (2 * TW) : (4 * TW);
+  const glowX = side === -1 ? entry.x - tileW / 2 - 16 : entry.x + tileW / 2 + 16;
+  const glowY = entry.y;
   const pulse = 0.4 + 0.3 * Math.sin(Date.now() / 300);
   ctx.globalAlpha = pulse;
   ctx.fillStyle = '#06d6a0';
@@ -736,128 +716,207 @@ function drawEndGlow(ctx, x, y, horizontal, side){
   ctx.fillText(side === -1 ? '\u25C0' : '\u25B6', glowX, glowY);
   ctx.restore();
 
-  // Animate glow
   if(selectedTile && !gameOver) requestAnimationFrame(() => drawBoard());
 }
 
 /* =========================================================== */
-/* DRAW A SINGLE TILE ON CANVAS                                */
+/* DRAW A SINGLE TILE ON CANVAS (NO ROTATION)                  */
 /* =========================================================== */
-function drawTileOnCanvas(ctx, cx, cy, valA, valB, horizontal, isDbl, highlight, scale){
+function drawTileOnCanvas(ctx, cx, cy, leftVal, rightVal, isDbl){
   ctx.save();
-  ctx.translate(cx, cy);
-  const s = scale || 1;
-  ctx.scale(s, s);
 
-  const tw = isDbl ? TILE_H : TILE_W;
-  const th = isDbl ? TILE_W : TILE_H;
+  const r = 5;
+  const isDefaultTheme = tileBg === '#f5f0e0' || tileBg === '#f0f0f0' || tileBg === '#e8e4df';
 
-  if(horizontal && !isDbl){
-    ctx.rotate(-Math.PI / 2);
-  } else if(isDbl && horizontal) {
-    // Doubles perpendicular — no rotate
-  } else if(isDbl && !horizontal) {
-    ctx.rotate(Math.PI / 2);
+  if(isDbl){
+    // ── DOUBLE: drawn vertically (perpendicular) ──
+    // Top half: leftVal, Bottom half: rightVal
+    const x0 = cx - TW;
+    const y0 = cy - 2 * TW;
+    const fullW = 2 * TW;
+    const fullH = 4 * TW;
+
+    // Drop shadow
+    ctx.shadowColor = 'rgba(0,0,0,.5)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 4;
+
+    // Tile body
+    ctx.beginPath();
+    ctx.roundRect(x0, y0, fullW, fullH, r);
+    if(isDefaultTheme){
+      const ivoryGrad = ctx.createLinearGradient(x0, y0, x0 + fullW, y0 + fullH);
+      ivoryGrad.addColorStop(0, '#faf5e8');
+      ivoryGrad.addColorStop(0.3, '#f5eed8');
+      ivoryGrad.addColorStop(0.7, '#ebe4cc');
+      ivoryGrad.addColorStop(1, '#e0d8be');
+      ctx.fillStyle = ivoryGrad;
+    } else {
+      ctx.fillStyle = tileBg;
+    }
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+
+    // Edge bevel
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(x0, y0, fullW, fullH, r);
+    ctx.clip();
+    const hlGrad = ctx.createLinearGradient(x0, y0, x0 + fullW * 0.5, y0 + fullH * 0.5);
+    hlGrad.addColorStop(0, 'rgba(255,255,255,.35)');
+    hlGrad.addColorStop(0.5, 'rgba(255,255,255,0)');
+    ctx.fillStyle = hlGrad;
+    ctx.fillRect(x0, y0, fullW, fullH);
+    const shGrad = ctx.createLinearGradient(x0 + fullW * 0.5, y0 + fullH * 0.5, x0 + fullW, y0 + fullH);
+    shGrad.addColorStop(0.5, 'rgba(0,0,0,0)');
+    shGrad.addColorStop(1, 'rgba(0,0,0,.12)');
+    ctx.fillStyle = shGrad;
+    ctx.fillRect(x0, y0, fullW, fullH);
+    ctx.restore();
+
+    // Border
+    ctx.beginPath();
+    ctx.roundRect(x0, y0, fullW, fullH, r);
+    ctx.strokeStyle = tileBorder;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    // Horizontal divider at y=cy
+    ctx.beginPath();
+    ctx.moveTo(x0 + fullW * 0.15, cy);
+    ctx.lineTo(x0 + fullW * 0.85, cy);
+    ctx.strokeStyle = '#8a7d6a';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.6;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x0 + fullW * 0.15, cy + 1.5);
+    ctx.lineTo(x0 + fullW * 0.85, cy + 1.5);
+    ctx.strokeStyle = 'rgba(255,255,255,.3)';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Brass spinner
+    drawSpinner(ctx, cx, cy);
+
+    // Pips: leftVal in top half, rightVal in bottom half
+    const pipR = Math.max(3.5, TW * 0.14);
+    const pipArea = TW * 0.68;
+    drawPips(ctx, cx, cy - TW, leftVal, pipR, pipArea);
+    drawPips(ctx, cx, cy + TW, rightVal, pipR, pipArea);
+
+  } else {
+    // ── NON-DOUBLE: drawn horizontally ──
+    // Left half: leftVal, Right half: rightVal
+    const x0 = cx - 2 * TW;
+    const y0 = cy - TW;
+    const fullW = 4 * TW;
+    const fullH = 2 * TW;
+
+    // Drop shadow
+    ctx.shadowColor = 'rgba(0,0,0,.5)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 4;
+
+    // Tile body
+    ctx.beginPath();
+    ctx.roundRect(x0, y0, fullW, fullH, r);
+    if(isDefaultTheme){
+      const ivoryGrad = ctx.createLinearGradient(x0, y0, x0 + fullW, y0 + fullH);
+      ivoryGrad.addColorStop(0, '#faf5e8');
+      ivoryGrad.addColorStop(0.3, '#f5eed8');
+      ivoryGrad.addColorStop(0.7, '#ebe4cc');
+      ivoryGrad.addColorStop(1, '#e0d8be');
+      ctx.fillStyle = ivoryGrad;
+    } else {
+      ctx.fillStyle = tileBg;
+    }
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+
+    // Edge bevel
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(x0, y0, fullW, fullH, r);
+    ctx.clip();
+    const hlGrad = ctx.createLinearGradient(x0, y0, x0 + fullW * 0.5, y0 + fullH * 0.5);
+    hlGrad.addColorStop(0, 'rgba(255,255,255,.35)');
+    hlGrad.addColorStop(0.5, 'rgba(255,255,255,0)');
+    ctx.fillStyle = hlGrad;
+    ctx.fillRect(x0, y0, fullW, fullH);
+    const shGrad = ctx.createLinearGradient(x0 + fullW * 0.5, y0 + fullH * 0.5, x0 + fullW, y0 + fullH);
+    shGrad.addColorStop(0.5, 'rgba(0,0,0,0)');
+    shGrad.addColorStop(1, 'rgba(0,0,0,.12)');
+    ctx.fillStyle = shGrad;
+    ctx.fillRect(x0, y0, fullW, fullH);
+    ctx.restore();
+
+    // Border
+    ctx.beginPath();
+    ctx.roundRect(x0, y0, fullW, fullH, r);
+    ctx.strokeStyle = tileBorder;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    // Vertical divider at x=cx
+    ctx.beginPath();
+    ctx.moveTo(cx, y0 + fullH * 0.15);
+    ctx.lineTo(cx, y0 + fullH * 0.85);
+    ctx.strokeStyle = '#8a7d6a';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.6;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + 1.5, y0 + fullH * 0.15);
+    ctx.lineTo(cx + 1.5, y0 + fullH * 0.85);
+    ctx.strokeStyle = 'rgba(255,255,255,.3)';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Brass spinner
+    drawSpinner(ctx, cx, cy);
+
+    // Pips: leftVal in left half, rightVal in right half
+    const pipR = Math.max(3.5, TW * 0.14);
+    const pipArea = TW * 0.68;
+    drawPips(ctx, cx - TW, cy, leftVal, pipR, pipArea);
+    drawPips(ctx, cx + TW, cy, rightVal, pipR, pipArea);
   }
 
-  const w = TILE_W;
-  const h = TILE_H;
-  const r = 5; // corner radius
-
-  // ── Drop shadow (layered for depth) ──
-  ctx.shadowColor = 'rgba(0,0,0,.5)';
-  ctx.shadowBlur = 8;
-  ctx.shadowOffsetX = 2;
-  ctx.shadowOffsetY = 4;
-
-  // ── Tile body: ivory/cream base ──
-  ctx.beginPath();
-  ctx.roundRect(-w, -h, w * 2, h * 2, r);
-  const ivoryGrad = ctx.createLinearGradient(-w, -h, w, h);
-  ivoryGrad.addColorStop(0, '#faf5e8');
-  ivoryGrad.addColorStop(0.3, '#f5eed8');
-  ivoryGrad.addColorStop(0.7, '#ebe4cc');
-  ivoryGrad.addColorStop(1, '#e0d8be');
-  ctx.fillStyle = tileBg === '#f5f0e0' || tileBg === '#f0f0f0' ? ivoryGrad : tileBg;
-  ctx.fill();
-  ctx.shadowColor = 'transparent';
-
-  // ── Edge bevel: bright top-left, dark bottom-right ──
-  ctx.save();
-  ctx.beginPath();
-  ctx.roundRect(-w, -h, w * 2, h * 2, r);
-  ctx.clip();
-  // Top-left highlight
-  const hlGrad = ctx.createLinearGradient(-w, -h, w * 0.5, h * 0.5);
-  hlGrad.addColorStop(0, 'rgba(255,255,255,.35)');
-  hlGrad.addColorStop(0.5, 'rgba(255,255,255,0)');
-  ctx.fillStyle = hlGrad;
-  ctx.fillRect(-w, -h, w * 2, h * 2);
-  // Bottom-right shadow
-  const shGrad = ctx.createLinearGradient(-w * 0.5, -h * 0.5, w, h);
-  shGrad.addColorStop(0.5, 'rgba(0,0,0,0)');
-  shGrad.addColorStop(1, 'rgba(0,0,0,.12)');
-  ctx.fillStyle = shGrad;
-  ctx.fillRect(-w, -h, w * 2, h * 2);
   ctx.restore();
+}
 
-  // ── Border ──
-  ctx.beginPath();
-  ctx.roundRect(-w, -h, w * 2, h * 2, r);
-  ctx.strokeStyle = highlight ? '#06d6a0' : '#b8a88a';
-  ctx.lineWidth = highlight ? 2.5 : 1.2;
-  ctx.stroke();
-
-  // ── Divider groove (recessed line) ──
-  ctx.beginPath();
-  ctx.moveTo(-w * 0.7, 0);
-  ctx.lineTo(w * 0.7, 0);
-  ctx.strokeStyle = '#8a7d6a';
-  ctx.lineWidth = 2;
-  ctx.globalAlpha = 0.6;
-  ctx.stroke();
-  // Highlight below divider for groove depth
-  ctx.beginPath();
-  ctx.moveTo(-w * 0.7, 1.5);
-  ctx.lineTo(w * 0.7, 1.5);
-  ctx.strokeStyle = 'rgba(255,255,255,.3)';
-  ctx.lineWidth = 0.8;
-  ctx.stroke();
-  ctx.globalAlpha = 1;
-
-  // ── Brass spinner/rivet in center ──
-  const spinR = Math.max(2.5, w * 0.07);
-  // Outer ring
-  const brassGrad = ctx.createRadialGradient(-spinR*0.3, -spinR*0.3, 0, 0, 0, spinR);
+/* =========================================================== */
+/* BRASS SPINNER                                               */
+/* =========================================================== */
+function drawSpinner(ctx, cx, cy){
+  const spinR = Math.max(2.5, TW * 0.07);
+  const brassGrad = ctx.createRadialGradient(cx - spinR * 0.3, cy - spinR * 0.3, 0, cx, cy, spinR);
   brassGrad.addColorStop(0, '#d4a843');
   brassGrad.addColorStop(0.5, '#c49b38');
   brassGrad.addColorStop(1, '#8a6d24');
   ctx.beginPath();
-  ctx.arc(0, 0, spinR, 0, Math.PI * 2);
+  ctx.arc(cx, cy, spinR, 0, Math.PI * 2);
   ctx.fillStyle = brassGrad;
   ctx.fill();
   ctx.strokeStyle = '#6b5520';
   ctx.lineWidth = 0.5;
   ctx.stroke();
-  // Shine dot on spinner
   ctx.beginPath();
-  ctx.arc(-spinR*0.2, -spinR*0.3, spinR*0.3, 0, Math.PI * 2);
+  ctx.arc(cx - spinR * 0.2, cy - spinR * 0.3, spinR * 0.3, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(255,255,220,.5)';
   ctx.fill();
-
-  // ── Pips ──
-  const pipR = Math.max(3.5, w * 0.14);
-  drawPips(ctx, 0, -h * 0.5, valA, pipR, w * 0.68);
-  drawPips(ctx, 0, h * 0.5, valB, pipR, w * 0.68);
-
-  ctx.restore();
 }
 
 /* =========================================================== */
-/* DRAW PIPS (standard domino positions)                       */
+/* DRAW PIPS (standard domino positions, NO rotation)          */
 /* =========================================================== */
 function drawPips(ctx, cx, cy, count, radius, area){
-  const s = area * 0.36;
+  const s = area * 0.35;
   const positions = {
     0: [],
     1: [[0, 0]],
@@ -888,7 +947,7 @@ function drawPips(ctx, cx, cy, count, radius, area){
     } else if(dotShape === 'star'){
       drawStar(ctx, px, py, radius);
     } else {
-      // Recessed pip: outer shadow ring (indentation effect)
+      // Recessed pip
       ctx.save();
       ctx.beginPath();
       ctx.arc(px, py, radius * 1.15, 0, Math.PI * 2);
@@ -896,8 +955,7 @@ function drawPips(ctx, cx, cy, count, radius, area){
       ctx.fill();
       ctx.restore();
 
-      // Main pip (dark, slightly concave)
-      const pipGrad = ctx.createRadialGradient(px - radius*0.2, py - radius*0.2, 0, px, py, radius);
+      const pipGrad = ctx.createRadialGradient(px - radius * 0.2, py - radius * 0.2, 0, px, py, radius);
       pipGrad.addColorStop(0, '#2a2a2a');
       pipGrad.addColorStop(0.6, '#1a1a1a');
       pipGrad.addColorStop(1, '#0f0f0f');
@@ -906,18 +964,18 @@ function drawPips(ctx, cx, cy, count, radius, area){
       ctx.fillStyle = dotColor === '#1a1a1a' || dotColor === '#111' ? pipGrad : dotColor;
       ctx.fill();
 
-      // Concave highlight (light crescent on top-left for depth)
+      // Concave highlight
       ctx.save();
       ctx.beginPath();
       ctx.arc(px, py, radius, 0, Math.PI * 2);
       ctx.clip();
       ctx.beginPath();
-      ctx.arc(px - radius*0.3, py - radius*0.3, radius*0.6, 0, Math.PI * 2);
+      ctx.arc(px - radius * 0.3, py - radius * 0.3, radius * 0.6, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(255,255,255,.12)';
       ctx.fill();
       ctx.restore();
 
-      // Rim shadow at bottom-right for inset look
+      // Rim shadow
       ctx.beginPath();
       ctx.arc(px, py, radius, 0, Math.PI * 2);
       ctx.strokeStyle = 'rgba(0,0,0,.15)';
@@ -937,6 +995,7 @@ function drawStar(ctx, x, y, r){
     else ctx.lineTo(px, py);
   }
   ctx.closePath();
+  ctx.fillStyle = dotColor;
   ctx.fill();
 }
 
@@ -1119,7 +1178,7 @@ function handleDrop(tile, clientX, clientY){
     }
 
     // Determine which end is closer
-    const mx = (clientX - rect.left) * (canvasW / rect.width) - panX;
+    const mx = (clientX - rect.left) * (canvasW / rect.width);
 
     if(boardEntries.length > 0){
       const leftEntry = boardEntries[0];
@@ -1195,7 +1254,7 @@ function startAiGame(diff){
   board = []; leftEnd = -1; rightEnd = -1;
   myTurn = true; gameOver = false; selectedTile = null;
   myScore = 0; oppScore = 0; coinsAwarded = false;
-  panX = 0; panY = 0; boardEntries = [];
+  boardPanX = 0; boardEntries = [];
   showScreen('gameScreen');
   document.getElementById('piOppName').textContent = 'AI (' + diff.charAt(0).toUpperCase() + diff.slice(1) + ')';
   renderGame();
@@ -1250,29 +1309,29 @@ function placeTile(side){
 
   if(board.length === 0){
     // First tile
-    board.push({tile: selectedTile, topVal: selectedTile.a, botVal: selectedTile.b});
+    board.push({tile: selectedTile, leftVal: selectedTile.a, rightVal: selectedTile.b});
     leftEnd = selectedTile.a;
     rightEnd = selectedTile.b;
   } else if(side === 'left'){
-    // Place on left end — the matching value faces inward (connects to leftEnd)
-    let topVal, botVal;
+    // Place on left end — matching value faces RIGHT (toward chain)
+    let entry;
     if(selectedTile.b === leftEnd){
-      topVal = selectedTile.a; botVal = selectedTile.b;
+      entry = {tile: selectedTile, leftVal: selectedTile.a, rightVal: selectedTile.b};
     } else {
-      topVal = selectedTile.b; botVal = selectedTile.a;
+      entry = {tile: selectedTile, leftVal: selectedTile.b, rightVal: selectedTile.a};
     }
-    board.unshift({tile: selectedTile, topVal, botVal});
-    leftEnd = topVal; // new exposed end
+    board.unshift(entry);
+    leftEnd = entry.leftVal;
   } else {
-    // Place on right end — the matching value faces inward (connects to rightEnd)
-    let topVal, botVal;
+    // Place on right end — matching value faces LEFT (toward chain)
+    let entry;
     if(selectedTile.a === rightEnd){
-      topVal = selectedTile.a; botVal = selectedTile.b;
+      entry = {tile: selectedTile, leftVal: selectedTile.a, rightVal: selectedTile.b};
     } else {
-      topVal = selectedTile.b; botVal = selectedTile.a;
+      entry = {tile: selectedTile, leftVal: selectedTile.b, rightVal: selectedTile.a};
     }
-    board.push({tile: selectedTile, topVal, botVal});
-    rightEnd = botVal; // new exposed end
+    board.push(entry);
+    rightEnd = entry.rightVal;
   }
 
   myHand = myHand.filter(t => t.id !== selectedTile.id);
@@ -1290,7 +1349,7 @@ function placeTile(side){
 }
 window.placeTile = placeTile;
 window.panBoard = panBoard;
-window._dbg = function(){ return {board:board.map(e=>({a:e.tile.a,b:e.tile.b,top:e.topVal,bot:e.botVal})),leftEnd,rightEnd} };
+window._dbg = function(){ return {board:board.map(e=>({a:e.tile.a,b:e.tile.b,L:e.leftVal,R:e.rightVal})),leftEnd,rightEnd} };
 
 function drawFromBoneyard(){
   if(!myTurn || boneyard.length === 0 || gameOver) return;
@@ -1391,22 +1450,22 @@ function aiTurn(){
     if(side === 'right' && !canMatch(chosen, rightEnd)){console.error('AI INVALID RIGHT',chosen,rightEnd);myTurn=true;renderGame();updateTurnUI();return}
   }
 
-  // Place the tile
+  // Place the tile using leftVal/rightVal model
   if(board.length === 0){
-    board.push({tile: chosen, topVal: chosen.a, botVal: chosen.b});
+    board.push({tile: chosen, leftVal: chosen.a, rightVal: chosen.b});
     leftEnd = chosen.a; rightEnd = chosen.b;
   } else if(side === 'left'){
-    let topVal, botVal;
-    if(chosen.b === leftEnd){ topVal = chosen.a; botVal = chosen.b; }
-    else { topVal = chosen.b; botVal = chosen.a; }
-    board.unshift({tile: chosen, topVal, botVal});
-    leftEnd = topVal;
+    let entry;
+    if(chosen.b === leftEnd){ entry = {tile: chosen, leftVal: chosen.a, rightVal: chosen.b}; }
+    else { entry = {tile: chosen, leftVal: chosen.b, rightVal: chosen.a}; }
+    board.unshift(entry);
+    leftEnd = entry.leftVal;
   } else {
-    let topVal, botVal;
-    if(chosen.a === rightEnd){ topVal = chosen.a; botVal = chosen.b; }
-    else { topVal = chosen.b; botVal = chosen.a; }
-    board.push({tile: chosen, topVal, botVal});
-    rightEnd = botVal;
+    let entry;
+    if(chosen.a === rightEnd){ entry = {tile: chosen, leftVal: chosen.a, rightVal: chosen.b}; }
+    else { entry = {tile: chosen, leftVal: chosen.b, rightVal: chosen.a}; }
+    board.push(entry);
+    rightEnd = entry.rightVal;
   }
 
   oppHand = oppHand.filter(t => t.id !== chosen.id);
