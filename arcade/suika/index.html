@@ -495,10 +495,10 @@ function update(){
     f.vx*=0.97;
 
     // Container walls
-    if(f.x-f.r<WALL_THICK){f.x=WALL_THICK+f.r;f.vx=Math.abs(f.vx)*BOUNCE}
-    if(f.x+f.r>CW-WALL_THICK){f.x=CW-WALL_THICK-f.r;f.vx=-Math.abs(f.vx)*BOUNCE}
-    // Floor
-    if(f.y+f.r>CH){f.y=CH-f.r;f.vy=-Math.abs(f.vy)*BOUNCE;if(Math.abs(f.vy)<0.5)f.vy=0;f.vx*=FRICTION}
+    if(f.x-f.r<WALL_THICK){f.x=WALL_THICK+f.r;f.vx=0}
+    if(f.x+f.r>CW-WALL_THICK){f.x=CW-WALL_THICK-f.r;f.vx=0}
+    // Floor — no bounce, just stop
+    if(f.y+f.r>CH){f.y=CH-f.r;f.vy=0;f.vx*=FRICTION}
   }
 
   // Fruit-fruit collision — position-only correction, no velocity vibration
@@ -546,9 +546,9 @@ function update(){
   for(var i=0;i<fruits.length;i++){
     var f=fruits[i];
     if(f.merging)continue;
-    if(f.x-f.r<WALL_THICK){f.x=WALL_THICK+f.r;f.vx=Math.abs(f.vx)*0.2}
-    if(f.x+f.r>CW-WALL_THICK){f.x=CW-WALL_THICK-f.r;f.vx=-Math.abs(f.vx)*0.2}
-    if(f.y+f.r>CH){f.y=CH-f.r;if(Math.abs(f.vy)<1)f.vy=0;else f.vy*=-0.15;f.vx*=FRICTION}
+    if(f.x-f.r<WALL_THICK){f.x=WALL_THICK+f.r;f.vx=0}
+    if(f.x+f.r>CW-WALL_THICK){f.x=CW-WALL_THICK-f.r;f.vx=0}
+    if(f.y+f.r>CH){f.y=CH-f.r;f.vy=0;f.vx*=FRICTION}
   }
 
   // Check danger line (game over if fruit stays above danger line)
