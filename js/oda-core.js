@@ -1054,4 +1054,172 @@ window.odaHelp = (function() {
   return { init: init, show: show, homeSection: homeSection };
 })();
 
-console.log('[ODA] Core loaded v1.5');
+// ============================================
+// Player Levels + XP System
+// Platform-wide XP & leveling for all students
+// ============================================
+window.odaXP = (function() {
+
+  // --- Level thresholds ---
+  // Key milestones are hand-tuned; intermediate levels interpolated with formula
+  var XP_TABLE = {
+    1:0, 2:50, 3:120, 4:200, 5:300, 10:1000, 15:2000, 20:3500, 25:5500, 30:8000, 40:15000, 50:25000
+  };
+  // Build full table 1-50 by interpolating between milestones
+  var _fullTable = [0]; // index 0 unused, level 1 = index 1
+  (function() {
+    var keys = [1,2,3,4,5,10,15,20,25,30,40,50];
+    for (var i = 0; i < keys.length - 1; i++) {
+      var fromLvl = keys[i], toLvl = keys[i+1];
+      var fromXP = XP_TABLE[fromLvl], toXP = XP_TABLE[toLvl];
+      for (var l = fromLvl; l < toLvl; l++) {
+        var t = (l - fromLvl) / (toLvl - fromLvl);
+        _fullTable[l] = Math.round(fromXP + t * (toXP - fromXP));
+      }
+    }
+    _fullTable[50] = 25000;
+  })();
+
+  function xpForLevel(level) {
+    if (level <= 1) return 0;
+    if (level >= 50) return 25000;
+    return _fullTable[level] || Math.floor(50 * Math.pow(level, 1.5));
+  }
+
+  // --- Level titles ---
+  var TITLES = [
+    { min: 1,  max: 4,  title: 'Rookie' },
+    { min: 5,  max: 9,  title: 'Rising Star' },
+    { min: 10, max: 14, title: 'Competitor' },
+    { min: 15, max: 19, title: 'Veteran' },
+    { min: 20, max: 24, title: 'Expert' },
+    { min: 25, max: 29, title: 'Master' },
+    { min: 30, max: 39, title: 'Legend' },
+    { min: 40, max: 49, title: 'Champion' },
+    { min: 50, max: 999, title: 'G.O.A.T.' }
+  ];
+
+  /** Get level title for a given level number */
+  function getLevelTitle(level) {
+    for (var i = 0; i < TITLES.length; i++) {
+      if (level >= TITLES[i].min && level <= TITLES[i].max) return TITLES[i].title;
+    }
+    return 'Rookie';
+  }
+
+  /** Compute level info from total XP */
+  function getLevel(totalXP) {
+    totalXP = totalXP || 0;
+    var level = 1;
+    // Find the highest level where totalXP >= threshold
+    for (var l = 2; l <= 50; l++) {
+      if (totalXP >= xpForLevel(l)) {
+        level = l;
+      } else {
+        break;
+      }
+    }
+    // Cap at 50
+    if (level > 50) level = 50;
+    var currentThreshold = xpForLevel(level);
+    var nextThreshold = level < 50 ? xpForLevel(level + 1) : xpForLevel(50);
+    var xpIntoLevel = totalXP - currentThreshold;
+    var xpNeeded = nextThreshold - currentThreshold;
+    var progress = xpNeeded > 0 ? Math.min(xpIntoLevel / xpNeeded, 1) : 1;
+
+    return {
+      level: level,
+      title: getLevelTitle(level),
+      totalXP: totalXP,
+      xpForNext: nextThreshold,
+      xpProgress: progress,
+      xpIntoLevel: xpIntoLevel,
+      xpNeeded: xpNeeded
+    };
+  }
+
+  /**
+   * Award XP to the current student.
+   * @param {number} amount - XP to award
+   * @param {string} reason - Description (e.g. 'game_complete', 'win', 'high_score', 'achievement', 'daily_login')
+   * @returns {Promise<{oldLevel: number, newLevel: number, totalXP: number, leveledUp: boolean}>}
+   */
+  async function awardXP(amount, reason) {
+    var sid = localStorage.getItem('studentId');
+    if (!sid || sid.startsWith('anon_') || !amount || amount <= 0) {
+      return { oldLevel: 1, newLevel: 1, totalXP: 0, leveledUp: false };
+    }
+    try {
+      var fb = await window.getFirebaseDB();
+      var ref = fb.fsMod.doc(fb.db, 'students', sid);
+      // Read current XP
+      var snap = await fb.fsMod.getDoc(ref);
+      var oldXP = 0;
+      if (snap.exists()) {
+        oldXP = snap.data().xp || 0;
+      }
+      var oldInfo = getLevel(oldXP);
+      var newXP = oldXP + amount;
+      var newInfo = getLevel(newXP);
+      // Write new XP using increment for safety
+      await fb.fsMod.updateDoc(ref, { xp: fb.fsMod.increment(amount) });
+      var result = {
+        oldLevel: oldInfo.level,
+        newLevel: newInfo.level,
+        totalXP: newXP,
+        leveledUp: newInfo.level > oldInfo.level,
+        newTitle: newInfo.title,
+        reason: reason || ''
+      };
+      // Fire level-up event so the dashboard can react
+      if (result.leveledUp) {
+        window.dispatchEvent(new CustomEvent('oda-level-up', { detail: result }));
+      }
+      // Always fire XP gained event
+      window.dispatchEvent(new CustomEvent('oda-xp-gained', { detail: { amount: amount, reason: reason, totalXP: newXP } }));
+      return result;
+    } catch (e) {
+      console.warn('[odaXP] Award failed:', e);
+      return { oldLevel: 1, newLevel: 1, totalXP: 0, leveledUp: false };
+    }
+  }
+
+  /**
+   * Auto-award XP when coins are given (called from games).
+   * Maps coin awards to XP proportionally:
+   * - Any game completion (coins > 0): 10 XP base
+   * - Win bonus (coins >= 30): +15 XP
+   * - High score bonus: +20 XP (caller passes isNewHighScore)
+   * - Daily login bonus: +10 XP (first game of the day)
+   */
+  async function autoAwardFromGame(coinsAwarded, opts) {
+    opts = opts || {};
+    var xp = 10; // base: game completed
+    var reasons = ['game_complete'];
+
+    if (opts.won) { xp += 15; reasons.push('win'); }
+    if (opts.isNewHighScore) { xp += 20; reasons.push('high_score'); }
+
+    // Daily login bonus — check localStorage
+    var today = new Date().toISOString().split('T')[0];
+    var lastPlayDay = localStorage.getItem('odaLastPlayDay');
+    if (lastPlayDay !== today) {
+      xp += 10;
+      reasons.push('daily_login');
+      localStorage.setItem('odaLastPlayDay', today);
+    }
+
+    return awardXP(xp, reasons.join(','));
+  }
+
+  // Expose to window for global use
+  return {
+    getLevel: getLevel,
+    getLevelTitle: getLevelTitle,
+    xpForLevel: xpForLevel,
+    awardXP: awardXP,
+    autoAwardFromGame: autoAwardFromGame
+  };
+})();
+
+console.log('[ODA] Core loaded v1.6');
