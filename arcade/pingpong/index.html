@@ -103,6 +103,52 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
 @keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
 @keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+
+/* ======================== */
+/* TOURNAMENT SCREENS       */
+/* ======================== */
+#ppTourneyLobbyScreen,#ppTourneyBracketScreen{padding-top:60px;padding-bottom:40px}
+.tourney-container{max-width:800px;width:90%}
+.tourney-header{text-align:center;margin-bottom:24px}
+.tourney-header h2{font-size:28px;margin-bottom:6px}
+.tourney-header .tourney-code{font-size:36px;font-weight:900;font-family:'Fredoka',sans-serif;color:var(--gold);letter-spacing:8px;text-shadow:0 0 20px rgba(255,209,102,.2)}
+.players-lobby{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin:20px 0}
+.player-lobby-card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center;font-weight:600;font-size:14px}
+.player-lobby-card .seed{font-size:11px;color:var(--text2);margin-top:4px}
+.bracket-wrap{overflow-x:auto;padding:20px 0}
+.bracket{display:flex;gap:40px;align-items:center;min-width:max-content}
+.bracket-round{display:flex;flex-direction:column;gap:20px;min-width:200px}
+.bracket-round-title{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;text-align:center;margin-bottom:12px;font-weight:700}
+.match-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;min-width:180px}
+.match-player{padding:10px 14px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:default}
+.match-player:first-child{border-bottom:1px solid var(--border)}
+.match-player.winner{background:rgba(6,214,160,.1);color:var(--accent)}
+.match-player.loser{opacity:.5}
+.match-player .mp-seed{color:var(--text2);font-size:11px;min-width:18px}
+.match-player .mp-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.match-status{text-align:center;padding:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.match-status.playing{background:rgba(6,214,160,.1);color:var(--accent)}
+.match-status.upcoming{background:rgba(168,178,200,.1);color:var(--text2)}
+.match-status.completed{background:rgba(255,209,102,.1);color:var(--gold)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.badge-accent{background:rgba(6,214,160,.15);color:var(--accent)}
+.badge-gold{background:rgba(255,209,102,.15);color:var(--gold)}
+.badge-blue{background:rgba(17,138,178,.15);color:var(--accent2)}
+.section-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px}
+.error-text{color:var(--accent3);font-size:13px;font-weight:600;margin-top:8px;min-height:20px}
+.code-input{background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:14px 20px;color:var(--text);font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;text-align:center;width:200px;letter-spacing:8px;outline:none;transition:border-color .2s}
+.code-input:focus{border-color:var(--accent)}
+.code-input::placeholder{color:var(--border);letter-spacing:4px;font-size:20px}
+.qm-container{text-align:center;max-width:400px;width:90%}
+.qm-actions{display:flex;flex-direction:column;gap:14px;align-items:center}
+.join-row{display:flex;gap:12px;align-items:center;justify-content:center}
+@media(max-width:500px){
+  .bracket-round{min-width:160px}
+  .mode-grid{grid-template-columns:1fr;gap:10px}
+  .mode-card{padding:20px 16px}
+  .mode-card .mode-icon{font-size:32px;margin-bottom:8px}
+  .mode-card h3{font-size:16px}
+}
 </style>
 </head>
 <body>
@@ -126,6 +172,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <span class="mode-icon">&#9889;</span>
       <h3>Quick Match</h3>
       <p>Challenge a friend online</p>
+    </div>
+    <div class="mode-card" onclick="showTourneyJoin()">
+      <span class="mode-icon">&#127942;</span>
+      <h3>Tournament</h3>
+      <p>Compete in bracket-style competitions</p>
     </div>
     <div class="mode-card" onclick="showRecords()">
       <span class="mode-icon">&#128202;</span>
@@ -246,6 +297,57 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <p style="color:var(--text2);font-size:14px;margin-top:8px">Share this code with a friend:</p>
     <div id="roomCodeDisplay" style="font-family:Fredoka,sans-serif;font-size:48px;font-weight:700;color:var(--accent);letter-spacing:8px;margin:16px 0"></div>
     <button class="btn btn-outline btn-small" onclick="cancelRoom()">Cancel</button>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- TOURNAMENT JOIN          -->
+<!-- ======================== -->
+<div class="screen" id="ppTourneyJoinScreen">
+  <div class="qm-container">
+    <h2>Tournament</h2>
+    <p style="color:var(--text2);font-size:14px;margin-bottom:24px">Enter a tournament code from your teacher</p>
+    <div class="qm-actions">
+      <div class="join-row">
+        <input class="code-input" id="ppTourneyCodeInput" type="text" maxlength="6" placeholder="CODE" inputmode="numeric">
+        <button class="btn btn-accent btn-small" onclick="joinTourney()">Join</button>
+      </div>
+      <div class="error-text" id="ppTourneyJoinError"></div>
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:8px">&larr; Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- TOURNAMENT LOBBY         -->
+<!-- ======================== -->
+<div class="screen" id="ppTourneyLobbyScreen">
+  <div class="tourney-container">
+    <div class="tourney-header">
+      <h2 id="ppTourneyLobbyTitle">Tournament Lobby</h2>
+      <div class="tourney-code" id="ppTourneyLobbyCode"></div>
+      <p style="color:var(--text2);font-size:14px;margin-top:4px" id="ppTourneyLobbyStatus">Waiting for players...</p>
+    </div>
+    <h3 class="section-title">Players (<span id="ppTourneyPlayerCount">0</span>)</h3>
+    <div class="players-lobby" id="ppTourneyPlayersList"></div>
+    <div id="ppTourneyLobbyActions" style="text-align:center;margin-top:20px"></div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- TOURNAMENT BRACKET       -->
+<!-- ======================== -->
+<div class="screen" id="ppTourneyBracketScreen">
+  <div class="tourney-container">
+    <div class="tourney-header">
+      <h2 id="ppTourneyBracketTitle">Tournament Bracket</h2>
+      <div class="tourney-code" id="ppTourneyBracketCode"></div>
+      <div id="ppTourneyBracketInfo" style="margin-top:8px"></div>
+    </div>
+    <div class="bracket-wrap" id="ppBracketWrap"></div>
+    <div id="ppTourneyBracketActions" style="text-align:center;margin-top:16px">
+      <button class="btn btn-outline btn-small" onclick="leaveTourney()">&larr; Leave</button>
+    </div>
   </div>
 </div>
 
@@ -503,6 +605,9 @@ function startGame(){
   showScreen('gameScreen');
   initCanvas();
   applyCosmeticStyles();
+  // Reset game-over buttons to default
+  var btns=document.querySelector('.go-btns');
+  if(btns)btns.innerHTML='<button class="btn btn-accent btn-small" onclick="startGame()">Play Again</button><button class="btn btn-outline btn-small" onclick="showScreen(\'homeScreen\')">Home</button>';
 
   player={x:PADDLE_MARGIN,y:H/2-PADDLE_HEIGHT/2,w:PADDLE_WIDTH,h:PADDLE_HEIGHT};
   ai={x:W-PADDLE_MARGIN-PADDLE_WIDTH,y:H/2-PADDLE_HEIGHT/2,w:PADDLE_WIDTH,h:PADDLE_HEIGHT};
@@ -829,6 +934,24 @@ function endGame(){
       gamesPlayed:localGames
     });
   }
+
+  // Tournament match: write result to Firestore so bracket advances
+  if(activeTourneyMatchGameCode){
+    (async function(){
+      try{
+        var fb=await window.getFirebaseDB();
+        var gRef=fb.fsMod.doc(fb.db,'pongGames',activeTourneyMatchGameCode);
+        await fb.fsMod.updateDoc(gRef,{status:'finished',winner:won?1:2});
+      }catch(e){console.warn('Tournament game update failed:',e)}
+      activeTourneyMatchGameCode=null;
+      activeTourneyMatchId=null;
+    })();
+    // Replace game-over buttons with "Back to Bracket"
+    var btns=document.querySelector('.go-btns');
+    if(btns){
+      btns.innerHTML='<button class="btn btn-accent btn-small" onclick="backToTourney()">Back to Bracket</button>';
+    }
+  }
 }
 
 /* ===================== */
@@ -955,6 +1078,7 @@ window.addEventListener('resize',function(){if(gameState==='waiting'||gameState=
 /* QUICK MATCH           */
 /* ===================== */
 var roomCode=null,roomUnsub=null;
+var activeTourneyMatchGameCode=null,activeTourneyMatchId=null;
 
 function genCode(){return Math.random().toString(36).slice(2,6).toUpperCase()}
 
@@ -1032,6 +1156,333 @@ window.showQuickMatch=showQuickMatch;
 window.createRoom=createRoom;
 window.joinRoom=joinRoom;
 window.cancelRoom=cancelRoom;
+
+/* ===================== */
+/* TOURNAMENT SYSTEM     */
+/* ===================== */
+var currentTourneyCode=null,currentTourneyData=null,unsubTourney=null;
+
+function genTourneyCode(){return String(Math.floor(100000+Math.random()*900000))}
+
+function showTourneyJoin(){showScreen('ppTourneyJoinScreen')}
+window.showTourneyJoin=showTourneyJoin;
+
+async function joinTourney(){
+  var code=document.getElementById('ppTourneyCodeInput').value.trim();
+  if(code.length<4){
+    document.getElementById('ppTourneyJoinError').textContent='Enter a valid tournament code';
+    setTimeout(function(){document.getElementById('ppTourneyJoinError').textContent=''},3000);
+    return;
+  }
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'pingpongTournaments',code);
+    var snap=await fb.fsMod.getDoc(ref);
+    if(!snap.exists()){
+      document.getElementById('ppTourneyJoinError').textContent='Tournament not found';
+      setTimeout(function(){document.getElementById('ppTourneyJoinError').textContent=''},3000);
+      return;
+    }
+    var data=snap.data();
+    if(data.status==='finished'){
+      document.getElementById('ppTourneyJoinError').textContent='Tournament has ended';
+      setTimeout(function(){document.getElementById('ppTourneyJoinError').textContent=''},3000);
+      return;
+    }
+    if(data.status==='lobby'){
+      var players=data.players||{};
+      if(!players[studentId]){
+        var seed=Object.keys(players).length+1;
+        players[studentId]={name:studentName||'Player',seed:seed};
+        await fb.fsMod.updateDoc(ref,{players:players});
+      }
+    }
+    currentTourneyCode=code;
+    listenToTourney(code);
+  }catch(e){
+    document.getElementById('ppTourneyJoinError').textContent='Failed to join tournament';
+    setTimeout(function(){document.getElementById('ppTourneyJoinError').textContent=''},3000);
+  }
+}
+window.joinTourney=joinTourney;
+
+function listenToTourney(code){
+  if(unsubTourney)unsubTourney();
+  (async function(){
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'pingpongTournaments',code);
+    unsubTourney=fb.fsMod.onSnapshot(ref,function(snap){
+      if(!snap.exists()){
+        if(typeof odaToast==='function')odaToast('Tournament deleted','error');
+        showScreen('homeScreen');
+        return;
+      }
+      currentTourneyData=snap.data();
+      currentTourneyData.code=code;
+      if(currentTourneyData.status==='lobby'){
+        renderTourneyLobby(currentTourneyData);
+        showScreen('ppTourneyLobbyScreen');
+      }else if(currentTourneyData.status==='active'||currentTourneyData.status==='finished'){
+        renderTourneyBracket(currentTourneyData);
+        showScreen('ppTourneyBracketScreen');
+        if(currentTourneyData.status==='active'){
+          checkMyTourneyMatch(currentTourneyData);
+        }
+      }
+    });
+  })();
+}
+
+function renderTourneyLobby(data){
+  document.getElementById('ppTourneyLobbyCode').textContent=data.code||currentTourneyCode;
+  var players=data.players||{};
+  var count=Object.keys(players).length;
+  document.getElementById('ppTourneyPlayerCount').textContent=count;
+  document.getElementById('ppTourneyLobbyTitle').textContent='Tournament Lobby';
+  document.getElementById('ppTourneyLobbyStatus').textContent='Waiting for players... ('+count+' joined)';
+  var list=document.getElementById('ppTourneyPlayersList');
+  list.innerHTML='';
+  Object.entries(players).sort(function(a,b){return a[1].seed-b[1].seed}).forEach(function(entry){
+    var id=entry[0],p=entry[1];
+    var card=document.createElement('div');
+    card.className='player-lobby-card';
+    card.innerHTML=esc(p.name)+'<div class="seed">Seed #'+p.seed+'</div>';
+    if(id===studentId)card.style.borderColor='var(--accent)';
+    list.appendChild(card);
+  });
+  var actions=document.getElementById('ppTourneyLobbyActions');
+  if(isTeacher){
+    actions.innerHTML='<button class="btn btn-accent" onclick="teacherStartTourney(\''+esc(data.code||currentTourneyCode)+'\')" '+(count<2?'disabled style="opacity:.5"':'')+'>Start Tournament ('+count+' players)</button><button class="btn btn-outline btn-small" onclick="leaveTourney()" style="margin-top:8px">Cancel</button>';
+  }else{
+    actions.innerHTML='<button class="btn btn-outline btn-small" onclick="leaveTourney()">Leave</button>';
+  }
+}
+
+function renderTourneyBracket(data){
+  document.getElementById('ppTourneyBracketCode').textContent=data.code||currentTourneyCode;
+  document.getElementById('ppTourneyBracketTitle').textContent=data.status==='finished'?'Tournament Complete':'Tournament Bracket';
+  var info=document.getElementById('ppTourneyBracketInfo');
+  if(data.status==='finished'&&data.results){
+    var r=data.results;
+    var html='<div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:12px 0">';
+    if(r['1'])html+='<div class="badge badge-gold">1st: '+esc(r['1'].name)+'</div>';
+    if(r['2'])html+='<div class="badge badge-blue">2nd: '+esc(r['2'].name)+'</div>';
+    if(r['3'])html+='<div class="badge badge-accent">3rd: '+esc(r['3'].name)+'</div>';
+    html+='</div>';
+    info.innerHTML=html;
+  }else{
+    info.innerHTML='<span class="badge badge-accent">Round '+(data.currentRound||1)+' of '+(data.totalRounds||'?')+'</span>';
+  }
+  var bracket=data.bracket||{};
+  var totalRounds=data.totalRounds||1;
+  var players=data.players||{};
+  var wrap=document.getElementById('ppBracketWrap');
+  wrap.innerHTML='';
+  var bracketEl=document.createElement('div');
+  bracketEl.className='bracket';
+  var roundNames=['Round 1','Quarterfinals','Semifinals','Finals','Championship'];
+  for(var round=1;round<=totalRounds;round++){
+    var roundDiv=document.createElement('div');
+    roundDiv.className='bracket-round';
+    var roundTitle=document.createElement('div');
+    roundTitle.className='bracket-round-title';
+    if(totalRounds<=2){roundTitle.textContent=round===totalRounds?'Finals':'Semifinals'}
+    else{roundTitle.textContent=roundNames[Math.min(round-1,roundNames.length-1)]||'Round '+round}
+    roundDiv.appendChild(roundTitle);
+    var roundMatches=Object.entries(bracket).filter(function(e){return e[1].round===round}).sort(function(a,b){return a[0].localeCompare(b[0])});
+    roundMatches.forEach(function(entry){
+      var matchId=entry[0],match=entry[1];
+      var card=document.createElement('div');
+      card.className='match-card';
+      var p1Name=match.player1?((players[match.player1]||{}).name||'TBD'):'TBD';
+      var p2Name=match.player2?((players[match.player2]||{}).name||'TBD'):'TBD';
+      var p1Seed=match.player1?((players[match.player1]||{}).seed||''):'';
+      var p2Seed=match.player2?((players[match.player2]||{}).seed||''):'';
+      var p1Class='',p2Class='',statusText='',statusClass='upcoming';
+      if(match.winner){
+        statusText='Completed';statusClass='completed';
+        p1Class=match.winner===match.player1?'winner':'loser';
+        p2Class=match.winner===match.player2?'winner':'loser';
+      }else if(match.gameCode){
+        statusText='Playing';statusClass='playing';
+      }else if(match.player1&&match.player2){
+        statusText='Upcoming';statusClass='upcoming';
+      }else{
+        statusText='Waiting';statusClass='upcoming';
+      }
+      card.innerHTML='<div class="match-player '+p1Class+'"><span class="mp-seed">'+p1Seed+'</span><span class="mp-name">'+esc(p1Name)+'</span></div><div class="match-player '+p2Class+'"><span class="mp-seed">'+p2Seed+'</span><span class="mp-name">'+esc(p2Name)+'</span></div><div class="match-status '+statusClass+'">'+statusText+'</div>';
+      roundDiv.appendChild(card);
+    });
+    bracketEl.appendChild(roundDiv);
+  }
+  wrap.appendChild(bracketEl);
+}
+
+function checkMyTourneyMatch(data){
+  var bracket=data.bracket||{};
+  var entries=Object.entries(bracket);
+  for(var i=0;i<entries.length;i++){
+    var matchId=entries[i][0],match=entries[i][1];
+    if(match.winner)continue;
+    if(match.gameCode&&(match.player1===studentId||match.player2===studentId)){
+      if(document.getElementById('gameScreen').classList.contains('active'))return;
+      activeTourneyMatchGameCode=match.gameCode;
+      activeTourneyMatchId=matchId;
+      var opponentName;
+      if(match.player1===studentId){
+        opponentName=(data.players[match.player2]||{}).name||'Opponent';
+      }else{
+        opponentName=(data.players[match.player1]||{}).name||'Opponent';
+      }
+      startMultiplayerGame(opponentName,match.player1===studentId?'host':'guest');
+      return;
+    }
+  }
+}
+
+function leaveTourney(){
+  if(unsubTourney)unsubTourney();
+  currentTourneyCode=null;currentTourneyData=null;
+  showScreen('homeScreen');
+}
+window.leaveTourney=leaveTourney;
+
+function backToTourney(){
+  if(roomUnsub)roomUnsub();
+  roomCode=null;
+  if(currentTourneyCode){
+    listenToTourney(currentTourneyCode);
+  }else{
+    showScreen('homeScreen');
+  }
+}
+window.backToTourney=backToTourney;
+
+async function teacherStartTourney(code){
+  var fb=await window.getFirebaseDB();
+  var ref=fb.fsMod.doc(fb.db,'pingpongTournaments',code);
+  var snap=await fb.fsMod.getDoc(ref);
+  if(!snap.exists())return;
+  var data=snap.data();
+  var players=data.players||{};
+  var playerIds=Object.keys(players);
+  var count=playerIds.length;
+  if(count<2){if(typeof odaToast==='function')odaToast('Need at least 2 players','error');return}
+  var bracketSize=2;
+  while(bracketSize<count)bracketSize*=2;
+  var totalRounds=Math.log2(bracketSize);
+  var shuffled=playerIds.slice().sort(function(){return Math.random()-.5});
+  shuffled.forEach(function(id,i){players[id].seed=i+1});
+  var bracket={};
+  var matchNum=1;
+  for(var i=0;i<bracketSize;i+=2){
+    var p1=shuffled[i]||null;
+    var p2=shuffled[i+1]||null;
+    var matchId='r1_m'+matchNum;
+    if(p1&&!p2){bracket[matchId]={player1:p1,player2:null,winner:p1,gameCode:null,round:1}}
+    else if(!p1&&p2){bracket[matchId]={player1:null,player2:p2,winner:p2,gameCode:null,round:1}}
+    else if(!p1&&!p2){bracket[matchId]={player1:null,player2:null,winner:null,gameCode:null,round:1}}
+    else{bracket[matchId]={player1:p1,player2:p2,winner:null,gameCode:null,round:1}}
+    matchNum++;
+  }
+  for(var round=2;round<=totalRounds;round++){
+    var prevCount=Object.keys(bracket).filter(function(k){return bracket[k].round===round-1}).length;
+    var thisCount=prevCount/2;
+    for(var m=1;m<=thisCount;m++){
+      bracket['r'+round+'_m'+m]={player1:null,player2:null,winner:null,gameCode:null,round:round};
+    }
+  }
+  await fb.fsMod.updateDoc(ref,{status:'active',players:players,bracket:bracket,currentRound:1,totalRounds:totalRounds});
+  await startTourneyRoundGames(code,bracket,1);
+}
+window.teacherStartTourney=teacherStartTourney;
+
+async function startTourneyRoundGames(tourneyCode,bracket,round){
+  var fb=await window.getFirebaseDB();
+  var ref=fb.fsMod.doc(fb.db,'pingpongTournaments',tourneyCode);
+  var roundMatches=Object.entries(bracket).filter(function(e){return e[1].round===round&&!e[1].winner&&e[1].player1&&e[1].player2});
+  for(var i=0;i<roundMatches.length;i++){
+    var matchId=roundMatches[i][0],match=roundMatches[i][1];
+    var gameCode=genCode();
+    var gameRef=fb.fsMod.doc(fb.db,'pongGames',gameCode);
+    await fb.fsMod.setDoc(gameRef,{
+      host:match.player1,hostName:(currentTourneyData&&currentTourneyData.players[match.player1]||{}).name||'Player 1',
+      guest:match.player2,guestName:(currentTourneyData&&currentTourneyData.players[match.player2]||{}).name||'Player 2',
+      status:'playing',winner:null,
+      tourneyCode:tourneyCode,matchId:matchId,classCode:classCode||null,
+      created:new Date().toISOString()
+    });
+    bracket[matchId].gameCode=gameCode;
+    listenToTourneyGame(tourneyCode,matchId,gameCode);
+  }
+  await fb.fsMod.updateDoc(ref,{bracket:bracket});
+}
+
+function listenToTourneyGame(tourneyCode,matchId,gameCode){
+  (async function(){
+    var fb=await window.getFirebaseDB();
+    var gameRef=fb.fsMod.doc(fb.db,'pongGames',gameCode);
+    var gameUnsub=fb.fsMod.onSnapshot(gameRef,async function(snap){
+      if(!snap.exists())return;
+      var data=snap.data();
+      if(data.status!=='finished')return;
+      gameUnsub();
+      var tourneyRef=fb.fsMod.doc(fb.db,'pingpongTournaments',tourneyCode);
+      var tourneySnap=await fb.fsMod.getDoc(tourneyRef);
+      if(!tourneySnap.exists())return;
+      var tData=tourneySnap.data();
+      var bracket=tData.bracket||{};
+      var winnerId=data.winner===1?data.host:data.guest;
+      bracket[matchId].winner=winnerId;
+      var currentRound=tData.currentRound||1;
+      var totalRounds=tData.totalRounds||1;
+      if(currentRound<totalRounds){
+        var mNum=parseInt(matchId.split('_m')[1]);
+        var nextMatchNum=Math.ceil(mNum/2);
+        var nextMatchId='r'+(currentRound+1)+'_m'+nextMatchNum;
+        if(bracket[nextMatchId]){
+          if(mNum%2===1){bracket[nextMatchId].player1=winnerId}
+          else{bracket[nextMatchId].player2=winnerId}
+        }
+      }
+      var roundMatches=Object.entries(bracket).filter(function(e){return e[1].round===currentRound});
+      var allDone=roundMatches.every(function(e){return e[1].winner});
+      if(allDone){
+        if(currentRound>=totalRounds){
+          var players=tData.players||{};
+          var results={};
+          var finalMatch=roundMatches[0];
+          if(finalMatch){
+            results['1']={id:finalMatch[1].winner,name:(players[finalMatch[1].winner]||{}).name||'Unknown'};
+            var finalist1=finalMatch[1].player1;
+            var finalist2=finalMatch[1].player2;
+            var second=finalMatch[1].winner===finalist1?finalist2:finalist1;
+            results['2']={id:second,name:(players[second]||{}).name||'Unknown'};
+          }
+          var coinRewards={'1':100,'2':50,'3':25};
+          for(var place in results){
+            if(coinRewards[place]&&results[place].id){
+              try{await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',results[place].id),{coins:fb.fsMod.increment(coinRewards[place])})}catch(e){}
+            }
+          }
+          for(var pid in players){
+            var isResultPlayer=false;
+            for(var p in results){if(results[p].id===pid)isResultPlayer=true}
+            if(!isResultPlayer){
+              try{await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',pid),{coins:fb.fsMod.increment(10)})}catch(e){}
+            }
+          }
+          await fb.fsMod.updateDoc(tourneyRef,{bracket:bracket,status:'finished',results:results});
+        }else{
+          await fb.fsMod.updateDoc(tourneyRef,{bracket:bracket,currentRound:currentRound+1});
+          await startTourneyRoundGames(tourneyCode,bracket,currentRound+1);
+        }
+      }else{
+        await fb.fsMod.updateDoc(tourneyRef,{bracket:bracket});
+      }
+    });
+  })();
+}
 
 odaHelp.init({
   title:'Ping Pong',emoji:'\u{1F3D3}',subtitle:'Classic arcade table tennis!',
