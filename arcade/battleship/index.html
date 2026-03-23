@@ -384,6 +384,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <h3>Quick Match</h3>
       <p>Play online with a room code</p>
     </div>
+    <div class="card mode-card" onclick="BS.showTourneyJoin()">
+      <span class="mode-icon">&#127942;</span>
+      <h3>Tournament</h3>
+      <p>Compete in bracket-style competitions</p>
+    </div>
     <div class="card mode-card" onclick="BS.showRecords()">
       <span class="mode-icon">&#128202;</span>
       <h3>Records</h3>
@@ -548,7 +553,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <div class="result-stats" id="resultStats"></div>
     <div class="coins-display" id="coinsDisplay"></div>
     <div class="record-update" id="recordUpdate"></div>
-    <div class="result-actions">
+    <div class="result-actions" id="resultActions">
       <button class="btn btn-accent" onclick="BS.playAgain()">Play Again</button>
       <button class="btn btn-outline" onclick="BS.goHome()">Home</button>
     </div>
@@ -580,6 +585,83 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   </div>
 </div>
 
+<!-- ======================== -->
+<!-- TOURNAMENT JOIN          -->
+<!-- ======================== -->
+<div class="screen" id="tourneyJoinScreen">
+  <div class="qm-container">
+    <h2>Tournament</h2>
+    <p class="sub">Enter a tournament code from your teacher</p>
+    <div class="qm-actions">
+      <div class="join-row">
+        <input class="code-input" id="tourneyCodeInput" type="text" maxlength="6" placeholder="CODE" inputmode="numeric">
+        <button class="btn btn-accent btn-small" onclick="BS.joinTourney()">Join</button>
+      </div>
+      <div class="error-text" id="tourneyJoinError"></div>
+      <button class="btn btn-outline btn-small" onclick="BS.showScreen('homeScreen')" style="margin-top:8px">&larr; Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- TOURNAMENT LOBBY         -->
+<!-- ======================== -->
+<div class="screen" id="tourneyLobbyScreen">
+  <div class="tourney-container">
+    <div class="tourney-header">
+      <h2 id="tourneyLobbyTitle">Tournament Lobby</h2>
+      <div class="tourney-code" id="tourneyLobbyCode"></div>
+      <p style="color:var(--text2);font-size:14px;margin-top:4px" id="tourneyLobbyStatus">Waiting for players...</p>
+    </div>
+    <h3 class="section-title">Players (<span id="tourneyPlayerCount">0</span>)</h3>
+    <div class="players-lobby" id="tourneyPlayersList"></div>
+    <div id="tourneyLobbyActions" style="text-align:center;margin-top:20px"></div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- TOURNAMENT BRACKET       -->
+<!-- ======================== -->
+<div class="screen" id="tourneyBracketScreen">
+  <div class="tourney-container">
+    <div class="tourney-header">
+      <h2 id="tourneyBracketTitle">Tournament Bracket</h2>
+      <div class="tourney-code" id="tourneyBracketCode"></div>
+      <div id="tourneyBracketInfo" style="margin-top:8px"></div>
+    </div>
+    <div class="bracket-wrap" id="bracketWrap"></div>
+    <div id="tourneyBracketActions" style="text-align:center;margin-top:16px">
+      <button class="btn btn-outline btn-small" onclick="BS.leaveTourney()">&larr; Leave</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- TEACHER DASHBOARD        -->
+<!-- ======================== -->
+<div class="screen" id="teacherScreen">
+  <div class="teacher-container">
+    <h2>Battleship Dashboard</h2>
+    <p class="sub">Manage tournaments and view student records</p>
+    <div class="teacher-tabs">
+      <button class="teacher-tab active" onclick="BS.teacherTab('records')">Records</button>
+      <button class="teacher-tab" onclick="BS.teacherTab('tournaments')">Tournaments</button>
+    </div>
+    <div class="teacher-panel active" id="teacherRecordsPanel">
+      <div id="teacherLeaderboard"><p style="color:var(--text2);font-size:14px">Loading records...</p></div>
+    </div>
+    <div class="teacher-panel" id="teacherTournamentsPanel">
+      <h3 class="section-title">Create Tournament</h3>
+      <div class="tourney-create-form">
+        <button class="btn btn-accent" onclick="BS.teacherCreateTourney()">Create Tournament</button>
+      </div>
+      <div class="divider"></div>
+      <h3 class="section-title">Active &amp; Past Tournaments</h3>
+      <div class="history-list" id="tourneyHistoryList"><p style="color:var(--text2);font-size:14px">Loading...</p></div>
+    </div>
+  </div>
+</div>
+
 <script src="../../js/oda-core.js"></script>
 <script>
 // ============================================
@@ -605,6 +687,7 @@ let myBoard=[], myShips=[], myAttacks=[];
 let enemyBoard=[], enemyShips=[], enemyAttacks=[];
 let isMyTurn=false, gameOver=false, coinsAwarded=false;
 let roomCode=null, myPlayer=0, unsub=null;
+let unsubTourney=null, currentTourneyCode=null, currentTourneyData=null;
 let selectedShipIndex=-1, orientation='h'; // h or v
 let placedShips=[]; // tracks placed ships on setup grid
 let setupBoard=[];
@@ -731,6 +814,14 @@ function showError(msg){
   if(isTeacher()){
     const b=document.getElementById('backBtn');
     if(b) b.href='../../teacher.html#arcade';
+    const grid=document.querySelector('#homeScreen .mode-grid');
+    if(grid){
+      const tc=document.createElement('div');
+      tc.className='card mode-card teacher-card';
+      tc.setAttribute('onclick','BS.showTeacherDashboard()');
+      tc.innerHTML='<span class="mode-icon">&#128218;</span><h3>Teacher Dashboard</h3><p>Manage records &amp; tournaments</p>';
+      grid.appendChild(tc);
+    }
   }
 })();
 
@@ -1628,6 +1719,14 @@ function showResult(won){
     <div class="stat-box"><div class="stat-val" style="color:var(--gold)">${myShots>0?Math.round(myHits/myShots*100):0}%</div><div class="stat-label">Accuracy</div></div>
   `;
 
+  // Update result action buttons
+  const actionsEl=document.getElementById('resultActions');
+  if(currentTourneyCode){
+    actionsEl.innerHTML='<button class="btn btn-accent" onclick="BS.backToTourney()">Back to Bracket</button><button class="btn btn-outline" onclick="BS.goHome()">Home</button>';
+  }else{
+    actionsEl.innerHTML='<button class="btn btn-accent" onclick="BS.playAgain()">Play Again</button><button class="btn btn-outline" onclick="BS.goHome()">Home</button>';
+  }
+
   if(!coinsAwarded){
     coinsAwarded=true;
     awardCoins(coins, won?'win':'loss', enemySunk);
@@ -1760,7 +1859,9 @@ function playAgain(){
 
 function goHome(){
   if(unsub){unsub();unsub=null;}
+  if(unsubTourney){unsubTourney();unsubTourney=null;}
   roomCode=null;
+  currentTourneyCode=null;currentTourneyData=null;
   sndClick();
   loadQuickStats();
   showScreen('homeScreen');
@@ -1920,13 +2021,393 @@ function renderBSAchievements(){
 loadBSAchievements();
 
 // ============================================
+// TOURNAMENT SYSTEM
+// ============================================
+function genTourneyCode(){ return String(Math.floor(100000+Math.random()*900000)); }
+
+function showTourneyJoin(){ showScreen('tourneyJoinScreen'); }
+
+async function joinTourney(){
+  const code=document.getElementById('tourneyCodeInput').value.trim();
+  if(code.length<4){
+    document.getElementById('tourneyJoinError').textContent='Enter a valid tournament code';
+    setTimeout(()=>{document.getElementById('tourneyJoinError').textContent=''},3000);
+    return;
+  }
+  try{
+    const fb=await getFirebaseDB();
+    const{db,fsMod}=fb;
+    const ref=fsMod.doc(db,'battleshipTournaments',code);
+    const snap=await fsMod.getDoc(ref);
+    if(!snap.exists()){
+      document.getElementById('tourneyJoinError').textContent='Tournament not found';
+      setTimeout(()=>{document.getElementById('tourneyJoinError').textContent=''},3000);
+      return;
+    }
+    const data=snap.data();
+    if(data.status==='finished'){
+      document.getElementById('tourneyJoinError').textContent='Tournament has ended';
+      setTimeout(()=>{document.getElementById('tourneyJoinError').textContent=''},3000);
+      return;
+    }
+    if(data.status==='lobby'){
+      const players=data.players||{};
+      const s=sid();
+      if(!players[s]){
+        const seed=Object.keys(players).length+1;
+        players[s]={name:sname(),seed:seed};
+        await fsMod.updateDoc(ref,{players:players});
+      }
+    }
+    currentTourneyCode=code;
+    listenToTourney(code);
+  }catch(e){
+    document.getElementById('tourneyJoinError').textContent='Failed to join tournament';
+    setTimeout(()=>{document.getElementById('tourneyJoinError').textContent=''},3000);
+  }
+}
+
+function listenToTourney(code){
+  if(unsubTourney)unsubTourney();
+  (async()=>{
+    const fb=await getFirebaseDB();
+    const{db,fsMod}=fb;
+    const ref=fsMod.doc(db,'battleshipTournaments',code);
+    unsubTourney=fsMod.onSnapshot(ref,snap=>{
+      if(!snap.exists()){
+        if(typeof odaToast==='function')odaToast('Tournament deleted','error');
+        goHome();return;
+      }
+      currentTourneyData=snap.data();
+      currentTourneyData.code=code;
+      if(currentTourneyData.status==='lobby'){
+        renderTourneyLobby(currentTourneyData);
+        showScreen('tourneyLobbyScreen');
+      }else if(currentTourneyData.status==='active'||currentTourneyData.status==='finished'){
+        renderTourneyBracket(currentTourneyData);
+        showScreen('tourneyBracketScreen');
+        if(currentTourneyData.status==='active') checkMyTourneyMatch(currentTourneyData);
+      }
+    });
+  })();
+}
+
+function renderTourneyLobby(data){
+  document.getElementById('tourneyLobbyCode').textContent=data.code||currentTourneyCode;
+  const players=data.players||{};
+  const count=Object.keys(players).length;
+  document.getElementById('tourneyPlayerCount').textContent=count;
+  document.getElementById('tourneyLobbyStatus').textContent='Waiting for players... ('+count+' joined)';
+  const list=document.getElementById('tourneyPlayersList');
+  list.innerHTML='';
+  const s=sid();
+  Object.entries(players).sort((a,b)=>a[1].seed-b[1].seed).forEach(([id,p])=>{
+    const card=document.createElement('div');
+    card.className='player-lobby-card';
+    card.innerHTML=esc(p.name)+'<div class="seed">Seed #'+p.seed+'</div>';
+    if(id===s)card.style.borderColor='var(--accent)';
+    list.appendChild(card);
+  });
+  const actions=document.getElementById('tourneyLobbyActions');
+  if(isTeacher()){
+    actions.innerHTML='<button class="btn btn-accent" onclick="BS.teacherStartTourney(\''+
+      (data.code||currentTourneyCode)+'\')" '+(count<2?'disabled style="opacity:.5"':'')+
+      '>Start Tournament ('+count+' players)</button>'+
+      '<button class="btn btn-outline btn-small" onclick="BS.leaveTourney()" style="margin-top:8px">Cancel</button>';
+  }else{
+    actions.innerHTML='<button class="btn btn-outline btn-small" onclick="BS.leaveTourney()">Leave</button>';
+  }
+}
+
+function renderTourneyBracket(data){
+  document.getElementById('tourneyBracketCode').textContent=data.code||currentTourneyCode;
+  document.getElementById('tourneyBracketTitle').textContent=data.status==='finished'?'Tournament Complete':'Tournament Bracket';
+  const info=document.getElementById('tourneyBracketInfo');
+  if(data.status==='finished'&&data.results){
+    const r=data.results;
+    let html='<div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:12px 0">';
+    if(r['1'])html+='<div class="badge badge-gold">1st: '+esc(r['1'].name)+'</div>';
+    if(r['2'])html+='<div class="badge badge-blue">2nd: '+esc(r['2'].name)+'</div>';
+    html+='</div>';
+    info.innerHTML=html;
+  }else{
+    info.innerHTML='<span class="badge badge-accent">Round '+(data.currentRound||1)+' of '+(data.totalRounds||'?')+'</span>';
+  }
+  const bracket=data.bracket||{};
+  const totalRounds=data.totalRounds||1;
+  const players=data.players||{};
+  const wrap=document.getElementById('bracketWrap');
+  wrap.innerHTML='';
+  const bracketEl=document.createElement('div');
+  bracketEl.className='bracket';
+  const roundNames=['Round 1','Quarterfinals','Semifinals','Finals','Championship'];
+  for(let round=1;round<=totalRounds;round++){
+    const roundDiv=document.createElement('div');
+    roundDiv.className='bracket-round';
+    const roundTitle=document.createElement('div');
+    roundTitle.className='bracket-round-title';
+    if(totalRounds<=2)roundTitle.textContent=round===totalRounds?'Finals':'Semifinals';
+    else roundTitle.textContent=roundNames[Math.min(round-1,roundNames.length-1)]||'Round '+round;
+    roundDiv.appendChild(roundTitle);
+    Object.entries(bracket).filter(([,m])=>m.round===round).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([matchId,match])=>{
+      const card=document.createElement('div');
+      card.className='match-card';
+      const p1Name=match.player1?((players[match.player1]||{}).name||'TBD'):'TBD';
+      const p2Name=match.player2?((players[match.player2]||{}).name||'TBD'):'TBD';
+      const p1Seed=match.player1?((players[match.player1]||{}).seed||''):'';
+      const p2Seed=match.player2?((players[match.player2]||{}).seed||''):'';
+      let p1Class='',p2Class='',statusText='',statusClass='upcoming';
+      if(match.winner){statusText='Completed';statusClass='completed';p1Class=match.winner===match.player1?'winner':'loser';p2Class=match.winner===match.player2?'winner':'loser';}
+      else if(match.gameCode){statusText='Playing';statusClass='playing';}
+      else if(match.player1&&match.player2){statusText='Upcoming';}
+      else{statusText='Waiting';}
+      card.innerHTML='<div class="match-player '+p1Class+'"><span class="mp-seed">'+p1Seed+'</span><span class="mp-name">'+esc(p1Name)+'</span></div>'+
+        '<div class="match-player '+p2Class+'"><span class="mp-seed">'+p2Seed+'</span><span class="mp-name">'+esc(p2Name)+'</span></div>'+
+        '<div class="match-status '+statusClass+'">'+statusText+'</div>';
+      roundDiv.appendChild(card);
+    });
+    bracketEl.appendChild(roundDiv);
+  }
+  wrap.appendChild(bracketEl);
+}
+
+function checkMyTourneyMatch(data){
+  const bracket=data.bracket||{};
+  const s=sid();
+  for(const[matchId,match]of Object.entries(bracket)){
+    if(match.winner)continue;
+    if(match.gameCode&&(match.player1===s||match.player2===s)){
+      if(document.querySelector('#gameScreen.active')||document.querySelector('#setupScreen.active'))return;
+      roomCode=match.gameCode;
+      myPlayer=match.player1===s?1:2;
+      gameMode='multi';
+      gameOver=false;
+      coinsAwarded=false;
+      initSetup();
+      listenToGame();
+      return;
+    }
+  }
+}
+
+function leaveTourney(){
+  if(unsubTourney){unsubTourney();unsubTourney=null;}
+  currentTourneyCode=null;currentTourneyData=null;
+  showScreen('homeScreen');
+}
+
+function backToTourney(){
+  if(unsub){unsub();unsub=null;}
+  roomCode=null;myPlayer=0;coinsAwarded=false;
+  if(currentTourneyCode){listenToTourney(currentTourneyCode);}
+  else{showScreen('homeScreen');}
+}
+
+function showTeacherDashboard(){
+  showScreen('teacherScreen');
+  loadTeacherRecords();
+  loadTourneyHistory();
+}
+
+function teacherTab(tab){
+  document.querySelectorAll('.teacher-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.teacher-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector('.teacher-tab:nth-child('+(tab==='records'?1:2)+')').classList.add('active');
+  document.getElementById(tab==='records'?'teacherRecordsPanel':'teacherTournamentsPanel').classList.add('active');
+}
+
+async function loadTeacherRecords(){
+  try{
+    const fb=await getFirebaseDB();const{db,fsMod}=fb;
+    const cc=classCode();
+    let q;
+    if(cc){q=fsMod.query(fsMod.collection(db,'battleshipRecords'),fsMod.where('classCode','==',cc),fsMod.orderBy('wins','desc'),fsMod.limit(50));}
+    else{q=fsMod.query(fsMod.collection(db,'battleshipRecords'),fsMod.orderBy('wins','desc'),fsMod.limit(50));}
+    const snap=await fsMod.getDocs(q);
+    if(snap.empty){document.getElementById('teacherLeaderboard').innerHTML='<p style="color:var(--text2)">No records yet.</p>';return;}
+    let html='<table class="leaderboard-table"><thead><tr><th>#</th><th>Student</th><th>W</th><th>L</th><th>Games</th></tr></thead><tbody>';
+    let rank=0;
+    snap.forEach(d=>{rank++;const r=d.data();
+      html+='<tr><td style="font-weight:800" class="'+(rank<=3?'rank-'+rank:'')+'">'+rank+'</td><td>'+esc(r.studentName||'Unknown')+'</td><td style="color:var(--accent);font-weight:800">'+(r.wins||0)+'</td><td>'+(r.losses||0)+'</td><td>'+(r.gamesPlayed||0)+'</td></tr>';
+    });
+    html+='</tbody></table>';
+    document.getElementById('teacherLeaderboard').innerHTML=html;
+  }catch(e){document.getElementById('teacherLeaderboard').innerHTML='<p style="color:var(--text2)">Failed to load records.</p>';}
+}
+
+async function teacherCreateTourney(){
+  const code=genTourneyCode();
+  const cc=classCode();
+  const s=sid();
+  try{
+    const fb=await getFirebaseDB();const{db,fsMod}=fb;
+    await fsMod.setDoc(fsMod.doc(db,'battleshipTournaments',code),{
+      code:code,status:'lobby',teacherId:s,classCode:cc,
+      players:{},bracket:{},currentRound:0,totalRounds:0,
+      settings:{},results:{},createdAt:new Date().toISOString()
+    });
+    currentTourneyCode=code;
+    listenToTourney(code);
+    if(typeof odaToast==='function')odaToast('Tournament created! Code: '+code,'success');
+  }catch(e){if(typeof odaToast==='function')odaToast('Failed to create tournament','error');}
+}
+
+async function teacherStartTourney(code){
+  try{
+    const fb=await getFirebaseDB();const{db,fsMod}=fb;
+    const ref=fsMod.doc(db,'battleshipTournaments',code);
+    const snap=await fsMod.getDoc(ref);
+    if(!snap.exists())return;
+    const data=snap.data();
+    const players=data.players||{};
+    const playerIds=Object.keys(players);
+    const count=playerIds.length;
+    if(count<2){if(typeof odaToast==='function')odaToast('Need at least 2 players','error');return;}
+    let bracketSize=2;while(bracketSize<count)bracketSize*=2;
+    const totalRounds=Math.log2(bracketSize);
+    const shuffled=[...playerIds].sort(()=>Math.random()-.5);
+    shuffled.forEach((id,i)=>{players[id].seed=i+1;});
+    const bracket={};let matchNum=1;
+    for(let i=0;i<bracketSize;i+=2){
+      const p1=shuffled[i]||null;const p2=shuffled[i+1]||null;
+      const matchId='r1_m'+matchNum;
+      if(p1&&!p2)bracket[matchId]={player1:p1,player2:null,winner:p1,gameCode:null,round:1};
+      else if(!p1&&p2)bracket[matchId]={player1:null,player2:p2,winner:p2,gameCode:null,round:1};
+      else if(!p1&&!p2)bracket[matchId]={player1:null,player2:null,winner:null,gameCode:null,round:1};
+      else bracket[matchId]={player1:p1,player2:p2,winner:null,gameCode:null,round:1};
+      matchNum++;
+    }
+    for(let round=2;round<=totalRounds;round++){
+      const prevCount=Object.keys(bracket).filter(k=>bracket[k].round===round-1).length;
+      for(let m=1;m<=prevCount/2;m++)bracket['r'+round+'_m'+m]={player1:null,player2:null,winner:null,gameCode:null,round:round};
+    }
+    await fsMod.updateDoc(ref,{status:'active',players:players,bracket:bracket,currentRound:1,totalRounds:totalRounds});
+    await startTourneyRoundGames(code,bracket,1);
+  }catch(e){console.error('Start tourney error:',e);}
+}
+
+async function startTourneyRoundGames(tourneyCode,bracket,round){
+  const fb=await getFirebaseDB();const{db,fsMod}=fb;
+  const ref=fsMod.doc(db,'battleshipTournaments',tourneyCode);
+  const roundMatches=Object.entries(bracket).filter(([,m])=>m.round===round&&!m.winner&&m.player1&&m.player2);
+  for(const[matchId,match]of roundMatches){
+    const gameCode=genCode();
+    const gameRef=fsMod.doc(db,'battleshipGames',gameCode);
+    await fsMod.setDoc(gameRef,{
+      player1:match.player1,player1Name:(currentTourneyData?.players?.[match.player1]?.name)||'Player 1',
+      player2:match.player2,player2Name:(currentTourneyData?.players?.[match.player2]?.name)||'Player 2',
+      p1Board:null,p2Board:null,
+      p1Attacks:JSON.stringify(emptyGrid()),p2Attacks:JSON.stringify(emptyGrid()),
+      p1Ships:null,p2Ships:null,
+      turn:1,status:'setup',winner:null,
+      p1Ready:false,p2Ready:false,
+      tourneyCode:tourneyCode,matchId:matchId,
+      createdAt:fsMod.serverTimestamp()
+    });
+    bracket[matchId].gameCode=gameCode;
+    listenToTourneyGame(tourneyCode,matchId,gameCode);
+  }
+  await fsMod.updateDoc(ref,{bracket:bracket});
+}
+
+function listenToTourneyGame(tourneyCode,matchId,gameCode){
+  (async()=>{
+    const fb=await getFirebaseDB();const{db,fsMod}=fb;
+    const gameRef=fsMod.doc(db,'battleshipGames',gameCode);
+    const gameUnsub=fsMod.onSnapshot(gameRef,async snap=>{
+      if(!snap.exists())return;
+      const data=snap.data();
+      if(data.status!=='finished'||!data.winner)return;
+      gameUnsub();
+      const tourneyRef=fsMod.doc(db,'battleshipTournaments',tourneyCode);
+      const tourneySnap=await fsMod.getDoc(tourneyRef);
+      if(!tourneySnap.exists())return;
+      const tData=tourneySnap.data();
+      const bk=tData.bracket||{};
+      const winnerId=data.winner===1?data.player1:data.player2;
+      bk[matchId].winner=winnerId;
+      const currentRound=tData.currentRound||1;
+      const totalRounds=tData.totalRounds||1;
+      if(currentRound<totalRounds){
+        const mNum=parseInt(matchId.split('_m')[1]);
+        const nextMatchNum=Math.ceil(mNum/2);
+        const nextMatchId='r'+(currentRound+1)+'_m'+nextMatchNum;
+        if(bk[nextMatchId]){
+          if(mNum%2===1)bk[nextMatchId].player1=winnerId;
+          else bk[nextMatchId].player2=winnerId;
+        }
+      }
+      const roundMatches=Object.entries(bk).filter(([,m])=>m.round===currentRound);
+      const allDone=roundMatches.every(([,m])=>m.winner);
+      if(allDone){
+        if(currentRound>=totalRounds){
+          const players=tData.players||{};
+          const results={};
+          const finalMatch=roundMatches[0];
+          if(finalMatch){
+            results['1']={id:finalMatch[1].winner,name:(players[finalMatch[1].winner]||{}).name||'Unknown'};
+            const f1=finalMatch[1].player1,f2=finalMatch[1].player2;
+            const second=finalMatch[1].winner===f1?f2:f1;
+            results['2']={id:second,name:(players[second]||{}).name||'Unknown'};
+          }
+          const coinRewards={'1':100,'2':50};
+          for(const[place,pData]of Object.entries(results)){
+            if(coinRewards[place]&&pData.id){try{await fsMod.updateDoc(fsMod.doc(db,'students',pData.id),{coins:fsMod.increment(coinRewards[place])});}catch(e){}}
+          }
+          for(const pid of Object.keys(players)){
+            if(!Object.values(results).some(r=>r.id===pid)){try{await fsMod.updateDoc(fsMod.doc(db,'students',pid),{coins:fsMod.increment(10)});}catch(e){}}
+          }
+          await fsMod.updateDoc(tourneyRef,{bracket:bk,status:'finished',results:results});
+        }else{
+          await fsMod.updateDoc(tourneyRef,{bracket:bk,currentRound:currentRound+1});
+          await startTourneyRoundGames(tourneyCode,bk,currentRound+1);
+        }
+      }else{
+        await fsMod.updateDoc(tourneyRef,{bracket:bk});
+      }
+    });
+  })();
+}
+
+async function loadTourneyHistory(){
+  try{
+    const fb=await getFirebaseDB();const{db,fsMod}=fb;
+    const cc=classCode();const s=sid();
+    let q;
+    if(cc)q=fsMod.query(fsMod.collection(db,'battleshipTournaments'),fsMod.where('classCode','==',cc),fsMod.orderBy('createdAt','desc'),fsMod.limit(20));
+    else q=fsMod.query(fsMod.collection(db,'battleshipTournaments'),fsMod.where('teacherId','==',s),fsMod.orderBy('createdAt','desc'),fsMod.limit(20));
+    const snap=await fsMod.getDocs(q);
+    const list=document.getElementById('tourneyHistoryList');
+    if(snap.empty){list.innerHTML='<p style="color:var(--text2)">No tournaments yet.</p>';return;}
+    list.innerHTML='';
+    snap.forEach(d=>{
+      const t=d.data();const item=document.createElement('div');
+      item.className='card-static history-item';
+      const playerCount=Object.keys(t.players||{}).length;
+      const statusBadge=t.status==='finished'?'<span class="badge badge-gold">Finished</span>':t.status==='active'?'<span class="badge badge-accent">Active</span>':'<span class="badge badge-blue">Lobby</span>';
+      let winnerText='';
+      if(t.results&&t.results['1'])winnerText='<span style="color:var(--gold);font-size:13px">Winner: '+esc(t.results['1'].name)+'</span>';
+      item.innerHTML='<div><strong>Code: '+esc(t.code)+'</strong><br><span style="color:var(--text2);font-size:13px">'+playerCount+' players</span> '+winnerText+'</div><div style="display:flex;gap:8px;align-items:center">'+statusBadge+(t.status!=='finished'?'<button class="btn btn-outline btn-small" onclick="BS.teacherViewTourney(\''+d.id+'\')">View</button>':'')+'</div>';
+      list.appendChild(item);
+    });
+  }catch(e){document.getElementById('tourneyHistoryList').innerHTML='<p style="color:var(--text2)">Failed to load tournaments.</p>';}
+}
+
+function teacherViewTourney(code){
+  currentTourneyCode=code;
+  listenToTourney(code);
+}
+
+// ============================================
 // PUBLIC API
 // ============================================
 return {
   showScreen, showAIPicker, showMultiplayer, showRecords, showShopScreen,
   startAI, ready, randomizeShips, clearShips, toggleOrientation,
   createRoom, joinRoom, cancelRoom,
-  playAgain, goHome, loadRecords
+  playAgain, goHome, loadRecords,
+  showTourneyJoin, joinTourney, leaveTourney, backToTourney,
+  showTeacherDashboard, teacherTab, teacherCreateTourney, teacherStartTourney, teacherViewTourney
 };
 
 })(); // end BS namespace
