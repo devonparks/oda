@@ -54,28 +54,20 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 /* ======================== */
 /* HOME SCREEN              */
 /* ======================== */
-#homeScreen{padding-top:60px;padding-bottom:40px}
-.home-header{text-align:center;margin-bottom:24px}
-.home-header h1{font-size:clamp(42px,10vw,64px);font-weight:700;margin-bottom:4px;letter-spacing:-2px}
-.home-header h1 .hl{color:var(--accent);position:relative}
-.home-header h1 .hl::after{content:'';position:absolute;bottom:-2px;left:0;width:100%;height:4px;background:var(--accent);border-radius:2px}
-.home-header p{color:var(--text2);font-size:15px;margin-top:8px}
+#homeScreen{padding-top:80px;justify-content:flex-start;gap:16px}
+.home-header{text-align:center;margin-bottom:8px}
+.home-header h1{font-size:clamp(48px,10vw,64px);font-weight:700;letter-spacing:-2px}
+.home-header h1 .hl{color:var(--accent)}
+.home-header p{color:var(--text2);font-size:15px;margin-top:4px}
 
-.best-pill{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:10px 20px;font-size:15px;font-weight:600;margin-bottom:24px}
+.best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
 .best-pill .bp-label{color:var(--text2)}
-.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:18px;font-family:'Fredoka',sans-serif}
+.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
 
-.mode-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:700px;width:90%;margin:0 auto 24px}
-.mode-card{text-align:center;padding:22px 14px}
-.mode-card .mode-icon{font-size:28px;margin-bottom:8px;display:block}
-.mode-card h3{font-size:16px;margin-bottom:4px}
-.mode-card p{font-size:11px;color:var(--text2);line-height:1.4}
-.mode-card.selected{border-color:var(--accent);background:rgba(6,214,160,.08);box-shadow:0 0 20px rgba(6,214,160,.15)}
+.home-actions{display:flex;flex-direction:column;align-items:center;gap:14px}
 
-.home-actions{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:24px}
-
-.how-to{max-width:420px;width:90%;margin:0 auto;text-align:center}
-.how-to h3{font-size:14px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px}
+.how-to{max-width:380px;width:100%;margin:0 auto;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px}
+.how-to h3{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
 .how-to p{font-size:13px;color:var(--text2);line-height:1.6}
 
 /* ======================== */
@@ -216,7 +208,6 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 }
 @media(min-width:1024px){
   .screen{max-width:1100px}
-  .mode-grid{max-width:800px}
   .how-to{max-width:600px}
   .game-top{max-width:800px}
   .grid-wrapper{--grid-cell-size:62px}
@@ -231,10 +222,6 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 
 /* Responsive */
 @media(max-width:480px){
-  .mode-grid{gap:8px}
-  .mode-card{padding:16px 8px}
-  .mode-card h3{font-size:14px}
-  .mode-card .mode-icon{font-size:22px}
   .game-title{font-size:20px}
   .score-box{padding:6px 10px;min-width:65px}
   .score-box .sb-val{font-size:18px}
@@ -250,7 +237,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 </head>
 <body>
 
-<a class="back-btn" href="../../student.html" id="backBtn">&#8592; Back</a>
+<a class="back-btn" href="../../student.html#arcade" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();showScreen('homeScreen')}">&#8592; Back</a>
 <div class="sound-toggle" id="soundToggle" title="Toggle sound">&#128266;</div>
 
 <!-- ======================== -->
@@ -549,7 +536,7 @@ function showShopScreen() {
 // AUDIO ENGINE (Web Audio API)
 // =============================================
 var audioCtx = null;
-var soundOn = true;
+var soundOn = localStorage.getItem('odaSoundEnabled') !== 'false';
 
 function getAudioCtx() {
   if (!audioCtx) {
@@ -622,10 +609,9 @@ var soundToggleEl = document.getElementById('soundToggle');
 soundToggleEl.addEventListener('click', function() {
   soundOn = !soundOn;
   soundToggleEl.innerHTML = soundOn ? '&#128266;' : '&#128264;';
-  localStorage.setItem('odaBlockBlastSound', soundOn ? '1' : '0');
+  localStorage.setItem('odaSoundEnabled', soundOn);
 });
-if (localStorage.getItem('odaBlockBlastSound') === '0') {
-  soundOn = false;
+if (!soundOn) {
   soundToggleEl.innerHTML = '&#128264;';
 }
 

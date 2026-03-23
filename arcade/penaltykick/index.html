@@ -22,16 +22,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 
 .screen{display:none;width:100%;max-width:1100px;min-height:100vh;min-height:100dvh;padding:16px;animation:fadeUp .35s ease}
 @media(min-width:768px){
-  .home-header h1{font-size:80px!important}
-  .home-header p{font-size:18px}
-  .best-pill{padding:16px 32px;font-size:18px}
-  .best-pill .bp-val{font-size:28px}
-  .btn-accent{font-size:22px!important;padding:20px 64px!important}
-  .btn-outline{font-size:16px;padding:14px 28px}
-  .stats-row .sr{font-size:15px;padding:10px 22px}
-  .how-to{max-width:500px;padding:28px 32px}
-  .how-to h3{font-size:15px}
-  .how-to p{font-size:15px}
+  .home-header h1{font-size:52px!important}
 }
 .screen.active{display:flex;flex-direction:column;align-items:center}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
@@ -157,7 +148,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 </head>
 <body>
 
-<a class="back-btn" href="../../student.html" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();if(qmGameMode&&document.getElementById('gameScreen').classList.contains('active')){qmLeaveGame();showScreen('homeScreen')}else{showScreen('homeScreen')}}">&#8592; Back</a>
+<a class="back-btn" href="../../student.html#arcade" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();if(qmGameMode&&document.getElementById('gameScreen').classList.contains('active')){qmLeaveGame();showScreen('homeScreen')}else{showScreen('homeScreen')}}">&#8592; Back</a>
 <button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128264;</button>
 
 <!-- HOME SCREEN -->
@@ -308,7 +299,7 @@ var studentId=localStorage.getItem('studentId')||'';
 var studentName=localStorage.getItem('studentName')||'';
 var classCode=localStorage.getItem('classCode')||'';
 var isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
-if(isTeacher)document.getElementById('backBtn').href='../../teacher.html';
+if(isTeacher)document.getElementById('backBtn').href='../../teacher.html#arcade';
 
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 
@@ -326,7 +317,7 @@ function showScreen(id){
 /* ===================== */
 /* AUDIO                 */
 /* ===================== */
-var audioCtx=null,soundOn=true;
+var audioCtx=null,soundOn=localStorage.getItem('odaSoundEnabled')!=='false';
 function getAudioCtx(){
   if(!audioCtx)try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}
   if(audioCtx.state==='suspended')audioCtx.resume();
@@ -347,7 +338,8 @@ function sfxSave(){playTone(200,0.3,'sawtooth',0.1,80)}
 function sfxMiss(){playTone(300,0.4,'sawtooth',0.08,50)}
 function sfxWhistle(){playTone(900,0.12,'sine',0.1);setTimeout(function(){playTone(900,0.12,'sine',0.1)},200);setTimeout(function(){playTone(1100,0.3,'sine',0.1)},400)}
 function sfxCharge(){playTone(200,0.05,'sine',0.04)}
-function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;'}
+function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;';localStorage.setItem('odaSoundEnabled',soundOn)}
+if(!soundOn)document.getElementById('soundBtn').innerHTML='&#128263;';
 
 /* ===================== */
 /* COSMETICS             */
@@ -2796,7 +2788,7 @@ odaHelp.init({
 <script>
 (function(){
   var isT=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
-  if(isT){var b=document.getElementById('backBtn');if(b)b.href='../../teacher.html'}
+  if(isT){var b=document.getElementById('backBtn');if(b)b.href='../../teacher.html#arcade'}
 })();
 </script>
 </body>

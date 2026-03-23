@@ -187,7 +187,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 </style>
 </head>
 <body>
-<a class="back-btn" href="../../student.html" id="backBtn">&#8592; Back</a>
+<a class="back-btn" href="../../student.html#arcade" id="backBtn">&#8592; Back</a>
 <div class="sound-toggle" id="soundToggle" title="Toggle sound">&#128266;</div>
 
 <!-- ======================== -->
@@ -365,7 +365,7 @@ function showScreen(id) {
 // AUDIO ENGINE (Web Audio API)
 // =============================================
 var audioCtx = null;
-var soundOn = true;
+var soundOn = localStorage.getItem('odaSoundEnabled') !== 'false';
 
 function getAudioCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -422,10 +422,9 @@ var soundToggleEl = document.getElementById('soundToggle');
 soundToggleEl.addEventListener('click', function() {
   soundOn = !soundOn;
   soundToggleEl.innerHTML = soundOn ? '&#128266;' : '&#128264;';
-  localStorage.setItem('odaSnakeSound', soundOn ? '1' : '0');
+  localStorage.setItem('odaSoundEnabled', soundOn);
 });
-if (localStorage.getItem('odaSnakeSound') === '0') {
-  soundOn = false;
+if (!soundOn) {
   soundToggleEl.innerHTML = '&#128264;';
 }
 

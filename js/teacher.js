@@ -126,6 +126,14 @@ function switchTab(id) {
 }
 window.switchTab = switchTab;
 
+// Auto-switch to tab based on URL hash (e.g. teacher.html#arcade)
+(function(){
+  var hash=window.location.hash.replace('#','');
+  if(hash&&['home','tools','roster','assignments','arcade','settings'].indexOf(hash)>=0){
+    setTimeout(function(){switchTab(hash)},100);
+  }
+})();
+
 /** Handle arrow-key navigation between tabs */
 function teacherTabKeyNav(e, current) {
   var idx = teacherTabOrder.indexOf(current); if (idx < 0) return;

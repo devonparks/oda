@@ -26,37 +26,37 @@ if(typeof odaToast==='function')odaToast('Unable to check for updates. Check you
 }
 var GAMES=[
 // Multiplayer
-{id:'connect4',emoji:'\u{1F534}',title:'Connect 4',desc:'Drop 4 in a row to win!',file:'arcade/connect4/index.html',cat:'multiplayer',colors:['#ef4444','#fbbf24']},
-{id:'tictactoe',emoji:'\u274C',title:'Tic Tac Toe',desc:'Classic X vs O strategy',file:'arcade/tictactoe/index.html',cat:'multiplayer',colors:['#ef476f','#118ab2']},
-{id:'rps',emoji:'\u270A',title:'Rock Paper Scissors',desc:'Best of 3 — read your opponent!',file:'arcade/rps/index.html',cat:'multiplayer',colors:['#06d6a0','#ffd166']},
-{id:'chess',emoji:'\u265A',title:'Chess',desc:'The ultimate strategy game',file:'arcade/chess/index.html',cat:'strategy',colors:['#1a1a2e','#e2d5b7']},
-{id:'checkers',emoji:'⛀',title:'Checkers',desc:'Jump, capture, king your pieces!',file:'arcade/checkers/index.html',cat:'strategy',colors:['#dc2626','#111827']},
-{id:'battleship',emoji:'\u{1F6A2}',title:'Battleship',desc:'Find and sink the fleet!',file:'arcade/battleship/index.html',cat:'multiplayer',colors:['#1e3a5f','#22d3ee']},
-{id:'uno',emoji:'\u{1F3B4}',title:'Uno',desc:'Match colors, empty your hand!',file:'arcade/uno/index.html',cat:'multiplayer',colors:['#ef4444','#fbbf24']},
-{id:'dominoes',emoji:'\u{1F3B2}',title:'Dominoes',desc:'Match tiles, outsmart your opponent',file:'arcade/dominoes/index.html',cat:'multiplayer',colors:['#f5f0e8','#1a1a2e']},
-{id:'penaltykick',emoji:'\u26BD',title:'Penalty Kick',desc:'Aim, shoot, save — score goals!',file:'arcade/penaltykick/index.html',cat:'multiplayer',colors:['#16a34a','#fafafa']},
-{id:'pingpong',emoji:'\u{1F3D3}',title:'Ping Pong',desc:'Classic pong — beat the AI!',file:'arcade/pingpong/index.html',cat:'multiplayer',colors:['#1e293b','#06d6a0']},
+{id:'connect4',emoji:'\u{1F534}',title:'Connect 4',desc:'Drop 4 in a row to win!',file:'arcade/connect4/index.html',cat:'multiplayer',colors:['#ef4444','#fbbf24'],categories:['Multiplayer','Strategy']},
+{id:'tictactoe',emoji:'\u274C',title:'Tic Tac Toe',desc:'Classic X vs O strategy',file:'arcade/tictactoe/index.html',cat:'multiplayer',colors:['#ef476f','#118ab2'],categories:['Multiplayer']},
+{id:'rps',emoji:'\u270A',title:'Rock Paper Scissors',desc:'Best of 3 — read your opponent!',file:'arcade/rps/index.html',cat:'multiplayer',colors:['#06d6a0','#ffd166'],categories:['Multiplayer']},
+{id:'chess',emoji:'\u265A',title:'Chess',desc:'The ultimate strategy game',file:'arcade/chess/index.html',cat:'strategy',colors:['#1a1a2e','#e2d5b7'],categories:['Multiplayer','Strategy']},
+{id:'checkers',emoji:'⛀',title:'Checkers',desc:'Jump, capture, king your pieces!',file:'arcade/checkers/index.html',cat:'strategy',colors:['#dc2626','#111827'],categories:['Multiplayer','Strategy']},
+{id:'battleship',emoji:'\u{1F6A2}',title:'Battleship',desc:'Find and sink the fleet!',file:'arcade/battleship/index.html',cat:'multiplayer',colors:['#1e3a5f','#22d3ee'],categories:['Multiplayer','Strategy']},
+{id:'uno',emoji:'\u{1F3B4}',title:'Uno',desc:'Match colors, empty your hand!',file:'arcade/uno/index.html',cat:'multiplayer',colors:['#ef4444','#fbbf24'],categories:['Multiplayer']},
+{id:'dominoes',emoji:'\u{1F3B2}',title:'Dominoes',desc:'Match tiles, outsmart your opponent',file:'arcade/dominoes/index.html',cat:'multiplayer',colors:['#f5f0e8','#1a1a2e'],categories:['Multiplayer','Strategy']},
+{id:'penaltykick',emoji:'\u26BD',title:'Penalty Kick',desc:'Aim, shoot, save — score goals!',file:'arcade/penaltykick/index.html',cat:'multiplayer',colors:['#16a34a','#fafafa'],categories:['Multiplayer','Sports']},
+{id:'pingpong',emoji:'\u{1F3D3}',title:'Ping Pong',desc:'Classic pong — beat the AI!',file:'arcade/pingpong/index.html',cat:'multiplayer',colors:['#1e293b','#06d6a0'],categories:['Multiplayer','Sports']},
 // Arcade
-{id:'snake',emoji:'\u{1F40D}',title:'Snake',desc:'Eat, grow, survive!',file:'arcade/snake/index.html',cat:'arcade',colors:['#06d6a0','#0a0e1a']},
-{id:'flappy',emoji:'\u{1F426}',title:'Floppy Bird',desc:'Tap to fly, dodge the pipes!',file:'arcade/flappy/index.html',cat:'arcade',colors:['#fbbf24','#1e3a5f']},
-{id:'fruitninja',emoji:'\u{1F52A}',title:'Fruit Ninja',desc:'Slash fruits, get combos!',file:'arcade/fruitninja/index.html',cat:'arcade',colors:['#ef4444','#16a34a']},
-{id:'brickbreaker',emoji:'\u{1F9F1}',title:'Brick Breaker',desc:'Smash bricks, earn power-ups!',file:'arcade/brickbreaker/index.html',cat:'arcade',colors:['#ef4444','#3b82f6']},
-{id:'whackamole',emoji:'\u{1F439}',title:'Whack-a-Mole',desc:'Whack moles before they hide!',file:'arcade/whackamole/index.html',cat:'arcade',colors:['#854d0e','#16a34a']},
-{id:'aimtrainer',emoji:'\u{1F3AF}',title:'Aim Trainer',desc:'Test your reflexes!',file:'arcade/aimtrainer/index.html',cat:'arcade',colors:['#dc2626','#fafafa']},
-{id:'coinminer',emoji:'\u{1FA99}',title:'Coin Miner',desc:'Tap to mine, buy upgrades!',file:'arcade/coinminer/index.html',cat:'arcade',colors:['#fbbf24','#7c3aed']},
+{id:'snake',emoji:'\u{1F40D}',title:'Snake',desc:'Eat, grow, survive!',file:'arcade/snake/index.html',cat:'arcade',colors:['#06d6a0','#0a0e1a'],categories:['Action']},
+{id:'flappy',emoji:'\u{1F426}',title:'Floppy Bird',desc:'Tap to fly, dodge the pipes!',file:'arcade/flappy/index.html',cat:'arcade',colors:['#fbbf24','#1e3a5f'],categories:['Action']},
+{id:'fruitninja',emoji:'\u{1F52A}',title:'Fruit Ninja',desc:'Slash fruits, get combos!',file:'arcade/fruitninja/index.html',cat:'arcade',colors:['#ef4444','#16a34a'],categories:['Action']},
+{id:'brickbreaker',emoji:'\u{1F9F1}',title:'Brick Breaker',desc:'Smash bricks, earn power-ups!',file:'arcade/brickbreaker/index.html',cat:'arcade',colors:['#ef4444','#3b82f6'],categories:['Action']},
+{id:'whackamole',emoji:'\u{1F439}',title:'Whack-a-Mole',desc:'Whack moles before they hide!',file:'arcade/whackamole/index.html',cat:'arcade',colors:['#854d0e','#16a34a'],categories:['Action']},
+{id:'aimtrainer',emoji:'\u{1F3AF}',title:'Aim Trainer',desc:'Test your reflexes!',file:'arcade/aimtrainer/index.html',cat:'arcade',colors:['#dc2626','#fafafa'],categories:['Action']},
+{id:'coinminer',emoji:'\u{1FA99}',title:'Coin Miner',desc:'Tap to mine, buy upgrades!',file:'arcade/coinminer/index.html',cat:'arcade',colors:['#fbbf24','#7c3aed'],categories:['Action']},
 // Puzzle
-{id:'2048',emoji:'\u{1F522}',title:'2048',desc:'Slide and merge to 2048!',file:'arcade/2048/index.html',cat:'puzzle',colors:['#f59e0b','#1a1a2e']},
-{id:'solitaire',emoji:'\u{1F0CF}',title:'Solitaire',desc:'Classic card game!',file:'arcade/solitaire/index.html',cat:'puzzle',colors:['#16a34a','#dc2626']},
-{id:'blockblast',emoji:'\u{1F9F1}',title:'Block Blast',desc:'Place blocks, clear lines!',file:'arcade/blockblast/index.html',cat:'puzzle',colors:['#3b82f6','#ec4899']},
-{id:'suika',emoji:'\u{1F349}',title:'Suika Game',desc:'Drop & merge fruits!',file:'arcade/suika/index.html',cat:'puzzle',colors:['#16a34a','#ef4444']},
-{id:'simonsays',emoji:'\u{1F3B5}',title:'Simon Says',desc:'Watch, listen, repeat!',file:'arcade/simonsays/index.html',cat:'puzzle',colors:['#ef4444','#3b82f6']},
-{id:'memory',emoji:'\u{1F9E0}',title:'Memory Match',desc:'Find matching pairs!',file:'arcade/memory/index.html',cat:'puzzle',colors:['#8b5cf6','#06d6a0']},
+{id:'2048',emoji:'\u{1F522}',title:'2048',desc:'Slide and merge to 2048!',file:'arcade/2048/index.html',cat:'puzzle',colors:['#f59e0b','#1a1a2e'],categories:['Puzzle']},
+{id:'solitaire',emoji:'\u{1F0CF}',title:'Solitaire',desc:'Classic card game!',file:'arcade/solitaire/index.html',cat:'puzzle',colors:['#16a34a','#dc2626'],categories:['Puzzle']},
+{id:'blockblast',emoji:'\u{1F9F1}',title:'Block Blast',desc:'Place blocks, clear lines!',file:'arcade/blockblast/index.html',cat:'puzzle',colors:['#3b82f6','#ec4899'],categories:['Puzzle']},
+{id:'suika',emoji:'\u{1F349}',title:'Suika Game',desc:'Drop & merge fruits!',file:'arcade/suika/index.html',cat:'puzzle',colors:['#16a34a','#ef4444'],categories:['Puzzle']},
+{id:'simonsays',emoji:'\u{1F3B5}',title:'Simon Says',desc:'Watch, listen, repeat!',file:'arcade/simonsays/index.html',cat:'puzzle',colors:['#ef4444','#3b82f6'],categories:['Puzzle']},
+{id:'memory',emoji:'\u{1F9E0}',title:'Memory Match',desc:'Find matching pairs!',file:'arcade/memory/index.html',cat:'puzzle',colors:['#8b5cf6','#06d6a0'],categories:['Puzzle']},
 // Word
-{id:'wordle',emoji:'\u{1F4DD}',title:'Wordle',desc:'Guess the word in 6 tries!',file:'arcade/wordle/index.html',cat:'word',colors:['#16a34a','#fbbf24']},
-{id:'hangman',emoji:'\u{1F634}',title:'Hangman',desc:'Guess the word in time!',file:'arcade/hangman/index.html',cat:'word',colors:['#6366f1','#f59e0b']},
-{id:'trivia',emoji:'\u{1F3C1}',title:'Trivia Race',desc:'Race to answer questions!',file:'arcade/trivia/index.html',cat:'word',colors:['#dc2626','#fbbf24']},
-{id:'typing',emoji:'\u2328\uFE0F',title:'Typing Race',desc:'Type fast, race classmates!',file:'arcade/typing/index.html',cat:'word',colors:['#06d6a0','#1e293b']},
-{id:'keyboard',emoji:'\u{1F3AE}',title:'Keyboard Warriors',desc:'Type to defeat enemies!',file:'keyboard.html',cat:'word',colors:['#7c3aed','#ef4444']},
+{id:'wordle',emoji:'\u{1F4DD}',title:'Wordle',desc:'Guess the word in 6 tries!',file:'arcade/wordle/index.html',cat:'word',colors:['#16a34a','#fbbf24'],categories:['Puzzle','Word']},
+{id:'hangman',emoji:'\u{1F634}',title:'Hangman',desc:'Guess the word in time!',file:'arcade/hangman/index.html',cat:'word',colors:['#6366f1','#f59e0b'],categories:['Puzzle','Word']},
+{id:'trivia',emoji:'\u{1F3C1}',title:'Trivia Race',desc:'Race to answer questions!',file:'arcade/trivia/index.html',cat:'word',colors:['#dc2626','#fbbf24'],categories:['Word']},
+{id:'typing',emoji:'\u2328\uFE0F',title:'Typing Race',desc:'Type fast, race classmates!',file:'arcade/typing/index.html',cat:'word',colors:['#06d6a0','#1e293b'],categories:['Word']},
+{id:'keyboard',emoji:'\u{1F3AE}',title:'Keyboard Warriors',desc:'Type to defeat enemies!',file:'keyboard.html',cat:'word',colors:['#7c3aed','#ef4444'],categories:['Word']},
 ];
 
 var WORD_BANKS={
@@ -91,6 +91,14 @@ document.getElementById('tab-'+stuTabOrder[next]).focus();
 }else if(e.key==='Enter'||e.key===' '){e.preventDefault();switchTab(current)}
 }
 window.stuTabKeyNav=stuTabKeyNav;
+
+// Auto-switch to tab based on URL hash (e.g. student.html#arcade)
+(function(){
+  var hash=window.location.hash.replace('#','');
+  if(hash&&['work','tools','arcade'].indexOf(hash)>=0){
+    setTimeout(function(){switchTab(hash)},100);
+  }
+})();
 
 var _dashTimer=null;
 function renderDashboard(){
@@ -375,8 +383,89 @@ fireConfetti();
 }
 window.completePitch=completePitch;
 
-var arcadeFilter='all';
+var arcadeFilter='All';
+var arcadeSearch='';
+var _arcadeRendered=false;
 /* coverCache + cover art functions in oda-covers.js */
+
+/** Get recent games from localStorage */
+function getRecentGames(){
+try{var r=JSON.parse(localStorage.getItem('recentGames')||'[]');return r}catch(e){return[]}
+}
+/** Track a game play in recently played */
+function trackRecentGame(gameId){
+var recent=getRecentGames();
+recent=recent.filter(function(id){return id!==gameId});
+recent.unshift(gameId);
+if(recent.length>5)recent=recent.slice(0,5);
+localStorage.setItem('recentGames',JSON.stringify(recent));
+}
+/** Navigate to a game and track it */
+function playArcadeGame(file,gameId){
+trackRecentGame(gameId);
+location.href=file;
+}
+window.playArcadeGame=playArcadeGame;
+
+/** Category definitions for filter pills */
+var ARCADE_CATEGORIES=[
+  {id:'All',label:'All',icon:'\u{1F3AE}'},
+  {id:'Multiplayer',label:'Multiplayer',icon:'\u{1F91D}'},
+  {id:'Action',label:'Action',icon:'\u{1F579}\uFE0F'},
+  {id:'Puzzle',label:'Puzzle',icon:'\u{1F9E9}'},
+  {id:'Strategy',label:'Strategy',icon:'\u265F\uFE0F'},
+  {id:'Word',label:'Word',icon:'\u{1F4DA}'},
+  {id:'Sports',label:'Sports',icon:'\u26BD'}
+];
+
+/** Count games in a category */
+function countGamesInCategory(catId){
+if(catId==='All')return GAMES.length;
+return GAMES.filter(function(g){return g.categories&&g.categories.indexOf(catId)!==-1}).length;
+}
+
+/** Apply arcade filters (category + search) by show/hide */
+function applyArcadeFilters(){
+var cards=document.querySelectorAll('.game-cover-card[data-game-id]');
+var q=arcadeSearch.toLowerCase().trim();
+var visibleCount=0;
+cards.forEach(function(card){
+  var gid=card.getAttribute('data-game-id');
+  var game=null;
+  for(var i=0;i<GAMES.length;i++){if(GAMES[i].id===gid){game=GAMES[i];break}}
+  if(!game){card.style.display='none';return}
+  var matchesCat=arcadeFilter==='All'||(game.categories&&game.categories.indexOf(arcadeFilter)!==-1);
+  var matchesSearch=!q||game.title.toLowerCase().indexOf(q)!==-1;
+  if(matchesCat&&matchesSearch){card.style.display='';visibleCount++}else{card.style.display='none'}
+});
+// Update filter pill active states
+var pills=document.querySelectorAll('.arcade-filter-pill');
+pills.forEach(function(p){
+  if(p.getAttribute('data-cat')===arcadeFilter)p.classList.add('active');
+  else p.classList.remove('active');
+});
+// Update game count display
+var countEl=document.getElementById('arcadeGameCount');
+if(countEl)countEl.textContent=visibleCount+' game'+(visibleCount!==1?'s':'');
+// Update recently played visibility
+var recentRow=document.getElementById('arcadeRecentRow');
+if(recentRow){recentRow.style.display=(arcadeFilter==='All'&&!q)?'':'none'}
+}
+window.applyArcadeFilters=applyArcadeFilters;
+
+/** Set arcade category filter */
+function setArcadeFilter(catId){
+arcadeFilter=catId;
+applyArcadeFilters();
+}
+window.setArcadeFilter=setArcadeFilter;
+
+/** Handle arcade search input */
+function onArcadeSearch(val){
+arcadeSearch=val;
+applyArcadeFilters();
+}
+window.onArcadeSearch=onArcadeSearch;
 
 function renderArcade(){
 var arcadeLocked=window.studentRecord&&window.studentRecord.arcadeLocked;
@@ -385,40 +474,76 @@ var pending=assigns.filter(function(a){return a.status==='pending'||a.status==='
 var submitted=assigns.filter(function(a){return a.status==='submitted'});
 var locked=arcadeLocked&&(pending.length>0||submitted.length>0);
 var coins=(window.studentRecord&&window.studentRecord.coins)||0;
+
+// Only build the full DOM once; subsequent calls just update lock state
+if(_arcadeRendered){
+  // Update locked state on existing cards
+  var cards=document.querySelectorAll('.game-cover-card[data-game-id]');
+  cards.forEach(function(card){
+    if(locked){card.classList.add('locked');card.setAttribute('tabindex','-1')}
+    else{card.classList.remove('locked');card.setAttribute('tabindex','0')}
+  });
+  // Update coin display in shop banner
+  var coinEl=document.getElementById('arcadeShopCoins');
+  if(coinEl)coinEl.textContent=coins;
+  return;
+}
+_arcadeRendered=true;
+
 var h='';
 
-// Category filter tabs
-var cats=[
-  {id:'all',label:'All Games',icon:'\u{1F3AE}'},
-  {id:'multiplayer',label:'Multiplayer',icon:'\u{1F91D}'},
-  {id:'arcade',label:'Arcade',icon:'\u{1F579}\uFE0F'},
-  {id:'puzzle',label:'Puzzle',icon:'\u{1F9E9}'},
-  {id:'word',label:'Word & Trivia',icon:'\u{1F4DA}'},
-  {id:'strategy',label:'Strategy',icon:'\u265F\uFE0F'}
-];
-h+='<div class="arcade-tabs" id="arcadeTabs">';
-cats.forEach(function(c){
-  h+='<button class="arcade-tab'+(arcadeFilter===c.id?' active':'')+'" onclick="arcadeFilter=\''+c.id+'\';renderArcade()" data-cat="'+c.id+'">';
-  h+='<span>'+c.icon+'</span> '+c.label+'</button>';
+// Search bar
+h+='<div class="arcade-search-wrap">';
+h+='<input type="text" class="arcade-search" id="arcadeSearchInput" placeholder="Search games..." oninput="onArcadeSearch(this.value)" autocomplete="off">';
+h+='</div>';
+
+// Category filter pills with game counts
+h+='<div class="arcade-filters" id="arcadeFilters">';
+ARCADE_CATEGORIES.forEach(function(c){
+  var count=countGamesInCategory(c.id);
+  h+='<button class="arcade-filter-pill'+(arcadeFilter===c.id?' active':'')+'" data-cat="'+c.id+'" onclick="setArcadeFilter(\''+c.id+'\')">';
+  h+=c.icon+' '+c.label+' <span class="arcade-pill-count">'+count+'</span></button>';
 });
 h+='</div>';
+
+// Game count summary
+h+='<div class="arcade-game-count" id="arcadeGameCount">'+GAMES.length+' games</div>';
+
+// Recently Played section
+var recent=getRecentGames();
+var recentGames=[];
+recent.forEach(function(rid){
+  for(var i=0;i<GAMES.length;i++){if(GAMES[i].id===rid){recentGames.push(GAMES[i]);break}}
+});
+if(recentGames.length>0){
+  h+='<div class="arcade-recent" id="arcadeRecentRow">';
+  h+='<div class="arcade-recent-label">\u{1F552} Recently Played</div>';
+  h+='<div class="arcade-recent-scroll">';
+  recentGames.forEach(function(g){
+    var cover=generateCover(g);
+    h+='<div class="arcade-recent-card'+(locked?' locked':'')+'" role="button" tabindex="'+(locked?'-1':'0')+'" '+(locked?'':'onclick="playArcadeGame(\''+g.file+'\',\''+g.id+'\')"')+'>';
+    h+='<div class="arcade-recent-img" style="background-image:url('+cover+')"></div>';
+    h+='<div class="arcade-recent-title">'+g.title+'</div>';
+    h+='</div>';
+  });
+  h+='</div></div>';
+}
 
 // Shop banner
 h+='<div class="game-cover-card shop-banner" role="button" tabindex="0" onclick="location.href=\'shop.html\'">';
 h+='<div class="shop-banner-inner"><span style="font-size:32px">\u{1F6CD}\uFE0F</span>';
 h+='<div><div style="font-weight:800;font-size:16px;font-family:Fredoka,sans-serif">ODA Shop</div>';
-h+='<div style="color:var(--text2);font-size:13px">\u{1FA99} '+coins+' coins \u2014 Avatars, colors & more</div></div></div></div>';
+h+='<div style="color:var(--text2);font-size:13px">\u{1FA99} <span id="arcadeShopCoins">'+coins+'</span> coins \u2014 Avatars, colors & more</div></div></div></div>';
 
-// Game cards with cover images
-var filtered=arcadeFilter==='all'?GAMES:GAMES.filter(function(g){return g.cat===arcadeFilter});
-h+='<div class="game-cover-grid">';
-filtered.forEach(function(g){
+// Game cards with cover images — render ALL games, show/hide via filters
+h+='<div class="game-cover-grid" id="arcadeCoverGrid">';
+GAMES.forEach(function(g){
   var cover=generateCover(g);
-  h+='<div class="game-cover-card'+(locked?' locked':'')+'" role="button" tabindex="'+(locked?'-1':'0')+'" '+(locked?'':'onclick="location.href=\''+g.file+'\'"')+'>';
+  h+='<div class="game-cover-card'+(locked?' locked':'')+'" data-game-id="'+g.id+'" role="button" tabindex="'+(locked?'-1':'0')+'" '+(locked?'':'onclick="playArcadeGame(\''+g.file+'\',\''+g.id+'\')"')+'>';
   var catColors={multiplayer:'#06d6a0',arcade:'#ef476f',puzzle:'#118ab2',word:'#ffd166',strategy:'#a855f7'};
   var catLabels={multiplayer:'MULTIPLAYER',arcade:'ARCADE',puzzle:'PUZZLE',word:'WORD',strategy:'STRATEGY'};
   h+='<div class="game-cover-img" style="background-image:url('+cover+')">';
-  h+='<span class="game-cat-badge" style="background:'+( catColors[g.cat]||'#06d6a0')+'">'+(catLabels[g.cat]||'')+'</span>';
+  h+='<span class="game-cat-badge" style="background:'+(catColors[g.cat]||'#06d6a0')+'">'+(catLabels[g.cat]||'')+'</span>';
   h+='</div>';
   h+='<div class="game-cover-info">';
   h+='<div class="game-cover-desc">'+(locked?'Finish your work first!':g.desc)+'</div>';
@@ -427,6 +552,9 @@ filtered.forEach(function(g){
 h+='</div>';
 
 document.getElementById('gameGrid').innerHTML=h;
+
+// Apply current filter state after render
+applyArcadeFilters();
 }
 
 // ===== MY TOOLS =====
@@ -638,3 +766,191 @@ function applyStudentCosmetics(d) {
   }
 }
 window.applyStudentCosmetics = applyStudentCosmetics;
+
+// ===== PROFILE CARD =====
+var PROFILE_ACHIEVEMENTS = [
+  { id:'ach_first_game', name:'First Steps', icon:'\u{1F3AF}' },
+  { id:'ach_play_10', name:'Warming Up', icon:'\u{1F3C3}' },
+  { id:'ach_play_100', name:'Dedicated', icon:'\u{1F4AA}' },
+  { id:'ach_first_win', name:'First Win', icon:'\u2B50' },
+  { id:'ach_win_50', name:'Fifty Wins', icon:'\u{1F3C6}' },
+  { id:'ach_win_100', name:'Century', icon:'\u{1F451}' },
+  { id:'ach_streak_5', name:'On Fire', icon:'\u{1F525}' },
+  { id:'ach_streak_10', name:'Unstoppable', icon:'\u26A1' },
+  { id:'ach_ai_hard', name:'AI Slayer', icon:'\u{1F916}' },
+  { id:'ach_ai_master', name:'AI Master', icon:'\u{1F9E0}' },
+  { id:'ach_tourney_win', name:'Tournament Victor', icon:'\u{1F3C5}' },
+  { id:'ach_diverse', name:'Explorer', icon:'\u{1F3AE}' },
+  { id:'ach_completionist', name:'Completionist', icon:'\u{1F31F}' },
+  { id:'ach_coins_1000', name:'Coin Collector', icon:'\u{1F4B0}' },
+  { id:'ach_shopper', name:'Shopper', icon:'\u{1F6D2}' },
+  { id:'ach_snake_master', name:'Snake Charmer', icon:'\u{1F40D}' },
+  { id:'ach_chess_master', name:'Chess Master', icon:'\u265F\uFE0F' },
+  { id:'ach_fruit_ninja_master', name:'Fruit Samurai', icon:'\u{1F349}' },
+  { id:'ach_aim_trainer_master', name:'Bullseye', icon:'\u{1F3AF}' },
+  { id:'ach_memory_match_master', name:'Memory King', icon:'\u{1F9E0}' }
+];
+
+// Rarity priority for showcase ordering (higher = more impressive)
+var ACH_PRIORITY = {
+  'ach_win_100':10,'ach_completionist':10,'ach_streak_10':9,'ach_tourney_win':9,
+  'ach_ai_master':8,'ach_chess_master':8,'ach_win_50':7,'ach_snake_master':7,
+  'ach_fruit_ninja_master':7,'ach_aim_trainer_master':7,'ach_memory_match_master':7,
+  'ach_ai_hard':6,'ach_streak_5':6,'ach_coins_1000':5,'ach_play_100':5,
+  'ach_diverse':4,'ach_shopper':4,'ach_play_10':3,'ach_first_win':2,'ach_first_game':1
+};
+
+// Game record collections to check for gamesPlayed
+var GAME_RECORD_COLLECTIONS = [
+  'snakeRecords','chessRecords','connect4Records','checkersRecords','battleshipRecords',
+  'tictactoeRecords','rpsRecords','unoRecords','dominoesRecords','penaltykickRecords',
+  'pingpongRecords','flappyRecords','fruitninjaRecords','brickbreakerRecords',
+  'whackamoleRecords','aimtrainerRecords','coinminerRecords','2048Records',
+  'solitaireRecords','blockblastRecords','suikaRecords','simonsaysRecords',
+  'memoryRecords','wordleRecords','hangmanRecords','triviaRecords','typingRecords',
+  'bowlingRecords'
+];
+
+var _cachedGamesPlayed = null;
+
+async function loadTotalGamesPlayed() {
+  if (_cachedGamesPlayed !== null) return _cachedGamesPlayed;
+  var sid = window.studentId;
+  if (!sid || !window.fbDb) return 0;
+  var total = 0;
+  var promises = GAME_RECORD_COLLECTIONS.map(function(col) {
+    return window.fbGetDoc(window.fbDoc(window.fbDb, col, sid)).then(function(snap) {
+      if (snap.exists()) {
+        var data = snap.data();
+        total += (data.gamesPlayed || 0);
+      }
+    }).catch(function() {});
+  });
+  await Promise.all(promises);
+  _cachedGamesPlayed = total;
+  // Cache expires after 60 seconds
+  setTimeout(function() { _cachedGamesPlayed = null; }, 60000);
+  return total;
+}
+
+function openProfileCard() {
+  var d = window.studentRecord || {};
+  var eq = d.equipped || {};
+  var modal = document.getElementById('profileModal');
+
+  // Avatar
+  var avatarEl = document.getElementById('profileAvatar');
+  avatarEl.textContent = (eq.avatar && eq.avatar.emoji) ? eq.avatar.emoji : '\u{1F464}';
+
+  // Avatar border effect
+  var avatarWrap = document.getElementById('profileAvatarWrap');
+  avatarWrap.style.boxShadow = '';
+  if (eq.border && eq.border.value && eq.border.value !== 'none') {
+    avatarWrap.style.boxShadow = eq.border.value;
+    avatarWrap.style.animation = 'profileBorderPulse 3s ease-in-out infinite';
+  } else {
+    avatarWrap.style.animation = '';
+  }
+
+  // Name + name color
+  var nameEl = document.getElementById('profileName');
+  nameEl.textContent = localStorage.getItem('studentName') || 'Student';
+  nameEl.style.cssText = ''; // reset
+  if (eq.nameColor && eq.nameColor.value) {
+    if (eq.nameColor.type === 'gradient' || eq.nameColor.type === 'animated-gradient') {
+      nameEl.style.background = eq.nameColor.value;
+      nameEl.style.webkitBackgroundClip = 'text';
+      nameEl.style.webkitTextFillColor = 'transparent';
+      nameEl.style.backgroundClip = 'text';
+      if (eq.nameColor.type === 'animated-gradient') {
+        nameEl.style.backgroundSize = '200% 100%';
+        nameEl.style.animation = 'gradientShift 3s linear infinite';
+      }
+    } else {
+      nameEl.style.color = eq.nameColor.value;
+    }
+  }
+
+  // Title
+  var titleEl = document.getElementById('profileTitle');
+  if (eq.title && eq.title.value) {
+    titleEl.textContent = '\u{1F3F7}\uFE0F ' + eq.title.value;
+  } else {
+    titleEl.textContent = '';
+  }
+
+  // Profile background
+  var bgLayer = document.getElementById('profileBgLayer');
+  bgLayer.className = 'profile-bg-layer';
+  if (eq.profileBackground && eq.profileBackground.style) {
+    bgLayer.classList.add('bg-' + eq.profileBackground.style);
+  }
+
+  // Stats
+  document.getElementById('profileCoins').textContent = (d.coins || 0).toLocaleString();
+
+  // Games played — load from game record collections asynchronously
+  var gpEl = document.getElementById('profileGamesPlayed');
+  gpEl.textContent = '...';
+  loadTotalGamesPlayed().then(function(total) {
+    gpEl.textContent = total.toLocaleString();
+  });
+
+  // Achievements
+  var achs = d.achievements || [];
+  document.getElementById('profileAchievements').textContent = achs.length;
+
+  // Showcase: top 5 most impressive earned achievements
+  var showcase = document.getElementById('profileShowcase');
+  if (achs.length > 0) {
+    // Sort by priority descending, pick top 5
+    var sorted = achs.slice().sort(function(a, b) {
+      return (ACH_PRIORITY[b] || 0) - (ACH_PRIORITY[a] || 0);
+    });
+    var top = sorted.slice(0, 5);
+    var h = '<div class="profile-showcase-title">Achievement Showcase</div>';
+    h += '<div class="profile-showcase-grid">';
+    for (var j = 0; j < top.length; j++) {
+      var achData = null;
+      for (var k = 0; k < PROFILE_ACHIEVEMENTS.length; k++) {
+        if (PROFILE_ACHIEVEMENTS[k].id === top[j]) { achData = PROFILE_ACHIEVEMENTS[k]; break; }
+      }
+      if (achData) {
+        h += '<div class="profile-ach" title="' + esc(achData.name) + '">';
+        h += '<span class="profile-ach-icon">' + achData.icon + '</span>';
+        h += '<span class="profile-ach-name">' + esc(achData.name) + '</span>';
+        h += '</div>';
+      }
+    }
+    h += '</div>';
+    showcase.innerHTML = h;
+  } else {
+    showcase.innerHTML = '<div class="profile-showcase-title">No achievements yet — play some games!</div>';
+  }
+
+  // Show modal
+  modal.style.display = 'flex';
+  modal.classList.add('show');
+}
+window.openProfileCard = openProfileCard;
+
+function closeProfileCard() {
+  var modal = document.getElementById('profileModal');
+  modal.classList.remove('show');
+  modal.style.display = 'none';
+}
+window.closeProfileCard = closeProfileCard;
+
+// Close profile on Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    var m = document.getElementById('profileModal');
+    if (m && m.classList.contains('show')) closeProfileCard();
+  }
+});
+
+// Close profile on backdrop click
+document.addEventListener('click', function(e) {
+  var m = document.getElementById('profileModal');
+  if (m && m.classList.contains('show') && e.target === m) closeProfileCard();
+});

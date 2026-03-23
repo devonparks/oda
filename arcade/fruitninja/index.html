@@ -118,7 +118,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 </head>
 <body>
 
-<a class="back-btn" href="../../student.html" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();showScreen('homeScreen')}">&#8592; Back</a>
+<a class="back-btn" href="../../student.html#arcade" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();showScreen('homeScreen')}">&#8592; Back</a>
 <button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128264;</button>
 
 <!-- HOME SCREEN -->
@@ -219,7 +219,7 @@ var studentId=localStorage.getItem('studentId')||'';
 var studentName=localStorage.getItem('studentName')||'';
 var classCode=localStorage.getItem('classCode')||'';
 var isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
-if(isTeacher)document.getElementById('backBtn').href='../../teacher.html';
+if(isTeacher)document.getElementById('backBtn').href='../../teacher.html#arcade';
 
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 
@@ -241,7 +241,7 @@ function showScreen(id){
 /* ===================== */
 /* AUDIO                 */
 /* ===================== */
-var audioCtx=null,soundOn=true;
+var audioCtx=null,soundOn=localStorage.getItem('odaSoundEnabled')!=='false';
 function getAudioCtx(){
   if(!audioCtx)try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}
   if(audioCtx.state==='suspended')audioCtx.resume();
@@ -261,7 +261,8 @@ function sfxCombo(){playTone(600,0.06,'square',0.1);setTimeout(function(){playTo
 function sfxBomb(){playTone(120,0.5,'sawtooth',0.15,40)}
 function sfxMiss(){playTone(250,0.2,'triangle',0.08,150)}
 function sfxGameOver(){playTone(300,0.4,'sawtooth',0.1,50)}
-function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;'}
+function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;';localStorage.setItem('odaSoundEnabled',soundOn)}
+if(!soundOn)document.getElementById('soundBtn').innerHTML='&#128263;';
 
 /* ===================== */
 /* COSMETICS             */
@@ -963,7 +964,7 @@ odaHelp.init({
 <script>
 (function(){
   var isT=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
-  if(isT){var b=document.getElementById('backBtn');if(b)b.href='../../teacher.html'}
+  if(isT){var b=document.getElementById('backBtn');if(b)b.href='../../teacher.html#arcade'}
 })();
 </script>
 </body>

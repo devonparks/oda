@@ -180,7 +180,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 </head>
 <body>
 
-<a class="back-btn" href="../../student.html" id="backBtn">&#8592; Back</a>
+<a class="back-btn" href="../../student.html#arcade" id="backBtn">&#8592; Back</a>
 <div class="sound-toggle" id="soundToggle" title="Toggle sound">&#128266;</div>
 <div class="settings-toggle" id="settingsToggle" title="Settings">&#9881;&#65039;</div>
 
@@ -305,7 +305,7 @@ if (isTeacher) {
 // AUDIO ENGINE
 // =============================================
 var audioCtx = null;
-var soundOn = true;
+var soundOn = localStorage.getItem('odaSoundEnabled') !== 'false';
 
 function getAudioCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -396,7 +396,9 @@ function sfxPrestige() {
 document.getElementById('soundToggle').addEventListener('click', function() {
   soundOn = !soundOn;
   this.innerHTML = soundOn ? '&#128266;' : '&#128263;';
+  localStorage.setItem('odaSoundEnabled', soundOn);
 });
+if (!soundOn) document.getElementById('soundToggle').innerHTML = '&#128263;';
 
 // Init audio on first interaction
 document.addEventListener('click', function() { getAudioCtx(); }, { once: true });
