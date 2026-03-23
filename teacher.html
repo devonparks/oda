@@ -193,25 +193,26 @@ var TGAMES=[
 {emoji:'\u2328\uFE0F',title:'Typing Race',file:'arcade/typing/index.html',cat:'word',colors:['#06d6a0','#1e293b']},
 {emoji:'\u{1F3AE}',title:'Keyboard Warriors',file:'keyboard.html',cat:'word',colors:['#7c3aed','#ef4444']}
 ];
-var h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:16px">';
+var h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:16px">';
 TGAMES.forEach(function(g){
-  var c=document.createElement('canvas');c.width=240;c.height=150;var ctx=c.getContext('2d');
-  var grad=ctx.createLinearGradient(0,0,240,150);
-  grad.addColorStop(0,g.colors[0]);grad.addColorStop(1,g.colors[1]);
-  ctx.fillStyle=grad;ctx.fillRect(0,0,240,150);
-  ctx.globalAlpha=0.07;ctx.fillStyle='#fff';
-  ctx.beginPath();ctx.arc(190,20,70,0,Math.PI*2);ctx.fill();
-  ctx.globalAlpha=1;ctx.font='48px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText(g.emoji,120,70);
-  var url=c.toDataURL('image/jpeg',0.8);
-  h+='<a href="'+g.file+'" style="display:block;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;text-decoration:none;transition:all .2s"';
-  h+=' onmouseover="this.style.borderColor=\'var(--accent)\';this.style.transform=\'translateY(-3px)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.transform=\'none\'">';
-  h+='<div style="width:100%;height:0;padding-bottom:62%;background-image:url('+url+');background-size:cover"></div>';
-  h+='<div style="padding:8px 10px"><div style="font-family:Fredoka,sans-serif;font-size:14px;font-weight:700;color:var(--text)">'+g.title+'</div></div>';
+  var id=g.file.replace('arcade/','').replace('/index.html','').replace('.html','');
+  h+='<a href="'+g.file+'" style="display:block;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;text-decoration:none;transition:all .2s"';
+  h+=' onmouseover="this.style.borderColor=\'var(--accent)\';this.style.transform=\'translateY(-3px)\';this.style.boxShadow=\'0 8px 24px rgba(0,0,0,.3)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.transform=\'none\';this.style.boxShadow=\'none\'">';
+  h+='<canvas data-game="'+id+'" data-title="'+g.title+'" data-emoji="'+(g.emoji||'')+'" width="320" height="180" style="width:100%;height:auto;display:block"></canvas>';
+  h+='<div style="padding:10px 12px"><div style="font-family:Fredoka,sans-serif;font-size:15px;font-weight:700;color:var(--text)">'+g.title+'</div>';
+  h+='<div style="font-size:11px;color:var(--text2);margin-top:2px;text-transform:uppercase;letter-spacing:1px">'+g.cat+'</div></div>';
   h+='</a>';
 });
 h+='</div>';
 document.getElementById('teacherArcadeGrid').innerHTML=h;
+// Draw covers from shared oda-covers.js (loaded via script tag below)
+setTimeout(function(){
+  document.querySelectorAll('canvas[data-game]').forEach(function(c){
+    if(typeof generateCover==='function'){
+      generateCover({id:c.dataset.game,title:c.dataset.title,emoji:c.dataset.emoji},c);
+    }
+  });
+},100);
 })();
 </script>
 </div>
@@ -430,6 +431,7 @@ document.getElementById('teacherArcadeGrid').innerHTML=h;
 
 <!-- SHARED CORE -->
 <script src="js/oda-core.js"></script>
+<script src="js/oda-covers.js"></script>
 
 <!-- FIREBASE -->
 <script type="module">
