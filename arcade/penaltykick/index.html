@@ -3124,15 +3124,18 @@ async function startTourneyRoundGames(tourneyCode,bracket,round){
     var matchId=roundMatches[i][0],match=roundMatches[i][1];
     var gameCode=genTourneyRoomCode();
     var gameRef=fb.fsMod.doc(fb.db,'penaltyKickGames',gameCode);
+    var p1Name=(currentTourneyData&&currentTourneyData.players[match.player1]||{}).name||'Player 1';
+    var p2Name=(currentTourneyData&&currentTourneyData.players[match.player2]||{}).name||'Player 2';
     await fb.fsMod.setDoc(gameRef,{
       roomCode:gameCode,
-      player1:match.player1,player1Name:(currentTourneyData&&currentTourneyData.players[match.player1]||{}).name||'Player 1',
-      player2:match.player2,player2Name:(currentTourneyData&&currentTourneyData.players[match.player2]||{}).name||'Player 2',
-      state:'kick',kicker:1,round:1,subRound:0,
+      player1:{id:match.player1,name:p1Name},
+      player2:{id:match.player2,name:p2Name},
+      state:'playing',
+      round:1,subRound:0,
       p1Goals:0,p2Goals:0,p1Saves:0,p2Saves:0,
-      kickZone:null,diveZone:null,kickResult:null,
+      currentKick:null,currentSave:null,
       tourneyCode:tourneyCode,matchId:matchId,classCode:classCode||null,
-      created:new Date().toISOString()
+      lastUpdate:new Date().toISOString()
     });
     bracket[matchId].gameCode=gameCode;
     listenToTourneyGame(tourneyCode,matchId,gameCode);
@@ -3156,9 +3159,11 @@ function listenToTourneyGame(tourneyCode,matchId,gameCode){
       var bracket=tData.bracket||{};
       // Determine winner: higher goals wins. Draw = p1 wins (tiebreaker)
       var winnerId;
-      if(data.p1Goals>data.p2Goals){winnerId=data.player1}
-      else if(data.p2Goals>data.p1Goals){winnerId=data.player2}
-      else{winnerId=data.player1} // tiebreak
+      var p1Id=data.player1&&data.player1.id?data.player1.id:data.player1;
+      var p2Id=data.player2&&data.player2.id?data.player2.id:data.player2;
+      if(data.p1Goals>data.p2Goals){winnerId=p1Id}
+      else if(data.p2Goals>data.p1Goals){winnerId=p2Id}
+      else{winnerId=p1Id} // tiebreak
       bracket[matchId].winner=winnerId;
       var currentRound=tData.currentRound||1;
       var totalRounds=tData.totalRounds||1;
