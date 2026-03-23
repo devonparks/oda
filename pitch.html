@@ -1504,10 +1504,10 @@ migrateOldData();
 // Fix back link based on studentId in sessionStorage
 var backLink=document.getElementById('backLink');
 var dashBack=document.getElementById('dashBackLink');
-if(localStorage.getItem('studentId')){
-backLink.href='student.html';
-if(dashBack)dashBack.href='student.html';
-}
+var _isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+var _hubUrl=_isTeacher?'teacher.html':'student.html';
+backLink.href=_hubUrl;
+if(dashBack)dashBack.href=_hubUrl;
 
 // Show teacher mode button if teacher (but not if student is active)
 var isStudentSession=!!localStorage.getItem('studentId');
@@ -2167,7 +2167,7 @@ btn.textContent='Saving...';
 await fsMod.updateDoc(fsMod.doc(db,'assignments',assignmentId),{
 studentResponse:pitchData,status:'submitted',submittedAt:new Date().toISOString()
 });
-window.location.href='student.html';
+window.location.href=_isTeacher?'teacher.html':'student.html';
 }catch(e){
 console.error('Submit error:',e);
 btn.disabled=false;
