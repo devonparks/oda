@@ -1,6 +1,7 @@
 /**
- * ODA Shop - Cosmetics store styles
+ * ODA Shop - Premium Cosmetics Store
  * Rarity colors: common=#9ca3af, rare=#3b82f6, epic=#a855f7, legendary=#fbbf24
+ * Gaming store aesthetic — like buying skins in a real game
  */
 
 /* ============================================
@@ -9,7 +10,7 @@
 .shop-app {
   position: relative;
   z-index: 1;
-  max-width: 900px;
+  max-width: 920px;
   margin: 0 auto;
   padding: 60px 16px 40px;
 }
@@ -21,7 +22,7 @@
   position: fixed;
   top: 16px;
   left: 16px;
-  background: rgba(17, 24, 39, .85);
+  background: rgba(17, 24, 39, .9);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 8px 18px;
@@ -32,84 +33,115 @@
   cursor: pointer;
   z-index: 100;
   text-decoration: none;
-  transition: all .2s;
-  backdrop-filter: blur(8px);
+  transition: all .2s ease;
+  backdrop-filter: blur(12px);
 }
 .back-btn:hover {
   border-color: var(--accent);
   color: var(--text);
+  box-shadow: 0 0 12px rgba(6,214,160,.12);
+  transform: translateX(-2px);
 }
 
 /* ============================================
-   Header
+   Header — Large title with glow effect
    ============================================ */
 .shop-header {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .shop-title-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .shop-title {
   font-family: 'Fredoka', sans-serif;
-  font-size: clamp(24px, 6vw, 36px);
+  font-size: clamp(28px, 7vw, 40px);
   font-weight: 700;
   color: var(--text);
+  text-shadow: 0 0 40px rgba(6,214,160,.2), 0 0 80px rgba(6,214,160,.08);
+  position: relative;
 }
 
+/* Coin display — Prominent gold badge */
 .coin-display {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(255, 209, 102, .1);
-  border: 1px solid rgba(255, 209, 102, .25);
-  border-radius: 14px;
-  padding: 8px 16px;
+  gap: 10px;
+  background: linear-gradient(135deg, rgba(255,209,102,.12), rgba(255,209,102,.04));
+  border: 1px solid rgba(255,209,102,.3);
+  border-radius: 16px;
+  padding: 10px 20px;
+  box-shadow: 0 0 20px rgba(255,209,102,.06), inset 0 1px 0 rgba(255,255,255,.05);
+  transition: all .25s ease;
+}
+.coin-display:hover {
+  box-shadow: 0 0 28px rgba(255,209,102,.1);
+  border-color: rgba(255,209,102,.45);
 }
 
 .coin-icon {
-  font-size: 20px;
+  font-size: 22px;
+  filter: drop-shadow(0 0 4px rgba(255,209,102,.3));
 }
 
 .coin-amount {
   font-family: 'Space Mono', monospace;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--gold);
+  text-shadow: 0 0 12px rgba(255,209,102,.3);
 }
 
 /* ============================================
-   Loadout Preview
+   Loadout Preview — Avatar with animated glow
    ============================================ */
 .loadout-preview {
-  background: var(--surface);
+  background: linear-gradient(135deg, rgba(17,24,39,.9), rgba(26,34,53,.6));
   border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 20px;
+  border-radius: 20px;
+  padding: 24px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
   flex-wrap: wrap;
+  position: relative;
+  overflow: hidden;
+}
+.loadout-preview::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -30%;
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(6,214,160,.04) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .loadout-avatar-wrap {
-  width: 72px;
-  height: 72px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--surface2);
   flex-shrink: 0;
-  transition: box-shadow .3s;
+  transition: all .3s ease;
+  position: relative;
+  animation: avatarGlow 3s ease-in-out infinite;
+}
+@keyframes avatarGlow {
+  0%, 100% { box-shadow: 0 0 12px rgba(6,214,160,.1); }
+  50% { box-shadow: 0 0 24px rgba(6,214,160,.2); }
 }
 
 .loadout-avatar {
-  font-size: 40px;
+  font-size: 42px;
   line-height: 1;
 }
 
@@ -120,7 +152,7 @@
 
 .loadout-name {
   font-family: 'Fredoka', sans-serif;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   line-height: 1.2;
   overflow: hidden;
@@ -134,8 +166,12 @@
   font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-top: 2px;
+  letter-spacing: 1.5px;
+  margin-top: 4px;
+  padding: 4px 12px;
+  background: rgba(6,214,160,.08);
+  border-radius: 8px;
+  display: inline-block;
 }
 
 .loadout-badges {
@@ -147,12 +183,17 @@
 .loadout-badge {
   font-size: 11px;
   font-weight: 700;
-  padding: 4px 10px;
+  padding: 4px 12px;
   border-radius: 8px;
   background: var(--surface2);
   border: 1px solid var(--border);
   color: var(--text2);
   white-space: nowrap;
+  transition: all .2s ease;
+}
+.loadout-badge:hover {
+  border-color: var(--accent2);
+  color: var(--text);
 }
 
 /* ============================================
@@ -174,19 +215,15 @@
 .border-anim-pulse {
   animation: borderPulse 2s ease-in-out infinite;
 }
-
 .border-anim-flame {
   animation: borderFlame 1.5s ease-in-out infinite;
 }
-
 .border-anim-lightning {
   animation: borderLightning 2s ease-in-out infinite;
 }
-
 .border-anim-galaxy {
   animation: borderGalaxy 3s ease-in-out infinite;
 }
-
 .border-anim-diamond-sparkle {
   animation: borderDiamondSparkle 2s ease-in-out infinite;
 }
@@ -195,13 +232,11 @@
   0%, 100% { filter: brightness(1); }
   50% { filter: brightness(1.3); }
 }
-
 @keyframes borderFlame {
   0%, 100% { filter: brightness(1) hue-rotate(0deg); }
   33% { filter: brightness(1.2) hue-rotate(10deg); }
   66% { filter: brightness(1.4) hue-rotate(-5deg); }
 }
-
 @keyframes borderLightning {
   0%, 100% { filter: brightness(1); opacity: 1; }
   10% { filter: brightness(2); opacity: 1; }
@@ -209,13 +244,11 @@
   14% { filter: brightness(1.8); opacity: 1; }
   50% { filter: brightness(1); opacity: 1; }
 }
-
 @keyframes borderGalaxy {
   0% { filter: hue-rotate(0deg) brightness(1); }
   50% { filter: hue-rotate(30deg) brightness(1.2); }
   100% { filter: hue-rotate(0deg) brightness(1); }
 }
-
 @keyframes borderDiamondSparkle {
   0%, 100% { filter: brightness(1) contrast(1); }
   25% { filter: brightness(1.4) contrast(1.1); }
@@ -224,42 +257,51 @@
 }
 
 /* ============================================
-   Category Tabs
+   Category Tabs — Pill tabs with accent glow
    ============================================ */
 .shop-tabs {
   display: flex;
   gap: 4px;
-  margin-bottom: 20px;
-  background: var(--surface);
-  border-radius: 14px;
+  margin-bottom: 24px;
+  background: rgba(17,24,39,.6);
+  border-radius: 16px;
   padding: 5px;
   border: 1px solid var(--border);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  backdrop-filter: blur(4px);
 }
 .shop-tabs::-webkit-scrollbar { display: none; }
 
 .shop-tab {
   flex: 0 0 auto;
-  padding: 10px 14px;
+  padding: 10px 16px;
   text-align: center;
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
   font-family: 'Outfit', sans-serif;
   font-weight: 700;
   font-size: 13px;
   color: var(--text2);
-  transition: all .2s;
+  transition: all .25s ease;
   border: none;
   background: none;
   white-space: nowrap;
+  position: relative;
 }
-.shop-tab:hover { color: var(--text); }
-.shop-tab:focus-visible { outline: 3px solid var(--accent); outline-offset: -2px; }
+.shop-tab:hover {
+  color: var(--text);
+  background: rgba(255,255,255,.03);
+}
+.shop-tab:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: -2px;
+}
 .shop-tab.active {
   background: var(--accent);
   color: var(--bg);
+  box-shadow: 0 0 16px rgba(6,214,160,.25), 0 2px 8px rgba(6,214,160,.15);
 }
 
 /* ============================================
@@ -267,7 +309,7 @@
    ============================================ */
 .shop-panel {
   display: none;
-  animation: odaFadeUp .2s ease;
+  animation: odaFadeUp .25s ease;
 }
 .shop-panel.show { display: block; }
 
@@ -275,7 +317,7 @@
    Rarity Sections
    ============================================ */
 .rarity-section {
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .rarity-header {
@@ -284,28 +326,60 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 2px;
-  padding-bottom: 8px;
-  margin-bottom: 14px;
+  padding-bottom: 10px;
+  margin-bottom: 16px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .rarity-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   display: inline-block;
 }
 
-.rarity-header.rarity-common { color: #9ca3af; border-bottom: 2px solid #9ca3af30; }
-.rarity-header.rarity-common .rarity-dot { background: #9ca3af; }
-.rarity-header.rarity-rare { color: #3b82f6; border-bottom: 2px solid #3b82f630; }
-.rarity-header.rarity-rare .rarity-dot { background: #3b82f6; }
-.rarity-header.rarity-epic { color: #a855f7; border-bottom: 2px solid #a855f730; }
-.rarity-header.rarity-epic .rarity-dot { background: #a855f7; }
-.rarity-header.rarity-legendary { color: #fbbf24; border-bottom: 2px solid #fbbf2430; }
-.rarity-header.rarity-legendary .rarity-dot { background: #fbbf24; }
+.rarity-header.rarity-common {
+  color: #9ca3af;
+  border-bottom: 2px solid rgba(156,163,175,.2);
+}
+.rarity-header.rarity-common .rarity-dot {
+  background: #9ca3af;
+  box-shadow: 0 0 8px rgba(156,163,175,.3);
+}
+
+.rarity-header.rarity-rare {
+  color: #3b82f6;
+  border-bottom: 2px solid rgba(59,130,246,.2);
+}
+.rarity-header.rarity-rare .rarity-dot {
+  background: #3b82f6;
+  box-shadow: 0 0 8px rgba(59,130,246,.4);
+}
+
+.rarity-header.rarity-epic {
+  color: #a855f7;
+  border-bottom: 2px solid rgba(168,85,247,.2);
+}
+.rarity-header.rarity-epic .rarity-dot {
+  background: #a855f7;
+  box-shadow: 0 0 8px rgba(168,85,247,.4);
+}
+
+.rarity-header.rarity-legendary {
+  color: #fbbf24;
+  border-bottom: 2px solid rgba(251,191,36,.2);
+}
+.rarity-header.rarity-legendary .rarity-dot {
+  background: #fbbf24;
+  box-shadow: 0 0 8px rgba(251,191,36,.4);
+  animation: legendaryDotPulse 2s ease-in-out infinite;
+}
+@keyframes legendaryDotPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(251,191,36,.4); }
+  50% { box-shadow: 0 0 16px rgba(251,191,36,.6); }
+}
 
 /* ============================================
    Item Grid
@@ -313,33 +387,33 @@
 .item-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 /* ============================================
-   Item Card
+   Item Card — Rarity-colored borders, hover effects
    ============================================ */
 .item-card {
   background: var(--surface);
   border: 2px solid var(--border);
   border-radius: 16px;
-  padding: 16px 12px 14px;
+  padding: 18px 12px 14px;
   text-align: center;
   cursor: pointer;
-  transition: all .2s;
+  transition: all .25s ease;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-family: 'Outfit', sans-serif;
   color: var(--text);
   overflow: hidden;
 }
 
 .item-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,0,0,.35);
 }
 
 .item-card:focus-visible {
@@ -351,40 +425,82 @@
   transform: scale(.97);
 }
 
-/* Rarity border accents */
-.item-card.rarity-border-common:hover { border-color: #9ca3af; }
-.item-card.rarity-border-rare:hover { border-color: #3b82f6; }
-.item-card.rarity-border-epic:hover { border-color: #a855f7; }
-.item-card.rarity-border-legendary:hover { border-color: #fbbf24; }
+/* Rarity border accents — always subtle, glow on hover */
+.item-card.rarity-border-common {
+  border-color: rgba(156,163,175,.15);
+}
+.item-card.rarity-border-common:hover {
+  border-color: #9ca3af;
+  box-shadow: 0 0 20px rgba(156,163,175,.1), 0 12px 32px rgba(0,0,0,.3);
+}
+
+.item-card.rarity-border-rare {
+  border-color: rgba(59,130,246,.15);
+}
+.item-card.rarity-border-rare:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 0 24px rgba(59,130,246,.15), 0 12px 32px rgba(0,0,0,.3);
+}
+
+.item-card.rarity-border-epic {
+  border-color: rgba(168,85,247,.2);
+}
+.item-card.rarity-border-epic:hover {
+  border-color: #a855f7;
+  box-shadow: 0 0 24px rgba(168,85,247,.15), 0 12px 32px rgba(0,0,0,.3);
+}
 
 .item-card.rarity-border-legendary {
-  border-color: rgba(251, 191, 36, .3);
+  border-color: rgba(251,191,36,.25);
 }
-.item-card.rarity-border-epic {
-  border-color: rgba(168, 85, 247, .2);
+.item-card.rarity-border-legendary:hover {
+  border-color: #fbbf24;
+  box-shadow: 0 0 28px rgba(251,191,36,.15), 0 12px 32px rgba(0,0,0,.3);
 }
 
-/* Equipped card */
+/* Equipped card — green checkmark + glow */
 .item-card.equipped {
   border-color: var(--accent);
-  background: rgba(6, 214, 160, .05);
+  background: rgba(6,214,160,.04);
+  box-shadow: 0 0 16px rgba(6,214,160,.08);
+}
+.item-card.equipped::after {
+  content: '\2713';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 0 10px rgba(6,214,160,.3);
 }
 
-/* Locked card */
+/* Locked card — grayscale + lock overlay */
 .item-card.locked {
   opacity: .5;
+  filter: saturate(.3);
 }
 .item-card.locked:hover {
   transform: none;
   box-shadow: none;
+  filter: saturate(.4);
+  opacity: .6;
 }
 
 .lock-overlay {
   position: absolute;
   top: 8px;
   right: 8px;
-  font-size: 16px;
-  opacity: .7;
+  font-size: 18px;
+  opacity: .8;
+  filter: drop-shadow(0 0 4px rgba(0,0,0,.4));
 }
 
 /* ============================================
@@ -395,28 +511,36 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 56px;
+  min-height: 60px;
 }
 
 /* Avatar emoji */
 .item-preview-emoji {
-  font-size: 42px;
+  font-size: 44px;
   line-height: 1;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,.2));
 }
 
 /* Name color swatch */
 .item-preview-color {
-  width: 48px;
-  height: 48px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, .1);
+  border: 3px solid rgba(255,255,255,.08);
+  box-shadow: 0 4px 12px rgba(0,0,0,.2);
+  transition: all .25s ease;
+}
+.item-card:hover .item-preview-color {
+  transform: scale(1.1);
+  box-shadow: 0 4px 20px rgba(0,0,0,.3);
 }
 
 .item-preview-color-gradient {
-  width: 64px;
-  height: 28px;
-  border-radius: 14px;
-  border: 2px solid rgba(255, 255, 255, .1);
+  width: 68px;
+  height: 30px;
+  border-radius: 15px;
+  border: 2px solid rgba(255,255,255,.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
 }
 
 /* Border preview */
@@ -427,11 +551,11 @@
 }
 
 .border-circle {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: var(--surface2);
-  transition: box-shadow .3s;
+  transition: all .3s ease;
 }
 
 .item-card.has-animation .border-circle {
@@ -446,20 +570,22 @@
   color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 1px;
-  padding: 8px 12px;
-  background: rgba(6, 214, 160, .08);
-  border-radius: 8px;
+  padding: 8px 14px;
+  background: rgba(6,214,160,.06);
+  border-radius: 10px;
+  border: 1px solid rgba(6,214,160,.1);
 }
 
 /* Board theme mini preview */
 .item-preview-board {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  width: 56px;
-  height: 56px;
-  border-radius: 8px;
+  width: 58px;
+  height: 58px;
+  border-radius: 10px;
   overflow: hidden;
   border: 2px solid;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
 }
 
 .board-cell {
@@ -474,9 +600,10 @@
 }
 
 .piece-dot {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0,0,0,.2);
 }
 
 .piece-vs {
@@ -489,8 +616,9 @@
 
 /* Win effect preview */
 .item-preview-effect {
-  font-size: 36px;
+  font-size: 38px;
   line-height: 1;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,.2));
 }
 
 /* ============================================
@@ -503,44 +631,58 @@
   color: var(--text);
 }
 
+/* Rarity badges — Gradient backgrounds */
 .rarity-badge {
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: 3px 10px;
+  border-radius: 8px;
 }
 
 .rarity-badge.rarity-common {
-  background: rgba(156, 163, 175, .12);
+  background: linear-gradient(135deg, rgba(156,163,175,.12), rgba(156,163,175,.06));
   color: #9ca3af;
+  border: 1px solid rgba(156,163,175,.15);
 }
 .rarity-badge.rarity-rare {
-  background: rgba(59, 130, 246, .12);
+  background: linear-gradient(135deg, rgba(59,130,246,.15), rgba(59,130,246,.06));
   color: #3b82f6;
+  border: 1px solid rgba(59,130,246,.15);
 }
 .rarity-badge.rarity-epic {
-  background: rgba(168, 85, 247, .12);
+  background: linear-gradient(135deg, rgba(168,85,247,.15), rgba(168,85,247,.06));
   color: #a855f7;
+  border: 1px solid rgba(168,85,247,.15);
 }
 .rarity-badge.rarity-legendary {
-  background: rgba(251, 191, 36, .12);
+  background: linear-gradient(135deg, rgba(251,191,36,.15), rgba(251,191,36,.06));
   color: #fbbf24;
+  border: 1px solid rgba(251,191,36,.15);
+  animation: legendaryBadgeShimmer 3s ease-in-out infinite;
+}
+@keyframes legendaryBadgeShimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { box-shadow: 0 0 8px rgba(251,191,36,.15); }
 }
 
 /* ============================================
-   Item Status / Cost
+   Item Status / Cost — Coin pill
    ============================================ */
 .item-cost {
   font-family: 'Space Mono', monospace;
   font-size: 13px;
   font-weight: 700;
   color: var(--gold);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
   margin-top: 2px;
+  padding: 3px 10px;
+  background: rgba(255,209,102,.06);
+  border-radius: 8px;
+  border: 1px solid rgba(255,209,102,.1);
 }
 
 .coin-icon-sm {
@@ -549,6 +691,8 @@
 
 .item-cost.cant-afford {
   color: var(--accent3);
+  background: rgba(239,71,111,.06);
+  border-color: rgba(239,71,111,.1);
 }
 
 .item-status {
@@ -556,37 +700,39 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
-  padding: 3px 10px;
-  border-radius: 6px;
+  padding: 4px 12px;
+  border-radius: 8px;
   margin-top: 2px;
 }
 
 .item-equipped {
-  background: rgba(6, 214, 160, .12);
+  background: rgba(6,214,160,.1);
   color: var(--accent);
+  border: 1px solid rgba(6,214,160,.15);
 }
 
 .item-owned {
-  background: rgba(17, 138, 178, .12);
+  background: rgba(17,138,178,.1);
   color: var(--accent2);
+  border: 1px solid rgba(17,138,178,.12);
 }
 
 .item-locked {
-  background: rgba(156, 163, 175, .1);
+  background: rgba(156,163,175,.08);
   color: #9ca3af;
   font-size: 10px;
   letter-spacing: .5px;
 }
 
 /* ============================================
-   Confirm Modal
+   Confirm Modal — Glass morphism
    ============================================ */
 .shop-modal-overlay {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(0, 0, 0, .7);
-  backdrop-filter: blur(4px);
+  background: rgba(0,0,0,.65);
+  backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -594,21 +740,22 @@
 }
 
 .shop-modal {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 32px 28px;
-  max-width: 360px;
+  background: linear-gradient(135deg, rgba(17,24,39,.98), rgba(26,34,53,.95));
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 24px;
+  padding: 36px 32px;
+  max-width: 380px;
   width: 100%;
   text-align: center;
   position: relative;
-  animation: odaFadeUp .2s ease;
+  animation: odaFadeUp .25s ease;
+  box-shadow: 0 24px 80px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
 }
 
 .shop-modal-close {
   position: absolute;
-  top: 12px;
-  right: 16px;
+  top: 14px;
+  right: 18px;
   background: none;
   border: none;
   color: var(--text2);
@@ -616,17 +763,23 @@
   cursor: pointer;
   line-height: 1;
   padding: 4px;
+  transition: all .2s ease;
+  border-radius: 8px;
 }
-.shop-modal-close:hover { color: var(--text); }
+.shop-modal-close:hover {
+  color: var(--text);
+  background: rgba(255,255,255,.05);
+}
 
 .shop-modal-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
+  font-size: 52px;
+  margin-bottom: 14px;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,.3));
 }
 
 .shop-modal-title {
   font-family: 'Fredoka', sans-serif;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--text);
   margin-bottom: 6px;
@@ -635,33 +788,46 @@
 .shop-modal-desc {
   font-size: 14px;
   color: var(--text2);
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  line-height: 1.5;
 }
 
 .shop-modal-cost {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-family: 'Space Mono', monospace;
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
   color: var(--gold);
-  background: rgba(255, 209, 102, .08);
-  padding: 8px 20px;
-  border-radius: 12px;
-  margin-bottom: 20px;
+  background: linear-gradient(135deg, rgba(255,209,102,.1), rgba(255,209,102,.04));
+  padding: 10px 24px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(255,209,102,.2);
+  text-shadow: 0 0 12px rgba(255,209,102,.2);
 }
 
 .shop-modal-actions {
   display: flex;
-  gap: 10px;
+  gap: 12px;
 }
 
 .shop-modal-actions .btn {
   flex: 1;
-  padding: 12px;
+  padding: 14px;
   font-size: 15px;
-  border-radius: 12px;
+  border-radius: 14px;
+  transition: all .2s ease;
+}
+.shop-modal-actions .btn:hover {
+  transform: translateY(-1px);
+}
+.shop-modal-actions .btn-accent {
+  box-shadow: 0 2px 0 rgba(6,214,160,.3), 0 4px 16px rgba(6,214,160,.15);
+}
+.shop-modal-actions .btn-outline {
+  background: rgba(255,255,255,.03);
 }
 
 /* ============================================
@@ -676,25 +842,33 @@
 .achievement-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 16px;
+  border-radius: 16px;
+  padding: 18px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  transition: all .2s;
-  opacity: .5;
+  gap: 16px;
+  transition: all .25s ease;
+  opacity: .45;
+}
+.achievement-card:hover {
+  transform: translateX(2px);
 }
 
 .achievement-card.earned {
   opacity: 1;
-  border-color: rgba(6, 214, 160, .3);
-  background: rgba(6, 214, 160, .03);
+  border-color: rgba(6,214,160,.25);
+  background: linear-gradient(135deg, rgba(6,214,160,.04), transparent);
+  box-shadow: 0 0 16px rgba(6,214,160,.04);
+}
+.achievement-card.earned:hover {
+  border-color: rgba(6,214,160,.4);
+  box-shadow: 0 0 20px rgba(6,214,160,.08);
 }
 
 .ach-icon {
-  font-size: 32px;
+  font-size: 34px;
   flex-shrink: 0;
-  width: 48px;
+  width: 50px;
   text-align: center;
 }
 
@@ -713,7 +887,8 @@
 .ach-desc {
   font-size: 13px;
   color: var(--text2);
-  margin-top: 2px;
+  margin-top: 3px;
+  line-height: 1.4;
 }
 
 .ach-reward {
@@ -726,7 +901,7 @@
 }
 
 .ach-status {
-  font-size: 24px;
+  font-size: 26px;
   flex-shrink: 0;
 }
 
@@ -739,37 +914,37 @@
   }
 
   .shop-title {
-    font-size: 22px;
+    font-size: 24px;
   }
 
   .coin-display {
-    padding: 6px 12px;
+    padding: 8px 14px;
   }
 
   .coin-amount {
-    font-size: 16px;
+    font-size: 17px;
   }
 
   .loadout-preview {
-    padding: 16px;
-    gap: 12px;
+    padding: 18px;
+    gap: 14px;
   }
 
   .loadout-avatar-wrap {
-    width: 56px;
-    height: 56px;
+    width: 60px;
+    height: 60px;
   }
 
   .loadout-avatar {
-    font-size: 32px;
+    font-size: 34px;
   }
 
   .loadout-name {
-    font-size: 18px;
+    font-size: 20px;
   }
 
   .shop-tab {
-    padding: 8px 10px;
+    padding: 8px 12px;
     font-size: 12px;
   }
 
@@ -779,21 +954,21 @@
   }
 
   .item-card {
-    padding: 12px 8px 10px;
+    padding: 14px 8px 12px;
   }
 
   .item-preview-emoji {
-    font-size: 34px;
+    font-size: 36px;
   }
 
   .achievement-card {
-    padding: 12px;
-    gap: 10px;
+    padding: 14px;
+    gap: 12px;
   }
 
   .ach-icon {
-    font-size: 26px;
-    width: 36px;
+    font-size: 28px;
+    width: 38px;
   }
 }
 
@@ -809,10 +984,12 @@
 
   .shop-modal {
     padding: 24px 20px;
+    border-radius: 20px;
   }
 
   .shop-modal-cost {
-    font-size: 20px;
+    font-size: 22px;
+    padding: 8px 18px;
   }
 
   .shop-modal-actions .btn {
@@ -833,7 +1010,7 @@
 
   .rarity-badge {
     font-size: 9px;
-    padding: 2px 6px;
+    padding: 2px 7px;
   }
 
   .back-btn {
@@ -848,3 +1025,4 @@
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(42,52,80,.8); }
