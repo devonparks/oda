@@ -514,6 +514,7 @@ GAMES.forEach(function(g){
   h+='<span class="game-cat-badge" style="background:'+(catColors[g.cat]||'#06d6a0')+'">'+(catLabels[g.cat]||'')+'</span>';
   h+='</div>';
   h+='<div class="game-cover-info">';
+  h+='<div class="game-cover-title">'+g.title+'</div>';
   h+='<div class="game-cover-desc">'+(locked?'Finish your work first!':g.desc)+'</div>';
   h+='</div></div>';
 });
