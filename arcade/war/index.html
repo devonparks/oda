@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>War - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:center}
+body.in-game{overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+.sound-btn{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;transition:all .2s;backdrop-filter:blur(8px)}
+.sound-btn:hover{border-color:var(--accent)}
+
+.screen{display:none;width:100%;max-width:1100px;min-height:100vh;min-height:100dvh;padding:16px;animation:fadeUp .35s ease}
+@media(min-width:768px){
+  .home-header h1{font-size:80px!important}
+  .home-header p{font-size:18px}
+  .best-pill{padding:16px 32px;font-size:18px}
+  .best-pill .bp-val{font-size:28px}
+  .btn-accent{font-size:22px!important;padding:20px 64px!important}
+  .btn-outline{font-size:16px;padding:14px 28px}
+  .stats-row .sr{font-size:15px;padding:10px 22px}
+  .how-to{max-width:500px;padding:28px 32px}
+  .how-to h3{font-size:15px}
+  .how-to p{font-size:15px}
+}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+
+/* HOME */
+#homeScreen{padding-top:80px;justify-content:flex-start;gap:16px}
+.home-header{text-align:center;margin-bottom:8px}
+.home-header h1{font-size:clamp(48px,10vw,64px);font-weight:700;letter-spacing:-2px}
+.home-header h1 .hl{color:var(--accent)}
+.home-header p{color:var(--text2);font-size:15px;margin-top:4px}
+.best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
+.best-pill .bp-label{color:var(--text2)}
+.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
+.home-actions{display:flex;flex-direction:column;align-items:center;gap:14px}
+.stats-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.stats-row .sr{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+.how-to{max-width:420px;width:100%;margin:0 auto;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px}
+.how-to h3{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.how-to p{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* ============= GAME AREA ============= */
+#gameScreen{padding:0;max-width:100%;justify-content:flex-start}
+.game-arena{width:100%;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;position:relative;overflow:hidden;padding:60px 16px 16px}
+
+/* Table themes */
+.table-classic{background:linear-gradient(135deg,#0a0e1a 0%,#111827 100%)}
+.table-casino{background:linear-gradient(135deg,#0a2e1a 0%,#1a3a2a 100%)}
+.table-darkwood{background:linear-gradient(135deg,#1a1208 0%,#2a1e10 100%)}
+.table-space{background:linear-gradient(135deg,#05051a 0%,#0a0a30 100%)}
+
+/* Score HUD */
+.war-hud{width:100%;max-width:700px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.hud-player{display:flex;flex-direction:column;align-items:center;gap:2px}
+.hud-name{font-family:'Fredoka',sans-serif;font-size:16px;font-weight:700;color:var(--text2)}
+.hud-name.you{color:var(--accent)}
+.hud-pile{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;color:#fff}
+.hud-pile-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.hud-vs{font-family:'Fredoka',sans-serif;font-size:14px;font-weight:700;color:var(--text2)}
+.hud-round{font-size:13px;color:var(--text2);font-weight:600}
+
+/* Card rendering */
+.card{width:80px;height:120px;border-radius:10px;position:relative;font-family:'Fredoka',sans-serif;transition:transform .3s ease,box-shadow .3s ease;transform-style:preserve-3d;perspective:600px}
+.card-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .5s ease;border-radius:10px}
+.card.flipped .card-inner{transform:rotateY(180deg)}
+.card-front,.card-back{position:absolute;inset:0;border-radius:10px;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.card-front{transform:rotateY(180deg);background:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:6px 8px;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.card-front .cf-rank{font-size:20px;font-weight:700;line-height:1}
+.card-front .cf-suit{font-size:28px;line-height:1;align-self:center}
+.card-front .cf-rank-btm{font-size:20px;font-weight:700;line-height:1;align-self:flex-end;transform:rotate(180deg)}
+.card-front.red{color:#dc2626}
+.card-front.black{color:#111}
+
+/* Card back designs */
+.card-back{display:flex;align-items:center;justify-content:center;border:3px solid rgba(255,255,255,.15);box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.cb-classic{background:linear-gradient(135deg,#1e3a8a,#2563eb);border-color:rgba(255,255,255,.2)}
+.cb-classic::after{content:'';position:absolute;inset:6px;border:2px solid rgba(255,255,255,.15);border-radius:6px}
+.cb-red{background:linear-gradient(135deg,#991b1b,#dc2626);border-color:rgba(255,255,255,.2)}
+.cb-red::after{content:'';position:absolute;inset:6px;border:2px solid rgba(255,255,255,.15);border-radius:6px}
+.cb-green{background:linear-gradient(135deg,#166534,#22c55e);border-color:rgba(255,255,255,.2)}
+.cb-green::after{content:'';position:absolute;inset:6px;border:2px solid rgba(255,255,255,.15);border-radius:6px}
+.cb-gold{background:linear-gradient(135deg,#92400e,#fbbf24);border-color:rgba(255,209,102,.3)}
+.cb-gold::after{content:'';position:absolute;inset:6px;border:2px solid rgba(255,209,102,.2);border-radius:6px}
+.cb-pattern{background:linear-gradient(135deg,#1e1b4b,#4338ca);border-color:rgba(129,140,248,.3);background-image:repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(255,255,255,.05) 5px,rgba(255,255,255,.05) 10px)}
+.cb-pattern::after{content:'';position:absolute;inset:6px;border:2px solid rgba(129,140,248,.2);border-radius:6px}
+
+/* Battle area */
+.battle-area{display:flex;align-items:center;justify-content:center;gap:40px;margin:16px 0;flex:1;min-height:200px;position:relative}
+.player-side{display:flex;flex-direction:column;align-items:center;gap:8px}
+.pile-stack{position:relative;width:80px;height:120px;cursor:pointer}
+.pile-stack .card{position:absolute;top:0;left:0}
+.pile-label{font-size:12px;color:var(--text2);font-weight:600}
+
+/* Flip card area */
+.flip-zone{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:100px;min-height:160px;justify-content:center;position:relative}
+
+/* VS badge */
+.vs-badge{font-family:'Fredoka',sans-serif;font-size:24px;font-weight:700;color:var(--text2);display:flex;align-items:center;justify-content:center;width:50px;height:50px;border-radius:50%;background:var(--surface);border:2px solid var(--border)}
+
+/* Winning card glow */
+.card.winner{transform:translateY(-8px);box-shadow:0 0 30px rgba(6,214,160,.5),0 8px 32px rgba(0,0,0,.4);z-index:5}
+.card.winner .card-front{box-shadow:0 0 20px rgba(6,214,160,.3)}
+.card.loser{opacity:.7;transform:scale(.95)}
+
+/* War cards */
+.war-cards{display:flex;gap:4px;margin-bottom:4px}
+.war-card-mini{width:30px;height:44px;border-radius:5px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+
+/* War slam animation */
+@keyframes slamDown{0%{transform:translateY(-60px) scale(1.1);opacity:0}60%{transform:translateY(4px) scale(.98)}100%{transform:translateY(0) scale(1);opacity:1}}
+.slam{animation:slamDown .3s ease forwards}
+
+/* Collect animation */
+@keyframes collectLeft{0%{transform:translate(0,0);opacity:1}100%{transform:translate(-200px,40px) scale(.5);opacity:0}}
+@keyframes collectRight{0%{transform:translate(0,0);opacity:1}100%{transform:translate(200px,40px) scale(.5);opacity:0}}
+.collect-left{animation:collectLeft .5s ease forwards}
+.collect-right{animation:collectRight .5s ease forwards}
+
+/* Status text */
+.battle-status{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:var(--accent);text-align:center;min-height:28px;margin-top:8px}
+.battle-status.war-text{color:#fbbf24;font-size:28px;text-shadow:0 0 20px rgba(255,191,36,.4);animation:warPulse .6s ease infinite alternate}
+@keyframes warPulse{0%{transform:scale(1)}100%{transform:scale(1.08)}}
+
+/* Flip button */
+.flip-btn{padding:14px 40px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:18px;cursor:pointer;background:var(--accent);color:var(--bg);transition:all .15s;min-width:180px}
+.flip-btn:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.flip-btn:active{transform:scale(.96)}
+.flip-btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+
+/* Speed indicator */
+.speed-indicator{font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:1px}
+
+/* Results card */
+.results-card{background:rgba(255,255,255,.06);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:32px;max-width:420px;width:90%;text-align:center;animation:fadeUp .4s ease;margin:auto}
+.results-card h2{font-size:28px;color:var(--accent);margin-bottom:4px}
+.results-card h2.loss{color:#ef4444}
+.results-card h2.draw{color:var(--gold)}
+.results-score{font-size:clamp(36px,10vw,56px);font-weight:700;font-family:'Fredoka',sans-serif;color:#fff;line-height:1;margin:8px 0}
+.results-label{font-size:13px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:2px;margin-top:4px}
+.results-stat{display:flex;justify-content:center;gap:20px;margin:12px 0}
+.results-stat div{text-align:center}
+.results-stat .rs-val{font-size:22px;font-weight:800;color:#fff;font-family:'Fredoka',sans-serif}
+.results-stat .rs-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.results-coins{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:8px 18px;font-size:16px;font-weight:700;color:var(--gold);font-family:'Fredoka',sans-serif;margin:12px 0}
+.results-new{color:var(--accent);font-size:14px;font-weight:700;animation:pulse 1s ease-in-out infinite}
+.results-btns{display:flex;gap:10px;justify-content:center;margin-top:16px}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.05)}}
+
+/* RECORDS */
+#recordsScreen{padding-top:70px;justify-content:flex-start}
+.records-container{width:100%;max-width:420px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.stat-card .sv{font-size:24px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.stat-card .sv.gold{color:var(--gold)}
+.stat-card .sl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-weight:600}
+.lb-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px}
+.lb-row.me{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.lb-rank{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text2);flex-shrink:0}
+.lb-rank.r1{background:rgba(255,209,102,.2);color:var(--gold)}
+.lb-rank.r2{background:rgba(192,192,192,.15);color:#c0c0c0}
+.lb-rank.r3{background:rgba(205,127,50,.15);color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-size:14px;font-weight:800;color:var(--gold);font-family:'Fredoka',sans-serif}
+.lb-empty{text-align:center;color:var(--text2);font-size:14px;padding:24px;font-weight:600}
+
+/* SHOP */
+#shopScreen{padding-top:70px;justify-content:flex-start}
+
+/* ACHIEVEMENTS */
+.ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
+@keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../../student.html#arcade" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();showScreen('homeScreen')}">&#8592; Back</a>
+<button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128264;</button>
+
+<!-- HOME SCREEN -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1>&#127183; <span class="hl">War</span></h1>
+    <p>Classic card battle — highest card wins!</p>
+  </div>
+  <div class="best-pill">
+    <span class="bp-label">&#127942; Wins</span>
+    <span class="bp-val" id="homeBest">0</span>
+  </div>
+  <div class="diff-row" style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
+    <button class="diff-btn active" onclick="setSpeed('normal',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--accent);background:rgba(6,214,160,.15);color:var(--accent);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Normal</button>
+    <button class="diff-btn" onclick="setSpeed('fast',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Fast</button>
+    <button class="diff-btn" onclick="setSpeed('turbo',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Turbo</button>
+  </div>
+  <div class="home-actions">
+    <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
+    <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
+    <button class="btn btn-outline btn-small" onclick="showShopScreen()">&#128717;&#65039; Shop</button>
+  </div>
+  <div class="stats-row">
+    <div class="sr">&#127918; Games <span id="homeGames">0</span></div>
+    <div class="sr">&#127942; Wins <span id="homeWins">0</span></div>
+  </div>
+  <div class="how-to">
+    <h3>How to Play</h3>
+    <p>52 cards split evenly. Both flip a card &mdash; higher card wins the pair. Tie means War: 3 face-down + 1 face-up, highest wins all! First to all 52 cards or most cards after 100 rounds wins.</p>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div class="screen" id="gameScreen">
+  <div class="game-arena table-classic" id="gameArena">
+    <!-- HUD -->
+    <div class="war-hud">
+      <div class="hud-player">
+        <div class="hud-name you">You</div>
+        <div class="hud-pile" id="playerPile">26</div>
+        <div class="hud-pile-label">cards</div>
+      </div>
+      <div style="text-align:center">
+        <div class="hud-round" id="hudRound">Round 1 / 100</div>
+        <div class="speed-indicator" id="speedLabel">Normal</div>
+      </div>
+      <div class="hud-player">
+        <div class="hud-name">CPU</div>
+        <div class="hud-pile" id="cpuPile">26</div>
+        <div class="hud-pile-label">cards</div>
+      </div>
+    </div>
+
+    <!-- Battle Area -->
+    <div class="battle-area" id="battleArea">
+      <!-- Player side -->
+      <div class="player-side">
+        <div class="pile-label">Your Deck</div>
+        <div class="pile-stack" id="playerDeck" onclick="flipCards()"></div>
+        <div class="flip-zone" id="playerFlip"></div>
+      </div>
+
+      <!-- VS -->
+      <div class="vs-badge">VS</div>
+
+      <!-- CPU side -->
+      <div class="player-side">
+        <div class="pile-label">CPU Deck</div>
+        <div class="pile-stack" id="cpuDeck"></div>
+        <div class="flip-zone" id="cpuFlip"></div>
+      </div>
+    </div>
+
+    <div class="battle-status" id="battleStatus">Click your deck or press Space to flip!</div>
+    <button class="flip-btn" id="flipBtn" onclick="flipCards()">&#9654; Flip Cards</button>
+  </div>
+</div>
+
+<!-- RECORDS SCREEN -->
+<div class="screen" id="recordsScreen">
+  <h1>Your <span style="color:var(--accent)">Records</span></h1>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:20px">War stats &amp; leaderboard</p>
+  <div class="records-container">
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="sv gold" id="statWins">0</div><div class="sl">Wins</div></div>
+      <div class="stat-card"><div class="sv" id="statPlayed">0</div><div class="sl">Games Played</div></div>
+      <div class="stat-card"><div class="sv" id="statWinRate">0%</div><div class="sl">Win Rate</div></div>
+      <div class="stat-card"><div class="sv" id="statCoins">0</div><div class="sl">Coins Earned</div></div>
+    </div>
+    <div class="lb-title" style="margin-top:16px">&#127942; Achievements</div>
+    <div id="achievementsGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:24px"></div>
+    <div class="lb-title">Class Leaderboard</div>
+    <div class="lb-list" id="leaderboard"><div class="lb-empty">Loading...</div></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHOP SCREEN -->
+<div class="screen" id="shopScreen">
+  <div style="text-align:center;margin-bottom:8px">
+    <h1>&#128717;&#65039; Shop</h1>
+    <p style="color:var(--text2);font-size:14px">Customize your War game</p>
+  </div>
+  <div id="warShopContainer" style="width:100%;max-width:500px"></div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script>
+/* ===================== */
+/* SESSION               */
+/* ===================== */
+var studentId=localStorage.getItem('studentId')||'';
+var studentName=localStorage.getItem('studentName')||'';
+var classCode=localStorage.getItem('classCode')||'';
+var isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+if(isTeacher)document.getElementById('backBtn').href='../../teacher.html#arcade';
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+/* ===================== */
+/* SCREEN SYSTEM         */
+/* ===================== */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+  document.getElementById(id).classList.add('active');
+  document.body.classList.toggle('in-game',id==='gameScreen');
+  if(id==='homeScreen'){stopGame();loadLocalStats()}
+}
+
+/* ===================== */
+/* AUDIO                 */
+/* ===================== */
+var audioCtx=null,soundOn=localStorage.getItem('odaSoundEnabled')!=='false';
+function getAudioCtx(){
+  if(!audioCtx)try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq,dur,type,vol,ramp){
+  if(!soundOn)return;var ctx=getAudioCtx();if(!ctx)return;
+  var osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.type=type||'square';osc.frequency.setValueAtTime(freq,ctx.currentTime);
+  if(ramp)osc.frequency.linearRampToValueAtTime(ramp,ctx.currentTime+dur);
+  gain.gain.setValueAtTime(vol||0.1,ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+  osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+dur);
+}
+function sfxFlip(){playTone(500,0.06,'sine',0.1);setTimeout(function(){playTone(700,0.05,'sine',0.08)},40)}
+function sfxWin(){playTone(660,0.08,'sine',0.12);setTimeout(function(){playTone(880,0.1,'sine',0.1)},60)}
+function sfxLose(){playTone(300,0.15,'sawtooth',0.08,200)}
+function sfxWar(){playTone(220,0.2,'square',0.1);setTimeout(function(){playTone(330,0.15,'square',0.1)},150);setTimeout(function(){playTone(440,0.25,'square',0.12)},300)}
+function sfxSlam(){playTone(120,0.08,'square',0.15)}
+function sfxCollect(){playTone(523,0.06,'sine',0.1);setTimeout(function(){playTone(659,0.06,'sine',0.08)},50);setTimeout(function(){playTone(784,0.08,'sine',0.1)},100)}
+function sfxGameWin(){playTone(523,0.1,'sine',0.12);setTimeout(function(){playTone(659,0.1,'sine',0.1)},80);setTimeout(function(){playTone(784,0.15,'sine',0.12)},160);setTimeout(function(){playTone(1047,0.2,'sine',0.12)},260)}
+function sfxGameLose(){playTone(400,0.15,'sawtooth',0.1,200);setTimeout(function(){playTone(300,0.2,'sawtooth',0.08,150)},150)}
+function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;';localStorage.setItem('odaSoundEnabled',soundOn)}
+if(!soundOn)document.getElementById('soundBtn').innerHTML='&#128263;';
+
+/* ===================== */
+/* CARD DATA             */
+/* ===================== */
+var SUITS=['&#9824;','&#9829;','&#9830;','&#9827;']; // spades, hearts, diamonds, clubs
+var SUIT_COLORS=[false,true,true,false]; // false=black, true=red
+var RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+var RANK_VALUES={2:2,3:3,4:4,5:5,6:6,7:7,8:8,9:9,10:10,J:11,Q:12,K:13,A:14};
+
+function makeDeck(){
+  var deck=[];
+  for(var s=0;s<4;s++){
+    for(var r=0;r<13;r++){
+      deck.push({suit:SUITS[s],rank:RANKS[r],value:RANK_VALUES[RANKS[r]],isRed:SUIT_COLORS[s]});
+    }
+  }
+  return deck;
+}
+
+function shuffle(arr){
+  for(var i=arr.length-1;i>0;i--){
+    var j=Math.floor(Math.random()*(i+1));
+    var t=arr[i];arr[i]=arr[j];arr[j]=t;
+  }
+  return arr;
+}
+
+/* ===================== */
+/* COSMETICS             */
+/* ===================== */
+var myCosmetics={};
+var cardBackClass='cb-classic';
+var tableClass='table-classic';
+
+async function loadMyCosmetics(){
+  try{myCosmetics=JSON.parse(localStorage.getItem('oda_cosmetics_war')||'{}');}catch(e){myCosmetics={}}
+  var sid=localStorage.getItem('studentId');
+  if(sid){
+    try{
+      var fb=await window.getFirebaseDB();
+      var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));
+      if(snap.exists()){var d=snap.data();var fc=d.gameCosmetics?.war?.equipped;if(fc&&Object.keys(fc).length>0)myCosmetics=fc;}
+    }catch(e){}
+  }
+  applyCosmeticStyles();
+}
+loadMyCosmetics();
+
+function applyCosmeticStyles(){
+  var cb=myCosmetics['Card Back'];
+  if(cb&&cb.value)cardBackClass=cb.value.cls||'cb-classic';
+  var tt=myCosmetics['Table Theme'];
+  if(tt&&tt.value)tableClass=tt.value.cls||'table-classic';
+}
+
+/* ===================== */
+/* SHOP                  */
+/* ===================== */
+var WAR_SHOP=[
+  {id:'war_cb_classic',name:'Classic Blue',emoji:'&#128309;',cost:0,slot:'Card Back',value:{cls:'cb-classic'}},
+  {id:'war_cb_red',name:'Red',emoji:'&#128308;',cost:80,slot:'Card Back',value:{cls:'cb-red'}},
+  {id:'war_cb_green',name:'Green',emoji:'&#128994;',cost:80,slot:'Card Back',value:{cls:'cb-green'}},
+  {id:'war_cb_gold',name:'Gold',emoji:'&#128311;',cost:150,slot:'Card Back',value:{cls:'cb-gold'}},
+  {id:'war_cb_pattern',name:'Pattern',emoji:'&#128156;',cost:200,slot:'Card Back',value:{cls:'cb-pattern'}},
+
+  {id:'war_tt_classic',name:'Classic',emoji:'&#9899;',cost:0,slot:'Table Theme',value:{cls:'table-classic'}},
+  {id:'war_tt_casino',name:'Casino Green',emoji:'&#127922;',cost:100,slot:'Table Theme',value:{cls:'table-casino'}},
+  {id:'war_tt_darkwood',name:'Dark Wood',emoji:'&#129717;',cost:120,slot:'Table Theme',value:{cls:'table-darkwood'}},
+  {id:'war_tt_space',name:'Space',emoji:'&#128640;',cost:200,slot:'Table Theme',value:{cls:'table-space'}}
+];
+
+function showShopScreen(){
+  showScreen('shopScreen');
+  if(typeof odaShop!=='undefined'){
+    odaShop.renderShopPanel('war',WAR_SHOP,'warShopContainer',{
+      onEquip:function(){loadMyCosmetics()},
+      onBuy:function(){loadMyCosmetics()}
+    });
+  }
+}
+
+/* ===================== */
+/* ACHIEVEMENTS          */
+/* ===================== */
+var WAR_ACHIEVEMENTS=[
+  {id:'war_first',name:'First Victory',desc:'Win your first game',icon:'&#127942;',check:function(s){return s.wins>=1}},
+  {id:'war_quick',name:'Quick War',desc:'Win in under 50 rounds',icon:'&#9889;',check:function(s){return s.quickWin}},
+  {id:'war_10',name:'Veteran',desc:'Win 10 games',icon:'&#11088;',check:function(s){return s.wins>=10}},
+  {id:'war_5wars',name:'War!',desc:'Get 5 wars in one game',icon:'&#9876;&#65039;',check:function(s){return s.maxWarsInGame>=5}},
+  {id:'war_comeback',name:'Comeback',desc:'Win after being down to 10 cards',icon:'&#128170;',check:function(s){return s.comebackWin}},
+  {id:'war_25',name:'Card Shark',desc:'Play 25 games',icon:'&#127183;',check:function(s){return s.gamesPlayed>=25}}
+];
+var achState={};
+
+async function checkAchievements(extra){
+  var sid=localStorage.getItem('studentId');
+  if(!sid||sid.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'warRecords',sid);
+    var snap=await fb.fsMod.getDoc(ref);
+    var data=snap.exists()?snap.data():{};
+    var state=Object.assign({},data,extra||{});
+    achState=data.achievements||{};
+    var newUnlocks=[];
+    WAR_ACHIEVEMENTS.forEach(function(a){
+      if(!achState[a.id]&&a.check(state)){achState[a.id]=Date.now();newUnlocks.push(a)}
+    });
+    if(newUnlocks.length>0){
+      var upd={};newUnlocks.forEach(function(a){upd['achievements.'+a.id]=achState[a.id]});
+      await fb.fsMod.updateDoc(ref,upd);
+      newUnlocks.forEach(function(a){showAchToast(a)});
+    }
+  }catch(e){}
+}
+
+function showAchToast(a){
+  var el=document.createElement('div');el.className='ach-popup';
+  el.innerHTML='<span style="font-size:32px">'+a.icon+'</span><div><div style="color:var(--gold);font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:var(--text);font-size:15px;font-weight:600;font-family:Outfit,sans-serif">'+esc(a.name)+'</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function(){el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(function(){el.remove()},400)},3500);
+}
+
+/* ===================== */
+/* LOCAL STATS           */
+/* ===================== */
+var localWins=parseInt(localStorage.getItem('war_wins'))||0;
+var localGames=parseInt(localStorage.getItem('war_games'))||0;
+var localCoins=parseInt(localStorage.getItem('war_coins'))||0;
+
+function loadLocalStats(){
+  document.getElementById('homeBest').textContent=localWins;
+  document.getElementById('homeGames').textContent=localGames;
+  document.getElementById('homeWins').textContent=localWins;
+}
+loadLocalStats();
+
+/* ===================== */
+/* SPEED MODE            */
+/* ===================== */
+var speedMode='normal';
+var SPEEDS={normal:{delay:0,label:'Normal',auto:false},fast:{delay:1500,label:'Fast',auto:true},turbo:{delay:500,label:'Turbo',auto:true}};
+
+window.setSpeed=function(mode,btn){
+  speedMode=mode;
+  document.querySelectorAll('.diff-btn').forEach(function(b){b.style.borderColor='var(--border)';b.style.background='none';b.style.color='var(--text2)'});
+  if(btn){btn.style.borderColor='var(--accent)';btn.style.background='rgba(6,214,160,.15)';btn.style.color='var(--accent)'}
+};
+
+/* ===================== */
+/* GAME STATE            */
+/* ===================== */
+var gameActive=false;
+var playerDeck=[];
+var cpuDeck=[];
+var currentRound=0;
+var maxRounds=100;
+var warCount=0;
+var wasLow=false; // Track if player was ever at 10 or fewer cards
+var animating=false;
+var autoTimer=null;
+var coinsAwarded=false;
+
+function stopGame(){
+  gameActive=false;
+  animating=false;
+  if(autoTimer){clearInterval(autoTimer);autoTimer=null}
+}
+
+window.addEventListener('beforeunload',stopGame);
+document.addEventListener('visibilitychange',function(){if(document.hidden&&gameActive)stopGame()});
+
+/* ===================== */
+/* CARD RENDERING        */
+/* ===================== */
+function renderCardBack(){
+  return '<div class="card"><div class="card-inner"><div class="card-front"></div><div class="card-back '+cardBackClass+'"></div></div></div>';
+}
+
+function renderCardFace(card,extraClass){
+  var colorClass=card.isRed?'red':'black';
+  return '<div class="card flipped '+(extraClass||'')+'">' +
+    '<div class="card-inner">' +
+    '<div class="card-front '+colorClass+'">' +
+    '<div class="cf-rank">'+card.rank+card.suit+'</div>' +
+    '<div class="cf-suit">'+card.suit+'</div>' +
+    '<div class="cf-rank-btm">'+card.rank+card.suit+'</div>' +
+    '</div>' +
+    '<div class="card-back '+cardBackClass+'"></div>' +
+    '</div></div>';
+}
+
+function renderMiniCardBack(){
+  return '<div class="war-card-mini '+cardBackClass+'"></div>';
+}
+
+function updatePileDisplay(){
+  var pd=document.getElementById('playerDeck');
+  var cd=document.getElementById('cpuDeck');
+  // Show stacked card backs for decks
+  pd.innerHTML=playerDeck.length>0?renderCardBack():'';
+  cd.innerHTML=cpuDeck.length>0?renderCardBack():'';
+  // Pile counts
+  document.getElementById('playerPile').textContent=playerDeck.length;
+  document.getElementById('cpuPile').textContent=cpuDeck.length;
+  document.getElementById('hudRound').textContent='Round '+currentRound+' / '+maxRounds;
+}
+
+/* ===================== */
+/* START GAME            */
+/* ===================== */
+function startGame(){
+  showScreen('gameScreen');
+  applyCosmeticStyles();
+
+  // Apply table theme
+  var arena=document.getElementById('gameArena');
+  arena.className='game-arena '+tableClass;
+
+  // Reset state
+  var deck=shuffle(makeDeck());
+  playerDeck=deck.slice(0,26);
+  cpuDeck=deck.slice(26);
+  currentRound=0;
+  warCount=0;
+  wasLow=false;
+  animating=false;
+  coinsAwarded=false;
+  if(autoTimer){clearInterval(autoTimer);autoTimer=null}
+
+  // Clear flip zones
+  document.getElementById('playerFlip').innerHTML='';
+  document.getElementById('cpuFlip').innerHTML='';
+  document.getElementById('battleStatus').textContent='Click your deck or press Space to flip!';
+  document.getElementById('battleStatus').className='battle-status';
+  document.getElementById('speedLabel').textContent=SPEEDS[speedMode].label;
+
+  // Show/hide flip button
+  var flipBtn=document.getElementById('flipBtn');
+  flipBtn.style.display=SPEEDS[speedMode].auto?'none':'';
+  flipBtn.disabled=false;
+
+  updatePileDisplay();
+  gameActive=true;
+
+  // Start auto mode if applicable
+  if(SPEEDS[speedMode].auto){
+    autoTimer=setInterval(function(){
+      if(!animating&&gameActive)flipCards();
+    },SPEEDS[speedMode].delay);
+  }
+}
+
+/* ===================== */
+/* FLIP CARDS            */
+/* ===================== */
+function flipCards(){
+  if(!gameActive||animating)return;
+  if(playerDeck.length===0||cpuDeck.length===0){finishGame();return}
+
+  animating=true;
+  currentRound++;
+
+  // Track low card count for comeback achievement
+  if(playerDeck.length<=10)wasLow=true;
+
+  // Disable flip btn during animation
+  var flipBtn=document.getElementById('flipBtn');
+  if(flipBtn)flipBtn.disabled=true;
+
+  // Draw cards
+  var pCard=playerDeck.shift();
+  var cCard=cpuDeck.shift();
+
+  sfxFlip();
+
+  // Clear previous flip zones
+  var pFlip=document.getElementById('playerFlip');
+  var cFlip=document.getElementById('cpuFlip');
+  pFlip.innerHTML='';
+  cFlip.innerHTML='';
+  document.getElementById('battleStatus').textContent='';
+  document.getElementById('battleStatus').className='battle-status';
+
+  // Show card backs first, then flip
+  pFlip.innerHTML=renderCardBack();
+  cFlip.innerHTML=renderCardBack();
+
+  setTimeout(function(){
+    // Flip to show faces
+    pFlip.innerHTML=renderCardFace(pCard,'slam');
+    cFlip.innerHTML=renderCardFace(cCard,'slam');
+
+    updatePileDisplay();
+
+    setTimeout(function(){
+      resolveRound(pCard,cCard,[pCard,cCard]);
+    },400);
+  },300);
+}
+
+/* ===================== */
+/* RESOLVE ROUND         */
+/* ===================== */
+function resolveRound(pCard,cCard,pot){
+  if(pCard.value>cCard.value){
+    // Player wins
+    sfxWin();
+    markWinner('playerFlip','cpuFlip');
+    document.getElementById('battleStatus').textContent='You win this round!';
+    document.getElementById('battleStatus').className='battle-status';
+
+    setTimeout(function(){
+      collectCards(pot,'player');
+    },600);
+
+  }else if(cCard.value>pCard.value){
+    // CPU wins
+    sfxLose();
+    markWinner('cpuFlip','playerFlip');
+    document.getElementById('battleStatus').textContent='CPU wins this round';
+    document.getElementById('battleStatus').className='battle-status';
+
+    setTimeout(function(){
+      collectCards(pot,'cpu');
+    },600);
+
+  }else{
+    // WAR!
+    warCount++;
+    sfxWar();
+    document.getElementById('battleStatus').innerHTML='&#9876;&#65039; WAR! &#9876;&#65039;';
+    document.getElementById('battleStatus').className='battle-status war-text';
+
+    setTimeout(function(){
+      doWar(pot);
+    },800);
+  }
+}
+
+function markWinner(winnerId,loserId){
+  var wCards=document.getElementById(winnerId).querySelectorAll('.card');
+  var lCards=document.getElementById(loserId).querySelectorAll('.card');
+  wCards.forEach(function(c){c.classList.add('winner')});
+  lCards.forEach(function(c){c.classList.add('loser')});
+}
+
+/* ===================== */
+/* COLLECT ANIMATION     */
+/* ===================== */
+function collectCards(pot,winner){
+  var pFlip=document.getElementById('playerFlip');
+  var cFlip=document.getElementById('cpuFlip');
+
+  // Add collect animation
+  var direction=winner==='player'?'collect-left':'collect-right';
+  var allCards=pFlip.querySelectorAll('.card');
+  allCards.forEach(function(c){c.classList.add(direction)});
+  var allCards2=cFlip.querySelectorAll('.card');
+  allCards2.forEach(function(c){c.classList.add(direction)});
+
+  sfxCollect();
+
+  setTimeout(function(){
+    // Add cards to winner's pile (shuffled into pile)
+    var shuffledPot=shuffle(pot.slice());
+    if(winner==='player'){
+      playerDeck=playerDeck.concat(shuffledPot);
+    }else{
+      cpuDeck=cpuDeck.concat(shuffledPot);
+    }
+
+    pFlip.innerHTML='';
+    cFlip.innerHTML='';
+    updatePileDisplay();
+
+    // Check game end
+    if(playerDeck.length===0||cpuDeck.length===0||currentRound>=maxRounds){
+      finishGame();
+      return;
+    }
+
+    animating=false;
+    if(document.getElementById('flipBtn'))document.getElementById('flipBtn').disabled=false;
+  },500);
+}
+
+/* ===================== */
+/* WAR SEQUENCE          */
+/* ===================== */
+function doWar(pot){
+  var pFlip=document.getElementById('playerFlip');
+  var cFlip=document.getElementById('cpuFlip');
+
+  // Each player needs at least 4 cards for war (3 face-down + 1 face-up)
+  // If not enough, go all-in with what they have
+  var pWarCount=Math.min(4,playerDeck.length);
+  var cWarCount=Math.min(4,cpuDeck.length);
+
+  if(pWarCount===0||cWarCount===0){
+    // One player has no cards — resolve based on current state
+    animating=false;
+    if(document.getElementById('flipBtn'))document.getElementById('flipBtn').disabled=false;
+    finishGame();
+    return;
+  }
+
+  var pWarCards=playerDeck.splice(0,pWarCount);
+  var cWarCards=cpuDeck.splice(0,cWarCount);
+
+  // Add all war cards to pot
+  pot=pot.concat(pWarCards).concat(cWarCards);
+
+  // Show face-down cards being slammed
+  var pDownHtml='<div class="war-cards">';
+  var cDownHtml='<div class="war-cards">';
+  for(var i=0;i<pWarCards.length-1;i++){
+    pDownHtml+=renderMiniCardBack();
+  }
+  for(var i=0;i<cWarCards.length-1;i++){
+    cDownHtml+=renderMiniCardBack();
+  }
+  pDownHtml+='</div>';
+  cDownHtml+='</div>';
+
+  // Slam face-down cards with staggered animation
+  var slamDelay=0;
+  for(var i=0;i<Math.max(pWarCards.length,cWarCards.length)-1;i++){
+    (function(idx){
+      setTimeout(function(){
+        sfxSlam();
+      },idx*200);
+    })(i);
+    slamDelay=(i+1)*200;
+  }
+
+  setTimeout(function(){
+    // Show face-down cards
+    pFlip.innerHTML+=pDownHtml;
+    cFlip.innerHTML+=cDownHtml;
+    updatePileDisplay();
+
+    setTimeout(function(){
+      // Flip the final face-up card
+      var pFinal=pWarCards[pWarCards.length-1];
+      var cFinal=cWarCards[cWarCards.length-1];
+
+      sfxFlip();
+
+      pFlip.innerHTML+=renderCardFace(pFinal,'slam');
+      cFlip.innerHTML+=renderCardFace(cFinal,'slam');
+
+      setTimeout(function(){
+        resolveRound(pFinal,cFinal,pot);
+      },400);
+    },400);
+  },slamDelay+200);
+}
+
+/* ===================== */
+/* FINISH GAME           */
+/* ===================== */
+function finishGame(){
+  if(coinsAwarded)return;
+  gameActive=false;
+  animating=false;
+  if(autoTimer){clearInterval(autoTimer);autoTimer=null}
+
+  var pCount=playerDeck.length;
+  var cCount=cpuDeck.length;
+  var won=pCount>cCount;
+  var draw=pCount===cCount;
+
+  if(won)sfxGameWin();else sfxGameLose();
+
+  // Update local stats
+  localGames++;localStorage.setItem('war_games',localGames);
+  if(won){localWins++;localStorage.setItem('war_wins',localWins)}
+
+  // Coins
+  var coins=0;
+  if(won)coins=10;
+  else if(draw)coins=5;
+  else coins=2;
+  localCoins+=coins;localStorage.setItem('war_coins',localCoins);
+
+  // Build results card
+  var arena=document.getElementById('gameArena');
+  var existing=arena.querySelector('.results-card');
+  if(existing)existing.remove();
+
+  // Hide battle UI
+  document.getElementById('flipBtn').style.display='none';
+  document.getElementById('battleStatus').textContent='';
+
+  var titleClass=won?'':draw?'draw':'loss';
+  var titleText=won?'Victory!':draw?'Draw!':'Defeat';
+
+  var html='<div class="results-card">';
+  html+='<h2 class="'+titleClass+'">'+titleText+'</h2>';
+  html+='<div class="results-score">'+pCount+' - '+cCount+'</div>';
+  html+='<div class="results-label">Cards</div>';
+  html+='<div class="results-stat">';
+  html+='<div><div class="rs-val">'+currentRound+'</div><div class="rs-label">Rounds</div></div>';
+  html+='<div><div class="rs-val">'+warCount+'</div><div class="rs-label">Wars</div></div>';
+  html+='</div>';
+  html+='<div class="results-coins">+'+coins+' coins</div>';
+  html+='<div class="results-btns">';
+  html+='<button class="btn btn-accent btn-small" onclick="startGame()">Play Again</button>';
+  html+='<button class="btn btn-outline btn-small" onclick="showScreen(\'homeScreen\')">Home</button>';
+  html+='</div></div>';
+
+  var wrapper=document.createElement('div');
+  wrapper.innerHTML=html;
+  var card=wrapper.firstChild;
+  card.style.zIndex='20';
+  arena.appendChild(card);
+
+  if(!coinsAwarded){
+    coinsAwarded=true;
+    awardCoins(coins);
+    saveRecord(won,draw);
+    var achExtra={
+      wins:localWins,
+      gamesPlayed:localGames,
+      quickWin:won&&currentRound<50,
+      maxWarsInGame:warCount,
+      comebackWin:won&&wasLow
+    };
+    checkAchievements(achExtra);
+  }
+}
+
+/* ===================== */
+/* FIREBASE              */
+/* ===================== */
+async function awardCoins(coins){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{var fb=await window.getFirebaseDB();await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{coins:fb.fsMod.increment(coins)})}catch(e){}
+}
+
+async function saveRecord(won,draw){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'warRecords',studentId);
+    var snap=await fb.fsMod.getDoc(ref);
+    if(snap.exists()){
+      var upd={gamesPlayed:fb.fsMod.increment(1),lastPlayed:new Date().toISOString()};
+      if(won)upd.wins=fb.fsMod.increment(1);
+      // Track max wars in a single game
+      var data=snap.data();
+      if(warCount>(data.maxWarsInGame||0))upd.maxWarsInGame=warCount;
+      if(won&&wasLow)upd.comebackWin=true;
+      if(won&&currentRound<50)upd.quickWin=true;
+      await fb.fsMod.updateDoc(ref,upd);
+    }else{
+      await fb.fsMod.setDoc(ref,{
+        studentId:studentId,studentName:studentName||'',classCode:classCode,
+        wins:won?1:0,gamesPlayed:1,lastPlayed:new Date().toISOString(),
+        maxWarsInGame:warCount,comebackWin:won&&wasLow,quickWin:won&&currentRound<50
+      });
+    }
+  }catch(e){console.warn('Save failed:',e)}
+}
+
+/* ===================== */
+/* RECORDS & LEADERBOARD */
+/* ===================== */
+async function showRecords(){
+  showScreen('recordsScreen');
+  document.getElementById('statWins').textContent=localWins;
+  document.getElementById('statPlayed').textContent=localGames;
+  document.getElementById('statWinRate').textContent=localGames>0?Math.round(localWins/localGames*100)+'%':'0%';
+  document.getElementById('statCoins').textContent=localCoins;
+
+  // Achievements grid
+  var ag=document.getElementById('achievementsGrid');ag.innerHTML='';
+  WAR_ACHIEVEMENTS.forEach(function(a){
+    var unlocked=!!achState[a.id];
+    ag.innerHTML+='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:1px solid '+(unlocked?'var(--gold)':'var(--border)')+';border-radius:12px;padding:10px 4px;text-align:center;'+(unlocked?'box-shadow:0 0 12px rgba(255,209,102,.15)':'opacity:.3;filter:grayscale(1)')+'"><span style="font-size:24px">'+a.icon+'</span><span style="font-size:9px;color:var(--text2);line-height:1.2;margin-top:4px">'+esc(a.name)+'</span></div>';
+  });
+
+  // Leaderboard
+  var lb=document.getElementById('leaderboard');lb.innerHTML='<div class="lb-empty">Loading...</div>';
+  if(!classCode){lb.innerHTML='<div class="lb-empty">Join a class to see the leaderboard</div>';return}
+  try{
+    var fb=await window.getFirebaseDB();
+    var q=fb.fsMod.query(fb.fsMod.collection(fb.db,'warRecords'),fb.fsMod.where('classCode','==',classCode),fb.fsMod.orderBy('wins','desc'),fb.fsMod.limit(20));
+    var snap=await fb.fsMod.getDocs(q);
+    if(snap.empty){lb.innerHTML='<div class="lb-empty">No scores yet. Be the first!</div>';return}
+    var h='',rank=0;
+    snap.forEach(function(d){
+      rank++;var data=d.data();var isMe=data.studentId===studentId;
+      var rc=rank<=3?'r'+rank:'';
+      h+='<div class="lb-row'+(isMe?' me':'')+'"><div class="lb-rank '+rc+'">'+rank+'</div><div class="lb-name">'+esc(data.studentName||'Player')+'</div><div class="lb-score">'+data.wins+' W</div></div>';
+    });
+    lb.innerHTML=h;
+  }catch(e){lb.innerHTML='<div class="lb-empty">Could not load leaderboard</div>'}
+}
+
+/* ===================== */
+/* KEYBOARD SUPPORT      */
+/* ===================== */
+document.addEventListener('keydown',function(e){
+  if(e.code==='Space'||e.key===' '){
+    e.preventDefault();
+    if(document.getElementById('gameScreen').classList.contains('active')&&!animating){
+      flipCards();
+    }
+  }
+});
+
+/* ===================== */
+/* INIT                  */
+/* ===================== */
+// Preload achievements
+(async function(){
+  var sid=localStorage.getItem('studentId');
+  if(!sid||sid.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'warRecords',sid));
+    if(snap.exists())achState=snap.data().achievements||{};
+  }catch(e){}
+})();
+</script>
+</body>
+</html>

@@ -14,6 +14,7 @@ window.ODA_GAMES=[
 {id:'dominoes',emoji:'\u{1F3B2}',title:'Dominoes',desc:'Match tiles, outsmart your opponent',file:'arcade/dominoes/index.html',cat:'multiplayer',colors:['#f5f0e8','#1a1a2e'],categories:['Multiplayer','Strategy']},
 {id:'penaltykick',emoji:'\u26BD',title:'Penalty Kick',desc:'Aim, shoot, save — score goals!',file:'arcade/penaltykick/index.html',cat:'multiplayer',colors:['#16a34a','#fafafa'],categories:['Multiplayer','Sports']},
 {id:'pingpong',emoji:'\u{1F3D3}',title:'Ping Pong',desc:'Classic pong — beat the AI!',file:'arcade/pingpong/index.html',cat:'multiplayer',colors:['#1e293b','#06d6a0'],categories:['Multiplayer','Sports']},
+{id:'war',emoji:'\u{1F0CF}',title:'War',desc:'Flip cards — highest wins!',file:'arcade/war/index.html',cat:'multiplayer',colors:['#1e3a5f','#dc2626'],categories:['Multiplayer']},
 // Arcade
 {id:'snake',emoji:'\u{1F40D}',title:'Snake',desc:'Eat, grow, survive!',file:'arcade/snake/index.html',cat:'arcade',colors:['#06d6a0','#0a0e1a'],categories:['Action']},
 {id:'flappy',emoji:'\u{1F426}',title:'Floppy Bird',desc:'Tap to fly, dodge the pipes!',file:'arcade/flappy/index.html',cat:'arcade',colors:['#fbbf24','#1e3a5f'],categories:['Action']},
@@ -26,6 +27,9 @@ window.ODA_GAMES=[
 {id:'helicopter',emoji:'\u{1F681}',title:'Helicopter',desc:'Fly through the cave!',file:'arcade/helicopter/index.html',cat:'arcade',colors:['#3b82f6','#374151'],categories:['Action']},
 {id:'doodlejump',emoji:'\u{1F438}',title:'Doodle Jump',desc:'Bounce higher and higher!',file:'arcade/doodlejump/index.html',cat:'arcade',colors:['#4ade80','#1a1a2e'],categories:['Action']},
 {id:'colormatch',emoji:'\u{1F3A8}',title:'Color Match',desc:'Read the color, not the word!',file:'arcade/colormatch/index.html',cat:'arcade',colors:['#ef4444','#3b82f6'],categories:['Action','Puzzle']},
+{id:'mathsprint',emoji:'\u2795',title:'Math Sprint',desc:'Rapid fire math — solve fast!',file:'arcade/mathsprint/index.html',cat:'arcade',colors:['#3b82f6','#fbbf24'],categories:['Action','Puzzle']},
+{id:'stacktower',emoji:'\u{1F3D7}',title:'Stack Tower',desc:'Time your drops, build high!',file:'arcade/stacktower/index.html',cat:'arcade',colors:['#f97316','#8b5cf6'],categories:['Action']},
+{id:'dodgeball',emoji:'\u{1F3C3}',title:'Dodge Ball',desc:'Dodge falling objects, collect coins!',file:'arcade/dodgeball/index.html',cat:'arcade',colors:['#06d6a0','#ef4444'],categories:['Action']},
 // Puzzle
 {id:'2048',emoji:'\u{1F522}',title:'2048',desc:'Slide and merge to 2048!',file:'arcade/2048/index.html',cat:'puzzle',colors:['#f59e0b','#1a1a2e'],categories:['Puzzle']},
 {id:'solitaire',emoji:'\u{1F0CF}',title:'Solitaire',desc:'Classic card game!',file:'arcade/solitaire/index.html',cat:'puzzle',colors:['#16a34a','#dc2626'],categories:['Puzzle']},
@@ -37,10 +41,13 @@ window.ODA_GAMES=[
 {id:'numbermemory',emoji:'\u{1F522}',title:'Number Memory',desc:'How many digits can you remember?',file:'arcade/numbermemory/index.html',cat:'puzzle',colors:['#6366f1','#06d6a0'],categories:['Puzzle']},
 {id:'slidingpuzzle',emoji:'\u{1F9E9}',title:'Sliding Puzzle',desc:'Slide tiles into order!',file:'arcade/slidingpuzzle/index.html',cat:'puzzle',colors:['#1e3a5f','#06d6a0'],categories:['Puzzle']},
 {id:'minesweeper',emoji:'\u{1F4A3}',title:'Minesweeper',desc:'Find safe cells, avoid mines!',file:'arcade/minesweeper/index.html',cat:'puzzle',colors:['#6b7280','#ef4444'],categories:['Puzzle','Strategy']},
+{id:'floodfill',emoji:'\u{1F3A8}',title:'Flood Fill',desc:'Fill the board in fewest moves!',file:'arcade/floodfill/index.html',cat:'puzzle',colors:['#3b82f6','#06d6a0'],categories:['Puzzle','Strategy']},
+{id:'sudoku',emoji:'\u{1F9E9}',title:'Sudoku',desc:'Fill every row, column & box!',file:'arcade/sudoku/index.html',cat:'puzzle',colors:['#3b82f6','#06d6a0'],categories:['Puzzle','Strategy']},
 // Word
 {id:'wordle',emoji:'\u{1F4DD}',title:'Wordle',desc:'Guess the word in 6 tries!',file:'arcade/wordle/index.html',cat:'word',colors:['#16a34a','#fbbf24'],categories:['Puzzle','Word']},
 {id:'hangman',emoji:'\u{1F634}',title:'Hangman',desc:'Guess the word in time!',file:'arcade/hangman/index.html',cat:'word',colors:['#6366f1','#f59e0b'],categories:['Puzzle','Word']},
 {id:'trivia',emoji:'\u{1F3C1}',title:'Trivia Race',desc:'Race to answer questions!',file:'arcade/trivia/index.html',cat:'word',colors:['#dc2626','#fbbf24'],categories:['Word']},
 {id:'typing',emoji:'\u2328\uFE0F',title:'Typing Race',desc:'Type fast, race classmates!',file:'arcade/typing/index.html',cat:'word',colors:['#06d6a0','#1e293b'],categories:['Word']},
 {id:'keyboard',emoji:'\u{1F3AE}',title:'Keyboard Warriors',desc:'Type to defeat enemies!',file:'keyboard.html',cat:'word',colors:['#7c3aed','#ef4444'],categories:['Word']},
+{id:'wordscramble',emoji:'\u{1F50E}',title:'Word Scramble',desc:'Unscramble the letters!',file:'arcade/wordscramble/index.html',cat:'word',colors:['#3b82f6','#fbbf24'],categories:['Puzzle','Word']},
 ];

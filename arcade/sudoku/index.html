@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sudoku - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:center}
+body.in-game{overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+.sound-btn{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;transition:all .2s;backdrop-filter:blur(8px)}
+.sound-btn:hover{border-color:var(--accent)}
+
+.screen{display:none;width:100%;max-width:1100px;min-height:100vh;min-height:100dvh;padding:16px;animation:fadeUp .35s ease}
+@media(min-width:768px){
+  .home-header h1{font-size:80px!important}
+  .home-header p{font-size:18px}
+  .best-pill{padding:16px 32px;font-size:18px}
+  .best-pill .bp-val{font-size:28px}
+  .btn-accent{font-size:22px!important;padding:20px 64px!important}
+  .btn-outline{font-size:16px;padding:14px 28px}
+  .stats-row .sr{font-size:15px;padding:10px 22px}
+  .how-to{max-width:500px;padding:28px 32px}
+  .how-to h3{font-size:15px}
+  .how-to p{font-size:15px}
+}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+
+/* HOME */
+#homeScreen{padding-top:80px;justify-content:flex-start;gap:16px}
+.home-header{text-align:center;margin-bottom:8px}
+.home-header h1{font-size:clamp(48px,10vw,64px);font-weight:700;letter-spacing:-2px}
+.home-header h1 .hl{color:var(--accent)}
+.home-header p{color:var(--text2);font-size:15px;margin-top:4px}
+.best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
+.best-pill .bp-label{color:var(--text2)}
+.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
+.home-actions{display:flex;flex-direction:column;align-items:center;gap:14px}
+.stats-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.stats-row .sr{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+.how-to{max-width:420px;width:100%;margin:0 auto;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px}
+.how-to h3{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.how-to p{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* GAME AREA */
+#gameScreen{padding-top:60px;justify-content:flex-start;align-items:center;gap:12px}
+.game-top-bar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:520px;padding:0 4px;font-family:'Fredoka',sans-serif}
+.game-top-bar .gtb-item{display:flex;align-items:center;gap:6px;font-size:15px;font-weight:600;color:var(--text2)}
+.game-top-bar .gtb-val{color:var(--text);font-weight:700}
+.game-top-bar .gtb-val.mistakes-danger{color:#ef4444}
+
+/* SUDOKU GRID */
+.sudoku-wrapper{position:relative}
+.sudoku-grid{display:grid;grid-template-columns:repeat(9,1fr);border:3px solid var(--grid-thick,#94a3b8);border-radius:8px;overflow:hidden;background:var(--grid-thick,#94a3b8);gap:0}
+.sudoku-cell{width:52px;height:52px;display:flex;align-items:center;justify-content:center;font-family:'Fredoka',sans-serif;font-size:24px;font-weight:700;cursor:pointer;position:relative;background:var(--cell-bg,var(--surface));color:var(--cell-text,var(--text));border:1px solid var(--grid-thin,var(--border));transition:background .12s,color .12s}
+.sudoku-cell.given{color:var(--given-text,var(--text));font-weight:800;cursor:default}
+.sudoku-cell.selected{background:var(--cell-selected,rgba(59,130,246,.25))!important;z-index:2}
+.sudoku-cell.highlighted{background:var(--cell-highlight,rgba(59,130,246,.08))}
+.sudoku-cell.same-num{background:var(--cell-samenum,rgba(59,130,246,.15))}
+.sudoku-cell.error{color:#ef4444!important;animation:cellShake .3s ease}
+.sudoku-cell.error-bg{background:rgba(239,68,68,.08)!important}
+@keyframes cellShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.sudoku-cell.just-placed{animation:cellPop .25s ease}
+@keyframes cellPop{0%{transform:scale(1)}40%{transform:scale(1.15)}100%{transform:scale(1)}}
+
+/* Thick 3x3 borders */
+.sudoku-cell:nth-child(3n){border-right:3px solid var(--grid-thick,#94a3b8)}
+.sudoku-cell:nth-child(9n){border-right:none}
+.sudoku-cell:nth-child(n+19):nth-child(-n+27){border-bottom:3px solid var(--grid-thick,#94a3b8)}
+.sudoku-cell:nth-child(n+46):nth-child(-n+54){border-bottom:3px solid var(--grid-thick,#94a3b8)}
+.sudoku-cell:nth-child(n+73):nth-child(-n+81){border-bottom:none}
+
+/* Pencil marks */
+.pencil-marks{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);width:100%;height:100%;position:absolute;inset:0;pointer-events:none}
+.pencil-marks span{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--text2);opacity:.7;font-family:'Outfit',sans-serif}
+
+/* NUMBER PAD */
+.numpad{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:520px}
+.numpad-btn{width:52px;height:52px;border-radius:12px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.numpad-btn:hover{border-color:var(--accent);color:var(--accent)}
+.numpad-btn:active{transform:scale(.93)}
+.numpad-btn.active-num{border-color:var(--accent);background:rgba(6,214,160,.12);color:var(--accent)}
+.numpad-btn.depleted{opacity:.3;pointer-events:none}
+.numpad-btn.tool-btn{font-size:16px;background:var(--surface2,var(--surface));width:auto;padding:0 16px}
+.numpad-btn.tool-btn.active-tool{border-color:var(--accent);background:rgba(6,214,160,.15);color:var(--accent)}
+
+/* Game action row */
+.game-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px}
+
+/* RESULTS */
+.results-overlay{position:fixed;inset:0;background:rgba(10,14,26,.85);backdrop-filter:blur(8px);z-index:50;display:flex;align-items:center;justify-content:center;animation:fadeUp .35s ease}
+.results-card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:32px;max-width:400px;width:90%;text-align:center;animation:fadeUp .4s ease}
+.results-card h2{font-size:28px;color:var(--accent);margin-bottom:4px}
+.results-time{font-size:clamp(42px,10vw,64px);font-weight:700;font-family:'Fredoka',sans-serif;color:var(--gold);line-height:1}
+.results-label{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-top:4px}
+.results-stats{display:flex;gap:16px;justify-content:center;margin:16px 0}
+.results-stats .rs{text-align:center}
+.results-stats .rs .rv{font-size:22px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.results-stats .rs .rl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.results-coins{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:8px 18px;font-size:16px;font-weight:700;color:var(--gold);font-family:'Fredoka',sans-serif;margin:12px 0}
+.results-new{color:var(--accent);font-size:14px;font-weight:700;animation:pulse 1s ease-in-out infinite}
+.results-btns{display:flex;gap:10px;justify-content:center;margin-top:16px}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.05)}}
+
+/* RECORDS */
+#recordsScreen{padding-top:70px;justify-content:flex-start}
+.records-container{width:100%;max-width:420px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.stat-card .sv{font-size:24px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.stat-card .sv.gold{color:var(--gold)}
+.stat-card .sl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-weight:600}
+.lb-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px}
+.lb-row.me{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.lb-rank{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text2);flex-shrink:0}
+.lb-rank.r1{background:rgba(255,209,102,.2);color:var(--gold)}
+.lb-rank.r2{background:rgba(192,192,192,.15);color:#c0c0c0}
+.lb-rank.r3{background:rgba(205,127,50,.15);color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-size:14px;font-weight:800;color:var(--gold);font-family:'Fredoka',sans-serif}
+.lb-empty{text-align:center;color:var(--text2);font-size:14px;padding:24px;font-weight:600}
+
+/* SHOP */
+#shopScreen{padding-top:70px;justify-content:flex-start}
+
+/* ACHIEVEMENTS */
+.ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
+@keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../../student.html#arcade" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();showScreen('homeScreen')}">&#8592; Back</a>
+<button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128264;</button>
+
+<!-- HOME SCREEN -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1>&#129513; <span class="hl">Sudoku</span></h1>
+    <p>Fill every row, column &amp; box with 1-9</p>
+  </div>
+  <div class="best-pill">
+    <span class="bp-label">&#127942; Best</span>
+    <span class="bp-val" id="homeBest">---</span>
+  </div>
+  <div class="diff-row" style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
+    <button class="diff-btn active" onclick="setDifficulty('easy',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--accent);background:rgba(6,214,160,.15);color:var(--accent);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Easy</button>
+    <button class="diff-btn" onclick="setDifficulty('medium',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Medium</button>
+    <button class="diff-btn" onclick="setDifficulty('hard',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Hard</button>
+  </div>
+  <div class="home-actions">
+    <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
+    <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
+    <button class="btn btn-outline btn-small" onclick="showShopScreen()">&#128717;&#65039; Shop</button>
+  </div>
+  <div class="stats-row">
+    <div class="sr">&#127918; Games <span id="homeGames">0</span></div>
+    <div class="sr">&#9889; Wins <span id="homeWins">0</span></div>
+  </div>
+  <div class="how-to">
+    <h3>How to Play</h3>
+    <p>Fill in the 9x9 grid so every row, column, and 3x3 box contains the digits 1-9 exactly once. Click a cell, then type or tap a number. Use pencil mode to add notes.</p>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div class="screen" id="gameScreen">
+  <div class="game-top-bar">
+    <div class="gtb-item">&#128338; <span class="gtb-val" id="timerDisplay">0:00</span></div>
+    <div class="gtb-item" id="diffLabel" style="color:var(--accent);font-weight:700">Easy</div>
+    <div class="gtb-item">&#10060; Mistakes: <span class="gtb-val" id="mistakeDisplay">0</span>/3</div>
+  </div>
+  <div class="sudoku-wrapper">
+    <div class="sudoku-grid" id="sudokuGrid"></div>
+  </div>
+  <div class="numpad" id="numpad"></div>
+  <div class="game-actions">
+    <button class="btn btn-outline btn-small" id="pencilBtn" onclick="togglePencil()" style="min-width:auto;padding:8px 18px">&#9999;&#65039; Pencil</button>
+    <button class="btn btn-outline btn-small" onclick="eraseCell()" style="min-width:auto;padding:8px 18px">&#128465;&#65039; Erase</button>
+    <button class="btn btn-outline btn-small" onclick="undoMove()" style="min-width:auto;padding:8px 18px">&#8617;&#65039; Undo</button>
+    <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="min-width:auto;padding:8px 18px">&#128682; Quit</button>
+  </div>
+</div>
+
+<!-- RECORDS SCREEN -->
+<div class="screen" id="recordsScreen">
+  <h1>Your <span style="color:var(--accent)">Records</span></h1>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Sudoku stats &amp; leaderboard</p>
+  <div class="records-container">
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="sv gold" id="statBest">---</div><div class="sl">Best Time</div></div>
+      <div class="stat-card"><div class="sv" id="statPlayed">0</div><div class="sl">Games Played</div></div>
+      <div class="stat-card"><div class="sv" id="statWins">0</div><div class="sl">Wins</div></div>
+      <div class="stat-card"><div class="sv" id="statCoins">0</div><div class="sl">Coins Earned</div></div>
+    </div>
+    <div class="lb-title" style="margin-top:16px">&#127942; Achievements</div>
+    <div id="achievementsGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:24px"></div>
+    <div class="lb-title">Class Leaderboard</div>
+    <div class="lb-list" id="leaderboard"><div class="lb-empty">Loading...</div></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHOP SCREEN -->
+<div class="screen" id="shopScreen">
+  <div style="text-align:center;margin-bottom:8px">
+    <h1>&#128717;&#65039; Shop</h1>
+    <p style="color:var(--text2);font-size:14px">Customize your Sudoku</p>
+  </div>
+  <div id="sudokuShopContainer" style="width:100%;max-width:500px"></div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script>
+/* ===================== */
+/* SESSION               */
+/* ===================== */
+var studentId=localStorage.getItem('studentId')||'';
+var studentName=localStorage.getItem('studentName')||'';
+var classCode=localStorage.getItem('classCode')||'';
+var isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+if(isTeacher)document.getElementById('backBtn').href='../../teacher.html#arcade';
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+/* ===================== */
+/* SCREEN SYSTEM         */
+/* ===================== */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+  document.getElementById(id).classList.add('active');
+  document.body.classList.toggle('in-game',id==='gameScreen');
+  if(id==='homeScreen'){stopGame();loadLocalStats()}
+}
+
+/* ===================== */
+/* AUDIO                 */
+/* ===================== */
+var audioCtx=null,soundOn=localStorage.getItem('odaSoundEnabled')!=='false';
+function getAudioCtx(){
+  if(!audioCtx)try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq,dur,type,vol,ramp){
+  if(!soundOn)return;var ctx=getAudioCtx();if(!ctx)return;
+  var osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.type=type||'square';osc.frequency.setValueAtTime(freq,ctx.currentTime);
+  if(ramp)osc.frequency.linearRampToValueAtTime(ramp,ctx.currentTime+dur);
+  gain.gain.setValueAtTime(vol||0.1,ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+  osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+dur);
+}
+function sfxPlace(){playTone(600,0.06,'sine',0.1);setTimeout(function(){playTone(800,0.05,'sine',0.08)},30)}
+function sfxError(){playTone(200,0.25,'sawtooth',0.1,100)}
+function sfxErase(){playTone(400,0.04,'sine',0.06)}
+function sfxPencil(){playTone(900,0.03,'sine',0.05)}
+function sfxWin(){playTone(523,0.1,'sine',0.12);setTimeout(function(){playTone(659,0.1,'sine',0.1)},80);setTimeout(function(){playTone(784,0.15,'sine',0.12)},160);setTimeout(function(){playTone(1047,0.2,'sine',0.14)},280)}
+function sfxNewBest(){playTone(784,0.1,'sine',0.12);setTimeout(function(){playTone(988,0.1,'sine',0.1)},80);setTimeout(function(){playTone(1175,0.2,'sine',0.12)},160)}
+function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;';localStorage.setItem('odaSoundEnabled',soundOn)}
+if(!soundOn)document.getElementById('soundBtn').innerHTML='&#128263;';
+
+/* ===================== */
+/* COSMETICS             */
+/* ===================== */
+var myCosmetics={};
+
+async function loadMyCosmetics(){
+  try{myCosmetics=JSON.parse(localStorage.getItem('oda_cosmetics_sudoku')||'{}');}catch(e){myCosmetics={}}
+  var sid=localStorage.getItem('studentId');
+  if(sid){
+    try{
+      var fb=await window.getFirebaseDB();
+      var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));
+      if(snap.exists()){var d=snap.data();var fc=d.gameCosmetics?.sudoku?.equipped;if(fc&&Object.keys(fc).length>0)myCosmetics=fc;}
+    }catch(e){}
+  }
+  applyCosmeticStyles();
+}
+loadMyCosmetics();
+
+function applyCosmeticStyles(){
+  var root=document.documentElement;
+  var gt=myCosmetics['Grid Theme'];
+  if(gt&&gt.value){
+    var v=gt.value;
+    if(v.cellBg)root.style.setProperty('--cell-bg',v.cellBg);
+    if(v.gridThick)root.style.setProperty('--grid-thick',v.gridThick);
+    if(v.gridThin)root.style.setProperty('--grid-thin',v.gridThin);
+    if(v.cellText)root.style.setProperty('--cell-text',v.cellText);
+    if(v.givenText)root.style.setProperty('--given-text',v.givenText);
+  }
+  var ns=myCosmetics['Number Style'];
+  if(ns&&ns.value){
+    var nv=ns.value;
+    document.querySelectorAll('.sudoku-cell').forEach(function(c){
+      if(nv.fontFamily)c.style.fontFamily=nv.fontFamily;
+      if(nv.fontWeight)c.style.fontWeight=nv.fontWeight;
+    });
+  }
+}
+
+/* ===================== */
+/* SHOP                  */
+/* ===================== */
+var SUDOKU_SHOP=[
+  {id:'sdk_grid_classic',name:'Classic',emoji:'&#9898;',cost:0,slot:'Grid Theme',value:{cellBg:'var(--surface)',gridThick:'#94a3b8',gridThin:'var(--border)',cellText:'var(--text)',givenText:'var(--text)'}},
+  {id:'sdk_grid_dark',name:'Dark',emoji:'&#9899;',cost:100,slot:'Grid Theme',value:{cellBg:'#111827',gridThick:'#4b5563',gridThin:'#1f2937',cellText:'#e5e7eb',givenText:'#f9fafb'}},
+  {id:'sdk_grid_ocean',name:'Ocean',emoji:'&#127754;',cost:150,slot:'Grid Theme',value:{cellBg:'#0c1929',gridThick:'#0ea5e9',gridThin:'#164e63',cellText:'#e0f2fe',givenText:'#7dd3fc'}},
+  {id:'sdk_grid_neon',name:'Neon',emoji:'&#128154;',cost:200,slot:'Grid Theme',value:{cellBg:'#0a0a1a',gridThick:'#39ff14',gridThin:'#1a3a1a',cellText:'#d4ff80',givenText:'#39ff14'}},
+
+  {id:'sdk_num_standard',name:'Standard',emoji:'&#128290;',cost:0,slot:'Number Style',value:{fontFamily:"'Fredoka',sans-serif",fontWeight:'700'}},
+  {id:'sdk_num_handwritten',name:'Handwritten',emoji:'&#9999;&#65039;',cost:80,slot:'Number Style',value:{fontFamily:"'Caveat',cursive",fontWeight:'700'}},
+  {id:'sdk_num_bold',name:'Bold',emoji:'&#128170;',cost:100,slot:'Number Style',value:{fontFamily:"'Outfit',sans-serif",fontWeight:'900'}},
+  {id:'sdk_num_serif',name:'Serif',emoji:'&#128214;',cost:120,slot:'Number Style',value:{fontFamily:"Georgia,serif",fontWeight:'700'}}
+];
+
+function showShopScreen(){
+  showScreen('shopScreen');
+  if(typeof odaShop!=='undefined'){
+    odaShop.renderShopPanel('sudoku',SUDOKU_SHOP,'sudokuShopContainer',{
+      onEquip:function(){loadMyCosmetics()},
+      onBuy:function(){loadMyCosmetics()}
+    });
+  }
+}
+
+/* ===================== */
+/* ACHIEVEMENTS          */
+/* ===================== */
+var SUDOKU_ACHIEVEMENTS=[
+  {id:'sdk_first',name:'First Solve',desc:'Complete your first Sudoku puzzle',icon:'&#127942;',check:function(s){return s.wins>=1}},
+  {id:'sdk_easy5',name:'Speed Demon',desc:'Solve Easy under 5 minutes',icon:'&#9889;',check:function(s){return s.bestEasy>0&&s.bestEasy<300}},
+  {id:'sdk_medium',name:'Intermediate',desc:'Solve a Medium puzzle',icon:'&#128170;',check:function(s){return s.mediumWins>=1}},
+  {id:'sdk_hard',name:'Expert',desc:'Solve a Hard puzzle',icon:'&#129504;',check:function(s){return s.hardWins>=1}},
+  {id:'sdk_noerr',name:'Flawless',desc:'Solve Medium with no mistakes',icon:'&#128175;',check:function(s){return s.flawlessMedium>=1}},
+  {id:'sdk_25',name:'Veteran',desc:'Play 25 games',icon:'&#127775;',check:function(s){return s.gamesPlayed>=25}}
+];
+var achState={};
+
+async function checkAchievements(extra){
+  var sid=localStorage.getItem('studentId');
+  if(!sid||sid.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'sudokuRecords',sid);
+    var snap=await fb.fsMod.getDoc(ref);
+    var data=snap.exists()?snap.data():{};
+    var state=Object.assign({},data,extra||{});
+    achState=data.achievements||{};
+    var newUnlocks=[];
+    SUDOKU_ACHIEVEMENTS.forEach(function(a){
+      if(!achState[a.id]&&a.check(state)){achState[a.id]=Date.now();newUnlocks.push(a)}
+    });
+    if(newUnlocks.length>0){
+      var upd={};newUnlocks.forEach(function(a){upd['achievements.'+a.id]=achState[a.id]});
+      await fb.fsMod.updateDoc(ref,upd);
+      newUnlocks.forEach(function(a){showAchToast(a)});
+    }
+  }catch(e){}
+}
+
+function showAchToast(a){
+  var el=document.createElement('div');el.className='ach-popup';
+  el.innerHTML='<span style="font-size:32px">'+a.icon+'</span><div><div style="color:var(--gold);font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:var(--text);font-size:15px;font-weight:600;font-family:Outfit,sans-serif">'+esc(a.name)+'</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function(){el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(function(){el.remove()},400)},3500);
+}
+
+/* ===================== */
+/* LOCAL STATS           */
+/* ===================== */
+var localBest=parseInt(localStorage.getItem('sudoku_best'))||0;
+var localGames=parseInt(localStorage.getItem('sudoku_games'))||0;
+var localWins=parseInt(localStorage.getItem('sudoku_wins'))||0;
+var localCoins=parseInt(localStorage.getItem('sudoku_coins'))||0;
+
+function loadLocalStats(){
+  document.getElementById('homeBest').textContent=localBest?formatTime(localBest):'---';
+  document.getElementById('homeGames').textContent=localGames;
+  document.getElementById('homeWins').textContent=localWins;
+}
+loadLocalStats();
+
+function formatTime(sec){
+  var m=Math.floor(sec/60);
+  var s=sec%60;
+  return m+':'+(s<10?'0':'')+s;
+}
+
+/* ===================== */
+/* DIFFICULTY            */
+/* ===================== */
+var difficulty='easy';
+var DIFFICULTIES={
+  easy:{given:35,label:'Easy'},
+  medium:{given:28,label:'Medium'},
+  hard:{given:22,label:'Hard'}
+};
+
+window.setDifficulty=function(diff,btn){
+  difficulty=diff;
+  document.querySelectorAll('.diff-btn').forEach(function(b){b.style.borderColor='var(--border)';b.style.background='none';b.style.color='var(--text2)'});
+  if(btn){btn.style.borderColor='var(--accent)';btn.style.background='rgba(6,214,160,.15)';btn.style.color='var(--accent)'}
+};
+
+/* ===================== */
+/* SUDOKU GENERATOR      */
+/* ===================== */
+function generateSolvedBoard(){
+  var board=[];
+  for(var i=0;i<9;i++){board[i]=[];for(var j=0;j<9;j++)board[i][j]=0;}
+
+  function isValid(board,row,col,num){
+    for(var i=0;i<9;i++){if(board[row][i]===num)return false;}
+    for(var i=0;i<9;i++){if(board[i][col]===num)return false;}
+    var br=Math.floor(row/3)*3,bc=Math.floor(col/3)*3;
+    for(var i=br;i<br+3;i++)for(var j=bc;j<bc+3;j++){if(board[i][j]===num)return false;}
+    return true;
+  }
+
+  function solve(board){
+    for(var r=0;r<9;r++){
+      for(var c=0;c<9;c++){
+        if(board[r][c]===0){
+          var nums=shuffleArray([1,2,3,4,5,6,7,8,9]);
+          for(var i=0;i<nums.length;i++){
+            if(isValid(board,r,c,nums[i])){
+              board[r][c]=nums[i];
+              if(solve(board))return true;
+              board[r][c]=0;
+            }
+          }
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  solve(board);
+  return board;
+}
+
+function shuffleArray(arr){
+  var a=arr.slice();
+  for(var i=a.length-1;i>0;i--){
+    var j=Math.floor(Math.random()*(i+1));
+    var t=a[i];a[i]=a[j];a[j]=t;
+  }
+  return a;
+}
+
+function generatePuzzle(givenCount){
+  var solution=generateSolvedBoard();
+  var puzzle=solution.map(function(row){return row.slice()});
+  var cellsToRemove=81-givenCount;
+
+  // Create list of all positions and shuffle
+  var positions=[];
+  for(var r=0;r<9;r++)for(var c=0;c<9;c++)positions.push([r,c]);
+  positions=shuffleArray(positions);
+
+  var removed=0;
+  for(var i=0;i<positions.length&&removed<cellsToRemove;i++){
+    var r=positions[i][0],c=positions[i][1];
+    if(puzzle[r][c]!==0){
+      puzzle[r][c]=0;
+      removed++;
+    }
+  }
+
+  return {puzzle:puzzle,solution:solution};
+}
+
+/* ===================== */
+/* GAME STATE            */
+/* ===================== */
+var gameActive=false;
+var timerInterval=null;
+var elapsedSeconds=0;
+var solution=[];
+var puzzle=[];     // original puzzle (given cells)
+var board=[];      // current player board
+var pencilMarks=[]; // 9x9 array of Sets
+var selectedRow=-1,selectedCol=-1;
+var mistakes=0;
+var maxMistakes=3;
+var pencilMode=false;
+var moveHistory=[];
+var coinsAwarded=false;
+
+function stopGame(){
+  gameActive=false;
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null}
+}
+
+window.addEventListener('beforeunload',stopGame);
+document.addEventListener('visibilitychange',function(){if(document.hidden&&gameActive){clearInterval(timerInterval);timerInterval=null}else if(!document.hidden&&gameActive){startTimer()}});
+
+function startGame(){
+  showScreen('gameScreen');
+  applyCosmeticStyles();
+
+  var d=DIFFICULTIES[difficulty];
+  document.getElementById('diffLabel').textContent=d.label;
+
+  var gen=generatePuzzle(d.given);
+  solution=gen.solution;
+  puzzle=gen.puzzle;
+  board=puzzle.map(function(row){return row.slice()});
+  pencilMarks=[];
+  for(var i=0;i<9;i++){pencilMarks[i]=[];for(var j=0;j<9;j++)pencilMarks[i][j]=new Set();}
+
+  selectedRow=-1;selectedCol=-1;
+  mistakes=0;
+  pencilMode=false;
+  moveHistory=[];
+  coinsAwarded=false;
+  elapsedSeconds=0;
+
+  document.getElementById('pencilBtn').classList.remove('active-tool');
+  document.getElementById('mistakeDisplay').textContent='0';
+  document.getElementById('mistakeDisplay').classList.remove('mistakes-danger');
+
+  buildGrid();
+  buildNumpad();
+  startTimer();
+}
+
+function startTimer(){
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=setInterval(function(){
+    elapsedSeconds++;
+    document.getElementById('timerDisplay').textContent=formatTime(elapsedSeconds);
+  },1000);
+  document.getElementById('timerDisplay').textContent=formatTime(elapsedSeconds);
+}
+
+/* ===================== */
+/* BUILD GRID            */
+/* ===================== */
+function buildGrid(){
+  var grid=document.getElementById('sudokuGrid');
+  grid.innerHTML='';
+  for(var r=0;r<9;r++){
+    for(var c=0;c<9;c++){
+      var cell=document.createElement('div');
+      cell.className='sudoku-cell';
+      cell.dataset.row=r;
+      cell.dataset.col=c;
+      if(puzzle[r][c]!==0){
+        cell.textContent=puzzle[r][c];
+        cell.classList.add('given');
+      }
+      cell.addEventListener('click',cellClicked);
+      grid.appendChild(cell);
+    }
+  }
+  updateGridDisplay();
+}
+
+function cellClicked(e){
+  if(!gameActive)return;
+  var cell=e.currentTarget;
+  var r=parseInt(cell.dataset.row);
+  var c=parseInt(cell.dataset.col);
+  selectedRow=r;
+  selectedCol=c;
+  updateGridDisplay();
+}
+
+/* ===================== */
+/* UPDATE GRID DISPLAY   */
+/* ===================== */
+function updateGridDisplay(){
+  var cells=document.querySelectorAll('.sudoku-cell');
+  var selectedVal=(selectedRow>=0&&selectedCol>=0)?board[selectedRow][selectedCol]:0;
+
+  cells.forEach(function(cell){
+    var r=parseInt(cell.dataset.row);
+    var c=parseInt(cell.dataset.col);
+    var val=board[r][c];
+
+    // Reset classes
+    cell.classList.remove('selected','highlighted','same-num','error','error-bg');
+
+    // Set content
+    if(puzzle[r][c]!==0){
+      cell.textContent=puzzle[r][c];
+    } else if(val!==0){
+      cell.textContent=val;
+      // Check if error
+      if(val!==solution[r][c]){
+        cell.classList.add('error');
+      }
+    } else {
+      cell.textContent='';
+      // Show pencil marks
+      var pm=pencilMarks[r][c];
+      if(pm.size>0){
+        var pmDiv=document.createElement('div');
+        pmDiv.className='pencil-marks';
+        for(var n=1;n<=9;n++){
+          var span=document.createElement('span');
+          span.textContent=pm.has(n)?n:'';
+          pmDiv.appendChild(span);
+        }
+        cell.textContent='';
+        cell.appendChild(pmDiv);
+      }
+    }
+
+    // Highlights
+    if(selectedRow>=0&&selectedCol>=0){
+      if(r===selectedRow&&c===selectedCol){
+        cell.classList.add('selected');
+      } else if(r===selectedRow||c===selectedCol){
+        cell.classList.add('highlighted');
+      } else if(Math.floor(r/3)===Math.floor(selectedRow/3)&&Math.floor(c/3)===Math.floor(selectedCol/3)){
+        cell.classList.add('highlighted');
+      }
+      // Same number highlight
+      if(selectedVal!==0&&val===selectedVal&&!(r===selectedRow&&c===selectedCol)){
+        cell.classList.add('same-num');
+      }
+    }
+  });
+
+  // Update numpad depleted state
+  updateNumpadState();
+}
+
+function updateNumpadState(){
+  var counts={};
+  for(var n=1;n<=9;n++)counts[n]=0;
+  for(var r=0;r<9;r++)for(var c=0;c<9;c++){
+    var v=board[r][c];
+    if(v!==0&&v===solution[r][c])counts[v]++;
+  }
+  for(var n=1;n<=9;n++){
+    var btn=document.querySelector('.numpad-btn[data-num="'+n+'"]');
+    if(btn){
+      if(counts[n]>=9)btn.classList.add('depleted');
+      else btn.classList.remove('depleted');
+    }
+  }
+}
+
+/* ===================== */
+/* BUILD NUMPAD          */
+/* ===================== */
+function buildNumpad(){
+  var pad=document.getElementById('numpad');
+  pad.innerHTML='';
+  for(var n=1;n<=9;n++){
+    var btn=document.createElement('button');
+    btn.className='numpad-btn';
+    btn.textContent=n;
+    btn.dataset.num=n;
+    btn.addEventListener('click',function(){
+      var num=parseInt(this.dataset.num);
+      placeNumber(num);
+    });
+    pad.appendChild(btn);
+  }
+  gameActive=true;
+}
+
+/* ===================== */
+/* PLACE NUMBER          */
+/* ===================== */
+function placeNumber(num){
+  if(!gameActive||selectedRow<0||selectedCol<0)return;
+  var r=selectedRow,c=selectedCol;
+
+  // Can't change given cells
+  if(puzzle[r][c]!==0)return;
+
+  if(pencilMode){
+    // Toggle pencil mark
+    var prev=new Set(pencilMarks[r][c]);
+    if(pencilMarks[r][c].has(num)){
+      pencilMarks[r][c].delete(num);
+    } else {
+      pencilMarks[r][c].add(num);
+    }
+    moveHistory.push({type:'pencil',row:r,col:c,prev:prev,next:new Set(pencilMarks[r][c])});
+    sfxPencil();
+    updateGridDisplay();
+    return;
+  }
+
+  // Normal mode
+  var prevVal=board[r][c];
+  var prevPencil=new Set(pencilMarks[r][c]);
+
+  if(prevVal===num){
+    // Same number, do nothing
+    return;
+  }
+
+  board[r][c]=num;
+  pencilMarks[r][c]=new Set(); // clear pencil marks
+
+  moveHistory.push({type:'place',row:r,col:c,prevVal:prevVal,prevPencil:prevPencil,newVal:num});
+
+  // Check if correct
+  if(num!==solution[r][c]){
+    mistakes++;
+    document.getElementById('mistakeDisplay').textContent=mistakes;
+    if(mistakes>=2)document.getElementById('mistakeDisplay').classList.add('mistakes-danger');
+    sfxError();
+
+    // Animate error cell
+    var cellEl=getCellElement(r,c);
+    if(cellEl){cellEl.classList.add('error-bg');setTimeout(function(){cellEl.classList.remove('error-bg')},800);}
+
+    if(mistakes>=maxMistakes){
+      gameActive=false;
+      clearInterval(timerInterval);
+      setTimeout(function(){showGameOver()},600);
+      updateGridDisplay();
+      return;
+    }
+  } else {
+    sfxPlace();
+    // Clear pencil marks in same row/col/box that contain this number
+    clearRelatedPencilMarks(r,c,num);
+
+    // Animate placed cell
+    var cellEl=getCellElement(r,c);
+    if(cellEl)cellEl.classList.add('just-placed');
+    setTimeout(function(){if(cellEl)cellEl.classList.remove('just-placed')},250);
+  }
+
+  updateGridDisplay();
+
+  // Check win
+  if(isBoardComplete()){
+    gameActive=false;
+    clearInterval(timerInterval);
+    setTimeout(function(){showWin()},400);
+  }
+}
+
+function clearRelatedPencilMarks(row,col,num){
+  // Clear from same row
+  for(var c=0;c<9;c++)pencilMarks[row][c].delete(num);
+  // Clear from same col
+  for(var r=0;r<9;r++)pencilMarks[r][col].delete(num);
+  // Clear from same box
+  var br=Math.floor(row/3)*3,bc=Math.floor(col/3)*3;
+  for(var r=br;r<br+3;r++)for(var c=bc;c<bc+3;c++)pencilMarks[r][c].delete(num);
+}
+
+function getCellElement(r,c){
+  return document.querySelector('.sudoku-cell[data-row="'+r+'"][data-col="'+c+'"]');
+}
+
+/* ===================== */
+/* ERASE / UNDO          */
+/* ===================== */
+function eraseCell(){
+  if(!gameActive||selectedRow<0||selectedCol<0)return;
+  var r=selectedRow,c=selectedCol;
+  if(puzzle[r][c]!==0)return;
+
+  var prevVal=board[r][c];
+  var prevPencil=new Set(pencilMarks[r][c]);
+  if(prevVal===0&&prevPencil.size===0)return;
+
+  board[r][c]=0;
+  pencilMarks[r][c]=new Set();
+  moveHistory.push({type:'erase',row:r,col:c,prevVal:prevVal,prevPencil:prevPencil});
+  sfxErase();
+  updateGridDisplay();
+}
+
+function undoMove(){
+  if(!gameActive||moveHistory.length===0)return;
+  var move=moveHistory.pop();
+
+  if(move.type==='place'){
+    board[move.row][move.col]=move.prevVal;
+    pencilMarks[move.row][move.col]=move.prevPencil;
+    // If the placed number was wrong, undo the mistake count
+    if(move.newVal!==solution[move.row][move.col]&&mistakes>0){
+      mistakes--;
+      document.getElementById('mistakeDisplay').textContent=mistakes;
+      if(mistakes<2)document.getElementById('mistakeDisplay').classList.remove('mistakes-danger');
+    }
+  } else if(move.type==='pencil'){
+    pencilMarks[move.row][move.col]=move.prev;
+  } else if(move.type==='erase'){
+    board[move.row][move.col]=move.prevVal;
+    pencilMarks[move.row][move.col]=move.prevPencil;
+  }
+
+  sfxErase();
+  updateGridDisplay();
+}
+
+/* ===================== */
+/* PENCIL MODE           */
+/* ===================== */
+function togglePencil(){
+  pencilMode=!pencilMode;
+  var btn=document.getElementById('pencilBtn');
+  if(pencilMode){
+    btn.classList.add('active-tool');
+    btn.style.borderColor='var(--accent)';
+    btn.style.background='rgba(6,214,160,.15)';
+    btn.style.color='var(--accent)';
+  } else {
+    btn.classList.remove('active-tool');
+    btn.style.borderColor='';
+    btn.style.background='';
+    btn.style.color='';
+  }
+}
+
+/* ===================== */
+/* CHECK WIN             */
+/* ===================== */
+function isBoardComplete(){
+  for(var r=0;r<9;r++){
+    for(var c=0;c<9;c++){
+      if(board[r][c]!==solution[r][c])return false;
+    }
+  }
+  return true;
+}
+
+/* ===================== */
+/* WIN / GAME OVER       */
+/* ===================== */
+function showWin(){
+  sfxWin();
+  var time=elapsedSeconds;
+  var isNewBest=localBest===0||time<localBest;
+
+  // Update local stats
+  localWins++;localStorage.setItem('sudoku_wins',localWins);
+  localGames++;localStorage.setItem('sudoku_games',localGames);
+  if(isNewBest){localBest=time;localStorage.setItem('sudoku_best',localBest)}
+  if(isNewBest)sfxNewBest();
+
+  // Coins
+  var coins=0;
+  if(difficulty==='easy'){coins=mistakes===0?12:8;}
+  else if(difficulty==='medium'){coins=mistakes===0?20:15;}
+  else{coins=mistakes===0?30:22;}
+  if(isNewBest)coins+=5;
+  localCoins+=coins;localStorage.setItem('sudoku_coins',localCoins);
+
+  // Build achievements extra data
+  var achExtra={wins:localWins,gamesPlayed:localGames};
+  if(difficulty==='easy')achExtra.bestEasy=isNewBest?time:(parseInt(localStorage.getItem('sudoku_bestEasy'))||time);
+  if(difficulty==='medium'){
+    achExtra.mediumWins=(parseInt(localStorage.getItem('sudoku_mediumWins'))||0)+1;
+    localStorage.setItem('sudoku_mediumWins',achExtra.mediumWins);
+    if(mistakes===0){
+      achExtra.flawlessMedium=(parseInt(localStorage.getItem('sudoku_flawlessMedium'))||0)+1;
+      localStorage.setItem('sudoku_flawlessMedium',achExtra.flawlessMedium);
+    }
+  }
+  if(difficulty==='hard'){
+    achExtra.hardWins=(parseInt(localStorage.getItem('sudoku_hardWins'))||0)+1;
+    localStorage.setItem('sudoku_hardWins',achExtra.hardWins);
+  }
+  if(difficulty==='easy'&&isNewBest)localStorage.setItem('sudoku_bestEasy',time);
+
+  var overlay=document.createElement('div');
+  overlay.className='results-overlay';
+  overlay.id='resultsOverlay';
+  overlay.innerHTML='<div class="results-card">'
+    +'<h2>Puzzle Complete!</h2>'
+    +'<div class="results-label">Time</div>'
+    +'<div class="results-time">'+formatTime(time)+'</div>'
+    +(isNewBest?'<div class="results-new">New Personal Best!</div>':'')
+    +'<div class="results-stats">'
+    +'<div class="rs"><div class="rv">'+DIFFICULTIES[difficulty].label+'</div><div class="rl">Difficulty</div></div>'
+    +'<div class="rs"><div class="rv">'+mistakes+'</div><div class="rl">Mistakes</div></div>'
+    +'</div>'
+    +'<div class="results-coins">+'+coins+' coins</div>'
+    +'<div class="results-btns">'
+    +'<button class="btn btn-accent btn-small" onclick="closeResults();startGame()">Play Again</button>'
+    +'<button class="btn btn-outline btn-small" onclick="closeResults();showScreen(\'homeScreen\')">Home</button>'
+    +'</div></div>';
+  document.body.appendChild(overlay);
+
+  if(!coinsAwarded){
+    coinsAwarded=true;
+    awardCoins(coins);
+    saveRecord(isNewBest,time);
+    checkAchievements(achExtra);
+  }
+}
+
+function showGameOver(){
+  var overlay=document.createElement('div');
+  overlay.className='results-overlay';
+  overlay.id='resultsOverlay';
+  overlay.innerHTML='<div class="results-card">'
+    +'<h2 style="color:#ef4444">Too Many Mistakes</h2>'
+    +'<div class="results-label">Time</div>'
+    +'<div class="results-time" style="color:var(--text2)">'+formatTime(elapsedSeconds)+'</div>'
+    +'<div class="results-stats">'
+    +'<div class="rs"><div class="rv" style="color:#ef4444">'+maxMistakes+'/'+maxMistakes+'</div><div class="rl">Mistakes</div></div>'
+    +'<div class="rs"><div class="rv">'+DIFFICULTIES[difficulty].label+'</div><div class="rl">Difficulty</div></div>'
+    +'</div>'
+    +'<div class="results-coins">+2 coins</div>'
+    +'<div class="results-btns">'
+    +'<button class="btn btn-accent btn-small" onclick="closeResults();startGame()">Try Again</button>'
+    +'<button class="btn btn-outline btn-small" onclick="closeResults();showScreen(\'homeScreen\')">Home</button>'
+    +'</div></div>';
+  document.body.appendChild(overlay);
+
+  localGames++;localStorage.setItem('sudoku_games',localGames);
+  if(!coinsAwarded){
+    coinsAwarded=true;
+    awardCoins(2);
+    saveRecord(false,0);
+    checkAchievements({gamesPlayed:localGames});
+  }
+}
+
+function closeResults(){
+  var ov=document.getElementById('resultsOverlay');
+  if(ov)ov.remove();
+}
+
+/* ===================== */
+/* FIREBASE              */
+/* ===================== */
+async function awardCoins(coins){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{var fb=await window.getFirebaseDB();await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{coins:fb.fsMod.increment(coins)})}catch(e){}
+}
+
+async function saveRecord(isNew,time){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'sudokuRecords',studentId);
+    var snap=await fb.fsMod.getDoc(ref);
+    if(snap.exists()){
+      var upd={gamesPlayed:fb.fsMod.increment(1),lastPlayed:new Date().toISOString(),lastDifficulty:difficulty};
+      if(time>0)upd.wins=fb.fsMod.increment(1);
+      if(isNew&&time>0)upd.bestTime=time;
+      await fb.fsMod.updateDoc(ref,upd);
+    }else{
+      await fb.fsMod.setDoc(ref,{studentId:studentId,studentName:studentName||'',classCode:classCode,bestTime:time||0,wins:time>0?1:0,gamesPlayed:1,lastDifficulty:difficulty,lastPlayed:new Date().toISOString()});
+    }
+  }catch(e){console.warn('Save failed:',e)}
+}
+
+/* ===================== */
+/* RECORDS & LEADERBOARD */
+/* ===================== */
+async function showRecords(){
+  showScreen('recordsScreen');
+  document.getElementById('statBest').textContent=localBest?formatTime(localBest):'---';
+  document.getElementById('statPlayed').textContent=localGames;
+  document.getElementById('statWins').textContent=localWins;
+  document.getElementById('statCoins').textContent=localCoins;
+
+  // Achievements grid
+  var ag=document.getElementById('achievementsGrid');ag.innerHTML='';
+  SUDOKU_ACHIEVEMENTS.forEach(function(a){
+    var unlocked=!!achState[a.id];
+    ag.innerHTML+='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:1px solid '+(unlocked?'var(--gold)':'var(--border)')+';border-radius:12px;padding:10px 4px;text-align:center;'+(unlocked?'box-shadow:0 0 12px rgba(255,209,102,.15)':'opacity:.3;filter:grayscale(1)')+'"><span style="font-size:24px">'+a.icon+'</span><span style="font-size:9px;color:var(--text2);line-height:1.2;margin-top:4px">'+esc(a.name)+'</span></div>';
+  });
+
+  // Leaderboard (ordered by bestTime ASC = fastest first)
+  var lb=document.getElementById('leaderboard');lb.innerHTML='<div class="lb-empty">Loading...</div>';
+  if(!classCode){lb.innerHTML='<div class="lb-empty">Join a class to see the leaderboard</div>';return}
+  try{
+    var fb=await window.getFirebaseDB();
+    var q=fb.fsMod.query(fb.fsMod.collection(fb.db,'sudokuRecords'),fb.fsMod.where('classCode','==',classCode),fb.fsMod.where('bestTime','>',0),fb.fsMod.orderBy('bestTime','asc'),fb.fsMod.limit(20));
+    var snap=await fb.fsMod.getDocs(q);
+    if(snap.empty){lb.innerHTML='<div class="lb-empty">No scores yet. Be the first!</div>';return}
+    var h='',rank=0;
+    snap.forEach(function(d){
+      rank++;var data=d.data();var isMe=data.studentId===studentId;
+      var rc=rank<=3?'r'+rank:'';
+      h+='<div class="lb-row'+(isMe?' me':'')+'"><div class="lb-rank '+rc+'">'+rank+'</div><div class="lb-name">'+esc(data.studentName||'Player')+'</div><div class="lb-score">'+formatTime(data.bestTime)+'</div></div>';
+    });
+    lb.innerHTML=h;
+  }catch(e){lb.innerHTML='<div class="lb-empty">Could not load leaderboard</div>'}
+}
+
+/* ===================== */
+/* KEYBOARD SUPPORT      */
+/* ===================== */
+document.addEventListener('keydown',function(e){
+  if(!gameActive)return;
+  if(!document.getElementById('gameScreen').classList.contains('active'))return;
+
+  var key=e.key;
+
+  // Number keys 1-9
+  if(key>='1'&&key<='9'){
+    e.preventDefault();
+    placeNumber(parseInt(key));
+    return;
+  }
+
+  // Arrow keys
+  if(key==='ArrowUp'||key==='ArrowDown'||key==='ArrowLeft'||key==='ArrowRight'){
+    e.preventDefault();
+    if(selectedRow<0){selectedRow=0;selectedCol=0;}
+    else{
+      if(key==='ArrowUp')selectedRow=Math.max(0,selectedRow-1);
+      if(key==='ArrowDown')selectedRow=Math.min(8,selectedRow+1);
+      if(key==='ArrowLeft')selectedCol=Math.max(0,selectedCol-1);
+      if(key==='ArrowRight')selectedCol=Math.min(8,selectedCol+1);
+    }
+    updateGridDisplay();
+    return;
+  }
+
+  // Delete/Backspace to erase
+  if(key==='Delete'||key==='Backspace'){
+    e.preventDefault();
+    eraseCell();
+    return;
+  }
+
+  // P for pencil toggle
+  if(key==='p'||key==='P'){
+    e.preventDefault();
+    togglePencil();
+    return;
+  }
+
+  // Z for undo
+  if((e.ctrlKey||e.metaKey)&&(key==='z'||key==='Z')){
+    e.preventDefault();
+    undoMove();
+    return;
+  }
+});
+
+/* ===================== */
+/* HELP                  */
+/* ===================== */
+odaHelp.init({
+  title:'Sudoku',emoji:'\u{1F9E9}',subtitle:'Fill every row, column & box with 1-9',
+  sections:[
+    {title:'Rules',icon:'\u{1F4D6}',items:['Fill the 9x9 grid so every row, column, and 3x3 box contains digits 1-9','Click a cell to select it, then type or tap a number','Given numbers (bold) cannot be changed','3 mistakes and the game is over','Use pencil mode to add notes to cells']},
+    {title:'Scoring',icon:'\u{1F3AF}',items:['Easy: 8-12 coins (12 for no mistakes)','Medium: 15-20 coins (20 for no mistakes)','Hard: 22-30 coins (30 for no mistakes)','Bonus +5 coins for a new personal best time']}
+  ],
+  controls:[{key:'1-9',action:'Place number'},{key:'Arrows',action:'Move selection'},{key:'Delete',action:'Erase cell'},{key:'P',action:'Toggle pencil mode'},{key:'Ctrl+Z',action:'Undo'}],
+  tip:'<strong>Start with easy cells!</strong> Look for rows, columns, or boxes that are almost complete. Use pencil marks to track possibilities for harder cells.'
+});
+</script>
+<script>
+(function(){
+  var isT=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+  if(isT){var b=document.getElementById('backBtn');if(b)b.href='../../teacher.html#arcade'}
+})();
+</script>
+</body>
+</html>
