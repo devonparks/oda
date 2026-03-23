@@ -735,6 +735,118 @@ function applyStudentCosmetics(d) {
 }
 window.applyStudentCosmetics = applyStudentCosmetics;
 
+// ===== PLAYER LEVELS + XP DISPLAY =====
+var _currentXP = 0;
+var _currentLevelInfo = null;
+
+/** Update all XP/Level UI elements on the dashboard */
+function updateXPDisplay(xp) {
+  _currentXP = xp || 0;
+  if (!window.odaXP) return;
+  var info = window.odaXP.getLevel(_currentXP);
+  _currentLevelInfo = info;
+
+  // Topbar level badge
+  var badge = document.getElementById('levelBadge');
+  if (badge) {
+    badge.textContent = 'Lv.' + info.level;
+    badge.title = info.title + ' — ' + _currentXP + ' XP';
+    // Color the badge based on level tier
+    badge.className = 'level-badge level-tier-' + getLevelTier(info.level);
+  }
+
+  // XP progress bar
+  var barLevel = document.getElementById('xpBarLevel');
+  var barText = document.getElementById('xpBarText');
+  var barFill = document.getElementById('xpBarFill');
+  if (barLevel) barLevel.textContent = 'Lv.' + info.level + ' ' + info.title;
+  if (barText) {
+    if (info.level >= 50) {
+      barText.textContent = _currentXP.toLocaleString() + ' XP — MAX LEVEL';
+    } else {
+      barText.textContent = _currentXP.toLocaleString() + ' / ' + info.xpForNext.toLocaleString() + ' XP';
+    }
+  }
+  if (barFill) {
+    var pct = Math.round(info.xpProgress * 100);
+    barFill.style.width = pct + '%';
+  }
+}
+
+/** Get tier name for badge coloring */
+function getLevelTier(level) {
+  if (level >= 50) return 'goat';
+  if (level >= 40) return 'champion';
+  if (level >= 30) return 'legend';
+  if (level >= 25) return 'master';
+  if (level >= 20) return 'expert';
+  if (level >= 15) return 'veteran';
+  if (level >= 10) return 'competitor';
+  if (level >= 5) return 'star';
+  return 'rookie';
+}
+
+/** Show level-up celebration overlay */
+function showLevelUpCelebration(detail) {
+  var overlay = document.getElementById('levelUpOverlay');
+  if (!overlay) return;
+  var numEl = document.getElementById('levelUpNumber');
+  var titleEl = document.getElementById('levelUpTitle');
+  if (numEl) numEl.textContent = detail.newLevel;
+  if (titleEl) titleEl.textContent = detail.newTitle || '';
+  overlay.style.display = 'flex';
+  overlay.classList.add('show');
+  // Confetti
+  if (window.odaConfetti) window.odaConfetti();
+  // Announce for screen readers
+  if (window.odaAnnounce) window.odaAnnounce('Level up! You are now level ' + detail.newLevel + ', ' + (detail.newTitle || ''));
+  // Auto-dismiss after 3.5 seconds
+  setTimeout(function() {
+    overlay.classList.remove('show');
+    setTimeout(function() { overlay.style.display = 'none'; }, 400);
+  }, 3500);
+  // Click to dismiss early
+  overlay.onclick = function() {
+    overlay.classList.remove('show');
+    setTimeout(function() { overlay.style.display = 'none'; }, 400);
+  };
+}
+
+// Listen for level-up events from odaXP
+window.addEventListener('oda-level-up', function(e) {
+  showLevelUpCelebration(e.detail);
+});
+
+// Listen for XP gained events to refresh display
+window.addEventListener('oda-xp-gained', function(e) {
+  if (e.detail && e.detail.totalXP !== undefined) {
+    updateXPDisplay(e.detail.totalXP);
+  }
+});
+
+/** Load XP from student record — called when studentRecord is available */
+function loadStudentXP() {
+  var d = window.studentRecord;
+  if (d && d.xp !== undefined) {
+    updateXPDisplay(d.xp);
+  } else {
+    updateXPDisplay(0);
+  }
+}
+
+// Hook into the existing onSnapshot callback — studentRecord is set there
+var _origRenderDashboard = window.renderDashboard || renderDashboard;
+var __xpInitialized = false;
+// We piggyback on the existing renderDashboard since it's called from onSnapshot
+var _origRenderDashNow = _renderDashboardNow;
+_renderDashboardNow = function() {
+  _origRenderDashNow();
+  // Update XP display whenever dashboard re-renders (student record changed)
+  if (window.studentRecord) {
+    updateXPDisplay(window.studentRecord.xp || 0);
+  }
+};
+
 // ===== PROFILE CARD =====
 var PROFILE_ACHIEVEMENTS = [
   { id:'ach_first_game', name:'First Steps', icon:'\u{1F3AF}' },
@@ -854,7 +966,23 @@ function openProfileCard() {
     bgLayer.classList.add('bg-' + eq.profileBackground.style);
   }
 
-  // Stats
+  // Stats — Level + XP
+  var xpVal = d.xp || 0;
+  var lvlInfo = window.odaXP ? window.odaXP.getLevel(xpVal) : { level: 1, title: 'Rookie', xpProgress: 0, xpForNext: 50 };
+  var profLevelEl = document.getElementById('profileLevel');
+  var profLevelTitleEl = document.getElementById('profileLevelTitle');
+  var profXpFill = document.getElementById('profileXpFill');
+  var profXpLabel = document.getElementById('profileXpLabel');
+  if (profLevelEl) profLevelEl.textContent = lvlInfo.level;
+  if (profLevelTitleEl) profLevelTitleEl.textContent = '\u{2B50} ' + lvlInfo.title;
+  if (profXpFill) profXpFill.style.width = Math.round(lvlInfo.xpProgress * 100) + '%';
+  if (profXpLabel) {
+    profXpLabel.textContent = lvlInfo.level >= 50
+      ? xpVal.toLocaleString() + ' XP — MAX LEVEL'
+      : xpVal.toLocaleString() + ' / ' + lvlInfo.xpForNext.toLocaleString() + ' XP';
+  }
+
+  // Stats — Coins
   document.getElementById('profileCoins').textContent = (d.coins || 0).toLocaleString();
 
   // Games played — load from game record collections asynchronously
@@ -922,3 +1050,419 @@ document.addEventListener('click', function(e) {
   var m = document.getElementById('profileModal');
   if (m && m.classList.contains('show') && e.target === m) closeProfileCard();
 });
+
+// ===== DAILY CHALLENGES =====
+var CHALLENGE_POOL = [
+  { id: 'play3diff', desc: 'Play 3 different games', reward: 15, icon: '\u{1F3B2}', target: 3, type: 'diffGames' },
+  { id: 'score10', desc: 'Score 10+ in {game}', reward: 20, icon: '\u{1F3AF}', target: 10, type: 'scoreIn' },
+  { id: 'winMultiplayer', desc: 'Win a game of {mpgame}', reward: 25, icon: '\u{1F3C6}', target: 1, type: 'winMp' },
+  { id: 'play5total', desc: 'Play 5 games total', reward: 20, icon: '\u{1F3AE}', target: 5, type: 'totalGames' },
+  { id: 'newHighScore', desc: 'Get a new high score in any game', reward: 30, icon: '\u2B50', target: 1, type: 'highScore' },
+  { id: 'hardMode', desc: 'Play {game} on Hard mode', reward: 25, icon: '\u{1F525}', target: 1, type: 'hardMode' },
+  { id: 'earn50coins', desc: 'Earn 50+ coins today', reward: 15, icon: '\u{1FA99}', target: 50, type: 'coinsToday' },
+  { id: 'under60sec', desc: 'Complete a game in under 60 seconds', reward: 20, icon: '\u23F1\uFE0F', target: 1, type: 'speedRun' }
+];
+
+var MULTIPLAYER_GAMES = GAMES.filter(function(g) { return g.categories && g.categories.indexOf('Multiplayer') !== -1; });
+var ALL_GAME_IDS = GAMES.map(function(g) { return g.id; });
+
+/** Deterministic seed-based pseudo-random from day-of-year */
+function dailySeed(dateStr) {
+  var d = new Date(dateStr + 'T00:00:00Z');
+  var start = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  var dayOfYear = Math.floor((d - start) / 86400000) + 1;
+  // Simple seeded PRNG (mulberry32)
+  var seed = dayOfYear * 2654435761 + d.getUTCFullYear() * 31;
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+/** Get today's UTC date string */
+function getTodayUTC() {
+  return new Date().toISOString().split('T')[0];
+}
+
+/** Pick 3 challenges for a given date */
+function getDailyChallenges(dateStr) {
+  var rng = dailySeed(dateStr);
+  // Shuffle pool indices
+  var indices = [];
+  for (var i = 0; i < CHALLENGE_POOL.length; i++) indices.push(i);
+  for (var i = indices.length - 1; i > 0; i--) {
+    var j = Math.floor(rng() * (i + 1));
+    var t = indices[i]; indices[i] = indices[j]; indices[j] = t;
+  }
+  var picked = [];
+  for (var k = 0; k < 3; k++) {
+    var tpl = CHALLENGE_POOL[indices[k]];
+    var ch = { id: tpl.id, desc: tpl.desc, reward: tpl.reward, icon: tpl.icon, target: tpl.target, type: tpl.type };
+    // Fill in {game} and {mpgame} placeholders with deterministic game
+    if (ch.desc.indexOf('{game}') !== -1) {
+      var gi = Math.floor(rng() * GAMES.length);
+      ch.gameId = GAMES[gi].id;
+      ch.desc = ch.desc.replace('{game}', GAMES[gi].title);
+    }
+    if (ch.desc.indexOf('{mpgame}') !== -1) {
+      var mi = Math.floor(rng() * MULTIPLAYER_GAMES.length);
+      ch.gameId = MULTIPLAYER_GAMES[mi].id;
+      ch.desc = ch.desc.replace('{mpgame}', MULTIPLAYER_GAMES[mi].title);
+    }
+    picked.push(ch);
+  }
+  return picked;
+}
+
+/** Load or initialize daily challenge progress from localStorage */
+function loadDailyProgress() {
+  var today = getTodayUTC();
+  var key = 'dailyChallenges_' + today;
+  try {
+    var stored = JSON.parse(localStorage.getItem(key));
+    if (stored && stored.date === today) return stored;
+  } catch (e) {}
+  // Initialize fresh progress
+  var challenges = getDailyChallenges(today);
+  var progress = {
+    date: today,
+    challenges: challenges.map(function(c) {
+      return { id: c.id, progress: 0, completed: false };
+    })
+  };
+  localStorage.setItem(key, JSON.stringify(progress));
+  return progress;
+}
+
+/** Save daily challenge progress */
+function saveDailyProgress(progress) {
+  var key = 'dailyChallenges_' + progress.date;
+  localStorage.setItem(key, JSON.stringify(progress));
+}
+
+/** Track daily stats for challenge tracking */
+function getDailyStats() {
+  var today = getTodayUTC();
+  var key = 'dailyStats_' + today;
+  try {
+    var s = JSON.parse(localStorage.getItem(key));
+    if (s && s.date === today) return s;
+  } catch (e) {}
+  return { date: today, gamesPlayed: 0, diffGames: [], coinsEarned: 0 };
+}
+
+function saveDailyStats(stats) {
+  var key = 'dailyStats_' + stats.date;
+  localStorage.setItem(key, JSON.stringify(stats));
+}
+
+/** Update daily stats when a game is played */
+function trackDailyGamePlay(gameId) {
+  var stats = getDailyStats();
+  stats.gamesPlayed++;
+  if (stats.diffGames.indexOf(gameId) === -1) stats.diffGames.push(gameId);
+  saveDailyStats(stats);
+  checkDailyChallenges();
+}
+
+/** Check and update challenge completions */
+function checkDailyChallenges() {
+  var today = getTodayUTC();
+  var progress = loadDailyProgress();
+  if (progress.date !== today) return;
+  var challenges = getDailyChallenges(today);
+  var stats = getDailyStats();
+  var anyNewComplete = false;
+
+  for (var i = 0; i < challenges.length; i++) {
+    var ch = challenges[i];
+    var p = progress.challenges[i];
+    if (p.completed) continue;
+
+    var newProgress = 0;
+    switch (ch.type) {
+      case 'diffGames':
+        newProgress = stats.diffGames.length;
+        break;
+      case 'totalGames':
+        newProgress = stats.gamesPlayed;
+        break;
+      case 'coinsToday':
+        newProgress = stats.coinsEarned;
+        break;
+      case 'scoreIn':
+      case 'winMp':
+      case 'highScore':
+      case 'hardMode':
+      case 'speedRun':
+        // These are tracked by game return signals stored in dailyStats
+        newProgress = p.progress; // Keep existing, updated by signal
+        break;
+    }
+    if (newProgress > p.progress) p.progress = newProgress;
+    if (p.progress >= ch.target && !p.completed) {
+      p.completed = true;
+      anyNewComplete = true;
+      // Award coins
+      awardChallengeCoins(ch.reward);
+      if (typeof odaToast === 'function') {
+        odaToast('\u{1F389} Challenge complete! +' + ch.reward + ' coins: ' + ch.desc, 'success');
+      }
+    }
+  }
+  saveDailyProgress(progress);
+  if (anyNewComplete) renderDailyChallenges();
+}
+
+/** Award coins for challenge completion (update Firestore) */
+async function awardChallengeCoins(amount) {
+  if (!window.studentId || !window.fbDb) return;
+  try {
+    var ref = window.fbDoc(window.fbDb, 'students', window.studentId);
+    var snap = await window.fbGetDoc(ref);
+    if (snap.exists()) {
+      var current = snap.data().coins || 0;
+      await window.fbUpdateDoc(ref, { coins: current + amount });
+    }
+  } catch (e) { console.error('Challenge coin award error:', e); }
+  // Track coins earned today
+  var stats = getDailyStats();
+  stats.coinsEarned += amount;
+  saveDailyStats(stats);
+}
+
+/** Signal from games: call this to report game-specific challenge completions */
+function reportChallengeEvent(eventType, data) {
+  var today = getTodayUTC();
+  var progress = loadDailyProgress();
+  if (progress.date !== today) return;
+  var challenges = getDailyChallenges(today);
+
+  for (var i = 0; i < challenges.length; i++) {
+    var ch = challenges[i];
+    var p = progress.challenges[i];
+    if (p.completed) continue;
+
+    if (eventType === 'score' && ch.type === 'scoreIn' && data.gameId === ch.gameId && data.score >= ch.target) {
+      p.progress = ch.target;
+    }
+    if (eventType === 'win' && ch.type === 'winMp' && data.gameId === ch.gameId) {
+      p.progress = ch.target;
+    }
+    if (eventType === 'highScore' && ch.type === 'highScore') {
+      p.progress = ch.target;
+    }
+    if (eventType === 'hardMode' && ch.type === 'hardMode' && data.gameId === ch.gameId) {
+      p.progress = ch.target;
+    }
+    if (eventType === 'speedRun' && ch.type === 'speedRun') {
+      p.progress = ch.target;
+    }
+  }
+  saveDailyProgress(progress);
+  checkDailyChallenges();
+}
+window.reportChallengeEvent = reportChallengeEvent;
+
+/** Render daily challenges UI */
+function renderDailyChallenges() {
+  var container = document.getElementById('dailyChallengesContainer');
+  if (!container) return;
+  var today = getTodayUTC();
+  var challenges = getDailyChallenges(today);
+  var progress = loadDailyProgress();
+
+  var h = '<div class="daily-challenges">';
+  h += '<div class="daily-challenges-header">';
+  h += '<div class="daily-challenges-title">\u{1F525} Daily Challenges</div>';
+  h += '<div class="daily-challenges-date">' + today + '</div>';
+  h += '</div>';
+  h += '<div class="daily-challenges-cards">';
+
+  for (var i = 0; i < challenges.length; i++) {
+    var ch = challenges[i];
+    var p = progress.challenges[i];
+    var pct = Math.min(100, Math.round((p.progress / ch.target) * 100));
+    var done = p.completed;
+
+    h += '<div class="dc-card' + (done ? ' dc-done' : '') + '">';
+    h += '<div class="dc-icon">' + ch.icon + '</div>';
+    h += '<div class="dc-body">';
+    h += '<div class="dc-desc">' + esc(ch.desc) + '</div>';
+    h += '<div class="dc-progress-wrap">';
+    h += '<div class="dc-progress-bar"><div class="dc-progress-fill" style="width:' + pct + '%"></div></div>';
+    h += '<span class="dc-progress-text">' + Math.min(p.progress, ch.target) + '/' + ch.target + '</span>';
+    h += '</div>';
+    h += '</div>';
+    h += '<div class="dc-reward">';
+    if (done) {
+      h += '<span class="dc-complete-badge">\u2705</span>';
+    } else {
+      h += '<span class="dc-coin-reward">\u{1FA99} ' + ch.reward + '</span>';
+    }
+    h += '</div>';
+    h += '</div>';
+  }
+
+  h += '</div></div>';
+  container.innerHTML = h;
+}
+window.renderDailyChallenges = renderDailyChallenges;
+
+// Hook into playArcadeGame to track daily stats
+var _origPlayArcadeGame = window.playArcadeGame;
+window.playArcadeGame = function(file, gameId) {
+  trackDailyGamePlay(gameId);
+  _origPlayArcadeGame(file, gameId);
+};
+
+// Check challenges on page load (returning from a game)
+(function() {
+  var today = getTodayUTC();
+  var progress = loadDailyProgress();
+  // Auto-reset if date changed
+  if (progress.date !== today) {
+    loadDailyProgress(); // re-initialize
+  }
+  // Check completion state on return
+  setTimeout(checkDailyChallenges, 500);
+})();
+
+// ===== FAVORITES =====
+/** Get favorite game IDs from localStorage */
+function getFavoriteGames() {
+  try { return JSON.parse(localStorage.getItem('favoriteGames') || '[]'); } catch (e) { return []; }
+}
+
+/** Toggle a game as favorite */
+function toggleFavorite(gameId, event) {
+  if (event) { event.stopPropagation(); event.preventDefault(); }
+  var favs = getFavoriteGames();
+  var idx = favs.indexOf(gameId);
+  if (idx === -1) {
+    favs.push(gameId);
+  } else {
+    favs.splice(idx, 1);
+  }
+  localStorage.setItem('favoriteGames', JSON.stringify(favs));
+  // Update star button states
+  updateFavStars();
+  // Re-render favorites row
+  renderFavoritesRow();
+}
+window.toggleFavorite = toggleFavorite;
+
+/** Update all star button active states */
+function updateFavStars() {
+  var favs = getFavoriteGames();
+  var stars = document.querySelectorAll('.fav-star');
+  stars.forEach(function(star) {
+    var gid = star.getAttribute('data-fav-id');
+    if (favs.indexOf(gid) !== -1) {
+      star.classList.add('active');
+      star.textContent = '\u2B50';
+      star.title = 'Remove from favorites';
+    } else {
+      star.classList.remove('active');
+      star.textContent = '\u2606';
+      star.title = 'Add to favorites';
+    }
+  });
+}
+
+/** Render favorites horizontal scroll row */
+function renderFavoritesRow() {
+  var existing = document.getElementById('arcadeFavoritesRow');
+  if (existing) existing.remove();
+
+  var favs = getFavoriteGames();
+  if (favs.length === 0) return;
+
+  var favGames = [];
+  favs.forEach(function(fid) {
+    for (var i = 0; i < GAMES.length; i++) {
+      if (GAMES[i].id === fid) { favGames.push(GAMES[i]); break; }
+    }
+  });
+  if (favGames.length === 0) return;
+
+  var locked = false;
+  if (window.studentRecord && window.studentRecord.arcadeLocked) {
+    var assigns = window.myAssignments || [];
+    var pending = assigns.filter(function(a) { return a.status === 'pending' || a.status === 'returned'; });
+    var submitted = assigns.filter(function(a) { return a.status === 'submitted'; });
+    locked = pending.length > 0 || submitted.length > 0;
+  }
+
+  var h = '<div class="arcade-favorites" id="arcadeFavoritesRow">';
+  h += '<div class="arcade-recent-label">\u2B50 Favorites</div>';
+  h += '<div class="arcade-recent-scroll">';
+  favGames.forEach(function(g) {
+    var cover = generateCover(g);
+    h += '<div class="arcade-recent-card' + (locked ? ' locked' : '') + '" role="button" tabindex="' + (locked ? '-1' : '0') + '" ' + (locked ? '' : 'onclick="playArcadeGame(\'' + g.file + '\',\'' + g.id + '\')"') + '>';
+    h += '<div class="arcade-recent-img" style="background-image:url(' + cover + ')"></div>';
+    h += '<div class="arcade-recent-title">' + g.title + '</div>';
+    h += '</div>';
+  });
+  h += '</div></div>';
+
+  // Insert before recently played or before shop banner
+  var recentRow = document.getElementById('arcadeRecentRow');
+  var gameGrid = document.getElementById('gameGrid');
+  if (recentRow) {
+    recentRow.insertAdjacentHTML('beforebegin', h);
+  } else {
+    // Insert after game count, before shop banner
+    var shopBanner = gameGrid ? gameGrid.querySelector('.shop-banner') : null;
+    if (shopBanner) {
+      shopBanner.insertAdjacentHTML('beforebegin', h);
+    } else if (gameGrid) {
+      gameGrid.insertAdjacentHTML('afterbegin', h);
+    }
+  }
+
+  // Update fav row visibility based on filter state
+  var favRow = document.getElementById('arcadeFavoritesRow');
+  if (favRow) {
+    favRow.style.display = (arcadeFilter === 'All' && !arcadeSearch) ? '' : 'none';
+  }
+}
+
+// Override renderArcade to add star buttons and favorites row
+var _origRenderArcade = renderArcade;
+renderArcade = function() {
+  _origRenderArcade();
+  // Add star buttons to game cards (only once)
+  var cards = document.querySelectorAll('.game-cover-card[data-game-id]');
+  cards.forEach(function(card) {
+    if (card.querySelector('.fav-star')) return; // already added
+    var gid = card.getAttribute('data-game-id');
+    var favs = getFavoriteGames();
+    var isFav = favs.indexOf(gid) !== -1;
+    var star = document.createElement('button');
+    star.className = 'fav-star' + (isFav ? ' active' : '');
+    star.setAttribute('data-fav-id', gid);
+    star.textContent = isFav ? '\u2B50' : '\u2606';
+    star.title = isFav ? 'Remove from favorites' : 'Add to favorites';
+    star.setAttribute('aria-label', isFav ? 'Remove from favorites' : 'Add to favorites');
+    star.onclick = function(e) { toggleFavorite(gid, e); };
+    card.appendChild(star);
+  });
+  // Render favorites row
+  renderFavoritesRow();
+  // Render daily challenges
+  renderDailyChallenges();
+};
+
+// Update applyArcadeFilters to handle favorites row visibility
+var _origApplyFilters = applyArcadeFilters;
+applyArcadeFilters = function() {
+  _origApplyFilters();
+  var favRow = document.getElementById('arcadeFavoritesRow');
+  if (favRow) {
+    favRow.style.display = (arcadeFilter === 'All' && !arcadeSearch) ? '' : 'none';
+  }
+};
+window.applyArcadeFilters = applyArcadeFilters;
