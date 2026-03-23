@@ -206,13 +206,14 @@ TGAMES.forEach(function(g){
 h+='</div>';
 document.getElementById('teacherArcadeGrid').innerHTML=h;
 // Draw covers from shared oda-covers.js (loaded via script tag below)
-setTimeout(function(){
+// Wait for oda-covers.js to load before drawing covers
+function drawTeacherCovers(){
+  if(typeof generateCover!=='function'){setTimeout(drawTeacherCovers,200);return}
   document.querySelectorAll('canvas[data-game]').forEach(function(c){
-    if(typeof generateCover==='function'){
-      generateCover({id:c.dataset.game,title:c.dataset.title,emoji:c.dataset.emoji},c);
-    }
+    generateCover({id:c.dataset.game,title:c.dataset.title,emoji:c.dataset.emoji},c);
   });
-},100);
+}
+setTimeout(drawTeacherCovers,200);
 })();
 </script>
 </div>
