@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Lights Out - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:center}
+body.in-game{overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+.sound-btn{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;transition:all .2s;backdrop-filter:blur(8px)}
+.sound-btn:hover{border-color:var(--accent)}
+
+.screen{display:none;width:100%;max-width:1100px;min-height:100vh;min-height:100dvh;padding:16px;animation:fadeUp .35s ease}
+@media(min-width:768px){
+  .home-header h1{font-size:80px!important}
+  .home-header p{font-size:18px}
+  .best-pill{padding:16px 32px;font-size:18px}
+  .best-pill .bp-val{font-size:28px}
+  .btn-accent{font-size:22px!important;padding:20px 64px!important}
+  .btn-outline{font-size:16px;padding:14px 28px}
+  .stats-row .sr{font-size:15px;padding:10px 22px}
+  .how-to{max-width:500px;padding:28px 32px}
+  .how-to h3{font-size:15px}
+  .how-to p{font-size:15px}
+}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+
+/* HOME */
+#homeScreen{padding-top:80px;justify-content:flex-start;gap:16px}
+.home-header{text-align:center;margin-bottom:8px}
+.home-header h1{font-size:clamp(48px,10vw,64px);font-weight:700;letter-spacing:-2px}
+.home-header h1 .hl{color:var(--accent)}
+.home-header p{color:var(--text2);font-size:15px;margin-top:4px}
+.best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
+.best-pill .bp-label{color:var(--text2)}
+.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
+.home-actions{display:flex;flex-direction:column;align-items:center;gap:14px}
+.stats-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.stats-row .sr{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+.how-to{max-width:380px;width:100%;margin:0 auto;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px}
+.how-to h3{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.how-to p{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* GAME AREA */
+#gameScreen{padding-top:60px;justify-content:flex-start;align-items:center;max-width:100%}
+.game-header{display:flex;align-items:center;justify-content:center;gap:24px;margin-bottom:16px;flex-wrap:wrap}
+.game-stat{display:flex;flex-direction:column;align-items:center;gap:2px}
+.game-stat .gs-val{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;color:var(--accent)}
+.game-stat .gs-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-weight:600}
+
+/* GRID */
+.grid-wrapper{position:relative;display:flex;align-items:center;justify-content:center;margin:0 auto}
+.grid-container{display:grid;gap:4px;position:relative}
+.light-cell{position:relative;border-radius:10px;cursor:pointer;transition:background .2s ease,box-shadow .2s ease,transform .08s ease;border:2px solid rgba(255,255,255,.06);overflow:hidden}
+.light-cell:active{transform:scale(.92)}
+.light-cell.off{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.06);box-shadow:none}
+.light-cell.on{border-color:rgba(255,255,255,.15)}
+.light-cell.on .cell-glow{position:absolute;inset:-4px;border-radius:12px;pointer-events:none;opacity:.6}
+
+/* Light color default (green) */
+.light-cell.on{background:#06d6a0;box-shadow:0 0 18px rgba(6,214,160,.5),inset 0 0 12px rgba(255,255,255,.15)}
+.light-cell.on .cell-glow{background:radial-gradient(circle,rgba(6,214,160,.35),transparent 70%)}
+
+/* Pulse on click */
+@keyframes cellPulse{0%{transform:scale(1)}30%{transform:scale(1.12)}100%{transform:scale(1)}}
+.cell-pulse{animation:cellPulse .25s ease}
+
+/* Ripple inside cell */
+@keyframes cellRipple{0%{transform:scale(0);opacity:.5}100%{transform:scale(3);opacity:0}}
+.cell-ripple{position:absolute;width:100%;height:100%;border-radius:50%;background:rgba(255,255,255,.3);pointer-events:none;animation:cellRipple .4s ease forwards}
+
+/* Toggle flash */
+@keyframes toggleFlash{0%{opacity:0}30%{opacity:.4}100%{opacity:0}}
+.toggle-flash{position:absolute;inset:0;border-radius:8px;background:rgba(255,255,255,.5);pointer-events:none;animation:toggleFlash .3s ease forwards}
+
+/* Grid themes */
+.theme-neon .light-cell{border-radius:4px;border-width:1px}
+.theme-neon .light-cell.on{box-shadow:0 0 24px rgba(6,214,160,.7),0 0 48px rgba(6,214,160,.3),inset 0 0 16px rgba(255,255,255,.2)}
+.theme-neon .light-cell.off{background:rgba(255,255,255,.02);border-color:rgba(6,214,160,.15)}
+
+.theme-dark .light-cell{border-radius:6px}
+.theme-dark .light-cell.off{background:#0a0a0a;border-color:#1a1a1a}
+.theme-dark .light-cell.on{box-shadow:0 0 14px rgba(6,214,160,.4),inset 0 0 8px rgba(0,0,0,.3)}
+
+.theme-matrix .light-cell{border-radius:2px;border-width:1px}
+.theme-matrix .light-cell.off{background:#020a02;border-color:#0a2a0a}
+.theme-matrix .light-cell.on{background:#00ff41!important;box-shadow:0 0 20px rgba(0,255,65,.6),0 0 40px rgba(0,255,65,.2);border-color:#00ff41}
+
+/* Color overrides */
+.color-blue .light-cell.on{background:#3b82f6;box-shadow:0 0 18px rgba(59,130,246,.5),inset 0 0 12px rgba(255,255,255,.15);border-color:rgba(59,130,246,.4)}
+.color-blue .light-cell.on .cell-glow{background:radial-gradient(circle,rgba(59,130,246,.35),transparent 70%)}
+
+.color-purple .light-cell.on{background:#8b5cf6;box-shadow:0 0 18px rgba(139,92,246,.5),inset 0 0 12px rgba(255,255,255,.15);border-color:rgba(139,92,246,.4)}
+.color-purple .light-cell.on .cell-glow{background:radial-gradient(circle,rgba(139,92,246,.35),transparent 70%)}
+
+.color-gold .light-cell.on{background:#fbbf24;box-shadow:0 0 18px rgba(251,191,36,.5),inset 0 0 12px rgba(255,255,255,.15);border-color:rgba(251,191,36,.4)}
+.color-gold .light-cell.on .cell-glow{background:radial-gradient(circle,rgba(251,191,36,.35),transparent 70%)}
+
+.color-rainbow .light-cell.on{animation:rainbowCycle 3s linear infinite;box-shadow:0 0 18px rgba(255,255,255,.3),inset 0 0 12px rgba(255,255,255,.15);border-color:rgba(255,255,255,.2)}
+@keyframes rainbowCycle{
+  0%{background:#ef4444}14%{background:#f97316}28%{background:#fbbf24}42%{background:#06d6a0}57%{background:#3b82f6}71%{background:#8b5cf6}85%{background:#ec4899}100%{background:#ef4444}
+}
+
+/* WIN SCREEN */
+.win-overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);animation:fadeUp .3s ease}
+.win-card{background:rgba(17,24,39,.85);border:1px solid rgba(6,214,160,.3);border-radius:24px;padding:40px;max-width:420px;width:90%;text-align:center;backdrop-filter:blur(20px);box-shadow:0 0 60px rgba(6,214,160,.1)}
+.win-card h2{font-size:36px;color:var(--accent);margin-bottom:4px}
+.win-card .win-sub{font-size:14px;color:var(--text2);margin-bottom:20px}
+.win-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.win-stat{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px}
+.win-stat .ws-val{font-family:'Fredoka',sans-serif;font-size:24px;font-weight:700;color:var(--accent)}
+.win-stat .ws-val.gold{color:var(--gold)}
+.win-stat .ws-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-top:2px}
+.win-coins{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:8px 18px;font-size:16px;font-weight:700;color:var(--gold);font-family:'Fredoka',sans-serif;margin-bottom:16px}
+.win-new{color:var(--accent);font-size:14px;font-weight:700;margin-bottom:8px;animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.05)}}
+.win-btns{display:flex;gap:10px;justify-content:center}
+
+/* Confetti */
+@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+.confetti{position:fixed;width:8px;height:8px;border-radius:2px;pointer-events:none;z-index:250;animation:confettiFall 2.5s ease-in forwards}
+
+/* RECORDS */
+#recordsScreen{padding-top:70px;justify-content:flex-start}
+.records-container{width:100%;max-width:420px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.stat-card .sv{font-size:24px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.stat-card .sv.gold{color:var(--gold)}
+.stat-card .sl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-weight:600}
+.lb-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px}
+.lb-row.me{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.lb-rank{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text2);flex-shrink:0}
+.lb-rank.r1{background:rgba(255,209,102,.2);color:var(--gold)}
+.lb-rank.r2{background:rgba(192,192,192,.15);color:#c0c0c0}
+.lb-rank.r3{background:rgba(205,127,50,.15);color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-size:14px;font-weight:800;color:var(--gold);font-family:'Fredoka',sans-serif}
+.lb-empty{text-align:center;color:var(--text2);font-size:14px;padding:24px;font-weight:600}
+
+/* SHOP */
+#shopScreen{padding-top:70px;justify-content:flex-start}
+
+/* ACHIEVEMENTS */
+.ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
+@keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../../student.html#arcade" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();showScreen('homeScreen')}">&#8592; Back</a>
+<button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128264;</button>
+
+<!-- HOME SCREEN -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1>&#128161; <span class="hl">Lights</span> Out</h1>
+    <p>Turn off every light to win!</p>
+  </div>
+  <div class="best-pill">
+    <span class="bp-label">&#127942; Best Moves</span>
+    <span class="bp-val" id="homeBest">---</span>
+  </div>
+  <div class="diff-row" style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
+    <button class="diff-btn" onclick="setDifficulty('easy',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Easy (3x3)</button>
+    <button class="diff-btn active" onclick="setDifficulty('medium',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--accent);background:rgba(6,214,160,.15);color:var(--accent);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Medium (5x5)</button>
+    <button class="diff-btn" onclick="setDifficulty('hard',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Hard (7x7)</button>
+  </div>
+  <div class="home-actions">
+    <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
+    <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
+    <button class="btn btn-outline btn-small" onclick="showShopScreen()">&#128717;&#65039; Shop</button>
+  </div>
+  <div class="stats-row">
+    <div class="sr">&#127918; Games <span id="homeGames">0</span></div>
+    <div class="sr">&#128161; Wins <span id="homeWins">0</span></div>
+  </div>
+  <div class="how-to">
+    <h3>How to Play</h3>
+    <p>Click a light to toggle it and its neighbors (up, down, left, right). Turn ALL lights off to win! Fewer moves = better score.</p>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div class="screen" id="gameScreen">
+  <div class="game-header">
+    <div class="game-stat"><div class="gs-val" id="moveCount">0</div><div class="gs-label">Moves</div></div>
+    <div class="game-stat"><div class="gs-val" id="timeDisplay">0:00</div><div class="gs-label">Time</div></div>
+    <div class="game-stat"><div class="gs-val" id="lightsLeft">0</div><div class="gs-label">Lights On</div></div>
+  </div>
+  <div class="grid-wrapper">
+    <div class="grid-container" id="gridContainer"></div>
+  </div>
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:20px">
+    <button class="btn btn-outline btn-small" onclick="resetPuzzle()">&#128260; Reset</button>
+    <button class="btn btn-outline btn-small" onclick="startGame()">&#127922; New Puzzle</button>
+  </div>
+</div>
+
+<!-- RECORDS SCREEN -->
+<div class="screen" id="recordsScreen">
+  <h1>Your <span style="color:var(--accent)">Records</span></h1>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Lights Out stats &amp; leaderboard</p>
+  <div class="records-container">
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="sv gold" id="statBest">---</div><div class="sl">Best Moves (5x5)</div></div>
+      <div class="stat-card"><div class="sv" id="statPlayed">0</div><div class="sl">Games Played</div></div>
+      <div class="stat-card"><div class="sv" id="statWins">0</div><div class="sl">Puzzles Solved</div></div>
+      <div class="stat-card"><div class="sv" id="statCoins">0</div><div class="sl">Coins Earned</div></div>
+    </div>
+    <div class="lb-title" style="margin-top:16px">&#127942; Achievements</div>
+    <div id="achievementsGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:24px"></div>
+    <div class="lb-title">Class Leaderboard</div>
+    <div class="lb-list" id="leaderboard"><div class="lb-empty">Loading...</div></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHOP SCREEN -->
+<div class="screen" id="shopScreen">
+  <div style="text-align:center;margin-bottom:8px">
+    <h1>&#128717;&#65039; Shop</h1>
+    <p style="color:var(--text2);font-size:14px">Customize your Lights Out</p>
+  </div>
+  <div id="lightsoutShopContainer" style="width:100%;max-width:500px"></div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script>
+/* ===================== */
+/* SESSION               */
+/* ===================== */
+var studentId=localStorage.getItem('studentId')||'';
+var studentName=localStorage.getItem('studentName')||'';
+var classCode=localStorage.getItem('classCode')||'';
+var isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+if(isTeacher)document.getElementById('backBtn').href='../../teacher.html#arcade';
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+/* ===================== */
+/* SCREEN SYSTEM         */
+/* ===================== */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+  document.getElementById(id).classList.add('active');
+  document.body.classList.toggle('in-game',id==='gameScreen');
+  if(id==='homeScreen'){stopTimer();loadLocalStats()}
+}
+
+/* ===================== */
+/* AUDIO                 */
+/* ===================== */
+var audioCtx=null,soundOn=localStorage.getItem('odaSoundEnabled')!=='false';
+function getAudioCtx(){
+  if(!audioCtx)try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq,dur,type,vol,ramp){
+  if(!soundOn)return;var ctx=getAudioCtx();if(!ctx)return;
+  var osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.type=type||'square';osc.frequency.setValueAtTime(freq,ctx.currentTime);
+  if(ramp)osc.frequency.linearRampToValueAtTime(ramp,ctx.currentTime+dur);
+  gain.gain.setValueAtTime(vol||0.1,ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+  osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+dur);
+}
+function sfxToggle(){playTone(440,0.06,'sine',0.08);setTimeout(function(){playTone(550,0.04,'sine',0.06)},30)}
+function sfxOff(){playTone(330,0.08,'triangle',0.07)}
+function sfxWin(){playTone(523,0.1,'sine',0.12);setTimeout(function(){playTone(659,0.1,'sine',0.1)},80);setTimeout(function(){playTone(784,0.15,'sine',0.12)},160);setTimeout(function(){playTone(1047,0.2,'sine',0.14)},260)}
+function sfxNewBest(){playTone(784,0.1,'sine',0.12);setTimeout(function(){playTone(988,0.1,'sine',0.1)},80);setTimeout(function(){playTone(1175,0.2,'sine',0.12)},160)}
+function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;';localStorage.setItem('odaSoundEnabled',soundOn)}
+if(!soundOn)document.getElementById('soundBtn').innerHTML='&#128263;';
+
+/* ===================== */
+/* COSMETICS             */
+/* ===================== */
+var myCosmetics={};
+var lightColor='green';
+var gridTheme='classic';
+
+async function loadMyCosmetics(){
+  try{myCosmetics=JSON.parse(localStorage.getItem('oda_cosmetics_lightsout')||'{}');}catch(e){myCosmetics={}}
+  var sid=localStorage.getItem('studentId');
+  if(sid){
+    try{
+      var fb=await window.getFirebaseDB();
+      var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));
+      if(snap.exists()){var d=snap.data();var fc=d.gameCosmetics?.lightsout?.equipped;if(fc&&Object.keys(fc).length>0)myCosmetics=fc;}
+    }catch(e){}
+  }
+  applyCosmeticStyles();
+}
+loadMyCosmetics();
+
+function applyCosmeticStyles(){
+  var lc=myCosmetics['Light Color'];
+  lightColor=(lc&&lc.value)?lc.value:'green';
+  var gt=myCosmetics['Grid Theme'];
+  gridTheme=(gt&&gt.value)?gt.value:'classic';
+}
+
+/* ===================== */
+/* SHOP                  */
+/* ===================== */
+var LIGHTSOUT_SHOP=[
+  {id:'lo_col_green',name:'Green',emoji:'&#128994;',cost:0,slot:'Light Color',value:'green'},
+  {id:'lo_col_blue',name:'Blue',emoji:'&#128309;',cost:80,slot:'Light Color',value:'blue'},
+  {id:'lo_col_purple',name:'Purple',emoji:'&#128995;',cost:120,slot:'Light Color',value:'purple'},
+  {id:'lo_col_gold',name:'Gold',emoji:'&#128993;',cost:180,slot:'Light Color',value:'gold'},
+  {id:'lo_col_rainbow',name:'Rainbow',emoji:'&#127752;',cost:300,slot:'Light Color',value:'rainbow'},
+
+  {id:'lo_theme_classic',name:'Classic',emoji:'&#9899;',cost:0,slot:'Grid Theme',value:'classic'},
+  {id:'lo_theme_neon',name:'Neon',emoji:'&#128154;',cost:100,slot:'Grid Theme',value:'neon'},
+  {id:'lo_theme_dark',name:'Dark',emoji:'&#127761;',cost:120,slot:'Grid Theme',value:'dark'},
+  {id:'lo_theme_matrix',name:'Matrix',emoji:'&#128187;',cost:200,slot:'Grid Theme',value:'matrix'}
+];
+
+function showShopScreen(){
+  showScreen('shopScreen');
+  if(typeof odaShop!=='undefined'){
+    odaShop.renderShopPanel('lightsout',LIGHTSOUT_SHOP,'lightsoutShopContainer',{
+      onEquip:function(){loadMyCosmetics()},
+      onBuy:function(){loadMyCosmetics()}
+    });
+  }
+}
+
+/* ===================== */
+/* ACHIEVEMENTS          */
+/* ===================== */
+var LIGHTSOUT_ACHIEVEMENTS=[
+  {id:'lo_first',name:'Lights Off!',desc:'Solve your first puzzle',icon:'&#128161;',check:function(s){return s.wins>=1}},
+  {id:'lo_fast',name:'Speed Solver',desc:'Solve in under 30 seconds',icon:'&#9889;',check:function(s){return s.bestTime>0&&s.bestTime<30}},
+  {id:'lo_perfect',name:'Efficient',desc:'Solve 5x5 in under 15 moves',icon:'&#127775;',check:function(s){return s.bestMoves>0&&s.bestMoves<=15}},
+  {id:'lo_hard',name:'Hard Mode',desc:'Solve a 7x7 puzzle',icon:'&#129504;',check:function(s){return s.hardWin}},
+  {id:'lo_ten',name:'Dedicated',desc:'Solve 10 puzzles',icon:'&#127942;',check:function(s){return s.wins>=10}},
+  {id:'lo_fifty',name:'Master',desc:'Solve 50 puzzles',icon:'&#11088;',check:function(s){return s.wins>=50}}
+];
+var achState={};
+
+async function checkAchievements(extra){
+  var sid=localStorage.getItem('studentId');
+  if(!sid||sid.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'lightsoutRecords',sid);
+    var snap=await fb.fsMod.getDoc(ref);
+    var data=snap.exists()?snap.data():{};
+    var state=Object.assign({},data,extra||{});
+    achState=data.achievements||{};
+    var newUnlocks=[];
+    LIGHTSOUT_ACHIEVEMENTS.forEach(function(a){
+      if(!achState[a.id]&&a.check(state)){achState[a.id]=Date.now();newUnlocks.push(a)}
+    });
+    if(newUnlocks.length>0){
+      var upd={};newUnlocks.forEach(function(a){upd['achievements.'+a.id]=achState[a.id]});
+      await fb.fsMod.updateDoc(ref,upd);
+      newUnlocks.forEach(function(a){showAchToast(a)});
+    }
+  }catch(e){}
+}
+
+function showAchToast(a){
+  var el=document.createElement('div');el.className='ach-popup';
+  el.innerHTML='<span style="font-size:32px">'+a.icon+'</span><div><div style="color:var(--gold);font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:var(--text);font-size:15px;font-weight:600;font-family:Outfit,sans-serif">'+esc(a.name)+'</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function(){el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(function(){el.remove()},400)},3500);
+}
+
+/* ===================== */
+/* LOCAL STATS           */
+/* ===================== */
+var localBest=parseInt(localStorage.getItem('lightsout_best'))||0;
+var localGames=parseInt(localStorage.getItem('lightsout_games'))||0;
+var localWins=parseInt(localStorage.getItem('lightsout_wins'))||0;
+var localCoins=parseInt(localStorage.getItem('lightsout_coins'))||0;
+var localBestTime=parseInt(localStorage.getItem('lightsout_besttime'))||0;
+
+function loadLocalStats(){
+  document.getElementById('homeBest').textContent=localBest?localBest:' ---';
+  document.getElementById('homeGames').textContent=localGames;
+  document.getElementById('homeWins').textContent=localWins;
+}
+loadLocalStats();
+
+/* ===================== */
+/* DIFFICULTY            */
+/* ===================== */
+var difficulty='medium';
+var DIFFICULTIES={
+  easy:{size:3,label:'Easy',toggles:3},
+  medium:{size:5,label:'Medium',toggles:8},
+  hard:{size:7,label:'Hard',toggles:14}
+};
+
+window.setDifficulty=function(diff,btn){
+  difficulty=diff;
+  document.querySelectorAll('.diff-btn').forEach(function(b){b.style.borderColor='var(--border)';b.style.background='none';b.style.color='var(--text2)'});
+  if(btn){btn.style.borderColor='var(--accent)';btn.style.background='rgba(6,214,160,.15)';btn.style.color='var(--accent)'}
+};
+
+/* ===================== */
+/* GAME STATE            */
+/* ===================== */
+var grid=[];
+var gridSize=5;
+var moves=0;
+var gameStartTime=0;
+var timerInterval=null;
+var initialGrid=[];
+var gameActive=false;
+
+function stopTimer(){
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null}
+}
+
+function startTimer(){
+  stopTimer();
+  gameStartTime=Date.now();
+  timerInterval=setInterval(function(){
+    if(!gameActive)return;
+    var elapsed=Math.floor((Date.now()-gameStartTime)/1000);
+    var mins=Math.floor(elapsed/60);
+    var secs=elapsed%60;
+    document.getElementById('timeDisplay').textContent=mins+':'+(secs<10?'0':'')+secs;
+  },200);
+}
+
+/* ===================== */
+/* PUZZLE GENERATION     */
+/* ===================== */
+/* Generate a guaranteed solvable puzzle by starting from all-off and toggling random cells */
+function generatePuzzle(size,numToggles){
+  var g=[];
+  for(var r=0;r<size;r++){
+    g[r]=[];
+    for(var c=0;c<size;c++)g[r][c]=0;
+  }
+  /* Toggle random cells to create a solvable puzzle */
+  var toggled={};
+  var count=0;
+  while(count<numToggles){
+    var rr=Math.floor(Math.random()*size);
+    var cc=Math.floor(Math.random()*size);
+    var key=rr+','+cc;
+    if(toggled[key])continue;
+    toggled[key]=true;
+    applyToggle(g,rr,cc,size);
+    count++;
+  }
+  /* Ensure at least one light is on */
+  var hasOn=false;
+  for(var r2=0;r2<size;r2++)for(var c2=0;c2<size;c2++)if(g[r2][c2])hasOn=true;
+  if(!hasOn){
+    var cr=Math.floor(size/2);
+    applyToggle(g,cr,cr,size);
+  }
+  return g;
+}
+
+function applyToggle(g,r,c,size){
+  g[r][c]^=1;
+  if(r>0)g[r-1][c]^=1;
+  if(r<size-1)g[r+1][c]^=1;
+  if(c>0)g[r][c-1]^=1;
+  if(c<size-1)g[r][c+1]^=1;
+}
+
+function countLightsOn(){
+  var count=0;
+  for(var r=0;r<gridSize;r++)for(var c=0;c<gridSize;c++)if(grid[r][c])count++;
+  return count;
+}
+
+/* ===================== */
+/* RENDER GRID           */
+/* ===================== */
+function renderGrid(){
+  var container=document.getElementById('gridContainer');
+  /* Determine cell size: desktop-optimized 60-80px, scale down for small screens */
+  var maxWidth=Math.min(window.innerWidth-40,600);
+  var cellSize=Math.min(80,Math.max(40,Math.floor((maxWidth-gridSize*4)/gridSize)));
+  var totalSize=gridSize*cellSize+(gridSize-1)*4;
+
+  container.style.gridTemplateColumns='repeat('+gridSize+','+cellSize+'px)';
+  container.style.gridTemplateRows='repeat('+gridSize+','+cellSize+'px)';
+  container.style.width=totalSize+'px';
+  container.style.height=totalSize+'px';
+
+  /* Apply theme and color classes to wrapper */
+  var wrapper=document.querySelector('.grid-wrapper');
+  wrapper.className='grid-wrapper';
+  if(gridTheme!=='classic')wrapper.classList.add('theme-'+gridTheme);
+  if(lightColor!=='green')wrapper.classList.add('color-'+lightColor);
+
+  container.innerHTML='';
+  for(var r=0;r<gridSize;r++){
+    for(var c=0;c<gridSize;c++){
+      var cell=document.createElement('div');
+      cell.className='light-cell '+(grid[r][c]?'on':'off');
+      cell.dataset.row=r;
+      cell.dataset.col=c;
+      cell.innerHTML='<div class="cell-glow"></div>';
+      cell.addEventListener('click',handleCellClick);
+      container.appendChild(cell);
+    }
+  }
+  updateHUD();
+}
+
+function updateCellVisuals(){
+  var cells=document.querySelectorAll('.light-cell');
+  cells.forEach(function(cell){
+    var r=parseInt(cell.dataset.row);
+    var c=parseInt(cell.dataset.col);
+    var isOn=grid[r][c];
+    cell.className='light-cell '+(isOn?'on':'off');
+    if(!cell.querySelector('.cell-glow')){
+      cell.innerHTML='<div class="cell-glow"></div>';
+    }
+  });
+  updateHUD();
+}
+
+function updateHUD(){
+  document.getElementById('moveCount').textContent=moves;
+  document.getElementById('lightsLeft').textContent=countLightsOn();
+}
+
+/* ===================== */
+/* HANDLE CLICK          */
+/* ===================== */
+function handleCellClick(e){
+  if(!gameActive)return;
+  var cell=e.currentTarget;
+  var r=parseInt(cell.dataset.row);
+  var c=parseInt(cell.dataset.col);
+
+  /* Toggle cell + neighbors */
+  applyToggle(grid,r,c,gridSize);
+  moves++;
+
+  /* Sound */
+  sfxToggle();
+
+  /* Pulse animation on clicked cell */
+  cell.classList.add('cell-pulse');
+  setTimeout(function(){cell.classList.remove('cell-pulse')},250);
+
+  /* Ripple effect */
+  var ripple=document.createElement('div');
+  ripple.className='cell-ripple';
+  cell.appendChild(ripple);
+  setTimeout(function(){ripple.remove()},400);
+
+  /* Flash on toggled neighbors */
+  var neighbors=[[r,c],[r-1,c],[r+1,c],[r,c-1],[r,c+1]];
+  neighbors.forEach(function(n){
+    if(n[0]>=0&&n[0]<gridSize&&n[1]>=0&&n[1]<gridSize){
+      var idx=n[0]*gridSize+n[1];
+      var ncell=document.querySelectorAll('.light-cell')[idx];
+      if(ncell){
+        var flash=document.createElement('div');
+        flash.className='toggle-flash';
+        ncell.appendChild(flash);
+        setTimeout(function(){flash.remove()},300);
+      }
+    }
+  });
+
+  updateCellVisuals();
+
+  /* Check win */
+  if(countLightsOn()===0){
+    gameActive=false;
+    stopTimer();
+    setTimeout(function(){showWin()},300);
+  }
+}
+
+/* ===================== */
+/* START / RESET         */
+/* ===================== */
+function startGame(){
+  showScreen('gameScreen');
+  applyCosmeticStyles();
+  var d=DIFFICULTIES[difficulty];
+  gridSize=d.size;
+  moves=0;
+  gameActive=true;
+
+  grid=generatePuzzle(gridSize,d.toggles);
+  initialGrid=grid.map(function(row){return row.slice()});
+
+  renderGrid();
+  startTimer();
+}
+
+function resetPuzzle(){
+  if(!gameActive&&!grid.length)return;
+  grid=initialGrid.map(function(row){return row.slice()});
+  moves=0;
+  gameActive=true;
+  updateCellVisuals();
+  startTimer();
+}
+
+/* ===================== */
+/* WIN SCREEN            */
+/* ===================== */
+function showWin(){
+  sfxWin();
+  var elapsed=Math.floor((Date.now()-gameStartTime)/1000);
+  var mins=Math.floor(elapsed/60);
+  var secs=elapsed%60;
+  var timeStr=mins+':'+(secs<10?'0':'')+secs;
+
+  var isNewBest=difficulty==='medium'&&(localBest===0||moves<localBest);
+  var isNewTime=difficulty==='medium'&&(localBestTime===0||elapsed<localBestTime);
+
+  /* Update local stats */
+  localGames++;localStorage.setItem('lightsout_games',localGames);
+  localWins++;localStorage.setItem('lightsout_wins',localWins);
+  if(isNewBest){localBest=moves;localStorage.setItem('lightsout_best',localBest)}
+  if(isNewTime){localBestTime=elapsed;localStorage.setItem('lightsout_besttime',localBestTime)}
+
+  /* Coins based on difficulty + efficiency */
+  var coins=3;
+  if(difficulty==='easy')coins=3;
+  else if(difficulty==='medium'){coins=8;if(moves<=15)coins=15;else if(moves<=25)coins=10;}
+  else if(difficulty==='hard'){coins=12;if(moves<=30)coins=20;else if(moves<=50)coins=15;}
+  if(isNewBest)coins+=5;
+  localCoins+=coins;localStorage.setItem('lightsout_coins',localCoins);
+
+  if(isNewBest)sfxNewBest();
+
+  /* Confetti */
+  spawnConfetti();
+
+  /* Build win overlay */
+  var overlay=document.createElement('div');
+  overlay.className='win-overlay';
+  overlay.id='winOverlay';
+
+  var html='<div class="win-card">';
+  html+='<h2>Lights Out!</h2>';
+  html+='<div class="win-sub">All lights extinguished on '+DIFFICULTIES[difficulty].label+'</div>';
+  html+='<div class="win-stats">';
+  html+='<div class="win-stat"><div class="ws-val">'+moves+'</div><div class="ws-label">Moves</div></div>';
+  html+='<div class="win-stat"><div class="ws-val">'+timeStr+'</div><div class="ws-label">Time</div></div>';
+  html+='</div>';
+  if(isNewBest)html+='<div class="win-new">New Best Score!</div>';
+  html+='<div class="win-coins">+'+coins+' coins</div>';
+  html+='<div class="win-btns">';
+  html+='<button class="btn btn-accent btn-small" onclick="closeWin();startGame()">Play Again</button>';
+  html+='<button class="btn btn-outline btn-small" onclick="closeWin();showScreen(\'homeScreen\')">Home</button>';
+  html+='</div></div>';
+
+  overlay.innerHTML=html;
+  document.body.appendChild(overlay);
+
+  /* Firebase save */
+  awardCoins(coins);
+  saveRecord(isNewBest,moves,elapsed);
+  checkAchievements({
+    wins:localWins,
+    bestMoves:isNewBest?moves:(localBest||moves),
+    bestTime:isNewTime?elapsed:(localBestTime||elapsed),
+    hardWin:difficulty==='hard'?true:undefined
+  });
+}
+
+function closeWin(){
+  var ov=document.getElementById('winOverlay');
+  if(ov)ov.remove();
+  /* Remove confetti */
+  document.querySelectorAll('.confetti').forEach(function(c){c.remove()});
+}
+
+function spawnConfetti(){
+  var colors=['#06d6a0','#fbbf24','#3b82f6','#ef4444','#8b5cf6','#ec4899','#22d3ee'];
+  for(var i=0;i<40;i++){
+    var c=document.createElement('div');
+    c.className='confetti';
+    c.style.left=Math.random()*100+'%';
+    c.style.top='-10px';
+    c.style.background=colors[Math.floor(Math.random()*colors.length)];
+    c.style.animationDelay=(Math.random()*1.5)+'s';
+    c.style.animationDuration=(2+Math.random()*1.5)+'s';
+    c.style.width=(6+Math.random()*6)+'px';
+    c.style.height=(6+Math.random()*6)+'px';
+    document.body.appendChild(c);
+    (function(el){setTimeout(function(){el.remove()},4500)})(c);
+  }
+}
+
+/* ===================== */
+/* FIREBASE              */
+/* ===================== */
+async function awardCoins(coins){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{var fb=await window.getFirebaseDB();await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{coins:fb.fsMod.increment(coins)})}catch(e){}
+}
+
+async function saveRecord(isNew,movesVal,timeVal){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'lightsoutRecords',studentId);
+    var snap=await fb.fsMod.getDoc(ref);
+    if(snap.exists()){
+      var upd={gamesPlayed:fb.fsMod.increment(1),wins:fb.fsMod.increment(1),lastPlayed:new Date().toISOString(),lastMoves:movesVal,lastTime:timeVal};
+      if(isNew)upd.bestMoves=movesVal;
+      if(difficulty==='hard')upd.hardWin=true;
+      await fb.fsMod.updateDoc(ref,upd);
+    }else{
+      await fb.fsMod.setDoc(ref,{studentId:studentId,studentName:studentName||'',classCode:classCode,bestMoves:movesVal,wins:1,gamesPlayed:1,lastMoves:movesVal,lastTime:timeVal,lastPlayed:new Date().toISOString()});
+    }
+  }catch(e){console.warn('Save failed:',e)}
+}
+
+/* ===================== */
+/* RECORDS & LEADERBOARD */
+/* ===================== */
+async function showRecords(){
+  showScreen('recordsScreen');
+  document.getElementById('statBest').textContent=localBest?localBest+' moves':'---';
+  document.getElementById('statPlayed').textContent=localGames;
+  document.getElementById('statWins').textContent=localWins;
+  document.getElementById('statCoins').textContent=localCoins;
+
+  /* Achievements grid */
+  var ag=document.getElementById('achievementsGrid');ag.innerHTML='';
+  LIGHTSOUT_ACHIEVEMENTS.forEach(function(a){
+    var unlocked=!!achState[a.id];
+    ag.innerHTML+='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:1px solid '+(unlocked?'var(--gold)':'var(--border)')+';border-radius:12px;padding:10px 4px;text-align:center;'+(unlocked?'box-shadow:0 0 12px rgba(255,209,102,.15)':'opacity:.3;filter:grayscale(1)')+'"><span style="font-size:24px">'+a.icon+'</span><span style="font-size:9px;color:var(--text2);line-height:1.2;margin-top:4px">'+esc(a.name)+'</span></div>';
+  });
+
+  /* Leaderboard (ordered by bestMoves ASC = fewest first) */
+  var lb=document.getElementById('leaderboard');lb.innerHTML='<div class="lb-empty">Loading...</div>';
+  if(!classCode){lb.innerHTML='<div class="lb-empty">Join a class to see the leaderboard</div>';return}
+  try{
+    var fb=await window.getFirebaseDB();
+    var q=fb.fsMod.query(fb.fsMod.collection(fb.db,'lightsoutRecords'),fb.fsMod.where('classCode','==',classCode),fb.fsMod.orderBy('bestMoves','asc'),fb.fsMod.limit(20));
+    var snap=await fb.fsMod.getDocs(q);
+    if(snap.empty){lb.innerHTML='<div class="lb-empty">No scores yet. Be the first!</div>';return}
+    var h='',rank=0;
+    snap.forEach(function(d){
+      rank++;var data=d.data();var isMe=data.studentId===studentId;
+      var rc=rank<=3?'r'+rank:'';
+      h+='<div class="lb-row'+(isMe?' me':'')+'"><div class="lb-rank '+rc+'">'+rank+'</div><div class="lb-name">'+esc(data.studentName||'Player')+'</div><div class="lb-score">'+data.bestMoves+' moves</div></div>';
+    });
+    lb.innerHTML=h;
+  }catch(e){lb.innerHTML='<div class="lb-empty">Could not load leaderboard</div>'}
+}
+
+/* ===================== */
+/* RESIZE                */
+/* ===================== */
+window.addEventListener('resize',function(){
+  if(gameActive&&grid.length)renderGrid();
+});
+
+/* ===================== */
+/* KEYBOARD SUPPORT      */
+/* ===================== */
+document.addEventListener('keydown',function(e){
+  if(e.code==='Escape'){
+    var ov=document.getElementById('winOverlay');
+    if(ov){closeWin();showScreen('homeScreen');return}
+    if(document.getElementById('gameScreen').classList.contains('active')){
+      showScreen('homeScreen');
+    }
+  }
+});
+
+/* ===================== */
+/* HELP                  */
+/* ===================== */
+odaHelp.init({
+  title:'Lights Out',emoji:'\u{1F4A1}',subtitle:'Turn off every light to win!',
+  sections:[
+    {title:'Rules',icon:'\u{1F4D6}',items:['Click a light to toggle it ON or OFF','Its 4 neighbors (up, down, left, right) also toggle','Goal: Turn ALL lights OFF','Fewer moves = better score','Puzzles are randomly generated but always solvable']},
+    {title:'Difficulty',icon:'\u{1F3AF}',items:['Easy: 3x3 grid with few lights','Medium: 5x5 grid (standard)','Hard: 7x7 grid with many lights','Leaderboard tracks Medium (5x5) scores']},
+    {title:'Scoring',icon:'\u{1FA99}',items:['Easy: 3 coins per win','Medium: 8-15 coins based on moves','Hard: 12-20 coins based on moves','Bonus 5 coins for new personal best']}
+  ],
+  controls:[{key:'Click/Tap',action:'Toggle light + neighbors'},{key:'Esc',action:'Return to home'}],
+  tip:'<strong>Strategy tip:</strong> Work systematically from top to bottom. Toggle bottom-row lights to chase the pattern down. Each puzzle has an optimal solution!'
+});
+</script>
+<script>
+(function(){
+  var isT=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+  if(isT){var b=document.getElementById('backBtn');if(b)b.href='../../teacher.html#arcade'}
+})();
+</script>
+</body>
+</html>

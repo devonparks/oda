@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Doodle Jump - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:center}
+body.in-game{overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+.sound-btn{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;transition:all .2s;backdrop-filter:blur(8px)}
+.sound-btn:hover{border-color:var(--accent)}
+
+.screen{display:none;width:100%;max-width:1100px;min-height:100vh;min-height:100dvh;padding:16px;animation:fadeUp .35s ease}
+@media(min-width:768px){
+  .home-header h1{font-size:80px!important}
+  .home-header p{font-size:18px}
+  .best-pill{padding:16px 32px;font-size:18px}
+  .best-pill .bp-val{font-size:28px}
+  .btn-accent{font-size:22px!important;padding:20px 64px!important}
+  .btn-outline{font-size:16px;padding:14px 28px}
+  .stats-row .sr{font-size:15px;padding:10px 22px}
+  .how-to{max-width:500px;padding:28px 32px}
+  .how-to h3{font-size:15px}
+  .how-to p{font-size:15px}
+}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+
+/* HOME */
+#homeScreen{padding-top:80px;justify-content:flex-start;gap:16px}
+.home-header{text-align:center;margin-bottom:8px}
+.home-header h1{font-size:clamp(48px,10vw,64px);font-weight:700;letter-spacing:-2px}
+.home-header h1 .hl{color:var(--accent)}
+.home-header p{color:var(--text2);font-size:15px;margin-top:4px}
+.best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
+.best-pill .bp-label{color:var(--text2)}
+.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
+.home-actions{display:flex;flex-direction:column;align-items:center;gap:14px}
+.stats-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.stats-row .sr{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+.how-to{max-width:380px;width:100%;margin:0 auto;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px}
+.how-to h3{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.how-to p{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* GAME */
+#gameScreen{padding:0;max-width:100%;min-height:100vh;min-height:100dvh;justify-content:center;align-items:center;position:relative}
+#canvasWrap{width:100%;max-width:500px;height:85vh;height:85dvh;position:relative;overflow:hidden;cursor:pointer;touch-action:manipulation;margin:0 auto}
+#gameCanvas{display:block;width:100%;height:100%}
+.game-hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:center;padding:20px;pointer-events:none;z-index:5}
+.hud-score{font-family:'Fredoka',sans-serif;font-size:clamp(48px,10vw,72px);font-weight:900;color:#fff;text-shadow:0 3px 10px rgba(0,0,0,.6),0 0 30px rgba(0,0,0,.4);letter-spacing:-2px;-webkit-text-stroke:2px rgba(0,0,0,.15)}
+.tap-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;z-index:5;animation:pulse 1.5s ease-in-out infinite}
+.tap-hint .th-icon{font-size:48px;margin-bottom:8px}
+.tap-hint .th-text{font-family:'Fredoka',sans-serif;font-size:20px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.5)}
+@keyframes pulse{0%,100%{opacity:1;transform:translate(-50%,-50%) scale(1)}50%{opacity:.6;transform:translate(-50%,-50%) scale(1.05)}}
+
+/* GAME OVER OVERLAY */
+.go-overlay{position:absolute;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:10;gap:12px;padding:24px;animation:fadeUp .3s ease}
+.go-overlay.active{display:flex}
+.go-overlay h2{font-size:32px;font-weight:700;color:var(--accent3)}
+.go-overlay .go-score{font-family:'Fredoka',sans-serif;font-size:48px;font-weight:700;color:#fff}
+.go-overlay .go-label{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.go-overlay .go-best{font-size:16px;color:var(--gold);font-weight:700;font-family:'Fredoka',sans-serif}
+.go-overlay .go-new{color:var(--accent);font-size:14px;font-weight:700;animation:pulse 1s ease-in-out infinite}
+.go-overlay .go-coins{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:8px 18px;font-size:16px;font-weight:700;color:var(--gold);font-family:'Fredoka',sans-serif}
+.go-overlay .go-btns{display:flex;gap:10px;margin-top:8px}
+
+/* RECORDS */
+#recordsScreen{padding-top:70px;justify-content:flex-start}
+.records-container{width:100%;max-width:420px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.stat-card .sv{font-size:24px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.stat-card .sv.gold{color:var(--gold)}
+.stat-card .sl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-weight:600}
+.lb-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px}
+.lb-row.me{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.lb-rank{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text2);flex-shrink:0}
+.lb-rank.r1{background:rgba(255,209,102,.2);color:var(--gold)}
+.lb-rank.r2{background:rgba(192,192,192,.15);color:#c0c0c0}
+.lb-rank.r3{background:rgba(205,127,50,.15);color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-size:14px;font-weight:800;color:var(--gold);font-family:'Fredoka',sans-serif}
+.lb-empty{text-align:center;color:var(--text2);font-size:14px;padding:24px;font-weight:600}
+
+/* SHOP */
+#shopScreen{padding-top:70px;justify-content:flex-start}
+
+/* ACHIEVEMENTS */
+.ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
+@keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../../student.html#arcade" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();showScreen('homeScreen')}">&#8592; Back</a>
+<button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128264;</button>
+
+<!-- HOME SCREEN -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1><span class="hl">Doodle</span> Jump</h1>
+    <p>Bounce higher and higher!</p>
+  </div>
+  <div class="best-pill">
+    <span class="bp-label">&#127942; Best</span>
+    <span class="bp-val" id="homeBest">0</span>
+  </div>
+  <div class="diff-row" style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
+    <button class="diff-btn active" onclick="setDifficulty('easy',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--accent);background:rgba(6,214,160,.15);color:var(--accent);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Easy</button>
+    <button class="diff-btn" onclick="setDifficulty('medium',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Medium</button>
+    <button class="diff-btn" onclick="setDifficulty('hard',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Hard</button>
+  </div>
+  <div class="home-actions">
+    <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
+    <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
+    <button class="btn btn-outline btn-small" onclick="showShopScreen()">&#128717;&#65039; Shop</button>
+  </div>
+  <div class="stats-row">
+    <div class="sr">&#127918; Games <span id="homeGames">0</span></div>
+    <div class="sr">&#128175; Best Height <span id="homeLongest">0</span></div>
+  </div>
+  <div class="how-to">
+    <h3>How to Play</h3>
+    <p>Move left/right with mouse, arrow keys, or touch. Your doodler auto-bounces on platforms. Go off one side, appear on the other. Watch out for breakable platforms!</p>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div class="screen" id="gameScreen">
+  <div id="canvasWrap">
+    <canvas id="gameCanvas"></canvas>
+    <div class="game-hud"><div class="hud-score" id="hudScore">0</div></div>
+    <div class="tap-hint" id="tapHint">
+      <div class="th-icon">&#11014;&#65039;</div>
+      <div class="th-text">Move to Start</div>
+    </div>
+    <div class="go-overlay" id="gameOverOverlay">
+      <h2>Game Over</h2>
+      <div class="go-label">Score</div>
+      <div class="go-score" id="goScore">0</div>
+      <div class="go-best" id="goBest">Best: 0</div>
+      <div class="go-new" id="goNew" style="display:none">New Best! &#127881;</div>
+      <div class="go-coins" id="goCoins">+0 coins</div>
+      <div class="go-btns">
+        <button class="btn btn-accent btn-small" onclick="startGame()">Play Again</button>
+        <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Home</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECORDS SCREEN -->
+<div class="screen" id="recordsScreen">
+  <h1>Your <span style="color:var(--accent)">Records</span></h1>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Doodle Jump stats &amp; leaderboard</p>
+  <div class="records-container">
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="sv gold" id="statBest">0</div><div class="sl">Best Score</div></div>
+      <div class="stat-card"><div class="sv" id="statPlayed">0</div><div class="sl">Games Played</div></div>
+      <div class="stat-card"><div class="sv" id="statTotal">0</div><div class="sl">Total Height</div></div>
+      <div class="stat-card"><div class="sv" id="statCoins">0</div><div class="sl">Coins Earned</div></div>
+    </div>
+    <div class="lb-title" style="margin-top:16px">&#127942; Achievements</div>
+    <div id="achievementsGrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:24px"></div>
+    <div class="lb-title">Class Leaderboard</div>
+    <div class="lb-list" id="leaderboard"><div class="lb-empty">Loading...</div></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHOP SCREEN -->
+<div class="screen" id="shopScreen">
+  <div style="text-align:center;margin-bottom:8px">
+    <h1>&#128717;&#65039; Shop</h1>
+    <p style="color:var(--text2);font-size:14px">Customize your Doodler</p>
+  </div>
+  <div id="doodlejumpShopContainer" style="width:100%;max-width:500px"></div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script>
+/* ===================== */
+/* SESSION               */
+/* ===================== */
+var studentId=localStorage.getItem('studentId')||'';
+var studentName=localStorage.getItem('studentName')||'';
+var classCode=localStorage.getItem('classCode')||'';
+var isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+if(isTeacher)document.getElementById('backBtn').href='../../teacher.html#arcade';
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+/* ===================== */
+/* SCREEN SYSTEM         */
+/* ===================== */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+  document.getElementById(id).classList.add('active');
+  document.body.classList.toggle('in-game',id==='gameScreen');
+  if(id==='homeScreen')loadLocalStats();
+}
+
+/* ===================== */
+/* AUDIO                 */
+/* ===================== */
+var audioCtx=null,soundOn=localStorage.getItem('odaSoundEnabled')!=='false';
+function getAudioCtx(){
+  if(!audioCtx)try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq,dur,type,vol,ramp){
+  if(!soundOn)return;var ctx=getAudioCtx();if(!ctx)return;
+  var osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.type=type||'square';osc.frequency.setValueAtTime(freq,ctx.currentTime);
+  if(ramp)osc.frequency.linearRampToValueAtTime(ramp,ctx.currentTime+dur);
+  gain.gain.setValueAtTime(vol||0.1,ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+  osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+dur);
+}
+function sfxBounce(){playTone(400,0.08,'sine',0.1);setTimeout(function(){playTone(600,0.06,'sine',0.08)},30)}
+function sfxSpring(){playTone(500,0.1,'sine',0.12);setTimeout(function(){playTone(900,0.12,'sine',0.1)},40);setTimeout(function(){playTone(1200,0.08,'sine',0.08)},80)}
+function sfxBreak(){playTone(200,0.15,'sawtooth',0.1,80)}
+function sfxFall(){playTone(300,0.5,'sawtooth',0.1,50)}
+function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;';localStorage.setItem('odaSoundEnabled',soundOn)}
+if(!soundOn)document.getElementById('soundBtn').innerHTML='&#128263;';
+
+/* ===================== */
+/* COSMETICS             */
+/* ===================== */
+var myCosmetics={};
+var skinColor='#4ade80',skinAccent='#22c55e',skinFace='default';
+var platNormal='#4ade80',platMoving='#60a5fa',platBreak='#a0845e',platSpring='#ef4444';
+var skyTop='#0a0e1a',skyBottom='#1a1a2e';
+
+async function loadMyCosmetics(){
+  try{myCosmetics=JSON.parse(localStorage.getItem('oda_cosmetics_doodlejump')||'{}');}catch(e){myCosmetics={}}
+  var sid=localStorage.getItem('studentId');
+  if(sid){
+    try{
+      var fb=await window.getFirebaseDB();
+      var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));
+      if(snap.exists()){var d=snap.data();var fc=d.gameCosmetics?.doodlejump?.equipped;if(fc&&Object.keys(fc).length>0)myCosmetics=fc;}
+    }catch(e){}
+  }
+  applyCosmeticStyles();
+}
+loadMyCosmetics();
+
+function applyCosmeticStyles(){
+  var cs=myCosmetics['Character Skin'];
+  if(cs&&cs.value){skinColor=cs.value.color||'#4ade80';skinAccent=cs.value.accent||'#22c55e';skinFace=cs.value.face||'default'}
+  var pt=myCosmetics['Platform Theme'];
+  if(pt&&pt.value){platNormal=pt.value.normal||'#4ade80';platMoving=pt.value.moving||'#60a5fa';platBreak=pt.value.breakable||'#a0845e';platSpring=pt.value.spring||'#ef4444';skyTop=pt.value.skyTop||'#0a0e1a';skyBottom=pt.value.skyBottom||'#1a1a2e'}
+}
+
+/* ===================== */
+/* SHOP                  */
+/* ===================== */
+var DJ_SHOP=[
+  {id:'dj_doodle',name:'Doodle',emoji:'\u{1F7E2}',cost:0,slot:'Character Skin',value:{color:'#4ade80',accent:'#22c55e',face:'default'}},
+  {id:'dj_ninja',name:'Ninja',emoji:'\u{1F977}',cost:150,slot:'Character Skin',value:{color:'#1e293b',accent:'#0f172a',face:'ninja'}},
+  {id:'dj_robot',name:'Robot',emoji:'\u{1F916}',cost:200,slot:'Character Skin',value:{color:'#94a3b8',accent:'#64748b',face:'robot'}},
+  {id:'dj_cat',name:'Cat',emoji:'\u{1F431}',cost:250,slot:'Character Skin',value:{color:'#f97316',accent:'#ea580c',face:'cat'}},
+  {id:'dj_alien',name:'Alien',emoji:'\u{1F47D}',cost:350,slot:'Character Skin',value:{color:'#a855f7',accent:'#7c3aed',face:'alien'}},
+
+  {id:'dt_classic',name:'Classic',emoji:'\u{1F333}',cost:0,slot:'Platform Theme',value:{normal:'#4ade80',moving:'#60a5fa',breakable:'#a0845e',spring:'#ef4444',skyTop:'#0a0e1a',skyBottom:'#1a1a2e'}},
+  {id:'dt_neon',name:'Neon',emoji:'\u{1F4A1}',cost:200,slot:'Platform Theme',value:{normal:'#39ff14',moving:'#00d4ff',breakable:'#ff6b35',spring:'#ff006e',skyTop:'#050510',skyBottom:'#0a0a1e'}},
+  {id:'dt_candy',name:'Candy',emoji:'\u{1F36C}',cost:250,slot:'Platform Theme',value:{normal:'#f472b6',moving:'#c084fc',breakable:'#fbbf24',spring:'#fb7185',skyTop:'#1a0520',skyBottom:'#2a0a30'}},
+  {id:'dt_space',name:'Space',emoji:'\u{1F680}',cost:300,slot:'Platform Theme',value:{normal:'#818cf8',moving:'#22d3ee',breakable:'#a0845e',spring:'#f43f5e',skyTop:'#000008',skyBottom:'#0a0020'}},
+  {id:'dt_nature',name:'Nature',emoji:'\u{1F33F}',cost:350,slot:'Platform Theme',value:{normal:'#86efac',moving:'#67e8f9',breakable:'#d4a574',spring:'#fca5a5',skyTop:'#051a10',skyBottom:'#0a2818'}}
+];
+
+function showShopScreen(){
+  showScreen('shopScreen');
+  if(typeof odaShop!=='undefined'){
+    odaShop.renderShopPanel('doodlejump',DJ_SHOP,'doodlejumpShopContainer',{
+      onEquip:function(){loadMyCosmetics()},
+      onBuy:function(){loadMyCosmetics()}
+    });
+  }
+}
+
+/* ===================== */
+/* ACHIEVEMENTS          */
+/* ===================== */
+var DJ_ACHIEVEMENTS=[
+  {id:'dj_first',name:'First Hop',desc:'Reach height 100',icon:'\u{1F423}',check:function(s){return s.highScore>=100}},
+  {id:'dj_500',name:'Sky High',desc:'Reach height 500',icon:'\u{1F3AF}',check:function(s){return s.highScore>=500}},
+  {id:'dj_1000',name:'Cloud Walker',desc:'Reach height 1000',icon:'\u2601\uFE0F',check:function(s){return s.highScore>=1000}},
+  {id:'dj_2500',name:'Stratosphere',desc:'Reach height 2500',icon:'\u{1F680}',check:function(s){return s.highScore>=2500}},
+  {id:'dj_5000',name:'Space Jumper',desc:'Reach height 5000',icon:'\u{1F31F}',check:function(s){return s.highScore>=5000}},
+  {id:'dj_play25',name:'Bouncy Addict',desc:'Play 25 games',icon:'\u{1F3AE}',check:function(s){return s.gamesPlayed>=25}}
+];
+var achState={};
+
+async function checkAchievements(extra){
+  var sid=localStorage.getItem('studentId');
+  if(!sid||sid.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'doodlejumpRecords',sid);
+    var snap=await fb.fsMod.getDoc(ref);
+    var data=snap.exists()?snap.data():{};
+    var state=Object.assign({},data,extra||{});
+    achState=data.achievements||{};
+    var newUnlocks=[];
+    DJ_ACHIEVEMENTS.forEach(function(a){
+      if(!achState[a.id]&&a.check(state)){achState[a.id]=Date.now();newUnlocks.push(a)}
+    });
+    if(newUnlocks.length>0){
+      var upd={};newUnlocks.forEach(function(a){upd['achievements.'+a.id]=achState[a.id]});
+      await fb.fsMod.updateDoc(ref,upd);
+      newUnlocks.forEach(function(a){showAchToast(a)});
+    }
+  }catch(e){}
+}
+
+function showAchToast(a){
+  var el=document.createElement('div');el.className='ach-popup';
+  el.innerHTML='<span style="font-size:32px">'+a.icon+'</span><div><div style="color:var(--gold);font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:var(--text);font-size:15px;font-weight:600;font-family:Outfit,sans-serif">'+esc(a.name)+'</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function(){el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(function(){el.remove()},400)},3500);
+}
+
+/* ===================== */
+/* LOCAL STATS           */
+/* ===================== */
+var localBest=parseInt(localStorage.getItem('doodlejump_best'))||0;
+var localGames=parseInt(localStorage.getItem('doodlejump_games'))||0;
+var localTotal=parseInt(localStorage.getItem('doodlejump_total'))||0;
+
+function loadLocalStats(){
+  document.getElementById('homeBest').textContent=localBest;
+  document.getElementById('homeGames').textContent=localGames;
+  document.getElementById('homeLongest').textContent=localBest;
+}
+loadLocalStats();
+
+/* ===================== */
+/* GAME ENGINE           */
+/* ===================== */
+var canvas,ctx,W,H,dpr;
+var player,platforms,score,maxHeight,gameState,animId;
+var difficulty='easy';
+var cameraY=0; // how far the camera has scrolled up
+
+var DIFFICULTIES={
+  easy:{platformCount:8,breakChance:0,moveChance:0.1,springChance:0.08,gapMax:90,gravity:0.3,bounceVel:-9,springVel:-15},
+  medium:{platformCount:6,breakChance:0.15,moveChance:0.2,springChance:0.1,gapMax:110,gravity:0.35,bounceVel:-9.5,springVel:-16},
+  hard:{platformCount:5,breakChance:0.3,moveChance:0.35,springChance:0.12,gapMax:130,gravity:0.4,bounceVel:-10,springVel:-17}
+};
+
+var PLAYER_W=36,PLAYER_H=36,PLAT_W=70,PLAT_H=14;
+var GRAVITY,BOUNCE_VEL,SPRING_VEL;
+var frameCount=0,coinsAwarded=false;
+
+function applyDifficulty(){
+  var d=DIFFICULTIES[difficulty];
+  GRAVITY=d.gravity;BOUNCE_VEL=d.bounceVel;SPRING_VEL=d.springVel;
+}
+applyDifficulty();
+
+window.setDifficulty=function(diff,btn){
+  difficulty=diff;applyDifficulty();
+  document.querySelectorAll('.diff-btn').forEach(function(b){b.style.borderColor='var(--border)';b.style.background='none';b.style.color='var(--text2)'});
+  if(btn){btn.style.borderColor='var(--accent)';btn.style.background='rgba(6,214,160,.15)';btn.style.color='var(--accent)'}
+};
+
+/* Input state */
+var inputLeft=false,inputRight=false,mouseX=null,touchActive=false;
+
+function initCanvas(){
+  canvas=document.getElementById('gameCanvas');
+  ctx=canvas.getContext('2d');
+  var wrap=document.getElementById('canvasWrap');
+  dpr=window.devicePixelRatio||1;
+  W=wrap.clientWidth;H=wrap.clientHeight;
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+function generatePlatform(y,forceNormal){
+  var d=DIFFICULTIES[difficulty];
+  var type='normal';
+  if(!forceNormal){
+    var r=Math.random();
+    if(r<d.breakChance)type='break';
+    else if(r<d.breakChance+d.moveChance)type='moving';
+    else if(r<d.breakChance+d.moveChance+d.springChance)type='spring';
+  }
+  var px=Math.random()*(W-PLAT_W);
+  return{
+    x:px,y:y,w:PLAT_W,h:PLAT_H,type:type,
+    moveDir:Math.random()>0.5?1:-1,moveSpeed:1+Math.random()*1.5,
+    broken:false,breakAnim:0,
+    springAnim:0
+  };
+}
+
+function generateInitialPlatforms(){
+  platforms=[];
+  var d=DIFFICULTIES[difficulty];
+  // Floor platform the player starts on
+  platforms.push({x:W/2-PLAT_W/2,y:H-60,w:PLAT_W,h:PLAT_H,type:'normal',moveDir:0,moveSpeed:0,broken:false,breakAnim:0,springAnim:0});
+  var gap=H/(d.platformCount+1);
+  for(var i=1;i<=d.platformCount;i++){
+    var py=H-60-i*gap+Math.random()*20-10;
+    platforms.push(generatePlatform(py,i<=2));
+  }
+}
+
+function startGame(){
+  showScreen('gameScreen');
+  applyDifficulty();
+  applyCosmeticStyles();
+  initCanvas();
+  player={x:W/2-PLAYER_W/2,y:H-60-PLAYER_H,vy:0,dir:0,jumpFrame:0};
+  cameraY=0;score=0;maxHeight=0;frameCount=0;coinsAwarded=false;
+  mouseX=null;touchActive=false;
+  generateInitialPlatforms();
+  gameState='waiting';
+  document.getElementById('hudScore').textContent='0';
+  document.getElementById('tapHint').style.display='block';
+  document.getElementById('gameOverOverlay').classList.remove('active');
+  if(animId)cancelAnimationFrame(animId);
+  gameLoop();
+}
+
+function update(){
+  if(gameState!=='playing')return;
+  frameCount++;
+
+  /* --- Player horizontal movement --- */
+  var speed=6;
+  if(mouseX!==null&&touchActive){
+    // Move toward mouse/touch position
+    var targetX=mouseX-PLAYER_W/2;
+    var dx=targetX-player.x;
+    if(Math.abs(dx)>2){
+      player.x+=dx*0.15;
+      player.dir=dx>0?1:-1;
+    }
+  }else{
+    if(inputLeft){player.x-=speed;player.dir=-1}
+    if(inputRight){player.x+=speed;player.dir=1}
+  }
+
+  // Wrap around screen edges
+  if(player.x+PLAYER_W<0)player.x=W;
+  if(player.x>W)player.x=-PLAYER_W;
+
+  /* --- Gravity & vertical movement --- */
+  player.vy+=GRAVITY;
+  player.y+=player.vy;
+  if(player.jumpFrame>0)player.jumpFrame--;
+
+  /* --- Camera scrolling --- */
+  var scrollThreshold=H*0.35;
+  if(player.y<scrollThreshold){
+    var shift=scrollThreshold-player.y;
+    player.y=scrollThreshold;
+    cameraY+=shift;
+    // Move all platforms down
+    for(var i=0;i<platforms.length;i++){
+      platforms[i].y+=shift;
+    }
+    // Update score
+    var h=Math.floor(cameraY/5);
+    if(h>score){
+      score=h;
+      document.getElementById('hudScore').textContent=score;
+    }
+    if(score>maxHeight)maxHeight=score;
+  }
+
+  /* --- Platform updates --- */
+  var d=DIFFICULTIES[difficulty];
+  for(var pi=platforms.length-1;pi>=0;pi--){
+    var p=platforms[pi];
+    // Moving platforms
+    if(p.type==='moving'&&!p.broken){
+      p.x+=p.moveDir*p.moveSpeed;
+      if(p.x<=0){p.moveDir=1}
+      if(p.x+p.w>=W){p.moveDir=-1}
+    }
+    // Break animation
+    if(p.broken){
+      p.breakAnim++;
+      p.y+=3;
+      if(p.breakAnim>30){platforms.splice(pi,1);continue}
+    }
+    // Spring animation cooldown
+    if(p.springAnim>0)p.springAnim--;
+    // Remove off-screen platforms (below camera)
+    if(p.y>H+50){
+      platforms.splice(pi,1);
+      // Spawn new platform above
+      var highest=H;
+      for(var k=0;k<platforms.length;k++){
+        if(platforms[k].y<highest)highest=platforms[k].y;
+      }
+      var gap=d.gapMax;
+      var newY=highest-40-Math.random()*gap;
+      platforms.push(generatePlatform(newY,false));
+    }
+  }
+
+  /* --- Collision with platforms (only when falling) --- */
+  if(player.vy>0){
+    for(var ci=0;ci<platforms.length;ci++){
+      var cp=platforms[ci];
+      if(cp.broken)continue;
+      // Player feet are at player.y + PLAYER_H
+      var feet=player.y+PLAYER_H;
+      var prevFeet=feet-player.vy;
+      if(player.x+PLAYER_W-8>cp.x&&player.x+8<cp.x+cp.w){
+        if(prevFeet<=cp.y&&feet>=cp.y&&feet<=cp.y+cp.h+player.vy+2){
+          if(cp.type==='break'){
+            cp.broken=true;
+            sfxBreak();
+          }else if(cp.type==='spring'){
+            player.vy=SPRING_VEL;
+            player.jumpFrame=14;
+            cp.springAnim=20;
+            sfxSpring();
+          }else{
+            player.vy=BOUNCE_VEL;
+            player.jumpFrame=10;
+            sfxBounce();
+          }
+          player.y=cp.y-PLAYER_H;
+          break;
+        }
+      }
+    }
+  }
+
+  /* --- Game over if player falls below screen --- */
+  if(player.y>H+60){
+    die();
+  }
+}
+
+function die(){
+  gameState='dead';sfxFall();
+  var isNew=score>localBest;
+  if(isNew){localBest=score;localStorage.setItem('doodlejump_best',localBest)}
+  localGames++;localTotal+=score;
+  localStorage.setItem('doodlejump_games',localGames);
+  localStorage.setItem('doodlejump_total',localTotal);
+
+  var coins=Math.floor(score/10);if(isNew)coins+=5;if(coins<1&&score>0)coins=1;
+
+  document.getElementById('goScore').textContent=score;
+  document.getElementById('goBest').textContent='Best: '+localBest;
+  document.getElementById('goNew').style.display=isNew?'block':'none';
+  document.getElementById('goCoins').textContent='+'+coins+' coins';
+  setTimeout(function(){document.getElementById('gameOverOverlay').classList.add('active')},400);
+
+  if(!coinsAwarded){coinsAwarded=true;awardCoins(coins);saveRecord(isNew);checkAchievements({highScore:score,gamesPlayed:localGames})}
+}
+
+function drawPlatform(p){
+  if(p.broken){
+    // Crumble effect: split into pieces falling apart
+    ctx.save();
+    ctx.globalAlpha=1-p.breakAnim/30;
+    var pieces=4;
+    for(var pp=0;pp<pieces;pp++){
+      var px=p.x+pp*(p.w/pieces);
+      var pw=p.w/pieces-2;
+      var py=p.y+Math.sin(pp*2+p.breakAnim*0.3)*p.breakAnim*0.8;
+      var rot=(pp-1.5)*p.breakAnim*0.04;
+      ctx.save();
+      ctx.translate(px+pw/2,py+p.h/2);
+      ctx.rotate(rot);
+      ctx.fillStyle=platBreak;
+      ctx.beginPath();
+      ctx.roundRect(-pw/2,-p.h/2,pw,p.h,3);
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+    return;
+  }
+
+  var col=platNormal;
+  if(p.type==='moving')col=platMoving;
+  else if(p.type==='break')col=platBreak;
+  else if(p.type==='spring')col=platNormal; // base is green, spring on top
+
+  // Platform shadow
+  ctx.fillStyle='rgba(0,0,0,0.2)';
+  ctx.beginPath();ctx.roundRect(p.x+2,p.y+3,p.w,p.h,6);ctx.fill();
+
+  // Platform body
+  var grad=ctx.createLinearGradient(p.x,p.y,p.x,p.y+p.h);
+  grad.addColorStop(0,col);
+  grad.addColorStop(1,adjustBrightness(col,-30));
+  ctx.fillStyle=grad;
+  ctx.beginPath();ctx.roundRect(p.x,p.y,p.w,p.h,6);ctx.fill();
+
+  // Highlight
+  ctx.fillStyle='rgba(255,255,255,0.2)';
+  ctx.beginPath();ctx.roundRect(p.x+3,p.y+1,p.w-6,p.h/2,4);ctx.fill();
+
+  // Break platform: crack lines
+  if(p.type==='break'){
+    ctx.strokeStyle='rgba(0,0,0,0.3)';ctx.lineWidth=1.5;
+    ctx.beginPath();
+    ctx.moveTo(p.x+p.w*0.3,p.y+2);ctx.lineTo(p.x+p.w*0.45,p.y+p.h-2);
+    ctx.moveTo(p.x+p.w*0.6,p.y+1);ctx.lineTo(p.x+p.w*0.7,p.y+p.h-1);
+    ctx.stroke();
+  }
+
+  // Spring on spring platforms
+  if(p.type==='spring'){
+    var sx=p.x+p.w/2,sy=p.y;
+    var springH=p.springAnim>0?18:12;
+    var sw=10;
+    // Spring coil
+    ctx.save();
+    ctx.strokeStyle=platSpring;ctx.lineWidth=3;ctx.lineCap='round';
+    ctx.beginPath();
+    ctx.moveTo(sx,sy);
+    var coils=4;
+    for(var ci=0;ci<coils;ci++){
+      var t=ci/coils;
+      var cy=sy-springH*t-4;
+      var cx2=sx+(ci%2===0?sw:-sw);
+      ctx.lineTo(cx2,cy);
+    }
+    ctx.lineTo(sx,sy-springH-4);
+    ctx.stroke();
+    // Spring top cap
+    ctx.fillStyle=platSpring;
+    ctx.beginPath();ctx.roundRect(sx-8,sy-springH-8,16,6,3);ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawPlayer(){
+  ctx.save();
+  var px=player.x+PLAYER_W/2;
+  var py=player.y+PLAYER_H/2;
+
+  // Gentle bounce when waiting
+  var drawPy=py;
+  if(gameState==='waiting')drawPy=py+Math.sin(frameCount*0.06)*5;
+
+  ctx.translate(px,drawPy);
+
+  // Stretch/squash based on velocity
+  var scaleX=1,scaleY=1;
+  if(player.vy<-3){scaleX=0.9;scaleY=1.15} // going up - stretch
+  else if(player.vy>2){scaleX=1.1;scaleY=0.85} // falling - squash
+  ctx.scale(scaleX,scaleY);
+
+  // Body
+  ctx.fillStyle=skinColor;
+  ctx.beginPath();
+  ctx.roundRect(-PLAYER_W/2,-PLAYER_H/2,PLAYER_W,PLAYER_H,12);
+  ctx.fill();
+
+  // Belly area
+  ctx.fillStyle=skinAccent;
+  ctx.beginPath();
+  ctx.roundRect(-PLAYER_W/2+6,-PLAYER_H/2+PLAYER_H*0.4,PLAYER_W-12,PLAYER_H*0.45,8);
+  ctx.fill();
+
+  // Feet
+  var footY=PLAYER_H/2-4;
+  ctx.fillStyle=skinAccent;
+  ctx.beginPath();ctx.ellipse(-8,footY,6,4,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(8,footY,6,4,0,0,Math.PI*2);ctx.fill();
+
+  // Face variations
+  if(skinFace==='ninja'){
+    // Ninja mask band
+    ctx.fillStyle='#374151';
+    ctx.fillRect(-PLAYER_W/2,-6,PLAYER_W,10);
+    // Eyes (narrow)
+    ctx.fillStyle='#fff';
+    ctx.fillRect(-8,-4,5,3);
+    ctx.fillRect(4,-4,5,3);
+    // Mask tail
+    ctx.strokeStyle='#374151';ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(PLAYER_W/2,-2);ctx.lineTo(PLAYER_W/2+8,-6);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(PLAYER_W/2,-2);ctx.lineTo(PLAYER_W/2+10,0);ctx.stroke();
+  }else if(skinFace==='robot'){
+    // Visor
+    ctx.fillStyle='#22d3ee';
+    ctx.beginPath();ctx.roundRect(-12,-8,24,8,3);ctx.fill();
+    // Pixel eyes in visor
+    ctx.fillStyle='#0f172a';
+    ctx.fillRect(-8,-6,4,4);
+    ctx.fillRect(5,-6,4,4);
+    // Antenna
+    ctx.strokeStyle='#94a3b8';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(0,-PLAYER_H/2);ctx.lineTo(0,-PLAYER_H/2-8);ctx.stroke();
+    ctx.fillStyle='#ef4444';
+    ctx.beginPath();ctx.arc(0,-PLAYER_H/2-10,3,0,Math.PI*2);ctx.fill();
+  }else if(skinFace==='cat'){
+    // Ears
+    ctx.fillStyle=skinColor;
+    ctx.beginPath();ctx.moveTo(-12,-PLAYER_H/2);ctx.lineTo(-6,-PLAYER_H/2-10);ctx.lineTo(0,-PLAYER_H/2);ctx.fill();
+    ctx.beginPath();ctx.moveTo(0,-PLAYER_H/2);ctx.lineTo(6,-PLAYER_H/2-10);ctx.lineTo(12,-PLAYER_H/2);ctx.fill();
+    // Inner ears
+    ctx.fillStyle='#fca5a5';
+    ctx.beginPath();ctx.moveTo(-9,-PLAYER_H/2);ctx.lineTo(-6,-PLAYER_H/2-6);ctx.lineTo(-3,-PLAYER_H/2);ctx.fill();
+    ctx.beginPath();ctx.moveTo(3,-PLAYER_H/2);ctx.lineTo(6,-PLAYER_H/2-6);ctx.lineTo(9,-PLAYER_H/2);ctx.fill();
+    // Cat eyes
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.ellipse(-6,-4,4,5,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(6,-4,4,5,0,0,Math.PI*2);ctx.fill();
+    // Pupils (cat slit)
+    ctx.fillStyle='#111';
+    ctx.fillRect(-7,-7,2,6);
+    ctx.fillRect(5,-7,2,6);
+    // Nose + whiskers
+    ctx.fillStyle='#fca5a5';
+    ctx.beginPath();ctx.arc(0,2,2,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.3)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(-3,3);ctx.lineTo(-12,1);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-3,4);ctx.lineTo(-12,5);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(3,3);ctx.lineTo(12,1);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(3,4);ctx.lineTo(12,5);ctx.stroke();
+  }else if(skinFace==='alien'){
+    // Big oval eyes
+    ctx.fillStyle='#000';
+    ctx.beginPath();ctx.ellipse(-7,-3,6,8,-0.2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(7,-3,6,8,0.2,0,Math.PI*2);ctx.fill();
+    // Eye shines
+    ctx.fillStyle='rgba(255,255,255,0.4)';
+    ctx.beginPath();ctx.ellipse(-9,-6,2,3,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(5,-6,2,3,0,0,Math.PI*2);ctx.fill();
+    // Small mouth
+    ctx.fillStyle='rgba(0,0,0,0.3)';
+    ctx.beginPath();ctx.ellipse(0,6,3,2,0,0,Math.PI*2);ctx.fill();
+  }else{
+    // Default doodle face: two dot eyes and a small smile
+    ctx.fillStyle='#111';
+    ctx.beginPath();ctx.arc(-6,-4,3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(6,-4,3,0,Math.PI*2);ctx.fill();
+    // Eye highlights
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.arc(-5,-5,1.2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(7,-5,1.2,0,Math.PI*2);ctx.fill();
+    // Smile
+    ctx.strokeStyle='#111';ctx.lineWidth=1.5;ctx.lineCap='round';
+    ctx.beginPath();ctx.arc(0,0,6,0.2,Math.PI-0.2);ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function draw(){
+  // Sky gradient
+  var grad=ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,skyTop);grad.addColorStop(1,skyBottom);
+  ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+
+  // Background stars
+  ctx.fillStyle='rgba(255,255,255,0.12)';
+  for(var s=0;s<25;s++){
+    var sx=(s*137+cameraY*0.02*s)%W,sy=(s*97+cameraY*0.01*s)%H;
+    ctx.fillRect(sx,sy,1.5,1.5);
+  }
+
+  // Height markers every 500 units
+  ctx.save();
+  ctx.font='11px Outfit,sans-serif';ctx.fillStyle='rgba(255,255,255,0.08)';ctx.textAlign='left';
+  for(var mi=0;mi<20;mi++){
+    var mh=mi*500;
+    var my=(mh*5-cameraY)+H*0.5;
+    if(my>-20&&my<H+20){
+      ctx.fillRect(0,my,W,1);
+      ctx.fillStyle='rgba(255,255,255,0.15)';
+      ctx.fillText(mh+'m',8,my-4);
+      ctx.fillStyle='rgba(255,255,255,0.08)';
+    }
+  }
+  ctx.restore();
+
+  // Platforms
+  for(var i=0;i<platforms.length;i++){
+    drawPlatform(platforms[i]);
+  }
+
+  // Player
+  drawPlayer();
+}
+
+function gameLoop(){
+  update();draw();
+  animId=requestAnimationFrame(gameLoop);
+}
+
+/* Helper: adjust brightness of hex color */
+function adjustBrightness(hex,amt){
+  var num=parseInt(hex.replace('#',''),16);
+  var r=Math.min(255,Math.max(0,((num>>16)&0xff)+amt));
+  var g=Math.min(255,Math.max(0,((num>>8)&0xff)+amt));
+  var b=Math.min(255,Math.max(0,(num&0xff)+amt));
+  return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');
+}
+
+/* ===================== */
+/* INPUT                 */
+/* ===================== */
+document.addEventListener('keydown',function(e){
+  if(e.code==='ArrowLeft'||e.key==='a'||e.key==='A'){inputLeft=true;inputRight=false;startIfWaiting()}
+  if(e.code==='ArrowRight'||e.key==='d'||e.key==='D'){inputRight=true;inputLeft=false;startIfWaiting()}
+});
+document.addEventListener('keyup',function(e){
+  if(e.code==='ArrowLeft'||e.key==='a'||e.key==='A')inputLeft=false;
+  if(e.code==='ArrowRight'||e.key==='d'||e.key==='D')inputRight=false;
+});
+
+function startIfWaiting(){
+  if(gameState==='waiting'){
+    gameState='playing';
+    document.getElementById('tapHint').style.display='none';
+    player.vy=BOUNCE_VEL;
+    player.jumpFrame=10;
+  }
+}
+
+var cw=document.getElementById('canvasWrap');
+cw.addEventListener('mousemove',function(e){
+  var rect=cw.getBoundingClientRect();
+  mouseX=e.clientX-rect.left;
+  touchActive=true;
+  startIfWaiting();
+});
+cw.addEventListener('mouseleave',function(){touchActive=false});
+
+cw.addEventListener('touchstart',function(e){
+  e.preventDefault();
+  var rect=cw.getBoundingClientRect();
+  mouseX=e.touches[0].clientX-rect.left;
+  touchActive=true;
+  startIfWaiting();
+},{passive:false});
+cw.addEventListener('touchmove',function(e){
+  e.preventDefault();
+  var rect=cw.getBoundingClientRect();
+  mouseX=e.touches[0].clientX-rect.left;
+},{passive:false});
+cw.addEventListener('touchend',function(){touchActive=false},{passive:false});
+
+/* ===================== */
+/* FIREBASE              */
+/* ===================== */
+async function awardCoins(coins){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{var fb=await window.getFirebaseDB();await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{coins:fb.fsMod.increment(coins)})}catch(e){}
+}
+
+async function saveRecord(isNew){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'doodlejumpRecords',studentId);
+    var snap=await fb.fsMod.getDoc(ref);
+    if(snap.exists()){
+      var upd={gamesPlayed:fb.fsMod.increment(1),totalHeight:fb.fsMod.increment(score),lastPlayed:new Date().toISOString()};
+      if(isNew)upd.highScore=score;
+      await fb.fsMod.updateDoc(ref,upd);
+    }else{
+      await fb.fsMod.setDoc(ref,{studentId:studentId,studentName:studentName||'',classCode:classCode,highScore:score,gamesPlayed:1,totalHeight:score,lastPlayed:new Date().toISOString()});
+    }
+  }catch(e){console.warn('Save failed:',e)}
+}
+
+/* ===================== */
+/* RECORDS & LEADERBOARD */
+/* ===================== */
+async function showRecords(){
+  showScreen('recordsScreen');
+  document.getElementById('statBest').textContent=localBest;
+  document.getElementById('statPlayed').textContent=localGames;
+  document.getElementById('statTotal').textContent=localTotal;
+  document.getElementById('statCoins').textContent=Math.floor(localTotal/10);
+
+  // Achievements grid
+  var ag=document.getElementById('achievementsGrid');ag.innerHTML='';
+  DJ_ACHIEVEMENTS.forEach(function(a){
+    var unlocked=!!achState[a.id];
+    ag.innerHTML+='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:1px solid '+(unlocked?'var(--gold)':'var(--border)')+';border-radius:12px;padding:8px 4px;text-align:center;aspect-ratio:1;'+(unlocked?'box-shadow:0 0 12px rgba(255,209,102,.15)':'opacity:.3;filter:grayscale(1)')+'"><span style="font-size:24px">'+a.icon+'</span><span style="font-size:8px;color:var(--text2);line-height:1.1;margin-top:2px">'+esc(a.name)+'</span></div>';
+  });
+
+  // Leaderboard
+  var lb=document.getElementById('leaderboard');lb.innerHTML='<div class="lb-empty">Loading...</div>';
+  if(!classCode){lb.innerHTML='<div class="lb-empty">Join a class to see the leaderboard</div>';return}
+  try{
+    var fb=await window.getFirebaseDB();
+    var q=fb.fsMod.query(fb.fsMod.collection(fb.db,'doodlejumpRecords'),fb.fsMod.where('classCode','==',classCode),fb.fsMod.orderBy('highScore','desc'),fb.fsMod.limit(20));
+    var snap=await fb.fsMod.getDocs(q);
+    if(snap.empty){lb.innerHTML='<div class="lb-empty">No scores yet. Be the first!</div>';return}
+    var h='',rank=0;
+    snap.forEach(function(d){
+      rank++;var data=d.data();var isMe=data.studentId===studentId;
+      var rc=rank<=3?'r'+rank:'';
+      h+='<div class="lb-row'+(isMe?' me':'')+'"><div class="lb-rank '+rc+'">'+rank+'</div><div class="lb-name">'+esc(data.studentName||'Player')+'</div><div class="lb-score">'+data.highScore+'</div></div>';
+    });
+    lb.innerHTML=h;
+  }catch(e){lb.innerHTML='<div class="lb-empty">Could not load leaderboard</div>'}
+}
+
+/* ===================== */
+/* RESIZE                */
+/* ===================== */
+window.addEventListener('resize',function(){if(gameState==='waiting'||gameState==='dead')initCanvas&&canvas&&initCanvas()});
+
+/* ===================== */
+/* HELP                  */
+/* ===================== */
+odaHelp.init({
+  title:'Doodle Jump',emoji:'\u{1F438}',subtitle:'Bounce higher and higher!',
+  sections:[
+    {title:'Rules',icon:'\u{1F4D6}',items:['Move left/right with mouse, arrow keys, A/D, or touch','Your doodler auto-bounces on platforms','Go off one side of the screen, appear on the other','Avoid falling below the screen','Watch out for breakable brown platforms!']},
+    {title:'Platform Types',icon:'\u{1F3AF}',items:['Green: Normal platform - always safe','Blue: Moving platform - slides left and right','Brown: Breakable - crumbles when you land on it','Red Spring: Super bounce - launches you extra high!']},
+    {title:'Scoring',icon:'\u2B50',items:['Score = height reached','Earn coins based on height (1 coin per 10 height)','Bonus 5 coins for a new personal best']}
+  ],
+  controls:[{key:'\u2190 \u2192',action:'Move left/right'},{key:'A / D',action:'Move left/right'},{key:'Mouse',action:'Move toward cursor'},{key:'Touch',action:'Move toward finger'}],
+  tip:'<strong>Stay centered!</strong> Try to keep near the middle so you have room to reach platforms on both sides. Use screen wrapping to your advantage!'
+});
+</script>
+<script>
+(function(){
+  var isT=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+  if(isT){var b=document.getElementById('backBtn');if(b)b.href='../../teacher.html#arcade'}
+})();
+</script>
+</body>
+</html>

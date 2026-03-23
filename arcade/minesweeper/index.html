@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Minesweeper - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:center}
+body.in-game{overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+.sound-btn{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;transition:all .2s;backdrop-filter:blur(8px)}
+.sound-btn:hover{border-color:var(--accent)}
+
+.screen{display:none;width:100%;max-width:1100px;min-height:100vh;min-height:100dvh;padding:16px;animation:fadeUp .35s ease}
+@media(min-width:768px){
+  .home-header h1{font-size:80px!important}
+  .home-header p{font-size:18px}
+  .best-pill{padding:16px 32px;font-size:18px}
+  .best-pill .bp-val{font-size:28px}
+  .btn-accent{font-size:22px!important;padding:20px 64px!important}
+  .btn-outline{font-size:16px;padding:14px 28px}
+  .stats-row .sr{font-size:15px;padding:10px 22px}
+  .how-to{max-width:500px;padding:28px 32px}
+  .how-to h3{font-size:15px}
+  .how-to p{font-size:15px}
+}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+
+/* HOME */
+#homeScreen{padding-top:80px;justify-content:flex-start;gap:16px}
+.home-header{text-align:center;margin-bottom:8px}
+.home-header h1{font-size:clamp(48px,10vw,64px);font-weight:700;letter-spacing:-2px}
+.home-header h1 .hl{color:var(--accent)}
+.home-header p{color:var(--text2);font-size:15px;margin-top:4px}
+.best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
+.best-pill .bp-label{color:var(--text2)}
+.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
+.home-actions{display:flex;flex-direction:column;align-items:center;gap:14px}
+.stats-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.stats-row .sr{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+.how-to{max-width:380px;width:100%;margin:0 auto;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px}
+.how-to h3{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.how-to p{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* GAME AREA */
+#gameScreen{padding-top:60px;justify-content:flex-start;align-items:center;gap:12px;max-width:100%}
+.game-hud{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:640px;gap:12px;padding:0 4px}
+.hud-item{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:8px 16px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:18px}
+.hud-mines{color:#ef4444}
+.hud-timer{color:var(--accent)}
+.hud-face{font-size:28px;cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:4px 14px;transition:transform .1s}
+.hud-face:hover{transform:scale(1.1)}
+.hud-face:active{transform:scale(.95)}
+
+/* GRID */
+.grid-wrap{display:flex;justify-content:center;align-items:flex-start;overflow:auto;max-width:100vw;padding:4px}
+.grid{display:inline-grid;gap:1px;background:rgba(255,255,255,.06);border:2px solid var(--border);border-radius:8px;padding:2px;touch-action:manipulation}
+.cell{display:flex;align-items:center;justify-content:center;font-family:'Fredoka',sans-serif;font-weight:700;cursor:pointer;border-radius:3px;transition:background .08s,transform .08s;position:relative;overflow:hidden}
+.cell.unrevealed{background:var(--surface2);border:1px solid rgba(255,255,255,.04)}
+.cell.unrevealed:hover{background:var(--surface3);transform:scale(1.05);z-index:2}
+.cell.revealed{background:rgba(10,14,26,.6);border:1px solid rgba(255,255,255,.02);cursor:default}
+.cell.flagged{background:var(--surface2);border:1px solid rgba(255,209,102,.15)}
+.cell.mine-hit{background:rgba(239,68,68,.3)!important;border-color:rgba(239,68,68,.5)!important}
+.cell.mine-show{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.15)}
+
+/* Number colors -- classic theme */
+.n1{color:#3b82f6}.n2{color:#16a34a}.n3{color:#ef4444}.n4{color:#7c3aed}
+.n5{color:#b91c1c}.n6{color:#0891b2}.n7{color:#1e293b}.n8{color:#6b7280}
+
+/* Number colors -- neon theme */
+.neon .n1{color:#00ffff}.neon .n2{color:#39ff14}.neon .n3{color:#ff3131}.neon .n4{color:#bf5fff}
+.neon .n5{color:#ff1493}.neon .n6{color:#00ff7f}.neon .n7{color:#ffff00}.neon .n8{color:#ff8c00}
+
+/* Number colors -- warm theme */
+.warm .n1{color:#f59e0b}.warm .n2{color:#f97316}.warm .n3{color:#ef4444}.warm .n4{color:#dc2626}
+.warm .n5{color:#b91c1c}.warm .n6{color:#a16207}.warm .n7{color:#92400e}.warm .n8{color:#7c2d12}
+
+/* Number colors -- cool theme */
+.cool .n1{color:#06b6d4}.cool .n2{color:#3b82f6}.cool .n3{color:#6366f1}.cool .n4{color:#8b5cf6}
+.cool .n5{color:#a855f7}.cool .n6{color:#2563eb}.cool .n7{color:#0284c7}.cool .n8{color:#0e7490}
+
+/* Cell themes */
+.cell-dark .cell.unrevealed{background:#1a1a2e;border-color:rgba(255,255,255,.06)}
+.cell-dark .cell.unrevealed:hover{background:#252545}
+.cell-dark .cell.revealed{background:rgba(0,0,0,.4)}
+
+.cell-ocean .cell.unrevealed{background:#0c2d48;border-color:rgba(34,211,238,.08)}
+.cell-ocean .cell.unrevealed:hover{background:#164e63}
+.cell-ocean .cell.revealed{background:rgba(8,47,73,.6)}
+
+.cell-neon .cell.unrevealed{background:#0a0a2e;border-color:rgba(57,255,20,.1)}
+.cell-neon .cell.unrevealed:hover{background:#14143e}
+.cell-neon .cell.revealed{background:rgba(5,5,20,.6)}
+
+/* Flag animations */
+@keyframes flagPlant{0%{transform:scale(0) rotate(-20deg);opacity:0}50%{transform:scale(1.3) rotate(10deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+.flag-anim{animation:flagPlant .3s ease}
+
+/* Reveal cascade */
+@keyframes cellReveal{0%{transform:scale(.8);opacity:.5}100%{transform:scale(1);opacity:1}}
+.reveal-anim{animation:cellReveal .15s ease}
+
+/* Mine explosion */
+@keyframes mineExplode{0%{transform:scale(0);opacity:0}40%{transform:scale(1.4)}100%{transform:scale(1);opacity:1}}
+.mine-anim{animation:mineExplode .35s ease}
+
+/* Game over overlay */
+.game-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:50;display:flex;align-items:center;justify-content:center;animation:fadeUp .3s ease}
+.game-overlay-card{background:var(--surface);border:2px solid var(--border);border-radius:24px;padding:32px;text-align:center;max-width:400px;width:90%;animation:fadeUp .4s ease}
+.game-overlay-card h2{font-size:32px;margin-bottom:4px}
+.game-overlay-card .ov-sub{color:var(--text2);font-size:14px;margin-bottom:16px}
+.game-overlay-card .ov-stats{display:flex;gap:12px;justify-content:center;margin-bottom:16px;flex-wrap:wrap}
+.game-overlay-card .ov-stat{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:8px 16px;text-align:center}
+.game-overlay-card .ov-stat .sv{font-size:20px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.game-overlay-card .ov-stat .sv.gold{color:var(--gold)}
+.game-overlay-card .ov-stat .sl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.game-overlay-card .ov-coins{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:8px 18px;font-size:16px;font-weight:700;color:var(--gold);font-family:'Fredoka',sans-serif;margin:12px 0}
+.game-overlay-card .ov-new{color:var(--accent);font-size:14px;font-weight:700;margin-bottom:8px;animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.05)}}
+.game-overlay-card .ov-btns{display:flex;gap:10px;justify-content:center;margin-top:12px}
+
+/* RECORDS */
+#recordsScreen{padding-top:70px;justify-content:flex-start}
+.records-container{width:100%;max-width:420px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.stat-card .sv{font-size:24px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.stat-card .sv.gold{color:var(--gold)}
+.stat-card .sl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-weight:600}
+.lb-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px}
+.lb-row.me{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.lb-rank{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text2);flex-shrink:0}
+.lb-rank.r1{background:rgba(255,209,102,.2);color:var(--gold)}
+.lb-rank.r2{background:rgba(192,192,192,.15);color:#c0c0c0}
+.lb-rank.r3{background:rgba(205,127,50,.15);color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-size:14px;font-weight:800;color:var(--gold);font-family:'Fredoka',sans-serif}
+.lb-empty{text-align:center;color:var(--text2);font-size:14px;padding:24px;font-weight:600}
+
+/* SHOP */
+#shopScreen{padding-top:70px;justify-content:flex-start}
+
+/* ACHIEVEMENTS */
+.ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
+@keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../../student.html#arcade" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();showScreen('homeScreen')}">&#8592; Back</a>
+<button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128264;</button>
+
+<!-- HOME SCREEN -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1>&#128163; <span class="hl">Mine</span>sweeper</h1>
+    <p>Find every safe cell. Don't hit a mine!</p>
+  </div>
+  <div class="best-pill">
+    <span class="bp-label">&#127942; Best Easy</span>
+    <span class="bp-val" id="homeBest">---</span>
+  </div>
+  <div class="diff-row" style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
+    <button class="diff-btn active" onclick="setDifficulty('easy',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--accent);background:rgba(6,214,160,.15);color:var(--accent);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Easy</button>
+    <button class="diff-btn" onclick="setDifficulty('medium',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Medium</button>
+    <button class="diff-btn" onclick="setDifficulty('hard',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Hard</button>
+  </div>
+  <div class="home-actions">
+    <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
+    <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
+    <button class="btn btn-outline btn-small" onclick="showShopScreen()">&#128717;&#65039; Shop</button>
+  </div>
+  <div class="stats-row">
+    <div class="sr">&#127918; Games <span id="homeGames">0</span></div>
+    <div class="sr">&#9989; Wins <span id="homeWins">0</span></div>
+  </div>
+  <div class="how-to">
+    <h3>How to Play</h3>
+    <p>Click cells to reveal them. Numbers tell how many adjacent mines exist. Right-click or long-press to flag a mine. Reveal all non-mine cells to win!</p>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div class="screen" id="gameScreen">
+  <div class="game-hud">
+    <div class="hud-item hud-mines"><span id="hudMineIcon">&#128681;</span> <span id="hudMines">10</span></div>
+    <div class="hud-face" id="hudFace" onclick="startGame()">&#128578;</div>
+    <div class="hud-item hud-timer">&#9201; <span id="hudTimer">000</span></div>
+  </div>
+  <div class="grid-wrap" id="gridWrap">
+    <div class="grid" id="grid"></div>
+  </div>
+</div>
+
+<!-- RECORDS SCREEN -->
+<div class="screen" id="recordsScreen">
+  <h1>Your <span style="color:var(--accent)">Records</span></h1>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Minesweeper stats &amp; leaderboard</p>
+  <div class="records-container">
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="sv gold" id="statBestEasy">---</div><div class="sl">Best Easy</div></div>
+      <div class="stat-card"><div class="sv gold" id="statBestMedium">---</div><div class="sl">Best Medium</div></div>
+      <div class="stat-card"><div class="sv" id="statPlayed">0</div><div class="sl">Games Played</div></div>
+      <div class="stat-card"><div class="sv" id="statWins">0</div><div class="sl">Wins</div></div>
+    </div>
+    <div class="lb-title" style="margin-top:16px">&#127942; Achievements</div>
+    <div id="achievementsGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:24px"></div>
+    <div class="lb-title">Class Leaderboard (Easy)</div>
+    <div class="lb-list" id="leaderboard"><div class="lb-empty">Loading...</div></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHOP SCREEN -->
+<div class="screen" id="shopScreen">
+  <div style="text-align:center;margin-bottom:8px">
+    <h1>&#128717;&#65039; Shop</h1>
+    <p style="color:var(--text2);font-size:14px">Customize your Minesweeper</p>
+  </div>
+  <div id="mineShopContainer" style="width:100%;max-width:500px"></div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script>
+/* ===================== */
+/* SESSION               */
+/* ===================== */
+var studentId=localStorage.getItem('studentId')||'';
+var studentName=localStorage.getItem('studentName')||'';
+var classCode=localStorage.getItem('classCode')||'';
+var isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+if(isTeacher)document.getElementById('backBtn').href='../../teacher.html#arcade';
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+/* ===================== */
+/* SCREEN SYSTEM         */
+/* ===================== */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+  document.getElementById(id).classList.add('active');
+  document.body.classList.toggle('in-game',id==='gameScreen');
+  if(id==='homeScreen')loadLocalStats();
+  // Remove any overlay
+  var ov=document.querySelector('.game-overlay');
+  if(ov)ov.remove();
+}
+
+/* ===================== */
+/* AUDIO                 */
+/* ===================== */
+var audioCtx=null,soundOn=localStorage.getItem('odaSoundEnabled')!=='false';
+function getAudioCtx(){
+  if(!audioCtx)try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq,dur,type,vol,ramp){
+  if(!soundOn)return;var ctx=getAudioCtx();if(!ctx)return;
+  var osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.type=type||'square';osc.frequency.setValueAtTime(freq,ctx.currentTime);
+  if(ramp)osc.frequency.linearRampToValueAtTime(ramp,ctx.currentTime+dur);
+  gain.gain.setValueAtTime(vol||0.1,ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+  osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+dur);
+}
+function sfxReveal(){playTone(600,0.04,'sine',0.08)}
+function sfxFlag(){playTone(440,0.06,'sine',0.1);setTimeout(function(){playTone(660,0.08,'sine',0.08)},40)}
+function sfxUnflag(){playTone(400,0.06,'sine',0.08)}
+function sfxBoom(){playTone(80,0.5,'sawtooth',0.15,30);setTimeout(function(){playTone(60,0.4,'sawtooth',0.1,20)},100)}
+function sfxWin(){playTone(523,0.1,'sine',0.12);setTimeout(function(){playTone(659,0.1,'sine',0.1)},80);setTimeout(function(){playTone(784,0.15,'sine',0.12)},160);setTimeout(function(){playTone(1047,0.2,'sine',0.1)},260)}
+function sfxCascade(){playTone(800+Math.random()*400,0.03,'sine',0.04)}
+function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;';localStorage.setItem('odaSoundEnabled',soundOn)}
+if(!soundOn)document.getElementById('soundBtn').innerHTML='&#128263;';
+
+/* ===================== */
+/* COSMETICS             */
+/* ===================== */
+var myCosmetics={};
+var cellTheme='';    // '', 'cell-dark', 'cell-ocean', 'cell-neon'
+var flagStyle='flag'; // 'flag','skull','star','diamond'
+var numberTheme='';  // '', 'neon', 'warm', 'cool'
+
+async function loadMyCosmetics(){
+  try{myCosmetics=JSON.parse(localStorage.getItem('oda_cosmetics_minesweeper')||'{}');}catch(e){myCosmetics={}}
+  var sid=localStorage.getItem('studentId');
+  if(sid){
+    try{
+      var fb=await window.getFirebaseDB();
+      var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));
+      if(snap.exists()){var d=snap.data();var fc=d.gameCosmetics?.minesweeper?.equipped;if(fc&&Object.keys(fc).length>0)myCosmetics=fc;}
+    }catch(e){}
+  }
+  applyCosmeticStyles();
+}
+loadMyCosmetics();
+
+function applyCosmeticStyles(){
+  var ct=myCosmetics['Cell Theme'];
+  cellTheme=(ct&&ct.value)?ct.value:'';
+  var fs=myCosmetics['Flag Style'];
+  flagStyle=(fs&&fs.value)?fs.value:'flag';
+  var nc=myCosmetics['Number Colors'];
+  numberTheme=(nc&&nc.value)?nc.value:'';
+}
+
+function getFlagEmoji(){
+  switch(flagStyle){
+    case 'skull':return '\u2620\uFE0F';
+    case 'star':return '\u2B50';
+    case 'diamond':return '\uD83D\uDC8E';
+    default:return '\uD83D\uDEA9';
+  }
+}
+
+/* ===================== */
+/* SHOP                  */
+/* ===================== */
+var MINE_SHOP=[
+  {id:'ms_ct_classic',name:'Classic',emoji:'&#9898;',cost:0,slot:'Cell Theme',value:''},
+  {id:'ms_ct_dark',name:'Dark',emoji:'&#127761;',cost:100,slot:'Cell Theme',value:'cell-dark'},
+  {id:'ms_ct_ocean',name:'Ocean',emoji:'&#127754;',cost:150,slot:'Cell Theme',value:'cell-ocean'},
+  {id:'ms_ct_neon',name:'Neon',emoji:'&#128154;',cost:200,slot:'Cell Theme',value:'cell-neon'},
+
+  {id:'ms_fs_flag',name:'Red Flag',emoji:'&#128681;',cost:0,slot:'Flag Style',value:'flag'},
+  {id:'ms_fs_skull',name:'Skull',emoji:'&#9760;&#65039;',cost:80,slot:'Flag Style',value:'skull'},
+  {id:'ms_fs_star',name:'Star',emoji:'&#11088;',cost:100,slot:'Flag Style',value:'star'},
+  {id:'ms_fs_diamond',name:'Diamond',emoji:'&#128142;',cost:150,slot:'Flag Style',value:'diamond'},
+
+  {id:'ms_nc_classic',name:'Classic',emoji:'&#127912;',cost:0,slot:'Number Colors',value:''},
+  {id:'ms_nc_neon',name:'Neon',emoji:'&#128154;',cost:100,slot:'Number Colors',value:'neon'},
+  {id:'ms_nc_warm',name:'Warm',emoji:'&#128293;',cost:100,slot:'Number Colors',value:'warm'},
+  {id:'ms_nc_cool',name:'Cool',emoji:'&#10052;&#65039;',cost:100,slot:'Number Colors',value:'cool'}
+];
+
+function showShopScreen(){
+  showScreen('shopScreen');
+  if(typeof odaShop!=='undefined'){
+    odaShop.renderShopPanel('minesweeper',MINE_SHOP,'mineShopContainer',{
+      onEquip:function(){loadMyCosmetics()},
+      onBuy:function(){loadMyCosmetics()}
+    });
+  }
+}
+
+/* ===================== */
+/* ACHIEVEMENTS          */
+/* ===================== */
+var MINE_ACHIEVEMENTS=[
+  {id:'ms_first',name:'First Win',desc:'Win your first game',icon:'&#128163;',check:function(s){return s.wins>=1}},
+  {id:'ms_easy60',name:'Speed Sweep',desc:'Win Easy under 60s',icon:'&#9889;',check:function(s){return s.bestEasy>0&&s.bestEasy<60}},
+  {id:'ms_medium',name:'Intermediate',desc:'Win on Medium',icon:'&#128170;',check:function(s){return s.bestMedium>0}},
+  {id:'ms_hard',name:'Expert',desc:'Win on Hard',icon:'&#127942;',check:function(s){return s.bestHard>0}},
+  {id:'ms_flag100',name:'Flag Master',desc:'Flag 100 mines total',icon:'&#128681;',check:function(s){return s.totalFlags>=100}},
+  {id:'ms_play50',name:'Veteran',desc:'Play 50 games',icon:'&#127775;',check:function(s){return s.gamesPlayed>=50}}
+];
+var achState={};
+
+async function checkAchievements(extra){
+  var sid=localStorage.getItem('studentId');
+  if(!sid||sid.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'minesweeperRecords',sid);
+    var snap=await fb.fsMod.getDoc(ref);
+    var data=snap.exists()?snap.data():{};
+    var state=Object.assign({},data,extra||{});
+    achState=data.achievements||{};
+    var newUnlocks=[];
+    MINE_ACHIEVEMENTS.forEach(function(a){
+      if(!achState[a.id]&&a.check(state)){achState[a.id]=Date.now();newUnlocks.push(a)}
+    });
+    if(newUnlocks.length>0){
+      var upd={};newUnlocks.forEach(function(a){upd['achievements.'+a.id]=achState[a.id]});
+      await fb.fsMod.updateDoc(ref,upd);
+      newUnlocks.forEach(function(a){showAchToast(a)});
+    }
+  }catch(e){}
+}
+
+function showAchToast(a){
+  var el=document.createElement('div');el.className='ach-popup';
+  el.innerHTML='<span style="font-size:32px">'+a.icon+'</span><div><div style="color:var(--gold);font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:var(--text);font-size:15px;font-weight:600;font-family:Outfit,sans-serif">'+esc(a.name)+'</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function(){el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(function(){el.remove()},400)},3500);
+}
+
+/* ===================== */
+/* LOCAL STATS           */
+/* ===================== */
+var localGames=parseInt(localStorage.getItem('mine_games'))||0;
+var localWins=parseInt(localStorage.getItem('mine_wins'))||0;
+var localBestEasy=parseInt(localStorage.getItem('mine_best_easy'))||0;
+var localBestMedium=parseInt(localStorage.getItem('mine_best_medium'))||0;
+var localBestHard=parseInt(localStorage.getItem('mine_best_hard'))||0;
+var localCoins=parseInt(localStorage.getItem('mine_coins'))||0;
+var localFlags=parseInt(localStorage.getItem('mine_flags'))||0;
+
+function loadLocalStats(){
+  document.getElementById('homeBest').textContent=localBestEasy?formatTime(localBestEasy):'---';
+  document.getElementById('homeGames').textContent=localGames;
+  document.getElementById('homeWins').textContent=localWins;
+}
+loadLocalStats();
+
+function formatTime(s){
+  if(!s)return '---';
+  var m=Math.floor(s/60);
+  var sec=s%60;
+  return m>0?(m+':'+(sec<10?'0':'')+sec):sec+'s';
+}
+
+/* ===================== */
+/* DIFFICULTY            */
+/* ===================== */
+var difficulty='easy';
+var DIFFICULTIES={
+  easy:{rows:9,cols:9,mines:10,label:'Easy',cellSize:36},
+  medium:{rows:16,cols:16,mines:40,label:'Medium',cellSize:30},
+  hard:{rows:16,cols:30,mines:99,label:'Hard',cellSize:28}
+};
+
+window.setDifficulty=function(diff,btn){
+  difficulty=diff;
+  document.querySelectorAll('.diff-btn').forEach(function(b){b.style.borderColor='var(--border)';b.style.background='none';b.style.color='var(--text2)'});
+  if(btn){btn.style.borderColor='var(--accent)';btn.style.background='rgba(6,214,160,.15)';btn.style.color='var(--accent)'}
+  // Update best display
+  var bestKey='localBest'+diff.charAt(0).toUpperCase()+diff.slice(1);
+  var val=window[bestKey]||0;
+  document.getElementById('homeBest').textContent=val?formatTime(val):'---';
+  var label=DIFFICULTIES[diff].label;
+  document.querySelector('.best-pill .bp-label').innerHTML='&#127942; Best '+label;
+};
+
+/* ===================== */
+/* GAME STATE            */
+/* ===================== */
+var board=[];      // 2D array: {mine,revealed,flagged,adjacent,row,col}
+var rows=9,cols=9,totalMines=10;
+var gameActive=false,firstClick=true,gameWon=false;
+var timer=0,timerInterval=null;
+var flagCount=0;
+var revealedCount=0;
+var longPressTimer=null;
+var longPressTriggered=false;
+
+function startGame(){
+  var ov=document.querySelector('.game-overlay');
+  if(ov)ov.remove();
+
+  showScreen('gameScreen');
+  applyCosmeticStyles();
+
+  var d=DIFFICULTIES[difficulty];
+  rows=d.rows;cols=d.cols;totalMines=d.mines;
+
+  // Reset state
+  board=[];
+  gameActive=true;
+  firstClick=true;
+  gameWon=false;
+  flagCount=0;
+  revealedCount=0;
+  timer=0;
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=null;
+
+  // Build empty board
+  for(var r=0;r<rows;r++){
+    board[r]=[];
+    for(var c=0;c<cols;c++){
+      board[r][c]={mine:false,revealed:false,flagged:false,adjacent:0,row:r,col:c};
+    }
+  }
+
+  // Update HUD
+  document.getElementById('hudMines').textContent=totalMines;
+  document.getElementById('hudTimer').textContent='000';
+  document.getElementById('hudFace').textContent='\uD83D\uDE42';
+  document.getElementById('hudMineIcon').innerHTML=getFlagEmoji();
+
+  renderGrid();
+}
+
+function renderGrid(){
+  var grid=document.getElementById('grid');
+  var d=DIFFICULTIES[difficulty];
+  var sz=d.cellSize;
+
+  // Apply cosmetic classes
+  var wrap=document.getElementById('gridWrap');
+  wrap.className='grid-wrap '+cellTheme+(numberTheme?' '+numberTheme:'');
+
+  grid.style.gridTemplateColumns='repeat('+cols+','+sz+'px)';
+  grid.style.gridTemplateRows='repeat('+rows+','+sz+'px)';
+
+  var html='';
+  for(var r=0;r<rows;r++){
+    for(var c=0;c<cols;c++){
+      var cell=board[r][c];
+      var cls='cell unrevealed';
+      var content='';
+      var fontSize=Math.max(12,sz-12);
+
+      if(cell.revealed){
+        cls='cell revealed';
+        if(cell.mine){
+          cls+=' mine-show';
+          content='<span class="mine-anim" style="font-size:'+fontSize+'px">\uD83D\uDCA3</span>';
+        } else if(cell.adjacent>0){
+          cls+=' reveal-anim n'+cell.adjacent;
+          content='<span style="font-size:'+fontSize+'px">'+cell.adjacent+'</span>';
+        } else {
+          cls+=' reveal-anim';
+        }
+      } else if(cell.flagged){
+        cls='cell flagged';
+        content='<span class="flag-anim" style="font-size:'+fontSize+'px">'+getFlagEmoji()+'</span>';
+      }
+
+      html+='<div class="'+cls+'" data-r="'+r+'" data-c="'+c+'" style="width:'+sz+'px;height:'+sz+'px;font-size:'+fontSize+'px">'+content+'</div>';
+    }
+  }
+  grid.innerHTML=html;
+
+  // Attach events
+  var cells=grid.querySelectorAll('.cell');
+  cells.forEach(function(el){
+    el.addEventListener('click',function(e){handleCellClick(e,el)});
+    el.addEventListener('contextmenu',function(e){e.preventDefault();handleRightClick(el)});
+    // Long press for mobile
+    el.addEventListener('touchstart',function(e){handleTouchStart(e,el)},{passive:false});
+    el.addEventListener('touchend',function(e){handleTouchEnd(e,el)});
+    el.addEventListener('touchmove',function(e){handleTouchCancel()});
+  });
+}
+
+function updateCell(r,c){
+  var cell=board[r][c];
+  var sz=DIFFICULTIES[difficulty].cellSize;
+  var fontSize=Math.max(12,sz-12);
+  var grid=document.getElementById('grid');
+  var idx=r*cols+c;
+  var el=grid.children[idx];
+  if(!el)return;
+
+  var cls='cell';
+  var content='';
+
+  if(cell.revealed){
+    cls+=' revealed';
+    if(cell.mine){
+      cls+=' mine-show';
+      content='<span class="mine-anim" style="font-size:'+fontSize+'px">\uD83D\uDCA3</span>';
+    } else if(cell.adjacent>0){
+      cls+=' reveal-anim n'+cell.adjacent;
+      content='<span style="font-size:'+fontSize+'px">'+cell.adjacent+'</span>';
+    } else {
+      cls+=' reveal-anim';
+    }
+  } else if(cell.flagged){
+    cls+=' flagged';
+    content='<span class="flag-anim" style="font-size:'+fontSize+'px">'+getFlagEmoji()+'</span>';
+  } else {
+    cls+=' unrevealed';
+  }
+
+  el.className=cls;
+  el.innerHTML=content;
+}
+
+/* ===================== */
+/* MINE GENERATION       */
+/* ===================== */
+function generateMines(safeR,safeC){
+  // Get safe zone (3x3 around first click)
+  var safe={};
+  for(var dr=-1;dr<=1;dr++){
+    for(var dc=-1;dc<=1;dc++){
+      var nr=safeR+dr,nc=safeC+dc;
+      if(nr>=0&&nr<rows&&nc>=0&&nc<cols){
+        safe[nr+','+nc]=true;
+      }
+    }
+  }
+
+  var placed=0;
+  while(placed<totalMines){
+    var r=Math.floor(Math.random()*rows);
+    var c=Math.floor(Math.random()*cols);
+    if(!board[r][c].mine&&!safe[r+','+c]){
+      board[r][c].mine=true;
+      placed++;
+    }
+  }
+
+  // Calculate adjacency
+  for(var r2=0;r2<rows;r2++){
+    for(var c2=0;c2<cols;c2++){
+      if(board[r2][c2].mine)continue;
+      var count=0;
+      forNeighbors(r2,c2,function(nr,nc){
+        if(board[nr][nc].mine)count++;
+      });
+      board[r2][c2].adjacent=count;
+    }
+  }
+}
+
+function forNeighbors(r,c,fn){
+  for(var dr=-1;dr<=1;dr++){
+    for(var dc=-1;dc<=1;dc++){
+      if(dr===0&&dc===0)continue;
+      var nr=r+dr,nc=c+dc;
+      if(nr>=0&&nr<rows&&nc>=0&&nc<cols)fn(nr,nc);
+    }
+  }
+}
+
+/* ===================== */
+/* CELL INTERACTIONS     */
+/* ===================== */
+function handleCellClick(e,el){
+  if(!gameActive)return;
+  if(longPressTriggered){longPressTriggered=false;return}
+  var r=parseInt(el.dataset.r),c=parseInt(el.dataset.c);
+  var cell=board[r][c];
+  if(cell.revealed||cell.flagged)return;
+
+  // First click generates mines
+  if(firstClick){
+    firstClick=false;
+    generateMines(r,c);
+    startTimer();
+  }
+
+  revealCell(r,c);
+}
+
+function handleRightClick(el){
+  if(!gameActive)return;
+  var r=parseInt(el.dataset.r),c=parseInt(el.dataset.c);
+  toggleFlag(r,c);
+}
+
+function handleTouchStart(e,el){
+  longPressTriggered=false;
+  if(longPressTimer)clearTimeout(longPressTimer);
+  longPressTimer=setTimeout(function(){
+    longPressTriggered=true;
+    var r=parseInt(el.dataset.r),c=parseInt(el.dataset.c);
+    toggleFlag(r,c);
+  },400);
+}
+
+function handleTouchEnd(e,el){
+  if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null}
+}
+
+function handleTouchCancel(){
+  if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null}
+  longPressTriggered=false;
+}
+
+function toggleFlag(r,c){
+  var cell=board[r][c];
+  if(cell.revealed)return;
+
+  if(cell.flagged){
+    cell.flagged=false;
+    flagCount--;
+    sfxUnflag();
+  } else {
+    cell.flagged=true;
+    flagCount++;
+    localFlags++;
+    localStorage.setItem('mine_flags',localFlags);
+    sfxFlag();
+  }
+  document.getElementById('hudMines').textContent=totalMines-flagCount;
+  updateCell(r,c);
+}
+
+/* ===================== */
+/* REVEAL LOGIC          */
+/* ===================== */
+function revealCell(r,c){
+  var cell=board[r][c];
+  if(cell.revealed||cell.flagged)return;
+
+  cell.revealed=true;
+  revealedCount++;
+
+  if(cell.mine){
+    // Game over!
+    gameOver(r,c);
+    return;
+  }
+
+  sfxReveal();
+  updateCell(r,c);
+
+  // Cascade reveal for empty cells
+  if(cell.adjacent===0){
+    cascadeReveal(r,c);
+  }
+
+  // Check win
+  checkWin();
+}
+
+function cascadeReveal(r,c){
+  var queue=[];
+  forNeighbors(r,c,function(nr,nc){queue.push([nr,nc])});
+
+  var delay=0;
+  while(queue.length>0){
+    var next=queue.shift();
+    var nr=next[0],nc=next[1];
+    var neighbor=board[nr][nc];
+    if(neighbor.revealed||neighbor.flagged||neighbor.mine)continue;
+
+    neighbor.revealed=true;
+    revealedCount++;
+    delay+=8;
+
+    (function(row,col,d){
+      setTimeout(function(){
+        updateCell(row,col);
+        sfxCascade();
+      },d);
+    })(nr,nc,delay);
+
+    if(neighbor.adjacent===0){
+      forNeighbors(nr,nc,function(nnr,nnc){
+        if(!board[nnr][nnc].revealed&&!board[nnr][nnc].flagged){
+          queue.push([nnr,nnc]);
+        }
+      });
+    }
+  }
+
+  // Delayed win check
+  setTimeout(function(){checkWin()},delay+50);
+}
+
+/* ===================== */
+/* WIN / LOSE            */
+/* ===================== */
+function checkWin(){
+  var totalSafe=rows*cols-totalMines;
+  if(revealedCount>=totalSafe){
+    winGame();
+  }
+}
+
+function winGame(){
+  if(gameWon)return;
+  gameWon=true;
+  gameActive=false;
+  if(timerInterval)clearInterval(timerInterval);
+  sfxWin();
+
+  document.getElementById('hudFace').textContent='\uD83D\uDE0E';
+
+  // Auto-flag remaining mines
+  for(var r=0;r<rows;r++){
+    for(var c=0;c<cols;c++){
+      if(board[r][c].mine&&!board[r][c].flagged){
+        board[r][c].flagged=true;
+        updateCell(r,c);
+      }
+    }
+  }
+  document.getElementById('hudMines').textContent='0';
+
+  // Stats
+  var time=timer;
+  var isNewBest=false;
+  var bestKey='localBest'+difficulty.charAt(0).toUpperCase()+difficulty.slice(1);
+
+  localWins++;localStorage.setItem('mine_wins',localWins);
+  localGames++;localStorage.setItem('mine_games',localGames);
+
+  if(window[bestKey]===0||time<window[bestKey]){
+    window[bestKey]=time;
+    localStorage.setItem('mine_best_'+difficulty,time);
+    isNewBest=true;
+  }
+
+  // Coins
+  var coins=5;
+  if(difficulty==='medium')coins=12;
+  if(difficulty==='hard')coins=25;
+  if(isNewBest)coins+=5;
+  if(difficulty==='easy'&&time<60)coins+=5;
+  localCoins+=coins;localStorage.setItem('mine_coins',localCoins);
+
+  awardCoins(coins);
+  saveRecord(isNewBest,time);
+  checkAchievements({wins:localWins,gamesPlayed:localGames,bestEasy:localBestEasy,bestMedium:localBestMedium,bestHard:localBestHard,totalFlags:localFlags});
+
+  // Show overlay
+  setTimeout(function(){
+    showOverlay(true,time,coins,isNewBest);
+  },300);
+}
+
+function gameOver(hitR,hitC){
+  gameActive=false;
+  if(timerInterval)clearInterval(timerInterval);
+  sfxBoom();
+
+  document.getElementById('hudFace').textContent='\uD83D\uDE35';
+
+  // Mark hit cell
+  var grid=document.getElementById('grid');
+  var hitIdx=hitR*cols+hitC;
+  if(grid.children[hitIdx])grid.children[hitIdx].classList.add('mine-hit');
+
+  // Reveal all mines with staggered animation
+  var delay=0;
+  for(var r=0;r<rows;r++){
+    for(var c=0;c<cols;c++){
+      if(board[r][c].mine&&!(r===hitR&&c===hitC)){
+        delay+=30;
+        (function(row,col,d){
+          setTimeout(function(){
+            board[row][col].revealed=true;
+            updateCell(row,col);
+          },d);
+        })(r,c,delay);
+      }
+    }
+  }
+
+  // Reveal wrongly flagged
+  for(var r2=0;r2<rows;r2++){
+    for(var c2=0;c2<cols;c2++){
+      if(board[r2][c2].flagged&&!board[r2][c2].mine){
+        board[r2][c2].revealed=true;
+        var idx2=r2*cols+c2;
+        if(grid.children[idx2]){
+          grid.children[idx2].className='cell revealed mine-show';
+          grid.children[idx2].innerHTML='<span style="font-size:'+Math.max(12,DIFFICULTIES[difficulty].cellSize-12)+'px;color:#ef4444">\u2717</span>';
+        }
+      }
+    }
+  }
+
+  // Update hit mine cell
+  board[hitR][hitC].revealed=true;
+  updateCell(hitR,hitC);
+  if(grid.children[hitIdx])grid.children[hitIdx].classList.add('mine-hit');
+
+  localGames++;localStorage.setItem('mine_games',localGames);
+
+  setTimeout(function(){
+    showOverlay(false,timer,0,false);
+  },delay+200);
+}
+
+function showOverlay(won,time,coins,isNewBest){
+  var ov=document.querySelector('.game-overlay');
+  if(ov)ov.remove();
+
+  var html='<div class="game-overlay"><div class="game-overlay-card">';
+  if(won){
+    html+='<h2 style="color:var(--accent)">\uD83C\uDF89 You Win!</h2>';
+    html+='<div class="ov-sub">'+DIFFICULTIES[difficulty].label+' completed in '+formatTime(time)+'</div>';
+    if(isNewBest)html+='<div class="ov-new">New Personal Best!</div>';
+    html+='<div class="ov-stats">';
+    html+='<div class="ov-stat"><div class="sv gold">'+formatTime(time)+'</div><div class="sl">Time</div></div>';
+    html+='<div class="ov-stat"><div class="sv">'+localWins+'</div><div class="sl">Total Wins</div></div>';
+    html+='</div>';
+    html+='<div class="ov-coins">+'+coins+' coins</div>';
+  } else {
+    html+='<h2 style="color:#ef4444">\uD83D\uDCA5 Game Over</h2>';
+    html+='<div class="ov-sub">You hit a mine after '+formatTime(time)+'</div>';
+    html+='<div class="ov-stats">';
+    html+='<div class="ov-stat"><div class="sv">'+revealedCount+'</div><div class="sl">Cells Revealed</div></div>';
+    html+='<div class="ov-stat"><div class="sv">'+Math.round(revealedCount/(rows*cols-totalMines)*100)+'%</div><div class="sl">Progress</div></div>';
+    html+='</div>';
+  }
+  html+='<div class="ov-btns">';
+  html+='<button class="btn btn-accent btn-small" onclick="startGame()">Play Again</button>';
+  html+='<button class="btn btn-outline btn-small" onclick="showScreen(\'homeScreen\')">Home</button>';
+  html+='</div></div></div>';
+
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+
+/* ===================== */
+/* TIMER                 */
+/* ===================== */
+function startTimer(){
+  timer=0;
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=setInterval(function(){
+    timer++;
+    var display=timer<10?'00'+timer:timer<100?'0'+timer:''+timer;
+    document.getElementById('hudTimer').textContent=display;
+  },1000);
+}
+
+/* ===================== */
+/* FIREBASE              */
+/* ===================== */
+async function awardCoins(coins){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{var fb=await window.getFirebaseDB();await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{coins:fb.fsMod.increment(coins)})}catch(e){}
+}
+
+async function saveRecord(isNew,time){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'minesweeperRecords',studentId);
+    var snap=await fb.fsMod.getDoc(ref);
+    var bestField='best'+difficulty.charAt(0).toUpperCase()+difficulty.slice(1);
+    if(snap.exists()){
+      var upd={gamesPlayed:fb.fsMod.increment(1),wins:fb.fsMod.increment(1),lastPlayed:new Date().toISOString(),totalFlags:localFlags};
+      if(isNew)upd[bestField]=time;
+      await fb.fsMod.updateDoc(ref,upd);
+    }else{
+      var doc={studentId:studentId,studentName:studentName||'',classCode:classCode,gamesPlayed:1,wins:1,totalFlags:localFlags,lastPlayed:new Date().toISOString()};
+      doc[bestField]=time;
+      await fb.fsMod.setDoc(ref,doc);
+    }
+  }catch(e){console.warn('Save failed:',e)}
+}
+
+/* ===================== */
+/* RECORDS & LEADERBOARD */
+/* ===================== */
+async function showRecords(){
+  showScreen('recordsScreen');
+  document.getElementById('statBestEasy').textContent=localBestEasy?formatTime(localBestEasy):'---';
+  document.getElementById('statBestMedium').textContent=localBestMedium?formatTime(localBestMedium):'---';
+  document.getElementById('statPlayed').textContent=localGames;
+  document.getElementById('statWins').textContent=localWins;
+
+  // Achievements grid
+  var ag=document.getElementById('achievementsGrid');ag.innerHTML='';
+  MINE_ACHIEVEMENTS.forEach(function(a){
+    var unlocked=!!achState[a.id];
+    ag.innerHTML+='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:1px solid '+(unlocked?'var(--gold)':'var(--border)')+';border-radius:12px;padding:10px 4px;text-align:center;'+(unlocked?'box-shadow:0 0 12px rgba(255,209,102,.15)':'opacity:.3;filter:grayscale(1)')+'"><span style="font-size:24px">'+a.icon+'</span><span style="font-size:9px;color:var(--text2);line-height:1.2;margin-top:4px">'+esc(a.name)+'</span></div>';
+  });
+
+  // Leaderboard (ordered by bestEasy ASC = fastest first)
+  var lb=document.getElementById('leaderboard');lb.innerHTML='<div class="lb-empty">Loading...</div>';
+  if(!classCode){lb.innerHTML='<div class="lb-empty">Join a class to see the leaderboard</div>';return}
+  try{
+    var fb=await window.getFirebaseDB();
+    var q=fb.fsMod.query(fb.fsMod.collection(fb.db,'minesweeperRecords'),fb.fsMod.where('classCode','==',classCode),fb.fsMod.orderBy('bestEasy','asc'),fb.fsMod.limit(20));
+    var snap=await fb.fsMod.getDocs(q);
+    if(snap.empty){lb.innerHTML='<div class="lb-empty">No scores yet. Be the first!</div>';return}
+    var h='',rank=0;
+    snap.forEach(function(d){
+      rank++;var data=d.data();var isMe=data.studentId===studentId;
+      var rc=rank<=3?'r'+rank:'';
+      h+='<div class="lb-row'+(isMe?' me':'')+'"><div class="lb-rank '+rc+'">'+rank+'</div><div class="lb-name">'+esc(data.studentName||'Player')+'</div><div class="lb-score">'+formatTime(data.bestEasy)+'</div></div>';
+    });
+    lb.innerHTML=h;
+  }catch(e){lb.innerHTML='<div class="lb-empty">Could not load leaderboard</div>'}
+}
+
+/* ===================== */
+/* KEYBOARD SUPPORT      */
+/* ===================== */
+document.addEventListener('keydown',function(e){
+  if(e.code==='Escape'){
+    if(document.getElementById('gameScreen').classList.contains('active')){
+      showScreen('homeScreen');
+    }
+  }
+});
+
+/* ===================== */
+/* HELP                  */
+/* ===================== */
+odaHelp.init({
+  title:'Minesweeper',emoji:'\uD83D\uDCA3',subtitle:'Find every safe cell!',
+  sections:[
+    {title:'Rules',icon:'\uD83D\uDCD6',items:['Click a cell to reveal it','Numbers show how many adjacent cells contain mines','Right-click or long-press to flag a suspected mine','Reveal all non-mine cells to win','First click is always safe!']},
+    {title:'Difficulty',icon:'\uD83C\uDFAF',items:['Easy: 9x9 grid, 10 mines','Medium: 16x16 grid, 40 mines','Hard: 16x30 grid, 99 mines']},
+    {title:'Scoring',icon:'\uD83D\uDCB0',items:['Easy win: 5 coins (+5 if under 60s)','Medium win: 12 coins','Hard win: 25 coins','New personal best: +5 bonus coins']}
+  ],
+  controls:[{key:'Click',action:'Reveal cell'},{key:'Right-click',action:'Toggle flag'},{key:'Long-press',action:'Toggle flag (mobile)'},{key:'Esc',action:'Back to menu'}],
+  tip:'<strong>Strategy tip:</strong> Start by clicking near the center. Use numbers to deduce mine locations. Flag known mines to keep track!'
+});
+</script>
+<script>
+(function(){
+  var isT=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+  if(isT){var b=document.getElementById('backBtn');if(b)b.href='../../teacher.html#arcade'}
+})();
+</script>
+</body>
+</html>

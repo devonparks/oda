@@ -23,6 +23,9 @@ window.ODA_GAMES=[
 {id:'aimtrainer',emoji:'\u{1F3AF}',title:'Aim Trainer',desc:'Test your reflexes!',file:'arcade/aimtrainer/index.html',cat:'arcade',colors:['#dc2626','#fafafa'],categories:['Action']},
 {id:'coinminer',emoji:'\u{1FA99}',title:'Coin Miner',desc:'Tap to mine, buy upgrades!',file:'arcade/coinminer/index.html',cat:'arcade',colors:['#fbbf24','#7c3aed'],categories:['Action']},
 {id:'reaction',emoji:'\u26A1',title:'Reaction Time',desc:'How fast can you click?',file:'arcade/reaction/index.html',cat:'arcade',colors:['#ef4444','#06d6a0'],categories:['Action']},
+{id:'helicopter',emoji:'\u{1F681}',title:'Helicopter',desc:'Fly through the cave!',file:'arcade/helicopter/index.html',cat:'arcade',colors:['#3b82f6','#374151'],categories:['Action']},
+{id:'doodlejump',emoji:'\u{1F438}',title:'Doodle Jump',desc:'Bounce higher and higher!',file:'arcade/doodlejump/index.html',cat:'arcade',colors:['#4ade80','#1a1a2e'],categories:['Action']},
+{id:'colormatch',emoji:'\u{1F3A8}',title:'Color Match',desc:'Read the color, not the word!',file:'arcade/colormatch/index.html',cat:'arcade',colors:['#ef4444','#3b82f6'],categories:['Action','Puzzle']},
 // Puzzle
 {id:'2048',emoji:'\u{1F522}',title:'2048',desc:'Slide and merge to 2048!',file:'arcade/2048/index.html',cat:'puzzle',colors:['#f59e0b','#1a1a2e'],categories:['Puzzle']},
 {id:'solitaire',emoji:'\u{1F0CF}',title:'Solitaire',desc:'Classic card game!',file:'arcade/solitaire/index.html',cat:'puzzle',colors:['#16a34a','#dc2626'],categories:['Puzzle']},
@@ -30,6 +33,10 @@ window.ODA_GAMES=[
 {id:'suika',emoji:'\u{1F349}',title:'Suika Game',desc:'Drop & merge fruits!',file:'arcade/suika/index.html',cat:'puzzle',colors:['#16a34a','#ef4444'],categories:['Puzzle']},
 {id:'simonsays',emoji:'\u{1F3B5}',title:'Simon Says',desc:'Watch, listen, repeat!',file:'arcade/simonsays/index.html',cat:'puzzle',colors:['#ef4444','#3b82f6'],categories:['Puzzle']},
 {id:'memory',emoji:'\u{1F9E0}',title:'Memory Match',desc:'Find matching pairs!',file:'arcade/memory/index.html',cat:'puzzle',colors:['#8b5cf6','#06d6a0'],categories:['Puzzle']},
+{id:'lightsout',emoji:'\u{1F4A1}',title:'Lights Out',desc:'Toggle lights, solve the puzzle!',file:'arcade/lightsout/index.html',cat:'puzzle',colors:['#06d6a0','#0a0e1a'],categories:['Puzzle']},
+{id:'numbermemory',emoji:'\u{1F522}',title:'Number Memory',desc:'How many digits can you remember?',file:'arcade/numbermemory/index.html',cat:'puzzle',colors:['#6366f1','#06d6a0'],categories:['Puzzle']},
+{id:'slidingpuzzle',emoji:'\u{1F9E9}',title:'Sliding Puzzle',desc:'Slide tiles into order!',file:'arcade/slidingpuzzle/index.html',cat:'puzzle',colors:['#1e3a5f','#06d6a0'],categories:['Puzzle']},
+{id:'minesweeper',emoji:'\u{1F4A3}',title:'Minesweeper',desc:'Find safe cells, avoid mines!',file:'arcade/minesweeper/index.html',cat:'puzzle',colors:['#6b7280','#ef4444'],categories:['Puzzle','Strategy']},
 // Word
 {id:'wordle',emoji:'\u{1F4DD}',title:'Wordle',desc:'Guess the word in 6 tries!',file:'arcade/wordle/index.html',cat:'word',colors:['#16a34a','#fbbf24'],categories:['Puzzle','Word']},
 {id:'hangman',emoji:'\u{1F634}',title:'Hangman',desc:'Guess the word in time!',file:'arcade/hangman/index.html',cat:'word',colors:['#6366f1','#f59e0b'],categories:['Puzzle','Word']},

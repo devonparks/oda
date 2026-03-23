@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Number Memory - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:center}
+body.in-game{overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+.sound-btn{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;transition:all .2s;backdrop-filter:blur(8px)}
+.sound-btn:hover{border-color:var(--accent)}
+
+.screen{display:none;width:100%;max-width:1100px;min-height:100vh;min-height:100dvh;padding:16px;animation:fadeUp .35s ease}
+@media(min-width:768px){
+  .home-header h1{font-size:80px!important}
+  .home-header p{font-size:18px}
+  .best-pill{padding:16px 32px;font-size:18px}
+  .best-pill .bp-val{font-size:28px}
+  .btn-accent{font-size:22px!important;padding:20px 64px!important}
+  .btn-outline{font-size:16px;padding:14px 28px}
+  .stats-row .sr{font-size:15px;padding:10px 22px}
+  .how-to{max-width:500px;padding:28px 32px}
+  .how-to h3{font-size:15px}
+  .how-to p{font-size:15px}
+}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+
+/* HOME */
+#homeScreen{padding-top:80px;justify-content:flex-start;gap:16px}
+.home-header{text-align:center;margin-bottom:8px}
+.home-header h1{font-size:clamp(48px,10vw,64px);font-weight:700;letter-spacing:-2px}
+.home-header h1 .hl{color:var(--accent)}
+.home-header p{color:var(--text2);font-size:15px;margin-top:4px}
+.best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
+.best-pill .bp-label{color:var(--text2)}
+.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
+.home-actions{display:flex;flex-direction:column;align-items:center;gap:14px}
+.stats-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.stats-row .sr{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+.how-to{max-width:380px;width:100%;margin:0 auto;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px}
+.how-to h3{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.how-to p{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* GAME AREA */
+#gameScreen{padding:0;max-width:100%;min-height:100vh;min-height:100dvh;justify-content:center;align-items:center;position:relative}
+.game-zone{width:100%;height:100vh;height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;background:linear-gradient(135deg,#0a0e1a 0%,#111827 100%)}
+
+/* HUD */
+.game-hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:center;padding:20px;pointer-events:none;z-index:5}
+.hud-level{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:rgba(255,255,255,.5);text-shadow:0 2px 6px rgba(0,0,0,.4)}
+
+/* Number display */
+.number-display{font-family:'Fredoka',sans-serif;font-size:clamp(64px,14vw,120px);font-weight:700;color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.3);letter-spacing:8px;z-index:2;transition:opacity .4s ease,transform .4s ease;min-height:140px;display:flex;align-items:center;justify-content:center}
+.number-display.fade-in{animation:numberFadeIn .5s ease forwards}
+.number-display.fade-out{animation:numberFadeOut .5s ease forwards}
+@keyframes numberFadeIn{from{opacity:0;transform:scale(.8) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes numberFadeOut{from{opacity:1;transform:scale(1) translateY(0)}to{opacity:0;transform:scale(.8) translateY(-10px)}}
+
+/* Monospace style */
+.number-display.style-monospace{font-family:'Courier New',Consolas,monospace;letter-spacing:12px}
+/* Handwritten style */
+.number-display.style-handwritten{font-family:'Segoe Script','Comic Sans MS',cursive;letter-spacing:4px}
+/* Pixel style */
+.number-display.style-pixel{font-family:'Courier New',monospace;letter-spacing:14px;text-shadow:0 0 0 transparent;-webkit-text-stroke:2px #fff;color:transparent;paint-order:stroke fill}
+
+/* Theme colors */
+.theme-matrix .number-display{color:#39ff14;text-shadow:0 0 30px rgba(57,255,20,.5),0 0 60px rgba(57,255,20,.2)}
+.theme-gold .number-display{color:#fbbf24;text-shadow:0 0 30px rgba(251,191,36,.5),0 0 60px rgba(251,191,36,.2)}
+.theme-neon .number-display{color:#e879f9;text-shadow:0 0 30px rgba(232,121,249,.5),0 0 60px rgba(232,121,249,.2)}
+.theme-matrix .game-zone{background:linear-gradient(135deg,#010a01 0%,#0a1a0a 100%)}
+.theme-gold .game-zone{background:linear-gradient(135deg,#1a1005 0%,#0a0a14 100%)}
+.theme-neon .game-zone{background:linear-gradient(135deg,#0a051a 0%,#1a0520 100%)}
+
+/* Timer bar */
+.timer-bar-container{width:280px;max-width:80vw;height:6px;border-radius:3px;background:rgba(255,255,255,.1);margin-top:24px;overflow:hidden;z-index:2}
+.timer-bar{height:100%;border-radius:3px;background:var(--accent);transition:width linear}
+.theme-matrix .timer-bar{background:#39ff14}
+.theme-gold .timer-bar{background:#fbbf24}
+.theme-neon .timer-bar{background:#e879f9}
+
+/* Subtitle text */
+.game-subtitle{font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;color:rgba(255,255,255,.5);z-index:2;margin-top:12px}
+
+/* Input area */
+.input-area{z-index:2;display:flex;flex-direction:column;align-items:center;gap:16px;animation:fadeUp .35s ease}
+.input-area input{width:320px;max-width:80vw;font-family:'Fredoka',sans-serif;font-size:clamp(32px,6vw,48px);font-weight:700;text-align:center;background:rgba(255,255,255,.06);backdrop-filter:blur(16px);border:2px solid rgba(255,255,255,.15);border-radius:16px;padding:16px 24px;color:#fff;outline:none;letter-spacing:6px;caret-color:var(--accent);transition:border-color .2s}
+.input-area input:focus{border-color:var(--accent);box-shadow:0 0 20px rgba(6,214,160,.15)}
+.input-area input::placeholder{color:rgba(255,255,255,.2);letter-spacing:4px}
+.theme-matrix .input-area input:focus{border-color:#39ff14;box-shadow:0 0 20px rgba(57,255,20,.15)}
+.theme-gold .input-area input:focus{border-color:#fbbf24;box-shadow:0 0 20px rgba(251,191,36,.15)}
+.theme-neon .input-area input:focus{border-color:#e879f9;box-shadow:0 0 20px rgba(232,121,249,.15)}
+
+.submit-btn{padding:14px 48px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:18px;cursor:pointer;background:var(--accent);color:var(--bg);transition:all .15s;min-width:200px}
+.submit-btn:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.submit-btn:active{transform:scale(.96)}
+
+/* Results card (glass morphism) */
+.results-card{background:rgba(255,255,255,.06);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:32px;max-width:420px;width:90%;z-index:2;text-align:center;animation:fadeUp .4s ease}
+.results-card h2{font-size:28px;color:var(--accent);margin-bottom:4px}
+.results-level{font-size:clamp(48px,12vw,72px);font-weight:700;font-family:'Fredoka',sans-serif;color:#fff;line-height:1}
+.results-label{font-size:13px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:2px;margin-top:4px}
+.results-best{font-size:18px;color:var(--gold);font-weight:700;font-family:'Fredoka',sans-serif;margin:12px 0}
+.results-coins{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:8px 18px;font-size:16px;font-weight:700;color:var(--gold);font-family:'Fredoka',sans-serif;margin:12px 0}
+.results-new{color:var(--accent);font-size:14px;font-weight:700;animation:pulse 1s ease-in-out infinite}
+.results-btns{display:flex;gap:10px;justify-content:center;margin-top:12px}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.05)}}
+
+/* Correct/wrong flash */
+.result-correct{background:rgba(6,214,160,.08)}
+.result-wrong{background:rgba(239,68,68,.08)}
+
+/* Comparison display */
+.compare-row{display:flex;gap:8px;justify-content:center;align-items:center;margin:12px 0;flex-wrap:wrap}
+.compare-num{font-family:'Fredoka',sans-serif;font-size:clamp(20px,5vw,28px);font-weight:700;letter-spacing:4px;padding:8px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
+.compare-label{font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:2px;margin-bottom:2px}
+.compare-correct{color:#06d6a0;border-color:rgba(6,214,160,.3)}
+.compare-wrong{color:#ef4444;border-color:rgba(239,68,68,.3)}
+
+/* Level progress dots */
+.level-dots{display:flex;gap:6px;margin-top:8px;z-index:2;flex-wrap:wrap;justify-content:center;max-width:300px}
+.level-dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.2);transition:all .3s}
+.level-dot.done{background:var(--accent);border-color:var(--accent);box-shadow:0 0 6px rgba(6,214,160,.4)}
+.level-dot.current{border-color:rgba(255,255,255,.6);animation:dotPulse 1s ease-in-out infinite}
+@keyframes dotPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+
+/* RECORDS */
+#recordsScreen{padding-top:70px;justify-content:flex-start}
+.records-container{width:100%;max-width:420px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.stat-card .sv{font-size:24px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.stat-card .sv.gold{color:var(--gold)}
+.stat-card .sl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-weight:600}
+.lb-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px}
+.lb-row.me{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.lb-rank{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text2);flex-shrink:0}
+.lb-rank.r1{background:rgba(255,209,102,.2);color:var(--gold)}
+.lb-rank.r2{background:rgba(192,192,192,.15);color:#c0c0c0}
+.lb-rank.r3{background:rgba(205,127,50,.15);color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-size:14px;font-weight:800;color:var(--gold);font-family:'Fredoka',sans-serif}
+.lb-empty{text-align:center;color:var(--text2);font-size:14px;padding:24px;font-weight:600}
+
+/* SHOP */
+#shopScreen{padding-top:70px;justify-content:flex-start}
+
+/* ACHIEVEMENTS */
+.ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
+@keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../../student.html#arcade" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();showScreen('homeScreen')}">&#8592; Back</a>
+<button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128264;</button>
+
+<!-- HOME SCREEN -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1>&#129504; <span class="hl">Number</span> Memory</h1>
+    <p>How many digits can you remember?</p>
+  </div>
+  <div class="best-pill">
+    <span class="bp-label">&#127942; Best Level</span>
+    <span class="bp-val" id="homeBest">---</span>
+  </div>
+  <div class="home-actions">
+    <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
+    <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
+    <button class="btn btn-outline btn-small" onclick="showShopScreen()">&#128717;&#65039; Shop</button>
+  </div>
+  <div class="stats-row">
+    <div class="sr">&#127918; Games <span id="homeGames">0</span></div>
+    <div class="sr">&#129504; Avg Level <span id="homeAvg">---</span></div>
+  </div>
+  <div class="how-to">
+    <h3>How to Play</h3>
+    <p>A number will appear on screen for a few seconds. Memorize it, then type it from memory! Each level adds another digit. How far can you go?</p>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div class="screen" id="gameScreen">
+  <div class="game-zone" id="gameZone">
+    <div class="game-hud"><div class="hud-level" id="hudLevel"></div></div>
+    <div class="number-display" id="numberDisplay"></div>
+    <div class="timer-bar-container" id="timerBarContainer" style="display:none">
+      <div class="timer-bar" id="timerBar"></div>
+    </div>
+    <div class="game-subtitle" id="gameSubtitle"></div>
+    <div class="input-area" id="inputArea" style="display:none">
+      <input type="text" id="numberInput" inputmode="numeric" pattern="[0-9]*" placeholder="???" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <button class="submit-btn" id="submitBtn" onclick="submitAnswer()">Submit</button>
+    </div>
+    <div class="level-dots" id="levelDots"></div>
+  </div>
+</div>
+
+<!-- RECORDS SCREEN -->
+<div class="screen" id="recordsScreen">
+  <h1>Your <span style="color:var(--accent)">Records</span></h1>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Number Memory stats &amp; leaderboard</p>
+  <div class="records-container">
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="sv gold" id="statBest">---</div><div class="sl">Best Level</div></div>
+      <div class="stat-card"><div class="sv" id="statPlayed">0</div><div class="sl">Games Played</div></div>
+      <div class="stat-card"><div class="sv" id="statAvg">---</div><div class="sl">Avg Level</div></div>
+      <div class="stat-card"><div class="sv" id="statCoins">0</div><div class="sl">Coins Earned</div></div>
+    </div>
+    <div class="lb-title" style="margin-top:16px">&#127942; Achievements</div>
+    <div id="achievementsGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:24px"></div>
+    <div class="lb-title">Class Leaderboard</div>
+    <div class="lb-list" id="leaderboard"><div class="lb-empty">Loading...</div></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHOP SCREEN -->
+<div class="screen" id="shopScreen">
+  <div style="text-align:center;margin-bottom:8px">
+    <h1>&#128717;&#65039; Shop</h1>
+    <p style="color:var(--text2);font-size:14px">Customize your Number Memory</p>
+  </div>
+  <div id="numbermemoryShopContainer" style="width:100%;max-width:500px"></div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script>
+/* ===================== */
+/* SESSION               */
+/* ===================== */
+var studentId=localStorage.getItem('studentId')||'';
+var studentName=localStorage.getItem('studentName')||'';
+var classCode=localStorage.getItem('classCode')||'';
+var isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+if(isTeacher)document.getElementById('backBtn').href='../../teacher.html#arcade';
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+/* ===================== */
+/* SCREEN SYSTEM         */
+/* ===================== */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+  document.getElementById(id).classList.add('active');
+  document.body.classList.toggle('in-game',id==='gameScreen');
+  if(id==='homeScreen'){loadLocalStats();stopGame()}
+}
+
+/* ===================== */
+/* AUDIO                 */
+/* ===================== */
+var audioCtx=null,soundOn=localStorage.getItem('odaSoundEnabled')!=='false';
+function getAudioCtx(){
+  if(!audioCtx)try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq,dur,type,vol,ramp){
+  if(!soundOn)return;var ctx=getAudioCtx();if(!ctx)return;
+  var osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.type=type||'square';osc.frequency.setValueAtTime(freq,ctx.currentTime);
+  if(ramp)osc.frequency.linearRampToValueAtTime(ramp,ctx.currentTime+dur);
+  gain.gain.setValueAtTime(vol||0.1,ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+  osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+dur);
+}
+function sfxShow(){playTone(660,0.08,'sine',0.12);setTimeout(function(){playTone(880,0.06,'sine',0.1)},60)}
+function sfxCorrect(){playTone(523,0.1,'sine',0.12);setTimeout(function(){playTone(659,0.1,'sine',0.1)},80);setTimeout(function(){playTone(784,0.15,'sine',0.12)},160)}
+function sfxWrong(){playTone(200,0.3,'sawtooth',0.12,100)}
+function sfxNewBest(){playTone(784,0.1,'sine',0.12);setTimeout(function(){playTone(988,0.1,'sine',0.1)},80);setTimeout(function(){playTone(1175,0.2,'sine',0.12)},160)}
+function sfxType(){playTone(440,0.03,'sine',0.05)}
+function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;';localStorage.setItem('odaSoundEnabled',soundOn)}
+if(!soundOn)document.getElementById('soundBtn').innerHTML='&#128263;';
+
+/* ===================== */
+/* COSMETICS             */
+/* ===================== */
+var myCosmetics={};
+var currentTheme='classic';
+var currentStyle='standard';
+
+async function loadMyCosmetics(){
+  try{myCosmetics=JSON.parse(localStorage.getItem('oda_cosmetics_numbermemory')||'{}');}catch(e){myCosmetics={}}
+  var sid=localStorage.getItem('studentId');
+  if(sid){
+    try{
+      var fb=await window.getFirebaseDB();
+      var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));
+      if(snap.exists()){var d=snap.data();var fc=d.gameCosmetics?.numbermemory?.equipped;if(fc&&Object.keys(fc).length>0)myCosmetics=fc;}
+    }catch(e){}
+  }
+  applyCosmeticStyles();
+}
+loadMyCosmetics();
+
+function applyCosmeticStyles(){
+  var dt=myCosmetics['Display Theme'];
+  currentTheme=(dt&&dt.value&&dt.value.theme)?dt.value.theme:'classic';
+  var ns=myCosmetics['Number Style'];
+  currentStyle=(ns&&ns.value&&ns.value.style)?ns.value.style:'standard';
+}
+
+function applyThemeToZone(){
+  var zone=document.getElementById('gameZone');
+  zone.classList.remove('theme-matrix','theme-gold','theme-neon');
+  if(currentTheme!=='classic')zone.classList.add('theme-'+currentTheme);
+  var display=document.getElementById('numberDisplay');
+  display.classList.remove('style-monospace','style-handwritten','style-pixel');
+  if(currentStyle!=='standard')display.classList.add('style-'+currentStyle);
+}
+
+/* ===================== */
+/* SHOP                  */
+/* ===================== */
+var NUMBERMEMORY_SHOP=[
+  {id:'nm_theme_classic',name:'Classic',emoji:'&#9898;',cost:0,slot:'Display Theme',value:{theme:'classic'}},
+  {id:'nm_theme_matrix',name:'Matrix',emoji:'&#128154;',cost:100,slot:'Display Theme',value:{theme:'matrix'}},
+  {id:'nm_theme_gold',name:'Gold',emoji:'&#127775;',cost:150,slot:'Display Theme',value:{theme:'gold'}},
+  {id:'nm_theme_neon',name:'Neon',emoji:'&#128156;',cost:150,slot:'Display Theme',value:{theme:'neon'}},
+
+  {id:'nm_style_standard',name:'Standard',emoji:'&#128290;',cost:0,slot:'Number Style',value:{style:'standard'}},
+  {id:'nm_style_monospace',name:'Monospace',emoji:'&#128187;',cost:80,slot:'Number Style',value:{style:'monospace'}},
+  {id:'nm_style_handwritten',name:'Handwritten',emoji:'&#9999;&#65039;',cost:120,slot:'Number Style',value:{style:'handwritten'}},
+  {id:'nm_style_pixel',name:'Pixel',emoji:'&#127918;',cost:120,slot:'Number Style',value:{style:'pixel'}}
+];
+
+function showShopScreen(){
+  showScreen('shopScreen');
+  if(typeof odaShop!=='undefined'){
+    odaShop.renderShopPanel('numbermemory',NUMBERMEMORY_SHOP,'numbermemoryShopContainer',{
+      onEquip:function(){loadMyCosmetics()},
+      onBuy:function(){loadMyCosmetics()}
+    });
+  }
+}
+
+/* ===================== */
+/* ACHIEVEMENTS          */
+/* ===================== */
+var NUMBERMEMORY_ACHIEVEMENTS=[
+  {id:'nm_5',name:'Warming Up',desc:'Remember 5 digits',icon:'&#129504;',check:function(s){return s.bestLevel>=5}},
+  {id:'nm_7',name:'Sharp Mind',desc:'Remember 7 digits',icon:'&#128161;',check:function(s){return s.bestLevel>=7}},
+  {id:'nm_10',name:'Double Digits',desc:'Remember 10 digits',icon:'&#9889;',check:function(s){return s.bestLevel>=10}},
+  {id:'nm_12',name:'Genius',desc:'Remember 12 digits',icon:'&#129464;',check:function(s){return s.bestLevel>=12}},
+  {id:'nm_15',name:'Superhuman',desc:'Remember 15 digits',icon:'&#127775;',check:function(s){return s.bestLevel>=15}},
+  {id:'nm_25games',name:'Dedicated',desc:'Play 25 games',icon:'&#127942;',check:function(s){return s.gamesPlayed>=25}}
+];
+var achState={};
+
+async function checkAchievements(extra){
+  var sid=localStorage.getItem('studentId');
+  if(!sid||sid.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'numbermemoryRecords',sid);
+    var snap=await fb.fsMod.getDoc(ref);
+    var data=snap.exists()?snap.data():{};
+    var state=Object.assign({},data,extra||{});
+    achState=data.achievements||{};
+    var newUnlocks=[];
+    NUMBERMEMORY_ACHIEVEMENTS.forEach(function(a){
+      if(!achState[a.id]&&a.check(state)){achState[a.id]=Date.now();newUnlocks.push(a)}
+    });
+    if(newUnlocks.length>0){
+      var upd={};newUnlocks.forEach(function(a){upd['achievements.'+a.id]=achState[a.id]});
+      await fb.fsMod.updateDoc(ref,upd);
+      newUnlocks.forEach(function(a){showAchToast(a)});
+    }
+  }catch(e){}
+}
+
+function showAchToast(a){
+  var el=document.createElement('div');el.className='ach-popup';
+  el.innerHTML='<span style="font-size:32px">'+a.icon+'</span><div><div style="color:var(--gold);font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:var(--text);font-size:15px;font-weight:600;font-family:Outfit,sans-serif">'+esc(a.name)+'</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function(){el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(function(){el.remove()},400)},3500);
+}
+
+/* ===================== */
+/* LOCAL STATS           */
+/* ===================== */
+var localBest=parseInt(localStorage.getItem('numbermemory_best'))||0;
+var localGames=parseInt(localStorage.getItem('numbermemory_games'))||0;
+var localAvg=parseFloat(localStorage.getItem('numbermemory_avg'))||0;
+var localCoins=parseInt(localStorage.getItem('numbermemory_coins'))||0;
+
+function loadLocalStats(){
+  document.getElementById('homeBest').textContent=localBest?'Level '+localBest:'---';
+  document.getElementById('homeGames').textContent=localGames;
+  document.getElementById('homeAvg').textContent=localAvg?localAvg.toFixed(1):'---';
+}
+loadLocalStats();
+
+/* ===================== */
+/* GAME STATE            */
+/* ===================== */
+var gameState='idle'; // idle, showing, input, result, done
+var currentLevel=0;
+var currentNumber='';
+var showTimer=null;
+var timerInterval=null;
+var coinsAwarded=false;
+
+function stopGame(){
+  if(showTimer){clearTimeout(showTimer);showTimer=null}
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null}
+  gameState='idle';
+}
+
+window.addEventListener('beforeunload',stopGame);
+document.addEventListener('visibilitychange',function(){if(document.hidden&&gameState!=='idle')stopGame()});
+
+/* Generate a random number with n digits (first digit never 0) */
+function generateNumber(digits){
+  var s='';
+  s+=String(Math.floor(Math.random()*9)+1); // 1-9
+  for(var i=1;i<digits;i++){
+    s+=String(Math.floor(Math.random()*10)); // 0-9
+  }
+  return s;
+}
+
+/* Calculate display time based on digit count */
+function getDisplayTime(digits){
+  // Start at 3s for 3 digits, increase 0.4s per digit, max ~8s
+  // But also decrease per level to add challenge
+  var base=2200+digits*400;
+  // Cap at 8000ms
+  if(base>8000)base=8000;
+  return base;
+}
+
+function startGame(){
+  showScreen('gameScreen');
+  applyCosmeticStyles();
+  applyThemeToZone();
+  currentLevel=0;
+  coinsAwarded=false;
+  nextLevel();
+}
+
+function nextLevel(){
+  currentLevel++;
+  var digits=currentLevel+2; // Level 1 = 3 digits, Level 2 = 4, etc.
+  currentNumber=generateNumber(digits);
+  gameState='showing';
+
+  var display=document.getElementById('numberDisplay');
+  var subtitle=document.getElementById('gameSubtitle');
+  var inputArea=document.getElementById('inputArea');
+  var timerContainer=document.getElementById('timerBarContainer');
+  var timerBar=document.getElementById('timerBar');
+
+  // Hide input
+  inputArea.style.display='none';
+
+  // Update HUD
+  document.getElementById('hudLevel').textContent='Level '+currentLevel+' ('+digits+' digits)';
+
+  // Show number with fade-in
+  display.textContent=currentNumber;
+  display.className='number-display fade-in';
+  if(currentStyle!=='standard')display.classList.add('style-'+currentStyle);
+  subtitle.textContent='Memorize this number!';
+
+  // Timer bar
+  var displayTime=getDisplayTime(digits);
+  timerContainer.style.display='block';
+  timerBar.style.transition='none';
+  timerBar.style.width='100%';
+
+  sfxShow();
+
+  // Force reflow then animate timer
+  timerBar.offsetHeight;
+  timerBar.style.transition='width '+displayTime+'ms linear';
+  timerBar.style.width='0%';
+
+  // Update level dots
+  updateLevelDots();
+
+  // After display time, hide number and show input
+  showTimer=setTimeout(function(){
+    if(gameState!=='showing')return;
+    showInputPhase();
+  },displayTime);
+}
+
+function showInputPhase(){
+  gameState='input';
+  var display=document.getElementById('numberDisplay');
+  var subtitle=document.getElementById('gameSubtitle');
+  var inputArea=document.getElementById('inputArea');
+  var timerContainer=document.getElementById('timerBarContainer');
+  var numInput=document.getElementById('numberInput');
+
+  // Fade out number
+  display.className='number-display fade-out';
+  if(currentStyle!=='standard')display.classList.add('style-'+currentStyle);
+
+  setTimeout(function(){
+    display.textContent='?';
+    display.className='number-display fade-in';
+    if(currentStyle!=='standard')display.classList.add('style-'+currentStyle);
+    display.style.opacity='.3';
+  },400);
+
+  timerContainer.style.display='none';
+  subtitle.textContent='What was the number?';
+
+  // Show input
+  inputArea.style.display='flex';
+  numInput.value='';
+  numInput.maxLength=currentNumber.length;
+  numInput.placeholder='?'.repeat(currentNumber.length);
+
+  // Auto focus with small delay for animation
+  setTimeout(function(){numInput.focus()},100);
+}
+
+function submitAnswer(){
+  if(gameState!=='input')return;
+  var numInput=document.getElementById('numberInput');
+  var answer=numInput.value.trim();
+  if(!answer)return;
+
+  gameState='result';
+  var correct=answer===currentNumber;
+
+  if(correct){
+    sfxCorrect();
+    showCorrectResult();
+  }else{
+    sfxWrong();
+    showWrongResult(answer);
+  }
+}
+
+function showCorrectResult(){
+  var display=document.getElementById('numberDisplay');
+  var subtitle=document.getElementById('gameSubtitle');
+  var inputArea=document.getElementById('inputArea');
+
+  inputArea.style.display='none';
+  display.style.opacity='1';
+  display.textContent=currentNumber;
+  display.className='number-display fade-in';
+  if(currentStyle!=='standard')display.classList.add('style-'+currentStyle);
+  subtitle.innerHTML='<span style="color:#06d6a0;font-weight:700">Correct!</span> Get ready for the next level...';
+
+  updateLevelDots();
+
+  // Move to next level after a short pause
+  showTimer=setTimeout(function(){
+    if(gameState!=='result')return;
+    nextLevel();
+  },1500);
+}
+
+function showWrongResult(answer){
+  if(showTimer){clearTimeout(showTimer);showTimer=null}
+  gameState='done';
+
+  var display=document.getElementById('numberDisplay');
+  var subtitle=document.getElementById('gameSubtitle');
+  var inputArea=document.getElementById('inputArea');
+  var zone=document.getElementById('gameZone');
+
+  inputArea.style.display='none';
+  display.textContent='';
+  display.style.opacity='1';
+  subtitle.textContent='';
+  document.getElementById('levelDots').innerHTML='';
+
+  // Level reached is currentLevel - 1 (they failed this level)
+  var levelReached=currentLevel-1;
+  var digits=currentLevel+2;
+  var isNewBest=levelReached>0&&(localBest===0||levelReached>localBest);
+
+  // Update local stats
+  if(isNewBest){localBest=levelReached;localStorage.setItem('numbermemory_best',localBest)}
+  localGames++;localStorage.setItem('numbermemory_games',localGames);
+  if(levelReached>0){
+    localAvg=localAvg?((localAvg*(localGames-1)+levelReached)/localGames):levelReached;
+    localStorage.setItem('numbermemory_avg',localAvg);
+  }
+
+  // Coins: based on level reached
+  var coins=0;
+  if(levelReached>=12)coins=20;
+  else if(levelReached>=8)coins=12;
+  else if(levelReached>=5)coins=8;
+  else if(levelReached>=3)coins=5;
+  else if(levelReached>=1)coins=2;
+  if(isNewBest)coins+=5;
+  localCoins+=coins;localStorage.setItem('numbermemory_coins',localCoins);
+
+  if(isNewBest)sfxNewBest();
+
+  // Build comparison
+  var compareHtml='<div style="margin:16px 0">';
+  compareHtml+='<div class="compare-label">The number was</div>';
+  // Highlight matching/different digits
+  var correctHtml='',yourHtml='';
+  for(var i=0;i<currentNumber.length;i++){
+    var ch=currentNumber[i];
+    var ach=answer[i]||'_';
+    var match=ch===ach;
+    correctHtml+='<span style="color:'+(match?'#06d6a0':'#fff')+'">'+ch+'</span>';
+    yourHtml+='<span style="color:'+(match?'#06d6a0':'#ef4444')+'">'+ach+'</span>';
+  }
+  compareHtml+='<div class="compare-num compare-correct" style="font-size:clamp(24px,6vw,36px)">'+correctHtml+'</div>';
+  compareHtml+='<div class="compare-label" style="margin-top:8px">Your answer</div>';
+  compareHtml+='<div class="compare-num compare-wrong" style="font-size:clamp(24px,6vw,36px)">'+yourHtml+'</div>';
+  compareHtml+='</div>';
+
+  // Results card
+  var html='<div class="results-card">';
+  html+='<h2>Game Over</h2>';
+  html+='<div class="results-label">Level Reached</div>';
+  html+='<div class="results-level">'+levelReached+'</div>';
+  html+='<div style="font-size:14px;color:rgba(255,255,255,.5);margin-top:2px">'+(levelReached>0?(levelReached+2)+' digits memorized':'Failed on first try')+'</div>';
+  if(isNewBest)html+='<div class="results-new">New Personal Best!</div>';
+  html+=compareHtml;
+  html+='<div class="results-best">&#127942; Best: Level '+localBest+'</div>';
+  html+='<div class="results-coins">+'+coins+' coins</div>';
+  html+='<div class="results-btns">';
+  html+='<button class="btn btn-accent btn-small" onclick="startGame()">Play Again</button>';
+  html+='<button class="btn btn-outline btn-small" onclick="showScreen(\'homeScreen\')">Home</button>';
+  html+='</div></div>';
+
+  // Remove old card if any
+  var oldCard=zone.querySelector('.results-card');
+  if(oldCard)oldCard.remove();
+
+  var wrapper=document.createElement('div');
+  wrapper.innerHTML=html;
+  var card=wrapper.firstChild;
+  card.style.position='absolute';
+  card.style.zIndex='10';
+  zone.appendChild(card);
+
+  document.getElementById('hudLevel').textContent='';
+
+  if(!coinsAwarded){
+    coinsAwarded=true;
+    awardCoins(coins);
+    saveRecord(isNewBest,levelReached);
+    checkAchievements({bestLevel:Math.max(levelReached,localBest),gamesPlayed:localGames});
+  }
+}
+
+function updateLevelDots(){
+  var dotsEl=document.getElementById('levelDots');
+  var maxDots=Math.min(currentLevel+2,15);
+  var html='';
+  for(var i=1;i<=maxDots;i++){
+    var cls='level-dot';
+    if(i<currentLevel)cls+=' done';
+    else if(i===currentLevel)cls+=' current';
+    html+='<div class="'+cls+'"></div>';
+  }
+  dotsEl.innerHTML=html;
+}
+
+/* ===================== */
+/* FIREBASE              */
+/* ===================== */
+async function awardCoins(coins){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{var fb=await window.getFirebaseDB();await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{coins:fb.fsMod.increment(coins)})}catch(e){}
+}
+
+async function saveRecord(isNew,levelReached){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'numbermemoryRecords',studentId);
+    var snap=await fb.fsMod.getDoc(ref);
+    if(snap.exists()){
+      var upd={gamesPlayed:fb.fsMod.increment(1),lastPlayed:new Date().toISOString(),lastLevel:levelReached};
+      if(isNew)upd.bestLevel=levelReached;
+      await fb.fsMod.updateDoc(ref,upd);
+    }else{
+      await fb.fsMod.setDoc(ref,{studentId:studentId,studentName:studentName||'',classCode:classCode,bestLevel:levelReached,gamesPlayed:1,lastLevel:levelReached,lastPlayed:new Date().toISOString()});
+    }
+  }catch(e){console.warn('Save failed:',e)}
+}
+
+/* ===================== */
+/* RECORDS & LEADERBOARD */
+/* ===================== */
+async function showRecords(){
+  showScreen('recordsScreen');
+  document.getElementById('statBest').textContent=localBest?'Level '+localBest:'---';
+  document.getElementById('statPlayed').textContent=localGames;
+  document.getElementById('statAvg').textContent=localAvg?localAvg.toFixed(1):'---';
+  document.getElementById('statCoins').textContent=localCoins;
+
+  // Achievements grid
+  var ag=document.getElementById('achievementsGrid');ag.innerHTML='';
+  NUMBERMEMORY_ACHIEVEMENTS.forEach(function(a){
+    var unlocked=!!achState[a.id];
+    ag.innerHTML+='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:1px solid '+(unlocked?'var(--gold)':'var(--border)')+';border-radius:12px;padding:10px 4px;text-align:center;'+(unlocked?'box-shadow:0 0 12px rgba(255,209,102,.15)':'opacity:.3;filter:grayscale(1)')+'"><span style="font-size:24px">'+a.icon+'</span><span style="font-size:9px;color:var(--text2);line-height:1.2;margin-top:4px">'+esc(a.name)+'</span></div>';
+  });
+
+  // Leaderboard (ordered by bestLevel DESC = highest first)
+  var lb=document.getElementById('leaderboard');lb.innerHTML='<div class="lb-empty">Loading...</div>';
+  if(!classCode){lb.innerHTML='<div class="lb-empty">Join a class to see the leaderboard</div>';return}
+  try{
+    var fb=await window.getFirebaseDB();
+    var q=fb.fsMod.query(fb.fsMod.collection(fb.db,'numbermemoryRecords'),fb.fsMod.where('classCode','==',classCode),fb.fsMod.orderBy('bestLevel','desc'),fb.fsMod.limit(20));
+    var snap=await fb.fsMod.getDocs(q);
+    if(snap.empty){lb.innerHTML='<div class="lb-empty">No scores yet. Be the first!</div>';return}
+    var h='',rank=0;
+    snap.forEach(function(d){
+      rank++;var data=d.data();var isMe=data.studentId===studentId;
+      var rc=rank<=3?'r'+rank:'';
+      h+='<div class="lb-row'+(isMe?' me':'')+'"><div class="lb-rank '+rc+'">'+rank+'</div><div class="lb-name">'+esc(data.studentName||'Player')+'</div><div class="lb-score">Lvl '+data.bestLevel+'</div></div>';
+    });
+    lb.innerHTML=h;
+  }catch(e){lb.innerHTML='<div class="lb-empty">Could not load leaderboard</div>'}
+}
+
+/* ===================== */
+/* KEYBOARD SUPPORT      */
+/* ===================== */
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter'){
+    e.preventDefault();
+    if(gameState==='input'){
+      submitAnswer();
+    }
+  }
+});
+
+/* Input: only allow digits */
+document.getElementById('numberInput').addEventListener('input',function(e){
+  this.value=this.value.replace(/[^0-9]/g,'');
+  if(this.value.length>0)sfxType();
+});
+
+/* ===================== */
+/* RESIZE                */
+/* ===================== */
+window.addEventListener('resize',function(){});
+</script>
+</body>
+</html>

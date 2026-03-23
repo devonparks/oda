@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sliding Puzzle - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:center}
+body.in-game{overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+.sound-btn{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;transition:all .2s;backdrop-filter:blur(8px)}
+.sound-btn:hover{border-color:var(--accent)}
+
+.screen{display:none;width:100%;max-width:1100px;min-height:100vh;min-height:100dvh;padding:16px;animation:fadeUp .35s ease}
+@media(min-width:768px){
+  .home-header h1{font-size:80px!important}
+  .home-header p{font-size:18px}
+  .best-pill{padding:16px 32px;font-size:18px}
+  .best-pill .bp-val{font-size:28px}
+  .btn-accent{font-size:22px!important;padding:20px 64px!important}
+  .btn-outline{font-size:16px;padding:14px 28px}
+  .stats-row .sr{font-size:15px;padding:10px 22px}
+  .how-to{max-width:500px;padding:28px 32px}
+  .how-to h3{font-size:15px}
+  .how-to p{font-size:15px}
+}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+
+/* HOME */
+#homeScreen{padding-top:80px;justify-content:flex-start;gap:16px}
+.home-header{text-align:center;margin-bottom:8px}
+.home-header h1{font-size:clamp(48px,10vw,64px);font-weight:700;letter-spacing:-2px}
+.home-header h1 .hl{color:var(--accent)}
+.home-header p{color:var(--text2);font-size:15px;margin-top:4px}
+.best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
+.best-pill .bp-label{color:var(--text2)}
+.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
+.home-actions{display:flex;flex-direction:column;align-items:center;gap:14px}
+.stats-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.stats-row .sr{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+.how-to{max-width:380px;width:100%;margin:0 auto;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px}
+.how-to h3{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.how-to p{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* DIFFICULTY */
+.diff-row{display:flex;gap:8px;justify-content:center;margin-bottom:8px}
+.diff-btn{padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s}
+.diff-btn.active{border-color:var(--accent);background:rgba(6,214,160,.15);color:var(--accent)}
+
+/* GAME */
+#gameScreen{padding-top:70px;justify-content:flex-start;gap:12px}
+.game-hud{display:flex;justify-content:center;gap:24px;padding:0 16px;flex-wrap:wrap}
+.hud-item{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:8px 16px;font-size:14px;font-weight:700}
+.hud-label{color:var(--text2);font-weight:600}
+.hud-val{color:var(--accent);font-family:'Fredoka',sans-serif}
+
+/* PUZZLE BOARD */
+.puzzle-wrap{display:flex;justify-content:center;align-items:center;margin:8px 0}
+.puzzle-board{display:grid;gap:4px;background:rgba(255,255,255,.04);border:2px solid var(--border);border-radius:16px;padding:8px;position:relative}
+.puzzle-tile{border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Fredoka',sans-serif;font-weight:700;cursor:pointer;position:relative;transition:transform .2s ease, box-shadow .2s ease;user-select:none;-webkit-user-select:none}
+.puzzle-tile.filled{background:linear-gradient(135deg,#1e3a5f 0%,#1a2d4a 100%);border:1.5px solid rgba(255,255,255,.12);color:#e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.08)}
+.puzzle-tile.filled:hover{box-shadow:0 4px 16px rgba(6,214,160,.15),inset 0 1px 0 rgba(255,255,255,.12);border-color:rgba(6,214,160,.3)}
+.puzzle-tile.filled:active{transform:scale(.95)}
+.puzzle-tile.empty{background:rgba(255,255,255,.02);border:1.5px dashed rgba(255,255,255,.06)}
+.puzzle-tile.correct{background:linear-gradient(135deg,#064e3b 0%,#065f46 100%);border-color:rgba(6,214,160,.3);color:#6ee7b7}
+.puzzle-tile.sliding{transition:none;z-index:2}
+
+/* Tile themes */
+.theme-wood .puzzle-tile.filled{background:linear-gradient(135deg,#5c3d2e 0%,#8b6914 100%);border-color:rgba(139,105,20,.4);color:#fde68a;box-shadow:0 2px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.1)}
+.theme-wood .puzzle-tile.correct{background:linear-gradient(135deg,#3d2e1a 0%,#5c3d2e 100%);border-color:rgba(253,230,138,.3);color:#fde68a}
+.theme-metal .puzzle-tile.filled{background:linear-gradient(135deg,#374151 0%,#4b5563 100%);border-color:rgba(156,163,175,.3);color:#d1d5db;box-shadow:0 2px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.15)}
+.theme-metal .puzzle-tile.correct{background:linear-gradient(135deg,#1f2937 0%,#374151 100%);border-color:rgba(209,213,219,.3);color:#f3f4f6}
+.theme-neon .puzzle-tile.filled{background:linear-gradient(135deg,#0a0020 0%,#1a0040 100%);border-color:rgba(168,85,247,.4);color:#c084fc;box-shadow:0 2px 12px rgba(168,85,247,.2),inset 0 1px 0 rgba(255,255,255,.05);text-shadow:0 0 8px rgba(168,85,247,.5)}
+.theme-neon .puzzle-tile.correct{background:linear-gradient(135deg,#0a0030 0%,#1a0050 100%);border-color:rgba(168,85,247,.6);color:#e9d5ff;text-shadow:0 0 12px rgba(168,85,247,.8)}
+.theme-glass .puzzle-tile.filled{background:linear-gradient(135deg,rgba(255,255,255,.08) 0%,rgba(255,255,255,.03) 100%);border-color:rgba(255,255,255,.15);color:rgba(255,255,255,.85);box-shadow:0 4px 16px rgba(0,0,0,.2);backdrop-filter:blur(8px)}
+.theme-glass .puzzle-tile.correct{background:linear-gradient(135deg,rgba(6,214,160,.12) 0%,rgba(6,214,160,.04) 100%);border-color:rgba(6,214,160,.3);color:#6ee7b7}
+
+/* Font themes */
+.font-bold .puzzle-tile{font-weight:900}
+.font-serif .puzzle-tile{font-family:Georgia,'Times New Roman',serif}
+.font-pixel .puzzle-tile{font-family:'Courier New',monospace;letter-spacing:2px}
+
+/* Win overlay */
+.win-overlay{position:fixed;inset:0;background:rgba(10,14,26,.85);display:flex;align-items:center;justify-content:center;z-index:50;animation:fadeUp .4s ease}
+.win-card{background:var(--surface);border:2px solid var(--gold);border-radius:24px;padding:32px;max-width:400px;width:90%;text-align:center;box-shadow:0 0 60px rgba(255,209,102,.15)}
+.win-card h2{font-size:32px;color:var(--gold);margin-bottom:4px}
+.win-card .win-sub{color:var(--text2);font-size:14px;margin-bottom:16px}
+.win-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+.win-stat{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center}
+.win-stat .ws-val{font-size:22px;font-weight:800;color:var(--accent);font-family:'Fredoka',sans-serif}
+.win-stat .ws-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.win-coins{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:8px 18px;font-size:16px;font-weight:700;color:var(--gold);font-family:'Fredoka',sans-serif;margin:12px 0}
+.win-new{color:var(--accent);font-size:14px;font-weight:700;animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.05)}}
+.win-btns{display:flex;gap:10px;justify-content:center;margin-top:12px}
+
+/* RECORDS */
+#recordsScreen{padding-top:70px;justify-content:flex-start}
+.records-container{width:100%;max-width:420px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.stat-card .sv{font-size:24px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.stat-card .sv.gold{color:var(--gold)}
+.stat-card .sl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-weight:600}
+.lb-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px}
+.lb-row.me{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.lb-rank{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text2);flex-shrink:0}
+.lb-rank.r1{background:rgba(255,209,102,.2);color:var(--gold)}
+.lb-rank.r2{background:rgba(192,192,192,.15);color:#c0c0c0}
+.lb-rank.r3{background:rgba(205,127,50,.15);color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-size:14px;font-weight:800;color:var(--gold);font-family:'Fredoka',sans-serif}
+.lb-empty{text-align:center;color:var(--text2);font-size:14px;padding:24px;font-weight:600}
+
+/* SHOP */
+#shopScreen{padding-top:70px;justify-content:flex-start}
+
+/* ACHIEVEMENTS */
+.ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
+@keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+
+/* Confetti */
+.confetti-piece{position:fixed;width:8px;height:8px;z-index:200;pointer-events:none;animation:confettiFall 2.5s ease-out forwards}
+@keyframes confettiFall{0%{opacity:1;transform:translateY(0) rotate(0deg)}100%{opacity:0;transform:translateY(100vh) rotate(720deg)}}
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../../student.html#arcade" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();showScreen('homeScreen')}">&#8592; Back</a>
+<button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128264;</button>
+
+<!-- HOME SCREEN -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1>&#129513; <span class="hl">Sliding</span> Puzzle</h1>
+    <p>Arrange the tiles in order!</p>
+  </div>
+  <div class="best-pill">
+    <span class="bp-label">&#127942; Best Moves (4x4)</span>
+    <span class="bp-val" id="homeBest">---</span>
+  </div>
+  <div class="diff-row">
+    <button class="diff-btn" onclick="setDifficulty('easy',this)">Easy (3x3)</button>
+    <button class="diff-btn active" onclick="setDifficulty('medium',this)">Medium (4x4)</button>
+    <button class="diff-btn" onclick="setDifficulty('hard',this)">Hard (5x5)</button>
+  </div>
+  <div class="home-actions">
+    <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
+    <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
+    <button class="btn btn-outline btn-small" onclick="showShopScreen()">&#128717;&#65039; Shop</button>
+  </div>
+  <div class="stats-row">
+    <div class="sr">&#127918; Games <span id="homeGames">0</span></div>
+    <div class="sr">&#129513; Avg Moves <span id="homeAvg">---</span></div>
+  </div>
+  <div class="how-to">
+    <h3>How to Play</h3>
+    <p>Click a tile next to the empty space to slide it. Arrange all tiles in order (1, 2, 3...) with the empty space in the bottom-right corner. Fewer moves = better score!</p>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div class="screen" id="gameScreen">
+  <div class="game-hud">
+    <div class="hud-item"><span class="hud-label">Moves:</span><span class="hud-val" id="hudMoves">0</span></div>
+    <div class="hud-item"><span class="hud-label">Time:</span><span class="hud-val" id="hudTime">0:00</span></div>
+    <div class="hud-item"><span class="hud-label">Size:</span><span class="hud-val" id="hudSize">4x4</span></div>
+  </div>
+  <div class="puzzle-wrap">
+    <div class="puzzle-board" id="puzzleBoard"></div>
+  </div>
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:8px">
+    <button class="btn btn-outline btn-small" onclick="shuffleBoard()">&#128260; Shuffle</button>
+    <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&#8592; Quit</button>
+  </div>
+</div>
+
+<!-- RECORDS SCREEN -->
+<div class="screen" id="recordsScreen">
+  <h1>Your <span style="color:var(--accent)">Records</span></h1>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Sliding Puzzle stats &amp; leaderboard</p>
+  <div class="records-container">
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="sv gold" id="statBest">---</div><div class="sl">Best Moves (4x4)</div></div>
+      <div class="stat-card"><div class="sv" id="statPlayed">0</div><div class="sl">Games Played</div></div>
+      <div class="stat-card"><div class="sv" id="statBestTime">---</div><div class="sl">Best Time (4x4)</div></div>
+      <div class="stat-card"><div class="sv" id="statCoins">0</div><div class="sl">Coins Earned</div></div>
+    </div>
+    <div class="lb-title" style="margin-top:16px">&#127942; Achievements</div>
+    <div id="achievementsGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:24px"></div>
+    <div class="lb-title">Class Leaderboard (4x4 Best Moves)</div>
+    <div class="lb-list" id="leaderboard"><div class="lb-empty">Loading...</div></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHOP SCREEN -->
+<div class="screen" id="shopScreen">
+  <div style="text-align:center;margin-bottom:8px">
+    <h1>&#128717;&#65039; Shop</h1>
+    <p style="color:var(--text2);font-size:14px">Customize your Sliding Puzzle</p>
+  </div>
+  <div id="slidingShopContainer" style="width:100%;max-width:500px"></div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script>
+/* ===================== */
+/* SESSION               */
+/* ===================== */
+var studentId=localStorage.getItem('studentId')||'';
+var studentName=localStorage.getItem('studentName')||'';
+var classCode=localStorage.getItem('classCode')||'';
+var isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+if(isTeacher)document.getElementById('backBtn').href='../../teacher.html#arcade';
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+/* ===================== */
+/* SCREEN SYSTEM         */
+/* ===================== */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+  document.getElementById(id).classList.add('active');
+  document.body.classList.toggle('in-game',id==='gameScreen');
+  if(id==='homeScreen'){stopGame();loadLocalStats()}
+}
+
+/* ===================== */
+/* AUDIO                 */
+/* ===================== */
+var audioCtx=null,soundOn=localStorage.getItem('odaSoundEnabled')!=='false';
+function getAudioCtx(){
+  if(!audioCtx)try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq,dur,type,vol,ramp){
+  if(!soundOn)return;var ctx=getAudioCtx();if(!ctx)return;
+  var osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.type=type||'square';osc.frequency.setValueAtTime(freq,ctx.currentTime);
+  if(ramp)osc.frequency.linearRampToValueAtTime(ramp,ctx.currentTime+dur);
+  gain.gain.setValueAtTime(vol||0.1,ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+  osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+dur);
+}
+function sfxSlide(){playTone(500,0.06,'sine',0.1);setTimeout(function(){playTone(700,0.04,'sine',0.08)},30)}
+function sfxSnap(){playTone(800,0.05,'sine',0.12)}
+function sfxWin(){playTone(523,0.1,'sine',0.12);setTimeout(function(){playTone(659,0.1,'sine',0.1)},80);setTimeout(function(){playTone(784,0.15,'sine',0.12)},160);setTimeout(function(){playTone(1047,0.2,'sine',0.14)},260)}
+function sfxNewBest(){playTone(784,0.1,'sine',0.12);setTimeout(function(){playTone(988,0.1,'sine',0.1)},80);setTimeout(function(){playTone(1175,0.2,'sine',0.12)},160)}
+function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;';localStorage.setItem('odaSoundEnabled',soundOn)}
+if(!soundOn)document.getElementById('soundBtn').innerHTML='&#128263;';
+
+/* ===================== */
+/* COSMETICS             */
+/* ===================== */
+var myCosmetics={};
+var tileTheme='classic';
+var numberFont='standard';
+
+async function loadMyCosmetics(){
+  try{myCosmetics=JSON.parse(localStorage.getItem('oda_cosmetics_slidingpuzzle')||'{}');}catch(e){myCosmetics={}}
+  var sid=localStorage.getItem('studentId');
+  if(sid){
+    try{
+      var fb=await window.getFirebaseDB();
+      var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));
+      if(snap.exists()){var d=snap.data();var fc=d.gameCosmetics?.slidingpuzzle?.equipped;if(fc&&Object.keys(fc).length>0)myCosmetics=fc;}
+    }catch(e){}
+  }
+  applyCosmeticStyles();
+}
+loadMyCosmetics();
+
+function applyCosmeticStyles(){
+  var tt=myCosmetics['Tile Theme'];
+  if(tt&&tt.value)tileTheme=tt.value||'classic';
+  else tileTheme='classic';
+  var nf=myCosmetics['Number Font'];
+  if(nf&&nf.value)numberFont=nf.value||'standard';
+  else numberFont='standard';
+  applyBoardTheme();
+}
+
+function applyBoardTheme(){
+  var board=document.getElementById('puzzleBoard');
+  if(!board)return;
+  board.classList.remove('theme-wood','theme-metal','theme-neon','theme-glass');
+  if(tileTheme!=='classic')board.classList.add('theme-'+tileTheme);
+  board.classList.remove('font-bold','font-serif','font-pixel');
+  if(numberFont!=='standard')board.classList.add('font-'+numberFont);
+}
+
+/* ===================== */
+/* SHOP                  */
+/* ===================== */
+var SLIDING_SHOP=[
+  {id:'sp_tile_classic',name:'Classic',emoji:'&#9899;',cost:0,slot:'Tile Theme',value:'classic'},
+  {id:'sp_tile_wood',name:'Wood',emoji:'&#129717;',cost:100,slot:'Tile Theme',value:'wood'},
+  {id:'sp_tile_metal',name:'Metal',emoji:'&#129529;',cost:150,slot:'Tile Theme',value:'metal'},
+  {id:'sp_tile_neon',name:'Neon',emoji:'&#128154;',cost:200,slot:'Tile Theme',value:'neon'},
+  {id:'sp_tile_glass',name:'Glass',emoji:'&#128142;',cost:250,slot:'Tile Theme',value:'glass'},
+
+  {id:'sp_font_standard',name:'Standard',emoji:'&#128289;',cost:0,slot:'Number Font',value:'standard'},
+  {id:'sp_font_bold',name:'Bold',emoji:'&#128290;',cost:80,slot:'Number Font',value:'bold'},
+  {id:'sp_font_serif',name:'Serif',emoji:'&#128214;',cost:100,slot:'Number Font',value:'serif'},
+  {id:'sp_font_pixel',name:'Pixel',emoji:'&#128126;',cost:120,slot:'Number Font',value:'pixel'}
+];
+
+function showShopScreen(){
+  showScreen('shopScreen');
+  if(typeof odaShop!=='undefined'){
+    odaShop.renderShopPanel('slidingpuzzle',SLIDING_SHOP,'slidingShopContainer',{
+      onEquip:function(){loadMyCosmetics()},
+      onBuy:function(){loadMyCosmetics()}
+    });
+  }
+}
+
+/* ===================== */
+/* ACHIEVEMENTS          */
+/* ===================== */
+var SLIDING_ACHIEVEMENTS=[
+  {id:'sp_3x3',name:'Easy Peasy',desc:'Solve a 3x3 puzzle',icon:'&#129513;',check:function(s){return s.wins3x3>=1}},
+  {id:'sp_4x4',name:'Classic Win',desc:'Solve a 4x4 puzzle',icon:'&#127942;',check:function(s){return s.wins4x4>=1}},
+  {id:'sp_5x5',name:'Master Slider',desc:'Solve a 5x5 puzzle',icon:'&#127775;',check:function(s){return s.wins5x5>=1}},
+  {id:'sp_50moves',name:'Efficient',desc:'Solve 4x4 in under 50 moves',icon:'&#9889;',check:function(s){return s.bestMoves4x4>0&&s.bestMoves4x4<50}},
+  {id:'sp_30sec',name:'Speed Demon',desc:'Solve 3x3 in under 30 seconds',icon:'&#128293;',check:function(s){return s.bestTime3x3>0&&s.bestTime3x3<30}},
+  {id:'sp_25games',name:'Dedicated',desc:'Play 25 games',icon:'&#128170;',check:function(s){return s.gamesPlayed>=25}}
+];
+var achState={};
+
+async function checkAchievements(extra){
+  var sid=localStorage.getItem('studentId');
+  if(!sid||sid.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'slidingpuzzleRecords',sid);
+    var snap=await fb.fsMod.getDoc(ref);
+    var data=snap.exists()?snap.data():{};
+    var state=Object.assign({},data,extra||{});
+    achState=data.achievements||{};
+    var newUnlocks=[];
+    SLIDING_ACHIEVEMENTS.forEach(function(a){
+      if(!achState[a.id]&&a.check(state)){achState[a.id]=Date.now();newUnlocks.push(a)}
+    });
+    if(newUnlocks.length>0){
+      var upd={};newUnlocks.forEach(function(a){upd['achievements.'+a.id]=achState[a.id]});
+      await fb.fsMod.updateDoc(ref,upd);
+      newUnlocks.forEach(function(a){showAchToast(a)});
+    }
+  }catch(e){}
+}
+
+function showAchToast(a){
+  var el=document.createElement('div');el.className='ach-popup';
+  el.innerHTML='<span style="font-size:32px">'+a.icon+'</span><div><div style="color:var(--gold);font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:var(--text);font-size:15px;font-weight:600;font-family:Outfit,sans-serif">'+esc(a.name)+'</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function(){el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(function(){el.remove()},400)},3500);
+}
+
+/* ===================== */
+/* LOCAL STATS           */
+/* ===================== */
+var localBestMoves=parseInt(localStorage.getItem('sliding_bestmoves'))||0;
+var localBestTime=parseInt(localStorage.getItem('sliding_besttime'))||0;
+var localGames=parseInt(localStorage.getItem('sliding_games'))||0;
+var localAvgMoves=parseInt(localStorage.getItem('sliding_avgmoves'))||0;
+var localCoins=parseInt(localStorage.getItem('sliding_coins'))||0;
+
+function loadLocalStats(){
+  document.getElementById('homeBest').textContent=localBestMoves?localBestMoves+' moves':'---';
+  document.getElementById('homeGames').textContent=localGames;
+  document.getElementById('homeAvg').textContent=localAvgMoves?localAvgMoves:'---';
+}
+loadLocalStats();
+
+/* ===================== */
+/* DIFFICULTY            */
+/* ===================== */
+var difficulty='medium';
+var DIFFICULTIES={
+  easy:{size:3,label:'Easy (3x3)'},
+  medium:{size:4,label:'Medium (4x4)'},
+  hard:{size:5,label:'Hard (5x5)'}
+};
+
+window.setDifficulty=function(diff,btn){
+  difficulty=diff;
+  document.querySelectorAll('.diff-btn').forEach(function(b){b.classList.remove('active')});
+  if(btn)btn.classList.add('active');
+};
+
+/* ===================== */
+/* GAME STATE            */
+/* ===================== */
+var board=[];
+var gridSize=4;
+var emptyPos=0;
+var moveCount=0;
+var startTime=0;
+var timerInterval=null;
+var gameActive=false;
+var solved=false;
+
+function stopGame(){
+  gameActive=false;
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null}
+}
+
+window.addEventListener('beforeunload',stopGame);
+document.addEventListener('visibilitychange',function(){if(document.hidden&&gameActive){}});
+
+/* ===================== */
+/* SOLVABILITY CHECK     */
+/* ===================== */
+function countInversions(arr,size){
+  var inv=0;
+  var flat=arr.filter(function(v){return v!==0});
+  for(var i=0;i<flat.length;i++){
+    for(var j=i+1;j<flat.length;j++){
+      if(flat[i]>flat[j])inv++;
+    }
+  }
+  return inv;
+}
+
+function isSolvable(arr,size){
+  var inversions=countInversions(arr,size);
+  if(size%2===1){
+    // Odd grid: solvable if inversions is even
+    return inversions%2===0;
+  } else {
+    // Even grid: solvable if (inversions + row of blank from bottom) is even
+    var emptyIdx=arr.indexOf(0);
+    var emptyRowFromBottom=size-Math.floor(emptyIdx/size);
+    return (inversions+emptyRowFromBottom)%2===0;
+  }
+}
+
+/* ===================== */
+/* SHUFFLE               */
+/* ===================== */
+function generateBoard(size){
+  var n=size*size;
+  var arr=[];
+  for(var i=1;i<n;i++)arr.push(i);
+  arr.push(0);
+
+  // Fisher-Yates shuffle
+  do{
+    for(var i=arr.length-1;i>0;i--){
+      var j=Math.floor(Math.random()*(i+1));
+      var tmp=arr[i];arr[i]=arr[j];arr[j]=tmp;
+    }
+  } while(!isSolvable(arr,size)||isSolved(arr,size));
+
+  return arr;
+}
+
+function isSolved(arr,size){
+  for(var i=0;i<arr.length-1;i++){
+    if(arr[i]!==i+1)return false;
+  }
+  return arr[arr.length-1]===0;
+}
+
+/* ===================== */
+/* START GAME            */
+/* ===================== */
+function startGame(){
+  var d=DIFFICULTIES[difficulty];
+  gridSize=d.size;
+  board=generateBoard(gridSize);
+  emptyPos=board.indexOf(0);
+  moveCount=0;
+  solved=false;
+  gameActive=true;
+
+  showScreen('gameScreen');
+  applyCosmeticStyles();
+
+  document.getElementById('hudMoves').textContent='0';
+  document.getElementById('hudTime').textContent='0:00';
+  document.getElementById('hudSize').textContent=gridSize+'x'+gridSize;
+
+  // Tile sizing
+  var tileSize;
+  if(gridSize===3)tileSize=100;
+  else if(gridSize===4)tileSize=90;
+  else tileSize=72;
+
+  var boardEl=document.getElementById('puzzleBoard');
+  boardEl.style.gridTemplateColumns='repeat('+gridSize+','+tileSize+'px)';
+  boardEl.style.gridTemplateRows='repeat('+gridSize+','+tileSize+'px)';
+  applyBoardTheme();
+
+  renderBoard(tileSize);
+
+  // Start timer
+  startTime=Date.now();
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=setInterval(updateTimer,100);
+}
+
+function shuffleBoard(){
+  if(!gameActive)return;
+  board=generateBoard(gridSize);
+  emptyPos=board.indexOf(0);
+  moveCount=0;
+  solved=false;
+  document.getElementById('hudMoves').textContent='0';
+  startTime=Date.now();
+
+  var tileSize;
+  if(gridSize===3)tileSize=100;
+  else if(gridSize===4)tileSize=90;
+  else tileSize=72;
+
+  renderBoard(tileSize);
+  sfxSlide();
+}
+
+/* ===================== */
+/* RENDER                */
+/* ===================== */
+function renderBoard(tileSize){
+  var boardEl=document.getElementById('puzzleBoard');
+  boardEl.innerHTML='';
+
+  var fontSize;
+  if(gridSize===3)fontSize=32;
+  else if(gridSize===4)fontSize=26;
+  else fontSize=20;
+
+  for(var i=0;i<board.length;i++){
+    var tile=document.createElement('div');
+    tile.className='puzzle-tile';
+    tile.style.width=tileSize+'px';
+    tile.style.height=tileSize+'px';
+    tile.style.fontSize=fontSize+'px';
+
+    if(board[i]===0){
+      tile.classList.add('empty');
+      tile.dataset.value='0';
+    } else {
+      tile.classList.add('filled');
+      tile.textContent=board[i];
+      tile.dataset.value=board[i];
+      // Check if tile is in correct position
+      if(board[i]===i+1)tile.classList.add('correct');
+      // Click handler
+      tile.addEventListener('click',(function(idx){return function(){handleTileClick(idx)}})(i));
+    }
+    boardEl.appendChild(tile);
+  }
+}
+
+/* ===================== */
+/* TILE CLICK            */
+/* ===================== */
+function handleTileClick(idx){
+  if(!gameActive||solved)return;
+  if(board[idx]===0)return;
+
+  // Check adjacency to empty
+  var row=Math.floor(idx/gridSize);
+  var col=idx%gridSize;
+  var eRow=Math.floor(emptyPos/gridSize);
+  var eCol=emptyPos%gridSize;
+
+  var isAdjacent=(Math.abs(row-eRow)+Math.abs(col-eCol))===1;
+  if(!isAdjacent)return;
+
+  // Slide tile
+  sfxSlide();
+  board[emptyPos]=board[idx];
+  board[idx]=0;
+
+  var oldEmpty=emptyPos;
+  emptyPos=idx;
+  moveCount++;
+  document.getElementById('hudMoves').textContent=moveCount;
+
+  // Animate
+  animateSlide(idx,oldEmpty);
+
+  // Check win
+  if(isSolved(board,gridSize)){
+    solved=true;
+    gameActive=false;
+    if(timerInterval){clearInterval(timerInterval);timerInterval=null}
+    sfxWin();
+    setTimeout(function(){showWin()},300);
+  }
+}
+
+function animateSlide(fromIdx,toIdx){
+  var tileSize;
+  if(gridSize===3)tileSize=100;
+  else if(gridSize===4)tileSize=90;
+  else tileSize=72;
+
+  var boardEl=document.getElementById('puzzleBoard');
+  var tiles=boardEl.children;
+
+  // Quick re-render with snap
+  var fontSize;
+  if(gridSize===3)fontSize=32;
+  else if(gridSize===4)fontSize=26;
+  else fontSize=20;
+
+  boardEl.innerHTML='';
+  for(var i=0;i<board.length;i++){
+    var tile=document.createElement('div');
+    tile.className='puzzle-tile';
+    tile.style.width=tileSize+'px';
+    tile.style.height=tileSize+'px';
+    tile.style.fontSize=fontSize+'px';
+
+    if(board[i]===0){
+      tile.classList.add('empty');
+      tile.dataset.value='0';
+    } else {
+      tile.classList.add('filled');
+      tile.textContent=board[i];
+      tile.dataset.value=board[i];
+      if(board[i]===i+1){
+        tile.classList.add('correct');
+        // If this tile just became correct, play snap sound
+        if(i===toIdx)setTimeout(sfxSnap,100);
+      }
+      tile.addEventListener('click',(function(idx){return function(){handleTileClick(idx)}})(i));
+    }
+    boardEl.appendChild(tile);
+  }
+}
+
+/* ===================== */
+/* TIMER                 */
+/* ===================== */
+function updateTimer(){
+  if(!gameActive)return;
+  var elapsed=Math.floor((Date.now()-startTime)/1000);
+  var mins=Math.floor(elapsed/60);
+  var secs=elapsed%60;
+  document.getElementById('hudTime').textContent=mins+':'+(secs<10?'0':'')+secs;
+}
+
+function getElapsedSeconds(){
+  return Math.floor((Date.now()-startTime)/1000);
+}
+
+/* ===================== */
+/* WIN                   */
+/* ===================== */
+function showWin(){
+  var elapsed=getElapsedSeconds();
+  var mins=Math.floor(elapsed/60);
+  var secs=elapsed%60;
+  var timeStr=mins+':'+(secs<10?'0':'')+secs;
+
+  var isNewBestMoves=(difficulty==='medium')&&(localBestMoves===0||moveCount<localBestMoves);
+  var isNewBestTime=(difficulty==='medium')&&(localBestTime===0||elapsed<localBestTime);
+
+  // Update local stats
+  localGames++;localStorage.setItem('sliding_games',localGames);
+  if(isNewBestMoves){localBestMoves=moveCount;localStorage.setItem('sliding_bestmoves',localBestMoves)}
+  if(isNewBestTime){localBestTime=elapsed;localStorage.setItem('sliding_besttime',localBestTime)}
+
+  // Running average (medium only)
+  if(difficulty==='medium'){
+    localAvgMoves=localAvgMoves?Math.round((localAvgMoves*(localGames-1)+moveCount)/localGames):moveCount;
+    localStorage.setItem('sliding_avgmoves',localAvgMoves);
+  }
+
+  // Coins
+  var coins=5;
+  if(difficulty==='easy'){
+    if(moveCount<20)coins=8;else coins=5;
+  } else if(difficulty==='medium'){
+    if(moveCount<50)coins=15;else if(moveCount<100)coins=10;else coins=5;
+  } else {
+    if(moveCount<80)coins=20;else if(moveCount<150)coins=12;else coins=8;
+  }
+  if(isNewBestMoves)coins+=5;
+  localCoins+=coins;localStorage.setItem('sliding_coins',localCoins);
+
+  if(isNewBestMoves||isNewBestTime)sfxNewBest();
+
+  // Confetti
+  spawnConfetti();
+
+  // Win overlay
+  var overlay=document.createElement('div');
+  overlay.className='win-overlay';
+  overlay.id='winOverlay';
+  var html='<div class="win-card">';
+  html+='<h2>&#127881; Puzzle Solved!</h2>';
+  html+='<div class="win-sub">'+DIFFICULTIES[difficulty].label+'</div>';
+  html+='<div class="win-stats">';
+  html+='<div class="win-stat"><div class="ws-val">'+moveCount+'</div><div class="ws-label">Moves</div></div>';
+  html+='<div class="win-stat"><div class="ws-val">'+timeStr+'</div><div class="ws-label">Time</div></div>';
+  html+='</div>';
+  if(isNewBestMoves)html+='<div class="win-new">New Best Moves! &#127881;</div>';
+  if(isNewBestTime)html+='<div class="win-new">New Best Time! &#9889;</div>';
+  html+='<div class="win-coins">+'+coins+' coins</div>';
+  html+='<div class="win-btns">';
+  html+='<button class="btn btn-accent btn-small" onclick="closeWin();startGame()">Play Again</button>';
+  html+='<button class="btn btn-outline btn-small" onclick="closeWin();showScreen(\'homeScreen\')">Home</button>';
+  html+='</div></div>';
+  overlay.innerHTML=html;
+  document.body.appendChild(overlay);
+
+  awardCoins(coins);
+
+  // Build achievement state
+  var achExtra={gamesPlayed:localGames};
+  if(difficulty==='easy'){achExtra.wins3x3=(parseInt(localStorage.getItem('sliding_wins3x3'))||0)+1;localStorage.setItem('sliding_wins3x3',achExtra.wins3x3);if(elapsed<30)achExtra.bestTime3x3=elapsed}
+  if(difficulty==='medium'){achExtra.wins4x4=(parseInt(localStorage.getItem('sliding_wins4x4'))||0)+1;localStorage.setItem('sliding_wins4x4',achExtra.wins4x4);achExtra.bestMoves4x4=isNewBestMoves?moveCount:(localBestMoves||moveCount)}
+  if(difficulty==='hard'){achExtra.wins5x5=(parseInt(localStorage.getItem('sliding_wins5x5'))||0)+1;localStorage.setItem('sliding_wins5x5',achExtra.wins5x5)}
+
+  // Include local best time for 3x3
+  var bt3=parseInt(localStorage.getItem('sliding_besttime3x3'))||0;
+  if(difficulty==='easy'&&(bt3===0||elapsed<bt3)){localStorage.setItem('sliding_besttime3x3',elapsed);achExtra.bestTime3x3=elapsed}
+  else if(bt3>0)achExtra.bestTime3x3=bt3;
+
+  saveRecord(isNewBestMoves,moveCount,elapsed);
+  checkAchievements(achExtra);
+}
+
+function closeWin(){
+  var overlay=document.getElementById('winOverlay');
+  if(overlay)overlay.remove();
+}
+
+function spawnConfetti(){
+  var colors=['#fbbf24','#06d6a0','#ef4444','#3b82f6','#8b5cf6','#ec4899'];
+  for(var i=0;i<30;i++){
+    var c=document.createElement('div');
+    c.className='confetti-piece';
+    c.style.left=Math.random()*100+'vw';
+    c.style.top='-10px';
+    c.style.background=colors[Math.floor(Math.random()*colors.length)];
+    c.style.animationDelay=(Math.random()*0.8)+'s';
+    c.style.animationDuration=(2+Math.random()*1.5)+'s';
+    c.style.borderRadius=Math.random()>0.5?'50%':'2px';
+    c.style.width=(5+Math.random()*6)+'px';
+    c.style.height=(5+Math.random()*6)+'px';
+    document.body.appendChild(c);
+    (function(el){setTimeout(function(){el.remove()},4000)})(c);
+  }
+}
+
+/* ===================== */
+/* FIREBASE              */
+/* ===================== */
+async function awardCoins(coins){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{var fb=await window.getFirebaseDB();await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{coins:fb.fsMod.increment(coins)})}catch(e){}
+}
+
+async function saveRecord(isNewBest,moves,elapsed){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'slidingpuzzleRecords',studentId);
+    var snap=await fb.fsMod.getDoc(ref);
+    if(snap.exists()){
+      var upd={gamesPlayed:fb.fsMod.increment(1),lastPlayed:new Date().toISOString(),lastMoves:moves,lastTime:elapsed,lastDifficulty:difficulty};
+      if(difficulty==='easy'){upd.wins3x3=fb.fsMod.increment(1);var bt3=parseInt(localStorage.getItem('sliding_besttime3x3'))||elapsed;upd.bestTime3x3=bt3}
+      if(difficulty==='medium'){upd.wins4x4=fb.fsMod.increment(1);if(isNewBest){upd.bestMoves4x4=moves;upd.bestTime4x4=elapsed}}
+      if(difficulty==='hard')upd.wins5x5=fb.fsMod.increment(1);
+      await fb.fsMod.updateDoc(ref,upd);
+    }else{
+      var doc={studentId:studentId,studentName:studentName||'',classCode:classCode,gamesPlayed:1,lastPlayed:new Date().toISOString(),lastMoves:moves,lastTime:elapsed,lastDifficulty:difficulty};
+      if(difficulty==='easy'){doc.wins3x3=1;doc.bestTime3x3=elapsed}
+      if(difficulty==='medium'){doc.wins4x4=1;doc.bestMoves4x4=moves;doc.bestTime4x4=elapsed}
+      if(difficulty==='hard')doc.wins5x5=1;
+      await fb.fsMod.setDoc(ref,doc);
+    }
+  }catch(e){console.warn('Save failed:',e)}
+}
+
+/* ===================== */
+/* RECORDS & LEADERBOARD */
+/* ===================== */
+async function showRecords(){
+  showScreen('recordsScreen');
+  document.getElementById('statBest').textContent=localBestMoves?localBestMoves+' moves':'---';
+  document.getElementById('statPlayed').textContent=localGames;
+  document.getElementById('statBestTime').textContent=localBestTime?formatTime(localBestTime):'---';
+  document.getElementById('statCoins').textContent=localCoins;
+
+  // Achievements grid
+  var ag=document.getElementById('achievementsGrid');ag.innerHTML='';
+  SLIDING_ACHIEVEMENTS.forEach(function(a){
+    var unlocked=!!achState[a.id];
+    ag.innerHTML+='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:1px solid '+(unlocked?'var(--gold)':'var(--border)')+';border-radius:12px;padding:10px 4px;text-align:center;'+(unlocked?'box-shadow:0 0 12px rgba(255,209,102,.15)':'opacity:.3;filter:grayscale(1)')+'"><span style="font-size:24px">'+a.icon+'</span><span style="font-size:9px;color:var(--text2);line-height:1.2;margin-top:4px">'+esc(a.name)+'</span></div>';
+  });
+
+  // Leaderboard
+  var lb=document.getElementById('leaderboard');lb.innerHTML='<div class="lb-empty">Loading...</div>';
+  if(!classCode){lb.innerHTML='<div class="lb-empty">Join a class to see the leaderboard</div>';return}
+  try{
+    var fb=await window.getFirebaseDB();
+    var q=fb.fsMod.query(fb.fsMod.collection(fb.db,'slidingpuzzleRecords'),fb.fsMod.where('classCode','==',classCode),fb.fsMod.orderBy('bestMoves4x4','asc'),fb.fsMod.limit(20));
+    var snap=await fb.fsMod.getDocs(q);
+    if(snap.empty){lb.innerHTML='<div class="lb-empty">No scores yet. Be the first!</div>';return}
+    var h='',rank=0;
+    snap.forEach(function(d){
+      rank++;var data=d.data();var isMe=data.studentId===studentId;
+      if(!data.bestMoves4x4)return;
+      var rc=rank<=3?'r'+rank:'';
+      h+='<div class="lb-row'+(isMe?' me':'')+'"><div class="lb-rank '+rc+'">'+rank+'</div><div class="lb-name">'+esc(data.studentName||'Player')+'</div><div class="lb-score">'+data.bestMoves4x4+' moves</div></div>';
+    });
+    lb.innerHTML=h||'<div class="lb-empty">No 4x4 scores yet. Be the first!</div>';
+  }catch(e){lb.innerHTML='<div class="lb-empty">Could not load leaderboard</div>'}
+}
+
+function formatTime(secs){
+  var m=Math.floor(secs/60);var s=secs%60;
+  return m+':'+(s<10?'0':'')+s;
+}
+
+/* ===================== */
+/* KEYBOARD SUPPORT      */
+/* ===================== */
+document.addEventListener('keydown',function(e){
+  if(!gameActive||solved)return;
+  if(!document.getElementById('gameScreen').classList.contains('active'))return;
+
+  var eRow=Math.floor(emptyPos/gridSize);
+  var eCol=emptyPos%gridSize;
+  var targetIdx=-1;
+
+  // Arrow keys move the tile INTO the empty space
+  if((e.key==='ArrowUp'||e.key==='w')&&eRow<gridSize-1)targetIdx=(eRow+1)*gridSize+eCol;
+  if((e.key==='ArrowDown'||e.key==='s')&&eRow>0)targetIdx=(eRow-1)*gridSize+eCol;
+  if((e.key==='ArrowLeft'||e.key==='a')&&eCol<gridSize-1)targetIdx=eRow*gridSize+(eCol+1);
+  if((e.key==='ArrowRight'||e.key==='d')&&eCol>0)targetIdx=eRow*gridSize+(eCol-1);
+
+  if(targetIdx>=0){
+    e.preventDefault();
+    handleTileClick(targetIdx);
+  }
+});
+
+/* ===================== */
+/* RESIZE                */
+/* ===================== */
+window.addEventListener('resize',function(){});
+</script>
+</body>
+</html>
