@@ -131,10 +131,13 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <span class="bp-label">&#127942; Best</span>
     <span class="bp-val" id="homeBest">0</span>
   </div>
+  <div class="diff-row" style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
+    <button class="diff-btn active" onclick="setFruitDiff('easy',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--accent);background:rgba(6,214,160,.15);color:var(--accent);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Easy</button>
+    <button class="diff-btn" onclick="setFruitDiff('medium',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Medium</button>
+    <button class="diff-btn" onclick="setFruitDiff('hard',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Hard</button>
+  </div>
   <div class="home-actions">
-    <button class="btn btn-accent" onclick="startGame('easy')" style="font-size:16px;padding:14px 36px">Easy</button>
-    <button class="btn btn-gold" onclick="startGame('medium')" style="font-size:16px;padding:14px 36px">Medium</button>
-    <button class="btn btn-outline" onclick="startGame('hard')" style="font-size:16px;padding:14px 36px;border-color:var(--accent3);color:var(--accent3)">Hard</button>
+    <button class="btn btn-accent" onclick="startGame(fruitDiff)" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
     <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
     <button class="btn btn-outline btn-small" onclick="showShopScreen()">&#128717;&#65039; Shop</button>
   </div>
@@ -411,6 +414,13 @@ var diffSettings={
   medium:{spawnInterval:200,minSpawn:140,bombChance:0.05,launchMult:1,gravityMult:0.75,maxFruits:1,missLimit:4,sizeMult:1.2},
   hard:{spawnInterval:150,minSpawn:100,bombChance:0.10,launchMult:1.05,gravityMult:1,maxFruits:2,missLimit:3,sizeMult:1}
 };
+
+var fruitDiff='easy';
+function setFruitDiff(d,btn){
+  fruitDiff=d;
+  document.querySelectorAll('.diff-btn').forEach(function(b){b.classList.remove('active');b.style.border='2px solid var(--border)';b.style.background='none';b.style.color='var(--text2)'});
+  btn.classList.add('active');btn.style.border='2px solid var(--accent)';btn.style.background='rgba(6,214,160,.15)';btn.style.color='var(--accent)';
+}
 
 function startGame(diff){
   gameDifficulty=diff||'easy';

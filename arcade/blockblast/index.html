@@ -262,33 +262,17 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <p>Place blocks, clear lines, chase high scores</p>
   </div>
   <div class="best-pill">
-    <span class="bp-label">Best Score</span>
+    <span class="bp-label">&#127942; Best</span>
     <span class="bp-val" id="homeBest">0</span>
   </div>
-  <div class="mode-grid">
-    <div class="card mode-card selected" id="modeClassic" onclick="selectMode('classic')">
-      <div class="mode-icon">&#9854;</div>
-      <h3>Classic</h3>
-      <p>Endless mode, no time limit</p>
-    </div>
-    <div class="card mode-card" id="modeTimed" onclick="selectMode('timed')">
-      <div class="mode-icon">&#9201;</div>
-      <h3>Timed</h3>
-      <p>60 seconds, max score</p>
-    </div>
-    <div class="card mode-card" id="modeRecords" onclick="showScreen('recordsScreen');loadRecords()">
-      <div class="mode-icon">&#128202;</div>
-      <h3>Records</h3>
-      <p>Stats &amp; leaderboard</p>
-    </div>
-    <div class="card mode-card" onclick="showShopScreen()">
-      <div class="mode-icon">&#128722;</div>
-      <h3>Shop</h3>
-      <p>Themes &amp; cosmetics</p>
-    </div>
+  <div class="diff-row" style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
+    <button class="diff-btn active" id="modeClassic" onclick="selectMode('classic')" style="padding:8px 20px;border-radius:20px;border:2px solid var(--accent);background:rgba(6,214,160,.15);color:var(--accent);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Classic</button>
+    <button class="diff-btn" id="modeTimed" onclick="selectMode('timed')" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Timed</button>
   </div>
   <div class="home-actions">
-    <button class="btn btn-accent" onclick="startGame()">Play</button>
+    <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
+    <button class="btn btn-outline btn-small" onclick="showScreen('recordsScreen');loadRecords()">Records &amp; Leaderboard</button>
+    <button class="btn btn-outline btn-small" onclick="showShopScreen()">&#128717;&#65039; Shop</button>
   </div>
   <div class="how-to">
     <h3>How to Play</h3>
@@ -759,11 +743,12 @@ function fmtNum(n) { return n.toLocaleString(); }
 // MODE SELECTION
 // =============================================
 function selectMode(mode) {
-  if (mode === 'records') return;
   gameMode = mode;
-  document.querySelectorAll('.mode-card').forEach(function(c) { c.classList.remove('selected'); });
-  if (mode === 'classic') document.getElementById('modeClassic').classList.add('selected');
-  else document.getElementById('modeTimed').classList.add('selected');
+  document.querySelectorAll('.diff-btn').forEach(function(b) {
+    b.classList.remove('active');b.style.border='2px solid var(--border)';b.style.background='none';b.style.color='var(--text2)';
+  });
+  var btn = mode === 'classic' ? document.getElementById('modeClassic') : document.getElementById('modeTimed');
+  btn.classList.add('active');btn.style.border='2px solid var(--accent)';btn.style.background='rgba(6,214,160,.15)';btn.style.color='var(--accent)';
 }
 
 // =============================================

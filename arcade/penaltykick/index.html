@@ -47,20 +47,14 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
 
 /* HOME */
-#homeScreen{padding-top:80px;justify-content:flex-start;gap:16px}
-.home-header{text-align:center;margin-bottom:8px}
-.home-header h1{font-size:clamp(48px,10vw,64px);font-weight:700;letter-spacing:-2px}
+#homeScreen{padding-top:60px;padding-bottom:40px}
+.home-header{text-align:center;margin-bottom:36px}
+.home-header h1{font-size:clamp(36px,8vw,52px);font-weight:700;margin-bottom:4px}
 .home-header h1 .hl{color:var(--accent)}
-.home-header p{color:var(--text2);font-size:15px;margin-top:4px}
-.best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
-.best-pill .bp-label{color:var(--text2)}
-.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
-.home-actions{display:flex;flex-direction:column;align-items:center;gap:14px}
-.stats-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.stats-row .sr{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
-.how-to{max-width:380px;width:100%;margin:0 auto;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px}
-.how-to h3{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
-.how-to p{font-size:13px;color:var(--text2);line-height:1.6}
+.home-header p{color:var(--text2);font-size:15px}
+.quick-stats{display:flex;gap:12px;justify-content:center;margin-top:28px;flex-wrap:wrap}
+.quick-stats .stat-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:8px 16px;font-size:13px;font-weight:600}
+.quick-stats .stat-pill .stat-num{color:var(--accent);font-weight:800}
 
 /* GAME */
 #gameScreen{padding:16px;max-width:1100px;min-height:100vh;min-height:100dvh;justify-content:center;align-items:center;position:relative;margin:0 auto}
@@ -126,12 +120,12 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 /* ======================== */
 /* HOME MODE GRID           */
 /* ======================== */
-.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;max-width:500px;width:90%;margin:0 auto}
-.mode-card{cursor:pointer;text-align:center;padding:24px 16px;background:var(--surface);border:1px solid var(--border);border-radius:20px;transition:all .2s}
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:700px;width:90%;margin:0 auto}
+.mode-card{cursor:pointer;text-align:center;padding:28px 20px;background:var(--surface);border:1px solid var(--border);border-radius:20px;transition:all .2s}
 .mode-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
-.mode-card .mode-icon{font-size:36px;margin-bottom:10px;display:block}
-.mode-card h3{font-size:16px;margin-bottom:4px;font-family:'Fredoka',sans-serif}
-.mode-card p{font-size:12px;color:var(--text2);line-height:1.4}
+.mode-card .mode-icon{font-size:40px;margin-bottom:12px;display:block}
+.mode-card h3{font-size:18px;margin-bottom:6px}
+.mode-card p{font-size:13px;color:var(--text2);line-height:1.4}
 
 /* ======================== */
 /* QUICK MATCH SCREEN       */
@@ -172,10 +166,6 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <h1><span class="hl">Penalty</span> Kick</h1>
     <p>Kick &amp; Save &mdash; 5 rounds of shootout!</p>
   </div>
-  <div class="best-pill">
-    <span class="bp-label">&#9917; Best</span>
-    <span class="bp-val" id="homeBest">0-0</span>
-  </div>
   <div class="mode-grid">
     <div class="mode-card" onclick="showScreen('aiDiffScreen')">
       <span class="mode-icon">&#129302;</span>
@@ -187,19 +177,18 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <h3>Quick Match</h3>
       <p>Play a friend with a room code</p>
     </div>
+    <div class="mode-card" onclick="showRecords()">
+      <span class="mode-icon">&#128202;</span>
+      <h3>Records</h3>
+      <p>Stats &amp; leaderboard</p>
+    </div>
+    <div class="mode-card" onclick="showShopScreen()">
+      <span class="mode-icon">&#x1F6CD;&#xFE0F;</span>
+      <h3>Shop</h3>
+      <p>Kits &amp; ball skins</p>
+    </div>
   </div>
-  <div class="home-actions" style="margin-top:12px">
-    <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
-    <button class="btn btn-outline btn-small" onclick="showShopScreen()">&#128717;&#65039; Shop</button>
-  </div>
-  <div class="stats-row">
-    <div class="sr">&#127918; Games <span id="homeGames">0</span></div>
-    <div class="sr">&#9917; Total Goals <span id="homeTotalGoals">0</span></div>
-  </div>
-  <div class="how-to">
-    <h3>How to Play</h3>
-    <p>Each round: KICK then SAVE. Click the goal to aim, time the shrinking ring for accuracy, then hit the power bar sweet spot. To save, read the heat zone hint, pick a zone, and time your dive. 5 rounds!</p>
-  </div>
+  <div class="quick-stats" id="quickStats"></div>
 </div>
 
 <!-- AI DIFFICULTY SCREEN -->
@@ -476,9 +465,11 @@ var localHardWin=localStorage.getItem('pk_hardWin')==='true';
 var localBestStr=localStorage.getItem('pk_bestStr')||'0-0';
 
 function loadLocalStats(){
-  document.getElementById('homeBest').textContent=localBestStr;
-  document.getElementById('homeGames').textContent=localGames;
-  document.getElementById('homeTotalGoals').textContent=localTotalGoals;
+  var qs=document.getElementById('quickStats');
+  if(qs) qs.innerHTML=`
+    <div class="stat-pill"><span>Games:</span><span class="stat-num">${localGames}</span></div>
+    <div class="stat-pill"><span>Best:</span><span class="stat-num">${localBestStr}</span></div>
+    <div class="stat-pill"><span>Goals:</span><span class="stat-num">${localTotalGoals}</span></div>`;
 }
 loadLocalStats();
 

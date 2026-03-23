@@ -55,31 +55,20 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 /* ======================== */
 /* HOME SCREEN              */
 /* ======================== */
-#homeScreen{padding-top:70px;justify-content:flex-start}
-.home-header{text-align:center;margin-bottom:28px}
-.home-header h1{font-size:clamp(40px,10vw,56px);font-weight:700;margin-bottom:4px}
-.home-header p{color:var(--text2);font-size:15px}
-.high-score-display{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px 20px;margin:12px auto 0;font-size:15px;font-weight:700}
-.high-score-display .hs-val{color:var(--gold);font-family:'Fredoka',sans-serif;font-size:22px}
-
-.diff-grid{display:flex;flex-direction:column;gap:12px;max-width:380px;width:100%;margin:0 auto 24px}
-.diff-card{cursor:pointer;display:flex;align-items:center;gap:16px;padding:18px 22px;background:var(--surface);border:2px solid var(--border);border-radius:16px;transition:all .2s}
-.diff-card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.3)}
-.diff-card .diff-icon{font-size:28px;flex-shrink:0}
-.diff-card h3{font-size:16px;margin-bottom:2px}
-.diff-card p{font-size:12px;color:var(--text2)}
-.diff-card.easy{border-color:var(--accent)}
-.diff-card.easy:hover{box-shadow:0 0 20px rgba(6,214,160,.2)}
-.diff-card.medium{border-color:var(--gold)}
-.diff-card.medium:hover{box-shadow:0 0 20px rgba(255,209,102,.2)}
-.diff-card.hard{border-color:var(--accent3)}
-.diff-card.hard:hover{box-shadow:0 0 20px rgba(239,71,111,.2)}
-
-.home-actions{display:flex;flex-direction:column;gap:12px;align-items:center;margin-bottom:20px}
-
-.quick-stats{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:8px}
-.quick-stats .stat-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:8px 16px;font-size:13px;font-weight:600}
-.quick-stats .stat-pill .stat-num{color:var(--accent);font-weight:800}
+#homeScreen{padding-top:80px;justify-content:flex-start;gap:16px}
+.home-header{text-align:center;margin-bottom:8px}
+.home-header h1{font-size:clamp(48px,10vw,64px);font-weight:700;letter-spacing:-2px}
+.home-header h1 .hl{color:var(--accent)}
+.home-header p{color:var(--text2);font-size:15px;margin-top:4px}
+.best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
+.best-pill .bp-label{color:var(--text2)}
+.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
+.home-actions{display:flex;flex-direction:column;align-items:center;gap:14px}
+.stats-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.stats-row .sr{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+.how-to{max-width:380px;width:100%;margin:0 auto;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px}
+.how-to h3{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.how-to p{font-size:13px;color:var(--text2);line-height:1.6}
 
 /* ======================== */
 /* GAME SCREEN              */
@@ -206,37 +195,30 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 <!-- ======================== -->
 <div class="screen active" id="homeScreen">
   <div class="home-header">
-    <h1>&#128013; Snake</h1>
+    <h1>&#128013; <span class="hl">Snake</span></h1>
     <p>Eat, grow, survive!</p>
-    <div class="high-score-display" id="homeHighScore">
-      &#127942; Best: <span class="hs-val" id="homeHSVal">0</span>
-    </div>
   </div>
-
-  <p style="font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;font-weight:700">Choose Difficulty</p>
-  <div class="diff-grid">
-    <div class="diff-card card easy" onclick="startGame('easy')">
-      <div class="diff-icon">&#127807;</div>
-      <div><h3>Easy</h3><p>Slow speed, walls wrap around</p></div>
-    </div>
-    <div class="diff-card card medium" onclick="startGame('medium')">
-      <div class="diff-icon">&#128293;</div>
-      <div><h3>Medium</h3><p>Medium speed, walls kill</p></div>
-    </div>
-    <div class="diff-card card hard" onclick="startGame('hard')">
-      <div class="diff-icon">&#9760;&#65039;</div>
-      <div><h3>Hard</h3><p>Fast speed, obstacles appear</p></div>
-    </div>
+  <div class="best-pill">
+    <span class="bp-label">&#127942; Best</span>
+    <span class="bp-val" id="homeHSVal">0</span>
   </div>
-
+  <div class="diff-row" style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
+    <button class="diff-btn active" onclick="setSnakeDiff('easy',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--accent);background:rgba(6,214,160,.15);color:var(--accent);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Easy</button>
+    <button class="diff-btn" onclick="setSnakeDiff('medium',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Medium</button>
+    <button class="diff-btn" onclick="setSnakeDiff('hard',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Hard</button>
+  </div>
   <div class="home-actions">
-    <button class="btn btn-outline btn-small" onclick="showScreen('recordsScreen');loadRecords()">&#128202; Records &amp; Leaderboard</button>
+    <button class="btn btn-accent" onclick="startGame(snakeDiff)" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
+    <button class="btn btn-outline btn-small" onclick="showScreen('recordsScreen');loadRecords()">Records &amp; Leaderboard</button>
     <button class="btn btn-outline btn-small" onclick="window.showShopScreen()">&#128717;&#65039; Shop</button>
   </div>
-
-  <div class="quick-stats" id="quickStats">
-    <div class="stat-pill">&#127918; Games <span class="stat-num" id="qsGames">0</span></div>
-    <div class="stat-pill">&#128013; Longest <span class="stat-num" id="qsLongest">0</span></div>
+  <div class="stats-row">
+    <div class="sr">&#127918; Games <span id="qsGames">0</span></div>
+    <div class="sr">&#128013; Longest <span id="qsLongest">0</span></div>
+  </div>
+  <div class="how-to">
+    <h3>How to Play</h3>
+    <p>Use arrow keys or swipe to steer the snake. Eat food to grow longer. Don&rsquo;t crash into yourself! Higher difficulties add walls and obstacles.</p>
   </div>
 </div>
 

@@ -22,10 +22,16 @@ body>*{position:relative;z-index:1}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 
 /* Headings */
-h1{font-family:'Fredoka',sans-serif;font-size:38px;font-weight:700;letter-spacing:-.5px;text-align:center;margin-bottom:6px}
-h1 span{color:var(--accent)}
-h2{font-family:'Fredoka',sans-serif;font-size:30px;font-weight:700;text-align:center}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+h2{font-size:30px;font-weight:700;text-align:center}
 .subtitle{color:var(--text2);font-size:14px;text-align:center;margin-bottom:24px}
+
+/* Home screen */
+#homeScreen{padding-top:60px;padding-bottom:40px}
+.home-header{text-align:center;margin-bottom:36px}
+.home-header h1{font-size:clamp(36px,8vw,52px);font-weight:700;margin-bottom:4px}
+.home-header h1 .hl{color:var(--accent)}
+.home-header p{color:var(--text2);font-size:15px}
 
 /* Buttons */
 .btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:220px;text-align:center;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
@@ -40,12 +46,15 @@ h2{font-family:'Fredoka',sans-serif;font-size:30px;font-weight:700;text-align:ce
 .btn:disabled{opacity:.5;cursor:default;transform:none}
 
 /* Mode Cards */
-.mode-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:360px}
-.mode-card{background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:20px 14px;text-align:center;cursor:pointer;transition:all .2s}
-.mode-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(6,214,160,.1)}
-.mode-card .mc-icon{font-size:32px;margin-bottom:8px}
-.mode-card .mc-title{font-family:'Fredoka',sans-serif;font-weight:600;font-size:16px;margin-bottom:4px}
-.mode-card .mc-desc{color:var(--text2);font-size:12px;line-height:1.4}
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:700px;width:90%;margin:0 auto}
+.mode-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s}
+.mode-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.mode-card .mode-icon{font-size:40px;margin-bottom:12px;display:block}
+.mode-card h3{font-size:18px;margin-bottom:6px}
+.mode-card p{font-size:13px;color:var(--text2);line-height:1.4}
+.quick-stats{display:flex;gap:12px;justify-content:center;margin-top:28px;flex-wrap:wrap}
+.quick-stats .stat-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:8px 16px;font-size:13px;font-weight:600}
+.quick-stats .stat-pill .stat-num{color:var(--accent);font-weight:800}
 
 /* Section Divider */
 .section-divider{display:flex;align-items:center;gap:12px;width:260px;margin:8px 0}
@@ -170,8 +179,7 @@ h2{font-family:'Fredoka',sans-serif;font-size:30px;font-weight:700;text-align:ce
   .piece-x::before,.piece-x::after{height:5px}
   .piece-o{border-width:5px}
   .room-code-display{font-size:36px;letter-spacing:8px}
-  .mode-cards{grid-template-columns:1fr 1fr;gap:10px;max-width:300px}
-  .mode-card{padding:16px 10px}
+  .mode-card{padding:18px 12px}
   .players-bar{flex-direction:row;gap:8px}
   .player-panel{padding:8px 10px}
   .player-panel .pp-name{font-size:12px}
@@ -223,7 +231,7 @@ h2{font-family:'Fredoka',sans-serif;font-size:30px;font-weight:700;text-align:ce
 /* ======================== */
 @media(min-width:1024px){
   .screen{max-width:900px}
-  .mode-cards{max-width:600px}
+  .mode-grid{max-width:700px}
   .cell{width:140px;height:140px}
   .piece-x::before,.piece-x::after{height:7px}
   .piece-o{border-width:7px}
@@ -238,35 +246,38 @@ h2{font-family:'Fredoka',sans-serif;font-size:30px;font-weight:700;text-align:ce
 
 <!-- HOME SCREEN -->
 <div class="screen active" id="homeScreen">
-  <h1>Tic Tac <span>Toe</span></h1>
-  <p class="subtitle">Classic strategy, endless fun</p>
-  <div class="mode-cards">
+  <div class="home-header">
+    <h1>Tic Tac <span class="hl">Toe</span></h1>
+    <p>Classic strategy, endless fun</p>
+  </div>
+  <div class="mode-grid">
     <div class="mode-card" onclick="showScreen('aiPickerScreen')">
-      <div class="mc-icon">🤖</div>
-      <div class="mc-title">VS Computer</div>
-      <div class="mc-desc">3 difficulty levels</div>
+      <span class="mode-icon">&#129302;</span>
+      <h3>VS Computer</h3>
+      <p>3 difficulty levels</p>
     </div>
     <div class="mode-card" onclick="showScreen('multiplayerScreen')">
-      <div class="mc-icon">⚡</div>
-      <div class="mc-title">Quick Match</div>
-      <div class="mc-desc">Play a friend online</div>
+      <span class="mode-icon">&#9889;</span>
+      <h3>Quick Match</h3>
+      <p>Play a friend online</p>
     </div>
     <div class="mode-card" onclick="showTournamentHome()">
-      <div class="mc-icon">🏆</div>
-      <div class="mc-title">Tournament</div>
-      <div class="mc-desc">Compete for prizes</div>
+      <span class="mode-icon">&#127942;</span>
+      <h3>Tournament</h3>
+      <p>Compete for prizes</p>
     </div>
     <div class="mode-card" onclick="showRecords()">
-      <div class="mc-icon">📊</div>
-      <div class="mc-title">Records</div>
-      <div class="mc-desc">Stats &amp; leaderboard</div>
+      <span class="mode-icon">&#128202;</span>
+      <h3>Records</h3>
+      <p>Stats &amp; leaderboard</p>
     </div>
     <div class="mode-card" onclick="showShopScreen()">
-      <div class="mc-icon">🛍️</div>
-      <div class="mc-title">Shop</div>
-      <div class="mc-desc">Pieces &amp; board themes</div>
+      <span class="mode-icon">&#x1F6CD;&#xFE0F;</span>
+      <h3>Shop</h3>
+      <p>Pieces &amp; board themes</p>
     </div>
   </div>
+  <div class="quick-stats" id="quickStats"></div>
 </div>
 
 <!-- AI DIFFICULTY PICKER -->
@@ -1351,6 +1362,22 @@ async function awardCoins(coins){
     await updateDoc(doc(db,'students',studentId),{coins:increment(coins)});
   }catch(e){console.warn('Coin award failed:',e)}
 }
+
+// ===== QUICK STATS =====
+async function loadQuickStats(){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    const snap=await getDoc(doc(db,'tttRecords',studentId));
+    if(snap.exists()){
+      const d=snap.data();
+      document.getElementById('quickStats').innerHTML=`
+        <div class="stat-pill"><span>Wins:</span><span class="stat-num">${d.wins||0}</span></div>
+        <div class="stat-pill"><span>W/L:</span><span class="stat-num">${d.losses?((d.wins||0)/d.losses).toFixed(1):(d.wins||0).toFixed(1)}</span></div>
+        <div class="stat-pill"><span>Streak:</span><span class="stat-num">${d.winStreak||0}</span></div>`;
+    }
+  }catch(e){}
+}
+loadQuickStats();
 
 // ===== RECORDS =====
 async function updateRecord(outcome){

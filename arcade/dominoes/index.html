@@ -35,19 +35,24 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .btn-gold{background:var(--gold);color:var(--bg)}
 .btn-gold:hover{box-shadow:0 0 24px rgba(255,209,102,.3)}
 
-.card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;transition:all .2s;cursor:pointer;text-align:center}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;transition:all .2s}
 .card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
-.card .card-icon{font-size:36px;margin-bottom:8px}
-.card .card-title{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;margin-bottom:4px;text-align:center}
-.card .card-desc{font-size:13px;color:var(--text2);text-align:center}
 
 /* HOME */
-#homeScreen{padding-top:60px;justify-content:flex-start;align-items:center}
-.home-header{text-align:center;margin-bottom:24px}
-.home-header h1{font-size:clamp(40px,8vw,56px);font-weight:700;letter-spacing:-2px}
+#homeScreen{padding-top:60px;padding-bottom:40px;justify-content:flex-start;align-items:center}
+.home-header{text-align:center;margin-bottom:36px}
+.home-header h1{font-size:clamp(36px,8vw,52px);font-weight:700;margin-bottom:4px}
 .home-header h1 .hl{color:var(--accent)}
-.home-header p{color:var(--text2);font-size:15px;margin-top:4px}
-.mode-grid{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;width:100%;max-width:800px;margin:0 auto 20px}
+.home-header p{color:var(--text2);font-size:15px}
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:700px;width:90%;margin:0 auto}
+.mode-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s}
+.mode-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.mode-card .mode-icon{font-size:40px;margin-bottom:12px;display:block}
+.mode-card h3{font-size:18px;margin-bottom:6px}
+.mode-card p{font-size:13px;color:var(--text2);line-height:1.4}
+.quick-stats{display:flex;gap:12px;justify-content:center;margin-top:28px;flex-wrap:wrap}
+.quick-stats .stat-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:8px 16px;font-size:13px;font-weight:600}
+.quick-stats .stat-pill .stat-num{color:var(--accent);font-weight:800}
 .mode-grid .card{width:180px;flex-shrink:0;display:flex;flex-direction:column;align-items:center}
 
 /* DIFFICULTY */
@@ -183,11 +188,28 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <p>Match tiles and outsmart your opponent!</p>
   </div>
   <div class="mode-grid">
-    <div class="card" onclick="showScreen('aiScreen')"><div class="card-icon">&#129302;</div><div class="card-title">VS Computer</div><div class="card-desc">Test your skills against AI opponents</div></div>
-    <div class="card" onclick="showQuickMatch()"><div class="card-icon">&#9889;</div><div class="card-title">Quick Match</div><div class="card-desc">Play a friend with a room code</div></div>
-    <div class="card" onclick="showRecords()"><div class="card-icon">&#127942;</div><div class="card-title">Records</div><div class="card-desc">Stats &amp; class leaderboard</div></div>
-    <div class="card" onclick="showShopScreen()"><div class="card-icon">&#128717;&#65039;</div><div class="card-title">Shop</div><div class="card-desc">Tile themes &amp; dot styles</div></div>
+    <div class="mode-card" onclick="showScreen('aiScreen')">
+      <span class="mode-icon">&#129302;</span>
+      <h3>VS Computer</h3>
+      <p>Test your skills against AI opponents</p>
+    </div>
+    <div class="mode-card" onclick="showQuickMatch()">
+      <span class="mode-icon">&#9889;</span>
+      <h3>Quick Match</h3>
+      <p>Play a friend with a room code</p>
+    </div>
+    <div class="mode-card" onclick="showRecords()">
+      <span class="mode-icon">&#128202;</span>
+      <h3>Records</h3>
+      <p>Stats &amp; class leaderboard</p>
+    </div>
+    <div class="mode-card" onclick="showShopScreen()">
+      <span class="mode-icon">&#x1F6CD;&#xFE0F;</span>
+      <h3>Shop</h3>
+      <p>Tile themes &amp; dot styles</p>
+    </div>
   </div>
+  <div class="quick-stats" id="quickStats"></div>
 </div>
 
 <!-- AI DIFFICULTY -->
@@ -1630,6 +1652,21 @@ async function saveRecord(result,points){
     }
   }catch(e){console.warn('Save failed:',e)}
 }
+
+async function loadQuickStats(){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    const snap=await getDoc(doc(db,'dominoRecords',studentId));
+    if(snap.exists()){
+      const d=snap.data();
+      document.getElementById('quickStats').innerHTML=`
+        <div class="stat-pill"><span>Wins:</span><span class="stat-num">${d.wins||0}</span></div>
+        <div class="stat-pill"><span>W/L:</span><span class="stat-num">${d.losses?((d.wins||0)/d.losses).toFixed(1):(d.wins||0).toFixed(1)}</span></div>
+        <div class="stat-pill"><span>Games:</span><span class="stat-num">${d.gamesPlayed||0}</span></div>`;
+    }
+  }catch(e){}
+}
+loadQuickStats();
 
 async function showRecords(){
   showScreen('recordsScreen');

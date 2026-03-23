@@ -505,8 +505,8 @@ function initEngine(){
   scene.background=new THREE.Color(0x0d0a0e);
   scene.fog=new THREE.Fog(0x0d0a0e,22,35);
 
-  camera=new THREE.PerspectiveCamera(55,W/H,0.1,100);
-  camera.position.set(0,1.2,-0.5);
+  camera=new THREE.PerspectiveCamera(40,W/H,0.1,100);
+  camera.position.set(0,0.7,0);
   camera.lookAt(0,0.3,10);
 
   renderer=new THREE.WebGLRenderer({canvas,antialias:true});
@@ -519,11 +519,11 @@ function initEngine(){
 
   /* ---------- LIGHTING ---------- */
   // Ambient — dim overall fill
-  const ambient=new THREE.AmbientLight(0x303040,0.5);
+  const ambient=new THREE.AmbientLight(0x8090a0,1.2);
   scene.add(ambient);
 
   // Main overhead directional (warm)
-  const dirLight=new THREE.DirectionalLight(0xfff0d6,1.6);
+  const dirLight=new THREE.DirectionalLight(0xfff0d6,2.5);
   dirLight.position.set(1,8,8);
   dirLight.castShadow=true;
   dirLight.shadow.mapSize.set(2048,2048);
@@ -534,7 +534,7 @@ function initEngine(){
   scene.add(dirLight);
 
   // Fill light from left
-  const fillLight=new THREE.DirectionalLight(0x8899bb,0.3);
+  const fillLight=new THREE.DirectionalLight(0x8899bb,0.8);
   fillLight.position.set(-3,4,6);
   scene.add(fillLight);
 
@@ -639,7 +639,7 @@ function initEngine(){
   backBody.position.set(0,0.8,18.5);world.addBody(backBody);
 
   /* ---------- SIDE WALLS ---------- */
-  const sideWallMatVisual=new THREE.MeshStandardMaterial({color:0x1a1520,roughness:0.85,metalness:0.05});
+  const sideWallMatVisual=new THREE.MeshStandardMaterial({color:0x5a4860,roughness:0.85,metalness:0.05});
   // Thick side dividers
   const sideGeo=new THREE.BoxGeometry(0.12,1.8,22);
   const lWall=new THREE.Mesh(sideGeo,sideWallMatVisual);
@@ -685,14 +685,14 @@ function initEngine(){
 
   /* ---------- CEILING ---------- */
   const ceilGeo=new THREE.BoxGeometry(8,0.1,26);
-  const ceilMat=new THREE.MeshStandardMaterial({color:0x151015,roughness:0.95,metalness:0});
+  const ceilMat=new THREE.MeshStandardMaterial({color:0x4a3850,roughness:0.85,metalness:0});
   const ceiling=new THREE.Mesh(ceilGeo,ceilMat);
   ceiling.position.set(0,3.2,9);
   scene.add(ceiling);
 
   // Exposed ceiling beams
   const beamGeo=new THREE.BoxGeometry(8,0.12,0.1);
-  const beamMat=new THREE.MeshStandardMaterial({color:0x201820,roughness:0.8,metalness:0.1});
+  const beamMat=new THREE.MeshStandardMaterial({color:0x3a3038,roughness:0.8,metalness:0.1});
   for(let z=-1;z<=19;z+=4){
     const beam=new THREE.Mesh(beamGeo,beamMat);
     beam.position.set(0,3.1,z);
@@ -729,7 +729,7 @@ function initEngine(){
 
   /* ---------- FLOOR (catches fallen pins) ---------- */
   const floorGeo=new THREE.BoxGeometry(8,0.05,26);
-  const floorMat=new THREE.MeshStandardMaterial({color:0x0a0708,roughness:0.95});
+  const floorMat=new THREE.MeshStandardMaterial({color:0x2a2228,roughness:0.85});
   const floor=new THREE.Mesh(floorGeo,floorMat);
   floor.position.set(0,-0.15,9);floor.receiveShadow=true;
   scene.add(floor);
@@ -786,22 +786,21 @@ function createBall(physicsMaterial){
     group.add(hole);
   });
 
-  // Shadow plane under ball
-  const shadowGeo=new THREE.PlaneGeometry(0.22,0.22);
-  const shadowMat=new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.25});
-  const shadow=new THREE.Mesh(shadowGeo,shadowMat);
-  shadow.rotation.x=-Math.PI/2;
-  shadow.position.y=-0.1;
-  shadow.userData.isBallShadow=true;
-  group.add(shadow);
+  // Shadow under ball — circular, separate from group
+  const shadowGeo=new THREE.CircleGeometry(0.12,24);
+  const shadowMat=new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.2});
+  const ballShadow=new THREE.Mesh(shadowGeo,shadowMat);
+  ballShadow.rotation.x=-Math.PI/2;
+  ballShadow.position.set(0,0.006,2);
+  scene.add(ballShadow);
 
-  group.position.set(0,0.11,1);
+  group.position.set(0,0.11,2);
   scene.add(group);
   ballMesh=group;
 
   // Physics
   ballBody=new CANNON.Body({mass:6,shape:new CANNON.Sphere(0.11),material:physicsMaterial});
-  ballBody.position.set(0,0.11,1);
+  ballBody.position.set(0,0.11,2);
   ballBody.linearDamping=0.1;
   ballBody.angularDamping=0.3;
   ballBody.ccdSpeedThreshold=1;
@@ -888,7 +887,7 @@ function createPins(){
 /* ===================== */
 /* CAMERA (Wii Style)    */
 /* ===================== */
-const CAM_AIM={x:0,y:1.4,z:-1.8};
+const CAM_AIM={x:0,y:0.7,z:0};
 const CAM_STOP_Z=11;
 
 function updateCamera(){
@@ -959,7 +958,7 @@ function removeAimGuide(){
 function enterAimState(){
   gameState='aim';aimX=0;aimAngle=0;aimSpin=0;pinHitPlayed=false;
   ballBody.velocity.setZero();ballBody.angularVelocity.setZero();
-  ballBody.position.set(0,0.11,1);ballBody.quaternion.set(0,0,0,1);
+  ballBody.position.set(0,0.11,2);ballBody.quaternion.set(0,0,0,1);
   ballBody.wakeUp();ballBody._guttered=false;
   ballMesh.position.copy(ballBody.position);
   ballMesh.quaternion.set(0,0,0,1);
@@ -1006,9 +1005,11 @@ function startBowl(){
   removeAimGuide();
 }
 window.startBowl=startBowl;
+window.releaseBowl=releaseBowl;
 
 function releaseBowl(){
-  if(gameState!=='power')return;
+  console.log('releaseBowl called, gameState=',gameState,'powerLevel=',powerLevel);
+  if(gameState!=='power'){console.log('NOT in power state, aborting');return}
   gameState='rolling';
   powerActive=false;
   document.getElementById('powerWrap').style.display='none';
@@ -1016,6 +1017,7 @@ function releaseBowl(){
   const speed=3+powerLevel*8;
   const vx=Math.sin(aimAngle)*speed;
   const vz=Math.cos(aimAngle)*speed;
+  console.log('Throwing ball: speed=',speed,'vx=',vx,'vz=',vz);
   ballBody.velocity.set(vx,0,vz);
   ballBody.angularVelocity.set(aimSpin*5,0,-vx*2);
   ballBody.wakeUp();
@@ -1114,7 +1116,7 @@ function animate(){
 
   // Power meter oscillation
   if(gameState==='power'&&powerActive){
-    powerLevel+=powerDir*0.018;
+    powerLevel+=powerDir*0.008;
     if(powerLevel>=1){powerLevel=1;powerDir=-1}
     if(powerLevel<=0){powerLevel=0;powerDir=1}
     const pct=Math.round(powerLevel*100);
@@ -1147,13 +1149,11 @@ function animate(){
     ballMesh.position.copy(ballBody.position);
     ballMesh.quaternion.copy(ballBody.quaternion);
 
-    // Keep ball shadow on ground
-    ballMesh.traverse(c=>{
-      if(c.userData.isBallShadow){
-        // Reset shadow to always face down regardless of ball rotation
-        c.position.set(0,-ballBody.position.y+0.005,0);
-      }
-    });
+    // Keep ball shadow on ground under the ball
+    if(ballShadow){
+      ballShadow.position.x=ballBody.position.x;
+      ballShadow.position.z=ballBody.position.z;
+    }
 
     // Sync pins
     pinBodies.forEach((b,i)=>{
@@ -1171,8 +1171,9 @@ function animate(){
 /* INPUT                 */
 /* ===================== */
 const wrap=document.getElementById('canvasWrap');
-wrap.addEventListener('click',()=>{if(gameState==='power')releaseBowl()});
-wrap.addEventListener('touchstart',e=>{if(gameState==='power'){e.preventDefault();releaseBowl()}},{passive:false});
+// Click/tap anywhere to release power
+document.addEventListener('click',()=>{if(gameState==='power')releaseBowl()});
+document.addEventListener('touchstart',e=>{if(gameState==='power'){e.preventDefault();releaseBowl()}},{passive:false});
 
 document.addEventListener('keydown',e=>{
   if(gameState==='aim'){
