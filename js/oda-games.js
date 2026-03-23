@@ -22,6 +22,7 @@ window.ODA_GAMES=[
 {id:'whackamole',emoji:'\u{1F439}',title:'Whack-a-Mole',desc:'Whack moles before they hide!',file:'arcade/whackamole/index.html',cat:'arcade',colors:['#854d0e','#16a34a'],categories:['Action']},
 {id:'aimtrainer',emoji:'\u{1F3AF}',title:'Aim Trainer',desc:'Test your reflexes!',file:'arcade/aimtrainer/index.html',cat:'arcade',colors:['#dc2626','#fafafa'],categories:['Action']},
 {id:'coinminer',emoji:'\u{1FA99}',title:'Coin Miner',desc:'Tap to mine, buy upgrades!',file:'arcade/coinminer/index.html',cat:'arcade',colors:['#fbbf24','#7c3aed'],categories:['Action']},
+{id:'reaction',emoji:'\u26A1',title:'Reaction Time',desc:'How fast can you click?',file:'arcade/reaction/index.html',cat:'arcade',colors:['#ef4444','#06d6a0'],categories:['Action']},
 // Puzzle
 {id:'2048',emoji:'\u{1F522}',title:'2048',desc:'Slide and merge to 2048!',file:'arcade/2048/index.html',cat:'puzzle',colors:['#f59e0b','#1a1a2e'],categories:['Puzzle']},
 {id:'solitaire',emoji:'\u{1F0CF}',title:'Solitaire',desc:'Classic card game!',file:'arcade/solitaire/index.html',cat:'puzzle',colors:['#16a34a','#dc2626'],categories:['Puzzle']},

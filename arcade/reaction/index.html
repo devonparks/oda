@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Reaction Time - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:center}
+body.in-game{overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+
+.sound-btn{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;transition:all .2s;backdrop-filter:blur(8px)}
+.sound-btn:hover{border-color:var(--accent)}
+
+.screen{display:none;width:100%;max-width:1100px;min-height:100vh;min-height:100dvh;padding:16px;animation:fadeUp .35s ease}
+@media(min-width:768px){
+  .home-header h1{font-size:80px!important}
+  .home-header p{font-size:18px}
+  .best-pill{padding:16px 32px;font-size:18px}
+  .best-pill .bp-val{font-size:28px}
+  .btn-accent{font-size:22px!important;padding:20px 64px!important}
+  .btn-outline{font-size:16px;padding:14px 28px}
+  .stats-row .sr{font-size:15px;padding:10px 22px}
+  .how-to{max-width:500px;padding:28px 32px}
+  .how-to h3{font-size:15px}
+  .how-to p{font-size:15px}
+}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+
+/* HOME */
+#homeScreen{padding-top:80px;justify-content:flex-start;gap:16px}
+.home-header{text-align:center;margin-bottom:8px}
+.home-header h1{font-size:clamp(48px,10vw,64px);font-weight:700;letter-spacing:-2px}
+.home-header h1 .hl{color:var(--accent)}
+.home-header p{color:var(--text2);font-size:15px;margin-top:4px}
+.best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
+.best-pill .bp-label{color:var(--text2)}
+.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
+.home-actions{display:flex;flex-direction:column;align-items:center;gap:14px}
+.stats-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.stats-row .sr{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+.how-to{max-width:380px;width:100%;margin:0 auto;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px}
+.how-to h3{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.how-to p{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* GAME AREA */
+#gameScreen{padding:0;max-width:100%;min-height:100vh;min-height:100dvh;justify-content:center;align-items:center;position:relative}
+.game-zone{width:100%;height:100vh;height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;position:relative;overflow:hidden;transition:background .4s ease}
+.game-zone.state-wait{background:linear-gradient(135deg,#1a0505 0%,#2d0a0a 40%,#1a0e0e 100%)}
+.game-zone.state-go{background:linear-gradient(135deg,#033d2e 0%,#06d6a0 40%,#059669 100%)}
+.game-zone.state-result{background:linear-gradient(135deg,#0a0e1a 0%,#111827 100%)}
+.game-zone.state-early{background:linear-gradient(135deg,#1a1005 0%,#2d1a00 100%)}
+.game-zone.state-done{background:linear-gradient(135deg,#0a0e1a 0%,#111827 100%)}
+
+/* Wait state pulse */
+.wait-pulse{position:absolute;inset:0;border-radius:50%;opacity:0;pointer-events:none}
+.state-wait .wait-pulse{animation:waitPulse 2s ease-in-out infinite}
+@keyframes waitPulse{0%,100%{box-shadow:inset 0 0 80px rgba(239,68,68,.08);opacity:.5}50%{box-shadow:inset 0 0 160px rgba(239,68,68,.15);opacity:1}}
+
+/* Go state glow */
+.state-go{box-shadow:inset 0 0 120px rgba(6,214,160,.2)}
+.go-glow{position:absolute;inset:0;pointer-events:none;opacity:0}
+.state-go .go-glow{animation:goGlow .15s ease forwards}
+@keyframes goGlow{to{opacity:1;box-shadow:inset 0 0 200px rgba(6,214,160,.3)}}
+
+/* Central text */
+.zone-text{font-family:'Fredoka',sans-serif;font-weight:700;text-align:center;z-index:2;pointer-events:none;transition:transform .15s ease}
+.zone-main{font-size:clamp(36px,8vw,64px);color:#fff;text-shadow:0 2px 20px rgba(0,0,0,.4);margin-bottom:8px}
+.zone-sub{font-size:clamp(14px,3vw,20px);color:rgba(255,255,255,.6);font-weight:500}
+.zone-time{font-size:clamp(64px,18vw,120px);font-weight:700;color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.3);line-height:1;margin-bottom:4px}
+.zone-rating{font-size:clamp(18px,4vw,28px);font-weight:700;text-transform:uppercase;letter-spacing:2px}
+.zone-round{font-size:14px;color:rgba(255,255,255,.5);font-weight:600;margin-top:12px}
+
+/* Click scale animation */
+.click-pop{animation:clickPop .3s ease}
+@keyframes clickPop{0%{transform:scale(1)}30%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+/* Ripple effect */
+.click-ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.3);transform:scale(0);animation:rippleOut .6s ease forwards;pointer-events:none;z-index:1}
+@keyframes rippleOut{to{transform:scale(4);opacity:0}}
+
+/* Shockwave effect */
+.click-shockwave{position:absolute;border-radius:50%;border:3px solid rgba(255,255,255,.5);transform:scale(0);animation:shockOut .5s ease-out forwards;pointer-events:none;z-index:1}
+@keyframes shockOut{to{transform:scale(6);opacity:0}}
+
+/* Particle effect */
+.click-particle{position:absolute;width:6px;height:6px;border-radius:50%;pointer-events:none;z-index:1}
+
+/* Round dots */
+.round-dots{display:flex;gap:8px;margin-top:16px;z-index:2}
+.round-dot{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.2);transition:all .3s}
+.round-dot.done{background:var(--accent);border-color:var(--accent);box-shadow:0 0 8px rgba(6,214,160,.4)}
+.round-dot.current{border-color:rgba(255,255,255,.6);animation:dotPulse 1s ease-in-out infinite}
+@keyframes dotPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+
+/* Final results card */
+.results-card{background:rgba(255,255,255,.06);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:32px;max-width:400px;width:90%;z-index:2;text-align:center;animation:fadeUp .4s ease}
+.results-card h2{font-size:28px;color:var(--accent);margin-bottom:4px}
+.results-avg{font-size:clamp(48px,12vw,72px);font-weight:700;font-family:'Fredoka',sans-serif;color:#fff;line-height:1}
+.results-label{font-size:13px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:2px;margin-top:4px}
+.results-best{font-size:18px;color:var(--gold);font-weight:700;font-family:'Fredoka',sans-serif;margin:12px 0}
+.results-times{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+.results-times span{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 12px;font-size:13px;font-weight:700;font-family:'Fredoka',sans-serif;color:var(--text2)}
+.results-coins{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:8px 18px;font-size:16px;font-weight:700;color:var(--gold);font-family:'Fredoka',sans-serif;margin:12px 0}
+.results-new{color:var(--accent);font-size:14px;font-weight:700;animation:pulse 1s ease-in-out infinite}
+.results-btns{display:flex;gap:10px;justify-content:center;margin-top:12px}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.05)}}
+
+/* HUD */
+.game-hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:center;padding:20px;pointer-events:none;z-index:5}
+.hud-round{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:700;color:rgba(255,255,255,.5);text-shadow:0 2px 6px rgba(0,0,0,.4)}
+
+/* RECORDS */
+#recordsScreen{padding-top:70px;justify-content:flex-start}
+.records-container{width:100%;max-width:420px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.stat-card .sv{font-size:24px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.stat-card .sv.gold{color:var(--gold)}
+.stat-card .sl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-weight:600}
+.lb-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px}
+.lb-row.me{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.lb-rank{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text2);flex-shrink:0}
+.lb-rank.r1{background:rgba(255,209,102,.2);color:var(--gold)}
+.lb-rank.r2{background:rgba(192,192,192,.15);color:#c0c0c0}
+.lb-rank.r3{background:rgba(205,127,50,.15);color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-size:14px;font-weight:800;color:var(--gold);font-family:'Fredoka',sans-serif}
+.lb-empty{text-align:center;color:var(--text2);font-size:14px;padding:24px;font-weight:600}
+
+/* SHOP */
+#shopScreen{padding-top:70px;justify-content:flex-start}
+
+/* ACHIEVEMENTS */
+.ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
+@keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../../student.html#arcade" id="backBtn" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();showScreen('homeScreen')}">&#8592; Back</a>
+<button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128264;</button>
+
+<!-- HOME SCREEN -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1>&#9889; <span class="hl">Reaction</span> Time</h1>
+    <p>How fast can you click?</p>
+  </div>
+  <div class="best-pill">
+    <span class="bp-label">&#127942; Best</span>
+    <span class="bp-val" id="homeBest">---</span>
+  </div>
+  <div class="diff-row" style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
+    <button class="diff-btn active" onclick="setDifficulty('classic',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--accent);background:rgba(6,214,160,.15);color:var(--accent);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Classic</button>
+    <button class="diff-btn" onclick="setDifficulty('speed',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Speed</button>
+    <button class="diff-btn" onclick="setDifficulty('zen',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Zen</button>
+  </div>
+  <div class="home-actions">
+    <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
+    <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
+    <button class="btn btn-outline btn-small" onclick="showShopScreen()">&#128717;&#65039; Shop</button>
+  </div>
+  <div class="stats-row">
+    <div class="sr">&#127918; Games <span id="homeGames">0</span></div>
+    <div class="sr">&#9889; Avg <span id="homeAvg">---</span></div>
+  </div>
+  <div class="how-to">
+    <h3>How to Play</h3>
+    <p>Wait for the screen to turn green, then click or tap as fast as you can! Don't click too early or the round restarts.</p>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div class="screen" id="gameScreen">
+  <div class="game-zone state-wait" id="gameZone" onclick="handleClick(event)" ontouchstart="handleTouch(event)">
+    <div class="wait-pulse"></div>
+    <div class="go-glow"></div>
+    <div class="game-hud"><div class="hud-round" id="hudRound"></div></div>
+    <div class="zone-text" id="zoneText">
+      <div class="zone-main" id="zoneMain">Wait...</div>
+      <div class="zone-sub" id="zoneSub">Don't click yet</div>
+    </div>
+    <div class="round-dots" id="roundDots"></div>
+  </div>
+</div>
+
+<!-- RECORDS SCREEN -->
+<div class="screen" id="recordsScreen">
+  <h1>Your <span style="color:var(--accent)">Records</span></h1>
+  <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Reaction Time stats &amp; leaderboard</p>
+  <div class="records-container">
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="sv gold" id="statBest">---</div><div class="sl">Best Time</div></div>
+      <div class="stat-card"><div class="sv" id="statPlayed">0</div><div class="sl">Games Played</div></div>
+      <div class="stat-card"><div class="sv" id="statAvg">---</div><div class="sl">Avg Time</div></div>
+      <div class="stat-card"><div class="sv" id="statCoins">0</div><div class="sl">Coins Earned</div></div>
+    </div>
+    <div class="lb-title" style="margin-top:16px">&#127942; Achievements</div>
+    <div id="achievementsGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:24px"></div>
+    <div class="lb-title">Class Leaderboard</div>
+    <div class="lb-list" id="leaderboard"><div class="lb-empty">Loading...</div></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHOP SCREEN -->
+<div class="screen" id="shopScreen">
+  <div style="text-align:center;margin-bottom:8px">
+    <h1>&#128717;&#65039; Shop</h1>
+    <p style="color:var(--text2);font-size:14px">Customize your Reaction Time</p>
+  </div>
+  <div id="reactionShopContainer" style="width:100%;max-width:500px"></div>
+  <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')" style="margin-top:16px">&#8592; Back</button>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script>
+/* ===================== */
+/* SESSION               */
+/* ===================== */
+var studentId=localStorage.getItem('studentId')||'';
+var studentName=localStorage.getItem('studentName')||'';
+var classCode=localStorage.getItem('classCode')||'';
+var isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+if(isTeacher)document.getElementById('backBtn').href='../../teacher.html#arcade';
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+/* ===================== */
+/* SCREEN SYSTEM         */
+/* ===================== */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+  document.getElementById(id).classList.add('active');
+  document.body.classList.toggle('in-game',id==='gameScreen');
+  if(id==='homeScreen'){loadLocalStats();stopGame()}
+}
+
+/* ===================== */
+/* AUDIO                 */
+/* ===================== */
+var audioCtx=null,soundOn=localStorage.getItem('odaSoundEnabled')!=='false';
+function getAudioCtx(){
+  if(!audioCtx)try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq,dur,type,vol,ramp){
+  if(!soundOn)return;var ctx=getAudioCtx();if(!ctx)return;
+  var osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.type=type||'square';osc.frequency.setValueAtTime(freq,ctx.currentTime);
+  if(ramp)osc.frequency.linearRampToValueAtTime(ramp,ctx.currentTime+dur);
+  gain.gain.setValueAtTime(vol||0.1,ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+  osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+dur);
+}
+function sfxGo(){playTone(880,0.08,'sine',0.15);setTimeout(function(){playTone(1100,0.06,'sine',0.1)},50)}
+function sfxClick(){playTone(600,0.05,'sine',0.12);setTimeout(function(){playTone(900,0.07,'sine',0.1)},30)}
+function sfxEarly(){playTone(200,0.3,'sawtooth',0.12,100)}
+function sfxDone(){playTone(523,0.1,'sine',0.12);setTimeout(function(){playTone(659,0.1,'sine',0.1)},80);setTimeout(function(){playTone(784,0.15,'sine',0.12)},160)}
+function sfxNewBest(){playTone(784,0.1,'sine',0.12);setTimeout(function(){playTone(988,0.1,'sine',0.1)},80);setTimeout(function(){playTone(1175,0.2,'sine',0.12)},160)}
+function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;';localStorage.setItem('odaSoundEnabled',soundOn)}
+if(!soundOn)document.getElementById('soundBtn').innerHTML='&#128263;';
+
+/* ===================== */
+/* COSMETICS             */
+/* ===================== */
+var myCosmetics={};
+var waitBg='linear-gradient(135deg,#1a0505 0%,#2d0a0a 40%,#1a0e0e 100%)';
+var goBg='linear-gradient(135deg,#033d2e 0%,#06d6a0 40%,#059669 100%)';
+var textColor='#fff';
+var clickEffect='none';
+
+async function loadMyCosmetics(){
+  try{myCosmetics=JSON.parse(localStorage.getItem('oda_cosmetics_reaction')||'{}');}catch(e){myCosmetics={}}
+  var sid=localStorage.getItem('studentId');
+  if(sid){
+    try{
+      var fb=await window.getFirebaseDB();
+      var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));
+      if(snap.exists()){var d=snap.data();var fc=d.gameCosmetics?.reaction?.equipped;if(fc&&Object.keys(fc).length>0)myCosmetics=fc;}
+    }catch(e){}
+  }
+  applyCosmeticStyles();
+}
+loadMyCosmetics();
+
+function applyCosmeticStyles(){
+  var bg=myCosmetics['Background Theme'];
+  if(bg&&bg.value){
+    waitBg=bg.value.waitBg||waitBg;
+    goBg=bg.value.goBg||goBg;
+    textColor=bg.value.textColor||'#fff';
+  }
+  var ce=myCosmetics['Click Effect'];
+  if(ce&&ce.value){clickEffect=ce.value.type||'none'}
+}
+
+/* ===================== */
+/* SHOP                  */
+/* ===================== */
+var REACTION_SHOP=[
+  {id:'rx_bg_classic',name:'Classic',emoji:'&#9899;',cost:0,slot:'Background Theme',value:{waitBg:'linear-gradient(135deg,#1a0505 0%,#2d0a0a 40%,#1a0e0e 100%)',goBg:'linear-gradient(135deg,#033d2e 0%,#06d6a0 40%,#059669 100%)',textColor:'#fff'}},
+  {id:'rx_bg_neon',name:'Neon',emoji:'&#128154;',cost:100,slot:'Background Theme',value:{waitBg:'linear-gradient(135deg,#050510 0%,#0a1a10 40%,#051510 100%)',goBg:'linear-gradient(135deg,#003300 0%,#39ff14 40%,#00cc00 100%)',textColor:'#fff'}},
+  {id:'rx_bg_fire',name:'Fire',emoji:'&#128293;',cost:150,slot:'Background Theme',value:{waitBg:'linear-gradient(135deg,#1a0a00 0%,#2d1600 40%,#1a0a00 100%)',goBg:'linear-gradient(135deg,#441a00 0%,#f97316 40%,#ea580c 100%)',textColor:'#fff'}},
+  {id:'rx_bg_ice',name:'Ice',emoji:'&#10052;&#65039;',cost:150,slot:'Background Theme',value:{waitBg:'linear-gradient(135deg,#050a1a 0%,#0a1530 40%,#051020 100%)',goBg:'linear-gradient(135deg,#0a2540 0%,#22d3ee 40%,#0ea5e9 100%)',textColor:'#fff'}},
+  {id:'rx_bg_galaxy',name:'Galaxy',emoji:'&#128156;',cost:250,slot:'Background Theme',value:{waitBg:'linear-gradient(135deg,#0a0020 0%,#1a0040 40%,#100030 100%)',goBg:'linear-gradient(135deg,#2d004a 0%,#a855f7 40%,#7c3aed 100%)',textColor:'#fff'}},
+
+  {id:'rx_fx_none',name:'None',emoji:'&#9898;',cost:0,slot:'Click Effect',value:{type:'none'}},
+  {id:'rx_fx_ripple',name:'Ripple',emoji:'&#128167;',cost:80,slot:'Click Effect',value:{type:'ripple'}},
+  {id:'rx_fx_shockwave',name:'Shockwave',emoji:'&#128165;',cost:120,slot:'Click Effect',value:{type:'shockwave'}},
+  {id:'rx_fx_particles',name:'Particles',emoji:'&#10024;',cost:200,slot:'Click Effect',value:{type:'particles'}}
+];
+
+function showShopScreen(){
+  showScreen('shopScreen');
+  if(typeof odaShop!=='undefined'){
+    odaShop.renderShopPanel('reaction',REACTION_SHOP,'reactionShopContainer',{
+      onEquip:function(){loadMyCosmetics()},
+      onBuy:function(){loadMyCosmetics()}
+    });
+  }
+}
+
+/* ===================== */
+/* ACHIEVEMENTS          */
+/* ===================== */
+var REACTION_ACHIEVEMENTS=[
+  {id:'rx_first',name:'First Click',desc:'Complete your first game',icon:'&#128073;',check:function(s){return s.gamesPlayed>=1}},
+  {id:'rx_300',name:'Quick Draw',desc:'React under 300ms',icon:'&#9889;',check:function(s){return s.bestTime>0&&s.bestTime<300}},
+  {id:'rx_200',name:'Lightning',desc:'React under 200ms',icon:'&#9889;',check:function(s){return s.bestTime>0&&s.bestTime<200}},
+  {id:'rx_150',name:'Superhuman!',desc:'React under 150ms',icon:'&#129464;',check:function(s){return s.bestTime>0&&s.bestTime<150}},
+  {id:'rx_10',name:'Dedicated',desc:'Complete 10 games',icon:'&#127942;',check:function(s){return s.gamesPlayed>=10}},
+  {id:'rx_50',name:'Veteran',desc:'Complete 50 games',icon:'&#127775;',check:function(s){return s.gamesPlayed>=50}}
+];
+var achState={};
+
+async function checkAchievements(extra){
+  var sid=localStorage.getItem('studentId');
+  if(!sid||sid.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'reactionRecords',sid);
+    var snap=await fb.fsMod.getDoc(ref);
+    var data=snap.exists()?snap.data():{};
+    var state=Object.assign({},data,extra||{});
+    achState=data.achievements||{};
+    var newUnlocks=[];
+    REACTION_ACHIEVEMENTS.forEach(function(a){
+      if(!achState[a.id]&&a.check(state)){achState[a.id]=Date.now();newUnlocks.push(a)}
+    });
+    if(newUnlocks.length>0){
+      var upd={};newUnlocks.forEach(function(a){upd['achievements.'+a.id]=achState[a.id]});
+      await fb.fsMod.updateDoc(ref,upd);
+      newUnlocks.forEach(function(a){showAchToast(a)});
+    }
+  }catch(e){}
+}
+
+function showAchToast(a){
+  var el=document.createElement('div');el.className='ach-popup';
+  el.innerHTML='<span style="font-size:32px">'+a.icon+'</span><div><div style="color:var(--gold);font-weight:700;font-size:13px;font-family:Fredoka,sans-serif">Achievement Unlocked!</div><div style="color:var(--text);font-size:15px;font-weight:600;font-family:Outfit,sans-serif">'+esc(a.name)+'</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function(){el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(function(){el.remove()},400)},3500);
+}
+
+/* ===================== */
+/* LOCAL STATS           */
+/* ===================== */
+var localBest=parseInt(localStorage.getItem('reaction_best'))||0;
+var localGames=parseInt(localStorage.getItem('reaction_games'))||0;
+var localAvg=parseInt(localStorage.getItem('reaction_avg'))||0;
+var localCoins=parseInt(localStorage.getItem('reaction_coins'))||0;
+
+function loadLocalStats(){
+  document.getElementById('homeBest').textContent=localBest?localBest+'ms':'---';
+  document.getElementById('homeGames').textContent=localGames;
+  document.getElementById('homeAvg').textContent=localAvg?localAvg+'ms':'---';
+}
+loadLocalStats();
+
+/* ===================== */
+/* DIFFICULTY            */
+/* ===================== */
+var difficulty='classic';
+var DIFFICULTIES={
+  classic:{rounds:5,minDelay:2000,maxDelay:6000,label:'Classic'},
+  speed:{rounds:10,minDelay:1000,maxDelay:3000,label:'Speed'},
+  zen:{rounds:Infinity,minDelay:2000,maxDelay:6000,label:'Zen'}
+};
+
+window.setDifficulty=function(diff,btn){
+  difficulty=diff;
+  document.querySelectorAll('.diff-btn').forEach(function(b){b.style.borderColor='var(--border)';b.style.background='none';b.style.color='var(--text2)'});
+  if(btn){btn.style.borderColor='var(--accent)';btn.style.background='rgba(6,214,160,.15)';btn.style.color='var(--accent)'}
+};
+
+/* ===================== */
+/* GAME STATE            */
+/* ===================== */
+var gameState='idle'; // idle, waiting, ready, result, early, done
+var currentRound=0;
+var totalRounds=5;
+var roundTimes=[];
+var goTimestamp=0;
+var waitTimer=null;
+var resultTimer=null;
+var coinsAwarded=false;
+var zenRunning=false;
+
+function stopGame(){
+  if(waitTimer){clearTimeout(waitTimer);waitTimer=null}
+  if(resultTimer){clearTimeout(resultTimer);resultTimer=null}
+  gameState='idle';
+  zenRunning=false;
+}
+
+// Stop game on page hide/unload
+window.addEventListener('beforeunload',stopGame);
+document.addEventListener('visibilitychange',function(){if(document.hidden&&gameState!=='idle')stopGame()});
+
+function startGame(){
+  showScreen('gameScreen');
+  applyCosmeticStyles();
+  var d=DIFFICULTIES[difficulty];
+  totalRounds=d.rounds;
+  currentRound=0;
+  roundTimes=[];
+  coinsAwarded=false;
+  zenRunning=difficulty==='zen';
+  updateRoundDots();
+  nextRound();
+}
+
+function nextRound(){
+  currentRound++;
+  gameState='waiting';
+  var zone=document.getElementById('gameZone');
+  zone.className='game-zone state-wait';
+  zone.style.background=waitBg;
+
+  var mainEl=document.getElementById('zoneMain');
+  var subEl=document.getElementById('zoneSub');
+  mainEl.textContent='Wait...';
+  mainEl.style.color=textColor;
+  subEl.textContent="Don't click yet";
+  subEl.style.color='rgba(255,255,255,.5)';
+
+  // Hide any leftover result elements
+  var oldCard=zone.querySelector('.results-card');
+  if(oldCard)oldCard.remove();
+
+  updateHud();
+  updateRoundDots();
+
+  // Random delay
+  var d=DIFFICULTIES[difficulty];
+  var delay=d.minDelay+Math.random()*(d.maxDelay-d.minDelay);
+  waitTimer=setTimeout(function(){
+    if(gameState!=='waiting')return;
+    showGo();
+  },delay);
+}
+
+function showGo(){
+  gameState='ready';
+  goTimestamp=performance.now();
+  sfxGo();
+
+  var zone=document.getElementById('gameZone');
+  zone.className='game-zone state-go';
+  zone.style.background=goBg;
+
+  var mainEl=document.getElementById('zoneMain');
+  var subEl=document.getElementById('zoneSub');
+  mainEl.textContent='CLICK!';
+  mainEl.style.color=textColor;
+  subEl.textContent='Now!';
+  subEl.style.color='rgba(255,255,255,.7)';
+}
+
+function handleTouch(e){
+  e.preventDefault();
+  handleClick(e);
+}
+
+function handleClick(e){
+  if(gameState==='waiting'){
+    // Too early!
+    tooEarly();
+    return;
+  }
+  if(gameState==='ready'){
+    // Good click!
+    var time=Math.round(performance.now()-goTimestamp);
+    sfxClick();
+    recordTime(time,e);
+    return;
+  }
+  if(gameState==='result'){
+    // Advance to next round
+    if(resultTimer){clearTimeout(resultTimer);resultTimer=null}
+    advanceRound();
+    return;
+  }
+  if(gameState==='done'){
+    // Ignore clicks on done screen (buttons handle it)
+    return;
+  }
+}
+
+function tooEarly(){
+  if(waitTimer){clearTimeout(waitTimer);waitTimer=null}
+  gameState='early';
+  sfxEarly();
+
+  var zone=document.getElementById('gameZone');
+  zone.className='game-zone state-early';
+  zone.style.background='';
+
+  var mainEl=document.getElementById('zoneMain');
+  var subEl=document.getElementById('zoneSub');
+  mainEl.textContent='Too Early!';
+  mainEl.style.color='#f97316';
+  subEl.textContent='Wait for green...';
+  subEl.style.color='rgba(255,255,255,.5)';
+
+  // Shake animation
+  var textEl=document.getElementById('zoneText');
+  textEl.style.animation='none';
+  textEl.offsetHeight; // reflow
+  textEl.style.animation='shake .4s ease';
+
+  setTimeout(function(){
+    if(gameState!=='early')return;
+    textEl.style.animation='';
+    nextRound();
+    // Don't increment round - retry same round
+    currentRound--;
+  },1200);
+}
+
+function recordTime(time,e){
+  gameState='result';
+  roundTimes.push(time);
+
+  // Spawn click effect
+  spawnClickEffect(e);
+
+  var zone=document.getElementById('gameZone');
+  zone.className='game-zone state-result';
+  zone.style.background='';
+
+  var rating=getRating(time);
+
+  // Build result display in zone
+  var mainEl=document.getElementById('zoneMain');
+  var subEl=document.getElementById('zoneSub');
+
+  // Show time as main text
+  mainEl.innerHTML='<span class="zone-time" style="color:'+rating.color+'">' + time + '<span style="font-size:clamp(24px,5vw,40px)">ms</span></span>';
+  mainEl.style.color='';
+  subEl.innerHTML='<span class="zone-rating" style="color:'+rating.color+'">' + rating.label + '</span>';
+  subEl.style.color='';
+
+  // Pop animation
+  var textEl=document.getElementById('zoneText');
+  textEl.classList.add('click-pop');
+  setTimeout(function(){textEl.classList.remove('click-pop')},300);
+
+  updateRoundDots();
+  updateHud();
+
+  // Auto-advance after 1.5s or on click
+  if(totalRounds!==Infinity && currentRound>=totalRounds){
+    resultTimer=setTimeout(function(){finishGame()},1800);
+  } else {
+    resultTimer=setTimeout(function(){advanceRound()},1500);
+  }
+}
+
+function advanceRound(){
+  if(gameState==='done')return;
+  if(totalRounds!==Infinity && currentRound>=totalRounds){
+    finishGame();
+  } else {
+    nextRound();
+  }
+}
+
+function getRating(ms){
+  if(ms<200)return {label:'Lightning!',color:'#fbbf24'};
+  if(ms<300)return {label:'Great!',color:'#06d6a0'};
+  if(ms<400)return {label:'Good',color:'#3b82f6'};
+  if(ms<500)return {label:'Average',color:'#eab308'};
+  return {label:'Slow',color:'#ef4444'};
+}
+
+function spawnClickEffect(e){
+  if(clickEffect==='none')return;
+  var zone=document.getElementById('gameZone');
+  var rect=zone.getBoundingClientRect();
+  var x=(e.clientX||e.touches?.[0]?.clientX||rect.width/2)-rect.left;
+  var y=(e.clientY||e.touches?.[0]?.clientY||rect.height/2)-rect.top;
+
+  if(clickEffect==='ripple'){
+    var ripple=document.createElement('div');
+    ripple.className='click-ripple';
+    ripple.style.cssText='left:'+(x-50)+'px;top:'+(y-50)+'px;width:100px;height:100px';
+    zone.appendChild(ripple);
+    setTimeout(function(){ripple.remove()},600);
+  }
+  if(clickEffect==='shockwave'){
+    var sw=document.createElement('div');
+    sw.className='click-shockwave';
+    sw.style.cssText='left:'+(x-40)+'px;top:'+(y-40)+'px;width:80px;height:80px';
+    zone.appendChild(sw);
+    setTimeout(function(){sw.remove()},500);
+  }
+  if(clickEffect==='particles'){
+    for(var i=0;i<12;i++){
+      var p=document.createElement('div');
+      p.className='click-particle';
+      var angle=Math.random()*Math.PI*2;
+      var dist=40+Math.random()*60;
+      var dx=Math.cos(angle)*dist;
+      var dy=Math.sin(angle)*dist;
+      var hue=Math.floor(Math.random()*360);
+      p.style.cssText='left:'+x+'px;top:'+y+'px;background:hsl('+hue+',80%,60%);transition:all .5s ease-out;opacity:1';
+      zone.appendChild(p);
+      // Force reflow then animate
+      p.offsetHeight;
+      p.style.transform='translate('+dx+'px,'+dy+'px)';
+      p.style.opacity='0';
+      (function(el){setTimeout(function(){el.remove()},500)})(p);
+    }
+  }
+}
+
+function updateHud(){
+  var hud=document.getElementById('hudRound');
+  if(totalRounds===Infinity){
+    hud.textContent='Round '+currentRound+(roundTimes.length?' | Avg: '+getAvg()+'ms':'');
+  } else {
+    hud.textContent='Round '+Math.min(currentRound,totalRounds)+' / '+totalRounds;
+  }
+}
+
+function updateRoundDots(){
+  var dotsEl=document.getElementById('roundDots');
+  if(totalRounds===Infinity){dotsEl.innerHTML='';return}
+  var html='';
+  for(var i=1;i<=totalRounds;i++){
+    var cls='round-dot';
+    if(i<currentRound||(i===currentRound&&gameState==='result'))cls+=' done';
+    else if(i===currentRound)cls+=' current';
+    html+='<div class="'+cls+'"></div>';
+  }
+  dotsEl.innerHTML=html;
+}
+
+function getAvg(){
+  if(roundTimes.length===0)return 0;
+  var sum=0;for(var i=0;i<roundTimes.length;i++)sum+=roundTimes[i];
+  return Math.round(sum/roundTimes.length);
+}
+
+function getBest(){
+  if(roundTimes.length===0)return 0;
+  var best=roundTimes[0];
+  for(var i=1;i<roundTimes.length;i++){if(roundTimes[i]<best)best=roundTimes[i]}
+  return best;
+}
+
+/* ===================== */
+/* ZEN MODE STOP         */
+/* ===================== */
+function stopZen(){
+  if(waitTimer){clearTimeout(waitTimer);waitTimer=null}
+  if(resultTimer){clearTimeout(resultTimer);resultTimer=null}
+  finishGame();
+}
+
+/* ===================== */
+/* FINISH GAME           */
+/* ===================== */
+function finishGame(){
+  if(coinsAwarded)return;
+  gameState='done';
+  sfxDone();
+
+  var avg=getAvg();
+  var best=getBest();
+  var isNewBest=best>0&&(localBest===0||best<localBest);
+
+  // Update local stats
+  if(isNewBest){localBest=best;localStorage.setItem('reaction_best',localBest)}
+  localGames++;localStorage.setItem('reaction_games',localGames);
+  if(avg>0){
+    // Running average
+    localAvg=localAvg?Math.round((localAvg*(localGames-1)+avg)/localGames):avg;
+    localStorage.setItem('reaction_avg',localAvg);
+  }
+
+  // Coins
+  var coins=0;
+  if(avg>0&&avg<250)coins=15;
+  else if(avg>0&&avg<350)coins=10;
+  else if(avg>0&&avg<500)coins=5;
+  else if(avg>0)coins=2;
+  if(isNewBest)coins+=5;
+  localCoins+=coins;localStorage.setItem('reaction_coins',localCoins);
+
+  if(isNewBest)sfxNewBest();
+
+  // Build results card
+  var zone=document.getElementById('gameZone');
+  zone.className='game-zone state-done';
+  zone.style.background='';
+
+  // Clear zone text
+  document.getElementById('zoneMain').innerHTML='';
+  document.getElementById('zoneSub').innerHTML='';
+  document.getElementById('roundDots').innerHTML='';
+  document.getElementById('hudRound').textContent='';
+
+  var bestRating=getRating(best);
+  var avgRating=getRating(avg);
+
+  var timesHtml='';
+  for(var i=0;i<roundTimes.length;i++){
+    var r=getRating(roundTimes[i]);
+    timesHtml+='<span style="color:'+r.color+'">'+roundTimes[i]+'ms</span>';
+  }
+
+  var html='<div class="results-card">';
+  html+='<h2>'+bestRating.label+'</h2>';
+  html+='<div class="results-label">Average</div>';
+  html+='<div class="results-avg" style="color:'+avgRating.color+'">'+avg+'<span style="font-size:clamp(20px,5vw,32px)">ms</span></div>';
+  html+='<div class="results-best">&#127942; Best: <span style="color:'+bestRating.color+'">'+best+'ms</span></div>';
+  if(isNewBest)html+='<div class="results-new">New Personal Best! &#127881;</div>';
+  html+='<div class="results-label" style="margin-top:12px">All Rounds</div>';
+  html+='<div class="results-times">'+timesHtml+'</div>';
+  html+='<div class="results-coins">+'+coins+' coins</div>';
+  html+='<div class="results-btns">';
+  html+='<button class="btn btn-accent btn-small" onclick="startGame()">Play Again</button>';
+  html+='<button class="btn btn-outline btn-small" onclick="showScreen(\'homeScreen\')">Home</button>';
+  html+='</div></div>';
+
+  // Remove old card if any
+  var oldCard=zone.querySelector('.results-card');
+  if(oldCard)oldCard.remove();
+
+  var wrapper=document.createElement('div');
+  wrapper.innerHTML=html;
+  var card=wrapper.firstChild;
+  card.style.position='absolute';
+  card.style.zIndex='10';
+  zone.appendChild(card);
+
+  if(!coinsAwarded){
+    coinsAwarded=true;
+    awardCoins(coins);
+    saveRecord(isNewBest,avg,best);
+    checkAchievements({bestTime:best,gamesPlayed:localGames});
+  }
+}
+
+/* ===================== */
+/* FIREBASE              */
+/* ===================== */
+async function awardCoins(coins){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{var fb=await window.getFirebaseDB();await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{coins:fb.fsMod.increment(coins)})}catch(e){}
+}
+
+async function saveRecord(isNew,avg,best){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'reactionRecords',studentId);
+    var snap=await fb.fsMod.getDoc(ref);
+    if(snap.exists()){
+      var upd={gamesPlayed:fb.fsMod.increment(1),lastPlayed:new Date().toISOString(),lastAvg:avg};
+      if(isNew)upd.bestTime=best;
+      await fb.fsMod.updateDoc(ref,upd);
+    }else{
+      await fb.fsMod.setDoc(ref,{studentId:studentId,studentName:studentName||'',classCode:classCode,bestTime:best,gamesPlayed:1,lastAvg:avg,lastPlayed:new Date().toISOString()});
+    }
+  }catch(e){console.warn('Save failed:',e)}
+}
+
+/* ===================== */
+/* RECORDS & LEADERBOARD */
+/* ===================== */
+async function showRecords(){
+  showScreen('recordsScreen');
+  document.getElementById('statBest').textContent=localBest?localBest+'ms':'---';
+  document.getElementById('statPlayed').textContent=localGames;
+  document.getElementById('statAvg').textContent=localAvg?localAvg+'ms':'---';
+  document.getElementById('statCoins').textContent=localCoins;
+
+  // Achievements grid
+  var ag=document.getElementById('achievementsGrid');ag.innerHTML='';
+  REACTION_ACHIEVEMENTS.forEach(function(a){
+    var unlocked=!!achState[a.id];
+    ag.innerHTML+='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:1px solid '+(unlocked?'var(--gold)':'var(--border)')+';border-radius:12px;padding:10px 4px;text-align:center;'+(unlocked?'box-shadow:0 0 12px rgba(255,209,102,.15)':'opacity:.3;filter:grayscale(1)')+'"><span style="font-size:24px">'+a.icon+'</span><span style="font-size:9px;color:var(--text2);line-height:1.2;margin-top:4px">'+esc(a.name)+'</span></div>';
+  });
+
+  // Leaderboard (ordered by bestTime ASC = fastest first)
+  var lb=document.getElementById('leaderboard');lb.innerHTML='<div class="lb-empty">Loading...</div>';
+  if(!classCode){lb.innerHTML='<div class="lb-empty">Join a class to see the leaderboard</div>';return}
+  try{
+    var fb=await window.getFirebaseDB();
+    var q=fb.fsMod.query(fb.fsMod.collection(fb.db,'reactionRecords'),fb.fsMod.where('classCode','==',classCode),fb.fsMod.orderBy('bestTime','asc'),fb.fsMod.limit(20));
+    var snap=await fb.fsMod.getDocs(q);
+    if(snap.empty){lb.innerHTML='<div class="lb-empty">No scores yet. Be the first!</div>';return}
+    var h='',rank=0;
+    snap.forEach(function(d){
+      rank++;var data=d.data();var isMe=data.studentId===studentId;
+      var rc=rank<=3?'r'+rank:'';
+      h+='<div class="lb-row'+(isMe?' me':'')+'"><div class="lb-rank '+rc+'">'+rank+'</div><div class="lb-name">'+esc(data.studentName||'Player')+'</div><div class="lb-score">'+data.bestTime+'ms</div></div>';
+    });
+    lb.innerHTML=h;
+  }catch(e){lb.innerHTML='<div class="lb-empty">Could not load leaderboard</div>'}
+}
+
+/* ===================== */
+/* RESIZE                */
+/* ===================== */
+window.addEventListener('resize',function(){});
+
+/* ===================== */
+/* KEYBOARD SUPPORT      */
+/* ===================== */
+document.addEventListener('keydown',function(e){
+  if(e.code==='Space'||e.key===' '){
+    e.preventDefault();
+    if(document.getElementById('gameScreen').classList.contains('active')){
+      handleClick(e);
+    }
+  }
+  // Zen mode: Escape to stop
+  if(e.code==='Escape'&&difficulty==='zen'&&gameState!=='idle'&&gameState!=='done'){
+    stopZen();
+  }
+});
+
+/* ===================== */
+/* SHAKE ANIMATION       */
+/* ===================== */
+var shakeStyle=document.createElement('style');
+shakeStyle.textContent='@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-12px)}40%{transform:translateX(12px)}60%{transform:translateX(-8px)}80%{transform:translateX(8px)}}';
+document.head.appendChild(shakeStyle);
+
+/* ===================== */
+/* ZEN STOP BUTTON       */
+/* ===================== */
+// Add a subtle stop button during Zen mode (shown in HUD)
+var origUpdateHud=updateHud;
+updateHud=function(){
+  origUpdateHud();
+  var hud=document.getElementById('hudRound');
+  if(difficulty==='zen'&&roundTimes.length>=1&&gameState!=='done'){
+    hud.innerHTML+=(' <button onclick="event.stopPropagation();stopZen()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:4px 12px;color:rgba(255,255,255,.7);font-size:12px;font-weight:600;cursor:pointer;pointer-events:auto;font-family:Outfit,sans-serif;margin-left:8px">Finish</button>');
+  }
+};
+
+/* ===================== */
+/* HELP                  */
+/* ===================== */
+odaHelp.init({
+  title:'Reaction Time',emoji:'\u26A1',subtitle:'How fast can you click?',
+  sections:[
+    {title:'Rules',icon:'\u{1F4D6}',items:['Wait for the screen to turn GREEN','Click or tap as fast as you can when it turns green','Clicking before green means "Too Early!" and the round restarts','Complete all rounds to see your results','Best of 5 rounds in Classic, 10 in Speed, unlimited in Zen']},
+    {title:'Scoring',icon:'\u{1F3AF}',items:['Under 200ms = Lightning!','200-300ms = Great!','300-400ms = Good','400-500ms = Average','Over 500ms = Slow','Coins based on average: under 250ms = 15, under 350ms = 10, under 500ms = 5']}
+  ],
+  controls:[{key:'Click/Tap',action:'React!'},{key:'Space',action:'React (keyboard)'},{key:'Esc',action:'Finish Zen mode'}],
+  tip:'<strong>Stay focused!</strong> Keep your eyes on the screen and your finger ready. Don\'t try to predict the timing \u2014 react to the color change.'
+});
+</script>
+<script>
+(function(){
+  var isT=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+  if(isT){var b=document.getElementById('backBtn');if(b)b.href='../../teacher.html#arcade'}
+})();
+</script>
+</body>
+</html>

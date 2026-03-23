@@ -98,7 +98,8 @@ var _coverThemes={
   hangman:     {g1:'#0a0520',g2:'#1a0e05',titleColor:'#818cf8',titleGlow:'#6366f1',titleFont:'bold 34px Fredoka,sans-serif'},
   trivia:      {g1:'#1a0505',g2:'#1a1005',titleColor:'#fbbf24',titleGlow:'#dc2626',titleFont:'bold 30px Fredoka,sans-serif'},
   typing:      {g1:'#020e08',g2:'#060e18',titleColor:'#06d6a0',titleGlow:'#34d399',titleFont:'bold 30px Fredoka,sans-serif'},
-  keyboard:    {g1:'#140520',g2:'#1a0505',titleColor:'#a78bfa',titleGlow:'#7c3aed',titleFont:'bold 24px Fredoka,sans-serif'}
+  keyboard:    {g1:'#140520',g2:'#1a0505',titleColor:'#a78bfa',titleGlow:'#7c3aed',titleFont:'bold 24px Fredoka,sans-serif'},
+  reaction:    {g1:'#1a0505',g2:'#051a0a',titleColor:'#06d6a0',titleGlow:'#06d6a0',titleFont:'bold 26px Fredoka,sans-serif'}
 };
 
 /* ── polished game-specific cover art ──────────────────────────── */
@@ -1296,6 +1297,44 @@ var coverArt={
     x.beginPath();x.arc(mx-6,my+4,1.8,0,Math.PI*2);x.fill();
     x.beginPath();x.arc(mx+6,my-3,1.8,0,Math.PI*2);x.fill();
     x.restore();
+  },
+
+  /* ── REACTION TIME ─────────────────────────────────────────── */
+  reaction:function(x,W,H){
+    var cx=W/2,cy=H/2-18;
+    // Dark red background glow
+    x.save();x.globalAlpha=0.15;
+    var rg=x.createRadialGradient(cx,cy,10,cx,cy,W*0.5);
+    rg.addColorStop(0,'#ef4444');rg.addColorStop(1,'transparent');
+    x.fillStyle=rg;x.fillRect(0,0,W,H);x.restore();
+    // Big green circle (go signal)
+    x.save();x.shadowColor='#06d6a0';x.shadowBlur=30;
+    var gr=x.createRadialGradient(cx,cy-5,5,cx,cy-5,H*0.32);
+    gr.addColorStop(0,'#34d399');gr.addColorStop(0.7,'#06d6a0');gr.addColorStop(1,'#059669');
+    x.fillStyle=gr;x.beginPath();x.arc(cx,cy-5,H*0.3,0,Math.PI*2);x.fill();
+    // Inner glow ring
+    x.strokeStyle='rgba(255,255,255,0.15)';x.lineWidth=3;
+    x.beginPath();x.arc(cx,cy-5,H*0.22,0,Math.PI*2);x.stroke();
+    x.restore();
+    // Time text "243ms"
+    x.save();x.font='bold 28px Fredoka,sans-serif';x.textAlign='center';x.textBaseline='middle';
+    x.shadowColor='rgba(0,0,0,0.6)';x.shadowBlur=8;
+    x.fillStyle='#fff';x.fillText('243ms',cx,cy-5);
+    x.restore();
+    // Hand/cursor icon (pointer finger)
+    x.save();x.translate(cx+30,cy+30);x.rotate(-0.3);
+    // Finger shape
+    x.fillStyle='#fbbf24';x.shadowColor='#f59e0b';x.shadowBlur=10;
+    x.beginPath();x.roundRect(-6,-22,12,24,5);x.fill();
+    // Palm
+    x.fillStyle='#f59e0b';x.beginPath();x.roundRect(-10,-2,20,16,6);x.fill();
+    x.restore();
+    // Small red dots (wait indicators) in corners
+    var dots=[[cx-60,cy-40],[cx+55,cy-35],[cx-50,cy+30],[cx+65,cy+25]];
+    dots.forEach(function(d){
+      x.save();x.globalAlpha=0.3;x.fillStyle='#ef4444';x.shadowColor='#ef4444';x.shadowBlur=8;
+      x.beginPath();x.arc(d[0],d[1],4,0,Math.PI*2);x.fill();x.restore();
+    });
   }
 };
 
