@@ -538,12 +538,14 @@ select.input{cursor:pointer;-webkit-appearance:none;appearance:none;background-i
 
 <script src="js/oda-core.js"></script>
 <script>
+var _isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+var _hubUrl=_isTeacher?'teacher.html':'student.html';
 // ============================================
 // GLOBALS
 // ============================================
 var studentId = localStorage.getItem('studentId');
 var studentName = localStorage.getItem('studentName');
-var isTeacher = !studentId && (localStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
+var isTeacher = _isTeacher;
 var classCode = localStorage.getItem('classCode') || localStorage.getItem('classCode') || '';
 
 var allPassages = [];
@@ -566,7 +568,7 @@ var currentReadMode = 'dark';
 // INIT
 // ============================================
 (function init(){
-  if(isTeacher){
+  if(_isTeacher){
     document.getElementById('backLink').href='teacher.html';
     document.getElementById('backLink').textContent='\u2190 Back to Teacher Hub';
     document.getElementById('headerSub').textContent='Create passages, assign reading, track progress';

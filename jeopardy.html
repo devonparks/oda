@@ -330,16 +330,18 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5}
    ODA JEOPARDY - MAIN SCRIPT
    ============================ */
 
+var _isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+var _hubUrl=_isTeacher?'teacher.html':'student.html';
 // --- Session detection ---
 var studentId = localStorage.getItem('studentId');
 var studentName = localStorage.getItem('studentName');
 var classCode = localStorage.getItem('classCode') || localStorage.getItem('classCode') || '';
-var isTeacher = !studentId && (localStorage.getItem('userRole')==='teacher' || localStorage.getItem('odaUserRole')==='teacher');
+var isTeacher = _isTeacher;
 
 // --- Fix back link ---
 (function(){
   var b = document.getElementById('backLink');
-  if(isTeacher){ b.href='teacher.html'; b.textContent='\u2190 Back to Teacher Hub'; }
+  if(_isTeacher){ b.href='teacher.html'; }
   else if(studentId){ b.href='student.html'; }
   if(isTeacher) document.getElementById('teacherModeBtn').style.display='inline-flex';
 })();

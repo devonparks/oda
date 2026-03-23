@@ -375,6 +375,8 @@ textarea.input{resize:vertical;min-height:100px;font-size:16px;line-height:1.6}
 
 <script src="js/oda-core.js"></script>
 <script>
+var _isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+var _hubUrl=_isTeacher?'teacher.html':'student.html';
 
 // ===== GLOBALS =====
 var studentId=null,studentName=null,classCode=null;
@@ -428,14 +430,14 @@ classCode=localStorage.getItem('classCode');
 var isTeacher=localStorage.getItem('odaUserRole')==='teacher'||localStorage.getItem('userRole')==='teacher';
 var backEl=document.getElementById('backLink');
 
-if(studentId){
-backEl.href='student.html';
+backEl.href=_hubUrl;
+
+if(studentId&&!_isTeacher){
 showStudentDashboard();
 return;
 }
 
-if(isTeacher){
-backEl.href='teacher.html';
+if(_isTeacher){
 backEl.textContent='\u2190 Back to Teacher Hub';
 // Get teacher UID from Firebase Auth
 try{

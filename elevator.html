@@ -411,6 +411,8 @@ body.desktop-mode .td-wrap{max-width:1100px}
 
 <script src="js/oda-core.js"></script>
 <script>
+var _isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+var _hubUrl=_isTeacher?'teacher.html':'student.html';
 
 var QUESTIONS=[
 {id:'name',emoji:'\u{1F44B}',label:"What's your name?",hint:'First and last name!',type:'text',placeholder:'Type your full name...',aiHelp:false},
@@ -567,8 +569,9 @@ isAssignmentMode=!!assignmentId;
 isTeacherMode=!!localStorage.getItem('teacherMode')||!!localStorage.getItem('teacherId');
 // Smart back link
 var backEl=document.getElementById('backLink');
-if(studentId)backEl.href='student.html';
-else if(isTeacherMode){backEl.href='teacher.html';backEl.textContent='\u2190 Back to Teacher Hub';}
+if(_isTeacher)backEl.href='teacher.html';
+else if(studentId)backEl.href='student.html';
+else if(isTeacherMode)backEl.href='teacher.html';
 // Show teacher mode button if teacher (but not if student is active)
 var isStudentSession=!!localStorage.getItem('studentId');
 var isTeacherUser=!isStudentSession&&(localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher');
@@ -1205,7 +1208,7 @@ pitches.push({label:'Bold & Fun',text:p3});
 savePitch(answers,pitches[0].text);
 
 // Show result
-var backHref=studentId?'student.html':isTeacherMode?'teacher.html':'index.html';
+var backHref=_isTeacher?'teacher.html':studentId?'student.html':isTeacherMode?'teacher.html':'index.html';
 var html='<a class="back" href="'+backHref+'">&#x2190; Back to Dashboard</a>';
 html+='<div style="text-align:center;margin-bottom:20px;animation:fadeUp .4s ease">';
 html+='<span style="font-size:64px;display:block">\u{1F389}</span>';
@@ -1808,7 +1811,7 @@ await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'assignments',assignmentId),{
 studentResponse:responseData,status:'submitted',submittedAt:new Date().toISOString()
 });
 showToast('\u2705 Submitted!','');
-setTimeout(function(){window.location.href='student.html'},800);
+setTimeout(function(){window.location.href=_hubUrl},800);
 }catch(e){console.error('Submit error:',e);btn.disabled=false;btn.textContent='Submit & Go Home \u{1F3E0}';showToast('Error submitting: '+e.message,'error')}
 }
 
