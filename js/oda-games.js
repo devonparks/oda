@@ -50,4 +50,5 @@ window.ODA_GAMES=[
 {id:'typing',emoji:'\u2328\uFE0F',title:'Typing Race',desc:'Type fast, race classmates!',file:'arcade/typing/index.html',cat:'word',colors:['#06d6a0','#1e293b'],categories:['Word']},
 {id:'keyboard',emoji:'\u{1F3AE}',title:'Keyboard Warriors',desc:'Type to defeat enemies!',file:'keyboard.html',cat:'word',colors:['#7c3aed','#ef4444'],categories:['Word']},
 {id:'wordscramble',emoji:'\u{1F50E}',title:'Word Scramble',desc:'Unscramble the letters!',file:'arcade/wordscramble/index.html',cat:'word',colors:['#3b82f6','#fbbf24'],categories:['Puzzle','Word']},
+{id:'tetris',emoji:'\u{1F9F1}',title:'Tetris',desc:'Stack blocks, clear lines!',file:'arcade/tetris/index.html',cat:'puzzle',colors:['#22d3ee','#a855f7'],categories:['Puzzle','Action']},
 ];

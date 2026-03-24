@@ -114,7 +114,8 @@ var _coverThemes={
   dodgeball:   {g1:'#020e08',g2:'#1a050a',titleColor:'#06d6a0',titleGlow:'#ef4444',titleFont:'bold 30px Fredoka,sans-serif'},
   war:         {g1:'#0a0514',g2:'#1a0505',titleColor:'#ef4444',titleGlow:'#dc2626',titleFont:'bold 42px Fredoka,sans-serif'},
   sudoku:      {g1:'#050a1e',g2:'#0a1428',titleColor:'#60a5fa',titleGlow:'#3b82f6',titleFont:'bold 36px Fredoka,sans-serif'},
-  basketball:  {g1:'#1a0a02',g2:'#0a0514',titleColor:'#f97316',titleGlow:'#ea580c',titleFont:'bold 26px Fredoka,sans-serif'}
+  basketball:  {g1:'#1a0a02',g2:'#0a0514',titleColor:'#f97316',titleGlow:'#ea580c',titleFont:'bold 26px Fredoka,sans-serif'},
+  tetris:      {g1:'#050a1e',g2:'#140520',titleColor:'#22d3ee',titleGlow:'#a855f7',titleFont:'bold 40px Fredoka,sans-serif'}
 };
 
 /* ── polished game-specific cover art ──────────────────────────── */
@@ -2093,6 +2094,54 @@ var coverArt={
     x.beginPath();x.moveTo(bx-16,by-3);x.lineTo(bx-26,by-1);x.stroke();
     x.beginPath();x.moveTo(bx-17,by+12);x.lineTo(bx-25,by+16);x.stroke();
     x.restore();
+  },
+
+  /* -- TETRIS -------------------------------------------------------- */
+  tetris:function(x,W,H){
+    var cs=16,ox=W*0.15,oy=H*0.08;
+    var colors=['#22d3ee','#fbbf24','#a855f7','#06d6a0','#ef4444','#3b82f6','#f97316'];
+    /* Draw stacked blocks at bottom */
+    var grid=[
+      [0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,6,6,0,0,0,0],
+      [0,0,0,0,6,0,0,0,0,0],
+      [5,5,0,3,6,0,0,4,4,0],
+      [5,5,0,3,3,3,4,4,0,0],
+      [1,1,1,1,2,2,4,0,0,0]
+    ];
+    for(var r=0;r<grid.length;r++){
+      for(var c=0;c<grid[r].length;c++){
+        var v=grid[r][c];
+        if(!v)continue;
+        var bx=ox+c*cs,by=oy+r*cs;
+        x.fillStyle=colors[v-1];
+        x.fillRect(bx,by,cs-1,cs-1);
+        x.fillStyle='rgba(255,255,255,.15)';
+        x.fillRect(bx,by,cs-1,(cs-1)*0.35);
+      }
+    }
+    /* Falling T-piece */
+    x.save();x.globalAlpha=0.7;
+    var tp=[[0,1,0],[1,1,1]];
+    var tx=ox+3*cs,ty=oy+2*cs;
+    for(var r=0;r<tp.length;r++){
+      for(var c=0;c<tp[r].length;c++){
+        if(!tp[r][c])continue;
+        x.fillStyle='#a855f7';
+        x.fillRect(tx+c*cs,ty+r*cs,cs-1,cs-1);
+        x.fillStyle='rgba(255,255,255,.2)';
+        x.fillRect(tx+c*cs,ty+r*cs,cs-1,(cs-1)*0.35);
+      }
+    }
+    x.restore();
+    /* Glow on completed bottom row */
+    x.save();x.globalAlpha=0.25;x.fillStyle='#22d3ee';
+    x.shadowColor='#22d3ee';x.shadowBlur=20;
+    x.fillRect(ox,oy+9*cs,10*cs,cs);x.restore();
   }
 };
 
