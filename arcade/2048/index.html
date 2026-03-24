@@ -56,6 +56,16 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .home-header h1 .hl{color:var(--accent);position:relative}
 .home-header h1 .hl::after{content:'';position:absolute;bottom:-2px;left:0;width:100%;height:4px;background:var(--accent);border-radius:2px}
 .home-header p{color:var(--text2);font-size:15px;margin-top:8px}
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:700px;width:90%;margin:0 auto}
+.mode-card{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:24px 20px;text-align:center;cursor:pointer;transition:all .18s}
+.mode-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(6,214,160,.10)}
+.mode-card:active{transform:scale(.97)}
+.mode-icon{font-size:36px;display:block;margin-bottom:10px}
+.mode-card h3{font-size:18px;margin-bottom:6px}
+.mode-card p{font-size:13px;color:var(--text2);line-height:1.4}
+.quick-stats{display:flex;gap:12px;justify-content:center;margin-top:28px;flex-wrap:wrap}
+.quick-stats .stat-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:8px 16px;font-size:13px;font-weight:600}
+.quick-stats .stat-pill .stat-num{color:var(--accent);font-weight:800}
 
 .best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600;margin-bottom:28px}
 .best-pill .bp-label{color:var(--text2)}
@@ -240,25 +250,24 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <h1><span class="hl">2048</span></h1>
     <p>Slide, merge, and reach the legendary tile!</p>
   </div>
-  <div class="best-pill">
-    <span class="bp-label">&#127942; Best</span>
-    <span class="bp-val" id="homeBest">0</span>
-  </div>
-  <div class="home-actions">
-    <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
-    <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
-    <button class="btn btn-outline btn-small" onclick="window.showShopScreen()">&#128717;&#65039; Shop</button>
-  </div>
-  <div class="how-to">
-    <h3>How to Play</h3>
-    <p>Slide tiles with arrow keys or swipe. When two tiles with the same number touch, they merge into one!</p>
-    <div class="keys">
-      <span class="key">&#8593;</span>
-      <span class="key">&#8595;</span>
-      <span class="key">&#8592;</span>
-      <span class="key">&#8594;</span>
+  <div class="mode-grid" id="modeGrid">
+    <div class="card mode-card" onclick="startGame()">
+      <span class="mode-icon">&#9654;&#65039;</span>
+      <h3>Play</h3>
+      <p>Slide &amp; merge tiles!</p>
+    </div>
+    <div class="card mode-card" onclick="showRecords()">
+      <span class="mode-icon">&#128202;</span>
+      <h3>Records</h3>
+      <p>View your stats and leaderboard</p>
+    </div>
+    <div class="card mode-card" onclick="window.showShopScreen()">
+      <span class="mode-icon">&#x1f6cd;&#xfe0f;</span>
+      <h3>Shop</h3>
+      <p>Skins, themes &amp; effects</p>
     </div>
   </div>
+  <div class="quick-stats" id="quickStats"></div>
 </div>
 
 <!-- ======================== -->
@@ -567,9 +576,12 @@ function loadLocalData(){
     const d=JSON.parse(localStorage.getItem(LS_KEY)||'{}');
     bestScore=d['best_'+gameMode]||d.bestScore||0;
     previousBest=bestScore;
-    document.getElementById('homeBest').textContent=fmtNum(bestScore);
     document.getElementById('bestDisplay').textContent=fmtNum(bestScore);
   }catch(e){bestScore=0;previousBest=0}
+  var qs=document.getElementById('quickStats');
+  if(qs){
+    qs.innerHTML='<div class="stat-pill"><span>Best:</span> <span class="stat-num">'+fmtNum(bestScore)+'</span></div>';
+  }
 }
 
 function saveLocalData(){

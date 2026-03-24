@@ -60,6 +60,16 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .home-header h1{font-size:clamp(48px,10vw,64px);font-weight:700;letter-spacing:-2px}
 .home-header h1 .hl{color:var(--accent)}
 .home-header p{color:var(--text2);font-size:15px;margin-top:4px}
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:700px;width:90%;margin:0 auto}
+.mode-card{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:24px 20px;text-align:center;cursor:pointer;transition:all .18s}
+.mode-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(6,214,160,.10)}
+.mode-card:active{transform:scale(.97)}
+.mode-icon{font-size:36px;display:block;margin-bottom:10px}
+.mode-card h3{font-size:18px;margin-bottom:6px}
+.mode-card p{font-size:13px;color:var(--text2);line-height:1.4}
+.quick-stats{display:flex;gap:12px;justify-content:center;margin-top:28px;flex-wrap:wrap}
+.quick-stats .stat-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:8px 16px;font-size:13px;font-weight:600}
+.quick-stats .stat-pill .stat-num{color:var(--accent);font-weight:800}
 .best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
 .best-pill .bp-label{color:var(--text2)}
 .best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
@@ -198,28 +208,24 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <h1>&#128013; <span class="hl">Snake</span></h1>
     <p>Eat, grow, survive!</p>
   </div>
-  <div class="best-pill">
-    <span class="bp-label">&#127942; Best</span>
-    <span class="bp-val" id="homeHSVal">0</span>
+  <div class="mode-grid" id="modeGrid">
+    <div class="card mode-card" onclick="showDiffPicker()">
+      <span class="mode-icon">&#9654;&#65039;</span>
+      <h3>Play</h3>
+      <p>Slither, eat &amp; grow your snake</p>
+    </div>
+    <div class="card mode-card" onclick="showScreen('recordsScreen');loadRecords()">
+      <span class="mode-icon">&#128202;</span>
+      <h3>Records</h3>
+      <p>View your stats and leaderboard</p>
+    </div>
+    <div class="card mode-card" onclick="window.showShopScreen()">
+      <span class="mode-icon">&#x1f6cd;&#xfe0f;</span>
+      <h3>Shop</h3>
+      <p>Skins, themes &amp; effects</p>
+    </div>
   </div>
-  <div class="diff-row" style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
-    <button class="diff-btn active" onclick="setSnakeDiff('easy',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--accent);background:rgba(6,214,160,.15);color:var(--accent);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Easy</button>
-    <button class="diff-btn" onclick="setSnakeDiff('medium',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Medium</button>
-    <button class="diff-btn" onclick="setSnakeDiff('hard',this)" style="padding:8px 20px;border-radius:20px;border:2px solid var(--border);background:none;color:var(--text2);font-family:Outfit,sans-serif;font-weight:700;font-size:13px;cursor:pointer">Hard</button>
-  </div>
-  <div class="home-actions">
-    <button class="btn btn-accent" onclick="startGame(snakeDiff)" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
-    <button class="btn btn-outline btn-small" onclick="showScreen('recordsScreen');loadRecords()">Records &amp; Leaderboard</button>
-    <button class="btn btn-outline btn-small" onclick="window.showShopScreen()">&#128717;&#65039; Shop</button>
-  </div>
-  <div class="stats-row">
-    <div class="sr">&#127918; Games <span id="qsGames">0</span></div>
-    <div class="sr">&#128013; Longest <span id="qsLongest">0</span></div>
-  </div>
-  <div class="how-to">
-    <h3>How to Play</h3>
-    <p>Use arrow keys or swipe to steer the snake. Eat food to grow longer. Don&rsquo;t crash into yourself! Higher difficulties add walls and obstacles.</p>
-  </div>
+  <div class="quick-stats" id="quickStats"></div>
 </div>
 
 <!-- ======================== -->
@@ -438,9 +444,12 @@ function loadLocalStats() {
     var saved = localStorage.getItem('odaSnakeStats');
     if (saved) localStats = JSON.parse(saved);
   } catch (e) {}
-  document.getElementById('homeHSVal').textContent = localStats.highScore;
-  document.getElementById('qsGames').textContent = localStats.gamesPlayed;
-  document.getElementById('qsLongest').textContent = localStats.longestSnake;
+  var qs=document.getElementById('quickStats');
+  if(qs){
+    qs.innerHTML='<div class="stat-pill"><span>Best:</span> <span class="stat-num">'+localStats.highScore+'</span></div>'
+      +'<div class="stat-pill"><span>Games:</span> <span class="stat-num">'+localStats.gamesPlayed+'</span></div>'
+      +'<div class="stat-pill"><span>Longest:</span> <span class="stat-num">'+localStats.longestSnake+'</span></div>';
+  }
 }
 
 function saveLocalStats() {
@@ -615,6 +624,36 @@ var CONFIGS = {
 };
 
 var difficulty = 'medium';
+
+function showDiffPicker(){
+  var existing=document.getElementById('diffPickerOverlay');
+  if(existing)existing.remove();
+  var overlay=document.createElement('div');
+  overlay.id='diffPickerOverlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:16px;animation:fadeUp .25s ease';
+  overlay.innerHTML='<h2 style="font-size:28px;color:var(--accent);font-family:Fredoka,sans-serif">Choose Difficulty</h2>'
+    +'<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">'
+    +'<button class="btn btn-small" style="background:#06d6a0;color:#111;font-weight:700" onclick="pickDiffAndStart(\'easy\')">Easy</button>'
+    +'<button class="btn btn-small" style="background:#f97316;color:#fff;font-weight:700" onclick="pickDiffAndStart(\'medium\')">Medium</button>'
+    +'<button class="btn btn-small" style="background:#ef4444;color:#fff;font-weight:700" onclick="pickDiffAndStart(\'hard\')">Hard</button>'
+    +'</div>'
+    +'<button class="btn btn-outline btn-small" style="margin-top:8px" onclick="closeDiffPicker()">Cancel</button>';
+  document.body.appendChild(overlay);
+}
+window.showDiffPicker=showDiffPicker;
+
+function pickDiffAndStart(diff){
+  closeDiffPicker();
+  startGame(diff);
+}
+window.pickDiffAndStart=pickDiffAndStart;
+
+function closeDiffPicker(){
+  var el=document.getElementById('diffPickerOverlay');
+  if(el)el.remove();
+}
+window.closeDiffPicker=closeDiffPicker;
+
 var cols, rows, cellW, cellH;
 var snake = [];         // array of {x, y}
 var dir = { x: 1, y: 0 };

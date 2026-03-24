@@ -52,6 +52,16 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .home-header h1{font-size:clamp(48px,10vw,64px);font-weight:700;letter-spacing:-2px}
 .home-header h1 .hl{color:var(--accent)}
 .home-header p{color:var(--text2);font-size:15px;margin-top:4px}
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:700px;width:90%;margin:0 auto}
+.mode-card{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:24px 20px;text-align:center;cursor:pointer;transition:all .18s}
+.mode-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(6,214,160,.10)}
+.mode-card:active{transform:scale(.97)}
+.mode-icon{font-size:36px;display:block;margin-bottom:10px}
+.mode-card h3{font-size:18px;margin-bottom:6px}
+.mode-card p{font-size:13px;color:var(--text2);line-height:1.4}
+.quick-stats{display:flex;gap:12px;justify-content:center;margin-top:28px;flex-wrap:wrap}
+.quick-stats .stat-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:8px 16px;font-size:13px;font-weight:600}
+.quick-stats .stat-pill .stat-num{color:var(--accent);font-weight:800}
 .best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
 .best-pill .bp-label{color:var(--text2)}
 .best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
@@ -126,23 +136,24 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <h1><span class="hl">Stack</span> Tower</h1>
     <p>Time your drops, build the tallest tower!</p>
   </div>
-  <div class="best-pill">
-    <span class="bp-label">&#127942; Best</span>
-    <span class="bp-val" id="homeBest">0</span>
+  <div class="mode-grid" id="modeGrid">
+    <div class="card mode-card" onclick="startGame()">
+      <span class="mode-icon">&#9654;&#65039;</span>
+      <h3>Play</h3>
+      <p>Stack blocks, build the tallest tower</p>
+    </div>
+    <div class="card mode-card" onclick="showRecords()">
+      <span class="mode-icon">&#128202;</span>
+      <h3>Records</h3>
+      <p>View your stats and leaderboard</p>
+    </div>
+    <div class="card mode-card" onclick="showShopScreen()">
+      <span class="mode-icon">&#x1f6cd;&#xfe0f;</span>
+      <h3>Shop</h3>
+      <p>Skins, themes &amp; effects</p>
+    </div>
   </div>
-  <div class="home-actions">
-    <button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:16px 48px">&#9654; Play</button>
-    <button class="btn btn-outline btn-small" onclick="showRecords()">Records &amp; Leaderboard</button>
-    <button class="btn btn-outline btn-small" onclick="showShopScreen()">&#128717;&#65039; Shop</button>
-  </div>
-  <div class="stats-row">
-    <div class="sr">&#127918; Games <span id="homeGames">0</span></div>
-    <div class="sr">&#128175; Best Combo <span id="homeCombo">0</span></div>
-  </div>
-  <div class="how-to">
-    <h3>How to Play</h3>
-    <p>A block slides back and forth. Tap, click, or press Space to drop it. Line it up with the block below! Overhanging parts get cut off. Perfect placement keeps the block full width and earns a combo bonus. Miss completely and it's game over!</p>
-  </div>
+  <div class="quick-stats" id="quickStats"></div>
 </div>
 
 <!-- GAME SCREEN -->
@@ -371,9 +382,12 @@ var localTotal=parseInt(localStorage.getItem('stacktower_total'))||0;
 var localBestCombo=parseInt(localStorage.getItem('stacktower_combo'))||0;
 
 function loadLocalStats(){
-  document.getElementById('homeBest').textContent=localBest;
-  document.getElementById('homeGames').textContent=localGames;
-  document.getElementById('homeCombo').textContent=localBestCombo;
+  var qs=document.getElementById('quickStats');
+  if(qs){
+    qs.innerHTML='<div class="stat-pill"><span>Best:</span> <span class="stat-num">'+localBest+'</span></div>'
+      +'<div class="stat-pill"><span>Games:</span> <span class="stat-num">'+localGames+'</span></div>'
+      +'<div class="stat-pill"><span>Best Combo:</span> <span class="stat-num">'+localBestCombo+'</span></div>';
+  }
 }
 loadLocalStats();
 

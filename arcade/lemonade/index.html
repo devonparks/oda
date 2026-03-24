@@ -54,6 +54,16 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .home-header .lemon-icon{font-size:64px;display:block;margin-bottom:12px;animation:bobble 2s ease-in-out infinite}
 @keyframes bobble{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 .home-header p{color:var(--text2);font-size:15px;max-width:400px;margin:0 auto}
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:700px;width:90%;margin:0 auto}
+.mode-card{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:24px 20px;text-align:center;cursor:pointer;transition:all .18s}
+.mode-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(6,214,160,.10)}
+.mode-card:active{transform:scale(.97)}
+.mode-icon{font-size:36px;display:block;margin-bottom:10px}
+.mode-card h3{font-size:18px;margin-bottom:6px}
+.mode-card p{font-size:13px;color:var(--text2);line-height:1.4}
+.quick-stats{display:flex;gap:12px;justify-content:center;margin-top:28px;flex-wrap:wrap}
+.quick-stats .stat-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:8px 16px;font-size:13px;font-weight:600}
+.quick-stats .stat-pill .stat-num{color:var(--accent);font-weight:800}
 .location-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;max-width:800px;width:90%;margin:0 auto 24px}
 .loc-card{cursor:pointer;text-align:center;padding:28px 20px}
 .loc-card .loc-icon{font-size:40px;margin-bottom:12px;display:block}
@@ -334,45 +344,29 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <h1>Lemonade Stand</h1>
     <p>Build your lemonade empire! Buy supplies, mix the perfect recipe, set your price, and serve customers.</p>
   </div>
-  <h3 style="margin-bottom:12px;color:var(--text2);font-size:13px;text-transform:uppercase;letter-spacing:2px">Choose Your Location</h3>
-  <div class="location-grid">
-    <div class="card loc-card" onclick="startGame('sunny')">
-      <span class="loc-icon">&#127958;</span>
-      <h3>Sunny Hills</h3>
-      <p>Wealthy neighborhood with premium prices</p>
-      <div class="loc-traits">
-        <span>&#128176; High prices</span>
-        <span>&#128101; Fewer customers</span>
-      </div>
+  <div class="mode-grid" id="modeGrid">
+    <div class="card mode-card" onclick="showLocationPicker()">
+      <span class="mode-icon">&#9654;&#65039;</span>
+      <h3>Play</h3>
+      <p>Start a new lemonade business</p>
     </div>
-    <div class="card loc-card" onclick="startGame('main')">
-      <span class="loc-icon">&#127961;</span>
-      <h3>Main Street</h3>
-      <p>Busy downtown with lots of foot traffic</p>
-      <div class="loc-traits">
-        <span>&#128200; High volume</span>
-        <span>&#128181; Price sensitive</span>
-      </div>
+    <div class="card mode-card" onclick="continueGame()">
+      <span class="mode-icon">&#128190;</span>
+      <h3>Continue</h3>
+      <p>Resume your saved game</p>
     </div>
-    <div class="card loc-card" onclick="startGame('park')">
-      <span class="loc-icon">&#127795;</span>
-      <h3>Park Avenue</h3>
-      <p>Popular park with the most customers</p>
-      <div class="loc-traits">
-        <span>&#128101; Most traffic</span>
-        <span>&#128374; Theft risk</span>
-      </div>
+    <div class="card mode-card" onclick="showScreen('recordsScreen')">
+      <span class="mode-icon">&#128202;</span>
+      <h3>Records</h3>
+      <p>View your stats and leaderboard</p>
+    </div>
+    <div class="card mode-card" onclick="window.showCosmeticShop()">
+      <span class="mode-icon">&#x1f6cd;&#xfe0f;</span>
+      <h3>Shop</h3>
+      <p>Skins, themes &amp; effects</p>
     </div>
   </div>
-  <div class="home-actions">
-    <button class="btn btn-outline btn-small" onclick="showScreen('recordsScreen')">&#127942; Records</button>
-    <button class="btn btn-outline btn-small" onclick="continueGame()">&#128190; Continue</button>
-    <button class="btn btn-outline btn-small" onclick="window.showCosmeticShop()">&#128717;&#65039; Cosmetic Shop</button>
-  </div>
-  <div class="home-stats">
-    <div class="stat-pill"><span class="num" id="homeHighScore">$0</span> Best Net Worth</div>
-    <div class="stat-pill"><span class="num" id="homeTotalServed">0</span> Total Served</div>
-  </div>
+  <div class="quick-stats" id="quickStats"></div>
 </div>
 
 <!-- ===== PLAN SCREEN ===== -->
@@ -980,9 +974,41 @@ function showScreen(id) {
 // HOME & CONTINUE
 // ============================================
 function updateHomeStats() {
-  document.getElementById('homeHighScore').textContent = '$' + G.bestNetWorth.toFixed(0);
-  document.getElementById('homeTotalServed').textContent = G.totalServed;
+  var qs=document.getElementById('quickStats');
+  if(qs){
+    qs.innerHTML='<div class="stat-pill"><span>Best Net Worth:</span> <span class="stat-num">$'+G.bestNetWorth.toFixed(0)+'</span></div>'
+      +'<div class="stat-pill"><span>Total Served:</span> <span class="stat-num">'+G.totalServed+'</span></div>';
+  }
 }
+
+function showLocationPicker(){
+  var existing=document.getElementById('diffPickerOverlay');
+  if(existing)existing.remove();
+  var overlay=document.createElement('div');
+  overlay.id='diffPickerOverlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:16px;animation:fadeUp .25s ease;padding:20px';
+  overlay.innerHTML='<h2 style="font-size:28px;color:var(--accent);font-family:Fredoka,sans-serif">Choose Location</h2>'
+    +'<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">'
+    +'<button class="btn btn-small" style="background:#06d6a0;color:#111;font-weight:700" onclick="pickLocationAndStart(\'sunny\')">&#127958; Sunny Hills</button>'
+    +'<button class="btn btn-small" style="background:#f97316;color:#fff;font-weight:700" onclick="pickLocationAndStart(\'main\')">&#127961; Main Street</button>'
+    +'<button class="btn btn-small" style="background:#ef4444;color:#fff;font-weight:700" onclick="pickLocationAndStart(\'park\')">&#127795; Park Avenue</button>'
+    +'</div>'
+    +'<button class="btn btn-outline btn-small" style="margin-top:8px" onclick="closeLocationPicker()">Cancel</button>';
+  document.body.appendChild(overlay);
+}
+window.showLocationPicker=showLocationPicker;
+
+function pickLocationAndStart(loc){
+  closeLocationPicker();
+  startGame(loc);
+}
+window.pickLocationAndStart=pickLocationAndStart;
+
+function closeLocationPicker(){
+  var el=document.getElementById('diffPickerOverlay');
+  if(el)el.remove();
+}
+window.closeLocationPicker=closeLocationPicker;
 
 async function continueGame() {
   try {
