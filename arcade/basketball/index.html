@@ -448,9 +448,46 @@ document.getElementById('backBtn').onclick = function(e) {
 
 function selectModeAndPlay(mode) {
   gameMode = mode;
+  if (mode === 'vs') {
+    showDifficultyPicker();
+    return;
+  }
   startGame();
 }
 window.selectModeAndPlay = selectModeAndPlay;
+
+function showDifficultyPicker() {
+  /* Build a modal overlay for difficulty selection */
+  var existing = document.getElementById('diffPickerOverlay');
+  if (existing) existing.remove();
+  var overlay = document.createElement('div');
+  overlay.id = 'diffPickerOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:16px;animation:fadeUp .25s ease';
+  overlay.innerHTML = '<h2 style="font-size:28px;color:#f97316;font-family:Fredoka,sans-serif">VS Computer</h2>'
+    + '<p style="color:var(--text2);font-size:14px">Choose difficulty:</p>'
+    + '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">'
+    + '<button class="btn btn-small" style="background:#06d6a0;color:#111;font-weight:700" onclick="pickDiffAndStart(0)">Easy</button>'
+    + '<button class="btn btn-small" style="background:#f97316;color:#fff;font-weight:700" onclick="pickDiffAndStart(1)">Medium</button>'
+    + '<button class="btn btn-small" style="background:#ef4444;color:#fff;font-weight:700" onclick="pickDiffAndStart(2)">Hard</button>'
+    + '</div>'
+    + '<button class="btn btn-outline btn-small" style="margin-top:8px" onclick="closeDiffPicker()">Cancel</button>';
+  document.body.appendChild(overlay);
+}
+window.showDifficultyPicker = showDifficultyPicker;
+
+function pickDiffAndStart(diff) {
+  difficulty = diff;
+  aiDifficulty = diff;
+  closeDiffPicker();
+  startGame();
+}
+window.pickDiffAndStart = pickDiffAndStart;
+
+function closeDiffPicker() {
+  var el = document.getElementById('diffPickerOverlay');
+  if (el) el.remove();
+}
+window.closeDiffPicker = closeDiffPicker;
 
 /* ── DIFFICULTY & MODE ──────────────────────────────────── */
 var difficulty = 0;
@@ -492,10 +529,15 @@ function getLocalStats() {
 function saveLocalStats(s) { localStorage.setItem('basketball_stats', JSON.stringify(s)); }
 function loadLocalStats() {
   var s = getLocalStats();
-  document.getElementById('homeBest').textContent = s.best || 0;
-  document.getElementById('homeGames').textContent = s.games || 0;
-  document.getElementById('homeSwishes').textContent = s.swishes || 0;
-  document.getElementById('homeStreak').textContent = s.bestStreak || 0;
+  var qs = document.getElementById('quickStats');
+  if (qs) {
+    qs.innerHTML = '<div class="best-pill"><span class="bp-label">Best</span><span class="bp-val">' + (s.best || 0) + '</span></div>'
+      + '<div class="stats-row">'
+      + '<span class="sr">Games: ' + (s.games || 0) + '</span>'
+      + '<span class="sr">Swishes: ' + (s.swishes || 0) + '</span>'
+      + '<span class="sr">Best Streak: ' + (s.bestStreak || 0) + '</span>'
+      + '</div>';
+  }
 }
 loadLocalStats();
 
@@ -873,7 +915,6 @@ window.addEventListener('beforeunload', stopGame);
 /* ── INIT THREE.JS SCENE ─────────────────────────────────── */
 function initThree() {
   if (threeInited) return;
-  if (typeof THREE === 'undefined') return;
   threeInited = true;
 
   var wrap = document.getElementById('canvasWrap');
@@ -2536,19 +2577,20 @@ function tryInit() {
 }
 tryInit();
 
-// Export ALL functions used by onclick handlers
+// Export ALL functions used by onclick handlers to window (module scope)
 window.startGame = startGame;
 window.stopGame = stopGame;
 window.showScreen = showScreen;
-window.showRecords = typeof showRecords !== 'undefined' ? showRecords : function(){};
-window.showShopScreen = typeof showShopScreen !== 'undefined' ? showShopScreen : function(){};
-window.selectMode = typeof selectMode !== 'undefined' ? selectMode : function(){};
-window.selectDiff = typeof selectDiff !== 'undefined' ? selectDiff : function(){};
-window.selectAiDiff = typeof selectAiDiff !== 'undefined' ? selectAiDiff : function(){};
-window.createQuickMatch = typeof createQuickMatch !== 'undefined' ? createQuickMatch : function(){};
-window.joinQuickMatch = typeof joinQuickMatch !== 'undefined' ? joinQuickMatch : function(){};
-window.cancelQuickMatch = typeof cancelQuickMatch !== 'undefined' ? cancelQuickMatch : function(){};
+window.showShopScreen = showShopScreen;
+window.selectMode = selectMode;
+window.selectDiff = selectDiff;
+window.selectAiDiff = selectAiDiff;
+window.createQuickMatch = createQuickMatch;
+window.joinQuickMatch = joinQuickMatch;
+window.cancelQuickMatch = cancelQuickMatch;
 window.toggleSound = toggleSound;
+window.selectModeAndPlay = selectModeAndPlay;
+window.loadRecordsScreen = loadRecordsScreen;
 </script>
 </body>
 </html>
