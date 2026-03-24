@@ -29,6 +29,7 @@ window.ODA_GAMES=[
 {id:'mathsprint',emoji:'\u2795',title:'Math Sprint',desc:'Rapid fire math — solve fast!',file:'arcade/mathsprint/index.html',cat:'arcade',colors:['#3b82f6','#fbbf24'],categories:['Action','Puzzle']},
 {id:'stacktower',emoji:'\u{1F3D7}',title:'Stack Tower',desc:'Time your drops, build high!',file:'arcade/stacktower/index.html',cat:'arcade',colors:['#f97316','#8b5cf6'],categories:['Action']},
 {id:'dodgeball',emoji:'\u{1F3C3}',title:'Dodge Ball',desc:'Dodge falling objects, collect coins!',file:'arcade/dodgeball/index.html',cat:'arcade',colors:['#06d6a0','#ef4444'],categories:['Action']},
+{id:'basketball',emoji:'\u{1F3C0}',title:'Basketball',desc:'Shoot 3-pointers! Time your release!',file:'arcade/basketball/index.html',cat:'arcade',colors:['#f97316','#7c2d12'],categories:['Action','Sports']},
 // Puzzle
 {id:'2048',emoji:'\u{1F522}',title:'2048',desc:'Slide and merge to 2048!',file:'arcade/2048/index.html',cat:'puzzle',colors:['#f59e0b','#1a1a2e'],categories:['Puzzle']},
 {id:'solitaire',emoji:'\u{1F0CF}',title:'Solitaire',desc:'Classic card game!',file:'arcade/solitaire/index.html',cat:'puzzle',colors:['#16a34a','#dc2626'],categories:['Puzzle']},

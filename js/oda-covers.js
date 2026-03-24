@@ -113,7 +113,8 @@ var _coverThemes={
   floodfill:   {g1:'#050a1e',g2:'#0a1a14',titleColor:'#06d6a0',titleGlow:'#3b82f6',titleFont:'bold 30px Fredoka,sans-serif'},
   dodgeball:   {g1:'#020e08',g2:'#1a050a',titleColor:'#06d6a0',titleGlow:'#ef4444',titleFont:'bold 30px Fredoka,sans-serif'},
   war:         {g1:'#0a0514',g2:'#1a0505',titleColor:'#ef4444',titleGlow:'#dc2626',titleFont:'bold 42px Fredoka,sans-serif'},
-  sudoku:      {g1:'#050a1e',g2:'#0a1428',titleColor:'#60a5fa',titleGlow:'#3b82f6',titleFont:'bold 36px Fredoka,sans-serif'}
+  sudoku:      {g1:'#050a1e',g2:'#0a1428',titleColor:'#60a5fa',titleGlow:'#3b82f6',titleFont:'bold 36px Fredoka,sans-serif'},
+  basketball:  {g1:'#1a0a02',g2:'#0a0514',titleColor:'#f97316',titleGlow:'#ea580c',titleFont:'bold 32px Fredoka,sans-serif'}
 };
 
 /* ── polished game-specific cover art ──────────────────────────── */
@@ -2029,6 +2030,68 @@ var coverArt={
     x.save();x.font='12px sans-serif';x.textAlign='left';
     x.fillStyle='#ef476f';x.shadowColor='#ef476f';x.shadowBlur=6;
     x.fillText('\u2764',W*0.08,H*0.18);x.fillText('\u2764',W*0.08+16,H*0.18);x.fillText('\u2764',W*0.08+32,H*0.18);
+    x.restore();
+  },
+
+  /* ── BASKETBALL ──────────────────────────────────────────── */
+  basketball:function(x,W,H){
+    var cx=W/2,cy=H/2-22;
+    /* Court floor */
+    x.save();
+    x.fillStyle='#8B4513';x.globalAlpha=0.3;
+    x.fillRect(W*0.05,cy+30,W*0.9,H*0.35);
+    x.globalAlpha=1;
+    /* Court lines */
+    x.strokeStyle='rgba(255,255,255,0.25)';x.lineWidth=1;
+    x.beginPath();x.moveTo(W*0.1,cy+30);x.lineTo(W*0.9,cy+30);x.stroke();
+    /* 3-point arc on floor */
+    x.beginPath();x.ellipse(cx,cy+50,W*0.35,18,0,Math.PI,0);x.stroke();
+    x.restore();
+    /* Backboard */
+    x.save();
+    x.fillStyle='rgba(255,255,255,0.7)';
+    x.fillRect(cx-28,cy-35,56,38);
+    x.strokeStyle='rgba(255,255,255,0.9)';x.lineWidth=2;
+    x.strokeRect(cx-28,cy-35,56,38);
+    /* Backboard square */
+    x.strokeStyle='#ff6600';x.lineWidth=1.5;
+    x.strokeRect(cx-10,cy-20,20,16);
+    x.restore();
+    /* Rim */
+    x.save();x.strokeStyle='#ff6600';x.lineWidth=3;
+    x.shadowColor='#ff6600';x.shadowBlur=8;
+    x.beginPath();x.ellipse(cx,cy+6,16,5,0,0,Math.PI*2);x.stroke();
+    x.restore();
+    /* Net (lines hanging) */
+    x.save();x.strokeStyle='rgba(255,255,255,0.35)';x.lineWidth=1;
+    for(var n=-12;n<=12;n+=4){
+      x.beginPath();x.moveTo(cx+n,cy+10);
+      x.quadraticCurveTo(cx+n*0.6,cy+28,cx+n*0.3,cy+32);x.stroke();
+    }
+    x.restore();
+    /* Basketball in arc */
+    var bx=cx-45,by=cy-15;
+    x.save();
+    x.shadowColor='#f97316';x.shadowBlur=16;
+    var bg=x.createRadialGradient(bx-3,by-3,2,bx,by,14);
+    bg.addColorStop(0,'#fb923c');bg.addColorStop(1,'#c2410c');
+    x.fillStyle=bg;x.beginPath();x.arc(bx,by,14,0,Math.PI*2);x.fill();
+    /* Ball lines */
+    x.strokeStyle='rgba(0,0,0,0.35)';x.lineWidth=1.5;
+    x.beginPath();x.moveTo(bx-14,by);x.lineTo(bx+14,by);x.stroke();
+    x.beginPath();x.moveTo(bx,by-14);x.lineTo(bx,by+14);x.stroke();
+    x.beginPath();x.arc(bx,by,14,0,Math.PI*2);x.strokeStyle='rgba(0,0,0,0.2)';x.stroke();
+    x.restore();
+    /* Arc trail behind ball */
+    x.save();x.strokeStyle='rgba(249,115,22,0.35)';x.lineWidth=2;x.setLineDash([4,4]);
+    x.beginPath();x.moveTo(cx-80,cy+45);
+    x.quadraticCurveTo(cx-50,cy-40,bx,by);x.stroke();
+    x.setLineDash([]);x.restore();
+    /* Motion lines */
+    x.save();x.strokeStyle='rgba(255,255,255,0.2)';x.lineWidth=1;
+    x.beginPath();x.moveTo(bx-18,by+5);x.lineTo(bx-28,by+10);x.stroke();
+    x.beginPath();x.moveTo(bx-16,by-3);x.lineTo(bx-26,by-1);x.stroke();
+    x.beginPath();x.moveTo(bx-17,by+12);x.lineTo(bx-25,by+16);x.stroke();
     x.restore();
   }
 };

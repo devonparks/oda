@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Basketball - ODA Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:center}
+body.in-game{overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(42,52,80,.35) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0}
+body>*{position:relative;z-index:1}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+
+.back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+.sound-btn{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;transition:all .2s;backdrop-filter:blur(8px)}
+.sound-btn:hover{border-color:var(--accent)}
+
+.screen{display:none;width:100%;max-width:1100px;min-height:100vh;min-height:100dvh;padding:16px;animation:fadeUp .35s ease}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@media(min-width:768px){
+  .home-header h1{font-size:80px!important}
+  .home-header p{font-size:18px}
+  .best-pill{padding:16px 32px;font-size:18px}
+  .best-pill .bp-val{font-size:28px}
+  .btn-accent{font-size:22px!important;padding:20px 64px!important}
+  .btn-outline{font-size:16px;padding:14px 28px}
+  .stats-row .sr{font-size:15px;padding:10px 22px}
+  .how-to{max-width:500px;padding:28px 32px}
+  .how-to h3{font-size:15px}
+  .how-to p{font-size:15px}
+}
+
+.btn{padding:14px 32px;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s;min-width:200px;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(6,214,160,.3)}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:10px 20px;font-size:14px;min-width:auto;border-radius:10px}
+
+/* HOME */
+#homeScreen{padding-top:80px;justify-content:flex-start;gap:16px}
+.home-header{text-align:center;margin-bottom:8px}
+.home-header h1{font-size:clamp(48px,10vw,64px);font-weight:700;letter-spacing:-2px}
+.home-header h1 .hl{color:#f97316}
+.home-header p{color:var(--text2);font-size:15px;margin-top:4px}
+.best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
+.best-pill .bp-label{color:var(--text2)}
+.best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
+.home-actions{display:flex;flex-direction:column;align-items:center;gap:14px}
+.stats-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.stats-row .sr{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+.how-to{max-width:400px;width:100%;margin:0 auto;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px}
+.how-to h3{font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.how-to p{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* DIFFICULTY */
+.diff-row{display:flex;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:4px}
+.diff-btn{padding:8px 20px;border:none;border-radius:9px;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;cursor:pointer;background:transparent;color:var(--text2);transition:all .15s}
+.diff-btn.active{background:var(--accent);color:var(--bg)}
+.diff-btn:hover:not(.active){color:var(--text)}
+
+/* MODE SELECT */
+.mode-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:4px}
+.mode-btn{padding:10px 18px;border:2px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text2);font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;min-width:130px;text-align:center}
+.mode-btn.active{border-color:#f97316;color:#f97316;background:rgba(249,115,22,.08)}
+.mode-btn:hover:not(.active){border-color:var(--text2);color:var(--text)}
+
+/* GAME */
+#gameScreen{padding:0;max-width:100%;width:100%;min-height:100vh;min-height:100dvh;position:relative}
+#canvasWrap{width:100%;height:100vh;height:100dvh;position:relative;overflow:hidden;cursor:pointer;touch-action:manipulation}
+#threeCanvas{display:block;width:100%;height:100%}
+
+/* HUD */
+.game-hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:16px 20px;pointer-events:none;z-index:5}
+.hud-left,.hud-center,.hud-right{display:flex;flex-direction:column;align-items:center;gap:4px}
+.hud-left{align-items:flex-start}
+.hud-right{align-items:flex-end}
+.hud-score{font-family:'Fredoka',sans-serif;font-size:48px;font-weight:900;color:#fff;text-shadow:0 3px 10px rgba(0,0,0,.6);letter-spacing:-1px}
+.hud-label{font-size:11px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:1px}
+.hud-shots{font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.5)}
+.hud-streak{font-family:'Fredoka',sans-serif;font-size:16px;font-weight:700;color:#f97316;text-shadow:0 0 12px rgba(249,115,22,.5)}
+.hud-timer{font-family:'Fredoka',sans-serif;font-size:28px;font-weight:900;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.5)}
+.hud-pos{font-size:12px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px}
+
+/* POWER METER */
+.power-wrap{position:absolute;right:20px;top:50%;transform:translateY(-50%);width:36px;height:260px;z-index:6;display:none;flex-direction:column;align-items:center;gap:4px}
+.power-bar{width:36px;height:220px;background:rgba(0,0,0,.7);border-radius:18px;border:2px solid rgba(255,255,255,.3);overflow:hidden;position:relative;backdrop-filter:blur(4px)}
+.power-zone{position:absolute;left:0;right:0}
+.power-zone.red-top{top:0;height:20%;background:rgba(239,68,68,.35)}
+.power-zone.yellow-top{top:20%;height:15%;background:rgba(251,191,36,.3)}
+.power-zone.green{top:35%;height:30%;background:rgba(6,214,160,.3);border-top:2px solid rgba(6,214,160,.6);border-bottom:2px solid rgba(6,214,160,.6)}
+.power-zone.yellow-bot{top:65%;height:15%;background:rgba(251,191,36,.3)}
+.power-zone.red-bot{top:80%;height:20%;background:rgba(239,68,68,.35)}
+.power-cursor{position:absolute;left:2px;right:2px;height:6px;background:#fff;border-radius:3px;box-shadow:0 0 10px rgba(255,255,255,.8);transition:none;z-index:2}
+.power-text{font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:1px;text-align:center;white-space:nowrap}
+
+/* SHOT POPUP */
+.shot-popup{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%) scale(0);font-family:'Fredoka',sans-serif;font-size:52px;font-weight:700;z-index:8;pointer-events:none;text-shadow:0 4px 16px rgba(0,0,0,.5);animation:shotPop .9s ease forwards}
+@keyframes shotPop{0%{transform:translate(-50%,-50%) scale(0);opacity:0}20%{transform:translate(-50%,-50%) scale(1.3);opacity:1}40%{transform:translate(-50%,-50%) scale(1)}100%{transform:translate(-50%,-50%) scale(1) translateY(-30px);opacity:0}}
+.shot-popup.swish{color:#06d6a0}
+.shot-popup.backboard{color:#fbbf24}
+.shot-popup.miss{color:#ef4444}
+
+/* STREAK POPUP */
+.streak-popup{position:absolute;top:28%;left:50%;transform:translate(-50%,-50%) scale(0);font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;color:#f97316;z-index:8;pointer-events:none;text-shadow:0 0 20px rgba(249,115,22,.6);animation:streakPop 1.2s ease forwards;white-space:nowrap}
+@keyframes streakPop{0%{transform:translate(-50%,-50%) scale(0);opacity:0}15%{transform:translate(-50%,-50%) scale(1.2);opacity:1}30%{transform:translate(-50%,-50%) scale(1)}100%{transform:translate(-50%,-50%) scale(1) translateY(-20px);opacity:0}}
+
+/* HOLD HINT */
+.hold-hint{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;z-index:5;animation:pulse 1.5s ease-in-out infinite}
+.hold-hint span{font-family:'Fredoka',sans-serif;font-size:16px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.5);background:rgba(0,0,0,.5);padding:8px 20px;border-radius:20px;backdrop-filter:blur(4px)}
+@keyframes pulse{0%,100%{opacity:1;transform:translateX(-50%) scale(1)}50%{opacity:.5;transform:translateX(-50%) scale(1.05)}}
+
+/* GAME OVER */
+.go-overlay{position:absolute;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:10;gap:10px;padding:24px;animation:fadeUp .3s ease}
+.go-overlay.active{display:flex}
+.go-overlay h2{font-size:32px;font-weight:700;color:#f97316}
+.go-overlay .go-score{font-family:'Fredoka',sans-serif;font-size:52px;font-weight:700;color:#fff}
+.go-overlay .go-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.go-overlay .go-sub{font-size:14px;color:var(--text2)}
+.go-overlay .go-best{font-size:16px;color:var(--gold);font-weight:700;font-family:'Fredoka',sans-serif}
+.go-overlay .go-new{color:var(--accent);font-size:14px;font-weight:700;animation:pulse 1s ease-in-out infinite}
+.go-overlay .go-coins{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:8px 18px;font-size:16px;font-weight:700;color:var(--gold);font-family:'Fredoka',sans-serif}
+.go-overlay .go-btns{display:flex;gap:10px;margin-top:6px}
+
+/* LOADING */
+.loading-overlay{position:absolute;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;gap:16px}
+.loading-overlay .spinner{width:40px;height:40px;border:4px solid var(--border);border-top-color:#f97316;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* RECORDS */
+#recordsScreen{padding-top:70px;justify-content:flex-start}
+.records-container{width:100%;max-width:420px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.stat-card .sv{font-size:24px;font-weight:800;font-family:'Fredoka',sans-serif;color:var(--accent)}
+.stat-card .sv.gold{color:var(--gold)}
+.stat-card .sl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;font-weight:600}
+.lb-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px}
+.lb-row.me{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.lb-rank{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text2);flex-shrink:0}
+.lb-rank.r1{background:rgba(255,209,102,.2);color:var(--gold)}
+.lb-rank.r2{background:rgba(192,192,192,.15);color:#c0c0c0}
+.lb-rank.r3{background:rgba(205,127,50,.15);color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-size:14px;font-weight:800;color:var(--gold);font-family:'Fredoka',sans-serif}
+.lb-empty{text-align:center;color:var(--text2);font-size:14px;padding:24px;font-weight:600}
+
+/* SHOP */
+#shopScreen{padding-top:70px;justify-content:flex-start}
+
+/* ACH POPUP */
+.ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
+@keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../../student.html#arcade" id="backBtn">&#8592; Back</a>
+<button class="sound-btn" id="soundBtn" onclick="toggleSound()">&#128264;</button>
+
+<!-- HOME SCREEN -->
+<div class="screen active" id="homeScreen">
+  <div class="home-header">
+    <h1>&#127936; <span class="hl">Basketball</span></h1>
+    <p>Shoot 3-pointers! Time your release!</p>
+  </div>
+  <div class="best-pill"><span class="bp-label">&#127942; Best</span><span class="bp-val" id="homeBest">0</span></div>
+  <div class="mode-row">
+    <div class="mode-btn active" data-mode="contest" onclick="selectMode(this)">&#127942; 3-Point Contest</div>
+    <div class="mode-btn" data-mode="timed" onclick="selectMode(this)">&#9201; Timed (60s)</div>
+    <div class="mode-btn" data-mode="vs" onclick="selectMode(this)">&#129302; VS Computer</div>
+  </div>
+  <div class="diff-row">
+    <button class="diff-btn active" data-diff="0" onclick="selectDiff(this)">Easy</button>
+    <button class="diff-btn" data-diff="1" onclick="selectDiff(this)">Medium</button>
+    <button class="diff-btn" data-diff="2" onclick="selectDiff(this)">Hard</button>
+  </div>
+  <div class="home-actions">
+    <button class="btn btn-accent" id="playBtn" style="font-size:18px;padding:16px 48px;background:#f97316">&#127936; Play</button>
+    <button class="btn btn-outline btn-small" id="recordsBtn">Records &amp; Leaderboard</button>
+    <button class="btn btn-outline btn-small" id="shopBtn">&#128717;&#65039; Shop</button>
+  </div>
+  <div class="stats-row">
+    <div class="sr">&#127918; Games <span id="homeGames">0</span></div>
+    <div class="sr">&#127942; Swishes <span id="homeSwishes">0</span></div>
+  </div>
+  <div class="how-to"><h3>How to Play</h3><p>Hold CLICK or SPACE to start the power meter. Release when the cursor is in the GREEN zone for a perfect swish! Yellow = backboard shot. Red = miss.</p></div>
+</div>
+
+<!-- GAME SCREEN -->
+<div class="screen" id="gameScreen">
+  <div id="canvasWrap">
+    <canvas id="threeCanvas"></canvas>
+    <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div style="color:var(--text2);font-size:14px;font-weight:600">Loading 3D Court...</div></div>
+    <div class="game-hud" id="gameHud" style="display:none">
+      <div class="hud-left">
+        <div class="hud-label">SCORE</div>
+        <div class="hud-score" id="hudScore">0</div>
+        <div class="hud-streak" id="hudStreak"></div>
+      </div>
+      <div class="hud-center">
+        <div class="hud-label" id="hudModeLabel">3-POINT CONTEST</div>
+        <div class="hud-shots" id="hudShots">Shot 1/25</div>
+        <div class="hud-timer" id="hudTimer" style="display:none">60</div>
+        <div class="hud-pos" id="hudPos">Left Corner</div>
+      </div>
+      <div class="hud-right">
+        <div class="hud-label" id="hudOpLabel" style="display:none">CPU</div>
+        <div class="hud-shots" id="hudOpScore" style="display:none">0</div>
+      </div>
+    </div>
+    <div class="power-wrap" id="powerWrap">
+      <div class="power-bar" id="powerBar">
+        <div class="power-zone red-top" id="zRedTop"></div>
+        <div class="power-zone yellow-top" id="zYellowTop"></div>
+        <div class="power-zone green" id="zGreen"></div>
+        <div class="power-zone yellow-bot" id="zYellowBot"></div>
+        <div class="power-zone red-bot" id="zRedBot"></div>
+        <div class="power-cursor" id="powerCursor"></div>
+      </div>
+      <div class="power-text" id="powerText">HOLD to shoot</div>
+    </div>
+    <div class="hold-hint" id="holdHint"><span>Hold CLICK or SPACE</span></div>
+    <div class="go-overlay" id="gameOver">
+      <h2 id="goTitle">Game Over</h2>
+      <div class="go-label">FINAL SCORE</div>
+      <div class="go-score" id="goScore">0</div>
+      <div class="go-sub" id="goSub"></div>
+      <div class="go-best" id="goBest"></div>
+      <div class="go-new" id="goNew" style="display:none">&#127881; NEW RECORD!</div>
+      <div class="go-coins" id="goCoins">+0 coins</div>
+      <div class="go-btns">
+        <button class="btn btn-accent btn-small" onclick="startGame()" style="background:#f97316">Play Again</button>
+        <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Home</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECORDS SCREEN -->
+<div class="screen" id="recordsScreen">
+  <div class="records-container">
+    <h2 style="text-align:center;margin-bottom:16px">&#127942; Records</h2>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="sv gold" id="recBest">0</div><div class="sl">Best Score</div></div>
+      <div class="stat-card"><div class="sv" id="recGames">0</div><div class="sl">Games</div></div>
+      <div class="stat-card"><div class="sv" id="recSwishes">0</div><div class="sl">Swishes</div></div>
+      <div class="stat-card"><div class="sv" id="recStreak">0</div><div class="sl">Best Streak</div></div>
+    </div>
+    <div class="lb-title">&#127760; Leaderboard</div>
+    <div class="lb-list" id="lbList"><div class="lb-empty">No scores yet</div></div>
+    <div style="text-align:center;margin-top:20px"><button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&#8592; Back</button></div>
+  </div>
+</div>
+
+<!-- SHOP SCREEN -->
+<div class="screen" id="shopScreen">
+  <div style="width:100%;max-width:480px">
+    <h2 style="text-align:center;margin-bottom:16px">&#128717;&#65039; Shop</h2>
+    <div id="shopContainer"></div>
+    <div style="text-align:center;margin-top:20px"><button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&#8592; Back</button></div>
+  </div>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+window.THREE = THREE;
+window.threeReady = true;
+if (window.onThreeReady) window.onThreeReady();
+</script>
+<script>
+/* ============================================================
+   BASKETBALL 3-POINT SHOOTING GAME
+   ============================================================ */
+
+/* ── SESSION ─────────────────────────────────────────────── */
+var studentId = localStorage.getItem('studentId') || '';
+var studentName = localStorage.getItem('studentName') || '';
+var classCode = localStorage.getItem('classCode') || '';
+var isTeacher = localStorage.getItem('userRole') === 'teacher' || localStorage.getItem('odaUserRole') === 'teacher' || !!localStorage.getItem('teacherId');
+if (isTeacher) document.getElementById('backBtn').href = '../../teacher.html#arcade';
+
+/* ── AUDIO ───────────────────────────────────────────────── */
+var audioCtx = null, soundOn = localStorage.getItem('odaSoundEnabled') !== 'false';
+function getAudioCtx() {
+  if (!audioCtx) try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return null; }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq, dur, type, vol, ramp) {
+  if (!soundOn) return; var ctx = getAudioCtx(); if (!ctx) return;
+  var osc = ctx.createOscillator(), gain = ctx.createGain();
+  osc.type = type || 'square'; osc.frequency.setValueAtTime(freq, ctx.currentTime);
+  if (ramp) osc.frequency.linearRampToValueAtTime(ramp, ctx.currentTime + dur);
+  gain.gain.setValueAtTime(vol || 0.1, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+  osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + dur);
+}
+function sfxSwish() { playTone(800, 0.3, 'sine', 0.12, 400); setTimeout(function(){ playTone(600, 0.2, 'sine', 0.08); }, 100); }
+function sfxBackboard() { playTone(200, 0.1, 'square', 0.15); setTimeout(function(){ sfxSwish(); }, 200); }
+function sfxRim() { playTone(500, 0.15, 'triangle', 0.15); playTone(350, 0.1, 'square', 0.1); }
+function sfxBrick() { playTone(150, 0.2, 'sawtooth', 0.12); }
+function sfxStreak(level) {
+  var base = 400 + level * 100;
+  playTone(base, 0.15, 'sine', 0.1); setTimeout(function(){ playTone(base+200, 0.15, 'sine', 0.1); }, 100);
+  setTimeout(function(){ playTone(base+400, 0.2, 'sine', 0.12); }, 200);
+}
+function sfxBuzzer() { playTone(200, 0.5, 'sawtooth', 0.12, 100); }
+function toggleSound() {
+  soundOn = !soundOn;
+  localStorage.setItem('odaSoundEnabled', soundOn);
+  document.getElementById('soundBtn').innerHTML = soundOn ? '&#128264;' : '&#128263;';
+}
+if (!soundOn) document.getElementById('soundBtn').innerHTML = '&#128263;';
+
+/* ── SCREEN SYSTEM ──────────────────────────────────────── */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  document.body.classList.toggle('in-game', id === 'gameScreen');
+  if (id === 'homeScreen') { loadLocalStats(); stopGame(); }
+  if (id === 'recordsScreen') loadRecordsScreen();
+}
+
+document.getElementById('backBtn').onclick = function(e) {
+  if (!document.getElementById('homeScreen').classList.contains('active')) {
+    e.preventDefault();
+    showScreen('homeScreen');
+  }
+};
+
+document.getElementById('playBtn').onclick = function() { startGame(); };
+document.getElementById('recordsBtn').onclick = function() { showScreen('recordsScreen'); };
+document.getElementById('shopBtn').onclick = function() { showShopScreen(); };
+
+/* ── DIFFICULTY & MODE ──────────────────────────────────── */
+var difficulty = 0; // 0=easy,1=med,2=hard
+var gameMode = 'contest'; // contest, timed, vs
+var DIFF_SETTINGS = [
+  { greenPct: 0.30, yellowPct: 0.15, speed: 1.8, label: 'Easy' },
+  { greenPct: 0.20, yellowPct: 0.12, speed: 2.8, label: 'Medium' },
+  { greenPct: 0.10, yellowPct: 0.10, speed: 4.0, label: 'Hard' }
+];
+
+function selectDiff(el) {
+  document.querySelectorAll('.diff-btn').forEach(function(b) { b.classList.remove('active'); });
+  el.classList.add('active');
+  difficulty = parseInt(el.dataset.diff);
+}
+function selectMode(el) {
+  document.querySelectorAll('.mode-btn').forEach(function(b) { b.classList.remove('active'); });
+  el.classList.add('active');
+  gameMode = el.dataset.mode;
+}
+
+/* ── LOCAL STATS ────────────────────────────────────────── */
+function getLocalStats() {
+  try { return JSON.parse(localStorage.getItem('basketball_stats') || '{}'); } catch(e) { return {}; }
+}
+function saveLocalStats(s) { localStorage.setItem('basketball_stats', JSON.stringify(s)); }
+function loadLocalStats() {
+  var s = getLocalStats();
+  document.getElementById('homeBest').textContent = s.best || 0;
+  document.getElementById('homeGames').textContent = s.games || 0;
+  document.getElementById('homeSwishes').textContent = s.swishes || 0;
+}
+loadLocalStats();
+
+/* ── SHOP ────────────────────────────────────────────────── */
+var BASKETBALL_SHOP = [
+  { id: 'ball_classic', name: 'Classic Orange', emoji: '\u{1F3C0}', cost: 0, slot: 'Ball Skin', value: { color: '#f97316' } },
+  { id: 'ball_gold', name: 'Gold', emoji: '\u{1F31F}', cost: 200, slot: 'Ball Skin', value: { color: '#ffd700' } },
+  { id: 'ball_neon', name: 'Neon Green', emoji: '\u{1F7E2}', cost: 250, slot: 'Ball Skin', value: { color: '#39ff14' } },
+  { id: 'ball_galaxy', name: 'Galaxy', emoji: '\u{1FA90}', cost: 400, slot: 'Ball Skin', value: { color: '#7c3aed' } },
+  { id: 'ball_fire', name: 'Fire', emoji: '\u{1F525}', cost: 500, slot: 'Ball Skin', value: { color: '#ef4444' } },
+  { id: 'court_classic', name: 'Classic Wood', emoji: '\u{1F3C0}', cost: 0, slot: 'Court Theme', value: { floor: '#b5651d', lines: '#ffffff' } },
+  { id: 'court_street', name: 'Street', emoji: '\u{1F3D9}', cost: 200, slot: 'Court Theme', value: { floor: '#6b7280', lines: '#fbbf24' } },
+  { id: 'court_night', name: 'Night', emoji: '\u{1F303}', cost: 300, slot: 'Court Theme', value: { floor: '#1e3a5f', lines: '#06d6a0' } },
+  { id: 'court_neon', name: 'Neon', emoji: '\u{1F4A1}', cost: 400, slot: 'Court Theme', value: { floor: '#1a1a2e', lines: '#ff00ff' } },
+  { id: 'streak_classic', name: 'Classic', emoji: '\u{2728}', cost: 0, slot: 'Streak Effect', value: { type: 'classic' } },
+  { id: 'streak_lightning', name: 'Lightning', emoji: '\u{26A1}', cost: 250, slot: 'Streak Effect', value: { type: 'lightning' } },
+  { id: 'streak_sparkles', name: 'Sparkles', emoji: '\u{2728}', cost: 300, slot: 'Streak Effect', value: { type: 'sparkles' } },
+  { id: 'streak_flames', name: 'Flames', emoji: '\u{1F525}', cost: 400, slot: 'Streak Effect', value: { type: 'flames' } }
+];
+
+var myCosmetics = {};
+async function loadMyCosmetics() {
+  var sid = localStorage.getItem('studentId'); if (!sid) return;
+  try {
+    var fb = await window.getFirebaseDB();
+    var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'students', sid));
+    if (snap.exists()) { var d = snap.data(); myCosmetics = d.gameCosmetics && d.gameCosmetics.basketball ? d.gameCosmetics.basketball.equipped || {} : {}; }
+  } catch(e) {}
+  applyCosmeticStyles();
+}
+loadMyCosmetics();
+
+var cosmeticBallColor = '#f97316';
+var cosmeticFloorColor = '#b5651d';
+var cosmeticLineColor = '#ffffff';
+function applyCosmeticStyles() {
+  var bs = myCosmetics['Ball Skin'];
+  if (bs && bs.value) cosmeticBallColor = bs.value.color;
+  var ct = myCosmetics['Court Theme'];
+  if (ct && ct.value) { cosmeticFloorColor = ct.value.floor; cosmeticLineColor = ct.value.lines; }
+}
+
+function showShopScreen() {
+  showScreen('shopScreen');
+  if (typeof odaShop !== 'undefined') {
+    odaShop.renderShopPanel('basketball', BASKETBALL_SHOP, 'shopContainer', {
+      onEquip: function() { loadMyCosmetics(); },
+      onBuy: function() { loadMyCosmetics(); }
+    });
+  }
+}
+
+/* ── ACHIEVEMENTS ────────────────────────────────────────── */
+var ACHIEVEMENTS = [
+  { id: 'ach_first_bucket', name: 'First Bucket', desc: 'Score your first basket', icon: '\u{1F3C0}', check: function(s) { return (s.totalSwishes || 0) + (s.totalBackboards || 0) >= 1; } },
+  { id: 'ach_sharpshooter', name: 'Sharpshooter', desc: '10 swishes in one game', icon: '\u{1F3AF}', check: function(s) { return (s.gameSwishes || 0) >= 10; } },
+  { id: 'ach_onfire', name: 'On Fire', desc: 'Get a 5-shot streak', icon: '\u{1F525}', check: function(s) { return (s.bestStreak || 0) >= 5; } },
+  { id: 'ach_contest50', name: '3pt Contest 50+', desc: 'Score 50+ in 3-Point Contest', icon: '\u{1F3C6}', check: function(s) { return (s.contestBest || 0) >= 50; } },
+  { id: 'ach_timed30', name: 'Timed Mode 30+', desc: 'Score 30+ in Timed Mode', icon: '\u{23F1}', check: function(s) { return (s.timedBest || 0) >= 30; } },
+  { id: 'ach_veteran', name: 'Veteran', desc: 'Play 25 games', icon: '\u{1F3AE}', check: function(s) { return (s.gamesPlayed || 0) >= 25; } }
+];
+var achState = {};
+
+function showAchToast(a) {
+  var el = document.createElement('div');
+  el.className = 'ach-popup';
+  el.innerHTML = '<span style="font-size:28px">' + a.icon + '</span><div><div style="font-weight:700;color:var(--gold);font-size:14px">' + a.name + '</div><div style="font-size:12px;color:var(--text2)">' + a.desc + '</div></div>';
+  document.body.appendChild(el);
+  setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 4000);
+}
+
+async function checkAchievements(extra) {
+  var sid = localStorage.getItem('studentId');
+  if (!sid || sid.startsWith('anon_')) return;
+  try {
+    var fb = await window.getFirebaseDB();
+    var ref = fb.fsMod.doc(fb.db, 'basketballRecords', sid);
+    var snap = await fb.fsMod.getDoc(ref);
+    var data = snap.exists() ? snap.data() : {};
+    var state = Object.assign({}, data, extra || {});
+    achState = data.achievements || {};
+    var newUnlocks = [];
+    ACHIEVEMENTS.forEach(function(a) {
+      if (!achState[a.id] && a.check(state)) { achState[a.id] = Date.now(); newUnlocks.push(a); }
+    });
+    if (newUnlocks.length > 0) {
+      var upd = {}; newUnlocks.forEach(function(a) { upd['achievements.' + a.id] = achState[a.id]; });
+      await fb.fsMod.updateDoc(ref, upd);
+      newUnlocks.forEach(function(a) { showAchToast(a); });
+    }
+  } catch(e) {}
+}
+
+/* ── FIREBASE ────────────────────────────────────────────── */
+async function awardCoins(coins) {
+  if (!studentId || studentId.startsWith('anon_')) return;
+  try {
+    var fb = await window.getFirebaseDB();
+    await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'students', studentId), { coins: fb.fsMod.increment(coins) });
+  } catch(e) {}
+}
+
+async function saveRecord(score, extra) {
+  if (!studentId || studentId.startsWith('anon_')) return;
+  try {
+    var fb = await window.getFirebaseDB();
+    var ref = fb.fsMod.doc(fb.db, 'basketballRecords', studentId);
+    var snap = await fb.fsMod.getDoc(ref);
+    if (snap.exists()) {
+      var upd = { gamesPlayed: fb.fsMod.increment(1), lastPlayed: new Date().toISOString(),
+        totalSwishes: fb.fsMod.increment(extra.swishes || 0), totalBackboards: fb.fsMod.increment(extra.backboards || 0) };
+      var d = snap.data();
+      if (score > (d.highScore || 0)) upd.highScore = score;
+      if ((extra.streak || 0) > (d.bestStreak || 0)) upd.bestStreak = extra.streak;
+      if (gameMode === 'contest' && score > (d.contestBest || 0)) upd.contestBest = score;
+      if (gameMode === 'timed' && score > (d.timedBest || 0)) upd.timedBest = score;
+      await fb.fsMod.updateDoc(ref, upd);
+    } else {
+      await fb.fsMod.setDoc(ref, {
+        studentId: studentId, studentName: studentName || '', classCode: classCode,
+        highScore: score, gamesPlayed: 1, lastPlayed: new Date().toISOString(),
+        totalSwishes: extra.swishes || 0, totalBackboards: extra.backboards || 0,
+        bestStreak: extra.streak || 0,
+        contestBest: gameMode === 'contest' ? score : 0,
+        timedBest: gameMode === 'timed' ? score : 0
+      });
+    }
+  } catch(e) {}
+}
+
+async function loadRecordsScreen() {
+  var s = getLocalStats();
+  document.getElementById('recBest').textContent = s.best || 0;
+  document.getElementById('recGames').textContent = s.games || 0;
+  document.getElementById('recSwishes').textContent = s.swishes || 0;
+  document.getElementById('recStreak').textContent = s.bestStreak || 0;
+  /* leaderboard */
+  var lbEl = document.getElementById('lbList');
+  lbEl.innerHTML = '<div class="lb-empty">Loading...</div>';
+  try {
+    var fb = await window.getFirebaseDB();
+    var q = fb.fsMod.query(fb.fsMod.collection(fb.db, 'basketballRecords'), fb.fsMod.orderBy('highScore', 'desc'), fb.fsMod.limit(10));
+    var snap = await fb.fsMod.getDocs(q);
+    if (snap.empty) { lbEl.innerHTML = '<div class="lb-empty">No scores yet</div>'; return; }
+    var html = ''; var i = 0;
+    snap.forEach(function(doc) {
+      i++; var d = doc.data();
+      var me = d.studentId === studentId;
+      var rc = i <= 3 ? ' r' + i : '';
+      html += '<div class="lb-row' + (me ? ' me' : '') + '"><div class="lb-rank' + rc + '">' + i + '</div><div class="lb-name">' + (d.studentName || 'Player') + '</div><div class="lb-score">' + (d.highScore || 0) + '</div></div>';
+    });
+    lbEl.innerHTML = html;
+  } catch(e) { lbEl.innerHTML = '<div class="lb-empty">Could not load leaderboard</div>'; }
+}
+
+/* ── HELP ────────────────────────────────────────────────── */
+if (typeof odaHelp !== 'undefined') odaHelp.init({
+  title: 'Basketball', emoji: '\u{1F3C0}', subtitle: 'Shoot 3-pointers with perfect timing!',
+  sections: [
+    { title: 'How to Play', icon: '\u{1F3C0}', items: [
+      'Hold CLICK or SPACE to start the power meter',
+      'A cursor oscillates up and down in the meter bar',
+      'Release in the GREEN zone = Swish (3 pts)',
+      'Release in the YELLOW zone = Backboard (2 pts)',
+      'Release in the RED zone = Brick / Miss (0 pts)'
+    ]},
+    { title: 'Game Modes', icon: '\u{1F3C6}', items: [
+      '3-Point Contest: 25 shots from 5 positions',
+      'Timed Mode: 60 seconds, unlimited shots',
+      'VS Computer: 10 shots each, beat the CPU'
+    ]},
+    { title: 'Streaks', icon: '\u{1F525}', items: [
+      '2 in a row: Heating Up (+1 bonus)',
+      '3 in a row: On Fire! (+2 bonus)',
+      '5+ in a row: UNCONSCIOUS! (+3 bonus)'
+    ]}
+  ],
+  controls: [{ key: 'Click / Space', action: 'Hold to charge, release to shoot' }],
+  tip: '<strong>Pro tip!</strong> Watch the cursor speed — it gets faster on harder difficulties!'
+});
+
+/* ── THREE.JS GAME ──────────────────────────────────────── */
+var scene, camera, renderer, animId;
+var court, hoop = {}, ball, ballShadow;
+var threeInited = false;
+
+/* game state */
+var gameActive = false, shotInFlight = false, holdingShot = false;
+var score = 0, shotNum = 0, maxShots = 25, streak = 0, bestStreakThisGame = 0;
+var swishCount = 0, backboardCount = 0;
+var timerLeft = 60, timerInterval = null;
+var cpuScore = 0, cpuTurn = false, cpuShotNum = 0;
+
+/* power meter state */
+var meterPos = 0; // 0-1 (top to bottom in bar)
+var meterDir = 1;
+var meterSpeed = 1.8;
+var meterRunning = false;
+var meterAnimId = null;
+
+/* positions on 3-point arc */
+var POSITIONS = [
+  { name: 'Left Corner', angle: -80 },
+  { name: 'Left Wing', angle: -40 },
+  { name: 'Top of Key', angle: 0 },
+  { name: 'Right Wing', angle: 40 },
+  { name: 'Right Corner', angle: 80 }
+];
+var currentPosIdx = 0;
+var HOOP_POS = new (function V(x,y,z){ this.x=x; this.y=y; this.z=z; })(0, 3.05, -6.5);
+var THREE_PT_RADIUS = 7.2;
+
+/* ball flight */
+var flightTime = 0, flightDuration = 1.2;
+var flightStart = { x: 0, y: 0, z: 0 };
+var flightVel = { x: 0, y: 0, z: 0 };
+var flightGravity = 9.8;
+var shotResult = ''; // 'swish','backboard','miss'
+var shotPhase = 0; // 0=arc, 1=post-rim, 2=done
+var postRimTime = 0;
+var postRimBounceVel = { x: 0, y: 0, z: 0 };
+
+function stopGame() {
+  gameActive = false;
+  if (animId) { cancelAnimationFrame(animId); animId = null; }
+  if (meterAnimId) { cancelAnimationFrame(meterAnimId); meterAnimId = null; }
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  meterRunning = false;
+  holdingShot = false;
+}
+
+document.addEventListener('visibilitychange', function() { if (document.hidden && gameActive) stopGame(); });
+window.addEventListener('beforeunload', stopGame);
+
+function initThree() {
+  if (threeInited) return;
+  var THREE = window.THREE;
+  if (!THREE) return;
+  threeInited = true;
+
+  var wrap = document.getElementById('canvasWrap');
+  var canvas = document.getElementById('threeCanvas');
+  var W = wrap.clientWidth, H = wrap.clientHeight;
+
+  renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x1a1a2e);
+  scene.fog = new THREE.Fog(0x1a1a2e, 20, 40);
+
+  camera = new THREE.PerspectiveCamera(50, W / H, 0.1, 100);
+  camera.position.set(0, 4, 6);
+  camera.lookAt(0, 2.5, -6);
+
+  /* Lights */
+  var ambient = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambient);
+  var dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+  dirLight.position.set(5, 12, 5);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 1024;
+  dirLight.shadow.mapSize.height = 1024;
+  dirLight.shadow.camera.near = 0.5;
+  dirLight.shadow.camera.far = 30;
+  dirLight.shadow.camera.left = -12;
+  dirLight.shadow.camera.right = 12;
+  dirLight.shadow.camera.top = 12;
+  dirLight.shadow.camera.bottom = -12;
+  scene.add(dirLight);
+
+  var spotLight = new THREE.SpotLight(0xffeedd, 0.6, 30, Math.PI / 4, 0.5);
+  spotLight.position.set(0, 10, -4);
+  spotLight.target.position.set(0, 0, -6);
+  scene.add(spotLight);
+  scene.add(spotLight.target);
+
+  buildCourt(THREE);
+  buildHoop(THREE);
+  buildBall(THREE);
+
+  document.getElementById('loadingOverlay').style.display = 'none';
+
+  window.addEventListener('resize', function() {
+    var w2 = wrap.clientWidth, h2 = wrap.clientHeight;
+    camera.aspect = w2 / h2;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w2, h2);
+  });
+}
+
+function buildCourt(THREE) {
+  /* Floor */
+  var floorGeo = new THREE.PlaneGeometry(28, 15);
+  var floorColor = new THREE.Color(cosmeticFloorColor);
+  var floorMat = new THREE.MeshStandardMaterial({ color: floorColor, roughness: 0.8, metalness: 0.0 });
+  court = new THREE.Mesh(floorGeo, floorMat);
+  court.rotation.x = -Math.PI / 2;
+  court.receiveShadow = true;
+  scene.add(court);
+
+  /* Court lines */
+  var lineColor = new THREE.Color(cosmeticLineColor);
+  var lineMat = new THREE.MeshBasicMaterial({ color: lineColor });
+
+  /* 3-point arc */
+  var arcGeo = new THREE.BufferGeometry();
+  var arcPts = [];
+  for (var a = -90; a <= 90; a += 2) {
+    var rad = a * Math.PI / 180;
+    arcPts.push(new THREE.Vector3(Math.sin(rad) * THREE_PT_RADIUS, 0.01, -6.5 + Math.cos(rad) * -THREE_PT_RADIUS));
+  }
+  arcGeo.setFromPoints(arcPts);
+  var arcLine = new THREE.Line(arcGeo, new THREE.LineBasicMaterial({ color: lineColor, linewidth: 2 }));
+  scene.add(arcLine);
+
+  /* Free throw circle */
+  var ftGeo = new THREE.BufferGeometry();
+  var ftPts = [];
+  for (var b = 0; b <= 360; b += 5) {
+    var r2 = b * Math.PI / 180;
+    ftPts.push(new THREE.Vector3(Math.cos(r2) * 1.8, 0.01, -6.5 + Math.sin(r2) * 1.8));
+  }
+  ftGeo.setFromPoints(ftPts);
+  scene.add(new THREE.Line(ftGeo, new THREE.LineBasicMaterial({ color: lineColor })));
+
+  /* Key/paint box */
+  var keyPts = [
+    new THREE.Vector3(-2.4, 0.01, -6.5), new THREE.Vector3(2.4, 0.01, -6.5),
+    new THREE.Vector3(2.4, 0.01, -6.5 + 5.8), new THREE.Vector3(-2.4, 0.01, -6.5 + 5.8),
+    new THREE.Vector3(-2.4, 0.01, -6.5)
+  ];
+  var keyGeo = new THREE.BufferGeometry().setFromPoints(keyPts);
+  scene.add(new THREE.Line(keyGeo, new THREE.LineBasicMaterial({ color: lineColor })));
+
+  /* Baseline */
+  var basePts = [new THREE.Vector3(-7, 0.01, -6.5), new THREE.Vector3(7, 0.01, -6.5)];
+  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(basePts), new THREE.LineBasicMaterial({ color: lineColor })));
+
+  /* Side background walls - subtle */
+  var wallGeo = new THREE.PlaneGeometry(28, 8);
+  var wallMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 1.0 });
+  var backWall = new THREE.Mesh(wallGeo, wallMat);
+  backWall.position.set(0, 4, -14);
+  scene.add(backWall);
+
+  /* Stands / bleachers - simple boxes */
+  var standGeo = new THREE.BoxGeometry(26, 3, 2);
+  var standMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 });
+  var stand1 = new THREE.Mesh(standGeo, standMat);
+  stand1.position.set(0, 1.5, -13);
+  scene.add(stand1);
+}
+
+function buildHoop(THREE) {
+  /* Backboard */
+  var bbGeo = new THREE.BoxGeometry(1.8, 1.2, 0.05);
+  var bbMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3, metalness: 0.1, transparent: true, opacity: 0.85 });
+  hoop.backboard = new THREE.Mesh(bbGeo, bbMat);
+  hoop.backboard.position.set(0, 3.5, -6.5);
+  hoop.backboard.castShadow = true;
+  scene.add(hoop.backboard);
+
+  /* Backboard square */
+  var sqPts = [
+    new THREE.Vector3(-0.3, 3.15, -6.47), new THREE.Vector3(0.3, 3.15, -6.47),
+    new THREE.Vector3(0.3, 3.75, -6.47), new THREE.Vector3(-0.3, 3.75, -6.47),
+    new THREE.Vector3(-0.3, 3.15, -6.47)
+  ];
+  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(sqPts), new THREE.LineBasicMaterial({ color: 0xff6600 })));
+
+  /* Rim - torus */
+  var rimGeo = new THREE.TorusGeometry(0.23, 0.02, 8, 24);
+  var rimMat = new THREE.MeshStandardMaterial({ color: 0xff6600, roughness: 0.4, metalness: 0.6 });
+  hoop.rim = new THREE.Mesh(rimGeo, rimMat);
+  hoop.rim.position.set(0, 3.05, -6.1);
+  hoop.rim.rotation.x = Math.PI / 2;
+  hoop.rim.castShadow = true;
+  scene.add(hoop.rim);
+
+  /* Net - cone */
+  var netGeo = new THREE.CylinderGeometry(0.23, 0.12, 0.45, 12, 1, true);
+  var netMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, side: THREE.DoubleSide, wireframe: true });
+  hoop.net = new THREE.Mesh(netGeo, netMat);
+  hoop.net.position.set(0, 2.82, -6.1);
+  scene.add(hoop.net);
+
+  /* Pole */
+  var poleGeo = new THREE.CylinderGeometry(0.06, 0.06, 3.5, 8);
+  var poleMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.5, metalness: 0.7 });
+  var pole = new THREE.Mesh(poleGeo, poleMat);
+  pole.position.set(0, 1.75, -6.75);
+  pole.castShadow = true;
+  scene.add(pole);
+
+  /* Arm connecting pole to backboard */
+  var armGeo = new THREE.BoxGeometry(0.06, 0.06, 0.5);
+  var arm = new THREE.Mesh(armGeo, poleMat);
+  arm.position.set(0, 3.5, -6.6);
+  scene.add(arm);
+}
+
+function buildBall(THREE) {
+  var ballGeo = new THREE.SphereGeometry(0.12, 24, 24);
+  var ballMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(cosmeticBallColor), roughness: 0.6, metalness: 0.1 });
+  ball = new THREE.Mesh(ballGeo, ballMat);
+  ball.castShadow = true;
+  scene.add(ball);
+
+  /* Ball lines (seams) */
+  var seamMat = new THREE.LineBasicMaterial({ color: 0x333333 });
+  var seamPts1 = [];
+  for (var i = 0; i <= 32; i++) {
+    var a = (i / 32) * Math.PI * 2;
+    seamPts1.push(new THREE.Vector3(Math.cos(a) * 0.122, Math.sin(a) * 0.122, 0));
+  }
+  var seam1 = new THREE.Line(new THREE.BufferGeometry().setFromPoints(seamPts1), seamMat);
+  ball.add(seam1);
+  var seam2 = seam1.clone();
+  seam2.rotation.y = Math.PI / 2;
+  ball.add(seam2);
+
+  /* Ball shadow */
+  var shadowGeo = new THREE.CircleGeometry(0.15, 16);
+  var shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3 });
+  ballShadow = new THREE.Mesh(shadowGeo, shadowMat);
+  ballShadow.rotation.x = -Math.PI / 2;
+  ballShadow.position.y = 0.01;
+  scene.add(ballShadow);
+}
+
+function getBallStartPos(posIdx) {
+  var pos = POSITIONS[posIdx];
+  var rad = pos.angle * Math.PI / 180;
+  var x = Math.sin(rad) * THREE_PT_RADIUS;
+  var z = -6.5 + Math.cos(rad) * THREE_PT_RADIUS;
+  return { x: x, y: 1.8, z: z };
+}
+
+function positionBall(posIdx) {
+  var p = getBallStartPos(posIdx);
+  ball.position.set(p.x, p.y, p.z);
+  ballShadow.position.set(p.x, 0.01, p.z);
+  ball.visible = true;
+
+  /* Camera behind the ball, looking at the hoop */
+  var dx = 0 - p.x;
+  var dz = -6.1 - p.z;
+  var dist = Math.sqrt(dx * dx + dz * dz);
+  var nx = dx / dist;
+  var nz = dz / dist;
+  cameraTarget = {
+    x: p.x - nx * 2.5,
+    y: 3.5,
+    z: p.z - nz * 2.5,
+    lx: (p.x + 0) / 2,
+    ly: 3.0,
+    lz: (p.z + (-6.1)) / 2
+  };
+  camera.position.set(cameraTarget.x, cameraTarget.y, cameraTarget.z);
+  camera.lookAt(cameraTarget.lx, cameraTarget.ly, cameraTarget.lz);
+}
+var cameraTarget = { x: 0, y: 4, z: 6, lx: 0, ly: 2.5, lz: -6 };
+
+function startGame() {
+  if (!threeInited) {
+    if (window.threeReady) initThree();
+    else { window.onThreeReady = function() { initThree(); startGame(); }; showScreen('gameScreen'); return; }
+  }
+  showScreen('gameScreen');
+  stopGame();
+
+  /* Reset state */
+  score = 0; shotNum = 0; streak = 0; bestStreakThisGame = 0;
+  swishCount = 0; backboardCount = 0;
+  cpuScore = 0; cpuTurn = false; cpuShotNum = 0;
+  shotInFlight = false; holdingShot = false;
+  meterPos = 0; meterDir = 1; meterRunning = false;
+  shotPhase = 0;
+
+  var ds = DIFF_SETTINGS[difficulty];
+  meterSpeed = ds.speed;
+  updatePowerZones(ds);
+
+  if (gameMode === 'contest') {
+    maxShots = 25;
+    document.getElementById('hudModeLabel').textContent = '3-POINT CONTEST';
+    document.getElementById('hudTimer').style.display = 'none';
+    document.getElementById('hudOpLabel').style.display = 'none';
+    document.getElementById('hudOpScore').style.display = 'none';
+  } else if (gameMode === 'timed') {
+    maxShots = 9999;
+    timerLeft = 60;
+    document.getElementById('hudModeLabel').textContent = 'TIMED MODE';
+    document.getElementById('hudTimer').style.display = '';
+    document.getElementById('hudTimer').textContent = '60';
+    document.getElementById('hudOpLabel').style.display = 'none';
+    document.getElementById('hudOpScore').style.display = 'none';
+    timerInterval = setInterval(function() {
+      timerLeft--;
+      document.getElementById('hudTimer').textContent = timerLeft;
+      if (timerLeft <= 0) {
+        clearInterval(timerInterval); timerInterval = null;
+        endGame();
+      }
+    }, 1000);
+  } else if (gameMode === 'vs') {
+    maxShots = 10;
+    document.getElementById('hudModeLabel').textContent = 'VS COMPUTER';
+    document.getElementById('hudTimer').style.display = 'none';
+    document.getElementById('hudOpLabel').style.display = '';
+    document.getElementById('hudOpScore').style.display = '';
+    document.getElementById('hudOpScore').textContent = '0';
+  }
+
+  /* Update ball color from cosmetics */
+  if (ball) ball.material.color.set(cosmeticBallColor);
+  if (court) court.material.color.set(cosmeticFloorColor);
+
+  currentPosIdx = 0;
+  shotNum = 1;
+  gameActive = true;
+
+  document.getElementById('gameHud').style.display = '';
+  document.getElementById('powerWrap').style.display = 'flex';
+  document.getElementById('holdHint').style.display = '';
+  document.getElementById('gameOver').classList.remove('active');
+  document.getElementById('powerText').textContent = 'HOLD to shoot';
+
+  updateHUD();
+  positionBall(currentPosIdx);
+
+  animate();
+}
+
+function updatePowerZones(ds) {
+  var g = ds.greenPct;
+  var y = ds.yellowPct;
+  var r = (1 - g - 2 * y) / 2;
+  var bar = document.getElementById('powerBar');
+  document.getElementById('zRedTop').style.cssText = 'position:absolute;left:0;right:0;top:0;height:' + (r * 100) + '%;background:rgba(239,68,68,.35)';
+  document.getElementById('zYellowTop').style.cssText = 'position:absolute;left:0;right:0;top:' + (r * 100) + '%;height:' + (y * 100) + '%;background:rgba(251,191,36,.3)';
+  document.getElementById('zGreen').style.cssText = 'position:absolute;left:0;right:0;top:' + ((r + y) * 100) + '%;height:' + (g * 100) + '%;background:rgba(6,214,160,.3);border-top:2px solid rgba(6,214,160,.6);border-bottom:2px solid rgba(6,214,160,.6)';
+  document.getElementById('zYellowBot').style.cssText = 'position:absolute;left:0;right:0;top:' + ((r + y + g) * 100) + '%;height:' + (y * 100) + '%;background:rgba(251,191,36,.3)';
+  document.getElementById('zRedBot').style.cssText = 'position:absolute;left:0;right:0;top:' + ((r + y + g + y) * 100) + '%;height:' + (r * 100) + '%;background:rgba(239,68,68,.35)';
+}
+
+function updateHUD() {
+  document.getElementById('hudScore').textContent = score;
+  if (gameMode === 'contest') {
+    document.getElementById('hudShots').textContent = 'Shot ' + shotNum + '/' + maxShots;
+  } else if (gameMode === 'timed') {
+    document.getElementById('hudShots').textContent = 'Shots: ' + (shotNum - 1);
+  } else {
+    document.getElementById('hudShots').textContent = (cpuTurn ? 'CPU' : 'YOU') + ' - Shot ' + (cpuTurn ? cpuShotNum : shotNum) + '/' + maxShots;
+    document.getElementById('hudOpScore').textContent = cpuScore;
+  }
+  document.getElementById('hudPos').textContent = POSITIONS[currentPosIdx].name;
+  if (streak >= 5) {
+    document.getElementById('hudStreak').textContent = 'UNCONSCIOUS! x' + streak;
+  } else if (streak >= 3) {
+    document.getElementById('hudStreak').textContent = 'On Fire! x' + streak;
+  } else if (streak >= 2) {
+    document.getElementById('hudStreak').textContent = 'Heating Up x' + streak;
+  } else {
+    document.getElementById('hudStreak').textContent = '';
+  }
+}
+
+/* ── METER ───────────────────────────────────────────────── */
+function startMeter() {
+  if (meterRunning) return;
+  meterRunning = true;
+  meterPos = 0;
+  meterDir = 1;
+  document.getElementById('powerText').textContent = 'RELEASE!';
+  document.getElementById('holdHint').style.display = 'none';
+
+  var lastTime = performance.now();
+  function tick(now) {
+    if (!meterRunning) return;
+    var dt = (now - lastTime) / 1000;
+    lastTime = now;
+    meterPos += meterDir * meterSpeed * dt;
+    if (meterPos >= 1) { meterPos = 1; meterDir = -1; }
+    if (meterPos <= 0) { meterPos = 0; meterDir = 1; }
+    var cursor = document.getElementById('powerCursor');
+    var barH = 220;
+    cursor.style.top = (meterPos * (barH - 6)) + 'px';
+    meterAnimId = requestAnimationFrame(tick);
+  }
+  meterAnimId = requestAnimationFrame(tick);
+}
+
+function stopMeter() {
+  meterRunning = false;
+  if (meterAnimId) { cancelAnimationFrame(meterAnimId); meterAnimId = null; }
+  return meterPos;
+}
+
+function getMeterResult(pos) {
+  var ds = DIFF_SETTINGS[difficulty];
+  var g = ds.greenPct;
+  var y = ds.yellowPct;
+  var r = (1 - g - 2 * y) / 2;
+  var greenStart = r + y;
+  var greenEnd = r + y + g;
+  var yellowStart = r;
+  var yellowEnd = r + y + g + y;
+
+  if (pos >= greenStart && pos <= greenEnd) return 'swish';
+  if ((pos >= yellowStart && pos < greenStart) || (pos > greenEnd && pos <= yellowEnd)) return 'backboard';
+  return 'miss';
+}
+
+/* ── INPUT HANDLING ──────────────────────────────────────── */
+function onHoldStart() {
+  if (!gameActive || shotInFlight || cpuTurn) return;
+  holdingShot = true;
+  startMeter();
+}
+
+function onHoldEnd() {
+  if (!holdingShot || !meterRunning) return;
+  holdingShot = false;
+  var pos = stopMeter();
+  shotResult = getMeterResult(pos);
+  launchBall(shotResult);
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.code === 'Space' && !e.repeat) { e.preventDefault(); onHoldStart(); }
+});
+document.addEventListener('keyup', function(e) {
+  if (e.code === 'Space') { e.preventDefault(); onHoldEnd(); }
+});
+document.getElementById('canvasWrap').addEventListener('mousedown', function(e) { e.preventDefault(); onHoldStart(); });
+document.getElementById('canvasWrap').addEventListener('mouseup', function(e) { e.preventDefault(); onHoldEnd(); });
+document.getElementById('canvasWrap').addEventListener('touchstart', function(e) {
+  if (e.target.closest('.go-overlay') || e.target.closest('.btn')) return;
+  e.preventDefault(); onHoldStart();
+}, { passive: false });
+document.getElementById('canvasWrap').addEventListener('touchend', function(e) {
+  if (e.target.closest('.go-overlay') || e.target.closest('.btn')) return;
+  e.preventDefault(); onHoldEnd();
+}, { passive: false });
+
+/* ── BALL LAUNCH ─────────────────────────────────────────── */
+function launchBall(result) {
+  shotInFlight = true;
+  shotPhase = 0;
+  flightTime = 0;
+  flightDuration = 1.1 + Math.random() * 0.2;
+
+  var startPos = getBallStartPos(currentPosIdx);
+  flightStart.x = startPos.x;
+  flightStart.y = startPos.y;
+  flightStart.z = startPos.z;
+
+  var targetX, targetY, targetZ;
+
+  if (result === 'swish') {
+    /* aim for center of hoop */
+    targetX = 0 + (Math.random() - 0.5) * 0.04;
+    targetY = 3.05;
+    targetZ = -6.1 + (Math.random() - 0.5) * 0.04;
+  } else if (result === 'backboard') {
+    /* aim for backboard */
+    targetX = (Math.random() - 0.5) * 0.3;
+    targetY = 3.35;
+    targetZ = -6.45;
+  } else {
+    /* aim for rim side */
+    var side = Math.random() > 0.5 ? 1 : -1;
+    targetX = side * (0.2 + Math.random() * 0.15);
+    targetY = 3.05 + (Math.random() - 0.5) * 0.2;
+    targetZ = -6.1 + (Math.random() - 0.5) * 0.2;
+  }
+
+  var dx = targetX - flightStart.x;
+  var dz = targetZ - flightStart.z;
+  var dy = targetY - flightStart.y;
+  var T = flightDuration;
+
+  flightVel.x = dx / T;
+  flightVel.z = dz / T;
+  /* Solve for vy: y(T) = y0 + vy*T - 0.5*g*T^2 => vy = (dy + 0.5*g*T^2) / T */
+  /* Add extra height for arc */
+  var arcBoost = 3.0 + Math.random() * 1.0;
+  flightVel.y = (dy + 0.5 * flightGravity * T * T) / T + arcBoost / T;
+
+  document.getElementById('powerWrap').style.display = 'none';
+}
+
+/* ── SHOT RESULT HANDLING ────────────────────────────────── */
+function handleShotResult(result) {
+  var pts = 0;
+  var bonusPts = 0;
+  var popupClass = '';
+  var popupText = '';
+
+  if (result === 'swish') {
+    pts = 3;
+    swishCount++;
+    streak++;
+    popupClass = 'swish';
+    popupText = 'SWISH! +3';
+    sfxSwish();
+    /* net squish animation */
+    if (hoop.net) {
+      hoop.net.scale.set(1, 0.5, 1);
+      setTimeout(function() { if (hoop.net) hoop.net.scale.set(1, 1, 1); }, 300);
+    }
+  } else if (result === 'backboard') {
+    pts = 2;
+    backboardCount++;
+    streak++;
+    popupClass = 'backboard';
+    popupText = 'BANK! +2';
+    sfxBackboard();
+    if (hoop.net) {
+      hoop.net.scale.set(1, 0.6, 1);
+      setTimeout(function() { if (hoop.net) hoop.net.scale.set(1, 1, 1); }, 300);
+    }
+  } else {
+    pts = 0;
+    streak = 0;
+    popupClass = 'miss';
+    popupText = 'BRICK!';
+    sfxBrick();
+  }
+
+  /* Streak bonus */
+  if (pts > 0) {
+    if (streak >= 5) { bonusPts = 3; }
+    else if (streak >= 3) { bonusPts = 2; }
+    else if (streak >= 2) { bonusPts = 1; }
+    pts += bonusPts;
+    if (bonusPts > 0) popupText += ' +' + bonusPts;
+    if (streak > bestStreakThisGame) bestStreakThisGame = streak;
+  }
+
+  if (cpuTurn) {
+    cpuScore += pts;
+  } else {
+    score += pts;
+  }
+
+  /* Popup */
+  showShotPopup(popupText, popupClass);
+
+  /* Streak popup */
+  if (streak === 2) { showStreakPopup('Heating Up!'); sfxStreak(1); }
+  else if (streak === 3) { showStreakPopup('On Fire!'); sfxStreak(2); }
+  else if (streak === 5) { showStreakPopup('UNCONSCIOUS!'); sfxStreak(3); }
+
+  updateHUD();
+}
+
+function showShotPopup(text, cls) {
+  var el = document.createElement('div');
+  el.className = 'shot-popup ' + cls;
+  el.textContent = text;
+  document.getElementById('canvasWrap').appendChild(el);
+  setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 1000);
+}
+
+function showStreakPopup(text) {
+  var el = document.createElement('div');
+  el.className = 'streak-popup';
+  el.textContent = text;
+  document.getElementById('canvasWrap').appendChild(el);
+  setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 1300);
+}
+
+/* ── NEXT SHOT ───────────────────────────────────────────── */
+function nextShot() {
+  shotInFlight = false;
+  shotPhase = 0;
+
+  if (gameMode === 'vs') {
+    if (cpuTurn) {
+      cpuShotNum++;
+      if (cpuShotNum >= maxShots) {
+        /* CPU done, check if player also done */
+        cpuTurn = false;
+        if (shotNum > maxShots) {
+          endGame(); return;
+        }
+      } else {
+        /* CPU next shot */
+        setTimeout(doCpuShot, 800);
+        return;
+      }
+    } else {
+      shotNum++;
+      if (shotNum > maxShots) {
+        /* Player done, CPU turn */
+        cpuTurn = true;
+        cpuShotNum = 0;
+        streak = 0;
+        setTimeout(doCpuShot, 1000);
+        updateHUD();
+        return;
+      }
+    }
+  } else {
+    shotNum++;
+    if (gameMode === 'contest' && shotNum > maxShots) {
+      endGame(); return;
+    }
+  }
+
+  /* Cycle position */
+  currentPosIdx = (currentPosIdx + 1) % POSITIONS.length;
+  positionBall(currentPosIdx);
+  updateHUD();
+
+  document.getElementById('powerWrap').style.display = 'flex';
+  document.getElementById('holdHint').style.display = '';
+  document.getElementById('powerText').textContent = 'HOLD to shoot';
+  /* Reset cursor */
+  document.getElementById('powerCursor').style.top = '0px';
+}
+
+/* ── CPU AI ──────────────────────────────────────────────── */
+function doCpuShot() {
+  if (!gameActive) return;
+  currentPosIdx = (currentPosIdx + 1) % POSITIONS.length;
+  positionBall(currentPosIdx);
+  updateHUD();
+
+  /* CPU accuracy based on difficulty (higher diff = better CPU) */
+  var accuracyRoll = Math.random();
+  var result;
+  if (difficulty === 0) {
+    if (accuracyRoll < 0.30) result = 'swish';
+    else if (accuracyRoll < 0.55) result = 'backboard';
+    else result = 'miss';
+  } else if (difficulty === 1) {
+    if (accuracyRoll < 0.40) result = 'swish';
+    else if (accuracyRoll < 0.65) result = 'backboard';
+    else result = 'miss';
+  } else {
+    if (accuracyRoll < 0.50) result = 'swish';
+    else if (accuracyRoll < 0.75) result = 'backboard';
+    else result = 'miss';
+  }
+
+  shotResult = result;
+  launchBall(result);
+}
+
+/* ── END GAME ────────────────────────────────────────────── */
+function endGame() {
+  gameActive = false;
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+
+  var ls = getLocalStats();
+  var isNew = score > (ls.best || 0);
+  ls.best = Math.max(ls.best || 0, score);
+  ls.games = (ls.games || 0) + 1;
+  ls.swishes = (ls.swishes || 0) + swishCount;
+  ls.bestStreak = Math.max(ls.bestStreak || 0, bestStreakThisGame);
+  saveLocalStats(ls);
+
+  var coins = Math.floor(score * 1.5) + 5;
+
+  document.getElementById('goScore').textContent = score;
+  if (gameMode === 'vs') {
+    document.getElementById('goTitle').textContent = score > cpuScore ? 'You Win!' : (score < cpuScore ? 'CPU Wins!' : 'Tie Game!');
+    document.getElementById('goSub').textContent = 'You: ' + score + ' vs CPU: ' + cpuScore;
+    document.getElementById('goTitle').style.color = score > cpuScore ? '#06d6a0' : '#ef4444';
+  } else {
+    document.getElementById('goTitle').textContent = 'Game Over';
+    document.getElementById('goTitle').style.color = '#f97316';
+    document.getElementById('goSub').textContent = swishCount + ' swishes, ' + backboardCount + ' banks, streak: ' + bestStreakThisGame;
+  }
+  document.getElementById('goBest').textContent = 'Best: ' + ls.best;
+  document.getElementById('goNew').style.display = isNew ? '' : 'none';
+  document.getElementById('goCoins').textContent = '+' + coins + ' coins';
+  document.getElementById('gameOver').classList.add('active');
+
+  awardCoins(coins);
+  saveRecord(score, { swishes: swishCount, backboards: backboardCount, streak: bestStreakThisGame });
+  checkAchievements({ gameSwishes: swishCount, bestStreak: bestStreakThisGame, contestBest: gameMode === 'contest' ? score : 0, timedBest: gameMode === 'timed' ? score : 0 });
+
+  sfxBuzzer();
+}
+
+/* ── ANIMATION LOOP ──────────────────────────────────────── */
+function animate() {
+  if (!gameActive && !shotInFlight) return;
+  animId = requestAnimationFrame(animate);
+
+  if (shotInFlight) {
+    var dt = 1 / 60;
+    flightTime += dt;
+
+    if (shotPhase === 0) {
+      /* Main arc flight */
+      var t = flightTime;
+      var bx = flightStart.x + flightVel.x * t;
+      var by = flightStart.y + flightVel.y * t - 0.5 * flightGravity * t * t;
+      var bz = flightStart.z + flightVel.z * t;
+
+      ball.position.set(bx, by, bz);
+      ballShadow.position.set(bx, 0.01, bz);
+      ball.rotation.x += 0.1;
+      ball.rotation.z += 0.05;
+
+      /* Scale shadow based on height */
+      var sh = Math.max(0.05, 0.15 - (by - 0.5) * 0.02);
+      ballShadow.scale.set(sh / 0.15, sh / 0.15, 1);
+
+      /* Smooth camera track */
+      var camLerpSpeed = 0.03;
+      var midX = (flightStart.x + 0) / 2;
+      var midZ = (flightStart.z + (-6.1)) / 2;
+      camera.position.x += (cameraTarget.x + bx * 0.1 - camera.position.x) * camLerpSpeed;
+      camera.lookAt(midX, 3.0, midZ);
+
+      /* Check arrival near target */
+      if (flightTime >= flightDuration * 0.85) {
+        /* Close enough to target zone */
+        shotPhase = 1;
+        postRimTime = 0;
+        handleShotResult(shotResult);
+
+        if (shotResult === 'swish') {
+          /* Ball drops through hoop */
+          ball.position.set(0, 3.0, -6.1);
+          postRimBounceVel = { x: (Math.random() - 0.5) * 0.5, y: -1, z: 1.5 };
+        } else if (shotResult === 'backboard') {
+          ball.position.set(0, 3.2, -6.35);
+          postRimBounceVel = { x: (Math.random() - 0.5) * 0.3, y: -0.5, z: 1.0 };
+        } else {
+          /* Miss - bounce off rim */
+          var side2 = Math.random() > 0.5 ? 1 : -1;
+          ball.position.set(side2 * 0.25, 3.05, -6.0);
+          postRimBounceVel = { x: side2 * 2.5, y: 2.0, z: 2.0 };
+        }
+      }
+    } else if (shotPhase === 1) {
+      /* Post-shot physics */
+      postRimTime += dt;
+      postRimBounceVel.y -= flightGravity * dt;
+      ball.position.x += postRimBounceVel.x * dt;
+      ball.position.y += postRimBounceVel.y * dt;
+      ball.position.z += postRimBounceVel.z * dt;
+      ball.rotation.x += 0.08;
+
+      ballShadow.position.set(ball.position.x, 0.01, ball.position.z);
+
+      /* Bounce on floor */
+      if (ball.position.y < 0.12) {
+        ball.position.y = 0.12;
+        postRimBounceVel.y = Math.abs(postRimBounceVel.y) * 0.4;
+        postRimBounceVel.x *= 0.7;
+        postRimBounceVel.z *= 0.7;
+        sfxRim();
+      }
+
+      if (postRimTime > 1.5) {
+        shotPhase = 2;
+        setTimeout(nextShot, 500);
+      }
+    }
+  }
+
+  /* Streak glow effect on ball */
+  if (ball && streak >= 3) {
+    var glowIntensity = streak >= 5 ? 0.6 : 0.3;
+    ball.material.emissive = ball.material.emissive || new window.THREE.Color();
+    ball.material.emissive.set(0xff6600);
+    ball.material.emissiveIntensity = glowIntensity * (0.5 + 0.5 * Math.sin(performance.now() * 0.005));
+  } else if (ball && ball.material.emissiveIntensity > 0) {
+    ball.material.emissiveIntensity = 0;
+  }
+
+  renderer.render(scene, camera);
+}
+
+/* ── WAIT FOR THREE.JS ──────────────────────────────────── */
+if (window.threeReady) {
+  initThree();
+} else {
+  window.onThreeReady = function() { initThree(); };
+}
+</script>
+</body>
+</html>
