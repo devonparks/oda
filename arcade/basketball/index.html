@@ -562,28 +562,23 @@ var BASKETBALL_SHOP = [
   { id: 'ball_fire', name: 'Fire Red', emoji: '\u{1F525}', cost: 350, slot: 'Ball Skin', value: { color: '#ef4444' } }
 ];
 
-var myCosmetics = {};
-async function loadMyCosmetics() {
-  var sid = localStorage.getItem('studentId'); if (!sid) return;
-  try {
-    var fb = await window.getFirebaseDB();
-    var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'students', sid));
-    if (snap.exists()) { var d = snap.data(); myCosmetics = d.gameCosmetics && d.gameCosmetics.basketball ? d.gameCosmetics.basketball.equipped || {} : {}; }
-  } catch(e) {}
-  applyCosmeticStyles();
-}
-loadMyCosmetics();
-
 var cosmeticBallColor = '#f97316';
-var cosmeticMapValue = null;
-function applyCosmeticStyles() {
-  var bs = myCosmetics['Ball Skin'];
-  if (bs && bs.value) cosmeticBallColor = bs.value.color;
+
+function loadMyCosmetics() {
+  /* Read equipped cosmetics from localStorage (always in sync with shop) */
+  try {
+    var stored = JSON.parse(localStorage.getItem('oda_cosmetics_basketball') || '{}');
+    var bs = stored['Ball Skin'];
+    if (bs && bs.value && bs.value.color) {
+      cosmeticBallColor = bs.value.color;
+    }
+  } catch(e) {}
   /* Apply to 3D ball immediately if it exists */
   if (ball && ball.material) {
     ball.material.color.set(cosmeticBallColor);
   }
 }
+loadMyCosmetics();
 
 function getActiveMapSettings() {
   if (cosmeticMapValue) return cosmeticMapValue;
@@ -595,7 +590,7 @@ function showShopScreen() {
   showScreen('shopScreen');
   if (typeof odaShop !== 'undefined') {
     odaShop.renderShopPanel('basketball', BASKETBALL_SHOP, 'shopContainer', {
-      onEquip: function() { loadMyCosmetics(); },
+      onEquip: function() { loadMyCosmetics(); if (threeInited && ball) ball.material.color.set(cosmeticBallColor); },
       onBuy: function() { loadMyCosmetics(); }
     });
   }
@@ -2209,13 +2204,13 @@ function showTurnBanner(text) {
 }
 
 /* ── START GAME ───────────────────────────────────────────── */
-async function startGame() {
+function startGame() {
   showScreen('gameScreen');
   if (!threeInited) initThree();
   /* Ensure loading overlay is hidden (in case initThree was already called) */
   document.getElementById('loadingOverlay').style.display = 'none';
-  /* Load cosmetics before applying ball color */
-  await loadMyCosmetics();
+  /* Load cosmetics from localStorage (instant, no async) */
+  loadMyCosmetics();
   /* Resize renderer now that game screen is visible */
   if (renderer) {
     var wrap = document.getElementById('canvasWrap');
