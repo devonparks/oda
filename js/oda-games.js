@@ -25,7 +25,6 @@ window.ODA_GAMES=[
 {id:'coinminer',emoji:'\u{1FA99}',title:'Coin Miner',desc:'Tap to mine, buy upgrades!',file:'arcade/coinminer/index.html',cat:'arcade',colors:['#fbbf24','#7c3aed'],categories:['Action']},
 {id:'reaction',emoji:'\u26A1',title:'Reaction Time',desc:'How fast can you click?',file:'arcade/reaction/index.html',cat:'arcade',colors:['#ef4444','#06d6a0'],categories:['Action']},
 {id:'helicopter',emoji:'\u{1F681}',title:'Helicopter',desc:'Fly through the cave!',file:'arcade/helicopter/index.html',cat:'arcade',colors:['#3b82f6','#374151'],categories:['Action']},
-{id:'doodlejump',emoji:'\u{1F438}',title:'Doodle Jump',desc:'Bounce higher and higher!',file:'arcade/doodlejump/index.html',cat:'arcade',colors:['#4ade80','#1a1a2e'],categories:['Action']},
 {id:'colormatch',emoji:'\u{1F3A8}',title:'Color Match',desc:'Read the color, not the word!',file:'arcade/colormatch/index.html',cat:'arcade',colors:['#ef4444','#3b82f6'],categories:['Action','Puzzle']},
 {id:'mathsprint',emoji:'\u2795',title:'Math Sprint',desc:'Rapid fire math — solve fast!',file:'arcade/mathsprint/index.html',cat:'arcade',colors:['#3b82f6','#fbbf24'],categories:['Action','Puzzle']},
 {id:'stacktower',emoji:'\u{1F3D7}',title:'Stack Tower',desc:'Time your drops, build high!',file:'arcade/stacktower/index.html',cat:'arcade',colors:['#f97316','#8b5cf6'],categories:['Action']},
