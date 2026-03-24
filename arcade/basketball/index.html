@@ -891,77 +891,92 @@ function initThree() {
   });
 }
 
-/* ── COURT ENVIRONMENT (Outdoor Playground) ──────────────── */
+/* ── COURT ENVIRONMENT (Urban Streetball — Enclosed Alley Court) ──── */
 function buildCourtEnvironment(THREE) {
   var mapS = getActiveMapSettings();
 
-  /* Sky gradient background */
-  var skyColor = new THREE.Color(mapS.sky);
-  scene.background = skyColor;
-  scene.fog = new THREE.Fog(skyColor, 25, 50);
+  function addObj(obj) { obj.userData.courtObj = true; scene.add(obj); return obj; }
 
-  /* Lighting - bright outdoor sun */
-  var ambient = new THREE.AmbientLight(new THREE.Color(mapS.ambient), 0.6);
-  ambient.userData.courtObj = true;
-  scene.add(ambient);
+  /* ── SKY ── */
+  scene.background = new THREE.Color(0x87CEEB);
+  scene.fog = new THREE.Fog(0x9ab8d0, 30, 60);
 
-  var dirLight = new THREE.DirectionalLight(new THREE.Color(mapS.light), 1.5);
-  dirLight.position.set(8, 16, 6);
+  /* ── LIGHTING ── */
+  /* Sun coming through the gap between buildings */
+  var ambient = new THREE.AmbientLight(0xd0c8bb, 0.45);
+  addObj(ambient);
+
+  var dirLight = new THREE.DirectionalLight(0xfff4e0, 1.6);
+  dirLight.position.set(2, 18, 4);
   dirLight.castShadow = true;
-  dirLight.shadow.mapSize.width = 1024;
-  dirLight.shadow.mapSize.height = 1024;
+  dirLight.shadow.mapSize.width = 2048;
+  dirLight.shadow.mapSize.height = 2048;
   dirLight.shadow.camera.near = 0.5;
-  dirLight.shadow.camera.far = 35;
-  dirLight.shadow.camera.left = -14;
-  dirLight.shadow.camera.right = 14;
-  dirLight.shadow.camera.top = 14;
-  dirLight.shadow.camera.bottom = -14;
-  dirLight.userData.courtObj = true;
-  scene.add(dirLight);
+  dirLight.shadow.camera.far = 45;
+  dirLight.shadow.camera.left = -16;
+  dirLight.shadow.camera.right = 16;
+  dirLight.shadow.camera.top = 16;
+  dirLight.shadow.camera.bottom = -16;
+  dirLight.shadow.bias = -0.001;
+  addObj(dirLight);
 
-  /* Subtle hemisphere light for outdoor feel */
-  var hemiLight = new THREE.HemisphereLight(new THREE.Color(mapS.sky), new THREE.Color(mapS.floor), 0.3);
-  hemiLight.userData.courtObj = true;
-  scene.add(hemiLight);
+  var hemiLight = new THREE.HemisphereLight(0x87CEEB, 0x666050, 0.35);
+  addObj(hemiLight);
 
-  /* Floor - concrete texture look */
-  var floorGeo = new THREE.PlaneGeometry(30, 20);
-  var floorColor = new THREE.Color(mapS.floor);
-  var floorMat = new THREE.MeshStandardMaterial({ color: floorColor, roughness: 0.95, metalness: 0.0 });
+  /* Street lamp warm light (near Z, behind shooter) */
+  var lampLight = new THREE.PointLight(0xffcc66, 1.2, 18, 2);
+  lampLight.position.set(8, 6.5, 8);
+  lampLight.castShadow = true;
+  lampLight.shadow.mapSize.width = 512;
+  lampLight.shadow.mapSize.height = 512;
+  addObj(lampLight);
+
+  /* Fill light from the far end so court isn't too dark */
+  var fillLight = new THREE.PointLight(0xaabbcc, 0.4, 25, 2);
+  fillLight.position.set(-3, 8, HOOP_POS.z - 4);
+  addObj(fillLight);
+
+  /* ── FLOOR — Asphalt court ── */
+  var floorGeo = new THREE.PlaneGeometry(30, 24);
+  var floorMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.95, metalness: 0.0 });
   court = new THREE.Mesh(floorGeo, floorMat);
   court.rotation.x = -Math.PI / 2;
   court.receiveShadow = true;
-  court.userData.courtObj = true;
-  scene.add(court);
+  addObj(court);
+
+  /* Sidewalk strip around the edges — lighter concrete */
+  var sidewalkMat = new THREE.MeshStandardMaterial({ color: 0x888880, roughness: 0.9, metalness: 0.0 });
+  [{ w: 2, d: 24, x: -11, z: -2 }, { w: 2, d: 24, x: 11, z: -2 }].forEach(function(s) {
+    var sw = new THREE.Mesh(new THREE.BoxGeometry(s.w, 0.08, s.d), sidewalkMat);
+    sw.position.set(s.x, 0.04, s.z);
+    sw.receiveShadow = true;
+    addObj(sw);
+  });
 
   /* Concrete crack lines on floor */
-  var crackMat = new THREE.LineBasicMaterial({ color: 0x888888, transparent: true, opacity: 0.3 });
+  var crackMat = new THREE.LineBasicMaterial({ color: 0x444444, transparent: true, opacity: 0.25 });
   var cracks = [
     [[-4, 0.015, 2], [-2, 0.015, -1], [0, 0.015, -3]],
     [[3, 0.015, 4], [5, 0.015, 1], [4, 0.015, -2]],
     [[-6, 0.015, -1], [-3, 0.015, -4], [1, 0.015, -5]],
-    [[7, 0.015, 3], [9, 0.015, 0]]
+    [[7, 0.015, 3], [9, 0.015, 0]],
+    [[-8, 0.015, 5], [-5, 0.015, 3], [-3, 0.015, 6]]
   ];
   cracks.forEach(function(crack) {
     var pts = crack.map(function(p) { return new THREE.Vector3(p[0], p[1], p[2]); });
-    var line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), crackMat);
-    line.userData.courtObj = true;
-    scene.add(line);
+    addObj(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), crackMat));
   });
 
-  /* Court lines - faded white/yellow painted on ground */
-  var lineColor = 0xddddcc;
-  var lineMat = new THREE.LineBasicMaterial({ color: lineColor, transparent: true, opacity: 0.6 });
+  /* ── COURT LINES ── */
+  var lineMat = new THREE.LineBasicMaterial({ color: 0xddddcc, transparent: true, opacity: 0.6 });
 
-  /* 3-point arc - FIXED ORIENTATION: arc curves on the POSITIVE Z side (near the shooter/camera) */
+  /* 3-point arc */
   var arcPts = [];
   for (var a = -90; a <= 90; a += 2) {
     var rad = a * Math.PI / 180;
     arcPts.push(new THREE.Vector3(Math.sin(rad) * THREE_PT_RADIUS, 0.02, HOOP_POS.z + Math.cos(rad) * THREE_PT_RADIUS));
   }
-  var arcLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(arcPts), lineMat);
-  arcLine.userData.courtObj = true;
-  scene.add(arcLine);
+  addObj(new THREE.Line(new THREE.BufferGeometry().setFromPoints(arcPts), lineMat));
 
   /* Free throw circle */
   var ftPts = [];
@@ -969,9 +984,7 @@ function buildCourtEnvironment(THREE) {
     var r2 = b * Math.PI / 180;
     ftPts.push(new THREE.Vector3(Math.cos(r2) * 1.8, 0.02, HOOP_POS.z + Math.sin(r2) * 1.8));
   }
-  var ftLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(ftPts), lineMat);
-  ftLine.userData.courtObj = true;
-  scene.add(ftLine);
+  addObj(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ftPts), lineMat));
 
   /* Key/paint box */
   var keyPts = [
@@ -979,91 +992,396 @@ function buildCourtEnvironment(THREE) {
     new THREE.Vector3(2.4, 0.02, HOOP_POS.z + 5.8), new THREE.Vector3(-2.4, 0.02, HOOP_POS.z + 5.8),
     new THREE.Vector3(-2.4, 0.02, HOOP_POS.z)
   ];
-  var keyLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(keyPts), lineMat);
-  keyLine.userData.courtObj = true;
-  scene.add(keyLine);
+  addObj(new THREE.Line(new THREE.BufferGeometry().setFromPoints(keyPts), lineMat));
 
   /* Baseline under hoop */
   var basePts = [new THREE.Vector3(-7, 0.02, HOOP_POS.z), new THREE.Vector3(7, 0.02, HOOP_POS.z)];
-  var baseLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(basePts), lineMat);
-  baseLine.userData.courtObj = true;
-  scene.add(baseLine);
+  addObj(new THREE.Line(new THREE.BufferGeometry().setFromPoints(basePts), lineMat));
 
-  /* Chain-link fence behind hoop */
-  var fenceColor = new THREE.Color(mapS.fenceColor);
-  var fenceH = 4, fenceW = 16;
-  var fenceMat = new THREE.MeshBasicMaterial({ color: fenceColor, wireframe: true, transparent: true, opacity: 0.4 });
-  var fenceGeo = new THREE.PlaneGeometry(fenceW, fenceH, 24, 12);
+  /* ══════════════════════════════════════════════════════════
+     LEFT BUILDING (negative X side) — warm brown brick
+     ══════════════════════════════════════════════════════════ */
+  var brickMat1 = new THREE.MeshStandardMaterial({ color: 0x8B6B4F, roughness: 0.92, metalness: 0.0 });
+  var brickMat2 = new THREE.MeshStandardMaterial({ color: 0x7B5B3F, roughness: 0.92, metalness: 0.0 });
+  var brickDark = new THREE.MeshStandardMaterial({ color: 0x6B4B2F, roughness: 0.9, metalness: 0.0 });
+  var windowMat = new THREE.MeshStandardMaterial({ color: 0x1a2a3a, roughness: 0.3, metalness: 0.1 });
+  var windowFrameMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.7, metalness: 0.3 });
+  var concreteMat = new THREE.MeshStandardMaterial({ color: 0x777770, roughness: 0.85, metalness: 0.0 });
+
+  /* Left main building body */
+  var leftBldgH = 16, leftBldgD = 22, leftBldgW = 5;
+  var leftBldg = new THREE.Mesh(new THREE.BoxGeometry(leftBldgW, leftBldgH, leftBldgD), brickMat1);
+  leftBldg.position.set(-12.5, leftBldgH / 2, -2);
+  leftBldg.castShadow = true;
+  leftBldg.receiveShadow = true;
+  addObj(leftBldg);
+
+  /* Left building facade wall (the face towards the court) */
+  var leftFacade = new THREE.Mesh(new THREE.BoxGeometry(0.3, leftBldgH, leftBldgD), brickMat1);
+  leftFacade.position.set(-10, leftBldgH / 2, -2);
+  leftFacade.castShadow = true;
+  leftFacade.receiveShadow = true;
+  addObj(leftFacade);
+
+  /* Left building windows (3 columns x 4 rows) — on the court-facing wall */
+  var winW = 1.0, winH = 1.4, winDepth = 0.15;
+  for (var row = 0; row < 4; row++) {
+    for (var col = 0; col < 3; col++) {
+      var wy = 3.0 + row * 3.2;
+      var wz = -6 + col * 5;
+      /* Window recess (dark) */
+      var win = new THREE.Mesh(new THREE.BoxGeometry(winDepth, winH, winW), windowMat);
+      win.position.set(-9.85, wy, wz);
+      addObj(win);
+      /* Window frame */
+      var frame = new THREE.Mesh(new THREE.BoxGeometry(winDepth + 0.02, winH + 0.15, winW + 0.15), windowFrameMat);
+      frame.position.set(-9.88, wy, wz);
+      addObj(frame);
+      /* Window sill */
+      var sill = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.06, winW + 0.3), concreteMat);
+      sill.position.set(-9.8, wy - winH / 2 - 0.03, wz);
+      addObj(sill);
+    }
+  }
+
+  /* Left building door */
+  var doorMat = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.8, metalness: 0.05 });
+  var door = new THREE.Mesh(new THREE.BoxGeometry(0.15, 2.4, 1.2), doorMat);
+  door.position.set(-9.85, 1.2, 2);
+  addObj(door);
+  /* Door frame */
+  var doorFrame = new THREE.Mesh(new THREE.BoxGeometry(0.18, 2.6, 1.4), windowFrameMat);
+  doorFrame.position.set(-9.88, 1.3, 2);
+  addObj(doorFrame);
+
+  /* Concrete stairs (3 steps) leading to door */
+  for (var step = 0; step < 3; step++) {
+    var stairW = 1.6 - step * 0.15;
+    var stairH = 0.18;
+    var stairD = 0.4;
+    var stair = new THREE.Mesh(new THREE.BoxGeometry(stairD, stairH, stairW), concreteMat);
+    stair.position.set(-9.3 + step * 0.35, stairH / 2 + step * stairH, 2);
+    stair.receiveShadow = true;
+    addObj(stair);
+  }
+
+  /* Left building rooftop ledge */
+  var leftLedge = new THREE.Mesh(new THREE.BoxGeometry(leftBldgW + 0.6, 0.3, leftBldgD + 0.3), concreteMat);
+  leftLedge.position.set(-12.5, leftBldgH + 0.15, -2);
+  addObj(leftLedge);
+
+  /* ══════════════════════════════════════════════════════════
+     RIGHT BUILDING (positive X side) — darker brick, slightly taller
+     ══════════════════════════════════════════════════════════ */
+  var rightBldgH = 18, rightBldgD = 22, rightBldgW = 6;
+  var rightBldg = new THREE.Mesh(new THREE.BoxGeometry(rightBldgW, rightBldgH, rightBldgD), brickMat2);
+  rightBldg.position.set(13, rightBldgH / 2, -2);
+  rightBldg.castShadow = true;
+  rightBldg.receiveShadow = true;
+  addObj(rightBldg);
+
+  /* Right building facade wall */
+  var rightFacade = new THREE.Mesh(new THREE.BoxGeometry(0.3, rightBldgH, rightBldgD), brickMat2);
+  rightFacade.position.set(10, rightBldgH / 2, -2);
+  rightFacade.castShadow = true;
+  rightFacade.receiveShadow = true;
+  addObj(rightFacade);
+
+  /* Right building windows (3 cols x 5 rows) */
+  for (var row2 = 0; row2 < 5; row2++) {
+    for (var col2 = 0; col2 < 3; col2++) {
+      var wy2 = 3.0 + row2 * 2.8;
+      var wz2 = -6 + col2 * 5;
+      var win2 = new THREE.Mesh(new THREE.BoxGeometry(winDepth, winH, winW), windowMat);
+      win2.position.set(9.85, wy2, wz2);
+      addObj(win2);
+      var frame2 = new THREE.Mesh(new THREE.BoxGeometry(winDepth + 0.02, winH + 0.15, winW + 0.15), windowFrameMat);
+      frame2.position.set(9.88, wy2, wz2);
+      addObj(frame2);
+      var sill2 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.06, winW + 0.3), concreteMat);
+      sill2.position.set(9.8, wy2 - winH / 2 - 0.03, wz2);
+      addObj(sill2);
+    }
+  }
+
+  /* Graffiti panels on right wall (bright colored rectangles) */
+  var graffitiColors = [0xe63946, 0x2a9d8f, 0xe9c46a, 0x264653, 0xf4a261, 0x9b5de5];
+  var graffitiPanels = [
+    { z: -3, y: 2.5, w: 2.8, h: 1.8 },
+    { z: 1.5, y: 3.0, w: 2.0, h: 2.5 },
+    { z: -7, y: 1.8, w: 3.5, h: 1.2 },
+    { z: 5, y: 2.2, w: 1.8, h: 1.5 }
+  ];
+  graffitiPanels.forEach(function(gp, i) {
+    var gMat = new THREE.MeshStandardMaterial({ color: graffitiColors[i % graffitiColors.length], roughness: 0.95, metalness: 0.0 });
+    var gMesh = new THREE.Mesh(new THREE.PlaneGeometry(gp.w, gp.h), gMat);
+    gMesh.rotation.y = -Math.PI / 2;
+    gMesh.position.set(9.83, gp.y, gp.z);
+    addObj(gMesh);
+  });
+
+  /* Small graffiti accent shapes overlapping panels */
+  var accentShapes = [
+    { z: -2.5, y: 3.2, r: 0.5, color: 0xffbe0b },
+    { z: 1.8, y: 2.2, r: 0.35, color: 0xff006e },
+    { z: -6.5, y: 2.0, r: 0.4, color: 0x3a86ff }
+  ];
+  accentShapes.forEach(function(as) {
+    var aMat = new THREE.MeshStandardMaterial({ color: as.color, roughness: 0.95 });
+    var aMesh = new THREE.Mesh(new THREE.CircleGeometry(as.r, 16), aMat);
+    aMesh.rotation.y = -Math.PI / 2;
+    aMesh.position.set(9.82, as.y, as.z);
+    addObj(aMesh);
+  });
+
+  /* Right building rooftop ledge */
+  var rightLedge = new THREE.Mesh(new THREE.BoxGeometry(rightBldgW + 0.6, 0.3, rightBldgD + 0.3), concreteMat);
+  rightLedge.position.set(13, rightBldgH + 0.15, -2);
+  addObj(rightLedge);
+
+  /* Dumpster near right building base */
+  var dumpsterMat = new THREE.MeshStandardMaterial({ color: 0x2d5a27, roughness: 0.8, metalness: 0.15 });
+  var dumpster = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.2, 1.0), dumpsterMat);
+  dumpster.position.set(9.0, 0.6, 6);
+  dumpster.castShadow = true;
+  addObj(dumpster);
+  /* Dumpster lid */
+  var lidMat = new THREE.MeshStandardMaterial({ color: 0x1a3a15, roughness: 0.7, metalness: 0.2 });
+  var lid = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.08, 1.1), lidMat);
+  lid.position.set(9.0, 1.24, 6);
+  addObj(lid);
+  /* Trash bags near dumpster */
+  var trashMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.95, metalness: 0.0 });
+  [{ x: 8.0, z: 6.3, s: 0.35 }, { x: 8.3, z: 5.5, s: 0.28 }].forEach(function(tb) {
+    var bag = new THREE.Mesh(new THREE.SphereGeometry(tb.s, 6, 5), trashMat);
+    bag.position.set(tb.x, tb.s * 0.7, tb.z);
+    bag.scale.y = 0.8;
+    addObj(bag);
+  });
+
+  /* ══════════════════════════════════════════════════════════
+     BEHIND HOOP (far Z) — Chain-link fence + background building
+     ══════════════════════════════════════════════════════════ */
+  var fenceColor = new THREE.Color(mapS.fenceColor || '#888888');
+  var fenceH = 5, fenceW = 20;
+  var fenceMat = new THREE.MeshBasicMaterial({ color: fenceColor, wireframe: true, transparent: true, opacity: 0.35 });
+  var fenceGeo = new THREE.PlaneGeometry(fenceW, fenceH, 30, 15);
   var fence = new THREE.Mesh(fenceGeo, fenceMat);
   fence.position.set(0, fenceH / 2, HOOP_POS.z - 2.5);
-  fence.userData.courtObj = true;
-  scene.add(fence);
+  addObj(fence);
 
-  /* Fence posts */
-  var postMat = new THREE.MeshStandardMaterial({ color: fenceColor, roughness: 0.6, metalness: 0.5 });
-  [-8, -4, 0, 4, 8].forEach(function(px) {
-    var postGeo = new THREE.CylinderGeometry(0.04, 0.04, fenceH, 6);
-    var post = new THREE.Mesh(postGeo, postMat);
-    post.position.set(px, fenceH / 2, HOOP_POS.z - 2.5);
-    post.userData.courtObj = true;
-    scene.add(post);
+  /* Fence posts (metal) */
+  var postMat = new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.5, metalness: 0.6 });
+  [-10, -6, -2, 2, 6, 10].forEach(function(px) {
+    var post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, fenceH + 0.5, 6), postMat);
+    post.position.set(px, (fenceH + 0.5) / 2, HOOP_POS.z - 2.5);
+    addObj(post);
+  });
+  /* Fence top rail */
+  var rail = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, fenceW, 8), postMat);
+  rail.rotation.z = Math.PI / 2;
+  rail.position.set(0, fenceH + 0.15, HOOP_POS.z - 2.5);
+  addObj(rail);
+
+  /* Background building visible behind the fence */
+  var bgBldgMat = new THREE.MeshStandardMaterial({ color: 0x6B4B2F, roughness: 0.9, metalness: 0.0 });
+  var bgBldg = new THREE.Mesh(new THREE.BoxGeometry(24, 14, 4), bgBldgMat);
+  bgBldg.position.set(0, 7, HOOP_POS.z - 6);
+  bgBldg.receiveShadow = true;
+  addObj(bgBldg);
+  /* Background building windows (faint, far away) */
+  var bgWinMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2a, roughness: 0.4, metalness: 0.1 });
+  for (var brow = 0; brow < 3; brow++) {
+    for (var bcol = 0; bcol < 6; bcol++) {
+      var bwin = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.1), bgWinMat);
+      bwin.position.set(-9 + bcol * 3.5, 3.5 + brow * 3.2, HOOP_POS.z - 3.98);
+      addObj(bwin);
+    }
+  }
+  /* Background building rooftop */
+  var bgLedge = new THREE.Mesh(new THREE.BoxGeometry(24.5, 0.35, 4.5), concreteMat);
+  bgLedge.position.set(0, 14.15, HOOP_POS.z - 6);
+  addObj(bgLedge);
+
+  /* ══════════════════════════════════════════════════════════
+     BEHIND CAMERA (near Z) — Wall facade closing off the court
+     ══════════════════════════════════════════════════════════ */
+  var backWallZ = 10;
+  var backWallMat = new THREE.MeshStandardMaterial({ color: 0x7B5B3F, roughness: 0.9, metalness: 0.0 });
+  var backWall = new THREE.Mesh(new THREE.BoxGeometry(24, 12, 1.5), backWallMat);
+  backWall.position.set(0, 6, backWallZ + 0.75);
+  backWall.receiveShadow = true;
+  addObj(backWall);
+  /* Back wall windows */
+  for (var bwRow = 0; bwRow < 2; bwRow++) {
+    for (var bwCol = 0; bwCol < 5; bwCol++) {
+      var bwWin = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.2), bgWinMat);
+      bwWin.position.set(-7 + bwCol * 3.5, 4 + bwRow * 3.5, backWallZ - 0.01);
+      addObj(bwWin);
+    }
+  }
+  /* Back wall ledge */
+  var backLedge = new THREE.Mesh(new THREE.BoxGeometry(24.5, 0.3, 2), concreteMat);
+  backLedge.position.set(0, 12.15, backWallZ + 0.75);
+  addObj(backLedge);
+
+  /* Street light (tall pole + lamp) — right side near camera */
+  var poleMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.6, metalness: 0.5 });
+  var lampPole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 7, 8), poleMat);
+  lampPole.position.set(8, 3.5, 8);
+  lampPole.castShadow = true;
+  addObj(lampPole);
+  /* Lamp arm (horizontal) */
+  var lampArm = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.5, 6), poleMat);
+  lampArm.rotation.z = Math.PI / 2;
+  lampArm.position.set(7.25, 6.8, 8);
+  addObj(lampArm);
+  /* Lamp head (warm glowing sphere) */
+  var lampHeadMat = new THREE.MeshStandardMaterial({ color: 0xffdd88, roughness: 0.3, metalness: 0.1, emissive: 0xffcc44, emissiveIntensity: 0.8 });
+  var lampHead = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 8), lampHeadMat);
+  lampHead.position.set(7.25, 7.0, 8);
+  addObj(lampHead);
+  /* Lamp shade/hood */
+  var shadeMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.7, metalness: 0.4 });
+  var shade = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.3, 8, 1, true), shadeMat);
+  shade.rotation.x = Math.PI;
+  shade.position.set(7.25, 7.2, 8);
+  addObj(shade);
+
+  /* Second street light — left side */
+  var lampPole2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 7, 8), poleMat);
+  lampPole2.position.set(-9, 3.5, 7);
+  lampPole2.castShadow = true;
+  addObj(lampPole2);
+  var lampArm2 = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.5, 6), poleMat);
+  lampArm2.rotation.z = -Math.PI / 2;
+  lampArm2.position.set(-8.25, 6.8, 7);
+  addObj(lampArm2);
+  var lampHead2 = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 8), lampHeadMat);
+  lampHead2.position.set(-8.25, 7.0, 7);
+  addObj(lampHead2);
+
+  /* ══════════════════════════════════════════════════════════
+     GROUND DETAILS — puddles, manhole, curb
+     ══════════════════════════════════════════════════════════ */
+  /* Curb/border between sidewalk and court on both sides */
+  var curbMat = new THREE.MeshStandardMaterial({ color: 0x999990, roughness: 0.85 });
+  [{ x: -10, z: -2 }, { x: 10, z: -2 }].forEach(function(cp) {
+    var curb = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 22), curbMat);
+    curb.position.set(cp.x, 0.075, cp.z);
+    curb.receiveShadow = true;
+    addObj(curb);
   });
 
-  /* Trees/bushes in background */
-  var treeMat = new THREE.MeshStandardMaterial({ color: 0x2d8a4e, roughness: 0.9 });
-  var trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4226, roughness: 0.9 });
-  var treePositions = [[-10, HOOP_POS.z - 6], [-7, HOOP_POS.z - 7], [7, HOOP_POS.z - 7], [10, HOOP_POS.z - 6], [12, HOOP_POS.z - 5], [-12, HOOP_POS.z - 5]];
-  treePositions.forEach(function(tp) {
-    var h = 2.5 + Math.random() * 2;
-    /* Trunk */
-    var tGeo = new THREE.CylinderGeometry(0.12, 0.15, h * 0.5, 6);
-    var trunk = new THREE.Mesh(tGeo, trunkMat);
-    trunk.position.set(tp[0], h * 0.25, tp[1]);
-    trunk.castShadow = true;
-    trunk.userData.courtObj = true;
-    scene.add(trunk);
-    /* Canopy - cone */
-    var cGeo = new THREE.ConeGeometry(1.0 + Math.random() * 0.5, h * 0.6, 8);
-    var canopy = new THREE.Mesh(cGeo, treeMat);
-    canopy.position.set(tp[0], h * 0.5 + h * 0.3, tp[1]);
-    canopy.castShadow = true;
-    canopy.userData.courtObj = true;
-    scene.add(canopy);
+  /* Manhole cover */
+  var manholeMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.7, metalness: 0.4 });
+  var manhole = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.03, 16), manholeMat);
+  manhole.position.set(-3, 0.02, 4);
+  manhole.receiveShadow = true;
+  addObj(manhole);
+  /* Manhole cross lines */
+  var mhLineMat = new THREE.LineBasicMaterial({ color: 0x555555 });
+  [0, Math.PI / 2].forEach(function(angle) {
+    var pts = [
+      new THREE.Vector3(-3 + Math.cos(angle) * 0.35, 0.04, 4 + Math.sin(angle) * 0.35),
+      new THREE.Vector3(-3 - Math.cos(angle) * 0.35, 0.04, 4 - Math.sin(angle) * 0.35)
+    ];
+    addObj(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mhLineMat));
   });
 
-  /* Bushes */
-  var bushMat = new THREE.MeshStandardMaterial({ color: 0x3a9e5c, roughness: 0.9 });
-  [[-5, HOOP_POS.z - 4], [5, HOOP_POS.z - 4], [-9, HOOP_POS.z - 3.5], [9, HOOP_POS.z - 3.5]].forEach(function(bp) {
-    var bGeo = new THREE.SphereGeometry(0.5 + Math.random() * 0.3, 8, 6);
-    var bush = new THREE.Mesh(bGeo, bushMat);
-    bush.position.set(bp[0], 0.4, bp[1]);
-    bush.scale.y = 0.7;
-    bush.userData.courtObj = true;
-    scene.add(bush);
+  /* Small puddle (reflective dark circle) */
+  var puddleMat = new THREE.MeshStandardMaterial({ color: 0x334455, roughness: 0.1, metalness: 0.6, transparent: true, opacity: 0.5 });
+  var puddle = new THREE.Mesh(new THREE.CircleGeometry(0.6, 16), puddleMat);
+  puddle.rotation.x = -Math.PI / 2;
+  puddle.position.set(5, 0.01, 2);
+  addObj(puddle);
+
+  /* ══════════════════════════════════════════════════════════
+     ALLEY PROPS — bench, old crate, fire escape hints
+     ══════════════════════════════════════════════════════════ */
+  /* Wooden bench against left building */
+  var benchMat = new THREE.MeshStandardMaterial({ color: 0x8B6914, roughness: 0.85 });
+  var benchSeat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 2.0), benchMat);
+  benchSeat.position.set(-9.5, 0.5, -2);
+  addObj(benchSeat);
+  var blegMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.7, metalness: 0.4 });
+  [[-9.5, -2.8], [-9.5, -1.2]].forEach(function(lp) {
+    var leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.5, 0.06), blegMat);
+    leg.position.set(lp[0], 0.25, lp[1]);
+    addObj(leg);
   });
 
-  /* Bench on the side */
-  var benchMat = new THREE.MeshStandardMaterial({ color: 0x8B6914, roughness: 0.8 });
-  var benchSeatGeo = new THREE.BoxGeometry(2.5, 0.1, 0.5);
-  var benchSeat = new THREE.Mesh(benchSeatGeo, benchMat);
-  benchSeat.position.set(-9, 0.55, 2);
-  benchSeat.userData.courtObj = true;
-  scene.add(benchSeat);
-  /* Bench legs */
-  var legMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.7, metalness: 0.5 });
-  [[-10, 2], [-8.5, 2], [-10, 2.4], [-8.5, 2.4]].forEach(function(lp) {
-    var legGeo = new THREE.BoxGeometry(0.06, 0.55, 0.06);
-    var leg = new THREE.Mesh(legGeo, legMat);
-    leg.position.set(lp[0], 0.275, lp[1]);
-    leg.userData.courtObj = true;
-    scene.add(leg);
+  /* Old wooden crate stack near left building */
+  var crateMat = new THREE.MeshStandardMaterial({ color: 0x9a7b4f, roughness: 0.9, metalness: 0.0 });
+  var crate1 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), crateMat);
+  crate1.position.set(-9.2, 0.35, -5);
+  crate1.castShadow = true;
+  addObj(crate1);
+  var crate2 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), crateMat);
+  crate2.position.set(-9.0, 1.0, -5);
+  crate2.rotation.y = 0.3;
+  crate2.castShadow = true;
+  addObj(crate2);
+
+  /* Fire escape hint — metal platforms on left building wall */
+  var fireMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.6, metalness: 0.5 });
+  [5.5, 8.5, 11.5].forEach(function(feY) {
+    var platform = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.06, 1.0), fireMat);
+    platform.position.set(-9.3, feY, -4);
+    addObj(platform);
+    /* Railing */
+    var railing = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.8, 1.0), fireMat);
+    railing.position.set(-8.55, feY + 0.4, -4);
+    addObj(railing);
+    /* Vertical support */
+    var support = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 3, 4), fireMat);
+    support.position.set(-8.55, feY - 1.5, -4);
+    addObj(support);
   });
-  /* Bench backrest */
-  var backGeo = new THREE.BoxGeometry(2.5, 0.6, 0.05);
-  var backRest = new THREE.Mesh(backGeo, benchMat);
-  backRest.position.set(-9, 0.9, 2.45);
-  backRest.userData.courtObj = true;
-  scene.add(backRest);
+
+  /* Trash can near left building (cylindrical) */
+  var trashCanMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.7, metalness: 0.3 });
+  var trashCan = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 0.7, 10), trashCanMat);
+  trashCan.position.set(-9.3, 0.35, 5);
+  trashCan.castShadow = true;
+  addObj(trashCan);
+
+  /* ══════════════════════════════════════════════════════════
+     CLOUDS — flat white transparent planes high up
+     ══════════════════════════════════════════════════════════ */
+  var cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.45, roughness: 1.0, metalness: 0.0, side: THREE.DoubleSide });
+  var cloudPositions = [
+    { x: -3, y: 22, z: -4, w: 5, h: 1.5 },
+    { x: 4, y: 25, z: -2, w: 4, h: 1.2 },
+    { x: -1, y: 28, z: 2, w: 6, h: 1.8 },
+    { x: 2, y: 20, z: -8, w: 3, h: 1.0 }
+  ];
+  cloudPositions.forEach(function(cp) {
+    var cloud = new THREE.Mesh(new THREE.PlaneGeometry(cp.w, cp.h), cloudMat);
+    cloud.position.set(cp.x, cp.y, cp.z);
+    cloud.rotation.x = -Math.PI / 2;
+    addObj(cloud);
+  });
+
+  /* ══════════════════════════════════════════════════════════
+     CORNER FILL — connect buildings so there are no open gaps
+     ══════════════════════════════════════════════════════════ */
+  /* Left-back corner fill */
+  var cornerFill1 = new THREE.Mesh(new THREE.BoxGeometry(5, 15, 2), brickDark);
+  cornerFill1.position.set(-12, 7.5, HOOP_POS.z - 4);
+  addObj(cornerFill1);
+  /* Right-back corner fill */
+  var cornerFill2 = new THREE.Mesh(new THREE.BoxGeometry(6, 17, 2), brickDark);
+  cornerFill2.position.set(13, 8.5, HOOP_POS.z - 4);
+  addObj(cornerFill2);
+  /* Left-front corner fill */
+  var cornerFill3 = new THREE.Mesh(new THREE.BoxGeometry(5, 14, 2), brickMat1);
+  cornerFill3.position.set(-12, 7, backWallZ);
+  addObj(cornerFill3);
+  /* Right-front corner fill */
+  var cornerFill4 = new THREE.Mesh(new THREE.BoxGeometry(6, 14, 2), brickMat2);
+  cornerFill4.position.set(13, 7, backWallZ);
+  addObj(cornerFill4);
 }
 
 function rebuildCourtEnvironment() {
