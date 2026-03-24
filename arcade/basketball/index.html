@@ -579,9 +579,10 @@ var cosmeticMapValue = null;
 function applyCosmeticStyles() {
   var bs = myCosmetics['Ball Skin'];
   if (bs && bs.value) cosmeticBallColor = bs.value.color;
-  var mv = myCosmetics['Map'];
-  if (mv && mv.value) cosmeticMapValue = mv.value;
-  else cosmeticMapValue = null;
+  /* Apply to 3D ball immediately if it exists */
+  if (ball && ball.material) {
+    ball.material.color.set(cosmeticBallColor);
+  }
 }
 
 function getActiveMapSettings() {
@@ -594,7 +595,7 @@ function showShopScreen() {
   showScreen('shopScreen');
   if (typeof odaShop !== 'undefined') {
     odaShop.renderShopPanel('basketball', BASKETBALL_SHOP, 'shopContainer', {
-      onEquip: function() { loadMyCosmetics(); if (threeInited) rebuildCourtEnvironment(); },
+      onEquip: function() { loadMyCosmetics(); },
       onBuy: function() { loadMyCosmetics(); }
     });
   }
@@ -723,7 +724,7 @@ async function createQuickMatch() {
       guest: '', guestName: '',
       hostScore: 0, guestScore: 0,
       hostDone: false, guestDone: false,
-      difficulty: difficulty, status: 'waiting',
+      difficulty: 2, status: 'waiting',
       created: new Date().toISOString()
     });
     qmIsHost = true;
@@ -763,6 +764,7 @@ async function joinQuickMatch() {
 function startQuickMatchGame() {
   if (qmUnsubscribe) { qmUnsubscribe(); qmUnsubscribe = null; }
   gameMode = 'quick';
+  difficulty = 2; /* Quick Match always hard */
   startGame();
 }
 
