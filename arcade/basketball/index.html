@@ -49,6 +49,19 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .home-header h1{font-size:clamp(48px,10vw,64px);font-weight:700;letter-spacing:-2px}
 .home-header h1 .hl{color:#f97316}
 .home-header p{color:var(--text2);font-size:15px;margin-top:4px}
+
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:700px;width:90%;margin:0 auto}
+.mode-card{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:24px 20px;text-align:center;cursor:pointer;transition:all .18s}
+.mode-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(6,214,160,.10)}
+.mode-card:active{transform:scale(.97)}
+.mode-icon{font-size:36px;display:block;margin-bottom:10px}
+.mode-card h3{font-size:18px;margin-bottom:6px}
+.mode-card p{font-size:13px;color:var(--text2);line-height:1.4}
+.mode-card.teacher-card{border-color:var(--gold);background:rgba(255,209,102,.05)}
+.mode-card.teacher-card:hover{border-color:var(--gold);box-shadow:0 0 24px rgba(255,209,102,.15)}
+
+.quick-stats{display:flex;gap:12px;justify-content:center;margin-top:28px;flex-wrap:wrap}
+
 .best-pill{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:12px 24px;font-size:16px;font-weight:600}
 .best-pill .bp-label{color:var(--text2)}
 .best-pill .bp-val{color:var(--gold);font-weight:800;font-size:22px;font-family:'Fredoka',sans-serif}
@@ -99,12 +112,12 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .power-wrap{position:absolute;right:80px;top:50%;transform:translateY(-50%);width:60px;display:none;flex-direction:column;align-items:center;gap:8px;z-index:6}
 @media(max-width:600px){.power-wrap{right:50px}}
 .power-bar{width:56px;height:340px;background:rgba(20,20,30,.9);border-radius:28px;border:3px solid rgba(255,255,255,.3);overflow:hidden;position:relative;box-shadow:0 0 20px rgba(0,0,0,.5),inset 0 0 10px rgba(0,0,0,.3)}
-.power-fill{position:absolute;bottom:0;left:4px;right:4px;height:0%;background:linear-gradient(to top,#f97316,#fb923c);transition:none;border-radius:0 0 22px 22px;box-shadow:0 -4px 12px rgba(249,115,22,.4);z-index:2}
+.power-fill{position:absolute;bottom:0;left:4px;right:4px;height:0%;background:linear-gradient(to top,#f97316,#fb923c);transition:none;border-radius:0 0 22px 22px;box-shadow:0 -4px 12px rgba(249,115,22,.4);z-index:1}
 .power-zone{position:absolute;left:0;right:0;pointer-events:none;z-index:4}
-.power-zone.zone-green{background:linear-gradient(to right,#06d6a0,#10b981);box-shadow:0 0 12px rgba(6,214,160,.3);border-top:3px solid #ef4444;border-bottom:3px solid #ef4444}
-.power-zone.zone-purple{background:linear-gradient(to right,#8b5cf6,#7c3aed);box-shadow:0 0 12px rgba(139,92,246,.3);border-bottom:3px solid #ef4444}
+.power-zone.zone-green{background:linear-gradient(to right,#06d6a0,#10b981);box-shadow:0 0 12px rgba(6,214,160,.3)}
+.power-zone.zone-purple{background:linear-gradient(to right,#8b5cf6,#7c3aed);box-shadow:0 0 12px rgba(139,92,246,.3)}
 .zone-label{position:absolute;left:50%;transform:translateX(-50%);font-family:'Fredoka',sans-serif;font-size:10px;font-weight:900;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.8);letter-spacing:.5px;white-space:nowrap;top:50%;margin-top:-7px;z-index:5}
-.power-arrow{position:absolute;left:-12px;width:0;height:0;border-top:8px solid transparent;border-bottom:8px solid transparent;border-left:10px solid #fff;filter:drop-shadow(0 0 4px rgba(255,255,255,.5));transition:bottom 16ms linear;z-index:2}
+.power-arrow{position:absolute;left:-16px;width:0;height:0;border-top:10px solid transparent;border-bottom:10px solid transparent;border-left:12px solid #fbbf24;filter:drop-shadow(0 0 6px rgba(251,191,36,.6));transition:bottom 16ms linear;z-index:8}
 .power-text{font-family:'Fredoka',sans-serif;font-size:13px;font-weight:700;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:1px;text-align:center;white-space:nowrap;text-shadow:0 1px 4px rgba(0,0,0,.3)}
 
 /* SHOT POPUP */
@@ -198,32 +211,39 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <h1>&#127936; <span class="hl">3PT Showdown</span></h1>
     <p>Time your release. Drain threes. Be unconscious.</p>
   </div>
-  <div class="best-pill"><span class="bp-label">&#127942; Best</span><span class="bp-val" id="homeBest">0</span></div>
-  <div class="mode-row">
-    <div class="mode-btn active" data-mode="contest" onclick="selectMode(this)">&#127942; 3-Point Contest</div>
-    <div class="mode-btn" data-mode="timed" onclick="selectMode(this)">&#9201; Timed (45s)</div>
-    <div class="mode-btn" data-mode="vs" onclick="selectMode(this)">&#129302; VS Computer</div>
-    <div class="mode-btn" data-mode="quick" onclick="selectMode(this)">&#127760; Quick Match</div>
+  <div class="mode-grid" id="modeGrid">
+    <div class="card mode-card" onclick="selectModeAndPlay('contest')">
+      <span class="mode-icon">&#127942;</span>
+      <h3>3-Point Contest</h3>
+      <p>25 shots from 5 positions</p>
+    </div>
+    <div class="card mode-card" onclick="selectModeAndPlay('timed')">
+      <span class="mode-icon">&#9201;</span>
+      <h3>Timed Mode</h3>
+      <p>Score as many as you can in 45 seconds</p>
+    </div>
+    <div class="card mode-card" onclick="selectModeAndPlay('vs')">
+      <span class="mode-icon">&#129302;</span>
+      <h3>VS Computer</h3>
+      <p>Head-to-head against the AI</p>
+    </div>
+    <div class="card mode-card" onclick="showScreen('quickMatchScreen')">
+      <span class="mode-icon">&#9889;</span>
+      <h3>Quick Match</h3>
+      <p>Play a friend with a room code</p>
+    </div>
+    <div class="card mode-card" onclick="showScreen('recordsScreen')">
+      <span class="mode-icon">&#128202;</span>
+      <h3>Records</h3>
+      <p>View your stats and class leaderboard</p>
+    </div>
+    <div class="card mode-card" onclick="showShopScreen()">
+      <span class="mode-icon">&#x1f6cd;&#xfe0f;</span>
+      <h3>Shop</h3>
+      <p>Balls, courts &amp; effects</p>
+    </div>
   </div>
-  <div class="diff-row" id="diffRow">
-    <button class="diff-btn active" data-diff="0" onclick="selectDiff(this)">Easy</button>
-    <button class="diff-btn" data-diff="1" onclick="selectDiff(this)">Medium</button>
-    <button class="diff-btn" data-diff="2" onclick="selectDiff(this)">Hard</button>
-  </div>
-  <div class="ai-diff-row" id="aiDiffRow" style="display:none">
-    <!-- Hidden — using single difficulty row for everything -->
-  </div>
-  <div class="home-actions">
-    <button class="btn btn-accent" id="playBtn" style="font-size:18px;padding:16px 48px;background:#f97316">&#127936; Play</button>
-    <button class="btn btn-outline btn-small" id="recordsBtn">Records &amp; Leaderboard</button>
-    <button class="btn btn-outline btn-small" id="shopBtn">&#128717;&#65039; Shop</button>
-  </div>
-  <div class="stats-row">
-    <div class="sr">&#127918; Games <span id="homeGames">0</span></div>
-    <div class="sr">&#127942; Swishes <span id="homeSwishes">0</span></div>
-    <div class="sr">&#128293; Best Streak <span id="homeStreak">0</span></div>
-  </div>
-  <div class="how-to"><h3>How to Play</h3><p>HOLD click or SPACE to fill the power meter. Release in the GREEN zone for a perfect swish (+3). BACKBOARD zone banks it in (+2). Red zones miss. Gold balls are worth DOUBLE!</p></div>
+  <div class="quick-stats" id="quickStats"></div>
 </div>
 
 <!-- GAME SCREEN -->
@@ -252,8 +272,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <div class="power-wrap" id="powerWrap">
       <div class="power-bar" id="powerBar">
         <div class="power-fill" id="powerFill"></div>
-        <div class="power-zone zone-purple" id="zBackboard"><span class="zone-label">BANK</span></div>
-        <div class="power-zone zone-green" id="zGreen"><span class="zone-label">PERFECT</span></div>
+        <div class="power-zone zone-purple" id="zBackboard"></div>
+        <div class="power-zone zone-green" id="zGreen"></div>
         <div class="power-arrow" id="powerArrow"></div>
       </div>
       <div class="power-text" id="powerText">HOLD</div>
@@ -426,12 +446,11 @@ document.getElementById('backBtn').onclick = function(e) {
   }
 };
 
-document.getElementById('playBtn').onclick = function() {
-  if (gameMode === 'quick') { showScreen('quickMatchScreen'); return; }
+function selectModeAndPlay(mode) {
+  gameMode = mode;
   startGame();
-};
-document.getElementById('recordsBtn').onclick = function() { showScreen('recordsScreen'); };
-document.getElementById('shopBtn').onclick = function() { showShopScreen(); };
+}
+window.selectModeAndPlay = selectModeAndPlay;
 
 /* ── DIFFICULTY & MODE ──────────────────────────────────── */
 var difficulty = 0;
