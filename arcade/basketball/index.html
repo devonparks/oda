@@ -2209,11 +2209,13 @@ function showTurnBanner(text) {
 }
 
 /* ── START GAME ───────────────────────────────────────────── */
-function startGame() {
+async function startGame() {
   showScreen('gameScreen');
   if (!threeInited) initThree();
   /* Ensure loading overlay is hidden (in case initThree was already called) */
   document.getElementById('loadingOverlay').style.display = 'none';
+  /* Load cosmetics before applying ball color */
+  await loadMyCosmetics();
   /* Resize renderer now that game screen is visible */
   if (renderer) {
     var wrap = document.getElementById('canvasWrap');
