@@ -114,7 +114,7 @@ var _coverThemes={
   dodgeball:   {g1:'#020e08',g2:'#1a050a',titleColor:'#06d6a0',titleGlow:'#ef4444',titleFont:'bold 30px Fredoka,sans-serif'},
   war:         {g1:'#0a0514',g2:'#1a0505',titleColor:'#ef4444',titleGlow:'#dc2626',titleFont:'bold 42px Fredoka,sans-serif'},
   sudoku:      {g1:'#050a1e',g2:'#0a1428',titleColor:'#60a5fa',titleGlow:'#3b82f6',titleFont:'bold 36px Fredoka,sans-serif'},
-  basketball:  {g1:'#1a0a02',g2:'#0a0514',titleColor:'#f97316',titleGlow:'#ea580c',titleFont:'bold 32px Fredoka,sans-serif'}
+  basketball:  {g1:'#1a0a02',g2:'#0a0514',titleColor:'#f97316',titleGlow:'#ea580c',titleFont:'bold 26px Fredoka,sans-serif'}
 };
 
 /* ── polished game-specific cover art ──────────────────────────── */
