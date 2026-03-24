@@ -1835,10 +1835,20 @@ function showTurnBanner(text) {
 
 /* ── START GAME ───────────────────────────────────────────── */
 function startGame() {
+  showScreen('gameScreen');
   if (!threeInited) {
     initThree();
   }
-  showScreen('gameScreen');
+  // Resize renderer now that game screen is visible
+  if (renderer) {
+    var wrap = document.getElementById('canvasWrap');
+    var W = wrap.clientWidth, H = wrap.clientHeight;
+    if (W > 0 && H > 0) {
+      renderer.setSize(W, H);
+      camera.aspect = W / H;
+      camera.updateProjectionMatrix();
+    }
+  }
   stopGame();
 
   /* Reset state */
