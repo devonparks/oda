@@ -215,7 +215,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <button class="ai-diff-btn" data-ai="2" onclick="selectAiDiff(this)">Hard CPU</button>
   </div>
   <div class="home-actions">
-    <button class="btn btn-accent" id="playBtn" style="font-size:18px;padding:16px 48px;background:#f97316">&#127936; Play</button>
+    <button class="btn btn-accent" id="playBtn" style="font-size:18px;padding:16px 48px;background:#f97316" onclick="if(window.startGame)window.startGame()">&#127936; Play</button>
     <button class="btn btn-outline btn-small" id="recordsBtn">Records &amp; Leaderboard</button>
     <button class="btn btn-outline btn-small" id="shopBtn">&#128717;&#65039; Shop</button>
   </div>
@@ -1839,16 +1839,20 @@ function startGame() {
   if (!threeInited) {
     initThree();
   }
-  // Resize renderer now that game screen is visible
-  if (renderer) {
-    var wrap = document.getElementById('canvasWrap');
-    var W = wrap.clientWidth, H = wrap.clientHeight;
-    if (W > 0 && H > 0) {
-      renderer.setSize(W, H);
-      camera.aspect = W / H;
-      camera.updateProjectionMatrix();
-    }
-  }
+  // Resize renderer after a frame so the DOM has painted the game screen
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      if (renderer) {
+        var wrap = document.getElementById('canvasWrap');
+        var W = wrap.clientWidth, H = wrap.clientHeight;
+        if (W > 0 && H > 0) {
+          renderer.setSize(W, H);
+          camera.aspect = W / H;
+          camera.updateProjectionMatrix();
+        }
+      }
+    });
+  });
   stopGame();
 
   /* Reset state */
