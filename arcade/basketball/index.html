@@ -782,10 +782,32 @@ async function submitQuickMatchScore(finalScore) {
     var upd = {}; upd[field] = finalScore; upd[doneField] = true;
     await fb.fsMod.updateDoc(qmDocRef, upd);
     var otherDone = qmIsHost ? 'guestDone' : 'hostDone';
+    var otherPlayer = qmIsHost ? 'guest' : 'host';
+
+    /* Timeout: if opponent doesn't finish in 30s, they forfeit */
+    var qmTimeout = setTimeout(function() {
+      if (qmUnsubscribe) { qmUnsubscribe(); qmUnsubscribe = null; }
+      showQuickMatchResult(finalScore, 0, 'Opponent (forfeit)');
+    }, 30000);
+
     qmUnsubscribe = fb.fsMod.onSnapshot(qmDocRef, function(snap) {
-      if (!snap.exists()) return;
+      if (!snap.exists()) {
+        /* Room deleted — opponent left */
+        clearTimeout(qmTimeout);
+        if (qmUnsubscribe) { qmUnsubscribe(); qmUnsubscribe = null; }
+        showQuickMatchResult(finalScore, 0, 'Opponent (left)');
+        return;
+      }
       var d = snap.data();
+      /* Opponent left the room */
+      if (!d[otherPlayer]) {
+        clearTimeout(qmTimeout);
+        if (qmUnsubscribe) { qmUnsubscribe(); qmUnsubscribe = null; }
+        showQuickMatchResult(finalScore, 0, 'Opponent (left)');
+        return;
+      }
       if (d[otherDone]) {
+        clearTimeout(qmTimeout);
         if (qmUnsubscribe) { qmUnsubscribe(); qmUnsubscribe = null; }
         var opScore = qmIsHost ? d.guestScore : d.hostScore;
         var opName = qmIsHost ? d.guestName : d.hostName;
