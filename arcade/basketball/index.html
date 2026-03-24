@@ -109,14 +109,14 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .hud-gold{font-family:'Fredoka',sans-serif;font-size:14px;font-weight:700;color:var(--gold);text-shadow:0 0 8px rgba(255,209,102,.5)}
 
 /* POWER METER - Basketball Stars style */
-.power-wrap{position:absolute;right:80px;top:50%;transform:translateY(-50%);width:60px;display:none;flex-direction:column;align-items:center;gap:8px;z-index:6}
-@media(max-width:600px){.power-wrap{right:50px}}
+.power-wrap{position:absolute;right:100px;top:50%;transform:translateY(-50%);width:60px;display:none;flex-direction:column;align-items:center;gap:8px;z-index:6}
+@media(max-width:600px){.power-wrap{right:60px}}
 .power-bar{width:56px;height:340px;background:rgba(20,20,30,.9);border-radius:28px;border:3px solid rgba(255,255,255,.3);overflow:hidden;position:relative;box-shadow:0 0 20px rgba(0,0,0,.5),inset 0 0 10px rgba(0,0,0,.3)}
-.power-fill{position:absolute;bottom:0;left:4px;right:4px;height:0%;background:linear-gradient(to top,#f97316,#fb923c);transition:none;border-radius:0 0 22px 22px;box-shadow:0 -4px 12px rgba(249,115,22,.4);z-index:1}
-.power-zone{position:absolute;left:0;right:0;pointer-events:none;z-index:4}
+.power-zone{position:absolute;left:0;right:0;pointer-events:none;z-index:1}
 .power-zone.zone-green{background:linear-gradient(to right,#06d6a0,#10b981);box-shadow:0 0 12px rgba(6,214,160,.3)}
 .power-zone.zone-purple{background:linear-gradient(to right,#8b5cf6,#7c3aed);box-shadow:0 0 12px rgba(139,92,246,.3)}
-.zone-label{position:absolute;left:50%;transform:translateX(-50%);font-family:'Fredoka',sans-serif;font-size:10px;font-weight:900;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.8);letter-spacing:.5px;white-space:nowrap;top:50%;margin-top:-7px;z-index:5}
+.zone-label{position:absolute;left:50%;transform:translateX(-50%);font-family:'Fredoka',sans-serif;font-size:10px;font-weight:900;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.8);letter-spacing:.5px;white-space:nowrap;top:50%;margin-top:-7px;z-index:2}
+.power-fill{position:absolute;bottom:0;left:4px;right:4px;height:0%;background:linear-gradient(to top,#f97316,#fb923c);transition:none;border-radius:0 0 22px 22px;box-shadow:0 -4px 12px rgba(249,115,22,.4);z-index:3}
 .power-arrow{position:absolute;left:-16px;width:0;height:0;border-top:10px solid transparent;border-bottom:10px solid transparent;border-left:12px solid #fbbf24;filter:drop-shadow(0 0 6px rgba(251,191,36,.6));transition:bottom 16ms linear;z-index:8}
 .power-text{font-family:'Fredoka',sans-serif;font-size:13px;font-weight:700;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:1px;text-align:center;white-space:nowrap;text-shadow:0 1px 4px rgba(0,0,0,.3)}
 
@@ -212,16 +212,6 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <p>Time your release. Drain threes. Be unconscious.</p>
   </div>
   <div class="mode-grid" id="modeGrid">
-    <div class="card mode-card" onclick="selectModeAndPlay('contest')">
-      <span class="mode-icon">&#127942;</span>
-      <h3>3-Point Contest</h3>
-      <p>25 shots from 5 positions</p>
-    </div>
-    <div class="card mode-card" onclick="selectModeAndPlay('timed')">
-      <span class="mode-icon">&#9201;</span>
-      <h3>Timed Mode</h3>
-      <p>Score as many as you can in 45 seconds</p>
-    </div>
     <div class="card mode-card" onclick="selectModeAndPlay('vs')">
       <span class="mode-icon">&#129302;</span>
       <h3>VS Computer</h3>
@@ -231,6 +221,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <span class="mode-icon">&#9889;</span>
       <h3>Quick Match</h3>
       <p>Play a friend with a room code</p>
+    </div>
+    <div class="card mode-card" onclick="showPracticePicker()">
+      <span class="mode-icon">&#127942;</span>
+      <h3>Practice</h3>
+      <p>3-Point Contest &amp; Timed drills</p>
     </div>
     <div class="card mode-card" onclick="showScreen('recordsScreen')">
       <span class="mode-icon">&#128202;</span>
@@ -271,9 +266,9 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     </div>
     <div class="power-wrap" id="powerWrap">
       <div class="power-bar" id="powerBar">
+        <div class="power-zone zone-purple" id="zBackboard"><span class="zone-label">BANK</span></div>
+        <div class="power-zone zone-green" id="zGreen"><span class="zone-label">PERFECT</span></div>
         <div class="power-fill" id="powerFill"></div>
-        <div class="power-zone zone-purple" id="zBackboard"></div>
-        <div class="power-zone zone-green" id="zGreen"></div>
         <div class="power-arrow" id="powerArrow"></div>
       </div>
       <div class="power-text" id="powerText">HOLD</div>
@@ -489,6 +484,23 @@ function closeDiffPicker() {
 }
 window.closeDiffPicker = closeDiffPicker;
 
+function showPracticePicker() {
+  var existing = document.getElementById('diffPickerOverlay');
+  if (existing) existing.remove();
+  var overlay = document.createElement('div');
+  overlay.id = 'diffPickerOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:16px;animation:fadeUp .25s ease';
+  overlay.innerHTML = '<h2 style="font-size:28px;color:#f97316;font-family:Fredoka,sans-serif">Practice Mode</h2>'
+    + '<p style="color:var(--text2);font-size:14px">Choose a drill:</p>'
+    + '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">'
+    + '<button class="btn btn-small" style="background:#06d6a0;color:#111;font-weight:700;min-width:160px" onclick="closeDiffPicker();selectModeAndPlay(\'contest\')">3-Point Contest</button>'
+    + '<button class="btn btn-small" style="background:#f97316;color:#fff;font-weight:700;min-width:160px" onclick="closeDiffPicker();selectModeAndPlay(\'timed\')">Timed Mode</button>'
+    + '</div>'
+    + '<button class="btn btn-outline btn-small" style="margin-top:8px" onclick="closeDiffPicker()">Cancel</button>';
+  document.body.appendChild(overlay);
+}
+window.showPracticePicker = showPracticePicker;
+
 /* ── DIFFICULTY & MODE ──────────────────────────────────── */
 var difficulty = 0;
 var gameMode = 'contest';
@@ -551,13 +563,7 @@ var BASKETBALL_SHOP = [
   { id: 'streak_classic', name: 'Classic', emoji: '\u{2728}', cost: 0, slot: 'Streak Effect', value: { type: 'classic' } },
   { id: 'streak_lightning', name: 'Lightning', emoji: '\u{26A1}', cost: 250, slot: 'Streak Effect', value: { type: 'lightning' } },
   { id: 'streak_sparkles', name: 'Sparkles', emoji: '\u{2728}', cost: 300, slot: 'Streak Effect', value: { type: 'sparkles' } },
-  { id: 'streak_plasma', name: 'Plasma', emoji: '\u{1F4AB}', cost: 400, slot: 'Streak Effect', value: { type: 'plasma' } },
-  { id: 'map_playground', name: 'Playground', emoji: '\u{1F3D7}', cost: 0, slot: 'Map', value: { floor: '#999999', sky: '#87CEEB', light: '#ffffff', ambient: '#c8e0ff', netStyle: 'chain', fenceColor: '#888888' } },
-  { id: 'map_street', name: 'Street Court', emoji: '\u{1F3D9}', cost: 150, slot: 'Map', value: { floor: '#555555', sky: '#a0a0b0', light: '#ffe8c8', ambient: '#b0b0c0', netStyle: 'chain', fenceColor: '#666666' } },
-  { id: 'map_nba', name: 'NBA Arena', emoji: '\u{1F3C6}', cost: 300, slot: 'Map', value: { floor: '#b5651d', sky: '#0a0e1a', light: '#ffeedd', ambient: '#8899cc', netStyle: 'white', fenceColor: '#1a1a2e' } },
-  { id: 'map_beach', name: 'Beach', emoji: '\u{1F3D6}', cost: 400, slot: 'Map', value: { floor: '#e8d5a0', sky: '#4ec8e8', light: '#fff5e0', ambient: '#ffe0b0', netStyle: 'white', fenceColor: '#c8b080' } },
-  { id: 'map_rooftop', name: 'Rooftop', emoji: '\u{1F3E2}', cost: 500, slot: 'Map', value: { floor: '#484848', sky: '#ff8844', light: '#ffcc88', ambient: '#cc9966', netStyle: 'chain', fenceColor: '#333333' } },
-  { id: 'map_space', name: 'Space', emoji: '\u{1F680}', cost: 1000, slot: 'Map', value: { floor: '#111133', sky: '#000011', light: '#aaaaff', ambient: '#222244', netStyle: 'white', fenceColor: '#333355' } }
+  { id: 'streak_plasma', name: 'Plasma', emoji: '\u{1F4AB}', cost: 400, slot: 'Streak Effect', value: { type: 'plasma' } }
 ];
 
 var myCosmetics = {};
@@ -1812,10 +1818,11 @@ function rollBBBonus() {
 function updatePowerZones(ds) {
   var g = ds.greenPct;       /* green zone size */
   var bb = ds.bbPct;         /* backboard zone size */
-  /* Green sits at ~65% from bottom, purple just above */
+  var gap = 0.04;            /* visible red gap between green and purple */
+  /* Green sits at ~65% from bottom, purple just above with gap */
   var greenBottom = 0.60;    /* green zone starts at 60% from bottom */
   var greenTop = greenBottom + g;
-  var bbBottom = greenTop;   /* purple sits right above green */
+  var bbBottom = greenTop + gap;   /* purple sits above green with red gap */
   var bbTop = bbBottom + bb;
 
   var zBB = document.getElementById('zBackboard');
@@ -1947,7 +1954,19 @@ function onHoldEnd() {
   var fill = stopMeter();
   sfxRelease();
   shotResult = getMeterResult(fill);
+  /* NBA 2K-style: show release quality INSTANTLY on release */
+  showReleaseFlash(shotResult);
   launchBall(shotResult);
+}
+
+function showReleaseFlash(result) {
+  if (result === 'swish') {
+    showShotPopup('PERFECT!', 'swish');
+  } else if (result === 'backboard') {
+    showShotPopup('GOOD', 'backboard');
+  } else {
+    showShotPopup('MISS', 'miss');
+  }
 }
 
 document.addEventListener('keydown', function(e) {
@@ -1977,7 +1996,7 @@ function launchBall(result) {
   shotInFlight = true;
   shotPhase = 0;
   flightTime = 0;
-  flightDuration = 1.2;
+  flightDuration = 0.7;  /* Fast, snappy flight */
   netSquishTime = 0;
 
   var startPos = getBallStartPos(currentPosIdx);
@@ -1990,23 +2009,23 @@ function launchBall(result) {
     flightTarget.x = HOOP_POS.x + (Math.random() - 0.5) * 0.04;
     flightTarget.y = HOOP_POS.y + 0.15; /* slightly above rim so it drops through */
     flightTarget.z = HOOP_POS.z + (Math.random() - 0.5) * 0.04;
-    flightPeakY = 5.2;
+    flightPeakY = 5.0;
   } else if (result === 'backboard') {
     /* Target: hits backboard first */
     flightTarget.x = (Math.random() - 0.5) * 0.3;
     flightTarget.y = 3.45;
     flightTarget.z = HOOP_POS.z - 0.35;
-    flightPeakY = 4.8;
+    flightPeakY = 4.6;
   } else {
     /* Miss: off rim or airball */
     var z = window._zones;
-    if (meterFill < (z ? z.yStart : 0.2)) {
+    if (meterFill < (z ? z.gStart * 0.5 : 0.2)) {
       /* Air ball - short */
       flightTarget.x = flightStart.x * 0.3;
       flightTarget.y = 2.5 + Math.random() * 0.5;
       flightTarget.z = flightStart.z + (HOOP_POS.z - flightStart.z) * 0.5;
       flightPeakY = 3.5;
-      flightDuration = 1.0;
+      flightDuration = 0.6;
     } else {
       /* Rim shot */
       var side = Math.random() > 0.5 ? 1 : -1;
@@ -2051,10 +2070,10 @@ var MISS_TEXTS = ['BRICK!', 'CLANK!', 'AIR BALL!', 'NO GOOD!'];
 function randFrom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
 function handleShotResult(result) {
+  /* Called when ball arrives at target — handles scoring, sounds, net squish.
+     Release-quality popup already shown via showReleaseFlash() on release. */
   var basePts = 0;
   var bonusPts = 0;
-  var popupClass = '';
-  var popupText = '';
   var ptsText = '';
   var isCurrentGold = isGoldBall;
 
@@ -2062,15 +2081,12 @@ function handleShotResult(result) {
     basePts = 3;
     swishCount++;
     streak++;
-    popupClass = 'swish';
     if (isCurrentGold) {
       basePts = 6;
-      popupText = 'MONEY BALL! \u{1F4B0}';
-      popupClass = 'gold';
       goldBallsHit++;
       sfxGold();
+      showShotPopup('MONEY BALL! \u{1F4B0}', 'gold');
     } else {
-      popupText = randFrom(SWISH_TEXTS);
       sfxSwish();
     }
     netSquishTime = 0.3;
@@ -2079,15 +2095,12 @@ function handleShotResult(result) {
     basePts = 2;
     backboardCount++;
     streak++;
-    popupClass = 'backboard';
     if (isCurrentGold) {
       basePts = 4;
-      popupText = 'MONEY BALL! \u{1F4B0}';
-      popupClass = 'gold';
       goldBallsHit++;
       sfxGold();
+      showShotPopup('MONEY BALL! \u{1F4B0}', 'gold');
     } else {
-      popupText = randFrom(BANK_TEXTS);
       sfxBackboard();
     }
     netSquishTime = 0.3;
@@ -2099,20 +2112,15 @@ function handleShotResult(result) {
       bbBonusActive = false;
       basePts += 5;
       removeBBBonusFromBackboard();
-      setTimeout(function() {
-        showShotPopup('BONUS STEAL! +5', 'bonus');
-      }, 400);
+      showShotPopup('BONUS +5', 'bonus');
     }
   } else {
     basePts = 0;
     streak = 0;
-    popupClass = 'miss';
     var z = window._zones;
-    if (meterFill < (z ? z.yStart : 0.2)) {
-      popupText = 'AIR BALL!';
+    if (meterFill < (z ? z.gStart * 0.5 : 0.2)) {
       sfxAirball();
     } else {
-      popupText = randFrom(MISS_TEXTS);
       sfxBrick();
     }
   }
@@ -2134,9 +2142,9 @@ function handleShotResult(result) {
     score += totalPts;
   }
 
-  showShotPopup(popupText, popupClass);
+  /* Show points immediately as ball goes through */
   if (totalPts > 0) {
-    setTimeout(function() { showPtsPopup(ptsText); }, 150);
+    showPtsPopup(ptsText);
   }
 
   if (!cpuTurn) {
@@ -2184,6 +2192,8 @@ function showTurnBanner(text) {
 function startGame() {
   showScreen('gameScreen');
   if (!threeInited) initThree();
+  /* Ensure loading overlay is hidden (in case initThree was already called) */
+  document.getElementById('loadingOverlay').style.display = 'none';
   /* Resize renderer now that game screen is visible */
   if (renderer) {
     var wrap = document.getElementById('canvasWrap');
@@ -2559,9 +2569,9 @@ function animate(now) {
 
       ballShadow.position.set(ball.position.x, 0.01, ball.position.z);
 
-      if (postRimTime > 1.5) {
+      if (postRimTime > 0.8) {
         shotPhase = 2;
-        setTimeout(function() { nextShot(); }, 300);
+        setTimeout(function() { nextShot(); }, 150);
       }
     }
   }
@@ -2572,10 +2582,8 @@ function animate(now) {
 }
 
 /* ── INIT ─────────────────────────────────────────────────── */
-function tryInit() {
-  initThree();
-}
-tryInit();
+/* Don't init Three.js on page load — wait until game screen is visible
+   so canvas has proper dimensions. startGame() calls initThree(). */
 
 // Export ALL functions used by onclick handlers to window (module scope)
 window.startGame = startGame;

@@ -687,6 +687,45 @@ service cloud.firestore {
       allow delete: if request.auth != null;
     }
 
+    // Basketball multiplayer games + records
+    match /basketballGames/{docId} {
+      allow read: if true;
+      allow create: if isReasonableSize();
+      allow update: if isReasonableSize();
+      allow delete: if true;
+    }
+
+    match /basketballRecords/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
+      allow delete: if request.auth != null;
+    }
+
+    // Helicopter records
+    match /helicopterRecords/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
+      allow delete: if request.auth != null;
+    }
+
+    // Dodgeball records
+    match /dodgeballRecords/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
+      allow delete: if request.auth != null;
+    }
+
+    // Sliding puzzle records
+    match /slidingpuzzleRecords/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
+      allow delete: if request.auth != null;
+    }
+
     // Default deny — catches any unmatched collection
     match /{document=**} {
       allow read, write: if false;
