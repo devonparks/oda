@@ -440,7 +440,14 @@ function startGame(){
   showScreen('gameScreen');
   applyDifficulty();
   applyCosmeticStyles();
-  initCanvas();
+  // Defer canvas init to ensure screen is visible and has dimensions
+  requestAnimationFrame(function(){
+    initCanvas();
+    if(W<10||H<10){setTimeout(function(){initCanvas();_finishStart()},50);return}
+    _finishStart();
+  });
+}
+function _finishStart(){
   player={x:W/2-PLAYER_W/2,y:H-60-PLAYER_H,vy:0,dir:0,jumpFrame:0};
   cameraY=0;score=0;maxHeight=0;frameCount=0;coinsAwarded=false;
   mouseX=null;touchActive=false;

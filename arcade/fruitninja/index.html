@@ -602,7 +602,7 @@ function checkSlice(x,y){
     if(f.sliced)continue;
     var dx=x-f.x,dy=y-f.y;
     var dist=Math.sqrt(dx*dx+dy*dy);
-    if(dist<f.radius+15){
+    if(dist<f.radius+40){
       f.sliced=true;
       if(f.isBomb){
         // Bomb explodes
@@ -837,18 +837,36 @@ cw.addEventListener('mousedown',function(e){
   if(gameState==='waiting'){gameState='playing';document.getElementById('tapHint').style.display='none'}
   isSwiping=true;swipeSliceCount=0;swipePoints=[];
   var pos=getCanvasPos(e);
+  // Check along the line from last point to this point (catches fast swipes)
+  if(swipePoints.length>0){
+    var lp=swipePoints[swipePoints.length-1];
+    var dx=pos.x-lp.x,dy=pos.y-lp.y;
+    var steps=Math.max(1,Math.floor(Math.sqrt(dx*dx+dy*dy)/20));
+    for(var s=0;s<=steps;s++){
+      var t=s/steps;
+      checkSlice(lp.x+dx*t,lp.y+dy*t);
+    }
+  }else{checkSlice(pos.x,pos.y)}
   swipePoints.push(pos);
   slashTrail.push({x:pos.x,y:pos.y,life:12,maxLife:12});
-  checkSlice(pos.x,pos.y);
 });
 
 cw.addEventListener('mousemove',function(e){
   if(!isSwiping||gameState!=='playing')return;
   e.preventDefault();
   var pos=getCanvasPos(e);
+  // Check along the line from last point to this point (catches fast swipes)
+  if(swipePoints.length>0){
+    var lp=swipePoints[swipePoints.length-1];
+    var dx=pos.x-lp.x,dy=pos.y-lp.y;
+    var steps=Math.max(1,Math.floor(Math.sqrt(dx*dx+dy*dy)/20));
+    for(var s=0;s<=steps;s++){
+      var t=s/steps;
+      checkSlice(lp.x+dx*t,lp.y+dy*t);
+    }
+  }else{checkSlice(pos.x,pos.y)}
   swipePoints.push(pos);
   slashTrail.push({x:pos.x,y:pos.y,life:12,maxLife:12});
-  checkSlice(pos.x,pos.y);
 });
 
 cw.addEventListener('mouseup',function(e){
@@ -864,18 +882,36 @@ cw.addEventListener('touchstart',function(e){
   if(gameState==='waiting'){gameState='playing';document.getElementById('tapHint').style.display='none'}
   isSwiping=true;swipeSliceCount=0;swipePoints=[];
   var pos=getCanvasPos(e);
+  // Check along the line from last point to this point (catches fast swipes)
+  if(swipePoints.length>0){
+    var lp=swipePoints[swipePoints.length-1];
+    var dx=pos.x-lp.x,dy=pos.y-lp.y;
+    var steps=Math.max(1,Math.floor(Math.sqrt(dx*dx+dy*dy)/20));
+    for(var s=0;s<=steps;s++){
+      var t=s/steps;
+      checkSlice(lp.x+dx*t,lp.y+dy*t);
+    }
+  }else{checkSlice(pos.x,pos.y)}
   swipePoints.push(pos);
   slashTrail.push({x:pos.x,y:pos.y,life:12,maxLife:12});
-  checkSlice(pos.x,pos.y);
 },{passive:false});
 
 cw.addEventListener('touchmove',function(e){
   if(!isSwiping||gameState!=='playing')return;
   e.preventDefault();
   var pos=getCanvasPos(e);
+  // Check along the line from last point to this point (catches fast swipes)
+  if(swipePoints.length>0){
+    var lp=swipePoints[swipePoints.length-1];
+    var dx=pos.x-lp.x,dy=pos.y-lp.y;
+    var steps=Math.max(1,Math.floor(Math.sqrt(dx*dx+dy*dy)/20));
+    for(var s=0;s<=steps;s++){
+      var t=s/steps;
+      checkSlice(lp.x+dx*t,lp.y+dy*t);
+    }
+  }else{checkSlice(pos.x,pos.y)}
   swipePoints.push(pos);
   slashTrail.push({x:pos.x,y:pos.y,life:12,maxLife:12});
-  checkSlice(pos.x,pos.y);
 },{passive:false});
 
 cw.addEventListener('touchend',function(e){
