@@ -96,10 +96,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .hud-gold{font-family:'Fredoka',sans-serif;font-size:14px;font-weight:700;color:var(--gold);text-shadow:0 0 8px rgba(255,209,102,.5)}
 
 /* POWER METER - Basketball Stars style */
-.power-wrap{position:absolute;right:20px;top:50%;transform:translateY(-50%);width:60px;display:none;flex-direction:column;align-items:center;gap:8px;z-index:6}
+.power-wrap{position:absolute;right:80px;top:50%;transform:translateY(-50%);width:60px;display:none;flex-direction:column;align-items:center;gap:8px;z-index:6}
+@media(max-width:600px){.power-wrap{right:50px}}
 .power-bar{width:56px;height:340px;background:rgba(20,20,30,.9);border-radius:28px;border:3px solid rgba(255,255,255,.3);overflow:hidden;position:relative;box-shadow:0 0 20px rgba(0,0,0,.5),inset 0 0 10px rgba(0,0,0,.3)}
-.power-fill{position:absolute;bottom:0;left:0;right:0;height:0%;background:linear-gradient(to top,#f97316,#fb923c);transition:none;border-radius:0 0 25px 25px;box-shadow:0 -4px 12px rgba(249,115,22,.4)}
-.power-zone{position:absolute;left:0;right:0;pointer-events:none;border-left:3px solid rgba(255,255,255,.1);border-right:3px solid rgba(255,255,255,.1)}
+.power-fill{position:absolute;bottom:0;left:0;right:0;height:0%;background:linear-gradient(to top,#f97316,#fb923c);transition:none;border-radius:0 0 25px 25px;box-shadow:0 -4px 12px rgba(249,115,22,.4);z-index:3;opacity:0.85}
+.power-zone{position:absolute;left:0;right:0;pointer-events:none;z-index:4}
 .power-zone.zone-green{background:linear-gradient(to right,#06d6a0,#10b981);box-shadow:0 0 12px rgba(6,214,160,.3)}
 .power-zone.zone-purple{background:linear-gradient(to right,#8b5cf6,#7c3aed);box-shadow:0 0 12px rgba(139,92,246,.3)}
 .zone-label{position:absolute;left:50%;transform:translateX(-50%);font-family:'Fredoka',sans-serif;font-size:9px;font-weight:900;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5);letter-spacing:.5px;white-space:nowrap;top:50%;margin-top:-6px}
@@ -1832,8 +1833,17 @@ function showTurnBanner(text) {
 
 /* ── START GAME ───────────────────────────────────────────── */
 function startGame() {
-  if (!threeInited) initThree();
   showScreen('gameScreen');
+  if (!threeInited) initThree();
+  /* Resize renderer now that game screen is visible */
+  if (renderer) {
+    var wrap = document.getElementById('canvasWrap');
+    var w = wrap.clientWidth, h = wrap.clientHeight;
+    if (w > 0 && h > 0) {
+      renderer.setSize(w, h);
+      if (camera) { camera.aspect = w / h; camera.updateProjectionMatrix(); }
+    }
+  }
   stopGame();
 
   /* Reset state */
@@ -2218,15 +2228,15 @@ function tryInit() {
 }
 tryInit();
 
-// Export to window for onclick handlers
+// Export ALL functions used by onclick handlers
 window.startGame = startGame;
 window.stopGame = stopGame;
 window.showScreen = showScreen;
-window.showRecords = showRecords;
-window.showShopScreen = showShopScreen;
-window.setMode = setMode;
-window.setDifficulty = setDifficulty;
-window.selectMap = selectMap;
+window.showRecords = typeof showRecords !== 'undefined' ? showRecords : function(){};
+window.showShopScreen = typeof showShopScreen !== 'undefined' ? showShopScreen : function(){};
+window.selectMode = typeof selectMode !== 'undefined' ? selectMode : function(){};
+window.selectDiff = typeof selectDiff !== 'undefined' ? selectDiff : function(){};
+window.selectAiDiff = typeof selectAiDiff !== 'undefined' ? selectAiDiff : function(){};
 window.createQuickMatch = typeof createQuickMatch !== 'undefined' ? createQuickMatch : function(){};
 window.joinQuickMatch = typeof joinQuickMatch !== 'undefined' ? joinQuickMatch : function(){};
 window.cancelQuickMatch = typeof cancelQuickMatch !== 'undefined' ? cancelQuickMatch : function(){};
