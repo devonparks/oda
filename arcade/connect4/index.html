@@ -612,8 +612,10 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 <div class="screen" id="tourneyJoinScreen">
   <div class="qm-container">
     <h2>Tournament</h2>
-    <p class="sub">Enter a tournament code from your teacher</p>
+    <p class="sub">Create or join a bracket tournament</p>
     <div class="qm-actions">
+      <button class="btn btn-accent btn-small" style="width:100%;margin-bottom:8px" onclick="C4.studentCreateTourney()">Create Tournament</button>
+      <div style="color:var(--text2);font-size:13px;margin-bottom:8px">- or -</div>
       <div class="join-row">
         <input class="code-input" id="tourneyCodeInput" type="text" maxlength="6" placeholder="CODE" inputmode="numeric">
         <button class="btn btn-accent btn-small" onclick="C4.joinTourney()">Join</button>
@@ -1816,6 +1818,31 @@ function showTourneyJoin(){
   showScreen('tourneyJoinScreen');
 }
 
+async function studentCreateTourney(){
+  const code=genTourneyCode();
+  try{
+    await setDoc(doc(db,'connect4Tournaments',code),{
+      code:code,
+      status:'lobby',
+      hostId:studentId,
+      hostName:studentName||'Host',
+      classCode:classCode||'',
+      players:{[studentId]:{name:studentName||'Host',seed:1}},
+      bracket:{},
+      currentRound:0,
+      totalRounds:0,
+      settings:{timeLimit:0},
+      results:{},
+      createdAt:new Date().toISOString()
+    });
+    currentTourneyCode=code;
+    listenToTourney(code);
+    if(typeof odaToast==='function')odaToast('Tournament created! Code: '+code,'success');
+  }catch(e){
+    if(typeof odaToast==='function')odaToast('Failed to create tournament','error');
+  }
+}
+
 async function joinTourney(){
   const code=document.getElementById('tourneyCodeInput').value.trim();
   if(code.length<4){
@@ -1902,14 +1929,15 @@ function renderTourneyLobby(data){
     list.appendChild(card);
   });
 
-  // Actions
+  // Actions — host (teacher OR student creator) can start, others wait
   const actions=document.getElementById('tourneyLobbyActions');
-  if(isTeacher){
+  const isHost=isTeacher||data.hostId===studentId;
+  if(isHost){
     actions.innerHTML=`
       <button class="btn btn-accent" onclick="C4.teacherStartTourney('${data.code||currentTourneyCode}')" ${count<2?'disabled style="opacity:.5"':''}>Start Tournament (${count} players)</button>
       <button class="btn btn-outline btn-small" onclick="C4.leaveTourney()" style="margin-top:8px">Cancel</button>`;
   }else{
-    actions.innerHTML='<button class="btn btn-outline btn-small" onclick="C4.leaveTourney()">Leave</button>';
+    actions.innerHTML='<p style="color:var(--text2);font-size:13px;margin-bottom:8px">Waiting for host to start...</p><button class="btn btn-outline btn-small" onclick="C4.leaveTourney()">Leave</button>';
   }
 }
 
@@ -2394,7 +2422,7 @@ async function loadAssignedMatches(){
 window.C4={
   showScreen,startAiGame,createGame,joinGame,cancelGame,playAgain,goHome,
   pickFormat,nextSeriesGame,replayDraw,rematchGame,
-  showTourneyJoin,joinTourney,leaveTourney,backToTourney,
+  showTourneyJoin,joinTourney,leaveTourney,backToTourney,studentCreateTourney,
   showTeacherDashboard,teacherTab,teacherCreateTourney,teacherStartTourney,teacherViewTourney,
   assignMatch,loadRecords,spectateGame,showShopScreen
 };
