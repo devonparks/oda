@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ODA Character Creator</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e1a;color:#e8ecf4;font-family:'Outfit',sans-serif;height:100vh;overflow:hidden;user-select:none}
+.app{display:flex;height:100vh}
+
+/* ── LEFT: Preview ── */
+.preview{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(180deg,#0f1320 0%,#141828 100%);position:relative;min-width:340px}
+.preview-title{position:absolute;top:20px;font-size:11px;letter-spacing:5px;text-transform:uppercase;color:#3a4060;font-weight:600}
+.stage{position:relative;width:380px;height:540px}
+.stage img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;pointer-events:none}
+.stage img.fail{display:none}
+.preview-actions{display:flex;gap:10px;margin-top:20px}
+.pa-btn{padding:8px 20px;border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s}
+.pa-btn:active{transform:scale(.95)}
+.pa-btn.primary{background:#06d6a0;color:#0a0e1a}
+.pa-btn.primary:hover{background:#05c493}
+.pa-btn.secondary{background:rgba(255,255,255,.08);color:#a8b2c8;border:1px solid rgba(255,255,255,.1)}
+.pa-btn.secondary:hover{background:rgba(255,255,255,.14)}
+
+/* ── RIGHT: Options ── */
+.options{width:400px;background:#111524;border-left:1px solid #1e2340;display:flex;flex-direction:column;overflow:hidden}
+.opts-header{padding:16px 20px 12px;border-bottom:1px solid #1e2340}
+.opts-header h2{font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700}
+.opts-header h2 span{color:#06d6a0}
+.cat-tabs{display:flex;gap:4px;padding:10px 14px;border-bottom:1px solid #1e2340;overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.cat-tabs::-webkit-scrollbar{display:none}
+.cat-tab{padding:6px 14px;border:none;border-radius:8px;background:none;color:#5a6280;font-family:'Outfit',sans-serif;font-weight:700;font-size:12px;cursor:pointer;transition:all .12s;white-space:nowrap}
+.cat-tab:hover{color:#a8b2c8}
+.cat-tab.active{background:rgba(6,214,160,.12);color:#06d6a0}
+.item-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px 20px;overflow-y:auto;flex:1}
+.item-card{aspect-ratio:1;background:#181d30;border:2px solid #222845;border-radius:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:all .15s;overflow:hidden;position:relative}
+.item-card:hover{border-color:#3a4060;transform:translateY(-2px)}
+.item-card.active{border-color:#06d6a0;background:rgba(6,214,160,.06);box-shadow:0 0 16px rgba(6,214,160,.12)}
+.item-card img{width:80%;height:60%;object-fit:contain}
+.item-label{font-size:11px;font-weight:700;color:#6a7090;text-transform:uppercase;letter-spacing:.5px}
+.item-card.none-card{border-style:dashed;background:#12162a}
+.color-section{padding:12px 20px;border-bottom:1px solid #1e2340}
+.color-section h3{font-size:11px;font-weight:700;color:#5a6280;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.color-row{display:flex;gap:8px;flex-wrap:wrap}
+.color-dot{width:36px;height:36px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:all .15s}
+.color-dot:hover{transform:scale(1.12)}
+.color-dot.active{border-color:#06d6a0;box-shadow:0 0 10px rgba(6,214,160,.3)}
+.hue-row{display:flex;gap:6px;padding:0 20px 12px;flex-wrap:wrap}
+.hue-chip{width:32px;height:32px;border-radius:8px;border:2px solid transparent;cursor:pointer;transition:all .12s}
+.hue-chip:hover{transform:scale(1.1)}
+.hue-chip.active{border-color:#fff}
+
+@media(max-width:800px){
+  .app{flex-direction:column}
+  .preview{min-width:auto;min-height:300px}
+  .options{width:100%;height:55vh}
+  .stage{width:260px;height:370px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="preview">
+    <div class="preview-title">Character Creator</div>
+    <div class="stage" id="stage"></div>
+    <div class="preview-actions">
+      <button class="pa-btn secondary" onclick="randomize()">🎲 Randomize</button>
+      <button class="pa-btn secondary" onclick="resetAll()">↩ Reset</button>
+      <button class="pa-btn primary" onclick="downloadPNG()">⬇ Download</button>
+    </div>
+  </div>
+  <div class="options">
+    <div class="opts-header"><h2>Customize <span>Your Look</span></h2></div>
+    <div class="cat-tabs" id="catTabs"></div>
+    <div id="optionsArea"></div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   ODA Character Creator — See-through Layer Compositor
+   ═══════════════════════════════════════════════════════════════════ */
+
+var SRC = 'C:/Users/devon/Documents/see-through/workspace/layerdiff_output';
+
+// ── Layer render order (bottom → top) ──
+// Body base layers that are always visible
+var BODY_LAYERS = ['head','neck','handwear','face','mouth','eyewhite','irides','eyebrow','eyelash'];
+// Equipment render order (what slot, which See-through layer name, from which decomposition)
+// Format: layers are loaded from assets/male/{slot}/{itemId}.png
+
+// ── Items catalog ──
+// Each item: { id, name, src } where src is the path relative to assets/male/
+var CATALOG = {
+  top: [
+    { id:'white-tee', name:'White Tee' },
+    { id:'hoodie', name:'Hoodie' },
+  ],
+  bottom: [
+    { id:'jeans', name:'Jeans' },
+    { id:'shorts', name:'Shorts' },
+  ],
+  shoes: [
+    { id:'sneakers', name:'Sneakers' },
+  ],
+  hair: [],
+  acc: [],
+};
+
+var CATEGORIES = [
+  { id:'top',    label:'Tops',   icon:'👕' },
+  { id:'bottom', label:'Bottoms',icon:'👖' },
+  { id:'shoes',  label:'Shoes',  icon:'👟' },
+  { id:'color',  label:'Color',  icon:'🎨' },
+];
+
+// Outfit hue tints — apply CSS hue-rotate to clothing layers
+var HUE_PRESETS = [
+  { id:'default', name:'Default', filter:'none' },
+  { id:'red',     name:'Red',     filter:'sepia(1) saturate(3) hue-rotate(330deg) brightness(0.9)' },
+  { id:'blue',    name:'Blue',    filter:'sepia(1) saturate(3) hue-rotate(190deg) brightness(0.9)' },
+  { id:'green',   name:'Green',   filter:'sepia(1) saturate(3) hue-rotate(90deg) brightness(0.9)' },
+  { id:'purple',  name:'Purple',  filter:'sepia(1) saturate(3) hue-rotate(250deg) brightness(0.8)' },
+  { id:'gold',    name:'Gold',    filter:'sepia(1) saturate(3) hue-rotate(15deg) brightness(1.1)' },
+  { id:'pink',    name:'Pink',    filter:'sepia(1) saturate(2) hue-rotate(300deg) brightness(1.1)' },
+  { id:'black',   name:'Black',   filter:'brightness(0.3) saturate(0.2)' },
+];
+
+// ── State ──
+var state = {
+  equipped: { top:'hoodie', bottom:'jeans', shoes:'sneakers', hair:null, acc:null },
+  topHue: 'default',
+  bottomHue: 'default',
+  activeCat: 'top',
+};
+
+// ── Render character by stacking PNG layers ──
+function render() {
+  var stage = document.getElementById('stage');
+  stage.innerHTML = '';
+  var z = 0;
+  var base = 'assets/male/';
+
+  function addLayer(src, filter) {
+    var img = document.createElement('img');
+    img.src = base + src;
+    img.style.zIndex = z++;
+    if (filter && filter !== 'none') img.style.filter = filter;
+    img.onerror = function(){ this.classList.add('fail'); };
+    stage.appendChild(img);
+  }
+
+  // 1. Body base
+  BODY_LAYERS.forEach(function(l) { addLayer('body/' + l + '.png'); });
+  addLayer('body/legs.png');
+  addLayer('body/boxers.png');
+
+  // 2. Bottoms (over legs)
+  if (state.equipped.bottom) {
+    var bf = state.bottomHue !== 'default' ? getHueFilter(state.bottomHue) : null;
+    addLayer('bottom/' + state.equipped.bottom + '.png', bf);
+  }
+
+  // 3. Shoes
+  if (state.equipped.shoes) {
+    addLayer('shoes/' + state.equipped.shoes + '.png');
+  }
+
+  // 4. Top (over torso)
+  if (state.equipped.top) {
+    var tf = state.topHue !== 'default' ? getHueFilter(state.topHue) : null;
+    addLayer('top/' + state.equipped.top + '.png', tf);
+  }
+
+  // 5. Hair (on top of everything)
+  if (state.equipped.hair) {
+    addLayer('hair/' + state.equipped.hair + '.png');
+  }
+}
+
+function getHueFilter(hueId) {
+  var preset = HUE_PRESETS.find(function(h){ return h.id === hueId; });
+  return preset ? preset.filter : 'none';
+}
+
+// ── UI: Category tabs ──
+function renderTabs() {
+  var el = document.getElementById('catTabs');
+  el.innerHTML = '';
+  CATEGORIES.forEach(function(cat) {
+    var btn = document.createElement('button');
+    btn.className = 'cat-tab' + (state.activeCat === cat.id ? ' active' : '');
+    btn.textContent = cat.icon + ' ' + cat.label;
+    btn.onclick = function() { state.activeCat = cat.id; renderTabs(); renderOptions(); };
+    el.appendChild(btn);
+  });
+}
+
+// ── UI: Options area ──
+function renderOptions() {
+  var area = document.getElementById('optionsArea');
+  area.innerHTML = '';
+
+  if (state.activeCat === 'color') {
+    renderColorOptions(area);
+    return;
+  }
+
+  // Item grid
+  var grid = document.createElement('div');
+  grid.className = 'item-grid';
+
+  var catId = state.activeCat;
+  var items = CATALOG[catId] || [];
+
+  // None option
+  var none = document.createElement('div');
+  none.className = 'item-card none-card' + (!state.equipped[catId] ? ' active' : '');
+  none.innerHTML = '<div class="item-label">None</div>';
+  none.onclick = function() { state.equipped[catId] = null; render(); renderOptions(); };
+  grid.appendChild(none);
+
+  items.forEach(function(item) {
+    var card = document.createElement('div');
+    card.className = 'item-card' + (state.equipped[catId] === item.id ? ' active' : '');
+    var thumb = document.createElement('img');
+    thumb.src = 'assets/male/' + catId + '/' + item.id + '.png';
+    thumb.onerror = function(){ this.style.opacity='0.3'; };
+    card.appendChild(thumb);
+    var lbl = document.createElement('div');
+    lbl.className = 'item-label';
+    lbl.textContent = item.name;
+    card.appendChild(lbl);
+    card.onclick = function() { state.equipped[catId] = item.id; render(); renderOptions(); };
+    grid.appendChild(card);
+  });
+
+  if (items.length === 0) {
+    var msg = document.createElement('div');
+    msg.style.cssText = 'grid-column:1/-1;text-align:center;color:#3a4060;padding:40px 0;font-size:13px';
+    msg.textContent = 'More options coming soon!';
+    grid.appendChild(msg);
+  }
+
+  area.appendChild(grid);
+}
+
+// ── Color options ──
+function renderColorOptions(area) {
+  // Top color
+  var sec1 = document.createElement('div');
+  sec1.className = 'color-section';
+  sec1.innerHTML = '<h3>Top Color</h3>';
+  var row1 = document.createElement('div');
+  row1.className = 'hue-row';
+  HUE_PRESETS.forEach(function(h) {
+    var chip = document.createElement('div');
+    chip.className = 'hue-chip' + (state.topHue === h.id ? ' active' : '');
+    chip.style.background = getChipColor(h);
+    chip.title = h.name;
+    chip.onclick = function() { state.topHue = h.id; render(); renderOptions(); };
+    row1.appendChild(chip);
+  });
+  sec1.appendChild(row1);
+  area.appendChild(sec1);
+
+  // Bottom color
+  var sec2 = document.createElement('div');
+  sec2.className = 'color-section';
+  sec2.innerHTML = '<h3>Bottom Color</h3>';
+  var row2 = document.createElement('div');
+  row2.className = 'hue-row';
+  HUE_PRESETS.forEach(function(h) {
+    var chip = document.createElement('div');
+    chip.className = 'hue-chip' + (state.bottomHue === h.id ? ' active' : '');
+    chip.style.background = getChipColor(h);
+    chip.title = h.name;
+    chip.onclick = function() { state.bottomHue = h.id; render(); renderOptions(); };
+    row2.appendChild(chip);
+  });
+  sec2.appendChild(row2);
+  area.appendChild(sec2);
+}
+
+function getChipColor(hue) {
+  var map = { default:'#aaa', red:'#e63946', blue:'#457b9d', green:'#2a9d8f', purple:'#7b2d8b', gold:'#f4a261', pink:'#e9758b', black:'#222' };
+  return map[hue.id] || '#666';
+}
+
+// ── Actions ──
+function randomize() {
+  var cats = ['top','bottom','shoes'];
+  cats.forEach(function(c) {
+    var items = CATALOG[c];
+    if (items.length > 0) state.equipped[c] = items[Math.floor(Math.random()*items.length)].id;
+  });
+  var hues = HUE_PRESETS.map(function(h){ return h.id; });
+  state.topHue = hues[Math.floor(Math.random()*hues.length)];
+  state.bottomHue = hues[Math.floor(Math.random()*hues.length)];
+  render(); renderOptions();
+}
+
+function resetAll() {
+  state.equipped = { top:'hoodie', bottom:'jeans', shoes:'sneakers', hair:null, acc:null };
+  state.topHue = 'default';
+  state.bottomHue = 'default';
+  render(); renderOptions();
+}
+
+function downloadPNG() {
+  var stage = document.getElementById('stage');
+  var images = Array.from(stage.querySelectorAll('img:not(.fail)'));
+  if (!images.length) return;
+
+  var canvas = document.createElement('canvas');
+  canvas.width = 1280; canvas.height = 1280;
+  var ctx = canvas.getContext('2d');
+
+  var sorted = images.sort(function(a,b){ return (parseInt(a.style.zIndex)||0)-(parseInt(b.style.zIndex)||0); });
+  var loaded = 0;
+
+  sorted.forEach(function(img, i) {
+    var draw = function(src) {
+      ctx.filter = img.style.filter || 'none';
+      ctx.drawImage(src, 0, 0, 1280, 1280);
+      ctx.filter = 'none';
+      loaded++;
+      if (loaded === sorted.length) {
+        var a = document.createElement('a');
+        a.download = 'oda-character.png';
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+      }
+    };
+    if (img.complete && img.naturalWidth) { draw(img); }
+    else {
+      var c = new Image();
+      c.crossOrigin = 'anonymous';
+      c.onload = function(){ draw(c); };
+      c.src = img.src;
+    }
+  });
+}
+
+// ── Init ──
+renderTabs();
+renderOptions();
+render();
+</script>
+</body>
+</html>
