@@ -123,7 +123,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 <div class="screen active" id="homeScreen">
   <div class="home-header">
     <h1><span class="hl">Helicopter</span> Cave</h1>
-    <p>Hold to rise, release to fall &mdash; dodge the cave!</p>
+    <p>Hold to rise, release to fall &mdash; grab coins, dodge the cave!</p>
   </div>
   <div class="mode-grid" id="modeGrid">
     <div class="card mode-card" onclick="showDiffPicker()">
@@ -377,6 +377,8 @@ var particles=[];
 var explosionParts=[];
 var thrustSndTimer=0;
 var difficulty='easy';
+var fieldCoins=[],coinsCollected=0,coinSpawnX=0,shakeMag=0;
+function sfxCoin(){playTone(880,0.05,'square',0.09);setTimeout(function(){playTone(1320,0.06,'square',0.08)},45)}
 
 var DIFFICULTIES={
   easy:{gravity:0.04,thrust:-0.15,baseSpeed:0.8,caveHeight:0.72,obstacleRate:0.0005,speedRamp:0.00003,maxSpeed:1.8,minCaveH:0.58},
@@ -503,6 +505,7 @@ function startGame(){
   heli={x:W*0.2,y:H/2,vy:0,tilt:0};
   score=0;frameCount=0;coinsAwarded=false;scrollX=0;
   obstacles=[];particles=[];explosionParts=[];
+  fieldCoins=[];coinsCollected=0;coinSpawnX=W+120;shakeMag=0;
   isHolding=false;
   initCave();
   initParallaxBg();
@@ -549,6 +552,35 @@ function getCaveY(pts,x){
     }
   }
   return pts.length>0?pts[pts.length-1].y:null;
+}
+
+/* ===================== */
+/* COLLECTIBLE COINS     */
+/* ===================== */
+function spawnCoinRun(){
+  var count=4+Math.floor(Math.random()*4);
+  var gap=30;
+  var startX=W+40;
+  // gap height at spawn edge — keeps the arc safely inside the cave
+  var gapH=(getCaveY(caveBot_pts,W)||H)-(getCaveY(caveTop_pts,W)||0);
+  var amp=Math.min(gapH*0.22,42);
+  var arc=Math.random()>0.4;   // most runs arc, some are flat lines
+  var up=Math.random()>0.5;
+  for(var i=0;i<count;i++){
+    var x=startX+i*gap;
+    var ct=getCaveY(caveTop_pts,x),cb=getCaveY(caveBot_pts,x);
+    if(ct===null||cb===null){ct=0;cb=H;}
+    var center=(ct+cb)/2;
+    var off=arc?Math.sin(i/(count-1)*Math.PI)*amp*(up?-1:1):0;
+    var y=Math.max(ct+18,Math.min(cb-18,center+off));
+    fieldCoins.push({x:x,y:y,r:9,phase:Math.random()*6.28});
+  }
+}
+function addSparkle(x,y){
+  for(var i=0;i<8;i++){
+    var a=Math.random()*Math.PI*2,sp=1+Math.random()*3;
+    particles.push({x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:16+Math.random()*10,maxLife:26,r:2+Math.random()*2,color:'#ffd166'});
+  }
 }
 
 /* ===================== */
@@ -652,6 +684,20 @@ function update(){
     spawnObstacle(W+100+Math.random()*200);
   }
 
+  // Collectible coins — scroll with the cave, spawn runs, detect pickup
+  for(var fi=fieldCoins.length-1;fi>=0;fi--){
+    var fc=fieldCoins[fi];
+    fc.x-=speed;fc.phase+=0.12;
+    if(fc.x<-30){fieldCoins.splice(fi,1);continue;}
+    var dx=fc.x-heli.x,dy=fc.y-heli.y;
+    if(dx*dx+dy*dy<(HELI_W*0.45+fc.r)*(HELI_W*0.45+fc.r)){
+      coinsCollected++;score+=2;
+      addSparkle(fc.x,fc.y);if(soundOn)sfxCoin();
+      fieldCoins.splice(fi,1);
+    }
+  }
+  if(frameCount>90&&frameCount%95===0)spawnCoinRun();
+
   // Update parallax bg
   for(var pi=0;pi<parallaxBg.length;pi++){
     parallaxBg[pi].x-=speed*parallaxBg[pi].depth*0.3;
@@ -706,6 +752,7 @@ function update(){
 
 function die(){
   gameState='dead';sfxHit();setTimeout(sfxDie,200);
+  shakeMag=17;
   addExplosion(heli.x,heli.y);
 
   var isNew=score>localBest;
@@ -714,12 +761,12 @@ function die(){
   localStorage.setItem('heli_games',localGames);
   localStorage.setItem('heli_total',localTotal);
 
-  var coins=Math.floor(score/10);if(isNew)coins+=5;if(coins<1&&score>0)coins=1;
+  var coins=Math.floor(score/10)+coinsCollected;if(isNew)coins+=5;if(coins<1&&score>0)coins=1;
 
   document.getElementById('goScore').textContent=score;
   document.getElementById('goBest').textContent='Best: '+localBest;
   document.getElementById('goNew').style.display=isNew?'block':'none';
-  document.getElementById('goCoins').textContent='+'+coins+' coins';
+  document.getElementById('goCoins').textContent='+'+coins+' coins'+(coinsCollected>0?' ('+coinsCollected+' \u{1FA99} grabbed)':'');
   setTimeout(function(){document.getElementById('gameOverOverlay').classList.add('active')},800);
 
   if(!coinsAwarded){coinsAwarded=true;awardCoins(coins);saveRecord(isNew);checkAchievements({highScore:score,gamesPlayed:localGames})}
@@ -729,10 +776,15 @@ function die(){
 /* DRAW                  */
 /* ===================== */
 function draw(){
-  // Cave background gradient
+  // Screen shake (decays) — kicks on crash for impact
+  var sx=0,sy=0;
+  if(shakeMag>0.5){sx=(Math.random()-0.5)*shakeMag;sy=(Math.random()-0.5)*shakeMag;shakeMag*=0.86;}else{shakeMag=0;}
+  ctx.save();ctx.translate(sx,sy);
+
+  // Cave background gradient (oversized so shake never reveals an edge)
   var grad=ctx.createLinearGradient(0,0,0,H);
   grad.addColorStop(0,caveTop);grad.addColorStop(0.5,caveMid);grad.addColorStop(1,caveBottom);
-  ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=grad;ctx.fillRect(-24,-24,W+48,H+48);
 
   // Parallax background particles (rock dust, glimmers)
   for(var pi=0;pi<parallaxBg.length;pi++){
@@ -748,6 +800,20 @@ function draw(){
 
   // Draw obstacles (stalactites/stalagmites)
   drawObstacles();
+
+  // Draw collectible coins (golden, gentle bob + shine)
+  for(var fci=0;fci<fieldCoins.length;fci++){
+    var fc=fieldCoins[fci];
+    var by=fc.y+Math.sin(fc.phase)*2;
+    ctx.save();
+    ctx.shadowColor='rgba(255,209,102,0.7)';ctx.shadowBlur=10;
+    ctx.fillStyle='#ffd166';
+    ctx.beginPath();ctx.arc(fc.x,by,fc.r,0,Math.PI*2);ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#f0b830';ctx.beginPath();ctx.arc(fc.x,by,fc.r*0.6,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.85)';ctx.beginPath();ctx.arc(fc.x-fc.r*0.25,by-fc.r*0.3,fc.r*0.22,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
 
   // Draw particles (trail)
   for(var ti=0;ti<particles.length;ti++){
@@ -776,6 +842,7 @@ function draw(){
   if(gameState!=='dead'){
     drawHelicopter();
   }
+  ctx.restore();   // end screen-shake transform
 }
 
 function drawCaveWalls(){
