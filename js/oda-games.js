@@ -51,5 +51,5 @@ window.ODA_GAMES=[
 {id:'keyboard',emoji:'\u{1F3AE}',title:'Keyboard Warriors',desc:'Type to defeat enemies!',file:'keyboard.html',cat:'word',colors:['#7c3aed','#ef4444'],categories:['Word']},
 {id:'wordscramble',emoji:'\u{1F50E}',title:'Word Scramble',desc:'Unscramble the letters!',file:'arcade/wordscramble/index.html',cat:'word',colors:['#3b82f6','#fbbf24'],categories:['Puzzle','Word']},
 {id:'tetris',emoji:'\u{1F9F1}',title:'Block Drop',desc:'Stack blocks, clear lines!',file:'arcade/tetris/index.html',cat:'puzzle',colors:['#22d3ee','#a855f7'],categories:['Puzzle','Action']},
-{id:'retrobowl',emoji:'\u{1F3C8}',title:'Retro Bowl',desc:'Pick a play, drive the field!',file:'arcade/retrobowl/index.html',cat:'arcade',colors:['#06d6a0','#1b5e1b'],categories:['Action','Sports']},
+{id:'retrobowl',emoji:'\u{1F3C8}',title:'Gridiron Rush',desc:'Pick a play, drive the field!',file:'arcade/retrobowl/index.html',cat:'arcade',colors:['#06d6a0','#1b5e1b'],categories:['Action','Sports']},
 ];

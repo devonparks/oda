@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ODA Jeopardy</title>
+<title>Quiz Show - AMG Arcade</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/oda-theme.css">
 <style>
@@ -246,7 +246,7 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5}
 </div>
 <div class="header">
 <span class="emoji">&#x1F3AF;</span>
-<h1>ODA Jeopardy</h1>
+<h1>AMG Quiz Show</h1>
 <p id="headerSub">Test your knowledge game-show style!</p>
 </div>
 <div id="content"></div>
@@ -555,7 +555,7 @@ function showHome() {
         '<div class="mode-card" onclick="showBoardBuilder()">' +
           '<span class="mc-emoji">&#x1F3D7;&#xFE0F;</span>' +
           '<div class="mc-title">Build a Board</div>' +
-          '<div class="mc-desc">Create Jeopardy boards for your class</div>' +
+          '<div class="mc-desc">Create quiz-show boards for your class</div>' +
         '</div>' +
         '<div class="mode-card" onclick="showBoardBrowser(\'teacher\')">' +
           '<span class="mc-emoji">&#x1F4CB;</span>' +
@@ -631,7 +631,7 @@ function renderBoardList(mode) {
     c.innerHTML = '<div class="card" style="text-align:center">' +
       '<div style="font-size:48px;margin-bottom:12px">&#x1F3AF;</div>' +
       '<p style="font-size:18px;font-weight:700;margin-bottom:8px">' + (mode==='teacher' ? 'No boards yet' : 'No boards available') + '</p>' +
-      '<p style="color:var(--text2);margin-bottom:16px">' + (mode==='teacher' ? 'Create your first Jeopardy board!' : 'Ask your teacher to create a board.') + '</p>' +
+      '<p style="color:var(--text2);margin-bottom:16px">' + (mode==='teacher' ? 'Create your first Quiz Show board!' : 'Ask your teacher to create a board.') + '</p>' +
       (mode==='teacher' ? '<div class="btn-row"><button class="btn btn-accent" onclick="showBoardBuilder()">&#x1F3D7;&#xFE0F; Build a Board</button></div>' : '') +
       (isTeacher ? '<div class="btn-row" style="margin-top:8px"><button class="btn btn-surface btn-sm" onclick="showHome()">Back</button></div>' : '') +
       '</div>';
@@ -716,7 +716,7 @@ function renderBuilder() {
   (b.dailyDoubles || []).forEach(function(d) { ddSet[d.cat + '-' + d.row] = true; });
 
   var html = '<div class="btn-row" style="margin-bottom:16px;justify-content:flex-start"><button class="btn btn-surface btn-sm" onclick="showHome()">&#8592; Back</button></div>';
-  html += '<div class="card"><div class="card-title">' + (builderEditId ? '&#x270F;&#xFE0F; Edit Board' : '&#x1F3D7;&#xFE0F; Build a Jeopardy Board') + '</div>';
+  html += '<div class="card"><div class="card-title">' + (builderEditId ? '&#x270F;&#xFE0F; Edit Board' : '&#x1F3D7;&#xFE0F; Build a Quiz Show Board') + '</div>';
 
   // AI Generate
   html += '<div style="margin-bottom:16px"><div class="input-label">&#x1F916; AI Board Generator</div>' +
@@ -794,16 +794,16 @@ function renderBuilder() {
   // Final Jeopardy toggle
   html += '<div style="margin-top:16px;display:flex;align-items:center;gap:8px">' +
     '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:700;color:var(--gold);font-size:15px">' +
-      '<input type="checkbox" id="fjEnabled"' + (b.enableFinalJeopardy !== false ? ' checked' : '') + ' onchange="toggleFJFields(this.checked)"> &#x1F3C6; Enable Final Jeopardy' +
+      '<input type="checkbox" id="fjEnabled"' + (b.enableFinalJeopardy !== false ? ' checked' : '') + ' onchange="toggleFJFields(this.checked)"> &#x1F3C6; Enable Final Round' +
     '</label>' +
   '</div>';
 
   // Final Jeopardy fields
   html += '<div id="fjFields" style="' + (b.enableFinalJeopardy !== false ? '' : 'display:none') + '">';
   html += '<div class="builder-fj" style="margin-top:8px">' +
-    '<input type="text" class="bq-input" id="fjCat" placeholder="Final Jeopardy Category" value="' + esc(b.finalJeopardy.category || '') + '">' +
-    '<input type="text" class="bq-input" id="fjClue" placeholder="Final Jeopardy Clue" value="' + esc(b.finalJeopardy.clue || '') + '">' +
-    '<input type="text" class="bq-input" id="fjAnswer" placeholder="Final Jeopardy Answer" value="' + esc(b.finalJeopardy.answer || '') + '">' +
+    '<input type="text" class="bq-input" id="fjCat" placeholder="Final Round Category" value="' + esc(b.finalJeopardy.category || '') + '">' +
+    '<input type="text" class="bq-input" id="fjClue" placeholder="Final Round Clue" value="' + esc(b.finalJeopardy.clue || '') + '">' +
+    '<input type="text" class="bq-input" id="fjAnswer" placeholder="Final Round Answer" value="' + esc(b.finalJeopardy.answer || '') + '">' +
   '</div></div>';
 
   // Options
@@ -1272,7 +1272,7 @@ async function aiGenerateBoard() {
 
   var btn = document.getElementById('aiGenBtn');
   btnLoading(btn, '&#x1F916; Generating...');
-  document.getElementById('aiGenStatus').innerHTML = '<div class="ai-loading-text">Mr. ODA is creating 25 questions about "' + esc(topic) + '"</div>';
+  document.getElementById('aiGenStatus').innerHTML = '<div class="ai-loading-text">Mr. AMG is creating 25 questions about "' + esc(topic) + '"</div>';
 
   try {
     var result = await odaAI(
@@ -1705,7 +1705,7 @@ function renderFJStage() {
   if (fjStage === 0) {
     // Category reveal + wager
     fc.innerHTML =
-      '<div class="fj-title">&#x1F3C6; Final Jeopardy &#x1F3C6;</div>' +
+      '<div class="fj-title">&#x1F3C6; Final Round &#x1F3C6;</div>' +
       '<div class="fj-category">' + esc(fj.category) + '</div>' +
       '<div style="margin-top:20px">' +
         '<div style="font-size:16px;color:var(--text2);margin-bottom:12px;font-weight:600">How much will you wager? (You have $' + gameState.score + ')</div>' +
@@ -1717,7 +1717,7 @@ function renderFJStage() {
     // Show clue + timer + answer
     startThinkingMusic();
     fc.innerHTML =
-      '<div class="fj-title">&#x1F3C6; Final Jeopardy &#x1F3C6;</div>' +
+      '<div class="fj-title">&#x1F3C6; Final Round &#x1F3C6;</div>' +
       '<div class="fj-category">' + esc(fj.category) + '</div>' +
       '<div class="fj-clue">' + esc(fj.clue) + '</div>' +
       '<div class="q-timer-wrap"><div class="q-timer-bar"><div class="q-timer-fill" id="qTimerFill"></div></div>' +

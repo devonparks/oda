@@ -1,12 +1,12 @@
 /**
- * ODA Hub - Login / Landing Page
- * Handles student, teacher, and parent authentication flows.
- * Dependencies: oda-core.js (for esc, getFirebaseDB), Firebase (module import in HTML)
+ * AMG Hub - Landing / Login Page
+ * Handles kid, guardian (parent/teacher), and quick-check authentication flows.
+ * Dependencies: oda-core.js (for esc, getFirebaseDB), oda-games.js (marquee), Firebase (module import in HTML)
  */
 
 // ============================================
 // SECURITY: Brute-force protection (OWASP A07 / MITRE T1110)
-// Prevents rapid-fire class code guessing and parent code guessing
+// Prevents rapid-fire family/class code guessing and parent code guessing
 // ============================================
 var _loginAttempts = { count: 0, lockUntil: 0 };
 var MAX_LOGIN_ATTEMPTS = 8;
@@ -45,23 +45,26 @@ window.hardRefresh = async function () {
 };
 
 // ============================================
-// Panel Navigation
+// Panel Navigation (landing <-> login panels)
 // ============================================
 function showDoors() {
-  document.getElementById('doors').style.display = '';
-  document.getElementById('features').style.display = '';
+  var landing = document.getElementById('landing');
+  if (landing) landing.style.display = '';
   var panels = document.querySelectorAll('.login-panel');
   for (var i = 0; i < panels.length; i++) panels[i].classList.remove('show');
+  window.scrollTo({ top: 0 });
 }
+window.showDoors = showDoors;
 
 function showPanel(id) {
-  document.getElementById('doors').style.display = 'none';
-  document.getElementById('features').style.display = 'none';
+  var landing = document.getElementById('landing');
+  if (landing) landing.style.display = 'none';
   var panels = document.querySelectorAll('.login-panel');
   for (var i = 0; i < panels.length; i++) panels[i].classList.remove('show');
   var p = document.getElementById('panel-' + id);
   if (p) {
     p.classList.add('show');
+    window.scrollTo({ top: 0 });
     setTimeout(function () {
       var focusable = p.querySelectorAll('input:not([type=hidden]),button,select,textarea,a[href],[tabindex]:not([tabindex="-1"])');
       if (focusable.length) focusable[0].focus();
@@ -85,7 +88,7 @@ function showSuccess(id, msg) {
 }
 
 // ============================================
-// Student Login (3-step: Code → Grade → Name)
+// Kid Login (3-step: Family/Class Code → Grade → Name)
 // ============================================
 var stuStep = 1, stuStudents = [], stuTeacherData = null;
 
@@ -101,7 +104,7 @@ function showStuStep() {
   document.getElementById('stuStep2').style.display = stuStep === 2 ? '' : 'none';
   document.getElementById('stuStep3').style.display = stuStep === 3 ? '' : 'none';
   var titles = {
-    1: ['&#x1F393;', 'Student Login', 'Enter your class code from your teacher'],
+    1: ['&#x1F3AE;', "Let's Play!", 'Enter your 6-digit Family Code (class codes work too)'],
     2: ['&#x1F4DA;', 'Pick Your Grade', 'What grade are you in?'],
     3: ['&#x1F44B;', 'Find Your Name', 'Tap your name below']
   };
@@ -121,20 +124,29 @@ function showStuStep() {
 window.checkClassCode = async function () {
   if (!checkLoginThrottle('studentError')) return;
   var code = document.getElementById('classCodeInput').value.trim();
-  if (!/^\d{6}$/.test(code)) { showError('studentError', 'Enter a 6-digit class code!'); return; }
+  if (!/^\d{6}$/.test(code)) { showError('studentError', 'Enter a 6-digit code!'); return; }
   recordLoginAttempt();
   var btn = document.getElementById('codeSubmit');
   btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
   try {
     var q = window.fbQuery(window.fbCollection(window.firebaseDb, 'teachers'), window.fbWhere('classCode', '==', code));
     var snap = await window.fbGetDocs(q);
-    if (snap.empty) { btn.textContent = 'Enter \u2192'; btn.disabled = false; showError('studentError', 'Class code not found. Ask your teacher!'); return; }
-    stuTeacherData = { id: snap.docs[0].id, ...snap.docs[0].data() };
-    var sq = window.fbQuery(window.fbCollection(window.firebaseDb, 'students'), window.fbWhere('teacherId', '==', stuTeacherData.id));
-    var sSnap = await window.fbGetDocs(sq);
-    stuStudents = []; sSnap.forEach(function (d) { stuStudents.push({ id: d.id, ...d.data() }); });
-    if (!stuStudents.length) { btn.textContent = 'Enter \u2192'; btn.disabled = false; showError('studentError', 'No students in this class yet.'); return; }
-    btn.textContent = 'Enter \u2192'; btn.disabled = false;
+    if (snap.empty) { btn.textContent = 'Enter →'; btn.disabled = false; showError('studentError', 'Code not found. Ask your parent (or teacher) to check it!'); return; }
+    // Duplicate-code safety: prefer the doc that actually has students
+    var candidates = snap.docs.map(function (d) { return { id: d.id, ...d.data() }; });
+    stuTeacherData = candidates[0];
+    stuStudents = [];
+    for (var c = 0; c < candidates.length; c++) {
+      var sq = window.fbQuery(window.fbCollection(window.firebaseDb, 'students'), window.fbWhere('teacherId', '==', candidates[c].id));
+      var sSnap = await window.fbGetDocs(sq);
+      if (!sSnap.empty) {
+        stuTeacherData = candidates[c];
+        stuStudents = []; sSnap.forEach(function (d) { stuStudents.push({ id: d.id, ...d.data() }); });
+        break;
+      }
+    }
+    if (!stuStudents.length) { btn.textContent = 'Enter →'; btn.disabled = false; showError('studentError', 'No players in this family yet. A grown-up needs to add you first!'); return; }
+    btn.textContent = 'Enter →'; btn.disabled = false;
     var grades = {};
     stuStudents.forEach(function (s) { var g = s.grade || 'Other'; if (!grades[g]) grades[g] = []; grades[g].push(s); });
     var gk = Object.keys(grades).sort(function (a, b) {
@@ -147,25 +159,35 @@ window.checkClassCode = async function () {
     gk.forEach(function (g) { h += '<button class="grade-pick" onclick="pickGrade(\'' + esc(g) + '\')">' + esc(g) + '</button>'; });
     document.getElementById('gradeButtons').innerHTML = h;
     resetLoginAttempts();
-    stuStep = 2; showStuStep();
-  } catch (e) { btn.textContent = 'Enter \u2192'; btn.disabled = false; showError('studentError', 'Something went wrong.'); console.error(e); }
+    // Skip the grade step entirely for small rosters (families) — go straight to names
+    if (stuStudents.length <= 8) {
+      renderNameButtons(stuStudents);
+      stuStep = 3; showStuStep();
+    } else {
+      stuStep = 2; showStuStep();
+    }
+  } catch (e) { btn.textContent = 'Enter →'; btn.disabled = false; showError('studentError', 'Something went wrong.'); console.error(e); }
 };
 
-window.pickGrade = function (grade) {
-  var filtered = stuStudents.filter(function (s) { return (s.grade || 'Other') === grade; });
-  filtered.sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
+function renderNameButtons(list) {
+  var sorted = list.slice().sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
   var h = '';
-  filtered.forEach(function (s) {
+  sorted.forEach(function (s) {
     h += '<button class="name-pick" onclick="pickStudent(\'' + s.id + '\')">' + esc(s.name) + '</button>';
   });
   document.getElementById('nameButtons').innerHTML = h;
+}
+
+window.pickGrade = function (grade) {
+  var filtered = stuStudents.filter(function (s) { return (s.grade || 'Other') === grade; });
+  renderNameButtons(filtered);
   stuStep = 3; showStuStep();
 };
 
 window.pickStudent = function (id) {
   var student = stuStudents.find(function (s) { return s.id === id; });
   if (!student) return;
-  // Clear any stale teacher session data first
+  // Clear any stale guardian session data first
   localStorage.removeItem('userRole');
   localStorage.removeItem('odaUserRole');
   localStorage.removeItem('teacherId');
@@ -175,7 +197,7 @@ window.pickStudent = function (id) {
 };
 
 // ============================================
-// Teacher Login
+// Guardian Login (parents + teachers, same account system)
 // ============================================
 window.resetPassword = async function () {
   var email = document.getElementById('teacherEmail').value.trim();
@@ -200,12 +222,7 @@ window.teacherLogin = async function () {
   btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
   try {
     await window.signInWithEmailAndPassword(window.firebaseAuth, email, pass);
-    // Clear any stale student session data
-    localStorage.removeItem('studentId');
-    localStorage.removeItem('studentName');
-    localStorage.removeItem('classCode');
-    localStorage.removeItem('parentStudentId');
-    localStorage.removeItem('parentStudentName');
+    clearKidSession();
     window.location.href = 'teacher.html';
   } catch (e) {
     btn.textContent = 'Sign In'; btn.disabled = false;
@@ -213,6 +230,14 @@ window.teacherLogin = async function () {
     showError('teacherError', msg);
   }
 };
+
+function clearKidSession() {
+  localStorage.removeItem('studentId');
+  localStorage.removeItem('studentName');
+  localStorage.removeItem('classCode');
+  localStorage.removeItem('parentStudentId');
+  localStorage.removeItem('parentStudentName');
+}
 
 // ============================================
 // Google Login (popup on desktop, redirect on mobile/CrOS)
@@ -231,29 +256,19 @@ window.googleLogin = async function () {
     var teacherRef = window.fbDoc(window.firebaseDb, 'teachers', user.uid);
     var teacherSnap = await window.fbGetDoc(teacherRef);
     if (!teacherSnap.exists()) {
-      var classCode;
-      for (var cc = 0; cc < 10; cc++) {
-        classCode = String(Math.floor(100000 + Math.random() * 900000));
-        var ccQ = window.fbQuery(window.fbCollection(window.firebaseDb, 'teachers'), window.fbWhere('classCode', '==', classCode));
-        var ccSnap = await window.fbGetDocs(ccQ);
-        if (ccSnap.empty) break;
-      }
+      var classCode = await window.odaGenerateClassCode();
       await window.fbSetDoc(teacherRef, {
         name: user.displayName || '', email: user.email || '',
+        accountType: 'parent',
         district: '', school: '', team: '', program: '', gradeLevels: '',
-        classCode: classCode, classes: ['All Students'],
+        classCode: classCode, classes: ['My Kids'],
         createdAt: new Date().toISOString()
       });
     } else if (!teacherSnap.data().classCode) {
       var code = String(Math.floor(100000 + Math.random() * 900000));
       await window.fbSetDoc(teacherRef, { classCode: code }, { merge: true });
     }
-    // Clear any stale student session data
-    localStorage.removeItem('studentId');
-    localStorage.removeItem('studentName');
-    localStorage.removeItem('classCode');
-    localStorage.removeItem('parentStudentId');
-    localStorage.removeItem('parentStudentName');
+    clearKidSession();
     window.location.href = 'teacher.html';
   } catch (e) {
     if (e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-browser' || e.code === 'auth/cancelled-popup-request') {
@@ -266,17 +281,14 @@ window.googleLogin = async function () {
 };
 
 // ============================================
-// Teacher Signup
+// Guardian Signup (family account — parent by default, teacher optional)
 // ============================================
-window.teacherSignup = async function () {
+window.guardianSignup = async function () {
   var name = document.getElementById('signupName').value.trim();
   var email = document.getElementById('signupEmail').value.trim();
-  var district = document.getElementById('signupDistrict').value;
-  var school = document.getElementById('signupSchool').value;
-  var grades = document.getElementById('signupGrades').value.trim();
-  var team = document.getElementById('signupTeam').value;
-  var program = document.getElementById('signupProgram').value;
   var pass = document.getElementById('signupPass').value;
+  var roleEl = document.getElementById('signupRole');
+  var role = roleEl ? roleEl.value : 'parent';
 
   if (!name || !email || !pass) { showError('signupError', 'Fill in name, email and password!'); return; }
   if (pass.length < 6) { showError('signupError', 'Password needs at least 6 characters'); return; }
@@ -285,25 +297,17 @@ window.teacherSignup = async function () {
   sbtn.innerHTML = '<span class="spinner"></span>'; sbtn.disabled = true;
 
   try {
-    var classCode;
-    for (var cc = 0; cc < 10; cc++) {
-      classCode = String(Math.floor(100000 + Math.random() * 900000));
-      var ccQ = window.fbQuery(window.fbCollection(window.firebaseDb, 'teachers'), window.fbWhere('classCode', '==', classCode));
-      var ccSnap = await window.fbGetDocs(ccQ);
-      if (ccSnap.empty) break;
-    }
+    var classCode = await window.odaGenerateClassCode();
     var cred = await window.createUserWithEmailAndPassword(window.firebaseAuth, email, pass);
     await window.fbSetDoc(window.fbDoc(window.firebaseDb, 'teachers', cred.user.uid), {
-      name: name, email: email, district: district, school: school,
-      team: team, program: program, gradeLevels: grades,
-      classCode: classCode, classes: ['All Students'],
+      name: name, email: email,
+      accountType: role,
+      district: '', school: '', team: '', program: '', gradeLevels: '',
+      classCode: classCode, classes: [role === 'teacher' ? 'All Students' : 'My Kids'],
       createdAt: new Date().toISOString()
     });
     try { await window.sendEmailVerification(cred.user); } catch (ev) { console.warn('Verification email:', ev); }
-    // Clear any stale student session data
-    localStorage.removeItem('studentId');
-    localStorage.removeItem('studentName');
-    localStorage.removeItem('classCode');
+    clearKidSession();
     window.location.href = 'teacher.html';
   } catch (e) {
     sbtn.textContent = 'Create Account \u{1F680}'; sbtn.disabled = false;
@@ -311,9 +315,11 @@ window.teacherSignup = async function () {
     showError('signupError', msg);
   }
 };
+// Back-compat alias (old inline handlers)
+window.teacherSignup = window.guardianSignup;
 
 // ============================================
-// Parent Login
+// Quick Progress Check (kid name + parent code, no account)
 // ============================================
 window.parentLogin = async function () {
   if (!checkLoginThrottle('parentError')) return;
@@ -334,7 +340,7 @@ window.parentLogin = async function () {
     var snap = await window.fbGetDocs(q);
     if (snap.empty) {
       pbtn.textContent = 'View Progress'; pbtn.disabled = false;
-      showError('parentError', 'Not found. Check with your child\'s teacher.');
+      showError('parentError', 'Not found. Check the name spelling and code.');
       return;
     }
     localStorage.setItem('parentStudentId', snap.docs[0].id);
@@ -343,10 +349,35 @@ window.parentLogin = async function () {
   } catch (e) {
     pbtn.textContent = 'View Progress'; pbtn.disabled = false;
     console.error('Parent login error:', e);
-    if (e.message && e.message.includes('index')) { showError('parentError', 'Database setup needed. Tell your teacher to check the console.'); }
+    if (e.message && e.message.includes('index')) { showError('parentError', 'Database setup needed. Contact support.'); }
     else { showError('parentError', 'Something went wrong. Try again.'); }
   }
 };
+
+// ============================================
+// Game Marquee (registry-driven visual discovery)
+// ============================================
+(function () {
+  var games = window.ODA_GAMES || [];
+  if (!games.length) return;
+  function chipRow(list) {
+    var h = '';
+    list.forEach(function (g) {
+      h += '<div class="gm-chip" style="--c1:' + g.colors[0] + ';--c2:' + g.colors[1] + '">';
+      h += '<span class="gm-emoji">' + g.emoji + '</span><span class="gm-title">' + esc(g.title) + '</span></div>';
+    });
+    return h;
+  }
+  function fillRow(elId, list) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    // Duplicate content for a seamless CSS loop
+    el.innerHTML = '<div class="gm-track">' + chipRow(list) + chipRow(list) + '</div>';
+  }
+  var half = Math.ceil(games.length / 2);
+  fillRow('gmRow1', games.slice(0, half));
+  fillRow('gmRow2', games.slice(half));
+})();
 
 // ============================================
 // Keyboard Navigation (Enter key support)
@@ -357,6 +388,6 @@ document.addEventListener('keydown', function (e) {
   if (!active) return;
   if (active.id === 'classCodeInput') window.checkClassCode();
   else if (active.id === 'teacherEmail' || active.id === 'teacherPass') window.teacherLogin();
-  else if (active.id === 'signupPass' || active.id === 'signupEmail' || active.id === 'signupName' || active.id === 'signupSchool' || active.id === 'signupGrades') window.teacherSignup();
+  else if (active.id === 'signupPass' || active.id === 'signupEmail' || active.id === 'signupName') window.guardianSignup();
   else if (active.id === 'parentCode' || active.id === 'parentChildName') window.parentLogin();
 });

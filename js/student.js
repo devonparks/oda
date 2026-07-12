@@ -500,7 +500,7 @@ if(recentGames.length>0){
 // Shop banner
 h+='<div class="game-cover-card shop-banner" role="button" tabindex="0" onclick="location.href=\'shop.html\'">';
 h+='<div class="shop-banner-inner"><span style="font-size:32px">\u{1F6CD}\uFE0F</span>';
-h+='<div><div style="font-weight:800;font-size:16px;font-family:Fredoka,sans-serif">ODA Shop</div>';
+h+='<div><div style="font-weight:800;font-size:16px;font-family:Fredoka,sans-serif">AMG Shop</div>';
 h+='<div style="color:var(--text2);font-size:13px">\u{1FA99} <span id="arcadeShopCoins">'+coins+'</span> coins \u2014 Avatars, colors & more</div></div></div></div>';
 
 // Game cards with cover images — render ALL games, show/hide via filters
@@ -532,19 +532,19 @@ var ODA_TOOLS=[
 {id:'elevator-pitch',emoji:'\u{1F3A4}',name:'Elevator Pitch',desc:'Practice your 30-second elevator pitch!',url:'elevator.html',storageKey:null},
 {id:'lemonade-day',emoji:'\u{1F34B}',name:'Lemonade Day',desc:'Build a real business with your team!',url:'lemonade.html',storageKey:null},
 {id:'spelling',emoji:'\u{1F4D6}',name:'Spelling Bee',desc:'Practice spelling with fun challenges!',url:'spelling.html',storageKey:null},
-{id:'jeopardy',emoji:'\u{1F3AF}',name:'Jeopardy',desc:'Play the classic game show with custom questions!',url:'jeopardy.html',storageKey:null},
+{id:'jeopardy',emoji:'\u{1F3AF}',name:'Quiz Show',desc:'Play the classic game-show board with custom questions!',url:'jeopardy.html',storageKey:null},
 {id:'kahoot',emoji:'\u26A1',name:'Quiz Blitz',desc:'Fast-paced timed quizzes — speed matters!',url:'kahoot.html',storageKey:null},
 {id:'flashcards',emoji:'\u{1F4DA}',name:'Flashcards',desc:'Study with flip cards, quizzes & matching games!',url:'flashcards.html',storageKey:null},
 {id:'wordsearch',emoji:'\u{1F50D}',name:'Word Search',desc:'Find hidden words in the puzzle grid!',url:'wordsearch.html',storageKey:null},
 {id:'crossword',emoji:'\u270F\uFE0F',name:'Crossword',desc:'Solve crossword puzzles with vocabulary clues!',url:'crossword.html',storageKey:null},
 {id:'library',emoji:'\u{1F4D6}',name:'Library',desc:'Read passages and answer comprehension questions!',url:'library.html',storageKey:null},
-{id:'canvas',emoji:'\u{1F3A8}',name:'ODA Canvas',desc:'Draw, design posters, t-shirts & more!',url:'canvas.html',storageKey:null},
+{id:'canvas',emoji:'\u{1F3A8}',name:'AMG Canvas',desc:'Draw, design posters, t-shirts & more!',url:'canvas.html',storageKey:null},
 {id:'timer',emoji:'\u23F0',name:'Timer',desc:'Clock, countdown, stopwatch & alarms!',url:'timer.html',storageKey:null},
 {id:'scoreboard',emoji:'\u{1F3C6}',name:'Scoreboard',desc:'Team scoreboard for classroom competitions!',url:'scoreboard.html',storageKey:null},
 {id:'raffle',emoji:'\u{1F3B0}',name:'Raffle',desc:'Spend coins on raffle entries to win prizes!',url:'raffle.html',storageKey:null},
 ];
 var COMING_SOON_TOOLS=[
-{id:'oda-world',emoji:'\u{1F30D}',name:'ODA World',desc:'Explore an immersive virtual campus!'},
+{id:'oda-world',emoji:'\u{1F30D}',name:'AMG World',desc:'Explore a 3D world with your character!'},
 {id:'debate',emoji:'\u{1F5E3}\uFE0F',name:'Debate Club',desc:'Practice persuasive arguments!'}
 ];
 

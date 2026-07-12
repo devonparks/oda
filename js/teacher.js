@@ -155,21 +155,21 @@ var TEACHER_TOOLS = [
   { id: 'elevator-pitch', emoji: '\u{1F3A4}', name: 'Elevator Pitch', desc: '10-question interview \u2192 auto-generated pitch. 3 styles.', url: 'elevator.html', toolType: 'elevator-pitch' },
   { id: 'lemonade', emoji: '\u{1F34B}', name: 'Lemonade Day', desc: 'Mikaila video, mission statement, sign-ups & hype.', url: 'lemonade.html', toolType: 'lemonade-day' },
   { id: 'spelling', emoji: '\u{1F41D}', name: 'Spelling Bee', desc: 'Cleveland-themed spelling challenges. 5 levels.', url: 'spelling.html', toolType: 'spelling-bee' },
-  { id: 'oda-studio', emoji: '\u2728', name: 'ODA Studio', desc: 'Build custom tools with AI! Chat-powered studio.', url: 'builder.html', toolType: 'oda-studio' },
-  { id: 'jeopardy', emoji: '\u{1F3AF}', name: 'Jeopardy', desc: 'Create custom Jeopardy boards. AI generates 25 questions instantly.', url: 'jeopardy.html', toolType: 'jeopardy' },
-  { id: 'kahoot', emoji: '\u26A1', name: 'Quiz Blitz', desc: 'Kahoot-style quizzes. Host live or assign for practice.', url: 'kahoot.html', toolType: 'kahoot' },
+  { id: 'oda-studio', emoji: '\u2728', name: 'AMG Studio', desc: 'Build custom tools with AI! Chat-powered studio.', url: 'builder.html', toolType: 'oda-studio' },
+  { id: 'jeopardy', emoji: '\u{1F3AF}', name: 'Quiz Show', desc: 'Create custom quiz-show boards. AI generates 25 questions instantly.', url: 'jeopardy.html', toolType: 'jeopardy' },
+  { id: 'kahoot', emoji: '\u26A1', name: 'Quiz Blitz', desc: 'Fast-paced live quizzes. Host live or assign for practice.', url: 'kahoot.html', toolType: 'kahoot' },
   { id: 'flashcards', emoji: '\u{1F4DA}', name: 'Flashcards', desc: 'Create decks with AI. Browse, quiz, match & speed round modes.', url: 'flashcards.html', toolType: 'flashcards' },
   { id: 'wordsearch', emoji: '\u{1F50D}', name: 'Word Search', desc: 'AI-generated word search puzzles from any topic.', url: 'wordsearch.html', toolType: 'wordsearch' },
   { id: 'crossword', emoji: '\u270F\uFE0F', name: 'Crossword', desc: 'Auto-generated crosswords with vocabulary clues.', url: 'crossword.html', toolType: 'crossword' },
   { id: 'library', emoji: '\u{1F4D6}', name: 'Library', desc: 'AI reading passages with comprehension quizzes & reading logs.', url: 'library.html', toolType: 'library' },
-  { id: 'canvas', emoji: '\u{1F3A8}', name: 'ODA Canvas', desc: 'Drawing & design tool. Posters, t-shirts, comics & more.', url: 'canvas.html', toolType: 'canvas' },
+  { id: 'canvas', emoji: '\u{1F3A8}', name: 'AMG Canvas', desc: 'Drawing & design tool. Posters, t-shirts, comics & more.', url: 'canvas.html', toolType: 'canvas' },
   { id: 'timer', emoji: '\u23F0', name: 'Timer', desc: 'Clock, countdown timer, stopwatch & alarms. Projector-ready.', url: 'timer.html', toolType: 'timer' },
   { id: 'scoreboard', emoji: '\u{1F3C6}', name: 'Scoreboard', desc: 'Team scoreboard with buzzer mode. Great for competitions.', url: 'scoreboard.html', toolType: 'scoreboard' },
   { id: 'raffle', emoji: '\u{1F3B0}', name: 'Raffle', desc: 'Coin-powered raffle with animated prize wheel drawing.', url: 'raffle.html', toolType: 'raffle' }
 ];
 
 var COMING_SOON_TEACHER = [
-  { id: 'oda-world', emoji: '\u{1F30D}', name: 'ODA World', desc: 'Immersive virtual campus for students to explore.' },
+  { id: 'oda-world', emoji: '\u{1F30D}', name: 'AMG World', desc: 'Immersive 3D world for kids to explore.' },
   { id: 'debate', emoji: '\u{1F5E3}\uFE0F', name: 'Debate Club', desc: 'Structured debate practice for students.' }
 ];
 
