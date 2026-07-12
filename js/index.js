@@ -139,9 +139,16 @@ window.checkClassCode = async function () {
       }
     } catch (e) { /* collection may not exist yet */ }
     if (!candidates.length) {
-      var q = window.fbQuery(window.fbCollection(window.firebaseDb, 'teachers'), window.fbWhere('classCode', '==', code));
-      var snap = await window.fbGetDocs(q);
-      if (snap.empty) { btn.textContent = 'Enter →'; btn.disabled = false; showError('studentError', 'Code not found. Ask your parent (or teacher) to check it!'); return; }
+      // Legacy fallback: direct guardians query. Under rules v2 this is
+      // auth-gated, so unauthenticated lookups throw permission-denied —
+      // treat that the same as "no match" (the classCodes lookup above is
+      // the real path for all post-v2 accounts).
+      var snap = null;
+      try {
+        var q = window.fbQuery(window.fbCollection(window.firebaseDb, 'teachers'), window.fbWhere('classCode', '==', code));
+        snap = await window.fbGetDocs(q);
+      } catch (permErr) { snap = null; }
+      if (!snap || snap.empty) { btn.textContent = 'Enter →'; btn.disabled = false; showError('studentError', 'Code not found. Ask your parent (or teacher) to check it!'); return; }
       // Duplicate-code safety: prefer the doc that actually has students
       candidates = snap.docs.map(function (d) { return { id: d.id, ...d.data() }; });
     }
