@@ -76,7 +76,8 @@ body{overflow-x:hidden}
 .how-card:nth-child(2){border-bottom-color:var(--accent2)}
 .how-card:nth-child(3){border-bottom-color:var(--gold)}
 .how-card:hover{transform:translateY(-6px);box-shadow:var(--shadow-lg)}
-.how-emoji{font-size:46px;display:block;margin-bottom:12px}
+.how-card:hover .how-emoji{transform:scale(1.12) rotate(-4deg)}
+.how-emoji{font-size:46px;display:block;margin-bottom:12px;transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
 .how-title{font-family:'Fredoka',sans-serif;font-size:21px;font-weight:700;margin-bottom:8px;color:var(--text)}
 .how-desc{font-size:14px;color:var(--text2);line-height:1.6}
 
@@ -211,3 +212,20 @@ body{overflow-x:hidden}
 .door-title{font-size:28px}
 .door-desc{font-size:16px}
 }
+
+/* ── Scroll-reveal (below-fold sections rise into view) ── */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s cubic-bezier(.22,1,.36,1)}
+.reveal.in{opacity:1;transform:none}
+/* stagger cards within a revealed row */
+.how-row.reveal .how-card{transition:transform .6s cubic-bezier(.22,1,.36,1),opacity .6s ease,box-shadow .3s}
+.how-row.reveal .how-card{opacity:0;transform:translateY(18px)}
+.how-row.reveal.in .how-card{opacity:1;transform:none}
+.how-row.reveal.in .how-card:nth-child(2){transition-delay:.09s}
+.how-row.reveal.in .how-card:nth-child(3){transition-delay:.18s}
+@media(prefers-reduced-motion:reduce){.reveal,.how-row.reveal .how-card{opacity:1;transform:none;transition:none}}
+
+/* ── Extra depth: top-edge accent glow on the feature strips ── */
+.earn-strip,.parents-section{position:relative;overflow:hidden}
+.earn-strip::before,.parents-section::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent)}
+.how-card{position:relative;overflow:hidden}
+.how-card::after{content:'';position:absolute;inset:0;border-radius:inherit;background:radial-gradient(120% 60% at 50% -10%,rgba(255,255,255,.05),transparent 60%);pointer-events:none}
