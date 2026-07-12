@@ -40,3 +40,10 @@ No build step. Open pages with any static server (e.g. `npx serve .`) — Fireba
 
 Deployment is a push to `main` (GitHub Pages). See `docs/AMG_HUB_LAUNCH.md` before deploying
 the rebrand.
+
+## Credits
+
+- Character models: Synty Studios POLYGON Kids (licensed; compiled game assets only — raw
+  sources are never committed)
+- Emoji artwork: [Twemoji](https://github.com/jdecked/twemoji) (CC-BY 4.0) — auto-applied
+  site-wide via `js/oda-core.js` so no raw platform emoji ever ships

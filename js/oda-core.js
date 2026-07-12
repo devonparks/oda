@@ -42,7 +42,7 @@
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https:",
-    "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com https://us-central1-oda-hub-d4bef.cloudfunctions.net https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com wss://*.firebaseio.com https://www.google.com/recaptcha/",
+    "connect-src 'self' blob: https://*.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com https://us-central1-oda-hub-d4bef.cloudfunctions.net https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com wss://*.firebaseio.com https://www.google.com/recaptcha/ https://cdn.jsdelivr.net",
     "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://docs.google.com https://www.youtube.com https://youtube.com https://www.google.com/recaptcha/ https://recaptcha.google.com/",
     "frame-ancestors 'self'",
     "form-action 'self'",
@@ -1301,4 +1301,65 @@ window.odaXP = (function() {
   };
 })();
 
-console.log('[ODA] Core loaded v1.6');
+// ============================================
+// Twemoji everywhere (AMG brand rule: no raw platform emoji)
+// Converts every rendered emoji to consistent Twitter-style vector art on all
+// OSes/devices. Auto-parses the initial DOM and anything added later.
+// Graphics: Twemoji, CC-BY 4.0 (credited in README + landing footer).
+// ============================================
+(function() {
+  if (window.__amgTwemojiInit) return;
+  window.__amgTwemojiInit = true;
+  var TW_OPTS = null;
+  var _pending = false;
+
+  function parseRoot(root) {
+    if (!window.twemoji || !root) return;
+    try { window.twemoji.parse(root, TW_OPTS); } catch (e) {}
+  }
+
+  function boot() {
+    TW_OPTS = {
+      base: 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/',
+      folder: 'svg',
+      ext: '.svg'
+    };
+    // sizing for the injected <img class="emoji">
+    var st = document.createElement('style');
+    st.textContent = 'img.emoji{height:1em;width:1em;margin:0 .05em 0 .1em;vertical-align:-0.1em;display:inline-block}';
+    document.head.appendChild(st);
+    parseRoot(document.body);
+    // Parse only ADDED subtrees (never a full-body reparse — game pages
+    // mutate score text every frame and Chromebooks can't afford it).
+    var _queue = [];
+    var mo = new MutationObserver(function(muts) {
+      for (var i = 0; i < muts.length; i++) {
+        var added = muts[i].addedNodes;
+        for (var j = 0; j < added.length; j++) {
+          var n = added[j];
+          if (n.nodeType === 1 && !(n.tagName === 'IMG' && n.classList && n.classList.contains('emoji'))) _queue.push(n);
+        }
+      }
+      if (_pending || !_queue.length) return;
+      _pending = true;
+      requestAnimationFrame(function() {
+        _pending = false;
+        var batch = _queue.splice(0, _queue.length);
+        for (var k = 0; k < batch.length; k++) parseRoot(batch[k]);
+      });
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
+    window.amgEmojiParse = parseRoot;
+  }
+
+  var s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/@twemoji/api@15.1.0/dist/twemoji.min.js';
+  s.onload = function() {
+    if (document.body) boot();
+    else document.addEventListener('DOMContentLoaded', boot);
+  };
+  s.onerror = function() { console.warn('[AMG] twemoji unavailable, platform emoji fallback'); };
+  document.head.appendChild(s);
+})();
+
+console.log('[ODA] Core loaded v1.7');

@@ -725,10 +725,14 @@ function applyStudentCosmetics(d) {
   var coinEl = document.getElementById('coinDisplay');
   if (coinEl) coinEl.textContent = (d.coins || 0);
 
-  // Update avatar
+  // Update avatar — the equipped 3D character's portrait wins over emoji avatars
   var eq = d.equipped || {};
   var avatarEl = document.getElementById('stuAvatar');
-  if (avatarEl && eq.avatar && eq.avatar.emoji) {
+  if (avatarEl && eq.character && eq.character.thumb) {
+    avatarEl.innerHTML = '<img src="' + esc(eq.character.thumb) + '" alt="My character" style="width:100%;height:100%;object-fit:cover;border-radius:50%;transform:scale(1.4);transform-origin:50% 20%">';
+    avatarEl.style.overflow = 'hidden';
+    try { localStorage.setItem('amgCharacterThumb', eq.character.thumb); } catch(e) {}
+  } else if (avatarEl && eq.avatar && eq.avatar.emoji) {
     avatarEl.textContent = eq.avatar.emoji;
   }
   if (avatarEl && eq.border && eq.border.value && eq.border.value !== 'none') {
@@ -937,9 +941,13 @@ function openProfileCard() {
   var eq = d.equipped || {};
   var modal = document.getElementById('profileModal');
 
-  // Avatar
+  // Avatar — 3D character portrait wins
   var avatarEl = document.getElementById('profileAvatar');
-  avatarEl.textContent = (eq.avatar && eq.avatar.emoji) ? eq.avatar.emoji : '\u{1F464}';
+  if (eq.character && eq.character.thumb) {
+    avatarEl.innerHTML = '<img src="' + esc(eq.character.thumb) + '" alt="My character" style="width:100%;height:100%;object-fit:cover;border-radius:50%;transform:scale(1.35);transform-origin:50% 15%">';
+  } else {
+    avatarEl.textContent = (eq.avatar && eq.avatar.emoji) ? eq.avatar.emoji : '\u{1F464}';
+  }
 
   // Avatar border effect
   var avatarWrap = document.getElementById('profileAvatarWrap');

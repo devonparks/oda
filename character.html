@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Character - AMG Hub</title>
+<link rel="icon" type="image/svg+xml" href="assets/amg-icon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/oda-theme.css">
+<style>
+body { overflow-x: hidden }
+.char-app { max-width: 1200px; margin: 0 auto; padding: 20px; position: relative; z-index: 1 }
+.char-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 10px }
+.char-back { background: none; border: 1px solid var(--border); border-radius: 10px; padding: 8px 16px; color: var(--text2); font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all .2s }
+.char-back:hover { border-color: var(--text2); color: var(--text) }
+.char-title { font-family: 'Fredoka', sans-serif; font-size: 26px; font-weight: 700; color: var(--text) }
+.char-title span { color: var(--accent) }
+.char-coins { background: var(--gold-dim, rgba(255,209,102,.12)); border: 1px solid rgba(255,209,102,.35); border-radius: 20px; padding: 8px 18px; font-family: 'Fredoka', sans-serif; font-weight: 700; color: var(--gold); font-size: 16px }
+
+.char-layout { display: grid; grid-template-columns: minmax(320px, 460px) 1fr; gap: 22px; align-items: start }
+@media(max-width: 900px) { .char-layout { grid-template-columns: 1fr } }
+
+.char-stage-wrap { background: var(--surface); border: 2px solid var(--border); border-radius: 24px; overflow: hidden; position: sticky; top: 16px }
+#charStage { width: 100%; height: 520px; display: block; touch-action: none; cursor: grab }
+#charStage:active { cursor: grabbing }
+.char-stage-info { padding: 16px 20px 20px; text-align: center; border-top: 1px solid var(--border) }
+.char-stage-name { font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 700; color: var(--text) }
+.char-stage-status { font-size: 13px; color: var(--text2); margin-top: 4px; min-height: 18px }
+.char-equip-btn { margin-top: 12px; width: 100%; padding: 14px; border: none; border-radius: 14px; font-family: 'Fredoka', sans-serif; font-size: 17px; font-weight: 700; cursor: pointer; transition: all .2s cubic-bezier(.34,1.56,.64,1); min-height: 52px }
+.char-equip-btn:hover { transform: translateY(-2px) }
+.char-equip-btn.equip { background: var(--gradient-accent-btn); color: var(--bg); box-shadow: 0 4px 18px rgba(6,214,160,.3) }
+.char-equip-btn.buy { background: linear-gradient(135deg, var(--gold), #f0b830); color: var(--bg); box-shadow: 0 4px 18px rgba(255,209,102,.3) }
+.char-equip-btn.equipped { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent); cursor: default }
+.char-equip-btn.locked { background: var(--surface2); color: var(--text3); cursor: not-allowed }
+.char-hint { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text3); letter-spacing: 1px; margin-top: 8px }
+
+.char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px }
+.char-card { background: var(--surface); border: 2px solid var(--border); border-radius: 18px; padding: 10px 10px 12px; text-align: center; cursor: pointer; transition: all .25s cubic-bezier(.34,1.56,.64,1); position: relative; overflow: hidden }
+.char-card:hover { transform: translateY(-4px); border-color: var(--text3); box-shadow: var(--shadow-md) }
+.char-card.selected { border-color: var(--accent); background: var(--accent-dim); box-shadow: 0 0 18px rgba(6,214,160,.2) }
+.char-card.equipped-card::before { content: 'EQUIPPED'; position: absolute; top: 8px; left: -26px; transform: rotate(-35deg); background: var(--accent); color: var(--bg); font-size: 9px; font-weight: 800; letter-spacing: 1px; padding: 2px 28px; font-family: 'Outfit', sans-serif }
+.char-card img { width: 100%; aspect-ratio: 4/5; object-fit: contain; filter: drop-shadow(0 6px 10px rgba(0,0,0,.4)) }
+.char-card-name { font-family: 'Fredoka', sans-serif; font-size: 13px; font-weight: 600; color: var(--text); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.char-card-price { margin-top: 4px; font-size: 11px; font-weight: 700 }
+.char-card-price.free { color: var(--accent) }
+.char-card-price.coins { color: var(--gold) }
+.char-card-price.owned { color: var(--text2) }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="char-app">
+  <div class="char-top">
+    <a class="char-back" href="student.html">&#x2190; Back to Hub</a>
+    <div class="char-title">My <span>Character</span></div>
+    <div class="char-coins">&#x1FA99; <span id="charCoins">0</span></div>
+  </div>
+
+  <div class="char-layout">
+    <div class="char-stage-wrap">
+      <canvas id="charStage"></canvas>
+      <div class="char-stage-info">
+        <div class="char-stage-name" id="stageName">Loading...</div>
+        <div class="char-stage-status" id="stageStatus"></div>
+        <button class="char-equip-btn equip" id="equipBtn" style="display:none"></button>
+        <div class="char-hint">DRAG TO SPIN &bull; YOUR CHARACTER FOLLOWS YOU EVERYWHERE</div>
+      </div>
+    </div>
+    <div>
+      <div class="char-grid" id="charGrid"></div>
+    </div>
+  </div>
+</div>
+
+<script src="js/oda-core.js"></script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+// ── Catalog: manifest + pricing (first squad free, the rest are coin goals) ──
+const PRICING = {
+  kid_hoodie: 0, kid_tracksuit: 0, kid_footballer: 0, kid_cheerleader: 0,
+  kid_dino: 0, kid_alien: 0,
+  kid_ninja: 400, kid_cardboard: 500, kid_ghost: 500,
+  kid_explorer: 600, kid_ballerina: 600, kid_princess: 800,
+  kid_superhero: 1000, kid_superhero2: 1000, kid_witch: 1200, kid_wizard: 1200,
+};
+
+const studentId = localStorage.getItem('studentId');
+if (!studentId) location.href = 'index.html';
+
+let CATALOG = [];
+let student = null;
+let selectedId = null;
+let equippedId = null;
+
+// ── three.js stage ──
+const canvas = document.getElementById('charStage');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.25;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 50);
+scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+scene.add(new THREE.HemisphereLight(0xdde7ff, 0x445066, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 2.6);
+sun.position.set(2, 4, 3);
+scene.add(sun);
+const rim = new THREE.DirectionalLight(0x66ffd0, 0.9);
+rim.position.set(-3, 2, -2);
+scene.add(rim);
+const pivot = new THREE.Group();
+scene.add(pivot);
+window.__amgScene = scene; // debug handle
+
+function sizeStage() {
+  const w = canvas.clientWidth || canvas.parentElement.clientWidth;
+  const h = 520;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', sizeStage);
+
+const loader = new GLTFLoader();
+let currentModel = null;
+async function showModel(entry) {
+  document.getElementById('stageName').textContent = entry.name;
+  const gltf = await loader.loadAsync(entry.glb);
+  if (currentModel) pivot.remove(currentModel);
+  currentModel = gltf.scene;
+  // Material fixes:
+  // - face plane must alpha-blend (mouth texture is mostly transparent)
+  // - Synty meshes carry a COLOR_0 attribute that multiplies the texture
+  //   near-black in three.js — disable vertex colors everywhere
+  currentModel.traverse(o => {
+    if (o.isMesh && o.material) {
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      mats.forEach(m => {
+        if ((m.name || '').includes('AMG_Face')) {
+          m.transparent = true;
+          m.depthWrite = false;
+          m.alphaTest = 0.01;
+        }
+        m.vertexColors = false;
+        m.roughness = Math.max(m.roughness ?? 0.85, 0.6);
+        m.needsUpdate = true;
+      });
+    }
+  });
+  // frame it
+  const box = new THREE.Box3().setFromObject(currentModel);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  currentModel.position.sub(center);                    // center at origin
+  currentModel.position.y += 0;                          // pivot mid-height
+  pivot.add(currentModel);
+  const dist = size.y * 1.55;
+  camera.position.set(0, size.y * 0.06, dist);
+  camera.lookAt(0, 0, 0);
+}
+
+// drag to rotate
+let dragging = false, lastX = 0, spinVel = 0.012;
+canvas.addEventListener('pointerdown', e => { dragging = true; lastX = e.clientX; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e => { if (dragging) { pivot.rotation.y += (e.clientX - lastX) * 0.012; lastX = e.clientX; spinVel = 0; } });
+canvas.addEventListener('pointerup', () => { dragging = false; });
+(function loop() {
+  requestAnimationFrame(loop);
+  if (!dragging) pivot.rotation.y += spinVel;
+  renderer.render(scene, camera);
+})();
+
+// ── data + grid ──
+function owned(id) {
+  if (PRICING[id] === 0) return true;
+  const inv = (student && student.inventory) || [];
+  return inv.indexOf('char_' + id) >= 0;
+}
+
+function renderGrid() {
+  const grid = document.getElementById('charGrid');
+  grid.innerHTML = '';
+  CATALOG.forEach(entry => {
+    const card = document.createElement('div');
+    card.className = 'char-card' + (entry.id === selectedId ? ' selected' : '') + (entry.id === equippedId ? ' equipped-card' : '');
+    const price = PRICING[entry.id] || 0;
+    let priceHtml;
+    if (entry.id === equippedId) priceHtml = '<div class="char-card-price owned">In use</div>';
+    else if (owned(entry.id)) priceHtml = '<div class="char-card-price owned">Owned</div>';
+    else if (price === 0) priceHtml = '<div class="char-card-price free">FREE</div>';
+    else priceHtml = '<div class="char-card-price coins">&#x1FA99; ' + price.toLocaleString() + '</div>';
+    card.innerHTML = '<img src="' + entry.thumb + '" alt="' + entry.name + '" loading="lazy">' +
+      '<div class="char-card-name">' + entry.name + '</div>' + priceHtml;
+    card.onclick = () => select(entry.id);
+    grid.appendChild(card);
+  });
+}
+
+function updateEquipBtn() {
+  const btn = document.getElementById('equipBtn');
+  const entry = CATALOG.find(c => c.id === selectedId);
+  if (!entry) { btn.style.display = 'none'; return; }
+  btn.style.display = '';
+  const price = PRICING[entry.id] || 0;
+  if (entry.id === equippedId) {
+    btn.className = 'char-equip-btn equipped';
+    btn.textContent = '✅ This is you!';
+    btn.onclick = null;
+  } else if (owned(entry.id)) {
+    btn.className = 'char-equip-btn equip';
+    btn.textContent = 'Make this me!';
+    btn.onclick = () => equipSelected();
+  } else {
+    const coins = (student && student.coins) || 0;
+    if (coins >= price) {
+      btn.className = 'char-equip-btn buy';
+      btn.innerHTML = 'Unlock &mdash; \u{1FA99} ' + price.toLocaleString();
+      btn.onclick = () => buySelected();
+    } else {
+      btn.className = 'char-equip-btn locked';
+      btn.innerHTML = 'Need \u{1FA99} ' + (price - coins).toLocaleString() + ' more — go learn &amp; earn!';
+      btn.onclick = null;
+    }
+  }
+}
+
+async function select(id) {
+  selectedId = id;
+  renderGrid();
+  updateEquipBtn();
+  const entry = CATALOG.find(c => c.id === id);
+  document.getElementById('stageStatus').textContent = '';
+  try { await showModel(entry); } catch (e) {
+    document.getElementById('stageStatus').textContent = 'Could not load model';
+    console.error(e);
+  }
+}
+
+async function equipSelected() {
+  const entry = CATALOG.find(c => c.id === selectedId);
+  if (!entry) return;
+  try {
+    if (window.amgEnsureAnonAuth) await window.amgEnsureAnonAuth();
+    const fb = await window.getFirebaseDB();
+    await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'students', studentId), {
+      'equipped.character': { id: entry.id, name: entry.name, glb: entry.glb, thumb: entry.thumb }
+    });
+    equippedId = entry.id;
+    try { localStorage.setItem('amgCharacterThumb', entry.thumb); localStorage.setItem('amgCharacterId', entry.id); } catch (e) {}
+    renderGrid(); updateEquipBtn();
+    if (window.odaToast) odaToast('✨ ' + entry.name + ' is now your character!', 'success');
+    if (window.odaCelebrate) odaCelebrate('confetti');
+  } catch (e) { console.error(e); if (window.odaToast) odaToast('Could not save. Try again!', 'error'); }
+}
+
+async function buySelected() {
+  const entry = CATALOG.find(c => c.id === selectedId);
+  const price = PRICING[entry.id] || 0;
+  const coins = (student && student.coins) || 0;
+  if (coins < price) return;
+  try {
+    if (window.amgEnsureAnonAuth) await window.amgEnsureAnonAuth();
+    const fb = await window.getFirebaseDB();
+    await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'students', studentId), {
+      coins: fb.fsMod.increment(-price),
+      inventory: fb.fsMod.arrayUnion('char_' + entry.id)
+    });
+    student.coins = coins - price;
+    student.inventory = (student.inventory || []).concat(['char_' + entry.id]);
+    document.getElementById('charCoins').textContent = student.coins.toLocaleString();
+    if (window.odaToast) odaToast('\u{1F389} Unlocked ' + entry.name + '!', 'success');
+    if (window.odaCelebrate) odaCelebrate('fireworks');
+    await equipSelected();
+  } catch (e) { console.error(e); if (window.odaToast) odaToast('Purchase failed. Try again!', 'error'); }
+}
+
+// ── boot ──
+(async () => {
+  sizeStage();
+  const mf = await (await fetch('assets/characters/manifest.json')).json();
+  // catalog order: free first, then by price
+  CATALOG = mf.slice().sort((a, b) => (PRICING[a.id] || 0) - (PRICING[b.id] || 0));
+  try {
+    const fb = await window.getFirebaseDB();
+    const snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'students', studentId));
+    if (snap.exists()) {
+      student = snap.data();
+      document.getElementById('charCoins').textContent = (student.coins || 0).toLocaleString();
+      if (student.equipped && student.equipped.character) equippedId = student.equipped.character.id;
+    }
+  } catch (e) { console.warn('student load', e); }
+  renderGrid();
+  select(equippedId || CATALOG[0].id);
+})();
+</script>
+</body>
+</html>
