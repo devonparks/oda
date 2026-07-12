@@ -105,9 +105,21 @@ if(!studentId){window.location.href='index.html'}
 else{
 document.getElementById('studentNameEl').textContent=studentName||'Student';
 window.studentId=studentId;
-// Listen for student record (teacher arcade toggle)
+// Anonymous auth bootstrap — kid progress writes need request.auth != null
+// under the hardened Firestore rules. Invisible to the kid; no-ops pre-launch.
+if(window.amgEnsureAnonAuth)window.amgEnsureAnonAuth();
+// Listen for student record (guardian arcade toggle)
+var _missingCount=0;
 onSnapshot(doc(db,'students',studentId),function(snap){
-if(snap.exists()){window.studentRecord=snap.data();if(window.applyStudentCosmetics)window.applyStudentCosmetics(snap.data())}
+if(snap.exists()){window.studentRecord=snap.data();_missingCount=0;if(window.applyStudentCosmetics)window.applyStudentCosmetics(snap.data())}
+else{
+// Account deleted or stale/forged ID — clean re-login instead of a broken dashboard
+if(++_missingCount>=1&&!window.studentRecord){
+if(window.amgClearSession)window.amgClearSession();
+window.location.href='index.html';
+return;
+}
+}
 renderDashboard();
 });
 // Real-time listener for assignments

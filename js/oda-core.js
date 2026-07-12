@@ -183,6 +183,13 @@ window.getFirebaseDB = async function() {
   await _initAppCheck(_odaFbApp);
   var db = fsMod.getFirestore(_odaFbApp);
   _odaFbCache = { app: _odaFbApp, db: db, fsMod: fsMod };
+  // Kid session on a game page: attach an anonymous auth session so Firestore
+  // writes (coins, records, cosmetics) pass the hardened security rules.
+  // Registering auth on the same app makes ALL Firestore calls carry tokens.
+  if (window.amgEnsureAnonAuth && localStorage.getItem('studentId')
+      && localStorage.getItem('userRole') !== 'teacher' && localStorage.getItem('odaUserRole') !== 'teacher') {
+    try { await window.amgEnsureAnonAuth(); } catch(e) {}
+  }
   return _odaFbCache;
 };
 
@@ -195,6 +202,48 @@ window.getFirebaseAuth = async function() {
   await _initAppCheck(app);
   var auth = authMod.getAuth(app);
   return { app: app, auth: auth, authMod: authMod };
+};
+
+// ============================================
+// Session helpers (single source of truth for identity keys)
+// ============================================
+
+/** Clear EVERY identity/session key. Call on any logout. (Fixes: teacher
+ *  sign-out used to leave role+identity keys behind on shared devices.) */
+window.amgClearSession = function() {
+  ['studentId', 'studentName', 'classCode', 'parentStudentId', 'parentStudentName',
+   'userRole', 'odaUserRole', 'teacherId', 'odaUID', 'encourageShown', 'odaLastActivity'
+  ].forEach(function(k) { try { localStorage.removeItem(k); } catch(e) {} });
+};
+
+/** Best-effort anonymous Firebase Auth session for kid accounts.
+ *  Firestore rules require request.auth != null for progress writes; kids
+ *  don't have credentials, so they ride an anonymous session. Safe to call
+ *  repeatedly; no-ops if already signed in. Fails silently if the
+ *  Anonymous provider isn't enabled yet (pre-launch).
+ *
+ *  IMPORTANT: waits for the FIRST onAuthStateChanged emission before deciding
+ *  — currentUser is null while a persisted (guardian) session is still
+ *  rehydrating from IndexedDB, and signInAnonymously at that moment would
+ *  clobber the real session. */
+var _anonAuthPromise = null;
+window.amgEnsureAnonAuth = function() {
+  if (_anonAuthPromise) return _anonAuthPromise;
+  _anonAuthPromise = (async function() {
+    try {
+      var fb = await window.getFirebaseAuth();
+      // Wait for auth rehydration to settle
+      var user = await new Promise(function(resolve) {
+        var unsub = fb.authMod.onAuthStateChanged(fb.auth, function(u) { unsub(); resolve(u); });
+      });
+      if (user) return user;
+      // Never create an anon session in a guardian context
+      if (localStorage.getItem('userRole') === 'teacher' || localStorage.getItem('odaUserRole') === 'teacher') return null;
+      var cred = await fb.authMod.signInAnonymously(fb.auth);
+      return cred.user;
+    } catch(e) { console.warn('[AMG] anon auth unavailable:', e.code || e.message); return null; }
+  })();
+  return _anonAuthPromise;
 };
 
 window.getFirebaseStorage = async function() {

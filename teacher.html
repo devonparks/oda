@@ -425,7 +425,9 @@ window.fbDoc=doc;window.fbSetDoc=setDoc;window.fbGetDoc=getDoc;window.fbGetDocs=
 window.fbCollection=collection;window.fbQuery=query;window.fbWhere=where;window.fbAddDoc=addDoc;window.fbUpdateDoc=updateDoc;window.fbOrderBy=orderBy;window.fbLimit=limit;window.fbStartAfter=startAfter;window.fbTimestamp=Timestamp;window.fbOnSnapshot=onSnapshot;
 
 onAuthStateChanged(auth,async function(user){
-if(!user){window.location.href='index.html';return}
+// Anonymous sessions belong to kid accounts — never treat them as guardians
+// (without this check an anon kid session would auto-create a guardian doc below)
+if(!user||user.isAnonymous){window.location.href='index.html';return}
 window.currentTeacher=user;
 // Clear any stale student session data
 localStorage.removeItem('studentId');
@@ -463,6 +465,18 @@ window.teacherData.classCode=String(Math.floor(100000+Math.random()*900000));
 await updateDoc(doc(db,'teachers',user.uid),{classCode:window.teacherData.classCode});
 }
 document.getElementById('classCodeDisplay').textContent=window.teacherData.classCode;
+// Self-healing migration: keep the thin public classCodes/{code} lookup doc in
+// sync so kid login never needs to read the guardians collection (PII lock-down)
+try{
+await setDoc(doc(db,'classCodes',window.teacherData.classCode),{
+ownerId:user.uid,
+ownerName:(window.teacherData.name||'').split(' ')[0]||'',
+accountType:window.teacherData.accountType||'teacher',
+updatedAt:new Date().toISOString()
+},{merge:true});
+}catch(e){console.warn('classCodes sync:',e)}
+// Parent Command Center: relabel classroom wording for family accounts
+if(window.teacherData.accountType==='parent'&&window.amgApplyParentLabels){window.amgApplyParentLabels()}
 }catch(e){console.error(e)}
 loadClasses();
 loadStudents();

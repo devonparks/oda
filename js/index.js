@@ -129,11 +129,22 @@ window.checkClassCode = async function () {
   var btn = document.getElementById('codeSubmit');
   btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
   try {
-    var q = window.fbQuery(window.fbCollection(window.firebaseDb, 'teachers'), window.fbWhere('classCode', '==', code));
-    var snap = await window.fbGetDocs(q);
-    if (snap.empty) { btn.textContent = 'Enter →'; btn.disabled = false; showError('studentError', 'Code not found. Ask your parent (or teacher) to check it!'); return; }
-    // Duplicate-code safety: prefer the doc that actually has students
-    var candidates = snap.docs.map(function (d) { return { id: d.id, ...d.data() }; });
+    // Primary lookup: thin public classCodes/{code} doc (no guardian PII exposed).
+    // Fallback: legacy direct query on the guardians collection (pre-migration).
+    var candidates = [];
+    try {
+      var ccSnap = await window.fbGetDoc(window.fbDoc(window.firebaseDb, 'classCodes', code));
+      if (ccSnap.exists() && ccSnap.data().ownerId) {
+        candidates = [{ id: ccSnap.data().ownerId, classCode: code }];
+      }
+    } catch (e) { /* collection may not exist yet */ }
+    if (!candidates.length) {
+      var q = window.fbQuery(window.fbCollection(window.firebaseDb, 'teachers'), window.fbWhere('classCode', '==', code));
+      var snap = await window.fbGetDocs(q);
+      if (snap.empty) { btn.textContent = 'Enter →'; btn.disabled = false; showError('studentError', 'Code not found. Ask your parent (or teacher) to check it!'); return; }
+      // Duplicate-code safety: prefer the doc that actually has students
+      candidates = snap.docs.map(function (d) { return { id: d.id, ...d.data() }; });
+    }
     stuTeacherData = candidates[0];
     stuStudents = [];
     for (var c = 0; c < candidates.length; c++) {
@@ -184,7 +195,7 @@ window.pickGrade = function (grade) {
   stuStep = 3; showStuStep();
 };
 
-window.pickStudent = function (id) {
+window.pickStudent = async function (id) {
   var student = stuStudents.find(function (s) { return s.id === id; });
   if (!student) return;
   // Clear any stale guardian session data first
@@ -193,6 +204,8 @@ window.pickStudent = function (id) {
   localStorage.removeItem('teacherId');
   localStorage.setItem('studentId', student.id);
   localStorage.setItem('studentName', student.name);
+  // Best-effort anonymous auth so progress writes pass the hardened rules
+  if (window.amgEnsureAnonAuth) { try { await window.amgEnsureAnonAuth(); } catch (e) {} }
   window.location.href = 'student.html';
 };
 

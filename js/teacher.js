@@ -233,11 +233,62 @@ function viewToolSubmissions(toolType) {
 window.viewToolSubmissions = viewToolSubmissions;
 
 // ============================================
+// Parent Command Center relabeling
+// Family accounts (accountType==='parent') get family wording on the same
+// engine: Roster->My Kids, Assignments->Missions, Class Code->Family Code.
+// Called from teacher.html once teacherData is loaded.
+// ============================================
+function amgApplyParentLabels() {
+  function setText(sel, text) {
+    var el = document.querySelector(sel);
+    if (el) el.textContent = text;
+  }
+  // Tabs
+  setText('#tab-roster .tab-label', 'My Kids');
+  setText('#tab-assignments .tab-label', 'Missions');
+  // Home
+  setText('.class-code-label', 'Family Code');
+  setText('.class-code-hint', 'Your kids enter this code to sign in');
+  var statLabel = document.querySelector('#statStudents + .label');
+  if (statLabel) statLabel.textContent = 'Kids';
+  var quickRoster = document.querySelector('.quick-card[onclick*="roster"]');
+  if (quickRoster) {
+    var qt = quickRoster.querySelector('.quick-title'); if (qt) qt.textContent = 'My Kids';
+    var qd = quickRoster.querySelector('.quick-desc'); if (qd) qd.textContent = 'Add your kids, view progress, send missions';
+  }
+  // Roster section
+  var rosterHeading = document.querySelector('#sec-roster .sec-heading > span:first-child, #sec-roster .sec-heading span');
+  if (rosterHeading && /Roster/.test(rosterHeading.textContent)) {
+    rosterHeading.innerHTML = rosterHeading.innerHTML.replace('Roster', 'My Kids');
+  }
+  var search = document.getElementById('rosterSearch');
+  if (search) search.placeholder = 'Search kids...';
+  var backBtn = document.querySelector('.profile-back');
+  if (backBtn) backBtn.innerHTML = backBtn.innerHTML.replace('Back to Roster', 'Back to My Kids');
+  // Assignments section
+  var assignHeading = document.querySelector('#sec-assignments .sec-heading');
+  if (assignHeading) assignHeading.innerHTML = assignHeading.innerHTML.replace('Assignments', 'Missions');
+  // Settings
+  document.querySelectorAll('.card-title, .settings-label, .class-code-note').forEach(function (el) {
+    el.textContent = el.textContent
+      .replace('Class Code', 'Family Code')
+      .replace('Students enter this to find your class.', 'Your kids enter this to find your family.');
+  });
+  document.title = 'AMG Hub — Family Command Center';
+}
+window.amgApplyParentLabels = amgApplyParentLabels;
+
+// ============================================
 // Logout
 // ============================================
 
 function logout() {
-  window.fbSignOut(window.fbAuth).then(function () { window.location.href = 'index.html'; });
+  // Clear identity keys FIRST — Firebase signOut alone used to leave
+  // userRole/teacherId/studentId behind, letting the next person on a
+  // shared device open shop.html as the signed-out account.
+  if (window.amgClearSession) window.amgClearSession();
+  window.fbSignOut(window.fbAuth).then(function () { window.location.href = 'index.html'; })
+    .catch(function () { window.location.href = 'index.html'; });
 }
 window.logout = logout;
 

@@ -239,6 +239,6 @@ if(el)el.textContent='Last updated: '+now.toLocaleDateString()+' at '+h+':'+m+' 
 }
 window.updateLastUpdated=updateLastUpdated;
 
-function parentLogout(){localStorage.removeItem('parentStudentId');localStorage.removeItem('parentStudentName');window.location.href='index.html'}
+function parentLogout(){if(window.amgClearSession)window.amgClearSession();else{localStorage.removeItem('parentStudentId');localStorage.removeItem('parentStudentName')}window.location.href='index.html'}
 window.parentLogout=parentLogout;
 
