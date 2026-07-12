@@ -4,7 +4,7 @@
  * Dependencies: oda-core.js (esc, odaAI, odaToast, odaTrapFocus, odaConfetti, dataUriToBlobUrl)
  */
 
-var ODA_VERSION='2026-03-14a';
+var ODA_VERSION='2026-07-12-amg1';
 
 /** Check for app updates and reload if newer version found */
 function checkForUpdates(btn){
