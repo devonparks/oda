@@ -121,6 +121,12 @@ h2{font-size:30px;font-weight:700;text-align:center}
 /* Win line overlay */
 .win-line{position:absolute;background:var(--accent);height:6px;border-radius:3px;z-index:5;opacity:0;transform-origin:left center;animation:lineGrow .5s ease forwards .2s}
 @keyframes lineGrow{from{opacity:0;transform:scaleX(0)}to{opacity:.7;transform:scaleX(1)}}
+.win-line-rainbow{background:linear-gradient(90deg,#ff0059,#ff8c00,#ffd500,#06d6a0,#118ab2,#8b5cf6,#ff0059);background-size:300% 100%;box-shadow:0 0 12px rgba(255,255,255,.5);animation:lineGrow .5s ease forwards .2s,winLineRainbowShift 2s linear infinite .7s}
+@keyframes winLineRainbowShift{from{background-position:0% 0}to{background-position:300% 0}}
+.win-line-lightning{background:linear-gradient(90deg,#dbeeff,#38bdf8,#dbeeff);box-shadow:0 0 18px 4px rgba(56,189,248,.85),0 0 6px #fff;animation:lineGrow .5s ease forwards .2s,winLineLightningFlicker .15s steps(2) infinite .7s}
+@keyframes winLineLightningFlicker{0%,100%{opacity:.7}50%{opacity:.4}}
+.win-line-fire{background:linear-gradient(90deg,#ff4500,#ff8c00,#ffd166,#ff4500);box-shadow:0 0 18px 4px rgba(255,69,0,.75);animation:lineGrow .5s ease forwards .2s,winLineFireFlicker 1s ease-in-out infinite .7s}
+@keyframes winLineFireFlicker{0%,100%{box-shadow:0 0 18px 4px rgba(255,69,0,.75)}50%{box-shadow:0 0 26px 8px rgba(255,140,0,.9)}}
 
 /* Result */
 .result-container{text-align:center}
@@ -500,7 +506,7 @@ async function loadMyCosmetics(){
   if(!sid)return;
   try{
     const snap=await getDoc(doc(db,'students',sid));
-    if(snap.exists()){myCosmetics=snap.data().gameCosmetics?.tictactoe?.equipped||{};}
+    if(snap.exists()){const d=snap.data();myCosmetics=window.amgIdentityCosmetics(d,d.gameCosmetics?.tictactoe?.equipped);}
   }catch(e){console.warn('Cosmetics load error:',e);}
   applyCosmeticStyles();
 }
@@ -914,6 +920,10 @@ function drawWinLine(boardEl,line){
     const angle=Math.atan2(y2-y1,x2-x1)*180/Math.PI;
     const lineEl=document.createElement('div');
     lineEl.className='win-line';
+    const wl=myCosmetics['Win Line'];
+    if(wl&&wl.id==='tttw_rainbow')lineEl.classList.add('win-line-rainbow');
+    else if(wl&&wl.id==='tttw_lightning')lineEl.classList.add('win-line-lightning');
+    else if(wl&&wl.id==='tttw_fire')lineEl.classList.add('win-line-fire');
     lineEl.style.cssText=`left:${x1}px;top:${y1}px;width:${length}px;transform:rotate(${angle}deg)`;
     boardEl.appendChild(lineEl);
   });

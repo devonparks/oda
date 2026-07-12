@@ -44,7 +44,6 @@
 </head>
 <body>
 <a class="back-btn" href="../../student.html#arcade" id="backBtn">&#8592; Back</a>
-<button class="sound-btn" id="soundBtn">&#128264;</button>
 
 <!-- HOME -->
 <div class="screen active" id="homeScreen">
@@ -103,12 +102,21 @@
   </div>
 </div>
 
-<script src="../../js/oda-hub.js"></script>
+<script src="../../js/oda-core.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    RETRO BOWL — ODA Arcade
    Horizontal pixel football matching real Retro Bowl visual style
    ═══════════════════════════════════════════════════════════════════════════ */
+
+// ─── SESSION ─────────────────────────────────────────────────────────────────
+var studentId=localStorage.getItem('studentId')||'';
+var studentName=localStorage.getItem('studentName')||'';
+var classCode=localStorage.getItem('classCode')||'';
+var isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
+if(isTeacher)document.getElementById('backBtn').href='../../teacher.html#arcade';
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 
 // ─── SCREENS ─────────────────────────────────────────────────────────────────
 function showScreen(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});document.getElementById(id).classList.add('active');if(id==='gameScreen')resizeCanvas();}
@@ -179,6 +187,11 @@ var carrierLane=3; // 0-6, middle=3
 // Team colors
 var myJersey='#06d6a0',myHelmet='#06d6a0';
 var cpuJersey='#3366aa',cpuHelmet='#224488';
+// Restore persisted jersey/helmet color pick
+try{
+  var savedColors=JSON.parse(localStorage.getItem('gridiron_colors')||'null');
+  if(savedColors&&savedColors.jersey){myJersey=savedColors.jersey;myHelmet=savedColors.helmet||savedColors.jersey;}
+}catch(e){}
 
 // ─── PLAYS ───────────────────────────────────────────────────────────────────
 var PLAYS={
@@ -728,7 +741,19 @@ function updateAIOffense(dt){
 
 // ─── QUARTERS ────────────────────────────────────────────────────────────────
 function endQuarter(){clockRunning=false;if(gameQtr>=4)endGame();else{gameQtr++;gameClock=120;showMsg('END OF Q'+(gameQtr-1),1800);setTimeout(resumeOff,2000);}}
-function endGame(){PHASE='GAMEEND';var w=myPoints>cpuPoints;document.getElementById('gameOverTitle').textContent=w?'🏆 YOU WIN!':'😤 CPU WINS';document.getElementById('finalScore').textContent=myPoints+' - '+cpuPoints;document.getElementById('gameSummary').innerHTML='TDs: '+myTDs+' | Yards: '+totalYards+'<br>'+completions+'/'+attempts+(attempts>0?' ('+Math.round(completions/attempts*100)+'%)':'');showScreen('gameOverScreen');saveRecord();}
+function endGame(){
+  PHASE='GAMEEND';
+  var w=myPoints>cpuPoints;
+  document.getElementById('gameOverTitle').textContent=w?'🏆 YOU WIN!':'😤 CPU WINS';
+  document.getElementById('finalScore').textContent=myPoints+' - '+cpuPoints;
+  document.getElementById('gameSummary').innerHTML='TDs: '+myTDs+' | Yards: '+totalYards+'<br>'+completions+'/'+attempts+(attempts>0?' ('+Math.round(completions/attempts*100)+'%)':'');
+  showScreen('gameOverScreen');
+  var coins=Math.floor(myPoints*2);
+  if(w)coins+=10;
+  if(coins<1)coins=1;
+  awardCoins(coins);
+  saveRecord();
+}
 
 // ─── INPUT ───────────────────────────────────────────────────────────────────
 document.addEventListener('keydown',function(e){
@@ -790,12 +815,59 @@ function ensureLoop(){cancelAnimationFrame(animId);lastT=performance.now();animI
 // setInterval fallback for background tabs
 setInterval(function(){if(PHASE==='IDLE'||PHASE==='GAMEEND')return;var n=performance.now();if(n-lastT>200)gameLoop(n);},50);
 
-// ─── RECORDS / SHOP / STATS (unchanged) ──────────────────────────────────────
-function showRecords(){showScreen('recordsScreen');var db=window.getFirebaseDB?window.getFirebaseDB():null;if(!db){document.getElementById('recordsList').innerHTML='<p style="color:var(--text2);text-align:center">Sign in for records</p>';return;}db.collection('retrobowlRecords').orderBy('score','desc').limit(10).get().then(function(snap){var html='',rank=1;snap.forEach(function(doc){var d=doc.data();html+='<div class="record-row"><span class="record-rank">#'+rank+'</span><span class="record-name">'+d.name+'</span><span class="record-score">'+d.score+' pts</span></div>';rank++;});document.getElementById('recordsList').innerHTML=html||'<p style="color:var(--text2);text-align:center">No records yet</p>';}).catch(function(){document.getElementById('recordsList').innerHTML='<p style="color:var(--text2);text-align:center">Could not load records</p>';});}
-function saveRecord(){if(!window.odaUser||!window.getFirebaseDB)return;var db=window.getFirebaseDB(),uid=window.odaUser.uid,name=window.odaUser.displayName||'Player';db.collection('retrobowlRecords').doc(uid).get().then(function(doc){if(!doc.exists||doc.data().score<myPoints)db.collection('retrobowlRecords').doc(uid).set({name:name,score:myPoints,tds:myTDs,yards:totalYards,date:new Date().toISOString()});}).catch(function(){});}
+// ─── RECORDS / SHOP / STATS ───────────────────────────────────────────────────
+var localBest=parseInt(localStorage.getItem('retrobowl_best'))||0;
+
+async function awardCoins(coins){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{var fb=await window.getFirebaseDB();await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{coins:fb.fsMod.increment(coins)})}catch(e){}
+}
+
+async function saveRecord(){
+  var isNew=myPoints>localBest;
+  if(isNew){localBest=myPoints;localStorage.setItem('retrobowl_best',localBest);}
+  var el=document.getElementById('bestScore');if(el)el.textContent=localBest;
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var upd={studentId:studentId,studentName:studentName||'',classCode:classCode,gamesPlayed:fb.fsMod.increment(1),tds:myTDs,yards:totalYards,lastPlayed:new Date().toISOString()};
+    if(isNew)upd.score=myPoints;
+    await fb.fsMod.setDoc(fb.fsMod.doc(fb.db,'retrobowlRecords',studentId),upd,{merge:true});
+  }catch(e){console.warn('Save failed:',e)}
+}
+
+async function showRecords(){
+  showScreen('recordsScreen');
+  var lb=document.getElementById('recordsList');lb.innerHTML='<p style="text-align:center;color:var(--text2)">Loading...</p>';
+  if(!classCode){lb.innerHTML='<p style="text-align:center;color:var(--text2)">Join a class to see the leaderboard</p>';return}
+  try{
+    var fb=await window.getFirebaseDB();
+    var q=fb.fsMod.query(fb.fsMod.collection(fb.db,'retrobowlRecords'),fb.fsMod.where('classCode','==',classCode),fb.fsMod.orderBy('score','desc'),fb.fsMod.limit(10));
+    var snap=await fb.fsMod.getDocs(q);
+    if(snap.empty){lb.innerHTML='<p style="text-align:center;color:var(--text2)">No records yet</p>';return}
+    var html='',rank=1;
+    snap.forEach(function(d){
+      var data=d.data();
+      html+='<div class="record-row"><span class="record-rank">#'+rank+'</span><span class="record-name">'+esc(data.studentName||'Player')+'</span><span class="record-score">'+data.score+' pts</span></div>';
+      rank++;
+    });
+    lb.innerHTML=html;
+  }catch(e){lb.innerHTML='<p style="text-align:center;color:var(--text2)">Could not load leaderboard</p>'}
+}
+
 function showShopScreen(){showScreen('shopScreen');var colors=[{name:'Teal',val:'#06d6a0'},{name:'Blue',val:'#118ab2'},{name:'Purple',val:'#7b2d8b'},{name:'Red',val:'#ef476f'},{name:'Orange',val:'#f77f00'},{name:'Gold',val:'#ffd166'},{name:'White',val:'#eee'},{name:'Black',val:'#222'}];var html='<h3 style="margin-bottom:12px">Team Color</h3><div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">';colors.forEach(function(c){html+='<button style="width:44px;height:44px;background:'+c.val+';border-radius:50%;border:3px solid '+(myJersey===c.val?'#fff':'transparent')+';cursor:pointer" title="'+c.name+'" onclick="setColor(\''+c.val+'\')" ></button>';});html+='</div>';document.getElementById('shopContent').innerHTML=html;}
-function setColor(v){myJersey=v;myHelmet=v;showShopScreen();}
-window.addEventListener('load',function(){var el=document.getElementById('quickStats');el.innerHTML='<div class="stat-pill">Best: <span class="stat-num" id="bestScore">--</span> pts</div>';if(!window.odaUser||!window.getFirebaseDB)return;window.getFirebaseDB().collection('retrobowlRecords').doc(window.odaUser.uid).get().then(function(d){if(d.exists)document.getElementById('bestScore').textContent=d.data().score;}).catch(function(){});});
+function setColor(v){myJersey=v;myHelmet=v;try{localStorage.setItem('gridiron_colors',JSON.stringify({jersey:v,helmet:v}));}catch(e){}showShopScreen();}
+window.addEventListener('load',function(){var el=document.getElementById('quickStats');el.innerHTML='<div class="stat-pill">Best: <span class="stat-num" id="bestScore">'+(localBest||'--')+'</span> pts</div>';});
+
+// ─── HELP ──────────────────────────────────────────────────────────────────
+odaHelp.init({
+  title:'Gridiron Rush',emoji:'\u{1F3C8}',subtitle:'Pick a play and drive the field!',
+  sections:[
+    {title:'Rules',icon:'\u{1F4D6}',items:['Pick a play from the panel to start your drive','Press SPACE (or tap the field) to snap the ball','Tap a receiver, or press 1-3, to throw — or press Q to scramble with the QB','Once you have the ball, use ↑/↓ (or swipe up/down) to dodge defenders','Reach the far endzone to score a touchdown','The game runs 4 quarters — outscore the CPU to win']}
+  ],
+  controls:[{key:'Space',action:'Snap the ball'},{key:'1-3',action:'Throw to receiver'},{key:'Q',action:'Scramble'},{key:'↑/↓',action:'Dodge (or swipe)'}],
+  tip:'<strong>Watch the pocket timer!</strong> Throw or scramble before it runs out or you\'ll get sacked.'
+});
 </script>
 </body>
 </html>

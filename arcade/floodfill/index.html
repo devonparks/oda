@@ -887,19 +887,20 @@ async function showRecords(){
     ag.innerHTML+='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:1px solid '+(unlocked?'var(--gold)':'var(--border)')+';border-radius:12px;padding:10px 4px;text-align:center;'+(unlocked?'box-shadow:0 0 12px rgba(255,209,102,.15)':'opacity:.3;filter:grayscale(1)')+'"><span style="font-size:24px">'+a.icon+'</span><span style="font-size:9px;color:var(--text2);line-height:1.2;margin-top:4px">'+esc(a.name)+'</span></div>';
   });
 
-  // Leaderboard (ordered by best_easy ASC = fewest moves first)
+  // Leaderboard (ordered by best_<difficulty> ASC = fewest moves first, matches the currently-viewed difficulty)
   var lb=document.getElementById('leaderboard');lb.innerHTML='<div class="lb-empty">Loading...</div>';
   if(!classCode){lb.innerHTML='<div class="lb-empty">Join a class to see the leaderboard</div>';return}
   try{
     var fb=await window.getFirebaseDB();
-    var q=fb.fsMod.query(fb.fsMod.collection(fb.db,'floodfillRecords'),fb.fsMod.where('classCode','==',classCode),fb.fsMod.orderBy('best_easy','asc'),fb.fsMod.limit(20));
+    var bestField='best_'+difficulty;
+    var q=fb.fsMod.query(fb.fsMod.collection(fb.db,'floodfillRecords'),fb.fsMod.where('classCode','==',classCode),fb.fsMod.orderBy(bestField,'asc'),fb.fsMod.limit(20));
     var snap=await fb.fsMod.getDocs(q);
     if(snap.empty){lb.innerHTML='<div class="lb-empty">No scores yet. Be the first!</div>';return}
     var h='',rank=0;
     snap.forEach(function(d){
       rank++;var data=d.data();var isMe=data.studentId===studentId;
       var rc=rank<=3?'r'+rank:'';
-      var score=data.best_easy||'---';
+      var score=data[bestField]||'---';
       h+='<div class="lb-row'+(isMe?' me':'')+'"><div class="lb-rank '+rc+'">'+rank+'</div><div class="lb-name">'+esc(data.studentName||'Player')+'</div><div class="lb-score">'+(typeof score==='number'?score+' moves':score)+'</div></div>';
     });
     lb.innerHTML=h;

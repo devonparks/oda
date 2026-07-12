@@ -857,6 +857,7 @@ currentProjectId=Date.now();
 // Reset all data
 d={name:'',pCat:'',prob:'',skills:[],cSkill:'',bName:'',bDesc:'',custs:[],cCust:'',a1:'',a2:'',a3:'',hook:'',cta:''};
 pitchText='';aiCoachResult='';polishedResult='';recordedBlob=null;recordedChunks=[];
+_pitchCoinsAwarded=false;
 var ids=['inputName','inputProblem','inputCustomSkill','inputBizName','inputBizDesc','inputAdv1','inputAdv2','inputAdv3','inputHook','inputCTA','inputCustomCustomer'];
 for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el)el.value=''}
 var chips=document.querySelectorAll('.chip');for(var i=0;i<chips.length;i++)chips[i].classList.remove('on');
@@ -1346,6 +1347,7 @@ var pitchText='';
 var aiCoachResult='',polishedResult='';
 var mediaRecorder=null,recordedChunks=[],recordedBlob=null,cameraStream=null;
 var recTimerInterval=null,recSeconds=0;
+var _pitchCoinsAwarded=false;
 
 // ===== GRADING MODE =====
 var gradingAssignmentId=null;
@@ -1650,8 +1652,28 @@ saveProjectData(); // Save as completed
 if(isAssignmentMode){document.getElementById("submitArea").classList.remove("hidden");document.getElementById("btnNextStudent").style.display="none"}
 else if(isTeacherMode){document.getElementById("btnNextStudent").style.display="inline-flex"}
 
+// One-time coin award for completing a full pitch this session
+if(!_pitchCoinsAwarded){
+_pitchCoinsAwarded=true;
+awardPitchCoins(30);
+}
+
 // Trigger AI Coach
 fetchAiCoach();
+}
+
+// ===== COINS =====
+async function awardPitchCoins(n){
+var sid=localStorage.getItem('studentId');
+if(!sid||sid.startsWith('anon_'))return;
+try{
+var fb=await getFirebaseDB();
+await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',sid),{
+coins:fb.fsMod.increment(n)
+});
+if(typeof odaToast==='function')odaToast('\u{1FA99} +'+n+' coins!','success');
+else showToast('\u{1FA99} +'+n+' coins!','success');
+}catch(e){console.log('Coin award skipped:',e)}
 }
 
 function fireConfetti(){var colors=["#06d6a0","#118ab2","#ffd166","#ef476f","#a855f7","#06b6d4"];for(var i=0;i<60;i++){var p=document.createElement("div");p.className="confetti-piece";var sz=6+Math.random()*10;p.style.width=sz+"px";p.style.height=sz*(Math.random()>.5?1:.6)+"px";p.style.left=Math.random()*100+"%";p.style.backgroundColor=colors[i%colors.length];p.style.borderRadius=Math.random()>.5?"50%":"2px";p.style.animationDuration=(2+Math.random()*3)+"s";p.style.animationDelay=(Math.random()*2)+"s";document.body.appendChild(p);(function(el){setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},5000)})(p)}}

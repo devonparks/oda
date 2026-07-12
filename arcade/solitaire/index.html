@@ -80,6 +80,16 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;user
 .card .center-suit{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:calc(var(--cw,100px) * .38);opacity:.85}
 .card.red{color:#d32f2f}
 .card.black{color:#222}
+
+/* Card Face cosmetic (consumes vars set by applyCosmeticStyles; unset = today's look) */
+.card.face-up{background:var(--sol-face-bg,#fafaf5)}
+.card.face-up .corner .rank{font-size:calc(var(--cw,100px) * .18 * var(--sol-face-scale,1))}
+.card.face-up .corner .suit-sm{font-size:calc(var(--cw,100px) * .14 * var(--sol-face-scale,1))}
+.card.face-up .center-suit{font-size:calc(var(--cw,100px) * .38 * var(--sol-face-scale,1))}
+.card.face-up.red{color:var(--sol-face-color,#d32f2f);text-shadow:var(--sol-face-glow,none)}
+.card.face-up.black{color:var(--sol-face-color,#222);text-shadow:var(--sol-face-glow,none)}
+.card.face-up .corner .rank,.card.face-up .corner .suit-sm,.card.face-up .center-suit{background-image:var(--sol-face-bgimg,none);-webkit-background-clip:var(--sol-face-clip,initial);background-clip:var(--sol-face-clip,initial);-webkit-text-fill-color:var(--sol-face-textfill,initial)}
+
 .card.dragging{box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:1000!important;transition:none;cursor:grabbing}
 .card.animating{transition:left .3s cubic-bezier(.25,.46,.45,.94),top .3s cubic-bezier(.25,.46,.45,.94);pointer-events:none}
 .card.dealing{pointer-events:none}
@@ -245,13 +255,36 @@ function applyCosmeticStyles(){
   }
   // Card Face
   var cf=myCosmetics['Card Face'];
+  var faceStyle=(cf&&cf.value&&cf.value.style)||'standard';
   if(cf&&cf.value){
-    root.style.setProperty('--sol-face-style',cf.value.style||'standard');
+    root.style.setProperty('--sol-face-style',faceStyle);
     if(cf.value.color)root.style.setProperty('--sol-face-color',cf.value.color);
     else root.style.removeProperty('--sol-face-color');
   }else{
     root.style.removeProperty('--sol-face-style');
     root.style.removeProperty('--sol-face-color');
+  }
+  // Resolved presentation vars consumed by .card.face-up rules (standard/unequipped = today's look)
+  if(faceStyle==='large'){
+    root.style.setProperty('--sol-face-scale','1.3');
+  }else{
+    root.style.removeProperty('--sol-face-scale');
+  }
+  if(faceStyle==='neon'){
+    root.style.setProperty('--sol-face-bg','#0a1614');
+    root.style.setProperty('--sol-face-glow','0 0 4px currentColor,0 0 10px currentColor');
+  }else{
+    root.style.removeProperty('--sol-face-bg');
+    root.style.removeProperty('--sol-face-glow');
+  }
+  if(faceStyle==='gold'){
+    root.style.setProperty('--sol-face-bgimg','linear-gradient(180deg,#fff7d6,#fbbf24 45%,#b8860b)');
+    root.style.setProperty('--sol-face-clip','text');
+    root.style.setProperty('--sol-face-textfill','transparent');
+  }else{
+    root.style.removeProperty('--sol-face-bgimg');
+    root.style.removeProperty('--sol-face-clip');
+    root.style.removeProperty('--sol-face-textfill');
   }
   // Apply card back colors to existing face-down cards
   applyCardBackStyles();
@@ -1077,7 +1110,8 @@ function checkWin() {
 
 function onWin() {
   playSound('win');
-  if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti');else if(typeof odaConfetti==='function')odaConfetti();
+  var solWinEffect=(typeof odaShop!=='undefined')?odaShop.getEquipped('solitaire','winEffect'):null;
+  if(typeof odaCelebrate==='function')odaCelebrate((solWinEffect&&solWinEffect.type)||'confetti');else if(typeof odaConfetti==='function')odaConfetti();
 
   // Cascade animation
   setTimeout(cascadeCards, 500);

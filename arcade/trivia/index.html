@@ -740,7 +740,7 @@ function loadMyCosmetics(){
   getFirebaseDB().then(function(fb) {
     var fs = fb.fsMod;
     fs.getDoc(fs.doc(fb.db, 'students', sid)).then(function(snap) {
-      if(snap.exists()){ myCosmetics = snap.data().gameCosmetics?.trivia?.equipped || {}; }
+      if(snap.exists()){ var d = snap.data(); myCosmetics = window.amgIdentityCosmetics(d, d.gameCosmetics?.trivia?.equipped); }
       applyCosmeticStyles();
     }).catch(function(){});
   }).catch(function(){});
@@ -769,6 +769,16 @@ function applyCosmeticStyles(){
     root.style.removeProperty('--trv-timer-color');
     root.style.removeProperty('--trv-timer-bg');
   }
+}
+
+function getTriviaCelebrateType(){
+  var ce = myCosmetics['Celebration Effect'];
+  var t = ce && ce.value && ce.value.type;
+  if(t){
+    if(t === 'rainbow') return 'aurora';
+    if(t === 'confetti' || t === 'stars' || t === 'fireworks') return t;
+  }
+  return (myCosmetics.winEffect && myCosmetics.winEffect.type) || 'confetti';
 }
 
 function applyNameColor(el, color){
@@ -1530,7 +1540,7 @@ function showMultiplayerResults(roomData) {
   document.getElementById('resultContent').innerHTML = html;
 
   playFanfare();
-  if (myRank <= 3 && typeof odaCelebrate === 'function') odaCelebrate(myCosmetics.winEffect?.type || 'confetti');
+  if (myRank <= 3 && typeof odaCelebrate === 'function') odaCelebrate(getTriviaCelebrateType());
 
   // Save records & coins only once per match
   if (!game.coinsAwarded) {
@@ -1821,7 +1831,7 @@ function endPracticeGame() {
 
   if (accuracy >= 70) {
     playFanfare();
-    if (typeof odaCelebrate === 'function') odaCelebrate(myCosmetics.winEffect?.type || 'confetti');
+    if (typeof odaCelebrate === 'function') odaCelebrate(getTriviaCelebrateType());
   }
 
   // Save records

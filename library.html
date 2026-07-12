@@ -86,6 +86,7 @@ select.input{cursor:pointer;-webkit-appearance:none;appearance:none;background-i
 .book-progress{margin-top:10px;height:4px;background:var(--bg);border-radius:4px;overflow:hidden}
 .book-progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:4px;transition:width .3s}
 .book-completed{position:absolute;top:12px;right:12px;font-size:11px;font-weight:700;color:var(--accent);background:rgba(6,214,160,.1);padding:3px 8px;border-radius:6px}
+.book-starter{display:inline-block;margin-left:4px;margin-bottom:6px;font-size:11px;font-weight:700;color:var(--gold);background:rgba(255,209,102,.12);padding:3px 8px;border-radius:6px}
 .empty-state{text-align:center;padding:40px 20px;color:var(--text2)}
 .empty-state .es-emoji{font-size:48px;display:block;margin-bottom:12px}
 .empty-state .es-text{font-size:16px;font-weight:600}
@@ -537,6 +538,7 @@ select.input{cursor:pointer;-webkit-appearance:none;appearance:none;background-i
 </div>
 
 <script src="js/oda-core.js"></script>
+<script src="js/amg-starter-packs.js"></script>
 <script>
 var _isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
 var _hubUrl=_isTeacher?'teacher.html':'student.html';
@@ -621,44 +623,80 @@ async function getFB(){
 }
 
 // ============================================
+// STARTER PACKS (AMG_PACKS.library) — built-in passages, never
+// written to Firestore. Adapted to the reader/quiz schema
+// (title/subject/gradeLevel/text/questions) so TTS, the reader,
+// the quiz, and coin awards all work unmodified.
+// ============================================
+function starterPackToPassage(pack){
+  var gradeMatch=/(\d+)/.exec(pack.readingLevel||'');
+  var text=pack.passage||'';
+  var wc=countWords(text);
+  return {
+    id:pack.id,
+    title:pack.title,
+    subject:pack.category||'Other',
+    gradeLevel:gradeMatch?gradeMatch[1]:'5',
+    text:text,
+    wordCount:wc,
+    readingTime:Math.max(1,Math.round(wc/150)),
+    isPublic:false,
+    builtIn:true,
+    _source:'starter',
+    questions:(pack.questions||[]).map(function(q){
+      return {type:'mc',question:q.q,options:q.options,correct:q.correct};
+    })
+  };
+}
+function getStarterPassages(){
+  var packs=(window.AMG_PACKS&&window.AMG_PACKS.library)||[];
+  return packs.map(starterPackToPassage);
+}
+
+// ============================================
 // LOAD PASSAGES
 // ============================================
 async function loadPassages(){
+  var fsPassages=[];
   try{
     var fb=await getFB();
-    var constraints=[];
+    var ref=fb.fsMod.collection(fb.db,'libraryPassages');
     if(isTeacher){
       var teacherId=localStorage.getItem('teacherId')||'';
       if(!teacherId){try{var a=await getFirebaseAuth();if(a.auth.currentUser)teacherId=a.auth.currentUser.uid;}catch(e){}}
-      if(teacherId) constraints.push(fb.fsMod.where('teacherId','==',teacherId));
+      var q=teacherId?fb.fsMod.query(ref,fb.fsMod.where('teacherId','==',teacherId)):fb.fsMod.query(ref);
+      var snap=await fb.fsMod.getDocs(q);
+      snap.forEach(function(d){var data=d.data();data.id=d.id;fsPassages.push(data)});
     } else {
-      if(classCode) constraints.push(fb.fsMod.where('classCode','==',classCode));
+      // SECURITY FIX: this used to query the whole libraryPassages collection
+      // with no filter when the kid had no classCode, leaking every teacher's
+      // passages to every student on the platform. Now scoped to isPublic==true
+      // (community content), plus this kid's own classCode when present —
+      // mirroring the assigned-content filter used elsewhere in this file.
+      var seen={};
+      var pubQ=fb.fsMod.query(ref,fb.fsMod.where('isPublic','==',true));
+      var pubSnap=await fb.fsMod.getDocs(pubQ);
+      pubSnap.forEach(function(d){var data=d.data();data.id=d.id;fsPassages.push(data);seen[d.id]=true});
+      if(classCode){
+        var clsQ=fb.fsMod.query(ref,fb.fsMod.where('classCode','==',classCode));
+        var clsSnap=await fb.fsMod.getDocs(clsQ);
+        clsSnap.forEach(function(d){
+          if(!seen[d.id]){var data=d.data();data.id=d.id;fsPassages.push(data);seen[d.id]=true}
+        });
+      }
     }
-    var ref=fb.fsMod.collection(fb.db,'libraryPassages');
-    var q;
-    if(constraints.length>0){
-      q=fb.fsMod.query(ref,constraints[0]);
-    } else {
-      q=fb.fsMod.query(ref);
-    }
-    var snap=await fb.fsMod.getDocs(q);
-    allPassages=[];
-    snap.forEach(function(d){
-      var data=d.data();
-      data.id=d.id;
-      allPassages.push(data);
-    });
-    allPassages.sort(function(a,b){
+    fsPassages.sort(function(a,b){
       var ta=a.createdAt?a.createdAt.seconds||0:0;
       var tb=b.createdAt?b.createdAt.seconds||0:0;
       return tb-ta;
     });
-    renderPassages();
-    if(isTeacher) renderTeacherPassages();
   } catch(e){
     console.error('Load passages error:',e);
-    renderPassages();
   }
+  // Starter packs first — always-available built-in content
+  allPassages=getStarterPassages().concat(fsPassages);
+  renderPassages();
+  if(isTeacher) renderTeacherPassages();
 }
 
 function renderPassages(){
@@ -716,6 +754,7 @@ function bookCardHTML(p){
   var progress=getLocalProgress(p.id);
   var html='<div class="book-card '+esc(subjClass)+'" onclick="openPassage(\''+esc(p.id)+'\')">';
   if(progress&&progress.completed) html+='<div class="book-completed">&#x2705; Read</div>';
+  if(p.builtIn) html+='<div class="book-starter">&#x2B50; Starter</div>';
   html+='<div class="book-title">'+esc(p.title||'Untitled')+'</div>';
   // Short preview of text
   var preview=(p.text||'').substring(0,80).replace(/\n/g,' ');
@@ -1699,12 +1738,15 @@ function clearCreateForm(){
 // ============================================
 function renderTeacherPassages(){
   var list=document.getElementById('teacherPassageList');
-  if(allPassages.length===0){
+  // Starter packs aren't real Firestore docs — exclude from the manage list
+  // (Edit/Assign/Delete only make sense for a teacher's own passages).
+  var myPassages=allPassages.filter(function(p){return !p.builtIn});
+  if(myPassages.length===0){
     list.innerHTML='<div class="empty-state" style="padding:16px"><div class="es-text">No passages created yet.</div></div>';
     return;
   }
   var html='';
-  allPassages.forEach(function(p){
+  myPassages.forEach(function(p){
     html+='<div class="t-passage">';
     html+='<div class="tp-info"><div class="tp-title">'+esc(p.title||'Untitled')+'</div>';
     html+='<div class="tp-meta">'+esc(p.subject||'')+' | Grade '+esc(p.gradeLevel||'?')+' | '+countWords(p.text||'')+' words | '+(p.questions?p.questions.length:0)+' questions</div></div>';

@@ -732,7 +732,7 @@ async function loadMyCosmetics(){
   if(!sid)return;
   try{
     const snap=await getDoc(doc(db,'students',sid));
-    if(snap.exists()){myCosmetics=snap.data().gameCosmetics?.uno?.equipped||{};}
+    if(snap.exists()){const d=snap.data();myCosmetics=window.amgIdentityCosmetics(d,d.gameCosmetics?.uno?.equipped);}
     applyCosmeticStyles();
   }catch(e){console.warn('Cosmetics load error:',e);}
 }
@@ -794,6 +794,41 @@ const AudioEngine=(function(){
           o.frequency.setValueAtTime(659,c.currentTime+.1);
           o.frequency.setValueAtTime(784,c.currentTime+.2);
           o.stop(c.currentTime+.3);break;
+        case'airhorn':{
+          // UNO Call cosmetic: Air Horn — detuned sawtooth stack for a short blast
+          const freqs=[233,235,349,352];
+          freqs.forEach(f=>{
+            const osc=c.createOscillator(),gg=c.createGain();
+            osc.type='sawtooth';osc.frequency.value=f;
+            osc.connect(gg);gg.connect(c.destination);
+            gg.gain.setValueAtTime(.08,c.currentTime);
+            gg.gain.exponentialRampToValueAtTime(.001,c.currentTime+.45);
+            osc.start();osc.stop(c.currentTime+.45);
+          });
+          break;}
+        case'bell':{
+          // UNO Call cosmetic: Megaphone — square wave with vibrato
+          o.type='square';o.frequency.value=600;g.gain.value=.16;
+          const lfo=c.createOscillator(),lfoGain=c.createGain();
+          lfo.frequency.value=18;lfoGain.gain.value=40;
+          lfo.connect(lfoGain);lfoGain.connect(o.frequency);
+          o.start();lfo.start();
+          o.stop(c.currentTime+.35);lfo.stop(c.currentTime+.35);
+          break;}
+        case'whistle':{
+          // UNO Call cosmetic: Thunder — filtered noise burst
+          const bufSize=Math.floor(c.sampleRate*.6);
+          const buffer=c.createBuffer(1,bufSize,c.sampleRate);
+          const data=buffer.getChannelData(0);
+          for(let i=0;i<bufSize;i++)data[i]=Math.random()*2-1;
+          const noise=c.createBufferSource();noise.buffer=buffer;
+          const filter=c.createBiquadFilter();filter.type='lowpass';filter.frequency.value=180;
+          const ng=c.createGain();
+          noise.connect(filter);filter.connect(ng);ng.connect(c.destination);
+          ng.gain.setValueAtTime(.25,c.currentTime);
+          ng.gain.exponentialRampToValueAtTime(.001,c.currentTime+.6);
+          noise.start();noise.stop(c.currentTime+.6);
+          break;}
         case'win':
           o.frequency.value=523;g.gain.value=.15;o.type='sine';o.start();
           o.frequency.setValueAtTime(659,c.currentTime+.12);
@@ -979,7 +1014,9 @@ function showUnoFlash(){
   el.className='uno-flash';
   el.textContent='UNO!';
   document.body.appendChild(el);
-  AudioEngine.play('uno');
+  const callType=myCosmetics['UNO Call']&&myCosmetics['UNO Call'].value&&myCosmetics['UNO Call'].value.type;
+  const sound=(callType==='airhorn'||callType==='bell'||callType==='whistle')?callType:'uno';
+  AudioEngine.play(sound);
   setTimeout(()=>el.remove(),900);
 }
 
@@ -1464,7 +1501,7 @@ function showResult(winnerIndex){
     titleEl.textContent='You Win! \u{1F389}';
     titleEl.style.color='var(--accent)';
     AudioEngine.play('win');
-    window.odaCelebrate&&window.odaCelebrate(myCosmetics.winEffect?.id||'confetti');
+    window.odaCelebrate&&window.odaCelebrate(myCosmetics.winEffect?.type||'confetti');
   }else{
     titleEl.textContent='You Lost';
     titleEl.style.color='var(--accent3)';
@@ -2640,7 +2677,7 @@ function showGroupResult(winnerIdx,isWin){
     titleEl.textContent='You Win! \u{1F389}';
     titleEl.style.color='var(--accent)';
     AudioEngine.play('win');
-    window.odaCelebrate&&window.odaCelebrate(myCosmetics.winEffect?.id||'confetti');
+    window.odaCelebrate&&window.odaCelebrate(myCosmetics.winEffect?.type||'confetti');
   }else{
     titleEl.textContent=esc(winnerName)+' Wins!';
     titleEl.style.color='var(--accent3)';

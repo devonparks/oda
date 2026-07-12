@@ -1039,8 +1039,9 @@ function applyNameColor(el, color){
 
 function applyMpCosmetics(){
   if(!mpMode) return;
-  const avatar = myCosmetics.avatar?.emoji;
-  const nameColor = myCosmetics.nameColor;
+  const avatarItem = (typeof odaShop !== 'undefined') ? odaShop.getEquipped('hangman', 'avatar') : null;
+  const avatar = avatarItem?.emoji;
+  const nameColor = (typeof odaShop !== 'undefined') ? odaShop.getEquipped('hangman', 'nameColor') : null;
   // mpRole: 'picker' or 'guesser'
   const myPanel = mpRole === 'picker' ? 'mpPicker' : 'mpGuesser';
   const myAvatarEl = document.getElementById(mpRole === 'picker' ? 'mpPickerAvatar' : 'mpGuesserAvatar');
@@ -1523,7 +1524,10 @@ async function endGame(won) {
     playSound('win');
     showHappyFace();
     currentStreak++;
-    if (typeof odaCelebrate === 'function') odaCelebrate(myCosmetics.winEffect?.type || 'confetti');
+    if (typeof odaCelebrate === 'function') {
+      var hmWinEffect1 = (typeof odaShop !== 'undefined') ? odaShop.getEquipped('hangman', 'winEffect') : null;
+      odaCelebrate((hmWinEffect1 && hmWinEffect1.type) || 'confetti');
+    }
     createWinBurst();
   } else {
     playSound('lose');
@@ -1626,7 +1630,7 @@ function createWinBurst() {
 /* COINS                 */
 /* ===================== */
 async function awardCoins(coins) {
-  if (!studentId || !coins) return;
+  if (!studentId || studentId.startsWith('anon_') || !coins) return;
   try {
     await initFirebase();
     await updateDoc(doc(db, 'students', studentId), { coins: increment(coins) });
@@ -2235,7 +2239,10 @@ function showMPResult(data) {
     wordEl.className = 'result-word win';
     recordResult = 'win';
     playSound('win');
-    if (typeof odaCelebrate === 'function') odaCelebrate(myCosmetics.winEffect?.type || 'confetti');
+    if (typeof odaCelebrate === 'function') {
+      var hmWinEffect2 = (typeof odaShop !== 'undefined') ? odaShop.getEquipped('hangman', 'winEffect') : null;
+      odaCelebrate((hmWinEffect2 && hmWinEffect2.type) || 'confetti');
+    }
   } else {
     if (iLostSeries && format > 1) {
       titleEl.textContent = 'Series Over';

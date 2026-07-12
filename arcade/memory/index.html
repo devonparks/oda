@@ -188,6 +188,24 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .mem-card:not(.flipped):not(.matched){cursor:pointer}
 .mem-card:not(.flipped):not(.matched):active{transform:scale(.95)}
 
+/* Card Animation cosmetic (shop slot 'Card Animation'; default = no extra flourish) */
+.card-grid[data-card-anim="bounce"] .mem-card.flipped{animation:cardAnimBounce .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes cardAnimBounce{
+  0%{transform:rotateY(0) scale(1)}
+  50%{transform:rotateY(90deg) scale(1.18)}
+  100%{transform:rotateY(180deg) scale(1)}
+}
+.card-grid[data-card-anim="spin"] .mem-card.flipped{animation:cardAnimSpin .6s ease}
+@keyframes cardAnimSpin{
+  0%{transform:rotateY(0)}
+  100%{transform:rotateY(540deg)}
+}
+.card-grid[data-card-anim="glow"] .mem-card.matched .mem-card-front{animation:cardAnimGlow .8s ease-in-out 3}
+@keyframes cardAnimGlow{
+  0%,100%{box-shadow:0 0 20px rgba(6,214,160,.4)}
+  50%{box-shadow:0 0 40px rgba(6,214,160,1)}
+}
+
 /* ======================== */
 /* RESULT SCREEN            */
 /* ======================== */
@@ -636,6 +654,18 @@ function applyCosmeticStyles() {
     root.style.removeProperty('--mem-grid-bg');
     root.style.removeProperty('--mem-grid-border');
   }
+  applyCardAnimAttr();
+}
+
+/** Reflect the equipped 'Card Animation' cosmetic onto #cardGrid as a data attribute
+ *  so CSS (data-card-anim="bounce|spin|glow") can style flip/match. No equip = no attribute = today's behavior. */
+function applyCardAnimAttr() {
+  if (typeof odaShop === 'undefined') return;
+  var gridEl = document.getElementById('cardGrid');
+  if (!gridEl) return;
+  var anim = odaShop.getEquipped('memory', 'Card Animation');
+  if (anim && anim.value && anim.value.type) gridEl.setAttribute('data-card-anim', anim.value.type);
+  else gridEl.removeAttribute('data-card-anim');
 }
 
 if (typeof odaShop !== 'undefined') { applyCosmeticStyles(); }
@@ -1157,6 +1187,7 @@ function renderCardGrid(config) {
     html += '</div>';
   }
   grid.innerHTML = html;
+  applyCardAnimAttr();
 }
 
 // =========================================================
@@ -1279,7 +1310,8 @@ function endGame() {
   // Play sounds
   playWinSound();
   setTimeout(function() {
-    if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti');else if(typeof odaConfetti==='function')odaConfetti();
+    var memWinEffect = (typeof odaShop !== 'undefined') ? odaShop.getEquipped('memory', 'winEffect') : null;
+    if(typeof odaCelebrate==='function')odaCelebrate((memWinEffect&&memWinEffect.type)||'confetti');else if(typeof odaConfetti==='function')odaConfetti();
   }, 300);
 
   // Show coin popup

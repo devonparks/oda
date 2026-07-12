@@ -151,7 +151,7 @@ select.input{cursor:pointer;-webkit-appearance:none;appearance:none;background-i
 
 /* Puzzle browser (student) */
 .puzzle-browser{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
-.pb-card{background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:20px;cursor:pointer;transition:all .2s}
+.pb-card{background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:20px;cursor:pointer;transition:all .2s;position:relative}
 .pb-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 6px 20px rgba(6,214,160,.08)}
 .pb-emoji{font-size:36px;margin-bottom:8px;display:block}
 .pb-title{font-family:'Fredoka',sans-serif;font-size:17px;font-weight:700;margin-bottom:4px}
@@ -159,6 +159,7 @@ select.input{cursor:pointer;-webkit-appearance:none;appearance:none;background-i
 .pb-badge{display:inline-block;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700;margin-top:8px}
 .pb-badge.completed{background:rgba(6,214,160,.12);color:var(--accent)}
 .pb-badge.new{background:rgba(255,209,102,.12);color:var(--gold)}
+.pb-starter-badge{position:absolute;top:12px;right:12px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.5px;background:rgba(255,209,102,.18);color:var(--gold)}
 
 /* Responsive */
 @media(max-width:600px){
@@ -330,6 +331,10 @@ select.input{cursor:pointer;-webkit-appearance:none;appearance:none;background-i
       <div id="previewCard" class="card" style="display:none">
         <div class="card-title">&#128065;&#65039; Preview</div>
         <div class="preview-grid" id="previewGrid"></div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:14px 0 4px">
+          <input type="checkbox" id="puzzlePublic" style="width:18px;height:18px;accent-color:var(--accent)">
+          <span class="text-muted" style="font-weight:600;color:var(--text2)">Share with everyone (public community puzzle)</span>
+        </label>
         <div class="btn-row" style="justify-content:center">
           <button class="btn btn-sm btn-outline" onclick="generatePuzzle()">&#128260; Regenerate</button>
           <button class="btn btn-sm btn-accent" onclick="savePuzzle()">&#128190; Save &amp; Assign</button>
@@ -356,6 +361,7 @@ select.input{cursor:pointer;-webkit-appearance:none;appearance:none;background-i
 </div>
 
 <script src="js/oda-core.js"></script>
+<script src="js/amg-starter-packs.js"></script>
 <script>
 var _isTeacher=localStorage.getItem('userRole')==='teacher'||localStorage.getItem('odaUserRole')==='teacher'||!!localStorage.getItem('teacherId');
 var _hubUrl=_isTeacher?'teacher.html':'student.html';
@@ -780,6 +786,7 @@ function renderPreview(){
 async function savePuzzle(){
   if(!generatedGrid){if(window.odaToast)odaToast('Generate a puzzle first','warning');return;}
   var title=document.getElementById('puzzleTitle').value.trim()||'Word Search';
+  var isPublic=document.getElementById('puzzlePublic')?document.getElementById('puzzlePublic').checked:false;
 
   try{
     var fb=await getFirebaseDB();
@@ -793,7 +800,7 @@ async function savePuzzle(){
       solution:generatedSolution.map(function(s){return{word:s.word,startRow:s.startRow,startCol:s.startCol,direction:s.direction,dr:s.dr,dc:s.dc};}),
       teacherId:localStorage.getItem('odaUID')||localStorage.getItem('odaUID')||'unknown',
       classCode:classCode,
-      isPublic:true,
+      isPublic:isPublic,
       createdAt:new Date().toISOString()
     };
     await fb.fsMod.setDoc(docRef,data);
@@ -898,13 +905,41 @@ async function loadResults(){
 }
 
 // ============================================
+// STARTER PACKS (AMG_PACKS.wordSearch)
+// ============================================
+var STARTER_WS_GRID_SIZE=12;
+var STARTER_WS_DIFFICULTY='medium';
+
+function starterPackToPuzzleMeta(pack){
+  return {
+    id:pack.id,
+    title:pack.title,
+    words:(pack.words||[]).map(function(w){return{word:String(w).toUpperCase(),definition:''};}),
+    gridSize:STARTER_WS_GRID_SIZE,
+    difficulty:STARTER_WS_DIFFICULTY,
+    isPublic:false,
+    builtIn:true,
+    _source:'starter'
+  };
+}
+function getStarterPuzzles(){
+  var packs=(window.AMG_PACKS&&window.AMG_PACKS.wordSearch)||[];
+  return packs.map(starterPackToPuzzleMeta);
+}
+function findStarterPack(id){
+  var packs=(window.AMG_PACKS&&window.AMG_PACKS.wordSearch)||[];
+  for(var i=0;i<packs.length;i++){if(packs[i].id===id) return packs[i];}
+  return null;
+}
+
+// ============================================
 // STUDENT: LOAD PUZZLES
 // ============================================
 async function loadPuzzles(){
   var c=document.getElementById('puzzleBrowser');
   try{
     var fb=await getFirebaseDB();
-    var allPuzzles=[];
+    var allPuzzles=getStarterPuzzles();
     // Get class-assigned puzzles
     if(classCode){
       var q1=fb.fsMod.query(fb.fsMod.collection(fb.db,'wordSearchPuzzles'),fb.fsMod.where('classCode','==',classCode),fb.fsMod.orderBy('createdAt','desc'),fb.fsMod.limit(30));
@@ -932,6 +967,7 @@ async function loadPuzzles(){
       var done=completedIds[d.id];
       var diffEmoji=d.difficulty==='easy'?'&#127775;':d.difficulty==='hard'?'&#9889;':'&#128293;';
       h+='<div class="pb-card" onclick="startPuzzle(\''+d.id+'\')">';
+      if(d._source==='starter') h+='<span class="pb-starter-badge">&#x2B50; Starter</span>';
       h+='<span class="pb-emoji">'+diffEmoji+'</span>';
       h+='<div class="pb-title">'+esc(d.title)+'</div>';
       h+='<div class="pb-meta">'+esc(d.gridSize)+'x'+esc(d.gridSize)+' &bull; '+esc(d.difficulty)+' &bull; '+esc((d.words||[]).length)+' words</div>';
@@ -949,6 +985,36 @@ async function loadPuzzles(){
 // PLAY: START PUZZLE
 // ============================================
 async function startPuzzle(puzzleId){
+  // Starter pack: generate the grid locally through the same generator path
+  // used for teacher-created puzzles, instead of fetching from Firestore.
+  var starterPack=findStarterPack(puzzleId);
+  if(starterPack){
+    var meta=starterPackToPuzzleMeta(starterPack);
+    var result=generateGrid(meta.words,meta.gridSize,meta.difficulty);
+    if(result.unplaced.length&&window.odaToast){
+      odaToast(result.unplaced.length+' word(s) could not be placed this round','warning');
+    }
+    currentPuzzleId=puzzleId;
+    currentPuzzleTitle=meta.title;
+    playGrid=result.grid;
+    playWords=meta.words;
+    playSolution=result.solution;
+    foundWords=[];
+    foundColorIdx=0;
+    selectStart=null;
+    selectEnd=null;
+    selecting=false;
+    hintsUsed=0;
+    timerSeconds=0;
+
+    showSection('secPlay');
+    renderGameGrid();
+    renderWordList();
+    updateProgress();
+    startTimer();
+    document.getElementById('coinCount').textContent=getCoinBalance();
+    return;
+  }
   try{
     var fb=await getFirebaseDB();
     var docSnap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'wordSearchPuzzles',puzzleId));
@@ -1245,10 +1311,25 @@ function stopTimer(){
 // ============================================
 // PLAY: HINTS
 // ============================================
-function useHint(){
-  var balance=getCoinBalance();
-  if(balance<5){
-    if(window.odaToast)odaToast('Not enough coins! You need 5 coins for a hint.','warning');
+var HINT_COST=5;
+
+// Reads the student's real coin balance from Firestore (source of truth),
+// falling back to the localStorage mirror if there's no student or the
+// read fails (e.g. teacher preview mode, offline).
+async function getRealCoinBalance(){
+  if(!studentId) return getCoinBalance();
+  try{
+    var fb=await getFirebaseDB();
+    var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',studentId));
+    if(snap.exists()&&typeof snap.data().coins==='number') return snap.data().coins;
+  }catch(e){console.error('Balance check error:',e);}
+  return getCoinBalance();
+}
+
+async function useHint(){
+  var balance=await getRealCoinBalance();
+  if(balance<HINT_COST){
+    if(window.odaToast)odaToast('Not enough coins! You need '+HINT_COST+' coins for a hint.','warning');
     return;
   }
 
@@ -1267,8 +1348,8 @@ function useHint(){
   }
 
   hintsUsed++;
-  spendCoins(5);
-  document.getElementById('coinCount').textContent=getCoinBalance();
+  await spendCoins(HINT_COST);
+  document.getElementById('coinCount').textContent=studentId?(balance-HINT_COST):getCoinBalance();
   playSound('hint');
 }
 
@@ -1344,7 +1425,7 @@ function backToBrowse(){
 }
 
 // ============================================
-// COIN SYSTEM (local storage)
+// COIN SYSTEM (local storage mirror + real Firestore balance)
 // ============================================
 function getCoinBalance(){
   var key=studentId?'odaCoins_'+studentId:'odaCoins_teacher';
@@ -1363,10 +1444,21 @@ function addCoins(n){
     }).catch(function(){});
   }
 }
-function spendCoins(n){
+// Deducts coins from the local mirror AND the real Firestore balance.
+// Callers must check the real balance (getRealCoinBalance) BEFORE calling
+// this so spending can never push the real balance below 0.
+async function spendCoins(n){
   var key=studentId?'odaCoins_'+studentId:'odaCoins_teacher';
   var bal=Math.max(0,getCoinBalance()-n);
   localStorage.setItem(key,String(bal));
+  if(studentId){
+    try{
+      var fb=await getFirebaseDB();
+      await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{
+        coins:fb.fsMod.increment(-n)
+      });
+    }catch(e){console.error('Coin deduction error:',e);}
+  }
 }
 
 // ============================================

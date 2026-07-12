@@ -533,7 +533,7 @@ let selectedPiece=null,validMoves=[],moveCount=0,movesWithoutCapture=0;
 let myCosmetics={};
 async function loadMyCosmetics(){
   const sid=localStorage.getItem('studentId');if(!sid)return;
-  try{const snap=await getDoc(doc(db,'students',sid));if(snap.exists()){const d=snap.data();myCosmetics=d.gameCosmetics?.checkers?.equipped||{};}}catch(e){}
+  try{const snap=await getDoc(doc(db,'students',sid));if(snap.exists()){const d=snap.data();myCosmetics=window.amgIdentityCosmetics(d, d.gameCosmetics?.checkers?.equipped);}}catch(e){}
   applyCosmeticStyles();
 }
 loadMyCosmetics();

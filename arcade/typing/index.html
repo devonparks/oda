@@ -143,6 +143,16 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 @keyframes cursorBlink{0%,100%{border-bottom-color:var(--accent)}50%{border-bottom-color:transparent}}
 @keyframes charShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 
+/* Trail Effect cosmetic — glow on typed chars + racer icon, per equipped type */
+html[data-typ-trail="fire"] .char.correct{text-shadow:0 0 4px var(--typ-trail-color,#ef4444),0 0 10px var(--typ-trail-color,#ef4444)}
+html[data-typ-trail="fire"] .race-lane.me .lane-car{filter:drop-shadow(0 0 4px var(--typ-trail-color,#ef4444)) drop-shadow(0 0 9px var(--typ-trail-color,#ef4444))}
+html[data-typ-trail="neon"] .char.correct{text-shadow:0 0 3px var(--typ-trail-color,#06d6a0),0 0 8px var(--typ-trail-color,#06d6a0),0 0 14px var(--typ-trail-color,#06d6a0);animation:typTrailPulse 1.4s ease-in-out infinite}
+html[data-typ-trail="neon"] .race-lane.me .lane-car{filter:drop-shadow(0 0 3px var(--typ-trail-color,#06d6a0)) drop-shadow(0 0 8px var(--typ-trail-color,#06d6a0)) drop-shadow(0 0 14px var(--typ-trail-color,#06d6a0));animation:typTrailPulse 1.4s ease-in-out infinite}
+html[data-typ-trail="rainbow"] .char.correct{text-shadow:0 0 5px #ff0059,0 0 9px #ffd500,0 0 13px #06d6a0}
+html[data-typ-trail="rainbow"] .race-lane.me .lane-car{filter:drop-shadow(0 0 4px #ff0059) drop-shadow(0 0 8px #ffd500) drop-shadow(0 0 12px #06d6a0);animation:typTrailSpin 2.5s linear infinite}
+@keyframes typTrailPulse{0%,100%{opacity:.7}50%{opacity:1}}
+@keyframes typTrailSpin{0%,100%{transform:translateY(-50%) rotate(0deg)}25%{transform:translateY(-50%) rotate(-6deg)}75%{transform:translateY(-50%) rotate(6deg)}}
+
 .game-input{position:fixed;left:-9999px;opacity:0;pointer-events:none}
 
 .game-footer{display:flex;justify-content:center;gap:12px;margin-top:20px}
@@ -726,7 +736,7 @@ let myCosmetics = {};
   try{
     await initFB();
     const snap = await getDoc(doc(db, 'students', sid));
-    if(snap.exists()){ myCosmetics = snap.data().gameCosmetics?.typing?.equipped || {}; }
+    if(snap.exists()){ const d = snap.data(); myCosmetics = window.amgIdentityCosmetics(d, d.gameCosmetics?.typing?.equipped); }
     applyCosmeticStyles();
   }catch(e){ console.warn('Cosmetics load error:', e); }
 })();
@@ -756,9 +766,11 @@ function applyCosmeticStyles(){
   if(trail && trail.value && trail.value.type !== 'none'){
     root.style.setProperty('--typ-trail-type', trail.value.type);
     root.style.setProperty('--typ-trail-color', trail.value.color || '#06d6a0');
+    root.setAttribute('data-typ-trail', trail.value.type);
   } else {
     root.style.removeProperty('--typ-trail-type');
     root.style.removeProperty('--typ-trail-color');
+    root.removeAttribute('data-typ-trail');
   }
 }
 
@@ -1488,6 +1500,7 @@ function genCode() { return String(Math.floor(1000 + Math.random() * 9000)); }
 
 const PLAYER_COLORS = ['#06d6a0', '#118ab2', '#ef476f', '#ffd166', '#9b5de5', '#00f5d4'];
 const PLAYER_CARS = ['\uD83D\uDE97', '\uD83D\uDE99', '\uD83D\uDE95', '\uD83D\uDE8C', '\uD83C\uDFCE\uFE0F', '\uD83D\uDE93'];
+const CAR_STYLE_EMOJI = { typ_car_rocket: '\u{1F680}', typ_car_spaceship: '\u{1F6F8}', typ_car_dragon: '\u{1F409}' };
 
 async function createRoom() {
   try {
@@ -1750,8 +1763,9 @@ function renderRaceTrack(players) {
   ids.forEach(function(id, i) {
     const p = players[id];
     const color = PLAYER_COLORS[i % PLAYER_COLORS.length];
-    const car = PLAYER_CARS[i % PLAYER_CARS.length];
     const isMe = id === studentId;
+    const carStyleId = myCosmetics['Car Style']?.id;
+    const car = (isMe && CAR_STYLE_EMOJI[carStyleId]) || PLAYER_CARS[i % PLAYER_CARS.length];
     const progress = Math.min(p.progress || 0, 100);
     const leftPct = Math.min(progress, 95);
     html += '<div class="race-lane' + (isMe ? ' me' : '') + '">';

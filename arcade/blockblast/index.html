@@ -206,6 +206,17 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 /* Particles */
 .particle{position:fixed;pointer-events:none;z-index:300;border-radius:3px}
 
+/* Clear Effect: Explosion screen shake */
+@keyframes bbScreenShake{
+  0%{transform:translate(0,0)}
+  20%{transform:translate(-4px,2px)}
+  40%{transform:translate(4px,-2px)}
+  60%{transform:translate(-3px,-1px)}
+  80%{transform:translate(3px,1px)}
+  100%{transform:translate(0,0)}
+}
+.screen-shake{animation:bbScreenShake .3s ease}
+
 /* Desktop: bigger grid */
 @media(min-width:768px){
   .grid-container{gap:4px;padding:8px;border-radius:18px}
@@ -405,7 +416,7 @@ async function loadMyCosmetics() {
   try {
     var fb = await getFirebaseDB();
     var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'students', sid));
-    if (snap.exists()) { const d = snap.data(); myCosmetics = d.gameCosmetics?.blockblast?.equipped || {}; }
+    if (snap.exists()) { const d = snap.data(); myCosmetics = window.amgIdentityCosmetics(d, d.gameCosmetics?.blockblast?.equipped); }
   } catch(e) {}
   applyCosmeticStyles();
 }
@@ -460,9 +471,9 @@ var BB_SHOP = [
   { id:'bbg_glow', name:'Glow Grid', emoji:'\u2728', cost:200, slot:'Grid Style', value:{bg:'#0f172a',border:'#fbbf24',cell:'rgba(251,191,36,.04)'} },
   { id:'bbg_pixel', name:'Pixel Grid', emoji:'\uD83D\uDFE8', cost:150, slot:'Grid Style', value:{bg:'#1a1a2e',border:'#374151',cell:'rgba(55,65,81,.4)'} },
   { id:'bbg_crystal', name:'Crystal Grid', emoji:'\uD83D\uDC8E', cost:500, slot:'Grid Style', value:{bg:'#0c1222',border:'#67e8f9',cell:'rgba(103,232,249,.04)'} },
-  { id:'bbe_shatter', name:'Shatter', emoji:'\uD83D\uDCA5', cost:200, slot:'Clear Effect' },
-  { id:'bbe_dissolve', name:'Dissolve', emoji:'\uD83C\uDF2B', cost:300, slot:'Clear Effect' },
-  { id:'bbe_explosion', name:'Explosion', emoji:'\uD83D\uDD25', cost:500, slot:'Clear Effect' }
+  { id:'bbe_shatter', name:'Shatter', emoji:'\uD83D\uDCA5', cost:200, slot:'Clear Effect', value:{type:'shatter'} },
+  { id:'bbe_dissolve', name:'Dissolve', emoji:'\uD83C\uDF2B', cost:300, slot:'Clear Effect', value:{type:'dissolve'} },
+  { id:'bbe_explosion', name:'Explosion', emoji:'\uD83D\uDD25', cost:500, slot:'Clear Effect', value:{type:'explosion'} }
 ];
 
 /* =============================================
@@ -1218,6 +1229,8 @@ function checkAndClearLines() {
   });
 
   // Trigger clear animation
+  var clearEffectType = getClearEffectType();
+  if (clearEffectType === 'explosion') shakeScreen();
   cellsToClear.forEach(function(key) {
     var parts = key.split(',');
     var r = parseInt(parts[0]);
@@ -1226,7 +1239,7 @@ function checkAndClearLines() {
     if (cell) {
       cell.classList.add('clearing');
     }
-    spawnClearParticles(r, c);
+    spawnClearParticles(r, c, clearEffectType);
   });
 
   // After animation, actually clear the cells
@@ -1253,14 +1266,43 @@ function showCombo(count) {
   setTimeout(function() { el.className = 'combo-display'; }, 800);
 }
 
-function spawnClearParticles(r, c) {
+// Reads the equipped "Clear Effect" cosmetic. Defaults to 'default' (today's behavior)
+// when nothing is equipped, so unowned players see no change.
+function getClearEffectType() {
+  var ce = myCosmetics['Clear Effect'];
+  return (ce && ce.value && ce.value.type) || 'default';
+}
+
+function shakeScreen() {
+  var wrap = document.getElementById('gridWrapper');
+  if (!wrap) return;
+  wrap.classList.remove('screen-shake');
+  void wrap.offsetWidth; // restart animation if it's still running
+  wrap.classList.add('screen-shake');
+  setTimeout(function() { wrap.classList.remove('screen-shake'); }, 300);
+}
+
+function spawnClearParticles(r, c, effectType) {
   var cell = getCellAt(r, c);
   if (!cell) return;
   var rect = cell.getBoundingClientRect();
   var cx = rect.left + rect.width / 2;
   var cy = rect.top + rect.height / 2;
-  var colors = ['var(--accent)', 'var(--gold)', 'var(--accent2)', '#fff'];
 
+  if (effectType === 'shatter') {
+    spawnShatterFragments(cx, cy);
+  } else if (effectType === 'dissolve') {
+    spawnDissolveSparkles(cx, cy);
+  } else if (effectType === 'explosion') {
+    spawnExplosionBurst(cx, cy);
+  } else {
+    spawnDefaultParticles(cx, cy);
+  }
+}
+
+// Default (unowned): today's instant clear — small squares flying outward
+function spawnDefaultParticles(cx, cy) {
+  var colors = ['var(--accent)', 'var(--gold)', 'var(--accent2)', '#fff'];
   for (var i = 0; i < 3; i++) {
     var p = document.createElement('div');
     p.className = 'particle';
@@ -1280,6 +1322,105 @@ function spawnClearParticles(r, c) {
 
     p.animate([
       { transform: 'translate(0,0) scale(1)', opacity: 1 },
+      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(0)', opacity: 0 }
+    ], { duration: dur, easing: 'ease-out' });
+
+    (function(el, d) {
+      setTimeout(function() { el.remove(); }, d);
+    })(p, dur);
+  }
+}
+
+// Shatter: angular fragments that tumble and spin outward
+function spawnShatterFragments(cx, cy) {
+  var colors = ['var(--accent)', 'var(--gold)', 'var(--accent2)', '#fff'];
+  for (var i = 0; i < 6; i++) {
+    var p = document.createElement('div');
+    p.className = 'particle';
+    var size = 4 + Math.random() * 6;
+    p.style.width = size + 'px';
+    p.style.height = size + 'px';
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.borderRadius = '1px';
+    p.style.left = cx + 'px';
+    p.style.top = cy + 'px';
+    document.body.appendChild(p);
+
+    var angle = Math.random() * Math.PI * 2;
+    var dist = 40 + Math.random() * 60;
+    var dx = Math.cos(angle) * dist;
+    var dy = Math.sin(angle) * dist;
+    var rot = Math.random() * 720 - 360;
+    var dur = 450 + Math.random() * 250;
+
+    p.animate([
+      { transform: 'translate(0,0) rotate(0deg) scale(1)', opacity: 1 },
+      { transform: 'translate(' + dx + 'px,' + dy + 'px) rotate(' + rot + 'deg) scale(.3)', opacity: 0 }
+    ], { duration: dur, easing: 'cubic-bezier(.2,.8,.4,1)' });
+
+    (function(el, d) {
+      setTimeout(function() { el.remove(); }, d);
+    })(p, dur);
+  }
+}
+
+// Dissolve: soft sparkle dots that drift up and fade
+function spawnDissolveSparkles(cx, cy) {
+  var colors = ['#fff', 'var(--gold)', 'var(--accent)'];
+  for (var i = 0; i < 5; i++) {
+    var p = document.createElement('div');
+    p.className = 'particle';
+    var size = 2 + Math.random() * 3;
+    var col = colors[Math.floor(Math.random() * colors.length)];
+    p.style.width = size + 'px';
+    p.style.height = size + 'px';
+    p.style.background = col;
+    p.style.borderRadius = '50%';
+    p.style.boxShadow = '0 0 4px ' + col;
+    p.style.left = (cx + (Math.random() * 24 - 12)) + 'px';
+    p.style.top = (cy + (Math.random() * 24 - 12)) + 'px';
+    document.body.appendChild(p);
+
+    var dy = -20 - Math.random() * 24;
+    var dur = 550 + Math.random() * 300;
+
+    p.animate([
+      { transform: 'translate(0,0) scale(.5)', opacity: 0 },
+      { transform: 'translate(0,' + (dy * 0.4) + 'px) scale(1.2)', opacity: 1, offset: 0.3 },
+      { transform: 'translate(0,' + dy + 'px) scale(.4)', opacity: 0 }
+    ], { duration: dur, easing: 'ease-out' });
+
+    (function(el, d) {
+      setTimeout(function() { el.remove(); }, d);
+    })(p, dur);
+  }
+}
+
+// Explosion: bigger radial burst of hot colors (paired with shakeScreen())
+function spawnExplosionBurst(cx, cy) {
+  var colors = ['#ff6b35', '#f7931e', '#ffd700', '#ff4444', '#fff'];
+  for (var i = 0; i < 9; i++) {
+    var p = document.createElement('div');
+    p.className = 'particle';
+    var size = 4 + Math.random() * 7;
+    var col = colors[Math.floor(Math.random() * colors.length)];
+    p.style.width = size + 'px';
+    p.style.height = size + 'px';
+    p.style.background = col;
+    p.style.borderRadius = '50%';
+    p.style.boxShadow = '0 0 6px ' + col;
+    p.style.left = cx + 'px';
+    p.style.top = cy + 'px';
+    document.body.appendChild(p);
+
+    var angle = Math.random() * Math.PI * 2;
+    var dist = 55 + Math.random() * 85;
+    var dx = Math.cos(angle) * dist;
+    var dy = Math.sin(angle) * dist;
+    var dur = 350 + Math.random() * 250;
+
+    p.animate([
+      { transform: 'translate(0,0) scale(1.4)', opacity: 1 },
       { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(0)', opacity: 0 }
     ], { duration: dur, easing: 'ease-out' });
 

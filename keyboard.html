@@ -762,6 +762,15 @@ function endPractice() {
   s.timePlayed += Math.round((Date.now() - practiceState.startTime) / 1000);
   checkAchievements(s, wpm, 100, 0);
   putSave(s);
+
+  // Award coins for completing a practice lesson
+  if (practiceState.wordsTyped > 0) {
+    var acc = practiceState.totalChars > 0 ? Math.round((practiceState.correctChars / practiceState.totalChars) * 100) : 100;
+    var coins = 5 + (acc >= 95 ? 5 : 0);
+    awardCoins(coins);
+    if (typeof odaToast === 'function') odaToast('\u{1FA99} +' + coins + ' coins!', 'success');
+  }
+
   showScreen('practiceScreen');
 }
 

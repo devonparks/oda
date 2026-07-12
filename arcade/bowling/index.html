@@ -282,7 +282,8 @@ window.toggleSound=function(){soundOn=!soundOn;document.getElementById('soundBtn
 /* ===================== */
 /* SHOP                  */
 /* ===================== */
-let myCosmetics={};let ballColor=0xcc2222;
+let myCosmetics={};let ballColor=0xcc2222;let laneColor=[200,149,108];
+function hexToRgbArr(hex){const n=parseInt(String(hex).replace('#',''),16)||0;return[(n>>16)&255,(n>>8)&255,n&255]}
 const BOWLING_SHOP=[
   {id:'ball_red',name:'Classic Red',emoji:'\u{1F534}',cost:0,slot:'Ball Color',value:{color:'#cc2222'}},
   {id:'ball_neon',name:'Neon Green',emoji:'\u{1F7E2}',cost:100,slot:'Ball Color',value:{color:'#39ff14'}},
@@ -302,8 +303,20 @@ const BOWLING_SHOP=[
   {id:'pin_crystal',name:'Crystal',emoji:'\u{1F48E}',cost:400,slot:'Pin Style',value:{bodyColor:'#e0f2fe',stripeColor:'#67e8f9'}}
 ];
 window.showShopScreen=function(){showScreen('shopScreen');if(typeof odaShop!=='undefined')odaShop.renderShopPanel('bowling',BOWLING_SHOP,'bowlingShopContainer',{onEquip:()=>loadMyCosmetics(),onBuy:()=>loadMyCosmetics()})};
-async function loadMyCosmetics(){const sid=localStorage.getItem('studentId');if(!sid)return;try{const fb=await window.getFirebaseDB();const snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));if(snap.exists()){const d=snap.data();myCosmetics=d.gameCosmetics?.bowling?.equipped||{};}}catch(e){}applyCosmeticStyles()}
-function applyCosmeticStyles(){const bc=myCosmetics['Ball Color'];if(bc?.value)ballColor=parseInt(bc.value.color.replace('#',''),16)||0xcc2222;if(ballMesh){ballMesh.traverse(c=>{if(c.isMesh&&c.userData.isBallSurface)c.material.color.setHex(ballColor)})}}
+async function loadMyCosmetics(){const sid=localStorage.getItem('studentId');if(!sid)return;try{const fb=await window.getFirebaseDB();const snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));if(snap.exists()){const d=snap.data();myCosmetics=window.amgIdentityCosmetics(d,d.gameCosmetics?.bowling?.equipped);}}catch(e){}applyCosmeticStyles()}
+function applyCosmeticStyles(){
+  const bc=myCosmetics['Ball Color'];
+  if(bc?.value)ballColor=parseInt(bc.value.color.replace('#',''),16)||0xcc2222;
+  if(ballMesh){ballMesh.traverse(c=>{if(c.isMesh&&c.userData.isBallSurface)c.material.color.setHex(ballColor)})}
+  // Lane Theme: recolor the wood-grain lane texture. Default (nothing equipped) = today's wood.
+  const lt=myCosmetics['Lane Theme'];
+  laneColor=(lt?.value?.color)?hexToRgbArr(lt.value.color):[200,149,108];
+  if(laneMesh){
+    const newTex=createLaneTexture();
+    laneMesh.material.map=newTex;
+    laneMesh.material.needsUpdate=true;
+  }
+}
 loadMyCosmetics();
 
 /* ===================== */
@@ -417,8 +430,8 @@ function createWoodCanvas(w,h,baseR,baseG,baseB){
 function createLaneTexture(){
   const c=document.createElement('canvas');c.width=512;c.height=2048;
   const ctx=c.getContext('2d');
-  // Wood base
-  const wood=createWoodCanvas(512,2048,200,149,108);
+  // Wood base (recolored per equipped Lane Theme; default = classic wood)
+  const wood=createWoodCanvas(512,2048,laneColor[0],laneColor[1],laneColor[2]);
   ctx.drawImage(wood,0,0);
 
   // Foul line — near z=0 end (bottom of texture maps to z=0)

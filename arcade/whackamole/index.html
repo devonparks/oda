@@ -115,6 +115,10 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 @keyframes screenShake{0%,100%{transform:translateX(0)}10%{transform:translateX(-6px)}30%{transform:translateX(6px)}50%{transform:translateX(-4px)}70%{transform:translateX(4px)}90%{transform:translateX(-2px)}}
 .shake{animation:screenShake .4s ease}
 
+/* Mallet Style: flash at whack point */
+.mallet-flash{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(2.2) rotate(-30deg);font-size:34px;pointer-events:none;z-index:20;animation:malletFlash .3s ease-out forwards}
+@keyframes malletFlash{0%{opacity:0;transform:translate(-50%,-50%) scale(2.2) rotate(-30deg)}30%{opacity:1;transform:translate(-50%,-50%) scale(1.3) rotate(-10deg)}100%{opacity:0;transform:translate(-50%,-50%) scale(1) rotate(0deg)}}
+
 /* GAME OVER OVERLAY */
 .go-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:50;gap:12px;padding:24px;animation:fadeUp .3s ease}
 .go-overlay.active{display:flex}
@@ -299,6 +303,7 @@ if(!soundOn)document.getElementById('soundBtn').innerHTML='&#128263;';
 var myCosmetics={};
 var fieldBg='#2d5a27',holeBg='#3d2b1f';
 var moleEmoji='\u{1F439}';
+var malletEmoji=null,malletColor=null;
 
 async function loadMyCosmetics(){
   try{myCosmetics=JSON.parse(localStorage.getItem('oda_cosmetics_whackamole')||'{}');}catch(e){myCosmetics={}}
@@ -307,7 +312,7 @@ async function loadMyCosmetics(){
     try{
       var fb=await window.getFirebaseDB();
       var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));
-      if(snap.exists()){var d=snap.data();var fc=d.gameCosmetics?.whackamole?.equipped;if(fc&&Object.keys(fc).length>0)myCosmetics=fc;}
+      if(snap.exists()){var d=snap.data();var fc=d.gameCosmetics?.whackamole?.equipped;myCosmetics=window.amgIdentityCosmetics(d,(fc&&Object.keys(fc).length>0)?fc:myCosmetics);}
     }catch(e){}
   }
   applyCosmeticStyles();
@@ -319,6 +324,39 @@ function applyCosmeticStyles(){
   if(ft&&ft.value){fieldBg=ft.value.bg||'#2d5a27';holeBg=ft.value.holeBg||'#3d2b1f'}
   var ms=myCosmetics['Mole Skin'];
   if(ms&&ms.value){moleEmoji=ms.value.emoji||'\u{1F439}'}
+  // Mallet Style: custom cursor over the field + flash on every hit. Default (nothing
+  // equipped) = today's behavior, no cursor change, no flash.
+  var mall=myCosmetics['Mallet Style'];
+  if(mall&&mall.value&&mall.value.emoji){
+    malletEmoji=mall.value.emoji;
+    malletColor=mall.value.color||null;
+  }else{
+    malletEmoji=null;
+    malletColor=null;
+  }
+  applyMalletCursor();
+}
+
+function buildEmojiCursorCSS(emoji){
+  var svg='<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><text x="22" y="34" font-size="34" text-anchor="middle">'+emoji+'</text></svg>';
+  return 'url("data:image/svg+xml,'+encodeURIComponent(svg)+'") 22 22, pointer';
+}
+
+function applyMalletCursor(){
+  var field=document.getElementById('fieldArea');
+  if(!field)return;
+  field.style.cursor=malletEmoji?buildEmojiCursorCSS(malletEmoji):'';
+}
+
+function flashMalletAt(idx){
+  if(!malletEmoji)return;
+  var cell=document.querySelectorAll('.hole-cell')[idx];
+  if(!cell)return;
+  var el=document.createElement('div');
+  el.className='mallet-flash';
+  el.textContent=malletEmoji;
+  cell.appendChild(el);
+  setTimeout(function(){el.remove()},300);
 }
 
 /* ===================== */
@@ -327,7 +365,7 @@ function applyCosmeticStyles(){
 var MOLE_SHOP=[
   {id:'wm_classic_mallet',name:'Classic',emoji:'\u{1F528}',cost:0,slot:'Mallet Style',value:{color:'#8B4513',emoji:'\u{1F528}'}},
   {id:'wm_gold_mallet',name:'Gold',emoji:'\u{1F31F}',cost:150,slot:'Mallet Style',value:{color:'#fbbf24',emoji:'\u{1F31F}'}},
-  {id:'wm_thor_mallet',name:"Thor's Hammer",emoji:'\u26A1',cost:300,slot:'Mallet Style',value:{color:'#60a5fa',emoji:'\u26A1'}},
+  {id:'wm_thor_mallet',name:'Thunder Hammer',emoji:'\u26A1',cost:300,slot:'Mallet Style',value:{color:'#60a5fa',emoji:'\u26A1'}},
   {id:'wm_squeaky_mallet',name:'Squeaky',emoji:'\u{1F4A8}',cost:200,slot:'Mallet Style',value:{color:'#f472b6',emoji:'\u{1F4A8}'}},
 
   {id:'wm_classic_field',name:'Classic Green',emoji:'\u{1F33F}',cost:0,slot:'Field Theme',value:{bg:'#2d5a27',holeBg:'#3d2b1f'}},
@@ -631,6 +669,8 @@ function handleClick(idx){
 
     // Track max combo
     if(combo>maxComboThisGame)maxComboThisGame=combo;
+
+    flashMalletAt(idx);
 
     // Whack animation
     var moleEl=document.getElementById('mole'+idx);

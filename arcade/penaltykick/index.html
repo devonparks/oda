@@ -2986,7 +2986,10 @@ function renderTourneyBracket(data){
     var html='<div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:12px 0">';
     if(r['1'])html+='<div class="badge badge-gold">1st: '+esc(r['1'].name)+'</div>';
     if(r['2'])html+='<div class="badge badge-blue">2nd: '+esc(r['2'].name)+'</div>';
-    if(r['3'])html+='<div class="badge badge-accent">3rd: '+esc(r['3'].name)+'</div>';
+    if(r['3']){
+      var thirdEntries=Array.isArray(r['3'])?r['3']:[r['3']];
+      thirdEntries.forEach(function(t){if(t)html+='<div class="badge badge-accent">3rd: '+esc(t.name)+'</div>'});
+    }
     html+='</div>';
     info.innerHTML=html;
   }else{
@@ -3190,15 +3193,36 @@ function listenToTourneyGame(tourneyCode,matchId,gameCode){
             var second=finalMatch[1].winner===finalist1?finalist2:finalist1;
             results['2']={id:second,name:(players[second]||{}).name||'Unknown'};
           }
+          // 3rd place: there's no dedicated 3rd-place match, so award BOTH semifinal losers
+          // (the round right before the final) the 3rd-place tier.
+          if(totalRounds>=2){
+            var semiMatches=Object.entries(bracket).filter(function(e){return e[1].round===totalRounds-1});
+            var thirdPlace=[];
+            semiMatches.forEach(function(e){
+              var m=e[1];
+              if(m.player1&&m.player2&&m.winner){
+                var loser=m.winner===m.player1?m.player2:m.player1;
+                thirdPlace.push({id:loser,name:(players[loser]||{}).name||'Unknown'});
+              }
+            });
+            if(thirdPlace.length)results['3']=thirdPlace;
+          }
           var coinRewards={'1':100,'2':50,'3':25};
           for(var place in results){
-            if(coinRewards[place]&&results[place].id){
-              try{await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',results[place].id),{coins:fb.fsMod.increment(coinRewards[place])})}catch(e){}
+            if(!coinRewards[place])continue;
+            var placeEntries=Array.isArray(results[place])?results[place]:[results[place]];
+            for(var pei=0;pei<placeEntries.length;pei++){
+              if(placeEntries[pei]&&placeEntries[pei].id){
+                try{await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',placeEntries[pei].id),{coins:fb.fsMod.increment(coinRewards[place])})}catch(e){}
+              }
             }
           }
           for(var pid in players){
             var isResultPlayer=false;
-            for(var p in results){if(results[p].id===pid)isResultPlayer=true}
+            for(var p in results){
+              var checkEntries=Array.isArray(results[p])?results[p]:[results[p]];
+              for(var cei=0;cei<checkEntries.length;cei++){if(checkEntries[cei]&&checkEntries[cei].id===pid)isResultPlayer=true}
+            }
             if(!isResultPlayer){
               try{await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',pid),{coins:fb.fsMod.increment(10)})}catch(e){}
             }

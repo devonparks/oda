@@ -73,6 +73,7 @@ select.input{cursor:pointer;-webkit-appearance:none;appearance:none;background-i
 .deck-card .dc-badge{position:absolute;top:12px;left:12px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.5px}
 .dc-badge-public{background:rgba(17,138,178,.15);color:var(--accent2)}
 .dc-badge-assigned{background:rgba(6,214,160,.15);color:var(--accent)}
+.dc-badge-starter{background:rgba(255,209,102,.18);color:var(--gold)}
 
 /* Search */
 .search-bar{display:flex;gap:10px;margin-bottom:16px;align-items:center}
@@ -288,6 +289,7 @@ select.input{cursor:pointer;-webkit-appearance:none;appearance:none;background-i
 </div>
 
 <script src="js/oda-core.js"></script>
+<script src="js/amg-starter-packs.js"></script>
 <script>
 // ===== GLOBALS =====
 var studentId = localStorage.getItem('studentId');
@@ -391,6 +393,27 @@ async function loadProgress(deckId) {
   } catch(e) { console.error('Load progress error:', e); return null; }
 }
 
+// ===== STARTER PACKS (AMG_PACKS.flashcards) =====
+function starterPackToDeck(pack) {
+  return {
+    id: pack.id,
+    title: pack.title,
+    subject: 'Starter',
+    gradeLevel: 'Ages 9-13',
+    description: pack.description || '',
+    isPublic: false,
+    builtIn: true,
+    _source: 'starter',
+    cards: (pack.cards || []).map(function(c, i) {
+      return { id: pack.id + '_' + i, front: c.front, back: c.back };
+    })
+  };
+}
+function getStarterDecks() {
+  var packs = (window.AMG_PACKS && window.AMG_PACKS.flashcards) || [];
+  return packs.map(starterPackToDeck);
+}
+
 // ======================================================
 //  DECK BROWSER (Student)
 // ======================================================
@@ -398,7 +421,7 @@ async function showDeckBrowser() {
   var mc = $('mainContent');
   mc.innerHTML = '<div class="text-center text-muted" style="padding:40px"><div style="display:inline-block;width:24px;height:24px;border:3px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite"></div><p style="margin-top:12px;font-weight:600">Loading decks...</p></div>';
 
-  var decks = [];
+  var decks = getStarterDecks();
   try {
     var fb = await getFirebaseDB();
     // Assigned decks
@@ -450,7 +473,8 @@ function renderDeckBrowser(decks, filterSubject, filterGrade, searchQ) {
     html += '<div class="deck-grid">';
     filtered.forEach(function(d) {
       var cardCount = (d.cards || []).length;
-      var badge = d._source === 'assigned' ? '<span class="dc-badge dc-badge-assigned">Assigned</span>' : (d.isPublic ? '<span class="dc-badge dc-badge-public">Community</span>' : '');
+      var badge = d._source === 'starter' ? '<span class="dc-badge dc-badge-starter">&#x2B50; Starter</span>' :
+        d._source === 'assigned' ? '<span class="dc-badge dc-badge-assigned">Assigned</span>' : (d.isPublic ? '<span class="dc-badge dc-badge-public">Community</span>' : '');
       var subjectEmojis = { Math: '\u2795', Science: '\uD83E\uDDEA', English: '\uD83D\uDCDA', History: '\uD83C\uDFF0', 'Social Studies': '\uD83C\uDF0E', Art: '\uD83C\uDFA8', Music: '\uD83C\uDFB5', 'Foreign Language': '\uD83C\uDF10', default: '\uD83D\uDCC7' };
       var emojiChar = subjectEmojis[d.subject] || subjectEmojis.default;
       html += '<div class="deck-card" onclick="selectDeck(\'' + d.id + '\')">' +
@@ -502,6 +526,13 @@ window.filterDecks = function() {
 //  SELECT DECK -> Mode chooser
 // ======================================================
 async function selectDeck(deckId) {
+  var starterPack = ((window.AMG_PACKS && window.AMG_PACKS.flashcards) || []).find(function(p) { return p.id === deckId; });
+  if (starterPack) {
+    currentDeck = starterPackToDeck(starterPack);
+    currentCards = currentDeck.cards.slice();
+    showModeChooser();
+    return;
+  }
   try {
     var fb = await getFirebaseDB();
     var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'flashcardDecks', deckId));

@@ -161,7 +161,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .stand-body::before{content:'LEMONADE';position:absolute;top:10px;font-family:'Fredoka',sans-serif;font-size:14px;font-weight:700;color:var(--lem-stand-accent,var(--bg));letter-spacing:1px}
 .stand-legs{display:flex;justify-content:space-between;width:120px}
 .stand-legs div{width:8px;height:50px;background:var(--lem-stand-color,var(--gold));border-radius:0 0 4px 4px;opacity:.8}
-.stand-pitcher{font-size:40px;margin-top:16px}
+.stand-pitcher{font-size:40px;margin-top:16px;filter:drop-shadow(0 0 10px var(--lem-cup-color, transparent))}
 .stand-sign{position:absolute;top:-24px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:2px 10px;font-size:11px;font-weight:700;color:var(--lem-stand-color,var(--gold));white-space:nowrap;z-index:3}
 .stand-rep{position:absolute;top:-44px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--lem-stand-color,var(--gold));white-space:nowrap;font-weight:700}
 
@@ -520,7 +520,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <div class="supply-bars">
       <div class="supply-bar">&#127819;<div class="sb-track"><div class="sb-fill" id="barLemons" style="width:100%;background:var(--gold)"></div></div></div>
       <div class="supply-bar">&#127854;<div class="sb-track"><div class="sb-fill" id="barSugar" style="width:100%;background:var(--accent)"></div></div></div>
-      <div class="supply-bar">&#129371;<div class="sb-track"><div class="sb-fill" id="barCups" style="width:100%;background:var(--accent2)"></div></div></div>
+      <div class="supply-bar">&#129371;<div class="sb-track"><div class="sb-fill" id="barCups" style="width:100%;background:var(--lem-cup-color, var(--accent2))"></div></div></div>
       <div class="supply-bar">&#129482;<div class="sb-track"><div class="sb-fill" id="barIce" style="width:100%;background:var(--text2)"></div></div></div>
     </div>
     <div class="day-timer"><div class="dt-fill" id="dayTimer" style="width:100%"></div></div>
@@ -672,7 +672,7 @@ let myCosmetics={};
   if(!sid)return;
   try{
     const snap=await getDoc(doc(db,'students',sid));
-    if(snap.exists()){myCosmetics=snap.data().gameCosmetics?.lemonade?.equipped||{};}
+    if(snap.exists()){const d=snap.data();myCosmetics=window.amgIdentityCosmetics(d,d.gameCosmetics?.lemonade?.equipped);}
     applyCosmeticStyles();
   }catch(e){console.warn('Cosmetics load error:',e);}
 })();
@@ -797,6 +797,35 @@ function toggleSound() {
   soundOn = !soundOn;
   document.getElementById('soundBtn').innerHTML = soundOn ? '&#128266;' : '&#128263;';
   if (soundOn) sfx('click');
+}
+
+// ============================================
+// MUSIC COSMETIC (equipped "Music" jingle)
+// ============================================
+// Short original synth melodies — one per Music cosmetic, played once at the
+// start of each day. No external audio files. Respects the soundOn mute toggle.
+// Default (nothing equipped, or "None" equipped) = silence, same as today.
+const MUSIC_JINGLES = {
+  upbeat: [[523.25, 0.12], [659.25, 0.12], [783.99, 0.12], [659.25, 0.1], [880.00, 0.22]], // Jazz: bouncy major arpeggio
+  chill:  [[440.00, 0.28], [523.25, 0.24], [392.00, 0.3], [349.23, 0.4]],                  // Lo-fi Beats: slow mellow descent
+  retro:  [[392.00, 0.1], [523.25, 0.1], [659.25, 0.1], [783.99, 0.1], [659.25, 0.1], [523.25, 0.18]] // Summer Vibes: bright retro run
+};
+
+function playMusicJingle(type) {
+  if (!soundOn) return;
+  const notes = MUSIC_JINGLES[type];
+  if (!notes) return;
+  let t = 0;
+  notes.forEach(([freq, dur]) => {
+    setTimeout(() => playTone(freq, dur, 'triangle', 0.06), t * 1000);
+    t += dur;
+  });
+}
+
+function playEquippedMusicJingle() {
+  const music = myCosmetics['Music'];
+  const type = music && music.value && music.value.type;
+  if (type && type !== 'none') playMusicJingle(type);
 }
 
 // ============================================
@@ -1109,6 +1138,7 @@ function startNewDay() {
   updateHUD();
   setupPlanScreen();
   showScreen('planScreen');
+  playEquippedMusicJingle();
 
   // Random between-day event
   checkBetweenDayEvent();

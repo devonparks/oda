@@ -707,7 +707,7 @@ async function loadMyCosmetics(){
     const snap=await getDoc(doc(db,'students',sid));
     if(snap.exists()){
       const data=snap.data();
-      myCosmetics=data.gameCosmetics?.connect4?.equipped||{};
+      myCosmetics=window.amgIdentityCosmetics(data, data.gameCosmetics?.connect4?.equipped);
     }
   }catch(e){console.warn('Cosmetics load error:',e);}
   applyCosmeticStyles();
@@ -1575,7 +1575,7 @@ function showResult(data){
       coins=aiDifficulty==='hard'?30:aiDifficulty==='medium'?20:10;
       recordResult='win';
       AudioEngine.play('win');
-      if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics['Win Animation']?.value?.type||'confetti');
+      if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics['Win Animation']?.value?.type||myCosmetics.winEffect?.type||'confetti');
     }else{
       titleEl.textContent='AI Wins!';
       titleEl.style.color='var(--accent3)';
@@ -1603,7 +1603,7 @@ function showResult(data){
         AudioEngine.play('win');
       }
       recordResult='win';
-      if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics['Win Animation']?.value?.type||'confetti');
+      if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics['Win Animation']?.value?.type||myCosmetics.winEffect?.type||'confetti');
     }else{
       if(iLostSeries&&format>1){
         titleEl.textContent='Series Over';

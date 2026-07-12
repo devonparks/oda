@@ -111,9 +111,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .tile-layer{position:absolute;top:var(--grid-gap);left:var(--grid-gap);pointer-events:none}
 
 /* Tiles */
-.tile{position:absolute;width:var(--cell-size);height:var(--cell-size);border-radius:var(--2048-tile-radius, 12px);display:flex;align-items:center;justify-content:center;font-family:'Fredoka',sans-serif;font-weight:700;transition:top .15s ease,left .15s ease;z-index:2;will-change:transform,top,left}
+.tile{position:absolute;width:var(--cell-size);height:var(--cell-size);border-radius:var(--2048-tile-radius, 12px);display:flex;align-items:center;justify-content:center;font-family:'Fredoka',sans-serif;font-weight:700;transition:top .15s ease,left .15s ease,box-shadow .15s ease;z-index:2;will-change:transform,top,left;outline:2px solid var(--2048-tile-accent, transparent);outline-offset:-2px}
 .tile.merged{animation:tileMerge .25s ease;z-index:3}
 .tile.new{animation:tileNew .2s ease}
+/* Tile Theme accent: adds a themed ring on every tile, plus a colored glow on high-value tiles */
+.tile-128,.tile-256,.tile-512,.tile-1024,.tile-2048,.tile-4096,.tile-8192,.tile-super{filter:drop-shadow(0 0 8px var(--2048-tile-accent, transparent))}
 
 @keyframes tileNew{0%{transform:scale(0);opacity:0}50%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
 @keyframes tileMerge{0%{transform:scale(1)}35%{transform:scale(1.25)}100%{transform:scale(1)}}
@@ -372,7 +374,7 @@ let myCosmetics={};
 async function loadMyCosmetics(){
   const sid=localStorage.getItem('studentId');
   if(!sid)return;
-  try{const snap=await getDoc(doc(db,'students',sid));if(snap.exists()){const d=snap.data();myCosmetics=d.gameCosmetics?.['2048']?.equipped||{};}}catch(e){}
+  try{const snap=await getDoc(doc(db,'students',sid));if(snap.exists()){const d=snap.data();myCosmetics=window.amgIdentityCosmetics(d,d.gameCosmetics?.['2048']?.equipped);}}catch(e){}
   applyCosmeticStyles();
 }
 loadMyCosmetics();

@@ -43,7 +43,9 @@ setInterval(() => {
 // --- Cloud Function ---
 exports.ai = onRequest({ secrets: [ANTHROPIC_KEY] }, async (req, res) => {
   // SECURITY: Restrict CORS to known origins (OWASP A05 / MITRE T1190)
-  const allowedOrigins = ["https://odahub.org", "https://www.odahub.org", "http://localhost:3456", "http://127.0.0.1:3456"];
+  // amghub.org added for the AMG Hub rebrand; odahub.org kept during transition.
+  // NOTE: requires `firebase deploy --only functions` to take effect (see docs/AMG_HUB_LAUNCH.md)
+  const allowedOrigins = ["https://amghub.org", "https://www.amghub.org", "https://odahub.org", "https://www.odahub.org", "http://localhost:3456", "http://127.0.0.1:3456"];
   const origin = req.headers.origin || "";
   const corsOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
   res.set("Access-Control-Allow-Origin", corsOrigin);

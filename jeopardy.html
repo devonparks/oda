@@ -325,6 +325,7 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5}
 <button class="desktop-toggle" id="desktopToggle" onclick="toggleDesktopMode()">&#x1F4BB; Desktop Mode</button>
 
 <script src="js/oda-core.js"></script>
+<script src="js/amg-starter-packs.js"></script>
 <script>
 /* ============================
    ODA JEOPARDY - MAIN SCRIPT
@@ -463,6 +464,29 @@ function normalizeDailyDoubles(dd) {
   return arr;
 }
 
+// Convert an AMG_PACKS.quizShow starter pack into the internal board shape
+function amgPackToBoard(p) {
+  var categories = (p.categories || []).map(function(c) { return c.name || ''; });
+  var questions = (p.categories || []).map(function(c) {
+    return (c.questions || []).map(function(q) {
+      return { clue: q.q || '', answer: q.a || '', image: '', points: q.points || 100 };
+    });
+  });
+  var fr = p.finalRound || {};
+  return {
+    id: p.id,
+    title: p.title || 'Untitled Board',
+    topic: p.description || '',
+    categories: categories,
+    questions: questions,
+    finalJeopardy: { category: fr.category || '', clue: fr.clue || '', answer: fr.answer || '' },
+    dailyDoubles: [],
+    enableFinalJeopardy: !!(fr.clue && fr.answer),
+    isPublic: true,
+    builtIn: true
+  };
+}
+
 // ===========================
 // SOUND EFFECTS (Web Audio API)
 // ===========================
@@ -584,6 +608,11 @@ function showHome() {
 async function showBoardBrowser(mode) {
   var c = document.getElementById('content');
   c.innerHTML = '<div class="loading">Loading boards</div>';
+  boardsCache = [];
+  // Starter boards are built-in, playable with zero setup — merge them ahead of Firestore content
+  if (mode === 'play' && window.AMG_PACKS && window.AMG_PACKS.quizShow) {
+    window.AMG_PACKS.quizShow.forEach(function(p) { boardsCache.push(amgPackToBoard(p)); });
+  }
   try {
     var fb = await getFirebaseDB();
     var fs = fb.fsMod;
@@ -601,7 +630,6 @@ async function showBoardBrowser(mode) {
       }
     }
     var snap = await fs.getDocs(q);
-    boardsCache = [];
     snap.forEach(function(d) { var bd = Object.assign({id: d.id}, d.data()); bd.questions = normalizeQuestions(bd.questions); bd.categories = normalizeCategories(bd.categories); bd.dailyDoubles = normalizeDailyDoubles(bd.dailyDoubles); boardsCache.push(bd); });
 
     // Also fetch public boards for students
@@ -620,8 +648,13 @@ async function showBoardBrowser(mode) {
     renderBoardList(mode);
   } catch(e) {
     console.error(e);
-    c.innerHTML = '<div class="card" style="text-align:center"><p style="color:var(--text2)">No boards available yet. Create one or ask your teacher!</p>' +
-      '<div class="btn-row"><button class="btn btn-accent" onclick="showHome()">Back</button></div></div>';
+    if (boardsCache.length > 0) {
+      // Starter boards still work even if Firestore is unavailable
+      renderBoardList(mode);
+    } else {
+      c.innerHTML = '<div class="card" style="text-align:center"><p style="color:var(--text2)">No boards available yet. Create one or ask your teacher!</p>' +
+        '<div class="btn-row"><button class="btn btn-accent" onclick="showHome()">Back</button></div></div>';
+    }
   }
 }
 
@@ -646,8 +679,10 @@ function renderBoardList(mode) {
     html += '<div class="board-select-grid">';
     boardsCache.forEach(function(b, i) {
       var cats = (b.categories || []).map(function(c){ return '<span class="board-cat-tag">' + esc(c) + '</span>'; }).join('');
+      var starterBadge = b.builtIn ? '<div style="font-size:11px;font-weight:700;color:var(--jgold);margin-bottom:4px">&#x2B50; Starter</div>' : '';
       html += '<div class="bs-card" onclick="startGame(' + i + ')">' +
         '<span class="bs-emoji">&#x1F3AF;</span>' +
+        starterBadge +
         '<div class="bs-name">' + esc(b.title || 'Untitled Board') + '</div>' +
         '<div class="bs-topic">' + esc(b.topic || '') + '</div>' +
         '<div class="bs-cats">' + cats + '</div>' +

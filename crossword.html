@@ -97,6 +97,7 @@ select.input{cursor:pointer;-webkit-appearance:none;-moz-appearance:none;appeara
 .pz-btn.edit{background:var(--gold);color:var(--bg)}
 .pz-btn.assign{background:var(--accent2);color:#fff}
 .pz-btn.delete{background:rgba(239,71,111,.15);color:var(--accent3)}
+.pz-badge-starter{display:inline-block;font-size:11px;font-weight:700;color:var(--gold);background:rgba(255,209,102,.12);padding:3px 8px;border-radius:6px;margin-bottom:6px}
 
 /* ========== CROSSWORD GRID ========== */
 .cw-layout{display:grid;grid-template-columns:1fr;gap:16px}
@@ -253,6 +254,9 @@ select.input{cursor:pointer;-webkit-appearance:none;-moz-appearance:none;appeara
 <option value="easy">Easy - Simple clues</option>
 <option value="hard">Hard - Challenging clues</option>
 </select>
+</div>
+<div style="margin-top:12px" class="assign-field">
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:0"><input type="checkbox" id="puzzlePublic" style="width:18px;height:18px;accent-color:var(--accent)"> &#x1F310; Share to community library</label>
 </div>
 </div>
 
@@ -421,6 +425,7 @@ select.input{cursor:pointer;-webkit-appearance:none;-moz-appearance:none;appeara
 
 </div>
 <script src="js/oda-core.js"></script>
+<script src="js/amg-starter-packs.js"></script>
 <script>
 /* ================================================
    ODA CROSSWORD - Complete Implementation
@@ -447,6 +452,8 @@ var coinsAwarded = false;
 var playPuzzleId = '';
 var validationMode = 'check';
 var timerInterval = null;
+var studentCoinBalance = null; // lazy-loaded Firestore coin balance, used to gate hints
+var hintBusy = false; // prevents double-charging on rapid hint clicks
 
 // --- Init ---
 function init() {
@@ -1109,12 +1116,54 @@ function previewPuzzle() {
 }
 
 // =========================================================
+// STARTER PACKS (AMG_PACKS.crossword) — built-in puzzles, never
+// written to Firestore. Generated once via the same crossword
+// algorithm used for teacher-made puzzles, then cached.
+// =========================================================
+var _starterPuzzleCache = {};
+function starterPackToPuzzle(pack) {
+  if (_starterPuzzleCache[pack.id]) return _starterPuzzleCache[pack.id];
+  var gridData = generateCrossword(pack.entries || []);
+  var puzzle = {
+    id: pack.id,
+    title: pack.title,
+    difficulty: 'easy',
+    isPublic: true,
+    builtIn: true,
+    classCode: '',
+    validationMode: 'check',
+    teacherId: '',
+    totalWords: gridData ? gridData.words.length : 0,
+    gridWidth: gridData ? gridData.width : 0,
+    gridHeight: gridData ? gridData.height : 0,
+    grid: gridData ? gridData.grid.map(function(row) {
+      return row.map(function(cell) { return { letter: cell.letter || '', isBlack: cell.isBlack, number: cell.number || 0 }; });
+    }) : [],
+    words: gridData ? gridData.words.map(function(w) {
+      return { word: w.word, clue: w.clue, number: w.number, direction: w.direction, row: w.row, col: w.col };
+    }) : []
+  };
+  _starterPuzzleCache[pack.id] = puzzle;
+  return puzzle;
+}
+function getStarterPuzzles() {
+  var packs = (window.AMG_PACKS && window.AMG_PACKS.crossword) || [];
+  return packs.map(starterPackToPuzzle);
+}
+function playStarterPuzzle(id) {
+  var pack = ((window.AMG_PACKS && window.AMG_PACKS.crossword) || []).find(function(p) { return p.id === id; });
+  if (!pack) { odaToast('Puzzle not found', 'error'); return; }
+  startPlay(starterPackToPuzzle(pack));
+}
+
+// =========================================================
 // FIREBASE: SAVE PUZZLE
 // =========================================================
 async function savePuzzle() {
   if (!currentGrid) return;
   var title = document.getElementById('puzzleTitle').value.trim() || 'Untitled Puzzle';
   var difficulty = document.getElementById('puzzleDifficulty').value;
+  var isPublic = document.getElementById('puzzlePublic').checked;
   try {
     var fb = await getFirebaseDB();
     var db = fb.db;
@@ -1134,6 +1183,7 @@ async function savePuzzle() {
       difficulty: difficulty,
       teacherId: localStorage.getItem('teacherId') || 'unknown',
       classCode: '',
+      isPublic: isPublic,
       validationMode: 'check',
       createdAt: new Date().toISOString(),
       totalWords: currentGrid.words.length
@@ -1142,6 +1192,7 @@ async function savePuzzle() {
     odaToast('Puzzle saved!', 'success');
     wordEntries = [];
     currentGrid = null;
+    document.getElementById('puzzlePublic').checked = false;
     renderWordList();
     showView('viewHome');
     loadTeacherPuzzles();
@@ -1262,20 +1313,37 @@ async function loadStudentPuzzles() {
       }
     }
 
-    // Load all public puzzles
+    // Load public puzzles only — SECURITY FIX: this used to query the whole
+    // crosswordPuzzles collection with no filter, leaking every teacher's
+    // puzzles (including class-only ones) to every student on the platform.
+    // Now scoped to isPublic==true, matching how the assigned section above
+    // already scopes to this kid's own classCode.
+    var starterPuzzles = getStarterPuzzles();
+    var publicDocs = [];
     var allQ = fsMod.query(
       fsMod.collection(db, 'crosswordPuzzles'),
+      fsMod.where('isPublic', '==', true),
       fsMod.orderBy('createdAt', 'desc'),
       fsMod.limit(20)
     );
     var allSnap = await fsMod.getDocs(allQ);
-    if (allSnap.empty) {
+    allSnap.forEach(function(doc) { var d = doc.data(); d.id = doc.id; publicDocs.push(d); });
+
+    if (starterPuzzles.length === 0 && publicDocs.length === 0) {
       html = '<p style="text-align:center;color:var(--text2)">No puzzles available yet</p>';
     } else {
       html = '<div class="puzzle-grid">';
-      allSnap.forEach(function(doc) {
-        var d = doc.data();
-        html += '<div class="puzzle-card" onclick="playPuzzleById(\'' + doc.id + '\')">';
+      // Starter packs first — always-available built-in content
+      starterPuzzles.forEach(function(d) {
+        html += '<div class="puzzle-card" onclick="playStarterPuzzle(\'' + d.id + '\')">';
+        html += '<span class="pz-badge-starter">&#x2B50; Starter</span>';
+        html += '<div class="pz-title">' + esc(d.title) + '</div>';
+        html += '<div class="pz-meta">' + esc(d.difficulty) + ' &bull; ' + (d.totalWords || 0) + ' words</div>';
+        html += '<div class="pz-btns"><button class="pz-btn play">Play</button></div>';
+        html += '</div>';
+      });
+      publicDocs.forEach(function(d) {
+        html += '<div class="puzzle-card" onclick="playPuzzleById(\'' + d.id + '\')">';
         html += '<div class="pz-title">' + esc(d.title) + '</div>';
         html += '<div class="pz-meta">' + esc(d.difficulty) + ' &bull; ' + (d.totalWords || 0) + ' words</div>';
         html += '<div class="pz-btns"><button class="pz-btn play">Play</button></div>';
@@ -1365,6 +1433,8 @@ function startPlay(puzzleData) {
   currentDirection = 'across';
   currentWordIdx = -1;
   startTime = Date.now();
+  studentCoinBalance = null;
+  loadCoinBalance(); // prefetch so the first hint click doesn't have to wait
 
   // Build play grid
   var g = puzzleData.grid;
@@ -1736,34 +1806,92 @@ function checkPuzzle() {
   checkWordCompletion();
 }
 
-// --- Hints ---
-function revealLetter() {
+// --- Hints (real coin cost — Reveal Letter: 5 coins, Reveal Word: 15 coins) ---
+async function loadCoinBalance() {
+  if (!studentId || studentId.startsWith('anon_')) { studentCoinBalance = 0; return 0; }
+  try {
+    var fb = await getFirebaseDB();
+    var fsMod = fb.fsMod;
+    var snap = await fsMod.getDoc(fsMod.doc(fb.db, 'students', studentId));
+    studentCoinBalance = snap.exists() ? (snap.data().coins || 0) : 0;
+  } catch (e) {
+    console.warn('Coin balance load failed:', e);
+    if (studentCoinBalance === null) studentCoinBalance = 0;
+  }
+  return studentCoinBalance;
+}
+
+// Deducts `cost` coins from the student's Firestore balance. Returns true if
+// the hint may proceed, false if it was blocked (insufficient coins / write
+// failure). Guests/anon sessions (no persistent coin balance) are let through
+// free, mirroring awardCoins()'s silent no-op for the same accounts.
+async function spendCoins(cost) {
+  if (!studentId || studentId.startsWith('anon_')) return true;
+  if (studentCoinBalance === null) await loadCoinBalance();
+  if (studentCoinBalance < cost) {
+    odaToast('Not enough coins! You need ' + cost + ' coins for this hint.', 'warning');
+    return false;
+  }
+  try {
+    var fb = await getFirebaseDB();
+    var fsMod = fb.fsMod;
+    await fsMod.updateDoc(fsMod.doc(fb.db, 'students', studentId), {
+      coins: fsMod.increment(-cost)
+    });
+    studentCoinBalance -= cost;
+    return true;
+  } catch (e) {
+    console.warn('Coin deduction failed:', e);
+    odaToast('Could not spend coins. Try again.', 'error');
+    return false;
+  }
+}
+
+async function revealLetter() {
+  if (hintBusy) return;
   if (!selectedCell) { odaToast('Select a cell first', 'warning'); return; }
   var r = selectedCell.r;
   var c = selectedCell.c;
   if (playGrid[r][c].isBlack) return;
-  playGrid[r][c].userLetter = playGrid[r][c].letter;
-  updateCellDisplay(r, c);
-  var cellEl = getCellEl(r, c);
-  if (cellEl) cellEl.classList.add('correct-reveal');
-  hintsUsed++;
-  checkWordCompletion();
-  moveNext();
+  if (playGrid[r][c].userLetter === playGrid[r][c].letter) { odaToast('That letter is already correct!', 'info'); return; }
+  hintBusy = true;
+  try {
+    var ok = await spendCoins(5);
+    if (!ok) return;
+    playGrid[r][c].userLetter = playGrid[r][c].letter;
+    updateCellDisplay(r, c);
+    var cellEl = getCellEl(r, c);
+    if (cellEl) cellEl.classList.add('correct-reveal');
+    hintsUsed++;
+    checkWordCompletion();
+    moveNext();
+  } finally {
+    hintBusy = false;
+  }
 }
 
-function revealWord() {
+async function revealWord() {
+  if (hintBusy) return;
   if (currentWordIdx < 0) { odaToast('Select a word first', 'warning'); return; }
   var w = playWords[currentWordIdx];
-  for (var i = 0; i < w.cells.length; i++) {
-    var cr = w.cells[i].r;
-    var cc = w.cells[i].c;
-    playGrid[cr][cc].userLetter = playGrid[cr][cc].letter;
-    updateCellDisplay(cr, cc);
-    var cellEl = getCellEl(cr, cc);
-    if (cellEl) cellEl.classList.add('correct-reveal');
+  if (w.solved) { odaToast('That word is already solved!', 'info'); return; }
+  hintBusy = true;
+  try {
+    var ok = await spendCoins(15);
+    if (!ok) return;
+    for (var i = 0; i < w.cells.length; i++) {
+      var cr = w.cells[i].r;
+      var cc = w.cells[i].c;
+      playGrid[cr][cc].userLetter = playGrid[cr][cc].letter;
+      updateCellDisplay(cr, cc);
+      var cellEl = getCellEl(cr, cc);
+      if (cellEl) cellEl.classList.add('correct-reveal');
+    }
+    hintsUsed++;
+    checkWordCompletion();
+  } finally {
+    hintBusy = false;
   }
-  hintsUsed++;
-  checkWordCompletion();
 }
 
 // --- End Puzzle ---

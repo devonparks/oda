@@ -328,6 +328,7 @@ select.input{cursor:pointer;-webkit-appearance:none;appearance:none;background-i
 <button class="desktop-toggle" id="desktopToggle" onclick="toggleDesktopMode()">&#x1F4BB; Desktop Mode</button>
 
 <script src="js/oda-core.js"></script>
+<script src="js/amg-starter-packs.js"></script>
 <script>
 /* ============================
    ODA QUIZ BLITZ - MAIN SCRIPT
@@ -470,6 +471,17 @@ var game = {
 // Answer block colors and shapes
 var blockColors = ['ab-red','ab-blue','ab-yellow','ab-green'];
 var blockShapes = ['\u25B2','\u25C6','\u25CF','\u25A0'];
+
+// Convert an AMG_PACKS.quizBlitz starter pack into the internal quiz shape
+function amgBlitzPackToQuiz(p) {
+  return {
+    id: p.id,
+    title: p.title || 'Untitled Quiz',
+    questions: (p.questions || []).map(function(q) {
+      return { text: q.q || '', options: (q.options || []).slice(0, 4), correct: q.correct || 0, timeLimit: q.time || 20 };
+    })
+  };
+}
 
 // ============================================
 // HOME SCREEN
@@ -924,6 +936,9 @@ async function showQuizBrowser(){
   var c = document.getElementById('content');
   c.innerHTML = '<div class="loading">Finding quizzes</div>';
 
+  // Starter quizzes are built-in, playable with zero setup \u2014 shown ahead of Firestore content
+  var starterQuizzes = (window.AMG_PACKS && window.AMG_PACKS.quizBlitz) || [];
+
   try{
     var fb = await getFirebaseDB();
     var fs = fb.fsMod;
@@ -949,26 +964,37 @@ async function showQuizBrowser(){
       s3.forEach(function(d){ quizzes.push(Object.assign({id:d.id}, d.data())); });
     }
 
-    var html = '<div class="card"><div class="card-title">\uD83C\uDFAF Choose a Quiz</div>';
-    if(quizzes.length === 0){
-      html += '<p style="text-align:center;color:var(--text2);padding:20px">No quizzes available yet. Ask your teacher to create one!</p>';
-    } else {
-      html += '<div class="quiz-grid">';
-      quizzes.forEach(function(qz){
-        html += '<div class="quiz-item" onclick="startSoloGame(\''+qz.id+'\')">';
-        html += '<div class="qi-title">' + esc(qz.title) + '</div>';
-        html += '<div class="qi-meta">' + ((qz.questions||[]).length) + ' questions</div>';
-        html += '<div class="qi-count">\u25B6 Play Now</div>';
-        html += '</div>';
-      });
-      html += '</div>';
-    }
-    html += '<div class="btn-row"><button class="btn btn-surface" onclick="showHome()">\u2190 Back</button></div></div>';
-    c.innerHTML = html;
+    renderQuizBrowser(starterQuizzes.concat(quizzes));
   }catch(e){
     console.error(e);
-    c.innerHTML = '<div class="card"><p style="color:var(--text2);text-align:center">No quizzes available yet. Create one or ask your teacher!</p><div class="btn-row"><button class="btn btn-surface" onclick="showHome()">\u2190 Back</button></div></div>';
+    if (starterQuizzes.length > 0) {
+      // Starter quizzes still work even if Firestore is unavailable
+      renderQuizBrowser(starterQuizzes);
+    } else {
+      c.innerHTML = '<div class="card"><p style="color:var(--text2);text-align:center">No quizzes available yet. Create one or ask your teacher!</p><div class="btn-row"><button class="btn btn-surface" onclick="showHome()">\u2190 Back</button></div></div>';
+    }
   }
+}
+
+function renderQuizBrowser(quizzes){
+  var c = document.getElementById('content');
+  var html = '<div class="card"><div class="card-title">\uD83C\uDFAF Choose a Quiz</div>';
+  if(quizzes.length === 0){
+    html += '<p style="text-align:center;color:var(--text2);padding:20px">No quizzes available yet. Ask your teacher to create one!</p>';
+  } else {
+    html += '<div class="quiz-grid">';
+    quizzes.forEach(function(qz){
+      html += '<div class="quiz-item" onclick="startSoloGame(\''+qz.id+'\')">';
+      if (qz.builtIn) html += '<div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px">\u2B50 Starter</div>';
+      html += '<div class="qi-title">' + esc(qz.title) + '</div>';
+      html += '<div class="qi-meta">' + ((qz.questions||[]).length) + ' questions</div>';
+      html += '<div class="qi-count">\u25B6 Play Now</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  html += '<div class="btn-row"><button class="btn btn-surface" onclick="showHome()">\u2190 Back</button></div></div>';
+  c.innerHTML = html;
 }
 
 // ============================================
@@ -976,12 +1002,18 @@ async function showQuizBrowser(){
 // ============================================
 async function startSoloGame(quizId){
   try{
-    var fb = await getFirebaseDB();
-    var fs = fb.fsMod;
-    var snap = await fs.getDoc(fs.doc(fb.db,'quizzes',quizId));
-    if(!snap.exists()){ odaToast('Quiz not found','error'); return; }
-    var quizData = snap.data();
-    quizData.id = quizId;
+    var quizData;
+    var starterPack = ((window.AMG_PACKS && window.AMG_PACKS.quizBlitz) || []).find(function(p){ return p.id === quizId; });
+    if (starterPack) {
+      quizData = amgBlitzPackToQuiz(starterPack);
+    } else {
+      var fb = await getFirebaseDB();
+      var fs = fb.fsMod;
+      var snap = await fs.getDoc(fs.doc(fb.db,'quizzes',quizId));
+      if(!snap.exists()){ odaToast('Quiz not found','error'); return; }
+      quizData = snap.data();
+      quizData.id = quizId;
+    }
 
     // Reset game state
     game.quiz = quizData;

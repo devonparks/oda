@@ -922,6 +922,20 @@ savedAt:new Date().toISOString()
 });
 showToast('Results saved!');
 }catch(e){console.log('Save skipped:',e)}
+awardSpellingCoins(data.score);
+}
+
+// ===== COINS (Practice Quiz + Bee Simulation) =====
+async function awardSpellingCoins(pct){
+if(!studentId||studentId.startsWith('anon_'))return;
+var coins=pct>=90?40:pct>=75?25:pct>=60?15:5;
+try{
+var fb=await getFirebaseDB();
+await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',studentId),{
+coins:fb.fsMod.increment(coins)
+});
+if(typeof odaToast==='function')odaToast('\u{1FA99} +'+coins+' coins!','success');
+}catch(e){console.log('Coin award skipped:',e)}
 }
 
 // ===== TEACHER DASHBOARD =====

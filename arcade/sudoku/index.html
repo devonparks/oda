@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Sudoku - AMG Arcade</title>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&family=Caveat:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../css/oda-theme.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -304,7 +304,7 @@ async function loadMyCosmetics(){
     try{
       var fb=await window.getFirebaseDB();
       var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));
-      if(snap.exists()){var d=snap.data();var fc=d.gameCosmetics?.sudoku?.equipped;if(fc&&Object.keys(fc).length>0)myCosmetics=fc;}
+      if(snap.exists()){var d=snap.data();var fc=d.gameCosmetics?.sudoku?.equipped;myCosmetics=window.amgIdentityCosmetics(d,(fc&&Object.keys(fc).length>0)?fc:myCosmetics);}
     }catch(e){}
   }
   applyCosmeticStyles();
@@ -322,6 +322,13 @@ function applyCosmeticStyles(){
     if(v.cellText)root.style.setProperty('--cell-text',v.cellText);
     if(v.givenText)root.style.setProperty('--given-text',v.givenText);
   }
+  applyNumberStyle();
+}
+
+// Applies the equipped "Number Style" cosmetic to whatever .sudoku-cell elements
+// currently exist. Must be called AFTER buildGrid() creates the cells (buildGrid
+// wipes and rebuilds #sudokuGrid, so applying earlier is a no-op).
+function applyNumberStyle(){
   var ns=myCosmetics['Number Style'];
   if(ns&&ns.value){
     var nv=ns.value;
@@ -623,6 +630,7 @@ function buildGrid(){
     }
   }
   updateGridDisplay();
+  applyNumberStyle();
 }
 
 function cellClicked(e){

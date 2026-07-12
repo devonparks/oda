@@ -438,6 +438,7 @@ var mediaRecorder=null,recordedChunks=[],recordedBlob=null,cameraStream=null;
 var _aiLoading=false;
 var MAX_REC_SECONDS=120;
 var polishedResult='';
+var _pitchCoinsAwarded=false;
 
 // ===== TEACHER NOTES =====
 var TEACHER_NOTES=[
@@ -1062,7 +1063,7 @@ showQuestion();
 }
 
 function showQuestion(){
-if(step>=QUESTIONS.length){generatePitch();return}
+if(step>=QUESTIONS.length){generatePitch(true);return}
 var q=QUESTIONS[step];
 document.getElementById('progWrap').style.display='';
 document.getElementById('progFill').style.width=((step/QUESTIONS.length)*100)+'%';
@@ -1168,7 +1169,7 @@ _aiLoading=false;
 if(btn){btn.disabled=false;btn.textContent='\u{1F4A1} Try different questions'}
 }
 
-function generatePitch(){
+function generatePitch(awardOnComplete){
 document.getElementById('progWrap').style.display='none';
 var a=answers;
 
@@ -1206,6 +1207,12 @@ pitches.push({label:'Bold & Fun',text:p3});
 
 // Save
 savePitch(answers,pitches[0].text);
+
+// One-time coin award for completing a full pitch this session
+if(awardOnComplete&&!_pitchCoinsAwarded){
+_pitchCoinsAwarded=true;
+awardPitchCoins(25);
+}
 
 // Show result
 var backHref=_isTeacher?'teacher.html':studentId?'student.html':isTeacherMode?'teacher.html':'index.html';
@@ -1419,7 +1426,22 @@ recordedBlob=null;
 recordedChunks=[];
 if(cameraStream){cameraStream.getTracks().forEach(function(t){t.stop()});cameraStream=null}
 timerReset();
+_pitchCoinsAwarded=false;
 showStart();
+}
+
+// ===== COINS =====
+async function awardPitchCoins(n){
+var sid=localStorage.getItem('studentId');
+if(!sid||sid.startsWith('anon_'))return;
+try{
+var fb=await getFirebaseDB();
+await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',sid),{
+coins:fb.fsMod.increment(n)
+});
+if(typeof odaToast==='function')odaToast('\u{1FA99} +'+n+' coins!','success');
+else showToast('\u{1FA99} +'+n+' coins!','');
+}catch(e){console.log('Coin award skipped:',e)}
 }
 
 // ===== SAVE/LOAD =====

@@ -460,6 +460,26 @@ window.loadCosmetics = async function(studentId) {
   } catch(e) { console.warn('[ODA] Cosmetics load error:', e); return {}; }
 };
 
+/**
+ * Merge GLOBAL identity cosmetics into a game's per-game cosmetics object.
+ *
+ * THE BUG THIS FIXES: shop.html writes avatar/nameColor/winEffect/border/title
+ * to students/{id}.equipped, but games only ever loaded
+ * students/{id}.gameCosmetics.{gameId}.equipped — so identity cosmetics
+ * (including 8000-coin win effects) never rendered in any game.
+ *
+ * Games call: myCosmetics = amgIdentityCosmetics(d, d.gameCosmetics?.[gid]?.equipped)
+ * where d is the student doc they already fetched. Per-game slots win on conflict.
+ */
+window.amgIdentityCosmetics = function(studentDoc, gameEquipped) {
+  var out = Object.assign({}, gameEquipped || {});
+  var eq = (studentDoc && studentDoc.equipped) || {};
+  ['avatar', 'nameColor', 'winEffect', 'border', 'title'].forEach(function(slot) {
+    if (!out[slot] && eq[slot]) out[slot] = eq[slot];
+  });
+  return out;
+};
+
 // Win celebration with cosmetic effects
 window.odaCelebrate = function(effectType) {
   effectType = effectType || 'confetti';
@@ -618,14 +638,15 @@ window.odaShop = (function() {
         _cache[sid] = {
           coins: d.coins || 0,
           inventory: d.inventory || [],
-          gameCosmetics: d.gameCosmetics || {}
+          gameCosmetics: d.gameCosmetics || {},
+          equipped: d.equipped || {}   // global identity cosmetics (shop.html)
         };
       } else {
-        _cache[sid] = { coins: 0, inventory: [], gameCosmetics: {} };
+        _cache[sid] = { coins: 0, inventory: [], gameCosmetics: {}, equipped: {} };
       }
     } catch(e) {
       console.warn('[odaShop] Load failed:', e);
-      _cache[sid] = { coins: 0, inventory: [], gameCosmetics: {} };
+      _cache[sid] = { coins: 0, inventory: [], gameCosmetics: {}, equipped: {} };
     }
     return _cache[sid];
   }
@@ -716,7 +737,11 @@ window.odaShop = (function() {
     } catch(e) { return {}; }
   }
 
-  /** Get equipped item for a game + slot (checks cache, then localStorage) */
+  /** Get equipped item for a game + slot (checks cache, then localStorage).
+   *  Identity slots (avatar/nameColor/winEffect/border/title) fall back to the
+   *  GLOBAL equipped tree that shop.html writes — the per-game tree never has
+   *  them, which is why they historically never rendered in games. */
+  var IDENTITY_SLOTS = ['avatar', 'nameColor', 'winEffect', 'border', 'title'];
   function getEquipped(gameId, slot) {
     var sid = _getSid();
     var data = _cache[sid];
@@ -727,7 +752,12 @@ window.odaShop = (function() {
     }
     // Fallback to localStorage
     var local = _loadLocalCosmetics(gameId);
-    return local[slot] || null;
+    if (local[slot]) return local[slot];
+    // Identity fallback to global shop equipment
+    if (data && data.equipped && IDENTITY_SLOTS.indexOf(slot) >= 0 && data.equipped[slot]) {
+      return data.equipped[slot];
+    }
+    return null;
   }
 
   /** Get all owned items for a game */

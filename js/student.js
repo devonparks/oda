@@ -93,7 +93,7 @@ document.getElementById('unlockBanner').className='unlock'+(arcadeLocked&&pendin
 // Render assignments
 var el=document.getElementById('assignmentList');
 if(!assigns.length){
-el.innerHTML='<div class="empty-state"><span class="emoji">&#x1F4ED;</span><p>No assignments yet! Your teacher will send you some soon.</p></div>';
+el.innerHTML='<div class="empty-state"><span class="emoji">&#x1F4ED;</span><p>No missions right now! Hit Learn &amp; Earn to stack coins, or go play in the Arcade.</p></div>';
 }else{
 var h='';
 // Pending/returned first
@@ -526,22 +526,24 @@ document.getElementById('gameGrid').innerHTML=h;
 applyArcadeFilters();
 }
 
-// ===== MY TOOLS =====
+// ===== LEARN & EARN =====
+// Learning games lead — they pay the most coins (the Learn & Earn core loop).
+// Lemonade Day retired for AMG Hub (former-employer program); legacy assignment
+// links to it still resolve via getActionButtons.
 var ODA_TOOLS=[
-{id:'pitch-challenge',emoji:'\u{1F4A1}',name:'Pitch Challenge',desc:'Build and record your business pitch!',url:'pitch.html',storageKey:'oda-pitch-projects'},
-{id:'elevator-pitch',emoji:'\u{1F3A4}',name:'Elevator Pitch',desc:'Practice your 30-second elevator pitch!',url:'elevator.html',storageKey:null},
-{id:'lemonade-day',emoji:'\u{1F34B}',name:'Lemonade Day',desc:'Build a real business with your team!',url:'lemonade.html',storageKey:null},
-{id:'spelling',emoji:'\u{1F4D6}',name:'Spelling Bee',desc:'Practice spelling with fun challenges!',url:'spelling.html',storageKey:null},
-{id:'jeopardy',emoji:'\u{1F3AF}',name:'Quiz Show',desc:'Play the classic game-show board with custom questions!',url:'jeopardy.html',storageKey:null},
-{id:'kahoot',emoji:'\u26A1',name:'Quiz Blitz',desc:'Fast-paced timed quizzes — speed matters!',url:'kahoot.html',storageKey:null},
-{id:'flashcards',emoji:'\u{1F4DA}',name:'Flashcards',desc:'Study with flip cards, quizzes & matching games!',url:'flashcards.html',storageKey:null},
-{id:'wordsearch',emoji:'\u{1F50D}',name:'Word Search',desc:'Find hidden words in the puzzle grid!',url:'wordsearch.html',storageKey:null},
-{id:'crossword',emoji:'\u270F\uFE0F',name:'Crossword',desc:'Solve crossword puzzles with vocabulary clues!',url:'crossword.html',storageKey:null},
-{id:'library',emoji:'\u{1F4D6}',name:'Library',desc:'Read passages and answer comprehension questions!',url:'library.html',storageKey:null},
+{id:'jeopardy',emoji:'\u{1F3AF}',name:'Quiz Show',desc:'The classic game-show board. Big answers, big coins!',url:'jeopardy.html',storageKey:null,earns:true},
+{id:'kahoot',emoji:'⚡',name:'Quiz Blitz',desc:'Fast-paced timed quizzes — speed matters!',url:'kahoot.html',storageKey:null,earns:true},
+{id:'spelling',emoji:'\u{1F41D}',name:'Spelling Bee',desc:'Spell your way to a coin pile!',url:'spelling.html',storageKey:null,earns:true},
+{id:'flashcards',emoji:'\u{1F4DA}',name:'Flashcards',desc:'Flip cards, match pairs, beat the clock!',url:'flashcards.html',storageKey:null,earns:true},
+{id:'library',emoji:'\u{1F4D6}',name:'Library',desc:'Read cool stories, ace the quiz, build a streak!',url:'library.html',storageKey:null,earns:true},
+{id:'wordsearch',emoji:'\u{1F50D}',name:'Word Search',desc:'Find hidden words in the puzzle grid!',url:'wordsearch.html',storageKey:null,earns:true},
+{id:'crossword',emoji:'✏️',name:'Crossword',desc:'Crack the clues, fill the grid!',url:'crossword.html',storageKey:null,earns:true},
+{id:'pitch-challenge',emoji:'\u{1F4A1}',name:'Pitch Challenge',desc:'Invent a business and pitch it like a boss!',url:'pitch.html',storageKey:'oda-pitch-projects',earns:true},
+{id:'elevator-pitch',emoji:'\u{1F3A4}',name:'Elevator Pitch',desc:'Nail your 30-second intro on camera!',url:'elevator.html',storageKey:null,earns:true},
 {id:'canvas',emoji:'\u{1F3A8}',name:'AMG Canvas',desc:'Draw, design posters, t-shirts & more!',url:'canvas.html',storageKey:null},
-{id:'timer',emoji:'\u23F0',name:'Timer',desc:'Clock, countdown, stopwatch & alarms!',url:'timer.html',storageKey:null},
-{id:'scoreboard',emoji:'\u{1F3C6}',name:'Scoreboard',desc:'Team scoreboard for classroom competitions!',url:'scoreboard.html',storageKey:null},
 {id:'raffle',emoji:'\u{1F3B0}',name:'Raffle',desc:'Spend coins on raffle entries to win prizes!',url:'raffle.html',storageKey:null},
+{id:'timer',emoji:'⏰',name:'Timer',desc:'Clock, countdown, stopwatch & alarms!',url:'timer.html',storageKey:null},
+{id:'scoreboard',emoji:'\u{1F3C6}',name:'Scoreboard',desc:'Team scoreboard for game night!',url:'scoreboard.html',storageKey:null},
 ];
 var COMING_SOON_TOOLS=[
 {id:'oda-world',emoji:'\u{1F30D}',name:'AMG World',desc:'Explore a 3D world with your character!'},
@@ -558,6 +560,7 @@ h+='<div class="tool-card" role="button" tabindex="0" onclick="window.open(\''+t
 h+='<span class="tc-emoji">'+t.emoji+'</span>';
 h+='<div class="tc-name">'+t.name+'</div>';
 h+='<div class="tc-desc">'+t.desc+'</div>';
+if(t.earns)h+='<span class="tc-earns">\u{1FA99} Earns coins</span>';
 if(count>0)h+='<span class="tc-count">'+count+' saved</span>';
 h+='</div>';
 });
