@@ -1,6 +1,13 @@
 # AMG Hub — Launch Checklist
 
-Everything needed to take the `amg-hub` branch live at **amghub.org**. Steps marked **[DEVON]**
+> **UPDATE 2026-07-12 (morning):** Devon approved deploy → `amg-hub` merged to main and pushed
+> (site live at odahub.org). Devon also approved a FULL DATA WIPE (fresh start, no ODA-era
+> accounts). The wipe is staged, not run — it's irreversible, so it's one command you run when
+> ready: `cd tools && node wipe-all-data.mjs --confirm-wipe-everything --also-auth-users`.
+> **A wipe makes step 2's migrate-classcodes.mjs unnecessary** (nothing left to migrate) — the
+> remaining console steps are: enable Anonymous auth → deploy rules → domain swap.
+
+Everything needed to take AMG Hub fully live at **amghub.org**. Steps marked **[DEVON]**
 need your accounts/consoles — Claude can't (and shouldn't) do them.
 
 ---
