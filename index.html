@@ -29,18 +29,25 @@
 
   <!-- HERO -->
   <div class="hero">
-    <div class="logo">
-      <div class="logo-icon">&#x1F3AE;</div>
-      <h1>AMG Hub <span class="beta-badge">BETA</span></h1>
-      <p>Play &bull; Learn &bull; Level Up</p>
+    <div class="hero-copy">
+      <div class="logo">
+        <div class="logo-icon">&#x1F3AE;</div>
+        <h1>AMG Hub <span class="beta-badge">BETA</span></h1>
+        <p>Play &bull; Learn &bull; Level Up</p>
+      </div>
+      <h2 class="hero-line">Play games. Learn stuff.<br><span class="hero-glow">Level up.</span></h2>
+      <p class="hero-sub">44+ games, one character that's all yours, and a coin economy where <strong>learning is the cheat code</strong>.</p>
+      <div class="hero-ctas">
+        <button class="cta-btn cta-play" onclick="showPanel('student')">&#x1F3AE; Play Now</button>
+        <button class="cta-btn cta-parent" onclick="showPanel('teacher-signup')">&#x1F46A; I'm a Parent</button>
+      </div>
+      <div class="hero-trust">Free &bull; No ads &bull; No chatting with strangers &bull; Made for ages 9&ndash;13</div>
     </div>
-    <h2 class="hero-line">Play games. Learn stuff.<br><span class="hero-glow">Level up.</span></h2>
-    <p class="hero-sub">44+ games, one character that's all yours, and a coin economy where <strong>learning is the cheat code</strong>.</p>
-    <div class="hero-ctas">
-      <button class="cta-btn cta-play" onclick="showPanel('student')">&#x1F3AE; Play Now</button>
-      <button class="cta-btn cta-parent" onclick="showPanel('teacher-signup')">&#x1F46A; I'm a Parent</button>
+    <div class="hero-char" id="heroChar">
+      <div class="hero-char-glow"></div>
+      <canvas id="heroCharCanvas" aria-hidden="true"></canvas>
+      <div class="hero-char-tag" id="heroCharTag">&#x2728; Your character &mdash; in every game</div>
     </div>
-    <div class="hero-trust">Free &bull; No ads &bull; No chatting with strangers &bull; Made for ages 9&ndash;13</div>
   </div>
 
   <!-- GAME MARQUEE -->
@@ -341,5 +348,53 @@ window.firebaseReady=true;
 </script>
 
 <script src="js/index.js"></script>
+
+<!-- Hero 3D character (progressive enhancement — page is fully usable without it) -->
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import { createCharacterViewer, webglAvailable } from './js/amg-character-viewer.js';
+
+const wrap = document.getElementById('heroChar');
+const canvas = document.getElementById('heroCharCanvas');
+const tag = document.getElementById('heroCharTag');
+
+// Rotating cast for the hero — light, colorful, welcoming
+const CAST = [
+  { glb: 'assets/characters/kid_hoodie.glb', name: 'Your character — in every game' },
+  { glb: 'assets/characters/kid_dino.glb', name: 'Earn coins, unlock looks' },
+  { glb: 'assets/characters/kid_superhero.glb', name: 'One account, everywhere' },
+  { glb: 'assets/characters/kid_footballer.glb', name: 'Play as YOU' },
+  { glb: 'assets/characters/kid_ninja.glb', name: 'Learning unlocks the cool stuff' },
+];
+
+if (!webglAvailable()) {
+  wrap.classList.add('hero-char-fallback');   // CSS shows a static poster instead
+} else {
+  try {
+    const viewer = createCharacterViewer(canvas, { autoSpin: true, spinSpeed: 0.008, height: 0 });
+    let i = 0;
+    async function show(idx) {
+      try {
+        await viewer.load(CAST[idx].glb);
+        wrap.classList.add('hero-char-ready');
+        tag.textContent = '✨ ' + CAST[idx].name;
+      } catch (e) { console.warn('hero char load', e); }
+    }
+    await show(0);
+    // gentle rotation of the cast every ~7s (skip if user prefers reduced motion)
+    if (!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+      setInterval(() => { i = (i + 1) % CAST.length; show(i); }, 7000);
+    }
+  } catch (e) {
+    console.warn('hero viewer init failed', e);
+    wrap.classList.add('hero-char-fallback');
+  }
+}
+</script>
 </body>
 </html>
