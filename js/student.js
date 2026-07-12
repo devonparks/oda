@@ -60,11 +60,16 @@ document.getElementById('tab-'+stuTabOrder[next]).focus();
 }
 window.stuTabKeyNav=stuTabKeyNav;
 
-// Auto-switch to tab based on URL hash (e.g. student.html#arcade)
+// Auto-switch to tab based on URL hash (e.g. student.html#arcade).
+// No hash -> land on Arcade: kids come here to play, and an empty Missions
+// tab is a dead first impression. Missions pull attention via the badge +
+// a one-time toast when missions actually exist.
 (function(){
   var hash=window.location.hash.replace('#','');
   if(hash&&['work','tools','arcade'].indexOf(hash)>=0){
     setTimeout(function(){switchTab(hash)},100);
+  }else{
+    setTimeout(function(){switchTab('arcade')},100);
   }
 })();
 
@@ -87,13 +92,23 @@ var badge=document.getElementById('workBadge');
 badge.textContent=pending.length;
 badge.className='tab-badge'+(pending.length===0?' zero':'');
 
+// One-time heads-up when missions exist (kids land on Arcade by default)
+if(pending.length>0&&!sessionStorage.getItem('amgMissionToast')){
+  sessionStorage.setItem('amgMissionToast','1');
+  if(typeof odaToast==='function')odaToast('\u{1F4DD} You have '+pending.length+' mission'+(pending.length>1?'s':'')+' waiting — they pay bonus coins!','info');
+}
+
 // Unlock banner (only show if teacher locked arcade and student finished work)
 document.getElementById('unlockBanner').className='unlock'+(arcadeLocked&&pending.length===0&&submitted.length===0?' show':'');
 
 // Render assignments
 var el=document.getElementById('assignmentList');
 if(!assigns.length){
-el.innerHTML='<div class="empty-state"><span class="emoji">&#x1F4ED;</span><p>No missions right now! Hit Learn &amp; Earn to stack coins, or go play in the Arcade.</p></div>';
+el.innerHTML='<div class="empty-state"><span class="emoji">&#x1F4ED;</span><p>No missions right now! Learning games pay the most coins — or jump straight into the Arcade.</p>'+
+'<div class="empty-ctas">'+
+'<button class="empty-cta learn" onclick="switchTab(\'tools\')">\u{1F9E0} Learn &amp; Earn</button>'+
+'<button class="empty-cta play" onclick="switchTab(\'arcade\')">\u{1F3AE} Play Arcade</button>'+
+'</div></div>';
 }else{
 var h='';
 // Pending/returned first
