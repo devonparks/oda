@@ -522,7 +522,8 @@ h+='<div style="color:var(--text2);font-size:13px">\u{1FA99} <span id="arcadeSho
 h+='<div class="game-cover-grid" id="arcadeCoverGrid">';
 GAMES.forEach(function(g){
   var cover=generateCover(g);
-  h+='<div class="game-cover-card'+(locked?' locked':'')+'" data-game-id="'+g.id+'" role="button" tabindex="'+(locked?'-1':'0')+'" '+(locked?'':'onclick="playArcadeGame(\''+g.file+'\',\''+g.id+'\')"')+'>';
+  var gc=g.colors||['#1fe6a8','#3fa0ff'];
+  h+='<div class="game-cover-card'+(locked?' locked':'')+'" data-game-id="'+g.id+'" style="--c1:'+gc[0]+';--c2:'+gc[1]+'" role="button" tabindex="'+(locked?'-1':'0')+'" '+(locked?'':'onclick="playArcadeGame(\''+g.file+'\',\''+g.id+'\')"')+'>';
   var catColors={multiplayer:'#06d6a0',arcade:'#ef476f',puzzle:'#118ab2',word:'#ffd166',strategy:'#a855f7'};
   var catLabels={multiplayer:'MULTIPLAYER',arcade:'ARCADE',puzzle:'PUZZLE',word:'WORD',strategy:'STRATEGY'};
   h+='<div class="game-cover-img" style="background-image:url('+cover+')">';
@@ -565,13 +566,15 @@ var COMING_SOON_TOOLS=[
 {id:'debate',emoji:'\u{1F5E3}\uFE0F',name:'Debate Club',desc:'Practice persuasive arguments!'}
 ];
 
+// Rotating accent palette so the Learn & Earn grid reads as a rainbow, not one colour.
+var TOOL_TINTS=['#1fe6a8','#3fa0ff','#ff5c8a','#ffca45','#a855f7','#22d3ee','#ff8a3d','#a3e635'];
 function renderMyTools(){
 var grid=document.getElementById('toolsGrid');
 var h='';
-ODA_TOOLS.forEach(function(t){
+ODA_TOOLS.forEach(function(t,i){
 var count=0;
 if(t.storageKey){try{var items=JSON.parse(localStorage.getItem(t.storageKey)||'[]');var sid=localStorage.getItem('studentId');if(sid){items=items.filter(function(p){return p.studentId===sid})}count=items.length}catch(e){}}
-h+='<div class="tool-card" role="button" tabindex="0" onclick="window.open(\''+t.url+'\',\'_self\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();window.open(\''+t.url+'\',\'_self\')}">';
+h+='<div class="tool-card'+(t.earns?' tool-earns':'')+'" style="--tc:'+TOOL_TINTS[i%TOOL_TINTS.length]+'" role="button" tabindex="0" onclick="window.open(\''+t.url+'\',\'_self\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();window.open(\''+t.url+'\',\'_self\')}">';
 h+='<span class="tc-emoji">'+t.emoji+'</span>';
 h+='<div class="tc-name">'+t.name+'</div>';
 h+='<div class="tc-desc">'+t.desc+'</div>';
