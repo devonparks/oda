@@ -532,6 +532,25 @@ window.odaCelebrate = function(effectType) {
   }
 };
 
+/**
+ * Play the player's EQUIPPED win effect as a celebration. This is how the win
+ * effects the shop sells finally render in-game — call it on a win. Accepts the
+ * game's cosmetics object (built via amgIdentityCosmetics, so it carries the
+ * `winEffect` slot), or a plain effect-type string. Falls back to confetti.
+ */
+window.odaPlayEquippedWinEffect = function(cosmetics) {
+  var type = 'confetti';
+  try {
+    if (typeof cosmetics === 'string') {
+      type = cosmetics;
+    } else if (cosmetics) {
+      var we = cosmetics.winEffect || cosmetics['Win Effect'] || cosmetics['Win Animation'];
+      if (we) type = we.type || (we.value && we.value.type) || type;
+    }
+  } catch (e) {}
+  window.odaCelebrate(type);
+};
+
 function _spawnParticles(colors, count, char) {
   for (var i = 0; i < count; i++) {
     var p = document.createElement('div');
