@@ -45,6 +45,7 @@ export function createCharacterViewer(canvas, opts = {}) {
 
   const fitPad = opts.fitPad || 1.18;   // >1 = more breathing room around the character
   const yBias = opts.yBias ?? 0.0;      // shift framing vertically (0 = centered on bbox)
+  let model = null;                     // hoisted so resize() can safely re-frame
 
   function resize() {
     const w = canvas.clientWidth || canvas.parentElement.clientWidth || 300;
@@ -58,7 +59,6 @@ export function createCharacterViewer(canvas, opts = {}) {
   resize();
 
   const loader = new GLTFLoader();
-  let model = null;
 
   // Fit the whole model in view accounting for BOTH height and width vs the
   // current aspect ratio, with padding — prevents heads/feet/shoulders clipping.
