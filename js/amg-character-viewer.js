@@ -43,27 +43,41 @@ export function createCharacterViewer(canvas, opts = {}) {
   const pivot = new THREE.Group();
   scene.add(pivot);
 
+  const fitPad = opts.fitPad || 1.18;   // >1 = more breathing room around the character
+  const yBias = opts.yBias ?? 0.0;      // shift framing vertically (0 = centered on bbox)
+  let model = null;                     // hoisted so resize() can safely re-frame
+
   function resize() {
     const w = canvas.clientWidth || canvas.parentElement.clientWidth || 300;
     const h = height || canvas.clientHeight || 400;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    if (model) frame();   // re-fit whenever the stage aspect changes so nothing clips
   }
   window.addEventListener('resize', resize);
   resize();
 
   const loader = new GLTFLoader();
-  let model = null;
 
+  // Fit the whole model in view accounting for BOTH height and width vs the
+  // current aspect ratio, with padding — prevents heads/feet/shoulders clipping.
   function frame() {
     const box = new THREE.Box3().setFromObject(model);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
-    model.position.sub(center);
-    const dist = size.y * 1.7;   // a little breathing room around the character
-    camera.position.set(0, size.y * 0.04, dist);
+    model.position.sub(center);   // recentre on origin
+
+    const fov = camera.fov * Math.PI / 180;
+    const distForHeight = (size.y / 2) / Math.tan(fov / 2);
+    const distForWidth = (size.x / 2) / (Math.tan(fov / 2) * camera.aspect);
+    let dist = Math.max(distForHeight, distForWidth) * fitPad;
+
+    camera.position.set(0, size.y * yBias, dist);
     camera.lookAt(0, 0, 0);
+    camera.near = Math.max(dist / 100, 0.01);
+    camera.far = dist * 100;
+    camera.updateProjectionMatrix();
   }
 
   async function load(url) {
