@@ -186,6 +186,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <h3>Sprint</h3>
       <p>Clear 40 lines as fast as possible!</p>
     </div>
+    <div class="mode-card" onclick="showShopScreen()">
+      <span class="mode-icon">&#x1F6CD;&#xFE0F;</span>
+      <h3>Shop</h3>
+      <p>Piece skins &amp; board themes</p>
+    </div>
   </div>
   <div class="quick-stats">
     <div class="stat-pill">&#x1F3AE; Games <span class="stat-num" id="homeGames">0</span></div>
@@ -274,6 +279,16 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   </div>
 </div>
 
+<!-- SHOP SCREEN -->
+<div class="screen" id="shopScreen">
+  <div style="width:92%;max-width:640px;margin:0 auto;padding-top:70px">
+    <h2 style="text-align:center;font-size:28px;margin-bottom:4px">&#x1F6CD;&#xFE0F; <span style="color:var(--accent2)">Block Shop</span></h2>
+    <p style="text-align:center;color:var(--text2);font-size:14px;margin-bottom:18px">Spend coins on piece skins &amp; board themes</p>
+    <div id="tetrisShopContainer"></div>
+    <div style="text-align:center;margin-top:20px"><button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&#8592; Back</button></div>
+  </div>
+</div>
+
 <script src="../../js/oda-core.js"></script>
 <script>
 function e(ev){if(ev)ev.preventDefault()}
@@ -296,6 +311,84 @@ var dasDir=0,dasTimer=0,dasActive=false;
 var STORE_KEY='oda-tetris';
 function loadStats(){try{return JSON.parse(localStorage.getItem(STORE_KEY))||{}}catch(e){return{}}}
 function saveStats(s){try{localStorage.setItem(STORE_KEY,JSON.stringify(s))}catch(e){}}
+
+/* ============================== */
+/* COSMETICS + SHOP               */
+/* ============================== */
+var PIECE_ORDER=['I','O','T','S','Z','J','L'];
+var BASE_COLORS={I:'#22d3ee',O:'#fbbf24',T:'#a855f7',S:'#06d6a0',Z:'#ef4444',J:'#3b82f6',L:'#f97316'};
+var SKIN_PALETTES={
+  classic:['#22d3ee','#fbbf24','#a855f7','#06d6a0','#ef4444','#3b82f6','#f97316'],
+  neon:['#00e5ff','#f6ff00','#c400ff','#00ff8c','#ff003c','#2b7bff','#ff8a00'],
+  candy:['#7bdff2','#ffd6e0','#c8b6ff','#b8f2e6','#ffadad','#a0c4ff','#ffd6a5'],
+  sunset:['#ffd166','#ff9f1c','#ff6b6b','#f4a261','#e76f51','#ff5d8f','#ffb703'],
+  retro:['#2ec4b6','#ffbf00','#8338ec','#3a86ff','#ff006e','#4361ee','#fb5607'],
+  mono:['#39ff14','#39ff14','#39ff14','#39ff14','#39ff14','#39ff14','#39ff14']
+};
+var BOARD_THEMES={
+  midnight:{bg:'#0f0c24',grid:'rgba(120,120,190,.13)',border:'#362f5f'},
+  slate:{bg:'#12131f',grid:'rgba(90,110,150,.14)',border:'#2a3450'},
+  grape:{bg:'#180a2e',grid:'rgba(168,85,247,.15)',border:'#4a2d6f'},
+  forest:{bg:'#0a1f16',grid:'rgba(31,230,168,.13)',border:'#1f5a44'},
+  ocean:{bg:'#08131f',grid:'rgba(63,160,255,.14)',border:'#1e3a5f'}
+};
+var skinMap=null;                       // base color -> skinned color (null = classic)
+var boardTheme=BOARD_THEMES.midnight;
+
+var GAME_SHOP=[
+  {id:'skin_classic',name:'Classic',emoji:'\u{1F3A8}',cost:0,slot:'Piece Skin',value:{skin:'classic'}},
+  {id:'skin_neon',name:'Neon',emoji:'\u{1F4A1}',cost:200,slot:'Piece Skin',value:{skin:'neon'}},
+  {id:'skin_candy',name:'Candy',emoji:'\u{1F36C}',cost:250,slot:'Piece Skin',value:{skin:'candy'}},
+  {id:'skin_sunset',name:'Sunset',emoji:'\u{1F305}',cost:250,slot:'Piece Skin',value:{skin:'sunset'}},
+  {id:'skin_retro',name:'Retro',emoji:'\u{1F579}️',cost:300,slot:'Piece Skin',value:{skin:'retro'}},
+  {id:'skin_mono',name:'Matrix',emoji:'\u{1F7E9}',cost:400,slot:'Piece Skin',value:{skin:'mono'}},
+  {id:'board_midnight',name:'Midnight',emoji:'\u{1F30C}',cost:0,slot:'Board Theme',value:{board:'midnight'}},
+  {id:'board_slate',name:'Slate',emoji:'⬛',cost:150,slot:'Board Theme',value:{board:'slate'}},
+  {id:'board_grape',name:'Grape',emoji:'\u{1F347}',cost:200,slot:'Board Theme',value:{board:'grape'}},
+  {id:'board_forest',name:'Forest',emoji:'\u{1F332}',cost:200,slot:'Board Theme',value:{board:'forest'}},
+  {id:'board_ocean',name:'Ocean',emoji:'\u{1F30A}',cost:250,slot:'Board Theme',value:{board:'ocean'}}
+];
+
+function buildSkinMap(skinName){
+  if(!skinName||skinName==='classic')return null;
+  var pal=SKIN_PALETTES[skinName]||SKIN_PALETTES.classic;
+  var m={};PIECE_ORDER.forEach(function(n,i){m[BASE_COLORS[n]]=pal[i]});return m;
+}
+function skinColor(c){return (skinMap&&skinMap[c])||c;}
+
+function loadMyCosmetics(){
+  try{
+    var st=JSON.parse(localStorage.getItem('oda_cosmetics_tetris')||'{}');
+    var ps=st['Piece Skin'];
+    skinMap=buildSkinMap(ps&&ps.value&&ps.value.skin);
+    var bt=st['Board Theme'];
+    boardTheme=BOARD_THEMES[(bt&&bt.value&&bt.value.board)]||BOARD_THEMES.midnight;
+  }catch(e){skinMap=null;boardTheme=BOARD_THEMES.midnight;}
+  var bw=document.getElementById('boardWrap');
+  if(bw&&boardTheme)bw.style.borderColor=boardTheme.border;
+}
+loadMyCosmetics();
+
+function showShopScreen(){
+  showScreen('shopScreen');
+  if(window.odaShop)odaShop.renderShopPanel('tetris',GAME_SHOP,'tetrisShopContainer',{onEquip:loadMyCosmetics,onBuy:loadMyCosmetics});
+}
+window.showShopScreen=showShopScreen;
+
+/* Real coin award (fixes the old window.odaAddCoins call, which never existed) */
+async function awardCoins(n){
+  var sid=localStorage.getItem('studentId');
+  if(!sid||sid.indexOf('anon_')===0||!n||n<=0)return;
+  try{var fb=await window.getFirebaseDB();await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',sid),{coins:fb.fsMod.increment(n)});}catch(e){}
+}
+
+/* Player identity cosmetics (for the equipped WIN EFFECT on a new record) */
+var myIdentity=null;
+(async function(){
+  var sid=localStorage.getItem('studentId');
+  if(!sid||sid.indexOf('anon_')===0)return;
+  try{var fb=await window.getFirebaseDB();var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));if(snap.exists()&&window.amgIdentityCosmetics)myIdentity=window.amgIdentityCosmetics(snap.data(),null);}catch(e){}
+})();
 
 /* Tetromino definitions: [rotations][rows][cols] */
 var PIECES={
@@ -518,9 +611,10 @@ function draw(){
   if(!ctx)return;
   var W=COLS*CELL,H=ROWS*CELL;
   ctx.clearRect(0,0,W,H);
+  if(boardTheme){ctx.fillStyle=boardTheme.bg;ctx.fillRect(0,0,W,H);}
 
   /* Grid */
-  ctx.strokeStyle='rgba(42,52,80,.3)';ctx.lineWidth=0.5;
+  ctx.strokeStyle=(boardTheme&&boardTheme.grid)||'rgba(42,52,80,.3)';ctx.lineWidth=0.5;
   for(var r=0;r<=ROWS;r++){ctx.beginPath();ctx.moveTo(0,r*CELL);ctx.lineTo(W,r*CELL);ctx.stroke()}
   for(var c=0;c<=COLS;c++){ctx.beginPath();ctx.moveTo(c*CELL,0);ctx.lineTo(c*CELL,H);ctx.stroke()}
 
@@ -532,7 +626,7 @@ function draw(){
           ctx.fillStyle='rgba(255,255,255,.8)';
           ctx.fillRect(c*CELL,r*CELL,CELL,CELL);
         }else{
-          drawCell(ctx,c*CELL,r*CELL,CELL,board[r][c],1);
+          drawCell(ctx,c*CELL,r*CELL,CELL,skinColor(board[r][c]),1);
         }
       }
     }
@@ -547,7 +641,7 @@ function draw(){
   for(var r=0;r<p.shape.length;r++){
     for(var c=0;c<p.shape[r].length;c++){
       if(!p.shape[r][c])continue;
-      drawCell(ctx,(p.x+c)*CELL,(gy+r)*CELL,CELL,p.color,1);
+      drawCell(ctx,(p.x+c)*CELL,(gy+r)*CELL,CELL,skinColor(p.color),1);
     }
   }
   ctx.globalAlpha=1;
@@ -558,7 +652,7 @@ function draw(){
       if(!p.shape[r][c])continue;
       var cy=p.y+r;
       if(cy<0)continue;
-      drawCell(ctx,(p.x+c)*CELL,cy*CELL,CELL,p.color,1);
+      drawCell(ctx,(p.x+c)*CELL,cy*CELL,CELL,skinColor(p.color),1);
     }
   }
 }
@@ -589,7 +683,7 @@ function drawPreview(pctx,piece){
   for(var r=0;r<s.length;r++){
     for(var c=0;c<s[r].length;c++){
       if(!s[r][c])continue;
-      drawCell(pctx,ox+c*cellSize,oy+r*cellSize,cellSize,piece.color,1);
+      drawCell(pctx,ox+c*cellSize,oy+r*cellSize,cellSize,skinColor(piece.color),1);
     }
   }
 }
@@ -644,6 +738,7 @@ function gameLoop(ts){
 /* ============================== */
 function startGame(mode){
   currentMode=mode||'marathon';
+  loadMyCosmetics();
   board=[];
   for(var r=0;r<ROWS;r++){board.push(new Array(COLS).fill(null))}
   score=0;level=1;lines=0;linesForLevel=0;
@@ -715,7 +810,7 @@ function gameOverHandler(){
 
   /* Coins: 1 per 500 points */
   var coins=Math.floor(score/500);
-  if(coins>0&&window.odaAddCoins)window.odaAddCoins(coins);
+  if(coins>0)awardCoins(coins);
 
   /* XP */
   if(window.odaAwardXP)window.odaAwardXP(Math.min(lines,20),'Block Drop');
@@ -732,6 +827,8 @@ function gameOverHandler(){
   rec.style.display=isRecord?'block':'none';
   if(isRecord)d.classList.add('new-record');
   d.classList.add('active');
+  /* Celebrate a new best with the player's equipped win effect */
+  if(isRecord&&score>0&&window.odaPlayEquippedWinEffect)window.odaPlayEquippedWinEffect(myIdentity||'stars');
   setTimeout(function(){d.classList.add('show-bg')},50);
 
   updateHomeStats();
@@ -835,6 +932,22 @@ function showScreen(id){
     if(b){b.href='../../teacher.html#arcade';b.textContent='\u2190 Back to Teacher Hub'}
   }
 })();
+
+/* ============================== */
+/* HELP                           */
+/* ============================== */
+if(window.odaHelp)odaHelp.init({
+  title:'Block Drop',emoji:'\u{1F9F1}',subtitle:'Stack blocks, clear lines, climb the board',
+  sections:[
+    {title:'Goal',icon:'\u{1F3AF}',items:['Fill a full horizontal row to clear it','Clear 4 rows at once for a TETRIS (huge points!)','The game ends if the stack reaches the top']},
+    {title:'Earn',icon:'\u{1FA99}',items:['Coins: 1 per 500 points','A new best score fires your equipped Win Effect','Spend coins on piece skins &amp; board themes in the Shop']}
+  ],
+  controls:[
+    {key:'← →',action:'Move'},{key:'↑ / X',action:'Rotate'},{key:'↓',action:'Soft drop'},
+    {key:'Space',action:'Hard drop'},{key:'C',action:'Hold piece'},{key:'P',action:'Pause'}
+  ],
+  tip:'<strong>Pro tip:</strong> hoard your long I-pieces and drop them into a single column gap for a four-line Tetris — worth far more than clearing one row at a time.'
+});
 
 /* ============================== */
 /* INIT                           */
