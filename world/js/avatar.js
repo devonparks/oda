@@ -64,6 +64,9 @@ export async function preloadCharacter(id, url) {
     });
     return scene;
   });
+  // Evict on failure so a transient load error (flaky wifi on a Chromebook)
+  // doesn't cache a rejected promise and permanently break that character.
+  p.catch(() => { if (cache.get(id) === p) cache.delete(id); });
   cache.set(id, p);
   return p;
 }

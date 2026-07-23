@@ -53,8 +53,10 @@ export class NpcCrowd {
   }
 
   async preload(ids) {
-    // Load a varied handful; preloadCharacter caches, so reuse is cheap.
-    const pick = ids || this.manifest.slice(0, 8).map((m) => m.id);
+    // Load a varied handful sized to the crowd — enough variety without pulling
+    // 8 character GLBs (~3 MB) onto a Chromebook for a park of 3. preloadCharacter
+    // caches, so the player's own character (already loaded) is reused for free.
+    const pick = ids || this.manifest.slice(0, Math.min(this.base + 1, 8)).map((m) => m.id);
     this._protos = [];
     for (const id of pick) {
       const m = this.manifest.find((x) => x.id === id);
@@ -92,7 +94,7 @@ export class NpcCrowd {
     return fallback || { x: 0, z: 8 };
   }
 
-  _spawnOne(nearEdge) {
+  _spawnOne() {
     if (!this._protos.length) return;
     const proto = this._protos[(Math.random() * this._protos.length) | 0];
     const avatar = new Avatar(proto, { name: this._nextName(), networked: false });
@@ -130,7 +132,7 @@ export class NpcCrowd {
     if (this._adjustTimer <= 0) {
       this._adjustTimer = 2.5;
       const desired = THREE.MathUtils.clamp(this.base - realPlayers, this.min, this.max);
-      if (this.npcs.length < desired) this._spawnOne(true);
+      if (this.npcs.length < desired) this._spawnOne();
       else if (this.npcs.length > desired) this._retireFarthest(playerPos);
     }
 

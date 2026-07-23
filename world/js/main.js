@@ -11,7 +11,7 @@
  * world is part of the economy, not a side attraction.
  */
 import * as THREE from 'three';
-import { World, QUALITY } from './world.js';
+import { World } from './world.js';
 import { Avatar, preloadCharacter } from './avatar.js';
 import { Input } from './input.js';
 import { Presence } from './presence.js';
