@@ -122,7 +122,7 @@ position, `__world.tp(x, z)` to teleport. Same idea as Drop4's
 - Playground structures are solid obstacles rather than climbable. Boxes under
   0.42 m are stepped onto, so kerbs and edges are fine, but you can't currently
   climb to the top of the slide.
-- No audio in the world yet. `odaSfx` (in `js/oda-core.js`) is available and
-  would cover footsteps, coin pickup and emotes.
+- Audio covers footsteps, coins, jump, emotes, chat and zone entry via `odaSfx`,
+  but there's no ambience (birds, distant playground) and no music.
 - Only one room ("park"). `presence.js` already keys on a room name, so a second
   zone is mostly a matter of building it.
