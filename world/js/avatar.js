@@ -16,9 +16,29 @@ import { clone as skeletonClone } from 'three/addons/utils/SkeletonUtils.js';
 import { RigAnimator } from './animator.js';
 import { Locomotion, getLocomotionLibrary } from './clips.js';
 import { EmotePlayer, getEmoteLibrary } from './emotes.js';
+import { RigV2 } from './rig_v2.js';
 
 const loader = new GLTFLoader();
 const cache = new Map();
+
+/**
+ * Which character rig the world runs on:
+ *   'v2' (default) — the Unity-T-pose re-exports in assets/characters/v2/, which
+ *                    play the real 58 Synty emotes + rebased locomotion via
+ *                    RigV2 (absolute quats, no correction). See rig_v2.js.
+ *   'v1'           — the original arms-down GLBs with the delta/corr locomotion
+ *                    and procedural emotes. Kept as a one-flag rollback:
+ *                    localStorage.amgWorldRig = 'v1'.
+ */
+export const RIG = (() => {
+  try { return localStorage.getItem('amgWorldRig') === 'v1' ? 'v1' : 'v2'; }
+  catch (e) { return 'v2'; }
+})();
+
+/** The GLB url for a manifest entry, honouring the active rig. */
+export function characterUrl(m) {
+  return RIG === 'v2' ? '../assets/characters/v2/' + m.id + '.glb' : '../' + m.glb;
+}
 
 /**
  * The exported kid GLBs already resolve to ~1.2 m tall: the bone data is in
@@ -82,18 +102,22 @@ export class Avatar {
     this.model.scale.setScalar(MODEL_SCALE);
     this.group.add(this.model);
 
-    this.rig = new RigAnimator(this.model);
-    // Attach the baked Synty locomotion when it's available. The library is
-    // shared and loads once; until it resolves (or if it fails) the avatar runs
-    // on the procedural animator, so nobody ever sees a T-posed kid.
-    getLocomotionLibrary().then((lib) => {
-      if (lib && !this._disposed) this.rig.loco = new Locomotion(this.model, lib, this.rig);
-    });
-    // Real Synty emotes when the bake is present; the procedural set in
-    // animator.js stays as the fallback so the wheel always does something.
-    getEmoteLibrary().then((lib) => {
-      if (lib && !this._disposed) this.rig.emotes = new EmotePlayer(this.rig, lib);
-    });
+    if (RIG === 'v2') {
+      // One absolute-quat player: rebased locomotion + the real 58 emotes on the
+      // v2 rig. Loads its 34 KB locomotion bake + emote manifest once (shared);
+      // main.js preloads locomotion at boot so no T-pose ever shows.
+      this.rig = new RigV2(this.model);
+    } else {
+      this.rig = new RigAnimator(this.model);
+      // v1 rollback: baked delta locomotion + procedural emotes, so nobody ever
+      // sees a T-posed kid while the shared library loads.
+      getLocomotionLibrary().then((lib) => {
+        if (lib && !this._disposed) this.rig.loco = new Locomotion(this.model, lib, this.rig);
+      });
+      getEmoteLibrary().then((lib) => {
+        if (lib && !this._disposed) this.rig.emotes = new EmotePlayer(this.rig, lib);
+      });
+    }
     this.local = !!opts.local;
     // Network-driven avatars (remote players) interpolate toward a received
     // transform. Locally-driven ones (the player, and NPCs) set pos/yaw/speed
@@ -210,7 +234,8 @@ export class Avatar {
 
   dispose() {
     this._disposed = true;
-    this.rig.loco?.dispose();
+    this.rig.dispose?.();       // RigV2
+    this.rig.loco?.dispose?.(); // v1 Locomotion
     this.group.removeFromParent();
     disposeSprite(this.label);
     if (this.bubble) disposeSprite(this.bubble);

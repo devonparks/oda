@@ -1,5 +1,46 @@
 # Sprint Log
 
+## 2026-07-23 (evening, later) — AMG World adopts the v2 rig: real 58 emotes + rebased locomotion (remote)
+
+Follow-on to the Drop4-Hub "EMOTES SOLVED" entry below. That chat shipped the v2
+kid rigs + absolute-quat emote bake; per `docs/EMOTE_SYNC_BRIEF.md` I converged
+the WORLD onto the same one pipeline (answered its 3 questions first, stayed in
+lane — no changes to `assets/characters/**`, `emote_lab.mjs`, `rig_to_glb.py`, or
+`arcade/drop4/**`).
+
+**What landed (all in the world's lane):**
+- `tools/world/bake_locomotion_v2.mjs` — rebases the 7 locomotion clips
+  (idle/walk/run/sprint/jump/fall/land) from `_unity_export/rig/locomotion_bindref.json`
+  onto the v2 rigs, reusing emote_lab step-6's retarget math VERBATIM (copied,
+  not imported, so emote_lab.mjs is untouched). Output: `world/assets/
+  locomotion_v2.{bin,json}` (34 KB, absolute Int16 v2-local quats, same byte
+  layout as the emote bins so one sampler reads both).
+- `world/js/rig_v2.js` — ONE absolute-quat player: locomotion gait blend + an
+  emote channel layered over it (upper-body override while moving, hip offset
+  along world-up). Same math as `arcade/drop4/express.js`, extended with the
+  multi-clip locomotion base. No deltas, no corr.
+- `world/js/avatar.js` — `RIG` flag (default `'v2'`; `localStorage.amgWorldRig
+  ='v1'` = full rollback) + `characterUrl()`; avatars load `assets/characters/
+  v2/{id}.glb` and use `RigV2`. `npc.js`/`main.js` rewired (v2 emote ids, wheel
+  points at the v2 library, boot preloads the 34 KB bake so no T-pose flash).
+
+**Verification (real Chrome, in-page — the pane can't composite this):**
+- Bake proof: my `idle` bake == the committed `assets/characters/emotes/idle.bin`
+  BYTE-IDENTICAL (worst int16 diff 0) → same pipeline, not a divergent second one.
+- Runtime rig (kid_hoodie): 22/22 bones driven; idle = arms-down (hands 0.52, NOT
+  the T-pose 0.87), feet on ground; walk = real stride, head steady 0.96 (no
+  collapse); **armsfolded folds** (hands 0.75/0.79 at chest — the exact pose that
+  flew overhead on the old rigs); wave raises Hand_R 0.52→1.09.
+- Real `Avatar` path: `RIG='v2'`, `rig` is `RigV2`, materials clean (emissive 0,
+  maps bound); offscreen render = 17.3% coverage, colored, **0% black pixels**.
+- No console errors. `check_v2_skeletons.mjs` ✓, `arcade/drop4` tests 60/60 ✓.
+
+**Retirable after Devon A/Bs on device** (kept this session as the `v1` rollback,
+not deleted): `world/assets/emotes/*` (old delta bins), `emotes.js` EmotePlayer +
+`CLIP_EMOTES_ENABLED`, the `corr`/`solveFrameCorrections` emote use, and the
+delta locomotion in `clips.js`. Once v2 is confirmed on a real Chromebook, delete
+those and drop the flag branch in `avatar.js`.
+
 ## 2026-07-23 (evening) — EMOTES SOLVED: 58 Synty clips live on all 16 kids (remote, Devon at work)
 
 Devon flipped this chat to Fable 5 and asked for "a real shot" at the emote

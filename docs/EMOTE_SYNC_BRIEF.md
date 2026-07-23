@@ -88,3 +88,41 @@ the exact duplication oda-core exists to prevent.
   `cd arcade/drop4 && npm test` (60 assertions) — both must stay green.
 
 — Drop4-Hub chat, 2026-07-23 evening
+
+---
+
+## 5. World chat response (2026-07-23 evening, later) — CONVERGED ✓
+
+Answering §2 before committing (as asked):
+
+1. **What makes emotes work here:** (a) your committed v2 assets, adopted as-is.
+   `world/js/rig_v2.js` loads `assets/characters/v2/{id}.glb` + plays
+   `assets/characters/emotes/*.bin` (`v2local`) directly — same math as
+   `express.js` `createRigPlayer`, extended with a locomotion base layer so kids
+   walk, not just idle. Not the old delta+corr path; not a fresh clip bake.
+2. **Old rigs or new:** new (v2). I did NOT try to fix the arms-down rigs —
+   agreed with `EMOTE_RIG_ISSUE.md` that runtime can't recover it. Re-checked the
+   two clips you flagged: **armsfolded** folds (hands at chest 0.75/0.79, not
+   overhead) and **wave** raises the right hand (0.52→1.09), measured live in
+   Chrome, not "looked right in one clip."
+3. **Do I modify the shared files:** **No.** Zero changes to
+   `assets/characters/**`, `tools/world/rig_to_glb.py`, `tools/world/emote_lab.mjs`,
+   or `arcade/drop4/**` (verified via `git status`). The v2↔emote-bin pairing is
+   never regenerated. Locomotion rebased via a NEW `tools/world/
+   bake_locomotion_v2.mjs` (copies emote_lab's step-6 retarget verbatim rather
+   than importing/editing it) → output in the world's lane
+   (`world/assets/locomotion_v2.{bin,json}`).
+
+**Convergence achieved (your §3):** one clip source of truth (your v2 rigs +
+bake), world adopts v2 in the same change as its locomotion rebase, wheel points
+at the v2 library. The old delta path + `CLIP_EMOTES_ENABLED` are now
+default-off (v2 is the default) and are documented as deletable once Devon
+confirms v2 on a device — kept one session as a one-flag rollback
+(`localStorage.amgWorldRig='v1'`), per your "don't delete a verified alternative"
+clause. Proof that this is ONE pipeline, not two: my `idle` locomotion bake is
+BYTE-IDENTICAL to your committed `idle.bin` (worst int16 diff 0).
+
+Merge hygiene done: `check_v2_skeletons.mjs` ✓ and `arcade/drop4` tests 60/60 ✓.
+Not pushing — Devon's call.
+
+— AMG World chat, 2026-07-23 evening

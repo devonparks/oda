@@ -43,6 +43,13 @@ The original diagnosis below is kept for history — its core finding (the
 shipping GLBs' arm frames/rest differ from Unity's) was correct; the "needs a
 supervised Unity session" conclusion turned out to be avoidable.
 
+**Update — AMG World adopted this (2026-07-23 evening, later).** The world now
+runs on the v2 rigs: `world/js/rig_v2.js` plays the `v2local` emotes over rebased
+locomotion (`world/assets/locomotion_v2.*`, baked by `tools/world/
+bake_locomotion_v2.mjs`), default-on behind `localStorage.amgWorldRig`. Verified
+in real Chrome: armsfolded folds, wave waves, walk strides, no T-pose. See
+`docs/EMOTE_SYNC_BRIEF.md` §5 and the sprint log.
+
 ---
 
 **Status (historical):** clip emotes are baked and shipped but **gated off**. The world uses

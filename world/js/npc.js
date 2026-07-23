@@ -20,7 +20,14 @@
  * players. Steering is plain seek-with-collision against the shared world grid.
  */
 import * as THREE from 'three';
-import { Avatar, preloadCharacter } from './avatar.js';
+import { Avatar, preloadCharacter, characterUrl, RIG } from './avatar.js';
+
+/** Little idle bursts of life. Ids must exist in the active rig's emote set:
+ *  the v2 library (real Synty clips) vs the v1 procedural set have different
+ *  names. 'wave' exists in both and is used for the greet-a-passer-by beat. */
+const IDLE_EMOTES = RIG === 'v2'
+  ? ['twist', 'cheer', 'nod', 'think', 'clap', 'dab', 'thumbsup']
+  : ['dance', 'cheer', 'yes', 'think', 'laugh'];
 
 /** Friendly, generic names — deliberately not styled to impersonate a real
  *  roster entry. These read as "some kids in the park", not specific people. */
@@ -62,7 +69,7 @@ export class NpcCrowd {
       const m = this.manifest.find((x) => x.id === id);
       if (!m) continue;
       try {
-        const proto = await preloadCharacter(m.id, '../' + m.glb);
+        const proto = await preloadCharacter(m.id, characterUrl(m));
         this._protos.push(proto);
       } catch (e) { /* skip a model that failed to load */ }
     }
@@ -190,8 +197,7 @@ export class NpcCrowd {
         }
       }
       if (npc.emoteCooldown <= 0 && npc.state === 'idle' && !a.rig.emoting) {
-        const pool = ['dance', 'cheer', 'yes', 'think', 'laugh'];
-        a.playEmote(pool[(Math.random() * pool.length) | 0]);
+        a.playEmote(IDLE_EMOTES[(Math.random() * IDLE_EMOTES.length) | 0]);
         npc.emoteCooldown = 12 + Math.random() * 18;
       }
 

@@ -12,17 +12,25 @@
  */
 import * as THREE from 'three';
 import { World } from './world.js';
-import { Avatar, preloadCharacter } from './avatar.js';
+import { Avatar, preloadCharacter, characterUrl, RIG } from './avatar.js';
 import { Input } from './input.js';
 import { Presence } from './presence.js';
 import { EMOTES, EMOTE_IDS } from './animator.js';
 import { getEmoteLibrary } from './emotes.js';
+import { getEmoteLibraryV2, getLocomotionV2 } from './rig_v2.js';
 import { PHRASE_GROUPS, PHRASES, renderPhrase, safeName } from './chat.js';
 import { ZONES, ACTIVITIES, SPAWN, nearestZone, gamesForZone } from './zones.js';
 import { NpcCrowd } from './npc.js';
 import { Ambience } from './ambience.js';
 import { WorldProgress } from './achievements.js';
 import { StarHunt } from './stars.js';
+
+/** Flavour emotes for park activities, by active rig. The v2 library (real
+ *  Synty clips) and the v1 procedural set use different ids; 'cheer' is in
+ *  both. Kept in one place so the activity handlers read the same in either. */
+const A_EMOTE = RIG === 'v2'
+  ? { happy: 'cheer', laugh: 'clap', yes: 'nod' }
+  : { happy: 'cheer', laugh: 'laugh', yes: 'yes' };
 
 const LS = {
   char: 'amgWorldChar',
@@ -158,7 +166,10 @@ async function enterWorld() {
   // files, so overlapping them shaves the character's ~400 KB off the total
   // wait on slow school wifi instead of loading it after the 1.75 MB park.
   const model = state.manifest.find((m) => m.id === state.charId) || state.manifest[0];
-  const protoPromise = preloadCharacter(model.id, '../' + model.glb);
+  const protoPromise = preloadCharacter(model.id, characterUrl(model));
+  // Kick the 34 KB locomotion bake + emote manifest now, so they're ready before
+  // the first avatar exists and no kid ever flashes the v2 rig's T-pose bind.
+  if (RIG === 'v2') { getLocomotionV2(); getEmoteLibraryV2(); }
 
   await world.load(setProgress);
   setProgress(0.9, 'Getting you dressed…');
@@ -528,12 +539,12 @@ function runActivity(zone) {
       else toast('What a ride!');
     }, 1400);
   } else if (zone.id === 'pond') {
-    p.playEmote('laugh');
-    state.presence?.broadcast({ emote: 'laugh' });
+    p.playEmote(A_EMOTE.laugh);
+    state.presence?.broadcast({ emote: A_EMOTE.laugh });
     toast('The ducks seem happy 🦆');
   } else if (zone.id === 'bikerack') {
-    p.playEmote('yes');
-    state.presence?.broadcast({ emote: 'yes' });
+    p.playEmote(A_EMOTE.yes);
+    state.presence?.broadcast({ emote: A_EMOTE.yes });
     toast('Ring ring! 🔔');
   }
 }
@@ -562,7 +573,7 @@ function tapToMove(sx, sy) {
 async function addRemote(id, packet) {
   if (state.remotes.has(id)) return updateRemote(id, packet);
   const model = state.manifest.find((m) => m.id === packet.c) || state.manifest[0];
-  const proto = await preloadCharacter(model.id, '../' + model.glb);
+  const proto = await preloadCharacter(model.id, characterUrl(model));
   if (state.remotes.has(id)) return;   // raced with another packet
   const avatar = new Avatar(proto, { name: safeName(packet.n) });
   avatar.pos.set(packet.x, packet.y, packet.z);
@@ -730,7 +741,9 @@ function noteFav(id) {
 
 async function buildEmoteWheel() {
   loadFavs();
-  emoteLib = await getEmoteLibrary();
+  // v2 rig → the real 58-clip Synty library; v1 rollback → the old gated one
+  // (null there, which falls through to the procedural set below).
+  emoteLib = await (RIG === 'v2' ? getEmoteLibraryV2() : getEmoteLibrary());
   const wheel = $('emoteWheel');
   wheel.innerHTML = '';
 
