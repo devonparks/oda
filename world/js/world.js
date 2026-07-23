@@ -361,9 +361,10 @@ export class World {
     const want = (this._camWant || (this._camWant = new THREE.Vector3()))
       .copy(focus).addScaledVector(dir, dist);
     want.y = Math.max(want.y, this.collision.groundAt(want.x, want.z, 0) + 0.7);
-    // critically-damped-ish follow: snappy but never jittery
-    const k = 1 - Math.exp(-13 * dt);
-    this.camPos.lerp(want, k);
+    // critically-damped-ish follow: snappy but never jittery. First frame snaps
+    // into place instead of swooping in from the world origin (camPos starts 0).
+    if (!this._camReady) { this.camPos.copy(want); this._camReady = true; }
+    else this.camPos.lerp(want, 1 - Math.exp(-13 * dt));
     this.camera.position.copy(this.camPos);
     this.camera.lookAt(focus);
   }
