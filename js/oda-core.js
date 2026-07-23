@@ -47,7 +47,13 @@
     "frame-ancestors 'self'",
     "form-action 'self'",
     "base-uri 'self'",
-    "object-src 'none'"
+    "object-src 'none'",
+    // Workers are spawned from blob: URLs by decoder libraries (three.js
+    // DRACOLoader in AMG World, for one). Without this they fall back to
+    // default-src 'self', get blocked, and the loader HANGS instead of
+    // erroring — a silent white screen. blob: workers are same-origin.
+    "worker-src 'self' blob:",
+    "child-src 'self' blob:"
   ].join('; '));
   head.insertBefore(csp, head.firstChild);
 

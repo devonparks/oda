@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>AMG World — Recess Park</title>
+<meta name="description" content="Meet your class in a 3D park, collect coins and jump into games.">
+<link rel="icon" href="../assets/amg-icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/oda-theme.css">
+<link rel="stylesheet" href="css/world.css">
+</head>
+<body>
+
+<canvas id="stage"></canvas>
+
+<!-- ================= LOADING ================= -->
+<div id="loading" class="screen">
+  <div class="load-card">
+    <div class="load-logo">AMG <span>WORLD</span></div>
+    <div class="load-sub">Recess Park</div>
+    <div class="load-bar"><div id="loadFill"></div></div>
+    <div id="loadMsg" class="load-msg">Waking up the park…</div>
+    <div class="load-tip" id="loadTip"></div>
+  </div>
+</div>
+
+<!-- ================= CHARACTER PICKER ================= -->
+<div id="picker" class="screen hidden">
+  <div class="picker-card">
+    <h1 class="picker-title">Pick your look</h1>
+    <p class="picker-sub">You can change this any time from the park.</p>
+    <div class="picker-stage"><canvas id="pickerCanvas"></canvas></div>
+    <div id="charStrip" class="char-strip"></div>
+    <div class="picker-row">
+      <label class="field">
+        <span>Show up as</span>
+        <input id="displayName" maxlength="16" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="field">
+        <span>Graphics</span>
+        <select id="qualitySel">
+          <option value="low">Smooth (Chromebook)</option>
+          <option value="medium" selected>Balanced</option>
+          <option value="high">Pretty</option>
+        </select>
+      </label>
+    </div>
+    <button id="enterBtn" class="btn-primary">Enter the park</button>
+  </div>
+</div>
+
+<!-- ================= HUD ================= -->
+<div id="hud" class="hidden">
+  <div class="hud-top">
+    <a class="hud-chip hud-back" href="../student.html" title="Back to AMG Hub">‹ Hub</a>
+    <div class="hud-chip hud-coins"><span class="coin-dot"></span><span id="coinCount">0</span></div>
+    <div class="hud-chip" id="onlineChip" title="Players here right now">
+      <span class="live-dot" id="liveDot"></span><span id="onlineCount">1</span>
+    </div>
+    <div class="hud-spacer"></div>
+    <button class="hud-chip icon-btn" id="mapBtn" title="Map (M)">🗺️</button>
+    <button class="hud-chip icon-btn" id="helpBtn" title="How to play (H)">?</button>
+  </div>
+
+  <div id="zonePrompt" class="zone-prompt hidden">
+    <div class="zp-icon"></div>
+    <div class="zp-text"><strong></strong><span></span></div>
+    <div class="zp-key">E</div>
+  </div>
+
+  <div class="hud-bottom">
+    <button class="round-btn" id="chatBtn" title="Say something (C)">💬</button>
+    <button class="round-btn" id="emoteBtn" title="Emotes (Q)">😀</button>
+    <button class="round-btn jump-btn" id="jumpBtn" title="Jump (Space)">⤴</button>
+  </div>
+
+  <div id="emoteWheel" class="wheel hidden"></div>
+  <div id="chatWheel" class="chat-panel hidden"></div>
+
+  <div id="toastRail" class="toast-rail"></div>
+  <div id="minimap" class="minimap hidden"><canvas id="minimapCanvas" width="220" height="220"></canvas></div>
+</div>
+
+<!-- ================= ZONE / GAME PICKER ================= -->
+<div id="zoneModal" class="screen modal hidden">
+  <div class="zone-card">
+    <button class="close-x" id="zoneClose" aria-label="Close">×</button>
+    <div class="zone-head">
+      <div class="zone-emoji" id="zoneEmoji">🛝</div>
+      <div>
+        <h2 id="zoneName">Zone</h2>
+        <p id="zoneBlurb">Pick a game</p>
+      </div>
+    </div>
+    <div id="zoneGames" class="zone-games"></div>
+  </div>
+</div>
+
+<!-- ================= HELP ================= -->
+<div id="helpModal" class="screen modal hidden">
+  <div class="zone-card">
+    <button class="close-x" id="helpClose" aria-label="Close">×</button>
+    <h2>How to play</h2>
+    <div class="help-grid">
+      <div><kbd>W A S D</kbd><span>Walk around</span></div>
+      <div><kbd>Shift</kbd><span>Run</span></div>
+      <div><kbd>Space</kbd><span>Jump</span></div>
+      <div><kbd>Drag</kbd><span>Look around</span></div>
+      <div><kbd>Q</kbd><span>Emotes</span></div>
+      <div><kbd>C</kbd><span>Say something</span></div>
+      <div><kbd>E</kbd><span>Enter a zone</span></div>
+      <div><kbd>M</kbd><span>Map</span></div>
+    </div>
+    <p class="help-note">
+      On a tablet or phone: hold the <strong>left</strong> side to walk,
+      drag the <strong>right</strong> side to look, and tap the ground to move there.
+    </p>
+    <p class="help-note">
+      Collect the gold coins around the park — they go straight into your AMG Hub balance.
+      Coins come back after a while, so there's always more to find.
+    </p>
+  </div>
+</div>
+
+<script src="../js/oda-core.js"></script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script src="../js/oda-games.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
