@@ -170,6 +170,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <h3>Shop</h3>
       <p>Skins, themes &amp; effects</p>
     </div>
+    <div class="card mode-card" id="achBtn" onclick="window.showAchievements()">
+      <span class="mode-icon">&#127942;</span>
+      <h3>Achievements</h3>
+      <p>12 badges to earn</p>
+    </div>
   </div>
   <div class="quick-stats" id="quickStats"></div>
 </div>
@@ -224,7 +229,14 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   </div>
 </div>
 
-<!-- SHOP SCREEN -->
+<div class="screen" id="achScreen">
+  <div class="home-header"><h1>&#127942; Achievements</h1></div>
+  <p id="achProgress" style="text-align:center;color:var(--text2);margin-bottom:14px"></p>
+  <div id="achGrid" style="max-width:620px;margin:0 auto;width:92%"></div>
+  <div style="text-align:center;margin-top:20px"><button class="btn" onclick="showScreen('homeScreen')">Back</button></div>
+</div>
+
+<div class="screen" id="shopScreen">
 <div class="screen" id="shopScreen">
   <div style="text-align:center;margin-bottom:8px"><h1>&#128717;&#65039; Shop</h1><p style="color:var(--text2);font-size:14px">Customize your bowling experience</p></div>
   <div id="bowlingShopContainer" style="width:100%;max-width:500px"></div>
@@ -324,21 +336,21 @@ loadMyCosmetics();
 /* ===================== */
 let frames=[],curFrame=0,curBall=0,totalScore=0,gameStrikes=0,gameSpares=0;
 
-function initFrames(){frames=[];for(let i=0;i<10;i++)frames.push({balls:[],score:null,display:[]});curFrame=0;curBall=0;totalScore=0;gameStrikes=0;gameSpares=0}
+function initFrames(){frames=[];for(let i=0;i<10;i++)frames.push({balls:[],score:null,display:[]});curFrame=0;curBall=0;totalScore=0;gameStrikes=0;gameSpares=0;gameGutters=0;strikeStreak=0}
 function recordBall(pinsDown){
   const f=frames[curFrame];f.balls.push(pinsDown);
   if(curFrame<9){
-    if(curBall===0&&pinsDown===10){f.display=['X'];gameStrikes++;sfxStrike();showStrikePopup('STRIKE!');curFrame++;curBall=0;return'strike'}
+    if(curBall===0&&pinsDown===10){f.display=['X'];gameStrikes++;onStrike();sfxStrike();showStrikePopup('STRIKE!');curFrame++;curBall=0;return'strike'}
     if(curBall===1){
-      if(f.balls[0]+pinsDown===10){f.display=[f.balls[0]===0?'-':String(f.balls[0]),'/'];gameSpares++;sfxSpare();showStrikePopup('SPARE!')}
+      if(f.balls[0]+pinsDown===10){f.display=[f.balls[0]===0?'-':String(f.balls[0]),'/'];gameSpares++;onSpare();sfxSpare();showStrikePopup('SPARE!')}
       else{f.display=[f.balls[0]===0?'-':String(f.balls[0]),pinsDown===0?'-':String(pinsDown)]}
       curFrame++;curBall=0;return'next'
     }
     curBall=1;f.display=[pinsDown===0?'-':String(pinsDown)];return'second'
   }else{
-    if(curBall===0){if(pinsDown===10){f.display=['X'];gameStrikes++;sfxStrike();showStrikePopup('STRIKE!');curBall=1;return'tenth-reset'}f.display=[pinsDown===0?'-':String(pinsDown)];curBall=1;return'second'}
-    if(curBall===1){if(f.balls[0]===10){if(pinsDown===10){f.display.push('X');gameStrikes++;sfxStrike();showStrikePopup('STRIKE!');curBall=2;return'tenth-reset'}f.display.push(pinsDown===0?'-':String(pinsDown));curBall=2;return'second'}if(f.balls[0]+pinsDown===10){f.display.push('/');gameSpares++;sfxSpare();showStrikePopup('SPARE!');curBall=2;return'tenth-reset'}f.display.push(pinsDown===0?'-':String(pinsDown));return'done'}
-    if(curBall===2){if(pinsDown===10){f.display.push('X');gameStrikes++;sfxStrike();showStrikePopup('STRIKE!')}else{f.display.push(pinsDown===0?'-':String(pinsDown))}return'done'}
+    if(curBall===0){if(pinsDown===10){f.display=['X'];gameStrikes++;onStrike();sfxStrike();showStrikePopup('STRIKE!');curBall=1;return'tenth-reset'}f.display=[pinsDown===0?'-':String(pinsDown)];curBall=1;return'second'}
+    if(curBall===1){if(f.balls[0]===10){if(pinsDown===10){f.display.push('X');gameStrikes++;onStrike();sfxStrike();showStrikePopup('STRIKE!');curBall=2;return'tenth-reset'}f.display.push(pinsDown===0?'-':String(pinsDown));curBall=2;return'second'}if(f.balls[0]+pinsDown===10){f.display.push('/');gameSpares++;onSpare();sfxSpare();showStrikePopup('SPARE!');curBall=2;return'tenth-reset'}f.display.push(pinsDown===0?'-':String(pinsDown));return'done'}
+    if(curBall===2){if(pinsDown===10){f.display.push('X');gameStrikes++;onStrike();sfxStrike();showStrikePopup('STRIKE!')}else{f.display.push(pinsDown===0?'-':String(pinsDown))}return'done'}
   }
   return'done';
 }
@@ -361,6 +373,29 @@ function renderScoreboard(){
   document.getElementById('hudFrame').textContent='Frame '+(curFrame+1);
   document.getElementById('hudTotal').textContent=totalScore;
 }
+/* Strikes/spares are recorded in four places in scoreFrame(); these keep the
+   achievement bookkeeping in one spot rather than repeating it at each site. */
+/* Record a ball AND maintain the strike-run invariant. recordBall() has many
+   early returns, so comparing the counter across the call is both simpler and
+   safer than hooking each branch — but it has to live here rather than in one
+   caller, or a different code path silently keeps a stale streak alive. */
+function applyBall(pins){
+  var before=gameStrikes;
+  var result=recordBall(pins);
+  if(gameStrikes===before)strikeStreak=0;
+  return result;
+}
+
+function onStrike(){
+  strikeStreak++;
+  odaAchievements.unlock('firstStrike');
+  odaAchievements.check('turkey', strikeStreak>=3);
+}
+function onSpare(){
+  strikeStreak=0;
+  odaAchievements.unlock('firstSpare');
+}
+
 function showStrikePopup(text){const el=document.createElement('div');el.className='strike-popup';el.textContent=text;document.getElementById('canvasWrap').appendChild(el);setTimeout(()=>el.remove(),1000)}
 
 /* ===================== */
@@ -368,6 +403,7 @@ function showStrikePopup(text){const el=document.createElement('div');el.classNa
 /* ===================== */
 let localBest=parseInt(localStorage.getItem('bowl_best'))||0;
 let localGames=parseInt(localStorage.getItem('bowl_games'))||0;
+let gameGutters=0, strikeStreak=0;
 let localStrikes=parseInt(localStorage.getItem('bowl_strikes'))||0;
 let localSpares=parseInt(localStorage.getItem('bowl_spares'))||0;
 function loadLocalStats(){
@@ -1078,7 +1114,7 @@ function checkGameState(){
       settleTimer=180;
     }
     if(Math.abs(ballBody.position.x)>0.55&&ballBody.position.z<15){
-      if(!ballBody._guttered){ballBody._guttered=true;sfxGutter()}
+      if(!ballBody._guttered){ballBody._guttered=true;gameGutters++;strikeStreak=0;sfxGutter()}
     }
   }
   if(gameState==='settling'){
@@ -1112,7 +1148,10 @@ function processResults(){
   }
   if(ballBody._guttered&&curBall===0)newPins=0;
 
-  const result=recordBall(newPins);
+  // A turkey is three consecutive strikes, so any ball that ISN'T a strike has
+  // to break the run. Comparing the counter across the call catches every
+  // branch inside recordBall() without hooking each of them.
+  const result=applyBall(newPins);
   calcTotalScore();
   renderScoreboard();
 
@@ -1128,6 +1167,55 @@ function processResults(){
   }
 }
 
+/* ===================== */
+/* ACHIEVEMENTS          */
+/* ===================== */
+odaAchievements.init('bowling',[
+  {id:'firstStrike', name:'Strike!',      icon:'\u{1F3B3}', desc:'Roll your first strike'},
+  {id:'firstSpare',  name:'Spare Me',     icon:'\u{1F91D}', desc:'Pick up your first spare'},
+  {id:'turkey',      name:'Turkey',       icon:'\u{1F983}', desc:'Three strikes in a row'},
+  {id:'score100',    name:'Triple Digits',icon:'\u{1F4AF}', desc:'Score 100 in a game'},
+  {id:'score150',    name:'Solid Game',   icon:'\u{1F44C}', desc:'Score 150 in a game'},
+  {id:'score200',    name:'Two Hundred',  icon:'\u{1F525}', desc:'Score 200 in a game'},
+  {id:'perfect',     name:'Perfect 300',  icon:'\u{1F451}', desc:'Bowl a perfect game'},
+  {id:'noGutter',    name:'Clean Sheet',  icon:'\u2728',    desc:'Finish a game with no gutter balls'},
+  {id:'fiveStrikes', name:'Strike Party', icon:'\u{1F389}', desc:'Five strikes in one game'},
+  {id:'tenGames',    name:'Regular',      icon:'\u{1F5D3}\uFE0F', desc:'Play 10 games'},
+  {id:'fiftyStrikes',name:'Pin Slayer',   icon:'\u2694\uFE0F', desc:'Roll 50 strikes all-time'},
+  {id:'newBest',     name:'New Best',     icon:'\u{1F4C8}', desc:'Beat your personal best'}
+]);
+
+/* Audit hook. The game body is a module, so nothing inside it is reachable
+   from devtools or a browser-driving agent without this. Same idea as
+   window.__gameStore in Drop4. */
+window.__bowl = {
+  roll: function(pins){ var r = applyBall(pins); calcTotalScore(); renderScoreboard(); return r; },
+  state: function(){ return { frame:curFrame, ball:curBall, total:totalScore,
+    strikes:gameStrikes, spares:gameSpares, gutters:gameGutters, streak:strikeStreak }; },
+  reset: initFrames
+};
+
+function showAchievements(){
+  showScreen('achScreen');
+  odaAchievements.renderGrid('achGrid');
+  var pr=odaAchievements.progress();
+  document.getElementById('achProgress').textContent=pr.unlocked+' of '+pr.total+' unlocked';
+}
+window.showAchievements=showAchievements;
+
+/* Equipped identity cosmetics, so a new personal best plays the WIN EFFECT
+   the AMG shop sells. */
+var myIdentity=null;
+(async function(){
+  var sid=localStorage.getItem('studentId');
+  if(!sid||sid.indexOf('anon_')===0)return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',sid));
+    if(snap.exists()&&window.amgIdentityCosmetics)myIdentity=window.amgIdentityCosmetics(snap.data(),null);
+  }catch(e){}
+})();
+
 function endGame(){
   gameState='gameover';calcTotalScore();
   const isNew=totalScore>localBest;
@@ -1142,6 +1230,17 @@ function endGame(){
   document.getElementById('goCoins').textContent='+'+coins+' coins';
   setTimeout(()=>document.getElementById('gameOverOverlay').classList.add('active'),600);
   if(!coinsAwarded){coinsAwarded=true;awardCoins(coins);saveRecord(isNew)}
+
+  odaAchievements.check('score100', totalScore>=100);
+  odaAchievements.check('score150', totalScore>=150);
+  odaAchievements.check('score200', totalScore>=200);
+  odaAchievements.check('perfect',  totalScore>=300);
+  odaAchievements.check('fiveStrikes', gameStrikes>=5);
+  odaAchievements.check('noGutter', gameGutters===0);
+  odaAchievements.check('tenGames', localGames>=10);
+  odaAchievements.check('fiftyStrikes', localStrikes>=50);
+  odaAchievements.check('newBest', isNew && localGames>1);
+  if(isNew && window.odaPlayEquippedWinEffect) window.odaPlayEquippedWinEffect(myIdentity||'stars');
 }
 
 /* ===================== */

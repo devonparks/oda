@@ -48,13 +48,14 @@
 <!-- HOME -->
 <div class="screen active" id="homeScreen">
   <div class="home-header">
-    <h1>🏈 <span class="hl">Retro</span> Bowl</h1>
+    <h1>🏈 <span class="hl">Gridiron</span> Rush</h1>
     <p>Classic pixel football — pick a play and run for the endzone!</p>
   </div>
   <div class="mode-grid">
     <div class="card mode-card" onclick="showDiffPicker()"><span class="mode-icon">🏈</span><h3>Quick Game</h3><p>Score as many TDs as you can</p></div>
     <div class="card mode-card" onclick="showRecords()"><span class="mode-icon">📊</span><h3>Records</h3><p>Leaderboard &amp; your best</p></div>
     <div class="card mode-card" onclick="showShopScreen()"><span class="mode-icon">🛍️</span><h3>Shop</h3><p>Team colors &amp; helmets</p></div>
+    <div class="card mode-card" onclick="showAchievements()"><span class="mode-icon">🏆</span><h3>Achievements</h3><p>12 badges to earn</p></div>
   </div>
   <div class="quick-stats" id="quickStats"></div>
 </div>
@@ -81,6 +82,14 @@
 <div class="screen" id="recordsScreen">
   <div class="home-header"><h1>📊 Records</h1></div>
   <div id="recordsList"><p style="text-align:center;color:var(--text2)">Loading...</p></div>
+  <div style="text-align:center;margin-top:20px"><button class="btn" onclick="showScreen('homeScreen')">Back</button></div>
+</div>
+
+<!-- ACHIEVEMENTS -->
+<div class="screen" id="achScreen">
+  <div class="home-header"><h1>&#127942; Achievements</h1></div>
+  <p id="achProgress" style="text-align:center;color:var(--text2);margin-bottom:14px"></p>
+  <div id="achGrid" style="max-width:600px;margin:0 auto;width:90%"></div>
   <div style="text-align:center;margin-top:20px"><button class="btn" onclick="showScreen('homeScreen')">Back</button></div>
 </div>
 
@@ -492,6 +501,7 @@ function showMsg(txt,dur){var el=document.getElementById('msgOverlay');el.textCo
 
 // ─── SELECT PLAY → FORMATION ─────────────────────────────────────────────────
 function selectPlay(playKey){
+  odaSfx.play('click');
   var play=PLAYS[playKey];
   hidePlayPanel();
   selectedPlayKey=playKey;
@@ -539,6 +549,7 @@ function diffSpeed(){return DIFF==='easy'?0.5:DIFF==='hard'?0.85:0.68;}
 function snapBall(){
   if(PHASE!=='FORMATION')return;
   if(Date.now()<formationReadyAt)return;
+  odaSfx.play('place');
   var pk=selectedPlayKey;
   if(pk==='run'){
     var rb=players.find(function(p){return p.isRB;});
@@ -555,6 +566,7 @@ function snapBall(){
 // ─── THROW ───────────────────────────────────────────────────────────────────
 function throwToReceiver(idx){
   if(PHASE!=='SNAP'||idx>=routes.length)return;
+  odaSfx.play('whoosh');
   var r=routes[idx];throwTarget=r.entity;
   ball={fieldYards:carrier.fieldYards,lane:carrier.lane,
         tgtYards:fieldPos+r.targetFwd,tgtLane:r.targetLane,arc:0,angle:0};
@@ -705,17 +717,27 @@ function checkTackle(){
 }
 
 // ─── PLAY OUTCOMES ───────────────────────────────────────────────────────────
-function touchdown(){PHASE='IDLE';myPoints+=7;myTDs++;totalYards+=carrier?(carrier.fieldYards-fieldPos):0;showMsg('TOUCHDOWN!',2000);clockRunning=false;setTimeout(function(){fieldPos=25;down=1;toGo=10;firstDownLine=35;startAIOffense();},2200);}
-function sack(){PHASE='IDLE';showMsg('SACKED!',1200);clockRunning=false;var ly=Math.floor(Math.random()*7)+3;fieldPos=Math.max(1,fieldPos-ly);setTimeout(function(){nextDown(fieldPos);},1400);}
-function incompletion(msg){PHASE='IDLE';ball=null;clockRunning=false;showMsg(msg||'INCOMPLETE!',1200);setTimeout(function(){nextDown(fieldPos);},1400);}
-function tackle(yg){PHASE='IDLE';totalYards+=Math.max(0,yg-fieldPos);clockRunning=false;setTimeout(function(){fieldPos=Math.max(1,Math.round(yg));nextDown(yg);},300);}
+function touchdown(){PHASE='IDLE';myPoints+=7;myTDs++;odaSfx.play('levelup');
+  var gained=carrier?Math.round(carrier.fieldYards-fieldPos):0;
+  if(gained>=longestPlay)longestPlay=gained;
+  odaAchievements.unlock('firstTd');
+  odaAchievements.check('longBomb',gained>=40);
+  odaAchievements.check('hatTrick',myTDs>=3);
+  if(window.odaPlayEquippedWinEffect&&myTDs===1)window.odaPlayEquippedWinEffect(myIdentity||'stars');
+totalYards+=carrier?(carrier.fieldYards-fieldPos):0;showMsg('TOUCHDOWN!',2000);clockRunning=false;setTimeout(function(){fieldPos=25;down=1;toGo=10;firstDownLine=35;startAIOffense();},2200);}
+function sack(){PHASE='IDLE';sacksTaken++;odaSfx.play('hit');showMsg('SACKED!',1200);clockRunning=false;var ly=Math.floor(Math.random()*7)+3;fieldPos=Math.max(1,fieldPos-ly);setTimeout(function(){nextDown(fieldPos);},1400);}
+function incompletion(msg){PHASE='IDLE';odaSfx.play('error');ball=null;clockRunning=false;showMsg(msg||'INCOMPLETE!',1200);setTimeout(function(){nextDown(fieldPos);},1400);}
+function tackle(yg){PHASE='IDLE';odaSfx.play('hit');
+  var g=Math.round(yg-fieldPos);if(g>longestPlay)longestPlay=g;
+  odaAchievements.check('bigGain',g>=25);
+  totalYards+=Math.max(0,yg-fieldPos);clockRunning=false;setTimeout(function(){fieldPos=Math.max(1,Math.round(yg));nextDown(yg);},300);}
 
 function nextDown(np){
   fieldPos=Math.max(1,Math.min(99,Math.round(np)));
-  if(fieldPos>=firstDownLine){down=1;toGo=10;firstDownLine=fieldPos+10;showMsg('1ST DOWN!',1000);setTimeout(resumeOff,1200);}
+  if(fieldPos>=firstDownLine){down=1;toGo=10;firstDownLine=fieldPos+10;firstDowns++;odaSfx.play('combo');odaAchievements.check('chainMover',firstDowns>=5);showMsg('1ST DOWN!',1000);setTimeout(resumeOff,1200);}
   else{down++;toGo=Math.max(1,firstDownLine-fieldPos);if(down>4)punt();else resumeOff();}
 }
-function punt(){showMsg('PUNT!',1200);fieldPos=Math.max(10,Math.min(40,100-fieldPos-Math.floor(Math.random()*20+25)));down=1;toGo=10;firstDownLine=fieldPos+10;setTimeout(startAIOffense,1500);}
+function punt(){odaSfx.play('whoosh');showMsg('PUNT!',1200);fieldPos=Math.max(10,Math.min(40,100-fieldPos-Math.floor(Math.random()*20+25)));down=1;toGo=10;firstDownLine=fieldPos+10;setTimeout(startAIOffense,1500);}
 function resumeOff(){players=[];routes=[];carrier=null;ball=null;aiCarrier=null;showPlayPanel();ensureLoop();}
 
 // ─── AI OFFENSE ──────────────────────────────────────────────────────────────
@@ -740,7 +762,7 @@ function updateAIOffense(dt){
 }
 
 // ─── QUARTERS ────────────────────────────────────────────────────────────────
-function endQuarter(){clockRunning=false;if(gameQtr>=4)endGame();else{gameQtr++;gameClock=120;showMsg('END OF Q'+(gameQtr-1),1800);setTimeout(resumeOff,2000);}}
+function endQuarter(){clockRunning=false;odaSfx.play('tick');if(gameQtr>=4)endGame();else{gameQtr++;gameClock=120;showMsg('END OF Q'+(gameQtr-1),1800);setTimeout(resumeOff,2000);}}
 function endGame(){
   PHASE='GAMEEND';
   var w=myPoints>cpuPoints;
@@ -748,11 +770,22 @@ function endGame(){
   document.getElementById('finalScore').textContent=myPoints+' - '+cpuPoints;
   document.getElementById('gameSummary').innerHTML='TDs: '+myTDs+' | Yards: '+totalYards+'<br>'+completions+'/'+attempts+(attempts>0?' ('+Math.round(completions/attempts*100)+'%)':'');
   showScreen('gameOverScreen');
+  odaSfx.play(w?'win':'lose');
   var coins=Math.floor(myPoints*2);
   if(w)coins+=10;
   if(coins<1)coins=1;
   awardCoins(coins);
   saveRecord();
+
+  // Achievements are evaluated once, at the whistle, from the final box score.
+  odaAchievements.check('firstWin', w);
+  odaAchievements.check('shutout', w && cpuPoints===0);
+  odaAchievements.check('blowout', myPoints-cpuPoints>=21);
+  odaAchievements.check('hardMode', w && DIFF==='hard');
+  odaAchievements.check('sharpshooter', attempts>=6 && completions/attempts>=0.75);
+  odaAchievements.check('centurion', totalYards>=100);
+  odaAchievements.check('ironman', sacksTaken===0 && attempts>=6);
+  if(w && window.odaPlayEquippedWinEffect) window.odaPlayEquippedWinEffect(myIdentity||'stars');
 }
 
 // ─── INPUT ───────────────────────────────────────────────────────────────────
@@ -799,6 +832,7 @@ canvas.addEventListener('touchend',function(e){
 
 // ─── START GAME ──────────────────────────────────────────────────────────────
 function startGame(diff){
+  firstDowns=0;sacksTaken=0;longestPlay=0;
   DIFF=diff||'normal';hideDiffPicker();
   myPoints=0;cpuPoints=0;myTDs=0;cpuTDs=0;
   completions=0;attempts=0;totalYards=0;
@@ -817,6 +851,43 @@ setInterval(function(){if(PHASE==='IDLE'||PHASE==='GAMEEND')return;var n=perform
 
 // ─── RECORDS / SHOP / STATS ───────────────────────────────────────────────────
 var localBest=parseInt(localStorage.getItem('retrobowl_best'))||0;
+
+/* Per-game counters that only the achievement checks care about. */
+var firstDowns=0, sacksTaken=0, longestPlay=0;
+
+/* Equipped identity cosmetics, for the win effect on victory. */
+var myIdentity=null;
+(async function(){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',studentId));
+    if(snap.exists()&&window.amgIdentityCosmetics)myIdentity=window.amgIdentityCosmetics(snap.data(),null);
+  }catch(e){}
+})();
+
+odaAchievements.init('retrobowl',[
+  {id:'firstTd',      name:'On the Board', icon:'\u{1F3C8}', desc:'Score your first touchdown'},
+  {id:'firstWin',     name:'Winner',       icon:'\u{1F3C6}', desc:'Beat the CPU'},
+  {id:'bigGain',      name:'Big Gain',     icon:'\u{1F4A8}', desc:'Gain 25+ yards on one play'},
+  {id:'longBomb',     name:'Long Bomb',    icon:'\u{1F680}', desc:'Score from 40+ yards out'},
+  {id:'chainMover',   name:'Chain Mover',  icon:'\u{1F517}', desc:'Pick up 5 first downs in a game'},
+  {id:'hatTrick',     name:'Hat Trick',    icon:'\u{1F3AF}', desc:'Score 3 touchdowns in a game'},
+  {id:'sharpshooter', name:'Sharpshooter', icon:'\u{1F3AF}', desc:'Finish 75%+ on 6 or more passes'},
+  {id:'ironman',      name:'Clean Pocket', icon:'\u{1F6E1}\uFE0F', desc:'Take no sacks in a full game'},
+  {id:'centurion',    name:'Centurion',    icon:'\u{1F4AF}', desc:'Rack up 100 yards in a game'},
+  {id:'shutout',      name:'Shutout',      icon:'\u{1F512}', desc:'Win without conceding a point'},
+  {id:'blowout',      name:'Blowout',      icon:'\u{1F4A5}', desc:'Win by 21 points or more'},
+  {id:'hardMode',     name:'Hard Mode',    icon:'\u{1F525}', desc:'Beat the CPU on Hard'}
+]);
+
+function showAchievements(){
+  showScreen('achScreen');
+  odaAchievements.renderGrid('achGrid');
+  var pr=odaAchievements.progress();
+  document.getElementById('achProgress').textContent=pr.unlocked+' of '+pr.total+' unlocked';
+}
+window.showAchievements=showAchievements;
 
 async function awardCoins(coins){
   if(!studentId||studentId.startsWith('anon_'))return;

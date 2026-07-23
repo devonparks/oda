@@ -258,12 +258,20 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   <div class="home-actions">
     <button class="btn btn-outline btn-small" onclick="showScreen('garageScreen');openGarage()">&#128295; Garage</button>
     <button class="btn btn-outline btn-small" onclick="showScreen('recordsScreen');loadRecords()">&#128202; Records</button>
+    <button class="btn btn-outline btn-small" onclick="showAchievements()">&#127942; Badges</button>
   </div>
   <div class="quick-stats" id="quickStats">
     <div class="stat-pill">&#128663; Runs <span class="stat-num" id="qsRuns">0</span></div>
     <div class="stat-pill">&#127937; Wins <span class="stat-num" id="qsWins">0</span></div>
     <div class="stat-pill">&#128176; Earned <span class="stat-num" id="qsEarned">0</span></div>
   </div>
+</div>
+
+<div class="screen" id="achScreen">
+  <div class="home-header"><h1>&#127942; Achievements</h1></div>
+  <p id="achProgress" style="text-align:center;color:var(--text2);margin-bottom:14px"></p>
+  <div id="achGrid" style="max-width:620px;margin:0 auto;width:92%"></div>
+  <div style="text-align:center;margin-top:20px"><button class="btn" onclick="showScreen('homeScreen')">Back</button></div>
 </div>
 
 <!-- ======================== -->
@@ -1440,6 +1448,66 @@ function renderHillClimb() {
   ctx.restore(); // end scale
 }
 
+/* =====================================================================
+   AMG HUB ECONOMY
+   The garage keeps its own wallet (gameState.coins); this pays the SHARED
+   AMG balance on top, so time in Racers counts toward the hub like every
+   other game. Rate is deliberately modest — Racers runs are long, and
+   learning tools are supposed to out-earn arcade games.
+   ===================================================================== */
+var amgPending = 0, amgFlushTimer = 0;
+function awardAmgCoins(n) {
+  n = Math.floor(n);
+  if (!n || n <= 0) return;
+  amgPending += n;
+  clearTimeout(amgFlushTimer);
+  amgFlushTimer = setTimeout(flushAmgCoins, 1500);
+}
+async function flushAmgCoins() {
+  var delta = amgPending; amgPending = 0;
+  if (!delta) return;
+  var sid = localStorage.getItem('studentId');
+  if (!sid || sid.indexOf('anon_') === 0 || !window.getFirebaseDB) return;
+  try {
+    var fb = await window.getFirebaseDB();
+    await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'students', sid),
+      { coins: fb.fsMod.increment(delta) });
+    if (window.odaShop && window.odaShop.invalidate) window.odaShop.invalidate();
+  } catch (e) { amgPending += delta; }   // retry on the next flush
+}
+
+var myIdentity = null;
+(async function () {
+  var sid = localStorage.getItem('studentId');
+  if (!sid || sid.indexOf('anon_') === 0) return;
+  try {
+    var fb = await window.getFirebaseDB();
+    var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'students', sid));
+    if (snap.exists() && window.amgIdentityCosmetics)
+      myIdentity = window.amgIdentityCosmetics(snap.data(), null);
+  } catch (e) {}
+})();
+
+odaAchievements.init('racers', [
+  {id:'firstRun',   name:'First Run',   icon:'\u{1F697}', desc:'Finish your first hill climb'},
+  {id:'dist500',    name:'Half a Klick',icon:'\u{1F6E3}\uFE0F', desc:'Reach 500m in hill climb'},
+  {id:'dist1500',   name:'Long Hauler', icon:'\u{1F3D4}\uFE0F', desc:'Reach 1500m in hill climb'},
+  {id:'dist3000',   name:'Mountaineer', icon:'\u{1F3D5}\uFE0F', desc:'Reach 3000m in hill climb'},
+  {id:'flipper',    name:'Show Off',    icon:'\u{1F504}', desc:'Land a flip bonus'},
+  {id:'firstWin',   name:'Checkered Flag', icon:'\u{1F3C1}', desc:'Win a drag race'},
+  {id:'winStreak',  name:'On a Roll',   icon:'\u{1F525}', desc:'Win 5 drag races'},
+  {id:'bossDown',   name:'Boss Beater', icon:'\u{1F451}', desc:'Beat a boss opponent'},
+  {id:'tenRuns',    name:'Regular',     icon:'\u{1F504}', desc:'Complete 10 runs'},
+  {id:'richKid',    name:'Big Earner',  icon:'\u{1F4B0}', desc:'Earn 5000 garage coins all-time'}
+]);
+function showAchievements() {
+  showScreen('achScreen');
+  odaAchievements.renderGrid('achGrid');
+  var pr = odaAchievements.progress();
+  document.getElementById('achProgress').textContent = pr.unlocked + ' of ' + pr.total + ' unlocked';
+}
+window.showAchievements = showAchievements;
+
 function endHillClimb() {
   stopHillLoop();
   var s = hillState;
@@ -1450,6 +1518,19 @@ function endHillClimb() {
   gameState.coinsEarned += totalCoins;
   gameState.totalRuns++;
   saveLocalState();
+
+  // Distance-based AMG payout, capped so a single long run can't farm the
+  // shared economy.
+  awardAmgCoins(Math.min(30, Math.floor(s.distance / 120) + (isNewRecord ? 8 : 0)));
+  odaAchievements.unlock('firstRun');
+  odaAchievements.check('dist500',  s.distance >= 500);
+  odaAchievements.check('dist1500', s.distance >= 1500);
+  odaAchievements.check('dist3000', s.distance >= 3000);
+  odaAchievements.check('flipper',  s.flipBonus > 0);
+  odaAchievements.check('tenRuns',  gameState.totalRuns >= 10);
+  odaAchievements.check('richKid',  gameState.coinsEarned >= 5000);
+  if (isNewRecord && window.odaPlayEquippedWinEffect)
+    window.odaPlayEquippedWinEffect(myIdentity || 'stars');
 
   // Show result screen
   var header = document.getElementById('resultHeader');
@@ -2208,6 +2289,15 @@ function endDragRace() {
   gameState.coins += coins;
   gameState.coinsEarned += coins;
   gameState.totalRuns++;
+
+  awardAmgCoins(isWin ? 12 : 4);
+  odaAchievements.check('firstWin',  isWin);
+  odaAchievements.check('winStreak', gameState.dragWins >= 5);
+  odaAchievements.check('bossDown',  isWin && d.opponent.diff === 'boss');
+  odaAchievements.check('tenRuns',   gameState.totalRuns >= 10);
+  odaAchievements.check('richKid',   gameState.coinsEarned >= 5000);
+  if (isWin && window.odaPlayEquippedWinEffect)
+    window.odaPlayEquippedWinEffect(myIdentity || 'stars');
 
   // Check boss beat
   if (isWin && d.opponent.diff === 'boss') {

@@ -215,6 +215,12 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <button class="tab-btn active" data-tab="generators">&#128200; Generators</button>
       <button class="tab-btn" data-tab="clickpower">&#128077; Click Power</button>
       <button class="tab-btn" data-tab="stats">&#128202; Stats</button>
+      <button class="tab-btn" data-tab="shop">&#128717;&#65039; Shop</button>
+    </div>
+
+    <!-- Shop Tab (AMG coins — the same balance every hub game shares) -->
+    <div class="tab-content" id="tab-shop">
+      <div id="minerShopContainer"></div>
     </div>
 
     <!-- Generators Tab -->
@@ -439,6 +445,66 @@ var clickUpgrades = [
   { id: 'diamond', name: 'Diamond Press', icon: '&#128142;', cost: 100000, power: 100, owned: false },
   { id: 'quantum', name: 'Quantum Tap', icon: '&#9889;', cost: 1000000, power: 500, owned: false }
 ];
+
+/* =====================================================================
+   AMG SHOP
+   Priced in the shared students/{id}.coins balance, which Coin Miner
+   already pays into. Cosmetics only — nothing here buys game power, so a
+   kid who never spends is never behind.
+   ===================================================================== */
+var COIN_SKINS = {
+  classic: { grad: 'radial-gradient(circle at 35% 35%,#ffe066,#ffb300 50%,#e6a200)', glow: 'rgba(255,209,102,.3)', face: '\u{1FA99}' },
+  emerald: { grad: 'radial-gradient(circle at 35% 35%,#8affc9,#12c98a 50%,#0a8f61)', glow: 'rgba(31,230,168,.35)', face: '\u{1F48E}' },
+  ruby:    { grad: 'radial-gradient(circle at 35% 35%,#ff9db4,#ef476f 50%,#a81d3f)', glow: 'rgba(255,92,138,.35)', face: '\u2764\uFE0F' },
+  cosmic:  { grad: 'radial-gradient(circle at 35% 35%,#d6b3ff,#a855f7 50%,#5b21b6)', glow: 'rgba(168,85,247,.4)',  face: '\u{1F30C}' },
+  chrome:  { grad: 'radial-gradient(circle at 35% 35%,#ffffff,#c9d3e0 50%,#8b97a8)', glow: 'rgba(200,215,235,.35)', face: '\u2699\uFE0F' },
+  pizza:   { grad: 'radial-gradient(circle at 35% 35%,#ffd9a0,#f59e0b 50%,#b45309)', glow: 'rgba(245,158,11,.35)', face: '\u{1F355}' }
+};
+var MINER_BACKDROPS = {
+  midnight: 'radial-gradient(1000px 600px at 50% 0%, #1b1a44, #0b0a1e 70%)',
+  cavern:   'radial-gradient(1000px 600px at 50% 0%, #10233a, #050b16 70%)',
+  sunset:   'radial-gradient(1000px 600px at 50% 0%, #4a1f3d, #170a1e 70%)',
+  forest:   'radial-gradient(1000px 600px at 50% 0%, #123222, #06120c 70%)'
+};
+
+var MINER_SHOP = [
+  { id:'skin_classic', name:'Classic',  emoji:'\u{1FA99}', cost:0,   slot:'Coin Skin', value:{ skin:'classic' } },
+  { id:'skin_emerald', name:'Emerald',  emoji:'\u{1F48E}', cost:150, slot:'Coin Skin', value:{ skin:'emerald' } },
+  { id:'skin_ruby',    name:'Ruby',     emoji:'\u2764\uFE0F', cost:150, slot:'Coin Skin', value:{ skin:'ruby' } },
+  { id:'skin_chrome',  name:'Chrome',   emoji:'\u2699\uFE0F', cost:250, slot:'Coin Skin', value:{ skin:'chrome' } },
+  { id:'skin_pizza',   name:'Pizza',    emoji:'\u{1F355}', cost:300, slot:'Coin Skin', value:{ skin:'pizza' } },
+  { id:'skin_cosmic',  name:'Cosmic',   emoji:'\u{1F30C}', cost:500, slot:'Coin Skin', value:{ skin:'cosmic' } },
+  { id:'bg_midnight',  name:'Midnight', emoji:'\u{1F311}', cost:0,   slot:'Backdrop',  value:{ bg:'midnight' } },
+  { id:'bg_cavern',    name:'Cavern',   emoji:'\u{1F5FB}', cost:120, slot:'Backdrop',  value:{ bg:'cavern' } },
+  { id:'bg_sunset',    name:'Sunset',   emoji:'\u{1F305}', cost:200, slot:'Backdrop',  value:{ bg:'sunset' } },
+  { id:'bg_forest',    name:'Forest',   emoji:'\u{1F332}', cost:200, slot:'Backdrop',  value:{ bg:'forest' } }
+];
+
+function applyMinerCosmetics() {
+  var eq = {};
+  try { eq = JSON.parse(localStorage.getItem('oda_cosmetics_coinminer') || '{}'); } catch (e) {}
+  var skin = COIN_SKINS[(eq['Coin Skin'] && eq['Coin Skin'].value && eq['Coin Skin'].value.skin)] || COIN_SKINS.classic;
+  var coin = document.getElementById('bigCoin');
+  if (coin) {
+    coin.style.background = skin.grad;
+    coin.style.boxShadow = '0 0 40px ' + skin.glow + ', inset 0 -4px 8px rgba(0,0,0,.2)';
+    var face = coin.querySelector('.big-coin-text');
+    if (face) { face.textContent = skin.face; if (window.amgEmojiParse) window.amgEmojiParse(coin); }
+  }
+  var bgKey = (eq['Backdrop'] && eq['Backdrop'].value && eq['Backdrop'].value.bg) || 'midnight';
+  document.body.style.background = MINER_BACKDROPS[bgKey] || MINER_BACKDROPS.midnight;
+}
+
+function renderMinerShop() {
+  if (window.odaShop) {
+    odaShop.renderShopPanel('coinminer', MINER_SHOP, 'minerShopContainer', {
+      onEquip: applyMinerCosmetics, onBuy: applyMinerCosmetics
+    });
+  } else {
+    document.getElementById('minerShopContainer').innerHTML =
+      '<p style="text-align:center;color:var(--text2)">Shop unavailable offline.</p>';
+  }
+}
 
 // Achievements
 var achievements = [
@@ -964,8 +1030,13 @@ document.querySelectorAll('.tab-btn').forEach(function(btn) {
     if (btn.dataset.tab === 'generators') renderGenerators();
     if (btn.dataset.tab === 'clickpower') renderClickUpgrades();
     if (btn.dataset.tab === 'stats') { updateStats(); renderAchievements(); }
+    if (btn.dataset.tab === 'shop') renderMinerShop();
   });
 });
+
+// Equipped cosmetics are read from localStorage, so they apply instantly on
+// load without waiting for Firestore.
+applyMinerCosmetics();
 
 // =============================================
 // ODA COIN CONVERSION

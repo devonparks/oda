@@ -1387,4 +1387,244 @@ window.odaXP = (function() {
   document.head.appendChild(s);
 })();
 
-console.log('[ODA] Core loaded v1.7');
+
+/* ============================================
+   Shared sound effects (odaSfx)
+
+   47 of the 49 arcade games had hand-rolled the same getAudio()/playTone()
+   pair, each with its own bugs around the autoplay policy and the mute
+   toggle. This is that helper, once, with the named sounds games actually
+   reach for.
+
+   Usage:
+     odaSfx.play('win');                  // named
+     odaSfx.tone(440, 0.12, 'square');    // one-off
+     odaSfx.setEnabled(false);            // persisted in odaSoundEnabled
+   ============================================ */
+window.odaSfx = (function() {
+  var ctx = null;
+  var enabled = localStorage.getItem('odaSoundEnabled') !== 'false';
+
+  // Browsers refuse to start an AudioContext before a user gesture, and a
+  // suspended context swallows every sound silently. Resume on first input.
+  function getCtx() {
+    if (!enabled) return null;
+    try {
+      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') ctx.resume();
+      return ctx;
+    } catch (e) { return null; }
+  }
+  ['pointerdown', 'keydown', 'touchstart'].forEach(function(ev) {
+    window.addEventListener(ev, function() { getCtx(); }, { once: true, passive: true });
+  });
+
+  function tone(freq, dur, type, vol, delay) {
+    var c = getCtx();
+    if (!c) return;
+    try {
+      var t0 = c.currentTime + (delay || 0);
+      var d = dur || 0.15;
+      var osc = c.createOscillator(), g = c.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(freq, t0);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol == null ? 0.15 : vol, t0 + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+      osc.connect(g); g.connect(c.destination);
+      osc.start(t0); osc.stop(t0 + d + 0.02);
+    } catch (e) {}
+  }
+
+  /** A pitch glide, for whooshes and power-ups. */
+  function sweep(from, to, dur, type, vol) {
+    var c = getCtx();
+    if (!c) return;
+    try {
+      var t0 = c.currentTime;
+      var osc = c.createOscillator(), g = c.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(from, t0);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(to, 1), t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol == null ? 0.12 : vol, t0 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g); g.connect(c.destination);
+      osc.start(t0); osc.stop(t0 + dur + 0.02);
+    } catch (e) {}
+  }
+
+  function noise(dur, vol) {
+    var c = getCtx();
+    if (!c) return;
+    try {
+      var n = Math.floor(c.sampleRate * dur);
+      var buf = c.createBuffer(1, n, c.sampleRate);
+      var d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      var src = c.createBufferSource(); src.buffer = buf;
+      var g = c.createGain(); g.gain.value = vol == null ? 0.12 : vol;
+      src.connect(g); g.connect(c.destination); src.start();
+    } catch (e) {}
+  }
+
+  var LIB = {
+    click:    function() { tone(660, 0.05, 'square', 0.08); },
+    place:    function() { tone(420, 0.09, 'triangle', 0.13); },
+    select:   function() { tone(880, 0.07, 'sine', 0.10); },
+    coin:     function() { tone(1180, 0.07, 'square', 0.10); tone(1560, 0.11, 'square', 0.09, 0.06); },
+    win:      function() { [523, 659, 784, 1047].forEach(function(f, i) { tone(f, 0.20, 'triangle', 0.16, i * 0.09); }); },
+    lose:     function() { [392, 330, 262].forEach(function(f, i) { tone(f, 0.24, 'sawtooth', 0.11, i * 0.11); }); },
+    combo:    function() { [784, 988, 1319].forEach(function(f, i) { tone(f, 0.11, 'square', 0.11, i * 0.05); }); },
+    levelup:  function() { [523, 784, 1047, 1319].forEach(function(f, i) { tone(f, 0.16, 'square', 0.13, i * 0.07); }); },
+    error:    function() { tone(180, 0.16, 'sawtooth', 0.11); },
+    whoosh:   function() { sweep(900, 180, 0.20, 'sine', 0.09); },
+    powerup:  function() { sweep(300, 1200, 0.28, 'square', 0.10); },
+    hit:      function() { noise(0.10, 0.14); tone(140, 0.10, 'square', 0.10); },
+    tick:     function() { tone(1400, 0.03, 'square', 0.05); },
+    achievement: function() { [659, 880, 1047, 1319].forEach(function(f, i) { tone(f, 0.22, 'triangle', 0.15, i * 0.08); }); }
+  };
+
+  return {
+    tone: tone,
+    sweep: sweep,
+    noise: noise,
+    play: function(name) { var f = LIB[name]; if (f && enabled) f(); },
+    has: function(name) { return !!LIB[name]; },
+    isEnabled: function() { return enabled; },
+    setEnabled: function(on) {
+      enabled = !!on;
+      localStorage.setItem('odaSoundEnabled', enabled ? 'true' : 'false');
+      if (!enabled && ctx) { try { ctx.suspend(); } catch (e) {} }
+      return enabled;
+    },
+    toggle: function() { return this.setEnabled(!enabled); }
+  };
+})();
+
+/* ============================================
+   Shared achievements (odaAchievements)
+
+   Was copy-pasted per game with a different shape each time, which is part
+   of why several games in the 2026-07-21 audit had none at all. Progress
+   lives in localStorage for instant reads and mirrors to
+   students/{id}.achievements.{gameId} so it survives a device change.
+
+   Usage:
+     odaAchievements.init('bowling', [
+       {id:'strike', name:'Strike!', icon:'\u{1F3B3}', desc:'Roll your first strike'}
+     ]);
+     odaAchievements.unlock('strike');
+     odaAchievements.renderGrid('achGrid');
+   ============================================ */
+window.odaAchievements = (function() {
+  var gameId = null, defs = [], unlocked = {}, styled = false, onUnlock = null;
+
+  function key() { return 'oda_ach_' + gameId; }
+
+  function injectStyles() {
+    if (styled) return;
+    styled = true;
+    var st = document.createElement('style');
+    st.textContent =
+      '.oda-ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px}' +
+      '.oda-ach{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;' +
+        'background:var(--surface2,#221d45);border:1px solid var(--border,#362f5f);border-radius:14px;font-size:26px;padding:4px;text-align:center}' +
+      '.oda-ach.locked{opacity:.32;filter:grayscale(1)}' +
+      '.oda-ach.unlocked{border-color:var(--gold,#ffca45);box-shadow:0 0 14px rgba(255,202,69,.18)}' +
+      '.oda-ach-name{font-size:9px;line-height:1.15;color:var(--text2,#a7a2cc);font-weight:600}' +
+      '.oda-ach-toast{position:fixed;left:50%;top:22px;transform:translateX(-50%);z-index:10001;display:flex;align-items:center;gap:12px;' +
+        'background:linear-gradient(135deg,#ffd66a,#ffab2e);color:#2b1c00;padding:12px 20px;border-radius:16px;font-weight:700;' +
+        'box-shadow:0 10px 30px rgba(0,0,0,.35);animation:odaAchIn .35s cubic-bezier(.2,1.4,.4,1)}' +
+      '.oda-ach-toast .i{font-size:28px}' +
+      '.oda-ach-toast small{display:block;font-weight:600;opacity:.75;font-size:11px;text-transform:uppercase;letter-spacing:.6px}' +
+      '@keyframes odaAchIn{from{opacity:0;transform:translate(-50%,-16px) scale(.9)}}';
+    document.head.appendChild(st);
+  }
+
+  function load() {
+    unlocked = {};
+    try {
+      var raw = JSON.parse(localStorage.getItem(key()) || '[]');
+      if (Array.isArray(raw)) raw.forEach(function(id) { unlocked[id] = true; });
+    } catch (e) {}
+  }
+
+  function persist() {
+    var ids = Object.keys(unlocked);
+    try { localStorage.setItem(key(), JSON.stringify(ids)); } catch (e) {}
+    var sid = localStorage.getItem('studentId');
+    if (!sid || sid.indexOf('anon_') === 0 || !window.getFirebaseDB) return;
+    // Fire-and-forget: a kid should never wait on the network to see a badge.
+    window.getFirebaseDB().then(function(fb) {
+      var patch = {};
+      patch['achievements.' + gameId] = ids;
+      return fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'students', sid), patch);
+    }).catch(function() {});
+  }
+
+  function toast(def) {
+    injectStyles();
+    var el = document.createElement('div');
+    el.className = 'oda-ach-toast';
+    el.setAttribute('role', 'status');
+    el.innerHTML = '<span class="i">' + (def.icon || '\u{1F3C6}') + '</span>' +
+      '<span><small>Achievement unlocked</small>' + window.odaSanitize(def.name, 40) + '</span>';
+    document.body.appendChild(el);
+    setTimeout(function() {
+      el.style.transition = 'opacity .4s, transform .4s';
+      el.style.opacity = '0';
+      el.style.transform = 'translate(-50%,-14px)';
+    }, 2600);
+    setTimeout(function() { el.remove(); }, 3100);
+    if (window.odaSfx) window.odaSfx.play('achievement');
+  }
+
+  return {
+    init: function(id, definitions, opts) {
+      gameId = id;
+      defs = definitions || [];
+      onUnlock = (opts && opts.onUnlock) || null;
+      injectStyles();
+      load();
+      return this;
+    },
+    has: function(id) { return !!unlocked[id]; },
+    /** Unlock once. Returns true only the first time, so callers can react. */
+    unlock: function(id) {
+      if (!gameId || unlocked[id]) return false;
+      var def = defs.filter(function(d) { return d.id === id; })[0];
+      if (!def) return false;
+      unlocked[id] = true;
+      persist();
+      toast(def);
+      if (onUnlock) { try { onUnlock(def); } catch (e) {} }
+      return true;
+    },
+    /** Unlock when cond is truthy — keeps game code to one line per check. */
+    check: function(id, cond) { return cond ? this.unlock(id) : false; },
+    progress: function() {
+      return { unlocked: Object.keys(unlocked).length, total: defs.length };
+    },
+    all: function() {
+      return defs.map(function(d) {
+        return { id: d.id, name: d.name, icon: d.icon, desc: d.desc, unlocked: !!unlocked[d.id] };
+      });
+    },
+    renderGrid: function(containerId) {
+      var el = typeof containerId === 'string' ? document.getElementById(containerId) : containerId;
+      if (!el) return;
+      injectStyles();
+      el.className = 'oda-ach-grid';
+      el.innerHTML = this.all().map(function(a) {
+        return '<div class="oda-ach ' + (a.unlocked ? 'unlocked' : 'locked') + '" title="' +
+          window.odaSanitize(a.name, 40) + ': ' + window.odaSanitize(a.desc || '', 80) + '">' +
+          '<span>' + (a.unlocked ? (a.icon || '\u{1F3C6}') : '\u{1F512}') + '</span>' +
+          '<span class="oda-ach-name">' + window.odaSanitize(a.name, 24) + '</span></div>';
+      }).join('');
+      if (window.amgEmojiParse) window.amgEmojiParse(el);
+    }
+  };
+})();
+
+console.log('[ODA] Core loaded v1.8');

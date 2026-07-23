@@ -60,12 +60,42 @@ hub version in sync as the free, learning-framed edition — same engine feel, h
 
 ---
 
+## Shared systems — use these, don't re-roll them
+
+Three things every game needs are now in `js/oda-core.js`. Reach for these
+first; a new game should be able to hit most of The Bar in a few lines.
+
+| Module | What it gives you |
+|---|---|
+| `odaShop` | Priced cosmetics against the shared `students/{id}.coins` balance. `odaShop.renderShopPanel(gameId, catalogue, containerId, {onEquip, onBuy})` |
+| `odaAchievements` | Badges + unlock toast + persistence + a rendered grid. `init(gameId, defs)` then `unlock(id)` / `check(id, cond)` / `renderGrid(el)` |
+| `odaSfx` | Web Audio, no files. `odaSfx.play('win'\|'coin'\|'combo'\|'hit'\|'error'\|…)`, or `odaSfx.tone(freq, dur, type, vol)`. Honours the `odaSoundEnabled` toggle and handles the autoplay policy. |
+
+`odaSfx` exists because 47 of the 49 games had each hand-rolled the same
+`getAudio()`/`playTone()` pair. `odaAchievements` exists because every game
+that had achievements had invented its own shape — which is part of why
+several games had none at all.
+
+**Economy rule, learned the hard way from Racers:** a game must pay into
+`students/{id}.coins`. Racers had a complete garage running on a private
+wallet, so a kid could play it all lunch and earn nothing toward the hub. A
+local currency for in-game upgrades is fine; earning *nothing* shared is not.
+
+---
+
 ## Prioritized upgrade queue (from the 2026-07-21 audit)
 
-**P0 — below the bar (missing core systems):**
-1. `tetris` (Block Drop) — add shop + records + achievements + cosmetics + celebration
-2. `retrobowl` (Gridiron Rush) — add sound + achievements
-3. `coinminer`, `racers` — add shop; `bowling` — add achievements
+**P0 — DONE 2026-07-22:**
+1. ~~`tetris` (Block Drop)~~ — shop + cosmetics + celebration shipped
+2. ~~`retrobowl` (Gridiron Rush)~~ — sound on every action, 12 achievements,
+   win effect. Also renamed in-game from "Retro Bowl" (a real commercial
+   game) to match the registry's **Gridiron Rush**.
+3. ~~`coinminer`~~ — Shop tab: coin skins + backdrops, priced in AMG coins
+4. ~~`racers`~~ — now pays AMG coins per run + 10 achievements + win effect
+5. ~~`bowling`~~ — 12 achievements + win effect on a personal best
+
+**P0 remaining:** `tetris` still has no achievements — it was the exemplar for
+shop/cosmetics but never got badges. Now a ~15-line job with `odaAchievements`.
 
 **P1 — has systems, thin on feel (add juice + a solo progression taste):**
 `simonsays, numbermemory, flappy, mathsprint, whackamole, lightsout, suika, stacktower`
