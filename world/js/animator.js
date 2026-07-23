@@ -1,11 +1,16 @@
 /**
  * AMG World — procedural rig animator for Synty POLYGON Kids characters.
  *
- * The kid GLBs ship rigged (42 joints) but with no animation clips, and the
- * POLYGON locomotion pack isn't licensed into this repo. Rather than ship a
- * few MB of baked clips to Chromebooks, poses are generated in code: a walk
- * cycle is a handful of sine waves on named bones. Club Penguin / Poptropica
- * never needed keyframes either, and this costs ~0 bytes and ~0.1ms a frame.
+ * The kid GLBs ship rigged (42 joints) but carry no animation clips, so this
+ * module generates poses in code — a walk cycle is a handful of sine waves on
+ * named bones.
+ *
+ * Since the Synty Base Locomotion bake landed (see clips.js), the procedural
+ * body is the FALLBACK rather than the main path: real clips drive the
+ * skeleton, and this code becomes the additive layer on top — blinks, head
+ * turn — plus an upper-body override while an emote plays. It still runs on
+ * its own if `assets/locomotion.json` is missing, which is why every pose here
+ * is kept intact rather than deleted.
  *
  * Bone names (Synty POLYGON rig):
  *   Root > Hips > Spine_01 > Spine_02 > Spine_03 > Neck > Head
@@ -70,6 +75,11 @@ export class RigAnimator {
         z: new THREE.Vector3(0, 0, 1).applyQuaternion(_qp).normalize(),
       };
     });
+
+    /** Optional clip-driven body. When set, the baked Synty locomotion owns
+     *  the skeleton and the procedural code becomes an additive layer on top
+     *  (head look, blinks) plus an upper-body override while emoting. */
+    this.loco = null;
 
     this.t = 0;
     this.phase = 0;            // walk-cycle phase, advanced by distance not time
@@ -147,7 +157,6 @@ export class RigAnimator {
    */
   update(dt, state) {
     this.t += dt;
-    this._reset();
 
     const speed = state.speed || 0;
     const run = Math.min(speed / (state.maxSpeed || 4.2), 1);
@@ -156,10 +165,20 @@ export class RigAnimator {
     const strideLen = 1.35;
     this.phase += (speed * dt) / strideLen * Math.PI * 2;
 
-    if (state.sitting) this._poseSit();
-    else if (!state.grounded) this._poseAir(state.airTime || 0);
-    else if (run > 0.02) this._poseWalk(run);
-    else this._poseIdle();
+    if (this.loco) {
+      // Baked clips own the body: they write every tracked bone by composing
+      // their delta onto the bind pose. The clip's own hip rise/fall replaces
+      // the procedural bob — stacking both would read as a limp. It arrives in
+      // METRES and the rig's bone units are centimetres, hence the x100.
+      this.loco.update(dt, state);
+      this.hipOffset.set(0, this.loco.hipY * 100, 0);
+    } else {
+      this._reset();
+      if (state.sitting) this._poseSit();
+      else if (!state.grounded) this._poseAir(state.airTime || 0);
+      else if (run > 0.02) this._poseWalk(run);
+      else this._poseIdle();
+    }
 
     if (this.emote) {
       this.emote.t += dt;
@@ -174,6 +193,8 @@ export class RigAnimator {
     // (its rest translation runs down local Z), so the offset is applied along
     // the parent-space vector that actually points at world up — the same
     // mapping the rotations use.
+    // In clip mode the animation drives Hips.position directly, so only
+    // emote-driven offsets (the 'sit' crouch, the dance bounce) are layered on.
     const hips = this.bones.Hips;
     if (hips) {
       if (!this._hipRest) this._hipRest = hips.position.clone();

@@ -272,7 +272,11 @@ export class World {
 
   /** Move the local player for one frame. Returns useful per-frame facts. */
   stepPlayer(avatar, intent, dt) {
-    const WALK = 2.4, RUN = 4.6, ACCEL = 22, GRAVITY = -19, JUMP = 6.2;
+    // Kid-scale speeds. These are deliberately slower than a typical 3rd-person
+    // game: the avatars are 1.2 m tall and the Synty locomotion clips were
+    // authored for adults, so anything faster makes the legs whirl. Keep in
+    // sync with GAIT in clips.js.
+    const WALK = 1.6, RUN = 3.4, ACCEL = 18, GRAVITY = -19, JUMP = 5.4;
 
     // camera-relative desired direction
     const fx = Math.sin(this.camYaw), fz = Math.cos(this.camYaw);

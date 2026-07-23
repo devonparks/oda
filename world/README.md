@@ -15,7 +15,7 @@ Entry point: **student.html → World tab**, or `world/index.html` directly.
 |---|---|
 | **World** | The Synty POLYGON Kids demo park — playground, skate park, pond, sandpit, picnic lawn, sports field. ~52 × 43 m. |
 | **Character** | Any of the 16 kid GLBs already in `assets/characters/`. Picked on entry, remembered after. |
-| **Movement** | WASD/arrows + Shift to run + Space to jump; touch stick on the left half; tap the ground to walk there. |
+| **Movement** | WASD/arrows + Shift to run + Space to jump; touch stick on the left half; tap the ground to walk there. Kid-scale speeds (1.6 walk / 3.4 run) to match the animation. |
 | **Zones** | 6 glowing portals. Each opens a *category* of hub games (Multiplayer, Action, Sports, Puzzle, Word, Strategy) rather than one fixed game. |
 | **Activities** | Coin rides (spend 5, small chance of a payout), the duck pond, the bike rack. |
 | **Coins** | 30 pickups along the paths, respawning after 90 s, paid into the shared `students/{id}.coins` balance in batches. |
@@ -77,7 +77,7 @@ frames somewhere past ~200 draw calls.
 | Props | **1** merged batch + ~12 that actually animate |
 | Coins | **1** InstancedMesh |
 | Avatars | ~4 each (body, hood, eyes, face), capped at the 24 nearest players |
-| Download | 1.34 MB park + 417 KB props + ~400 KB character. **No textures at all** — the Synty atlas is baked into vertex colours. |
+| Download | 1.34 MB park + 417 KB props + ~400 KB character + 127 KB locomotion. **No textures at all** — the Synty atlas is baked into vertex colours. |
 
 Measured solo on `medium` with shadows on: **49 draw calls, 206k triangles**.
 (The shadow pass re-draws casters, which is most of the gap between that and
@@ -99,7 +99,8 @@ world/
     main.js         bootstrap, frame loop, coins, HUD wiring
     world.js        renderer, sky, terrain load, player physics, camera
     avatar.js       player + remote avatars, nametags, bubbles
-    animator.js     procedural walk/run/idle/jump + 8 emotes
+    clips.js        baked Synty locomotion — load, blend, compose onto the rig
+    animator.js     procedural fallback + 8 emotes + blinks/head-turn layer
     collision.js    uniform-grid AABB collision with step-up
     input.js        keyboard + touch stick + tap-to-move
     presence.js     RTDB multiplayer, with a solo fallback
@@ -124,5 +125,10 @@ position, `__world.tp(x, z)` to teleport. Same idea as Drop4's
   climb to the top of the slide.
 - Audio covers footsteps, coins, jump, emotes, chat and zone entry via `odaSfx`,
   but there's no ambience (birds, distant playground) and no music.
+- The 8 emotes are still procedural. The Synty Emotes & Taunts and Idles packs
+  are already imported and bake through the same pipeline as the locomotion —
+  see `tools/world/bake_locomotion.md`. That's the next obvious upgrade.
+- Foot-skate tuning (`CLIP_SPEED` in `clips.js`) was set from measurements, not
+  from watching it on a device. Worth an eyeball pass.
 - Only one room ("park"). `presence.js` already keys on a room name, so a second
   zone is mostly a matter of building it.

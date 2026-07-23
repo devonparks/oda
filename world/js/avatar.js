@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as skeletonClone } from 'three/addons/utils/SkeletonUtils.js';
 import { RigAnimator } from './animator.js';
+import { Locomotion, getLocomotionLibrary } from './clips.js';
 
 const loader = new GLTFLoader();
 const cache = new Map();
@@ -78,6 +79,12 @@ export class Avatar {
     this.group.add(this.model);
 
     this.rig = new RigAnimator(this.model);
+    // Attach the baked Synty locomotion when it's available. The library is
+    // shared and loads once; until it resolves (or if it fails) the avatar runs
+    // on the procedural animator, so nobody ever sees a T-posed kid.
+    getLocomotionLibrary().then((lib) => {
+      if (lib && !this._disposed) this.rig.loco = new Locomotion(this.model, lib, this.rig);
+    });
     this.local = !!opts.local;
     this.name = opts.name || 'Player';
 
@@ -147,7 +154,7 @@ export class Avatar {
     this.group.position.copy(this.pos);
     this.group.rotation.y = this.yaw;
     this.rig.update(dt, {
-      speed: this.speed, maxSpeed: 4.2,
+      speed: this.speed, maxSpeed: 3.4,
       grounded: this.grounded, airTime: this.airTime,
     });
 
@@ -179,6 +186,8 @@ export class Avatar {
   }
 
   dispose() {
+    this._disposed = true;
+    this.rig.loco?.dispose();
     this.group.removeFromParent();
     disposeSprite(this.label);
     if (this.bubble) disposeSprite(this.bubble);
