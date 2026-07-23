@@ -97,9 +97,43 @@ export function createCharacterViewer(canvas, opts = {}) {
         });
       }
     });
+    restPose(model);
     pivot.add(model);
     frame();
     return model;
+  }
+
+  /**
+   * Synty POLYGON Kids rest in a wide A-pose, which looks broken in a preview —
+   * and this viewer feeds the AMG World character picker and the hub landing
+   * hero, the first characters a kid ever sees. Drop the arms to a natural hang.
+   *
+   * Same approach as world/js/animator.js: cache each arm bone's world axes in
+   * its parent frame (at bind, before rotating anything), then rotate by
+   * world-intent amounts. The magnitudes were solved numerically against this
+   * rig. Unknown bones no-op, so non-kid models pass through untouched.
+   */
+  function restPose(root) {
+    root.updateWorldMatrix(true, true);
+    const bones = {}, axes = {};
+    root.traverse((o) => {
+      if (!/^(Shoulder|Elbow)_(L|R)$/.test(o.name)) return;
+      bones[o.name] = o;
+      const qp = o.parent.getWorldQuaternion(new THREE.Quaternion()).invert();
+      axes[o.name] = {
+        x: new THREE.Vector3(1, 0, 0).applyQuaternion(qp).normalize(),
+        z: new THREE.Vector3(0, 0, 1).applyQuaternion(qp).normalize(),
+      };
+    });
+    const rot = (n, ax, ang) => {
+      const b = bones[n];
+      if (!b || !ang) return;
+      b.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(axes[n][ax], ang));
+    };
+    const ARM_DOWN_Z = 0.78, ARM_DOWN_X = 0.10, ELBOW_REST = -0.25;
+    rot('Shoulder_L', 'z', -ARM_DOWN_Z); rot('Shoulder_L', 'x', ARM_DOWN_X);
+    rot('Shoulder_R', 'z', ARM_DOWN_Z);  rot('Shoulder_R', 'x', ARM_DOWN_X);
+    rot('Elbow_L', 'x', ELBOW_REST);     rot('Elbow_R', 'x', ELBOW_REST);
   }
 
   // drag to rotate
