@@ -225,8 +225,11 @@ export class World {
     inst.frustumCulled = false;
     this.scene.add(inst);
     this.coins = inst;
+    // Ground under a coin never moves, so resolve it ONCE here instead of
+    // calling groundAt() per coin every frame (~1800 grid lookups/sec saved).
     this.coinState = COIN_SPOTS.map(([x, z]) => ({
       x, z, y: 0, taken: false, respawnAt: 0, phase: Math.random() * Math.PI * 2,
+      groundY: this.collision.groundAt(x, z, 2),
     }));
   }
 
@@ -341,26 +344,28 @@ export class World {
     this.camPitch = THREE.MathUtils.clamp(this.camPitch + look.y * 0.0035, -0.12, 1.15);
     this.camDist = THREE.MathUtils.clamp(this.camDist + zoom * 3.2, 3.2, 14);
 
-    const focus = new THREE.Vector3(avatar.pos.x, avatar.pos.y + 1.25, avatar.pos.z);
-    const dir = new THREE.Vector3(
+    // Reuse scratch vectors — updateCamera runs every frame, so allocating here
+    // is 200+ short-lived Vector3s/sec of GC pressure on a Chromebook.
+    const focus = (this._camFocus || (this._camFocus = new THREE.Vector3()))
+      .set(avatar.pos.x, avatar.pos.y + 1.25, avatar.pos.z);
+    const dir = (this._camDir || (this._camDir = new THREE.Vector3())).set(
       Math.sin(this.camYaw) * Math.cos(this.camPitch),
       Math.sin(this.camPitch),
       Math.cos(this.camYaw) * Math.cos(this.camPitch),
     );
     let dist = this.camDist;
     // keep the camera out of scenery: shorten the boom if a box is in the way
-    const probe = focus.clone().addScaledVector(dir, dist);
     const hitDist = this._boomBlocked(focus, dir, dist);
     if (hitDist != null) dist = Math.max(1.6, hitDist - 0.35);
 
-    const want = focus.clone().addScaledVector(dir, dist);
+    const want = (this._camWant || (this._camWant = new THREE.Vector3()))
+      .copy(focus).addScaledVector(dir, dist);
     want.y = Math.max(want.y, this.collision.groundAt(want.x, want.z, 0) + 0.7);
     // critically-damped-ish follow: snappy but never jittery
     const k = 1 - Math.exp(-13 * dt);
     this.camPos.lerp(want, k);
     this.camera.position.copy(this.camPos);
     this.camera.lookAt(focus);
-    void probe;
   }
 
   /** Cheapest useful boom check: sample along the boom against collision boxes. */
@@ -408,19 +413,23 @@ export class World {
       else p.rotation.y = p.userData.rest.y + Math.sin(t * 0.7 + ph) * 0.05;
     }
 
-    // coins bob and spin; taken ones are scaled to zero rather than removed
-    const dummy = new THREE.Object3D();
+    // coins bob and spin; taken ones are scaled to zero rather than removed.
+    // Reuse one dummy (hoisted) and the cached ground — no per-frame allocation
+    // and no per-coin grid lookup.
+    const dummy = this._coinDummy || (this._coinDummy = new THREE.Object3D());
+    let coinsDirty = false;
     for (let i = 0; i < this.coinState.length; i++) {
       const c = this.coinState[i];
-      const y = this.collision.groundAt(c.x, c.z, 2) + 0.75 + Math.sin(t * 2 + c.phase) * 0.12;
+      const y = c.groundY + 0.75 + Math.sin(t * 2 + c.phase) * 0.12;
       c.y = y - 0.75;
       dummy.position.set(c.x, y, c.z);
       dummy.rotation.set(0, t * 2.2 + c.phase, 0);
       dummy.scale.setScalar(c.taken ? 0 : 1);
       dummy.updateMatrix();
       this.coins.setMatrixAt(i, dummy.matrix);
+      coinsDirty = true;
     }
-    this.coins.instanceMatrix.needsUpdate = true;
+    if (coinsDirty) this.coins.instanceMatrix.needsUpdate = true;
 
     // Zone signs face the camera and float. They intentionally draw THROUGH
     // scenery (depthTest off) so a kid can see where to go from anywhere — but

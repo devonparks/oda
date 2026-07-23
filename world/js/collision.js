@@ -20,6 +20,7 @@ export class CollisionWorld {
     this.boxes = [];
     this.grid = new Map();
     this.bounds = { minX: -60, maxX: 60, minZ: -60, maxZ: 60 };
+    this._nearShared = new Set();   // reused by the per-frame hot paths, see nearShared()
     for (const b of boxes) this.add(b);
   }
 
@@ -45,9 +46,25 @@ export class CollisionWorld {
     }
   }
 
-  /** Every box index whose cell overlaps the circle (x, z, r). */
+  /** Every box index whose cell overlaps the circle (x, z, r). Allocates a Set;
+   *  use for one-off / external calls (e.g. the camera boom). */
   near(x, z, r) {
-    const out = new Set();
+    return this._collectNear(x, z, r, new Set());
+  }
+
+  /**
+   * Same query, but into a REUSED Set to avoid per-frame allocation. The result
+   * is only valid until the next nearShared() call, so the caller MUST fully
+   * consume it before calling any collision method that also uses it. All
+   * current per-frame callers (groundAt, resolve, run sequentially per entity)
+   * satisfy that; don't hold the result or nest calls.
+   */
+  nearShared(x, z, r) {
+    this._nearShared.clear();
+    return this._collectNear(x, z, r, this._nearShared);
+  }
+
+  _collectNear(x, z, r, out) {
     const x0 = Math.floor((x - r) / CELL), x1 = Math.floor((x + r) / CELL);
     const z0 = Math.floor((z - r) / CELL), z1 = Math.floor((z + r) / CELL);
     for (let cx = x0; cx <= x1; cx++) {
@@ -66,7 +83,7 @@ export class CollisionWorld {
    */
   groundAt(x, z, fromY, radius = 0.28) {
     let best = 0;
-    for (const i of this.near(x, z, radius)) {
+    for (const i of this.nearShared(x, z, radius)) {
       const b = this.boxes[i];
       if (x + radius < b.minX || x - radius > b.maxX) continue;
       if (z + radius < b.minZ || z - radius > b.maxZ) continue;
@@ -85,7 +102,7 @@ export class CollisionWorld {
     // A couple of passes settles corners where two boxes push in turn.
     for (let pass = 0; pass < 3; pass++) {
       let moved = false;
-      for (const i of this.near(x, z, radius)) {
+      for (const i of this.nearShared(x, z, radius)) {
         const b = this.boxes[i];
         // vertical overlap? a box entirely below the step height is walkable
         if (b.maxY <= footY + STEP_HEIGHT) continue;
