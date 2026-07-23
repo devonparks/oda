@@ -19,6 +19,7 @@ import { EMOTES, EMOTE_IDS } from './animator.js';
 import { getEmoteLibrary } from './emotes.js';
 import { PHRASE_GROUPS, PHRASES, renderPhrase, safeName } from './chat.js';
 import { ZONES, ACTIVITIES, SPAWN, nearestZone, gamesForZone } from './zones.js';
+import { NpcCrowd } from './npc.js';
 
 const LS = {
   char: 'amgWorldChar',
@@ -188,6 +189,15 @@ async function enterWorld() {
   });
   state.presence.connect();
 
+  // Ambient NPC kids so a solo park isn't empty. Count scales with quality
+  // (Chromebooks get fewer) and thins out as real players arrive. They are
+  // spawned after the first frames so boot stays fast.
+  const npcBase = state.quality === 'low' ? 3 : state.quality === 'high' ? 7 : 5;
+  state.npcs = new NpcCrowd(world, state.manifest, { base: npcBase, min: 0, max: npcBase });
+  state.npcs.preload().then(() => {
+    for (let i = 0; i < npcBase; i++) state.npcs._spawnOne();
+  });
+
   // Debug hook, same idea as Drop4's window.__gameStore: lets a browser-driving
   // agent (or Devon in devtools) inspect and teleport without a build step.
   window.__world = {
@@ -200,6 +210,7 @@ async function enterWorld() {
       cam: world.camera.position.toArray().map((n) => +n.toFixed(2)),
       objects: world.scene.children.length,
       remotes: state.remotes.size,
+      npcs: state.npcs?.count ?? 0,
     }),
   };
 
@@ -211,6 +222,7 @@ async function enterWorld() {
   window.addEventListener('beforeunload', () => {
     saveP0s();
     state.presence?.disconnect();
+    state.npcs?.dispose();
   });
   requestAnimationFrame(loop);
 }
@@ -271,6 +283,12 @@ function loop() {
   world.update(dt, t, player.pos);
 
   for (const r of state.remotes.values()) r.avatar.update(dt, world.camera);
+
+  // NPC crowd — realPlayers is the true remote count, never counting NPCs, so
+  // the "players here" number stays honest while the park still feels alive.
+  if (state.npcs && !state.paused) {
+    state.npcs.update(dt, world.camera, player.pos, state.remotes.size);
+  }
 
   // coins
   const got = world.collectCoins(player.pos.x, player.pos.z, player.pos.y);

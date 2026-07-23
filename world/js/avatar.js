@@ -92,6 +92,12 @@ export class Avatar {
       if (lib && !this._disposed) this.rig.emotes = new EmotePlayer(this.rig, lib);
     });
     this.local = !!opts.local;
+    // Network-driven avatars (remote players) interpolate toward a received
+    // transform. Locally-driven ones (the player, and NPCs) set pos/yaw/speed
+    // directly and must NOT be interpolated toward a stale netPos/netSpeed —
+    // doing so drags them to the origin at zero speed. Default: non-local ==
+    // networked, unless told otherwise (NPCs pass networked:false).
+    this.networked = !this.local && opts.networked !== false;
     this.name = opts.name || 'Player';
 
     // physics-ish state
@@ -155,7 +161,7 @@ export class Avatar {
   }
 
   update(dt, camera) {
-    if (!this.local) {
+    if (this.networked) {
       // Ease toward the network target. A 12/s rate lands within a frame or two
       // of a 4 Hz feed without visible rubber-banding.
       const k = 1 - Math.exp(-12 * dt);
