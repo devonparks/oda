@@ -69,6 +69,7 @@ first; a new game should be able to hit most of The Bar in a few lines.
 |---|---|
 | `odaShop` | Priced cosmetics against the shared `students/{id}.coins` balance. `odaShop.renderShopPanel(gameId, catalogue, containerId, {onEquip, onBuy})` |
 | `odaAchievements` | Badges + unlock toast + persistence + a rendered grid. `init(gameId, defs)` then `unlock(id)` / `check(id, cond)` / `renderGrid(el)` |
+| `odaWinEffect` | Renders the win effect the player bought in the AMG shop. `odaWinEffect()` on a new personal best — it resolves and caches the student's equipped cosmetics itself. |
 | `odaSfx` | Web Audio, no files. `odaSfx.play('win'\|'coin'\|'combo'\|'hit'\|'error'\|…)`, or `odaSfx.tone(freq, dur, type, vol)`. Honours the `odaSoundEnabled` toggle and handles the autoplay policy. |
 
 `odaSfx` exists because 47 of the 49 games had each hand-rolled the same
@@ -94,8 +95,20 @@ local currency for in-game upgrades is fine; earning *nothing* shared is not.
 4. ~~`racers`~~ — now pays AMG coins per run + 10 achievements + win effect
 5. ~~`bowling`~~ — 12 achievements + win effect on a personal best
 
-**P0 remaining:** `tetris` still has no achievements — it was the exemplar for
-shop/cosmetics but never got badges. Now a ~15-line job with `odaAchievements`.
+**P0 remaining:** none.
+
+**Win effects — the audit's biggest single ecosystem win — are now wired.** The
+shop sold 8 of them and not one game rendered any. `odaWinEffect()` is called on
+a new personal best in: whackamole, stacktower, simonsays, numbermemory, flappy,
+mathsprint, lightsout, suika (plus tetris, bowling, racers, retrobowl, which got
+it with their P0 upgrades). Remaining candidates with a less obvious record
+path: snake, 2048, memory.
+
+**Achievements duplication (known, deferred):** 28 games hand-roll their own
+`checkAchievements` against a per-game `*Records` collection. `odaAchievements`
+exists to replace that, but migrating a game that already works is churn without
+player value — adopt it for NEW games and for games that have none, and leave
+working implementations alone.
 
 **P1 — has systems, thin on feel (add juice + a solo progression taste):**
 `simonsays, numbermemory, flappy, mathsprint, whackamole, lightsout, suika, stacktower`

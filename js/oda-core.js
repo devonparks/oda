@@ -1627,4 +1627,57 @@ window.odaAchievements = (function() {
   };
 })();
 
-console.log('[ODA] Core loaded v1.8');
+
+/* ============================================
+   Equipped WIN EFFECT (odaWinEffect)
+
+   The AMG shop sells 8 win effects (confetti, fireworks, lightning, aurora...)
+   and, before this, not one game ever rendered them — the 2026-07-21 audit
+   flagged it as the biggest single ecosystem win available. odaPlayEquippedWinEffect
+   already existed but needed the student's identity cosmetics resolved first,
+   which every game would have had to do itself.
+
+   This wraps that up: call it on a new personal best / a win, and it does the
+   lookup once, caches it, and falls back to a generic celebration for guests.
+
+     odaWinEffect();            // on a new record
+     odaWinEffect('stars');     // explicit fallback
+   ============================================ */
+window.odaWinEffect = (function() {
+  var _identity = null, _loaded = false, _loading = null;
+
+  function resolve() {
+    if (_loaded) return Promise.resolve(_identity);
+    if (_loading) return _loading;
+    var sid = localStorage.getItem('studentId');
+    if (!sid || sid.indexOf('anon_') === 0 || !window.getFirebaseDB) {
+      _loaded = true;
+      return Promise.resolve(null);
+    }
+    _loading = window.getFirebaseDB().then(function(fb) {
+      return fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'students', sid));
+    }).then(function(snap) {
+      if (snap.exists() && window.amgIdentityCosmetics) {
+        _identity = window.amgIdentityCosmetics(snap.data(), null);
+      }
+      _loaded = true;
+      return _identity;
+    }).catch(function() { _loaded = true; return null; });
+    return _loading;
+  }
+
+  // Warm the cache early so the effect fires instantly when it's needed.
+  if (localStorage.getItem('studentId')) setTimeout(resolve, 1200);
+
+  return function(fallback) {
+    resolve().then(function(identity) {
+      if (window.odaPlayEquippedWinEffect) {
+        window.odaPlayEquippedWinEffect(identity || fallback || 'stars');
+      } else if (window.odaConfetti) {
+        window.odaConfetti();
+      }
+    });
+  };
+})();
+
+console.log('[ODA] Core loaded v1.9');
