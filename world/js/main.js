@@ -20,6 +20,7 @@ import { getEmoteLibrary } from './emotes.js';
 import { PHRASE_GROUPS, PHRASES, renderPhrase, safeName } from './chat.js';
 import { ZONES, ACTIVITIES, SPAWN, nearestZone, gamesForZone } from './zones.js';
 import { NpcCrowd } from './npc.js';
+import { Ambience } from './ambience.js';
 
 const LS = {
   char: 'amgWorldChar',
@@ -214,6 +215,9 @@ async function enterWorld() {
     }),
   };
 
+  state.ambience = new Ambience();
+  state.ambience.arm();   // begins on the next gesture, per autoplay policy
+
   setProgress(1, 'Have fun!');
   $('loading').classList.add('hidden');
   $('hud').classList.remove('hidden');
@@ -223,6 +227,7 @@ async function enterWorld() {
     saveP0s();
     state.presence?.disconnect();
     state.npcs?.dispose();
+    state.ambience?.dispose();
   });
   requestAnimationFrame(loop);
 }

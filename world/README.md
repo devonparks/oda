@@ -126,7 +126,8 @@ position, `__world.tp(x, z)` to teleport. Same idea as Drop4's
   0.42 m are stepped onto, so kerbs and edges are fine, but you can't currently
   climb to the top of the slide.
 - Audio covers footsteps, coins, jump, emotes, chat and zone entry via `odaSfx`,
-  but there's no ambience (birds, distant playground) and no music.
+  plus a generative park ambience (wind bed + occasional birds, `ambience.js`).
+  No music yet.
 - **The 58 baked Synty emotes are shipped but GATED OFF** — the exported kid
   GLBs rest with their arms down while the Unity rig's rest is a T-pose, and
   that difference is in the arm chain's bone offsets, so the clips don't
