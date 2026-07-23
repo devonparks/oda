@@ -1,5 +1,47 @@
 # Sprint Log
 
+## 2026-07-23 — Drop4 → AMG Hub conversion (full build, autonomous, Devon at work)
+
+Built the AMG Hub (nonprofit, educational, Chromebook) edition of Drop4 as a new
+vanilla-JS + Canvas + three.js game at `arcade/drop4/`, on Firebase project
+oda-hub-d4bef. `Desktop/Drop4` treated as read-only reference throughout — zero
+commits there, zero imports back, isolation grep clean. Unlisted (not in
+`js/oda-games.js`) so nothing shows to students until cutover. Branch
+`drop4-hub-conversion`, not pushed. Ran in parallel with the amg-world chat;
+stayed entirely in `arcade/drop4/` + `docs/` to avoid conflicts with its `world/`
+WIP.
+
+**Shipped, all verified in-browser at :3456:**
+- Ported Drop4's pure brain out as framework-free ES modules: `engine.js`
+  (connect-N rules + power pieces, zustand stripped → pure resolvers), `ai.js`
+  (minimax), `career-data.js` (180 levels/15 cities, sim-tuned difficulty, gems→
+  coins, species→character), `rarity.js`. 60 zero-dep Node tests green.
+- `visuals.js` — Canvas piece-orb finish ramp (no white shine), slab board +
+  holes, staged scene backdrops, 26 board themes + 15 piece skins.
+- `game.js` — match driver: input, AI scheduling, boss scripts (Tommy parity /
+  Sal flip / Warden seed — Tommy enforcement verified), timer, moves-limit,
+  power pieces, drop/land/win-cascade FX.
+- `characters.js` — 16 Polygon Kids picker via `amg-character-viewer.js`,
+  mirroring `character.html`'s shared cross-game identity. Synty "Kits" removed.
+- `shop.js` — single-coin economy, NO gems/ads/IAP, learn-to-earn nudge.
+- `career.js` — Candy-Crush map (180 nodes/15 bosses), power-piece + character
+  unlocks, level→match runner with intro cards.
+- `index.html` — Hub shell (3D hero, VS Computer, Career, Characters, Shop,
+  Records) on oda-core; 12 achievements, win effects, help, SFX.
+- Internal `gameId:'connect4'` for data continuity (this REPLACES the connect4
+  tile at cutover — repoint one registry line, reversible).
+
+**Verified headlessly** (pane can't composite WebGL): 60 Node tests; in-browser
+full match (click→drop→AI→win→result stars:3); career map 180 nodes/15 bosses;
+Tommy parity rejects illegal taps; shop renders 41 items; all character assets
+fetch 200; clean console.
+
+**Deferred:** Express real-emote playback (Polygon rig re-export is
+supervised-only — same blocker the amg-world chat diagnosed), Drop Rush minigame.
+
+**Reusable pattern captured:** `docs/AMG_HUB_GAME_CONVERSION_STANDARD.md` — apply
+to Tic Tac Toe and every other game next.
+
 ## 2026-07-23 — Emote diagnosis, Unity rescue, AMG World enrichment (remote-control day)
 
 Devon out at work; drove the session by remote control. Branch `amg-world` in
@@ -28,7 +70,7 @@ absent it wouldn't compile and dropped the whole AMG Engine project into safe
 mode (taking the MCP bridge down). Deleted Samples/Scripts/; clips live under
 Animations/ so nothing was lost. Documented in tools/world/bake_locomotion.md.
 
-### AMG World — seven enhancements (all verified in real Chrome, committed)
+### AMG World — NINE enhancements (all verified in real Chrome, committed)
 - **NPC crowd** — wandering ambient kids so a solo park (everyone, 0 users) feels
   alive. Never counted in the live-player number (honest); no chat bubbles;
   scale down as real players arrive + by quality. Fixed a real Avatar bug:
@@ -43,6 +85,10 @@ Animations/ so nothing was lost. Documented in tools/world/bake_locomotion.md.
 - **Coin combo** — streak juice on the most common action, bounded so it can't be
   farmed, milestone bonuses + confetti.
 - **Sound mute toggle** — the world lacked one; now syncs odaSfx + ambience.
+- **Daily park bonus** — first visit each day, bonus coins scaling with a visit
+  streak (10→40, resets on a missed day); gold reward banner + confetti.
+- **Hidden star hunt** — 5 glowing stars tucked across the park; find all → Star
+  Hunter badge + big reward. The Poptropica discovery loop, distinct from coins.
 
 ### Also
 - Sent a fresh Drop4→Hub bridge prompt to the "Drop 4 submission audit" chat, and
@@ -52,6 +98,10 @@ Animations/ so nothing was lost. Documented in tools/world/bake_locomotion.md.
 - Re-verified the "games missing in-game cosmetics" audit gap: 13 of 14 were
   false positives (they read via myCosmetics[...]); only racers genuinely differs
   (its own garage). Games are in good shape.
+- The parallel Drop4-hub conversion advanced well on this same branch: Phase 0
+  (engine+AI, 41 tests) → full playable core (engine/AI/board/characters/economy/
+  career) → achievements+Express. In arcade/drop4/ — left untouched to avoid
+  conflicts; my work stayed in world/ + shared oda-core.
 
 ### Verified end-to-end
 Fresh entry → picker (arms-down) → world → onboarding → NPCs + ambience →
