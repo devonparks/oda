@@ -100,6 +100,7 @@ world/
     world.js        renderer, sky, terrain load, player physics, camera
     avatar.js       player + remote avatars, nametags, bubbles
     clips.js        baked Synty locomotion — load, blend, compose onto the rig
+    emotes.js       58 baked emotes, lazy per category (gated — see docs/)
     animator.js     procedural fallback + 8 emotes + blinks/head-turn layer
     collision.js    uniform-grid AABB collision with step-up
     input.js        keyboard + touch stick + tap-to-move
@@ -125,9 +126,12 @@ position, `__world.tp(x, z)` to teleport. Same idea as Drop4's
   climb to the top of the slide.
 - Audio covers footsteps, coins, jump, emotes, chat and zone entry via `odaSfx`,
   but there's no ambience (birds, distant playground) and no music.
-- The 8 emotes are still procedural. The Synty Emotes & Taunts and Idles packs
-  are already imported and bake through the same pipeline as the locomotion —
-  see `tools/world/bake_locomotion.md`. That's the next obvious upgrade.
+- **The 58 baked Synty emotes are shipped but GATED OFF** — the exported kid
+  GLBs rest with their arms down while the Unity rig's rest is a T-pose, and
+  that difference is in the arm chain's bone offsets, so the clips don't
+  transfer ("arms folded" plays as arms in the air). The world uses the
+  procedural emotes meanwhile. Full analysis and the fix in
+  `docs/EMOTE_RIG_ISSUE.md`; locomotion is unaffected and is live.
 - Foot-skate tuning (`CLIP_SPEED` in `clips.js`) was set from measurements, not
   from watching it on a device. Worth an eyeball pass.
 - Only one room ("park"). `presence.js` already keys on a room name, so a second

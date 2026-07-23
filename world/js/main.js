@@ -16,6 +16,7 @@ import { Avatar, preloadCharacter } from './avatar.js';
 import { Input } from './input.js';
 import { Presence } from './presence.js';
 import { EMOTES, EMOTE_IDS } from './animator.js';
+import { getEmoteLibrary } from './emotes.js';
 import { PHRASE_GROUPS, PHRASES, renderPhrase, safeName } from './chat.js';
 import { ZONES, ACTIVITIES, SPAWN, nearestZone, gamesForZone } from './zones.js';
 
@@ -495,22 +496,93 @@ async function flushCoins() {
 // ---------------------------------------------------------------------------
 // HUD wiring
 // ---------------------------------------------------------------------------
-function buildEmoteWheel() {
+/**
+ * The emote wheel. With 58 clips across 6 categories a flat grid stops working,
+ * so this is tabbed — and each tab's binary is only fetched when it's first
+ * opened, which is the whole reason the bake is split per category.
+ *
+ * The first row is FAVOURITES: whatever this player uses most, kept in
+ * localStorage. Digit keys 1-8 always map to that row, so muscle memory works
+ * without opening the wheel at all.
+ */
+const FAV_KEY = 'amgWorldEmoteFavs';
+let emoteLib = null;
+let emoteFavs = [];
+
+function loadFavs() {
+  try { emoteFavs = JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); }
+  catch (e) { emoteFavs = []; }
+  if (!Array.isArray(emoteFavs) || !emoteFavs.length) {
+    emoteFavs = ['wave', 'cheer', 'dab', 'thumbsup', 'clap', 'shrug', 'twist', 'heart'];
+  }
+}
+
+function noteFav(id) {
+  emoteFavs = [id, ...emoteFavs.filter((x) => x !== id)].slice(0, 8);
+  try { localStorage.setItem(FAV_KEY, JSON.stringify(emoteFavs)); } catch (e) {}
+}
+
+async function buildEmoteWheel() {
+  loadFavs();
+  emoteLib = await getEmoteLibrary();
   const wheel = $('emoteWheel');
   wheel.innerHTML = '';
-  EMOTE_IDS.forEach((id, i) => {
-    const e = EMOTES[id];
-    const b = document.createElement('button');
-    b.innerHTML = `<span>${e.icon}</span>${e.label}`;
-    b.title = `${e.label} (${i + 1})`;
-    b.onclick = () => { doEmote(id); wheel.classList.add('hidden'); };
-    wheel.appendChild(b);
-  });
+
+  if (!emoteLib) {
+    // procedural fallback — the small hand-written set
+    wheel.classList.add('wheel-grid');
+    EMOTE_IDS.forEach((id, i) => wheel.appendChild(emoteButton(id, EMOTES[id], i)));
+    return;
+  }
+
+  // Favourites are the most-used clips, so fetch that binary up front.
+  emoteLib.preload(emoteFavs);
+
+  const tabs = document.createElement('div');
+  tabs.className = 'emote-tabs';
+  const grid = document.createElement('div');
+  grid.className = 'emote-grid';
+  wheel.append(tabs, grid);
+
+  const cats = [{ id: '_favs', label: 'Faves', icon: '⭐' }, ...emoteLib.categories];
+  const showCat = (cat) => {
+    [...tabs.children].forEach((t) => t.classList.toggle('sel', t.dataset.cat === cat.id));
+    grid.innerHTML = '';
+    if (cat.id === '_favs') {
+      emoteFavs.forEach((id, i) => {
+        const info = emoteLib.info(id);
+        if (info) grid.appendChild(emoteButton(id, info, i));
+      });
+    } else {
+      // Opening a tab is what triggers its download.
+      emoteLib.loadCategory(cat.id).catch(() => {});
+      cat.emotes.forEach((e) => grid.appendChild(emoteButton(e.id, e)));
+    }
+  };
+
+  for (const cat of cats) {
+    const t = document.createElement('button');
+    t.className = 'emote-tab';
+    t.dataset.cat = cat.id;
+    t.innerHTML = `<span>${cat.icon}</span>${cat.label}`;
+    t.onclick = () => showCat(cat);
+    tabs.appendChild(t);
+  }
+  showCat(cats[0]);
+}
+
+function emoteButton(id, info, favIndex) {
+  const b = document.createElement('button');
+  b.innerHTML = `<span>${info.icon}</span>${info.label}`;
+  b.title = favIndex != null ? `${info.label} (${favIndex + 1})` : info.label;
+  b.onclick = () => { doEmote(id); $('emoteWheel').classList.add('hidden'); };
+  return b;
 }
 
 function doEmote(id) {
   sfx('select');
   state.player.playEmote(id);
+  noteFav(id);
   state.presence?.broadcast({ emote: id });
 }
 
@@ -567,7 +639,9 @@ function bindHud() {
     else if (k === 'KeyH') showModal('helpModal');
     else if (k === 'Escape') { hideModal('zoneModal'); hideModal('helpModal'); $('emoteWheel').classList.add('hidden'); $('chatWheel').classList.add('hidden'); }
     else if (/^Digit[1-8]$/.test(k)) {
-      const id = EMOTE_IDS[+k.slice(5) - 1];
+      // 1-8 always hit the favourites row, so muscle memory works without
+      // opening the wheel.
+      const id = (emoteLib ? emoteFavs : EMOTE_IDS)[+k.slice(5) - 1];
       if (id) doEmote(id);
     }
   });

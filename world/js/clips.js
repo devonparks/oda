@@ -235,6 +235,13 @@ export class Locomotion {
 /**
  * Solve the per-bone frame correction between Unity's rig and this GLB's.
  *
+ * Reference is Unity's IDLE pose, not its bind pose. Unity's bind is a T-pose
+ * (hands at shoulder height) while the exported kid GLB rests with the arms
+ * hanging down, so solving from the binds conflated a real POSE difference
+ * with the AXIS difference — the spine transferred cleanly and the arms flew
+ * up by the head. Unity's idle is arms-down and lands within ~8 cm of the
+ * GLB's rest, which leaves this as very nearly a pure axis correction.
+ *
  * Both describe the same physical skeleton, but the GLB went through an export
  * that reassigned local bone axes. Writing F for a bone's frame and c_b for the
  * constant rotation between them (F_glb = F_unity * c_b), the two bind poses
@@ -246,7 +253,7 @@ export class Locomotion {
  * whole-character rotation, which would be immediately visible (and isn't).
  */
 function solveFrameCorrections(data, rig) {
-  const bind = data.bindPose;
+  const bind = data.refPose || data.bindPose;
   if (!bind) return null;
   const corr = {};
   const I = new THREE.Quaternion();

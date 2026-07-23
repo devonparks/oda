@@ -149,7 +149,7 @@ export class RigAnimator {
     return true;
   }
 
-  get emoting() { return !!this.emote; }
+  get emoting() { return !!this.emote || !!(this.emotes && this.emotes.playing); }
 
   /**
    * @param {number} dt      seconds
@@ -172,6 +172,7 @@ export class RigAnimator {
       // METRES and the rig's bone units are centimetres, hence the x100.
       this.loco.update(dt, state);
       this.hipOffset.set(0, this.loco.hipY * 100, 0);
+      this.hipOffset.y *= 1 - (this.emotes ? this.emotes.legWeight * this.emotes.weight : 0);
     } else {
       this._reset();
       if (state.sitting) this._poseSit();
@@ -180,6 +181,14 @@ export class RigAnimator {
       else this._poseIdle();
     }
 
+    // Clip emotes layer over the locomotion the same way the procedural ones
+    // do — upper body always, legs only while standing still.
+    if (this.emotes) {
+      this.emotes.update(dt, speed / (state.maxSpeed || 3.4));
+      if (this.emotes.playing) this.hipOffset.y += (this.emotes.hipY || 0) * 100;
+    }
+
+    // Procedural fallback emotes, for ids the clip library doesn't have.
     if (this.emote) {
       this.emote.t += dt;
       const k = this.emote.t / this.emote.dur;

@@ -15,6 +15,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as skeletonClone } from 'three/addons/utils/SkeletonUtils.js';
 import { RigAnimator } from './animator.js';
 import { Locomotion, getLocomotionLibrary } from './clips.js';
+import { EmotePlayer, getEmoteLibrary } from './emotes.js';
 
 const loader = new GLTFLoader();
 const cache = new Map();
@@ -85,6 +86,11 @@ export class Avatar {
     getLocomotionLibrary().then((lib) => {
       if (lib && !this._disposed) this.rig.loco = new Locomotion(this.model, lib, this.rig);
     });
+    // Real Synty emotes when the bake is present; the procedural set in
+    // animator.js stays as the fallback so the wheel always does something.
+    getEmoteLibrary().then((lib) => {
+      if (lib && !this._disposed) this.rig.emotes = new EmotePlayer(this.rig, lib);
+    });
     this.local = !!opts.local;
     this.name = opts.name || 'Player';
 
@@ -131,7 +137,15 @@ export class Avatar {
     this.bubbleUntil = performance.now() + seconds * 1000;
   }
 
-  playEmote(id) { return this.rig.playEmote(id); }
+  /** Clip emote if we have it, else the procedural one of the same name. */
+  playEmote(id) {
+    if (this.rig.emotes && this.rig.emotes.lib.has(id)) {
+      this.rig.emote = null;              // clip wins; drop any procedural one
+      this.rig.emotes.play(id);
+      return true;
+    }
+    return this.rig.playEmote(id);
+  }
 
   /** Remote avatars only: latest authoritative transform from the network. */
   setNetworkTarget(x, y, z, yaw, speed) {
