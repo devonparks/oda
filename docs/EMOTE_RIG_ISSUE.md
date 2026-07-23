@@ -8,6 +8,56 @@ To test the clip path: `localStorage.amgWorldClipEmotes = '1'` and reload.
 
 ---
 
+## FINAL DIAGNOSIS (2026-07-23) — it's the GLB's arm-bone orientations, not the math
+
+Isolated this precisely with a numeric test (bone world positions vs a Unity
+ground-truth sample, judged in cm — NOT screenshots, which misled repeatedly).
+For "arms folded" frame 20 on the re-exported rig (`rig_to_glb.py`, whose bind
+POSITIONS match Unity exactly):
+
+| bone | error vs Unity |
+|---|---|
+| Head | 0.3 cm |
+| Spine_03 | 0.4 cm |
+| Hips | 2.2 cm |
+| Shoulder_L | 5.0 cm |
+| Ankle_L | 4.6 cm |
+| **Elbow_L / Elbow_R** | **30 / 25 cm** |
+| **Hand_L / Hand_R** | **29 / 20 cm** |
+
+The **body retargets perfectly**; only the **arm chain below the shoulder**
+fails. Two mathematically-independent retarget methods — local-frame delta with a
+solved per-bone correction, and world-space delta with a single global axis flip
+— give the **identical** arm error. When two sound methods fail the same way, the
+fault is in the DATA, not the algorithm: the re-exported GLB's **arm bones have a
+different orientation at bind than Unity's**, even though the hand POSITIONS
+match. Blender cannot represent an arbitrary bone frame — an armature bone's Y
+axis must point down the bone, and only roll is free — so the FBX→glTF round trip
+rolls the horizontal arm bones. Position is preserved; orientation is not. No
+runtime retarget can recover a pose from a rig whose arm frames are wrong.
+
+Why "arms folded" exposed it and locomotion hid it: in armsfolded the spine and
+legs barely move from bind, so a wrong formula still looks right there; only the
+arms move enough to reveal the error. Locomotion's arm motion is small, so it
+reads as slightly-off arm carriage rather than a broken pose — which is why
+locomotion shipped and looks fine.
+
+### The actual fix (needs a supervised session)
+
+Get a kid GLB whose arm-bone **orientations** match Unity, then EITHER retarget
+method works unchanged. Blender can't do it. The path is a **Unity-native glTF
+exporter** (`com.unity.cloud.gltfast` / UnityGLTF) that writes the skinned mesh
+straight from Unity, preserving exact bone matrices — no Blender in the loop.
+NOT attempted unattended: installing a package already caused one safe-mode
+incident this session (the Input System trap), so this waits for a session where
+Devon can watch the import.
+
+Everything downstream is ready and will work the moment the rig is right: the
+58-emote bake, `world/js/emotes.js`, the tabbed wheel, the safeguarding
+allowlist. Only the character GLBs need regenerating.
+
+---
+
 ## What works
 
 `world/assets/locomotion.json` — idle, walk, run, sprint, jump, fall, land.
