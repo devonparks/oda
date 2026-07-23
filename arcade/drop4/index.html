@@ -225,6 +225,8 @@ img{max-width:100%}
     </div>
     <h3 class="section-title">Class Leaderboard</h3>
     <div id="leaderboardWrap"><p style="color:var(--text2);font-size:14px;text-align:center;padding:20px">Loading…</p></div>
+    <h3 class="section-title" style="margin-top:26px">Achievements</h3>
+    <div id="achGrid"></div>
     <div style="text-align:center;margin-top:20px"><button class="btn btn-outline btn-small" onclick="D4.goHome()">&larr; Back</button></div>
   </div>
 </div>
@@ -348,6 +350,7 @@ async function loadRecords() {
       ? query(collection(db, GAME_ID + 'Records'), where('classCode', '==', classCode), orderBy('wins', 'desc'), limit(30))
       : query(collection(db, GAME_ID + 'Records'), orderBy('wins', 'desc'), limit(30));
     const snap = await getDocs(q);
+    if (window.odaAchievements) window.odaAchievements.renderGrid('achGrid');
     if (snap.empty) { $('leaderboardWrap').innerHTML = '<p style="color:var(--text2);text-align:center;padding:20px">No records yet — play some games!</p>'; return; }
     let html = '<table class="leaderboard-table"><thead><tr><th>#</th><th>Player</th><th>W</th><th>L</th><th>Streak</th></tr></thead><tbody>';
     let rank = 0;
@@ -407,6 +410,14 @@ function setupPowerBar(pp) {
 async function handleResult(r) {
   const coins = computeCoins(r.result, { difficulty: r.difficulty, streak: localStreak, rewardMultiplier: r.rewardMultiplier });
   if (r.result === 'win') localStreak++; else localStreak = 0;
+  if (window.odaAchievements && r.result === 'win') {
+    window.odaAchievements.unlock('first_win');
+    window.odaAchievements.check('streak_3', localStreak >= 3);
+    window.odaAchievements.check('streak_5', localStreak >= 5);
+    window.odaAchievements.check('hard_win', r.difficulty === 'hard');
+    window.odaAchievements.check('legendary_win', r.difficulty === 'legendary');
+    window.odaAchievements.check('perfect', r.playerMoves <= 7);
+  }
   await awardCoins(coins);
   await updateRecordAfterGame(r.result);
   let careerGrant = 0;
@@ -456,6 +467,23 @@ async function showCareer() {
 
 // expose public API for inline onclick + career.js callbacks
 window.D4 = { showScreen, goHome, startCasual, leaveMatch, toggleSound, showCharacters, showShop, showRecords, showCareer };
+
+// ── achievements ──
+const ACHIEVEMENTS = [
+  { id: 'first_win', name: 'First Win', icon: '🎯', desc: 'Win your first game' },
+  { id: 'streak_3', name: 'On Fire', icon: '🔥', desc: 'Win 3 games in a row' },
+  { id: 'streak_5', name: 'Unstoppable', icon: '⚡', desc: 'Win 5 games in a row' },
+  { id: 'hard_win', name: 'Tough Cookie', icon: '💪', desc: 'Beat the Hard computer' },
+  { id: 'legendary_win', name: 'Legend', icon: '👑', desc: 'Beat the Legendary computer' },
+  { id: 'perfect', name: 'Perfect Drop', icon: '✨', desc: 'Win in 7 moves or fewer' },
+  { id: 'career_10', name: 'Rising Star', icon: '🗺️', desc: 'Clear 10 career levels' },
+  { id: 'career_50', name: 'City Slicker', icon: '🏙️', desc: 'Clear 50 career levels' },
+  { id: 'boss_tommy', name: 'Blacktop King', icon: '🏀', desc: 'Beat Tommy Blacktop' },
+  { id: 'power_bomb', name: 'Demolition', icon: '💣', desc: 'Unlock the Bomb' },
+  { id: 'power_rainbow', name: 'Over the Rainbow', icon: '🌈', desc: 'Unlock the Rainbow' },
+  { id: 'power_heavy', name: 'Heavy Hitter', icon: '⬇️', desc: 'Unlock the Heavy' },
+];
+try { window.odaAchievements && window.odaAchievements.init(GAME_ID, ACHIEVEMENTS); } catch (e) {}
 
 // ── boot ──
 window.odaHelp.init({

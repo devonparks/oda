@@ -95,6 +95,14 @@ async function completeLevel(level, result) {
   progress[id] = { completed: true, stars, bestMoves: Math.min(prev.bestMoves, result.moveCount) };
   saveProgress();
 
+  if (window.odaAchievements) {
+    const cleared = Object.values(progress).filter((p) => p.completed).length;
+    window.odaAchievements.check('career_10', cleared >= 10);
+    window.odaAchievements.check('career_50', cleared >= 50);
+    if (level.settings && level.settings.bossScript === 'tommy') window.odaAchievements.unlock('boss_tommy');
+    if (POWER_UNLOCKS[id]) window.odaAchievements.unlock('power_' + POWER_UNLOCKS[id]);
+  }
+
   let bonusCoins = 0;
   // primary coin reward from the level (coins only; gems already stripped)
   if (level.reward && level.reward.type === 'coins' && level.reward.amount) bonusCoins += level.reward.amount;

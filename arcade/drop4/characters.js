@@ -73,6 +73,7 @@ export async function mountCharacterPicker(container, opts = {}) {
         <canvas id="d4CharStage"></canvas>
         <div class="d4-stage-name" id="d4StageName"></div>
         <div class="d4-stage-status" id="d4StageStatus"></div>
+        <div style="font-size:12px;color:var(--text3);margin-top:6px">🎭 Drag to spin · emotes &amp; idles coming soon</div>
       </div>
       <div class="d4-char-side">
         <div class="d4-char-coins">Coins: <span id="d4CharCoins">—</span> 🪙</div>
