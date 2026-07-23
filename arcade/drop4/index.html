@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Drop 4 - AMG Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/oda-theme.css">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden;user-select:none;
+  background-image:linear-gradient(rgba(63,160,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(63,160,255,.03) 1px,transparent 1px);background-size:60px 60px}
+h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
+img{max-width:100%}
+
+.back-btn{position:fixed;top:14px;left:14px;background:rgba(17,16,43,.85);border:1px solid var(--border);border-radius:12px;padding:8px 16px;color:var(--text2);font-family:'Outfit';font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+.sound-btn{position:fixed;top:14px;right:14px;background:rgba(17,16,43,.85);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;transition:all .2s;backdrop-filter:blur(8px)}
+.sound-btn:hover{border-color:var(--accent)}
+.coin-chip{position:fixed;top:14px;right:60px;background:rgba(17,16,43,.85);border:1px solid var(--border);border-radius:12px;padding:8px 14px;color:var(--gold);font-weight:800;font-size:14px;z-index:100;backdrop-filter:blur(8px)}
+
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+.screen{display:none;width:100%;min-height:100vh;animation:fadeUp .35s ease}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.btn{padding:13px 28px;border:none;border-radius:14px;font-family:'Outfit';font-weight:700;font-size:15px;cursor:pointer;transition:all .15s;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;min-height:44px}
+.btn:active{transform:scale(.96)}
+.btn-accent{background:var(--accent);color:var(--bg)}
+.btn-accent:hover{box-shadow:0 0 24px rgba(31,230,168,.35)}
+.btn-blue{background:var(--accent2);color:#fff}
+.btn-gold{background:var(--gold);color:var(--bg)}
+.btn-red{background:var(--accent3);color:#fff}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+.btn-small{padding:9px 18px;font-size:14px;min-height:38px;border-radius:10px}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px;transition:all .2s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.35)}
+.card-static{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px}
+
+/* HOME */
+#homeScreen{padding:56px 0 40px}
+.home-hero{display:flex;flex-direction:column;align-items:center;margin-bottom:8px}
+.hero-canvas{width:200px;height:220px;cursor:grab}
+.home-header{text-align:center;margin-bottom:24px}
+.home-header h1{font-size:clamp(38px,9vw,58px);font-weight:700;line-height:1}
+.home-header h1 .num{color:var(--accent)}
+.home-header p{color:var(--text2);font-size:15px;margin-top:2px}
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;max-width:720px;width:92%;margin:0 auto}
+.mode-card{cursor:pointer;text-align:center;padding:24px 18px}
+.mode-card .mode-icon{font-size:38px;margin-bottom:10px;display:block}
+.mode-card h3{font-size:18px;margin-bottom:5px}
+.mode-card p{font-size:13px;color:var(--text2);line-height:1.4}
+.mode-card.hero{grid-column:1/-1;background:linear-gradient(120deg,rgba(63,160,255,.14),rgba(168,85,247,.14));border-color:var(--accent2)}
+.quick-stats{display:flex;gap:12px;justify-content:center;margin-top:22px;flex-wrap:wrap}
+.stat-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:8px 15px;font-size:13px;font-weight:600}
+.stat-pill .n{color:var(--accent);font-weight:800}
+
+/* generic centered container */
+.wrap{max-width:640px;width:92%;padding-top:56px;padding-bottom:40px}
+.wrap h2{text-align:center;font-size:28px;margin-bottom:20px}
+.diff-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.diff-card{cursor:pointer;text-align:center;padding:22px 16px}
+.diff-card h3{font-size:20px;margin-bottom:6px}
+.diff-card p{font-size:12px;color:var(--text2)}
+.diff-e h3{color:var(--accent)} .diff-m h3{color:var(--accent2)} .diff-h h3{color:var(--gold)} .diff-l h3{color:var(--accent3)}
+
+/* GAME */
+#gameScreen{padding:0;position:relative;justify-content:center}
+#d4Canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.hud-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;z-index:5;pointer-events:none}
+.hud-top .btn{pointer-events:auto}
+.matchup{display:flex;align-items:center;gap:8px;background:rgba(17,16,43,.7);border:1px solid var(--border);border-radius:24px;padding:5px 14px 5px 5px;backdrop-filter:blur(8px)}
+.matchup img{width:34px;height:34px;border-radius:50%;object-fit:cover;background:var(--surface2);border:1px solid var(--border)}
+.matchup .vs{font-size:12px;color:var(--text3);font-weight:700}
+.matchup .who{font-size:13px;font-weight:700}
+.hud-timer{background:rgba(17,16,43,.7);border:1px solid var(--border);border-radius:16px;padding:6px 14px;font-weight:800;font-size:16px;backdrop-filter:blur(8px);min-width:44px;text-align:center}
+.hud-timer.warn{color:var(--accent3);border-color:var(--accent3)}
+.power-bar{position:absolute;bottom:16px;left:0;right:0;display:flex;gap:10px;justify-content:center;z-index:5}
+.power-btn{background:rgba(17,16,43,.8);border:2px solid var(--border);border-radius:16px;padding:8px 14px;color:var(--text);font-weight:700;font-size:13px;cursor:pointer;backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;gap:2px;min-width:64px}
+.power-btn .pi{font-size:20px}
+.power-btn .pn{font-size:10px;color:var(--text2)}
+.power-btn.armed{border-color:var(--gold);box-shadow:0 0 16px rgba(255,202,69,.4)}
+.power-btn:disabled{opacity:.35;cursor:default}
+
+/* RESULT */
+#resultScreen{padding-top:70px}
+.result-container{text-align:center;max-width:480px;width:92%}
+.result-container h2{font-size:clamp(34px,9vw,52px);margin-bottom:6px}
+.result-sub{font-size:16px;color:var(--text2)}
+.stars{font-size:34px;letter-spacing:6px;margin:10px 0}
+.coins-display{display:inline-flex;align-items:center;gap:8px;font-size:24px;font-weight:800;color:var(--gold);margin:12px 0;font-family:'Fredoka'}
+.result-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+
+/* RECORDS */
+.records-container{max-width:680px;width:92%}
+.my-record-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:8px;margin-bottom:20px}
+.stat-box{text-align:center;padding:12px 10px;background:var(--surface2);border-radius:12px}
+.stat-box .stat-val{font-size:26px;font-weight:900;font-family:'Fredoka'}
+.stat-box .stat-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.leaderboard-table{width:100%;border-collapse:separate;border-spacing:0 6px}
+.leaderboard-table th{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;padding:6px 10px;text-align:left}
+.leaderboard-table td{padding:9px 10px;background:var(--surface);font-size:13px;font-weight:600}
+.leaderboard-table tr td:first-child{border-radius:10px 0 0 10px}.leaderboard-table tr td:last-child{border-radius:0 10px 10px 0}
+.rank-1{color:var(--gold)}.rank-2{color:#c0c0c0}.rank-3{color:#cd7f32}
+.section-title{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin:8px 0 12px}
+
+/* CHARACTERS */
+.d4-char-wrap{display:flex;gap:18px;flex-wrap:wrap;justify-content:center}
+.d4-char-stage{flex:1;min-width:280px;max-width:360px;display:flex;flex-direction:column;align-items:center}
+#d4CharStage{width:100%;height:360px;cursor:grab}
+.d4-stage-name{font-family:'Fredoka';font-size:22px;margin-top:4px}
+.d4-stage-status{font-size:12px;color:var(--text3);min-height:16px}
+.d4-char-side{flex:1;min-width:280px;max-width:380px}
+.d4-char-coins{font-weight:700;color:var(--gold);margin-bottom:10px;text-align:center}
+.d4-char-side .btn{width:100%;margin-bottom:12px}
+.d4-char-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;max-height:340px;overflow-y:auto;padding-right:4px}
+.d4-char-card{background:var(--surface);border:2px solid var(--border);border-radius:12px;padding:6px;text-align:center;cursor:pointer;transition:all .15s}
+.d4-char-card:hover{border-color:var(--accent)}
+.d4-char-card.selected{border-color:var(--accent2)}
+.d4-char-card.equipped{border-color:var(--gold)}
+.d4-char-card img{width:100%;aspect-ratio:1;object-fit:contain;background:var(--surface2);border-radius:8px}
+.d4-cc-name{font-size:10px;font-weight:600;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d4-cc-tag{font-size:10px;font-weight:700;margin-top:1px}
+.d4-cc-tag.free{color:var(--accent)}.d4-cc-tag.owned{color:var(--text3)}.d4-cc-tag.in-use{color:var(--gold)}.d4-cc-tag.coins{color:var(--gold)}
+
+#shopContainer,#careerContainer{width:100%}
+.learn-nudge{text-align:center;font-size:13px;color:var(--text2);margin-top:14px}
+.learn-nudge a{color:var(--accent);font-weight:700;text-decoration:none}
+
+@media(max-width:520px){
+  .mode-grid{grid-template-columns:1fr}
+  .hero-canvas{width:160px;height:180px}
+  #d4CharStage{height:280px}
+}
+</style>
+</head>
+<body>
+
+<a class="back-btn" id="backBtn" href="../../student.html" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();D4.goHome()}">&larr; Back</a>
+<div class="coin-chip" id="coinChip" style="display:none">🪙 <span id="coinChipVal">0</span></div>
+<button class="sound-btn" id="soundBtn" onclick="D4.toggleSound()">🔊</button>
+
+<!-- HOME -->
+<div class="screen active" id="homeScreen">
+  <div class="home-hero"><canvas class="hero-canvas" id="heroCanvas"></canvas></div>
+  <div class="home-header"><h1>Drop<span class="num">4</span></h1><p>Drop, connect, conquer. Learn &amp; earn.</p></div>
+  <div class="mode-grid" id="modeGrid">
+    <div class="card mode-card hero" onclick="D4.showCareer()">
+      <span class="mode-icon">🗺️</span><h3>Career Mode</h3><p>180 levels across 15 cities. Beat the bosses, unlock power pieces &amp; characters.</p>
+    </div>
+    <div class="card mode-card" onclick="D4.showScreen('diffScreen')">
+      <span class="mode-icon">🤖</span><h3>VS Computer</h3><p>Quick match — pick your difficulty</p>
+    </div>
+    <div class="card mode-card" onclick="D4.showCharacters()">
+      <span class="mode-icon">🧑‍🚀</span><h3>Characters</h3><p>Pick your Polygon Kid</p>
+    </div>
+    <div class="card mode-card" onclick="D4.showShop()">
+      <span class="mode-icon">🛍️</span><h3>Shop</h3><p>Boards &amp; piece styles — earned with coins</p>
+    </div>
+    <div class="card mode-card" onclick="D4.showRecords()">
+      <span class="mode-icon">📊</span><h3>Records</h3><p>Your stats &amp; class leaderboard</p>
+    </div>
+  </div>
+  <div class="quick-stats" id="quickStats"></div>
+</div>
+
+<!-- DIFFICULTY -->
+<div class="screen" id="diffScreen">
+  <div class="wrap">
+    <h2>Choose Difficulty</h2>
+    <div class="diff-grid">
+      <div class="card diff-card diff-e" onclick="D4.startCasual('easy')"><h3>Easy</h3><p>Relaxed — great to warm up</p></div>
+      <div class="card diff-card diff-m" onclick="D4.startCasual('medium')"><h3>Medium</h3><p>Thinks a few moves ahead</p></div>
+      <div class="card diff-card diff-h" onclick="D4.startCasual('hard')"><h3>Hard</h3><p>Deep search — tough to beat</p></div>
+      <div class="card diff-card diff-l" onclick="D4.startCasual('legendary')"><h3>Legendary</h3><p>Near-perfect play. Good luck.</p></div>
+    </div>
+    <div style="text-align:center;margin-top:20px"><button class="btn btn-outline btn-small" onclick="D4.goHome()">&larr; Back</button></div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="gameScreen">
+  <canvas id="d4Canvas"></canvas>
+  <div class="hud-top">
+    <button class="btn btn-outline btn-small" onclick="D4.leaveMatch()">&larr; Leave</button>
+    <div class="matchup"><img id="hudP1" alt=""><span class="who" id="hudP1n">You</span><span class="vs">vs</span><span class="who" id="hudOpp">Computer</span></div>
+    <div class="hud-timer" id="hudTimer" style="display:none">–</div>
+  </div>
+  <div class="power-bar" id="powerBar" style="display:none"></div>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="resultScreen">
+  <div class="result-container">
+    <h2 id="resultTitle">You Win!</h2>
+    <p class="result-sub" id="resultSub"></p>
+    <div class="stars" id="resultStars"></div>
+    <div class="coins-display" id="coinsDisplay"></div>
+    <div class="result-actions" id="resultActions"></div>
+  </div>
+</div>
+
+<!-- RECORDS -->
+<div class="screen" id="recordsScreen">
+  <div class="records-container wrap">
+    <h2>Records &amp; Leaderboard</h2>
+    <div class="card-static" style="margin-bottom:20px">
+      <h3 style="font-size:15px;margin-bottom:12px">My Stats</h3>
+      <div class="my-record-stats" id="myRecordStats">
+        <div class="stat-box"><div class="stat-val" style="color:var(--accent)">-</div><div class="stat-label">Wins</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--accent3)">-</div><div class="stat-label">Losses</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--text2)">-</div><div class="stat-label">Draws</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--gold)">-</div><div class="stat-label">Streak</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--accent2)">-</div><div class="stat-label">Best</div></div>
+      </div>
+    </div>
+    <h3 class="section-title">Class Leaderboard</h3>
+    <div id="leaderboardWrap"><p style="color:var(--text2);font-size:14px;text-align:center;padding:20px">Loading…</p></div>
+    <div style="text-align:center;margin-top:20px"><button class="btn btn-outline btn-small" onclick="D4.goHome()">&larr; Back</button></div>
+  </div>
+</div>
+
+<!-- CHARACTERS -->
+<div class="screen" id="charactersScreen">
+  <div class="wrap"><h2>🧑‍🚀 Characters</h2><div id="charactersContainer"></div>
+    <div style="text-align:center;margin-top:20px"><button class="btn btn-outline btn-small" onclick="D4.goHome()">&larr; Back</button></div>
+  </div>
+</div>
+
+<!-- SHOP -->
+<div class="screen" id="shopScreen">
+  <div class="wrap"><h2>🛍️ Shop</h2>
+    <div id="shopContainer"></div>
+    <p class="learn-nudge">Low on coins? <a href="../../student.html">Do an assignment to earn faster →</a></p>
+    <div style="text-align:center;margin-top:20px"><button class="btn btn-outline btn-small" onclick="D4.goHome()">&larr; Back</button></div>
+  </div>
+</div>
+
+<!-- CAREER -->
+<div class="screen" id="careerScreen">
+  <div class="wrap" style="max-width:900px"><h2>🗺️ Career</h2><div id="careerContainer"><p style="text-align:center;color:var(--text2)">Loading career…</p></div>
+    <div style="text-align:center;margin-top:20px"><button class="btn btn-outline btn-small" onclick="D4.goHome()">&larr; Back</button></div>
+  </div>
+</div>
+
+<script src="../../js/oda-core.js"></script>
+<script type="module">
+import { createMatch } from './game.js';
+import { computeCoins, mountShop, getEquippedTheme, getEquippedPieceSkin } from './shop.js';
+import { mountCharacterPicker, mountHeroCharacter, getEquippedCharacterId, thumbFor } from './characters.js';
+
+import { initializeApp, getApp } from 'https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js';
+import { getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, increment, collection, query, where, orderBy, limit } from 'https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'https://www.gstatic.com/firebasejs/11.8.1/firebase-app-check.js';
+
+const cfg = ODA_CONFIG.firebase;
+let app; try { app = getApp(); } catch (e) { app = initializeApp(cfg); }
+try { initializeAppCheck(app, { provider: new ReCaptchaV3Provider('6LcZII0sAAAAAEhbfDWiwP4-l9DTJIQOwFa2CzD_'), isTokenAutoRefreshEnabled: true }); } catch (e) {}
+const db = getFirestore(app);
+
+// gameId stays 'connect4' — this REPLACES the connect4 tile, so existing
+// connect4 records/cosmetics/coins carry through. Folder is drop4/.
+const GAME_ID = 'connect4';
+const studentId = localStorage.getItem('studentId') || 'anon_' + Math.random().toString(36).slice(2, 8);
+const studentName = localStorage.getItem('studentName') || 'Player';
+const classCode = localStorage.getItem('classCode') || '';
+const isGuest = studentId.startsWith('anon_');
+
+let localStreak = 0;      // session win streak for coin bonus
+let match = null;         // active match controller
+let currentCareer = null; // active career level, if any
+
+const $ = (id) => document.getElementById(id);
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
+  $(id).classList.add('active');
+  document.body.style.overflow = id === 'gameScreen' ? 'hidden' : '';
+}
+
+// ── sound toggle ──
+function toggleSound() { const on = window.odaSfx.toggle(); $('soundBtn').textContent = on ? '🔊' : '🔇'; }
+$('soundBtn').textContent = window.odaSfx.isEnabled() ? '🔊' : '🔇';
+(function () { const b = $('backBtn'); b.href = (localStorage.getItem('userRole') === 'teacher' || localStorage.getItem('odaUserRole') === 'teacher') ? '../../teacher.html#arcade' : '../../student.html'; })();
+
+// ── coins ──
+async function awardCoins(coins) {
+  if (!coins || isGuest) return;
+  try { await updateDoc(doc(db, 'students', studentId), { coins: increment(coins) }); } catch (e) { console.warn('coin award', e); }
+}
+async function refreshCoinChip() {
+  if (isGuest) return;
+  try { const s = await getDoc(doc(db, 'students', studentId)); if (s.exists()) { $('coinChipVal').textContent = (s.data().coins || 0).toLocaleString(); $('coinChip').style.display = ''; } } catch (e) {}
+}
+
+// ── records (schema shared with the legacy connect4 tile) ──
+async function ensureRecord() {
+  const ref = doc(db, GAME_ID + 'Records', studentId);
+  const s = await getDoc(ref);
+  if (!s.exists()) await setDoc(ref, { studentId, studentName, classCode, wins: 0, losses: 0, draws: 0, gamesPlayed: 0, winStreak: 0, bestStreak: 0, lastPlayed: new Date().toISOString() });
+}
+async function updateRecordAfterGame(result) {
+  if (isGuest) return;
+  try {
+    await ensureRecord();
+    const ref = doc(db, GAME_ID + 'Records', studentId);
+    if (result === 'win') {
+      const s = await getDoc(ref); const d = s.data();
+      const ns = (d.winStreak || 0) + 1;
+      await updateDoc(ref, { wins: increment(1), gamesPlayed: increment(1), winStreak: ns, bestStreak: Math.max(ns, d.bestStreak || 0), lastPlayed: new Date().toISOString() });
+    } else if (result === 'loss') {
+      await updateDoc(ref, { losses: increment(1), gamesPlayed: increment(1), winStreak: 0, lastPlayed: new Date().toISOString() });
+    } else {
+      await updateDoc(ref, { draws: increment(1), gamesPlayed: increment(1), lastPlayed: new Date().toISOString() });
+    }
+  } catch (e) { console.warn('record', e); }
+}
+async function loadQuickStats() {
+  if (isGuest) { $('quickStats').innerHTML = '<div class="stat-pill">Sign in on the hub to save progress</div>'; return; }
+  try {
+    const s = await getDoc(doc(db, GAME_ID + 'Records', studentId));
+    if (s.exists()) { const d = s.data(); $('quickStats').innerHTML =
+      `<div class="stat-pill"><span>Wins</span><span class="n">${d.wins || 0}</span></div>
+       <div class="stat-pill"><span>Streak</span><span class="n">${d.winStreak || 0}</span></div>
+       <div class="stat-pill"><span>Best</span><span class="n">${d.bestStreak || 0}</span></div>`; }
+  } catch (e) {}
+}
+async function loadRecords() {
+  if (!isGuest) {
+    try { const s = await getDoc(doc(db, GAME_ID + 'Records', studentId)); if (s.exists()) { const r = s.data();
+      $('myRecordStats').innerHTML =
+      `<div class="stat-box"><div class="stat-val" style="color:var(--accent)">${r.wins || 0}</div><div class="stat-label">Wins</div></div>
+       <div class="stat-box"><div class="stat-val" style="color:var(--accent3)">${r.losses || 0}</div><div class="stat-label">Losses</div></div>
+       <div class="stat-box"><div class="stat-val" style="color:var(--text2)">${r.draws || 0}</div><div class="stat-label">Draws</div></div>
+       <div class="stat-box"><div class="stat-val" style="color:var(--gold)">${r.winStreak || 0}</div><div class="stat-label">Streak</div></div>
+       <div class="stat-box"><div class="stat-val" style="color:var(--accent2)">${r.bestStreak || 0}</div><div class="stat-label">Best</div></div>`; } } catch (e) {}
+  }
+  try {
+    const q = classCode
+      ? query(collection(db, GAME_ID + 'Records'), where('classCode', '==', classCode), orderBy('wins', 'desc'), limit(30))
+      : query(collection(db, GAME_ID + 'Records'), orderBy('wins', 'desc'), limit(30));
+    const snap = await getDocs(q);
+    if (snap.empty) { $('leaderboardWrap').innerHTML = '<p style="color:var(--text2);text-align:center;padding:20px">No records yet — play some games!</p>'; return; }
+    let html = '<table class="leaderboard-table"><thead><tr><th>#</th><th>Player</th><th>W</th><th>L</th><th>Streak</th></tr></thead><tbody>';
+    let rank = 0;
+    snap.forEach((d) => { rank++; const r = d.data(); const rc = rank <= 3 ? `rank-${rank}` : '';
+      const me = d.id === studentId ? 'style="background:rgba(31,230,168,.08)"' : '';
+      html += `<tr ${me}><td class="${rc}" style="font-weight:800">${rank}</td><td>${esc(r.studentName || 'Unknown')}</td><td style="color:var(--accent);font-weight:800">${r.wins || 0}</td><td>${r.losses || 0}</td><td style="color:var(--gold)">${r.bestStreak || 0}</td></tr>`; });
+    $('leaderboardWrap').innerHTML = html + '</tbody></table>';
+  } catch (e) { $('leaderboardWrap').innerHTML = '<p style="color:var(--text2);text-align:center;padding:20px">Could not load leaderboard.</p>'; }
+}
+
+// ── match lifecycle ──
+function startMatch(opts, careerLevel) {
+  currentCareer = careerLevel || null;
+  const canvas = $('d4Canvas');
+  if (match) match.destroy();
+  $('hudP1').src = thumbFor(getEquippedCharacterId());
+  $('hudP1n').textContent = studentName;
+  $('hudOpp').textContent = opts.opponentName || 'Computer';
+  showScreen('gameScreen');
+  const full = Object.assign({
+    theme: getEquippedTheme(GAME_ID), pieceSkinId: getEquippedPieceSkin(GAME_ID), opponentSkinId: 'classic',
+    sfx: window.odaSfx, onResult: handleResult, onState: updateHud,
+  }, opts);
+  // fit canvas to element after layout
+  requestAnimationFrame(() => { match = createMatch(canvas, full); setupPowerBar(full.powerPieces); match.start(); });
+}
+
+function updateHud(st) {
+  if (st.turnTimer && document.querySelector('.hud-timer')) {
+    const el = $('hudTimer');
+    if (currentCareer && currentCareer.settings && currentCareer.settings.timerSeconds) { el.style.display = ''; el.textContent = st.turnTimer; el.classList.toggle('warn', st.turnTimer <= 5); }
+  }
+  // power buttons armed state
+  document.querySelectorAll('.power-btn').forEach((b) => {
+    const k = b.dataset.kind;
+    b.classList.toggle('armed', st.armed === k);
+    b.disabled = st.ammo[k] <= 0 || st.currentPlayer !== 1 || st.status !== 'playing' || st.isAiThinking;
+    b.querySelector('.pn').textContent = st.ammo[k] > 0 ? 'x' + st.ammo[k] : 'used';
+  });
+}
+
+function setupPowerBar(pp) {
+  const bar = $('powerBar');
+  if (!pp || (!pp.bomb && !pp.rainbow && !pp.heavy)) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  bar.style.display = ''; bar.innerHTML = '';
+  const defs = [['bomb', '💣', 'Bomb'], ['rainbow', '🌈', 'Rainbow'], ['heavy', '⬇️', 'Heavy']];
+  defs.forEach(([kind, icon, name]) => {
+    if (!pp[kind]) return;
+    const b = document.createElement('button');
+    b.className = 'power-btn'; b.dataset.kind = kind;
+    b.innerHTML = `<span class="pi">${icon}</span><span>${name}</span><span class="pn">x1</span>`;
+    b.onclick = () => match && match.armPower(kind);
+    bar.appendChild(b);
+  });
+}
+
+async function handleResult(r) {
+  const coins = computeCoins(r.result, { difficulty: r.difficulty, streak: localStreak, rewardMultiplier: r.rewardMultiplier });
+  if (r.result === 'win') localStreak++; else localStreak = 0;
+  await awardCoins(coins);
+  await updateRecordAfterGame(r.result);
+  let careerGrant = 0;
+  if (currentCareer && window.__careerComplete) { careerGrant = await window.__careerComplete(currentCareer, r); }
+  showResult(r, coins + careerGrant);
+  refreshCoinChip();
+}
+
+function showResult(r, coins) {
+  const win = r.result === 'win', draw = r.result === 'draw';
+  $('resultTitle').textContent = win ? 'You Win!' : draw ? 'Draw!' : 'You Lost';
+  $('resultTitle').style.color = win ? 'var(--accent)' : draw ? 'var(--gold)' : 'var(--accent3)';
+  $('resultSub').textContent = win ? (r.playerMoves + ' moves') : draw ? 'The board filled up' : 'Good effort — try again!';
+  $('resultStars').textContent = win && r.stars ? '⭐'.repeat(r.stars) + '☆'.repeat(3 - r.stars) : '';
+  $('coinsDisplay').innerHTML = coins > 0 ? `+${coins} 🪙` : '';
+  const acts = $('resultActions'); acts.innerHTML = '';
+  const again = document.createElement('button'); again.className = 'btn btn-accent';
+  if (currentCareer && win && window.__careerNext && window.__careerNext(currentCareer)) { again.textContent = 'Next Level →'; again.onclick = () => window.__careerPlay(window.__careerNext(currentCareer)); }
+  else if (currentCareer) { again.textContent = win ? 'Career Map' : 'Retry Level'; again.onclick = () => (win ? showCareer() : window.__careerPlay(currentCareer)); }
+  else { again.textContent = 'Play Again'; again.onclick = () => startMatch(lastCasual); }
+  const home = document.createElement('button'); home.className = 'btn btn-outline'; home.textContent = 'Home'; home.onclick = goHome;
+  acts.appendChild(again); acts.appendChild(home);
+  showScreen('resultScreen');
+  if (win) { try { window.odaWinEffect && window.odaWinEffect('stars'); } catch (e) {} }
+}
+
+let lastCasual = null;
+function startCasual(difficulty) {
+  lastCasual = { difficulty, opponentName: 'Computer', powerPieces: { bomb: false, rainbow: false, heavy: false } };
+  startMatch(lastCasual);
+}
+
+function leaveMatch() { if (match) { match.destroy(); match = null; } goHome(); }
+function goHome() { if (match) { match.destroy(); match = null; } currentCareer = null; showScreen('homeScreen'); loadQuickStats(); refreshCoinChip(); }
+
+// ── screen entries ──
+let heroViewer = null;
+async function mountHero() { try { if (heroViewer) heroViewer.dispose(); heroViewer = await mountHeroCharacter($('heroCanvas')); } catch (e) {} }
+function showCharacters() { showScreen('charactersScreen'); mountCharacterPicker($('charactersContainer'), { onEquip: () => { mountHero(); refreshCoinChip(); } }); }
+function showShop() { showScreen('shopScreen'); mountShop(GAME_ID, 'shopContainer', { onEquip: refreshCoinChip, onBuy: refreshCoinChip }); }
+function showRecords() { showScreen('recordsScreen'); loadRecords(); }
+async function showCareer() {
+  showScreen('careerScreen');
+  const m = await import('./career.js');
+  m.mountCareer($('careerContainer'), { startMatch, GAME_ID, db, studentId, isGuest });
+}
+
+// expose public API for inline onclick + career.js callbacks
+window.D4 = { showScreen, goHome, startCasual, leaveMatch, toggleSound, showCharacters, showShop, showRecords, showCareer };
+
+// ── boot ──
+window.odaHelp.init({
+  title: 'Drop 4', emoji: '🔴', subtitle: 'Drop, connect, conquer!',
+  sections: [
+    { title: 'How to Play', icon: '📖', items: ['Tap a column to drop your piece', 'Connect 4 in a row — across, up, or diagonal', 'Block the computer from connecting 4 first!'] },
+    { title: 'Career Mode', icon: '🗺️', items: ['180 levels across 15 cities', 'Beat city bosses to unlock power pieces', 'Earn coins to unlock characters, boards & piece styles'] },
+    { title: 'Learn & Earn', icon: '🪙', items: ['Win matches to earn coins', 'Complete assignments in the hub to earn coins faster', 'Spend coins on characters and cosmetics — never real money'] },
+  ],
+  controls: [{ key: 'Tap', action: 'Drop a piece in that column' }],
+  tip: '<strong>Control the center!</strong> The middle columns give the most ways to win.',
+});
+
+mountHero();
+loadQuickStats();
+refreshCoinChip();
+</script>
+</body>
+</html>
