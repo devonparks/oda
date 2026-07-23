@@ -21,6 +21,7 @@ export const WORLD_ACHIEVEMENTS = [
   { id: 'showoff',    name: 'Show-off',     icon: '\u{1F31F}', desc: 'Try every emote at least once' },
   { id: 'wanderer',   name: 'Wanderer',     icon: '\u{1F45F}', desc: 'Walk 500 metres in the park' },
   { id: 'thrillride', name: 'Thrill Ride',  icon: '\u{1F3A0}', desc: 'Take a coin ride' },
+  { id: 'starHunter', name: 'Star Hunter',  icon: '⭐', desc: 'Find all 5 hidden stars' },
 ];
 
 const LS = {
@@ -101,6 +102,19 @@ export class WorldProgress {
   activity(id) {
     if (id === 'coinride') this.ach?.unlock('thrillride');
   }
+
+  /** @returns true if this was the 5th (final) star */
+  foundStar(index, total) {
+    const found = new Set(this._arr('amgw_stars'));
+    if (found.has(index)) return false;
+    found.add(index);
+    localStorage.setItem('amgw_stars', JSON.stringify([...found]));
+    const done = found.size >= total;
+    if (done) this.ach?.unlock('starHunter');
+    return { count: found.size, done };
+  }
+
+  starsFound() { return this._arr('amgw_stars'); }
 
   progress() {
     return this.ach ? this.ach.progress() : { unlocked: 0, total: WORLD_ACHIEVEMENTS.length };

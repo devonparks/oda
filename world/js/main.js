@@ -22,6 +22,7 @@ import { ZONES, ACTIVITIES, SPAWN, nearestZone, gamesForZone } from './zones.js'
 import { NpcCrowd } from './npc.js';
 import { Ambience } from './ambience.js';
 import { WorldProgress } from './achievements.js';
+import { StarHunt } from './stars.js';
 
 const LS = {
   char: 'amgWorldChar',
@@ -226,6 +227,7 @@ async function enterWorld() {
   $('hud').classList.remove('hidden');
   state.progress = new WorldProgress(EMOTE_IDS.length);
   state.progress.init();
+  state.stars = new StarHunt(world, state.progress);
   toast(`Welcome to Recess Park, ${state.name}!`);
   maybeOnboard();
   setTimeout(dailyBonus, 2600);   // after the welcome toast + any coach
@@ -235,6 +237,7 @@ async function enterWorld() {
     state.presence?.disconnect();
     state.npcs?.dispose();
     state.ambience?.dispose();
+    state.stars?.dispose();
   });
   requestAnimationFrame(loop);
 }
@@ -307,6 +310,12 @@ function loop() {
   const got = world.collectCoins(player.pos.x, player.pos.z, player.pos.y);
   if (got.length) coinCombo(got.length);
 
+  // hidden star hunt
+  if (state.stars && !state.paused) {
+    const star = state.stars.update(dt, t, player.pos);
+    if (star) onStarFound(star);
+  }
+
   // proximity prompt
   updateZonePrompt();
 
@@ -347,6 +356,19 @@ function dailyBonus() {
   const streakLine = streak > 1 ? ` · ${streak}-day streak!` : '';
   bannerReward(`\u{1F381} Daily Bonus +${bonus}${streakLine}`);
   if (window.odaCelebrate) window.odaCelebrate('confetti');
+}
+
+/** Feedback when a hidden star is collected. */
+function onStarFound(res) {
+  window.odaSfx && window.odaSfx.play('powerup');
+  if (res.done) {
+    awardCoins(50, true);
+    bannerReward('⭐ All 5 stars found! +50');
+    if (window.odaCelebrate) window.odaCelebrate('fireworks');
+  } else {
+    awardCoins(5, true);
+    bannerReward(`⭐ Star ${res.count}/5 found! +5`);
+  }
 }
 
 /** A centered one-shot reward banner (bigger than a toast) for daily/milestone moments. */
