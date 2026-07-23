@@ -749,7 +749,7 @@ function finishGame(won){
   // Update local stats
   localGames++;localStorage.setItem('floodfill_games',localGames);
   if(won){localWins++;localStorage.setItem('floodfill_wins',localWins)}
-  if(isNewBest){localStorage.setItem(bestKey,movesUsed)}
+  if(isNewBest){localStorage.setItem(bestKey,movesUsed);if(window.odaWinEffect)odaWinEffect()}
 
   // Coins
   var coins=0;
@@ -927,6 +927,26 @@ window.addEventListener('resize',function(){
     renderGrid();
     renderColorButtons();
   }
+});
+
+/* HELP */
+if(typeof odaHelp!=='undefined')odaHelp.init({
+  title:'Flood Fill', emoji:'\u{1F3A8}', subtitle:'Fill the whole board in as few moves as you can',
+  sections:[
+    {title:'How to play', icon:'\u{1F4D6}', items:[
+      'The board starts as a grid of coloured squares',
+      'Your area begins at the TOP-LEFT corner',
+      'Pick a colour and your whole area changes to it',
+      'Any matching squares touching your area join it',
+      'Keep going until the entire board is one colour']},
+    {title:'Strategy', icon:'\u{1F9E0}', items:[
+      'Look for the colour that touches the MOST of your border',
+      'Grabbing a big region early beats chasing single squares',
+      'Watch the far corner — plan a route toward it',
+      'Fewer moves = more coins']}
+  ],
+  controls:[{key:'Click / tap',action:'Pick a colour'}],
+  tip:'<strong>Go wide before you go deep.</strong> Growing your border gives you more options on every later move.'
 });
 </script>
 </body>

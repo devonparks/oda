@@ -97,12 +97,24 @@ local currency for in-game upgrades is fine; earning *nothing* shared is not.
 
 **P0 remaining:** none.
 
-**Win effects — the audit's biggest single ecosystem win — are now wired.** The
-shop sold 8 of them and not one game rendered any. `odaWinEffect()` is called on
-a new personal best in: whackamole, stacktower, simonsays, numbermemory, flappy,
-mathsprint, lightsout, suika (plus tetris, bowling, racers, retrobowl, which got
-it with their P0 upgrades). Remaining candidates with a less obvious record
-path: snake, 2048, memory.
+**Win effects — CORRECTION to the original audit.** The audit claimed the shop's
+8 win effects "never render in any game". That is **not true**, and it was worth
+checking before acting on it: 39 of 48 games already render the player's
+equipped effect, most of them through `odaCelebrate(myCosmetics.winEffect...)`
+or `odaShop.getEquipped(gameId,'winEffect')` rather than through
+`odaPlayEquippedWinEffect`. Grepping for only the latter is what produced the
+false alarm.
+
+The genuine gap was **9 games with no celebration at all**, now fixed:
+basketball, dominoes, minesweeper, penaltykick, pingpong, war (plus coinminer,
+lemonade and slidingpuzzle which have no natural win moment — an idler, a sim
+and a solo puzzle). `odaWinEffect()` also went into the personal-best path of
+aimtrainer, brickbreaker, colormatch, dodgeball, doodlejump, floodfill,
+fruitninja, helicopter, reaction, sudoku and wordscramble.
+
+**Lesson for future audits:** the same false negative hit the coin check —
+lemonade looked like it paid nothing because it imports `increment` directly
+instead of using `awardCoins`. Check for the BEHAVIOUR, not one spelling of it.
 
 **Achievements duplication (known, deferred):** 28 games hand-roll their own
 `checkAchievements` against a per-game `*Records` collection. `odaAchievements`

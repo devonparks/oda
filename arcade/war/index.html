@@ -873,6 +873,7 @@ function finishGame(){
   var draw=pCount===cCount;
 
   if(won)sfxGameWin();else sfxGameLose();
+  if(won&&window.odaWinEffect)odaWinEffect();
 
   // Update local stats
   localGames++;localStorage.setItem('war_games',localGames);
@@ -1025,6 +1026,25 @@ document.addEventListener('keydown',function(e){
     if(snap.exists())achState=snap.data().achievements||{};
   }catch(e){}
 })();
+
+/* HELP */
+if(typeof odaHelp!=='undefined')odaHelp.init({
+  title:'War', emoji:'\u{1F0CF}', subtitle:'Highest card takes the pile',
+  sections:[
+    {title:'How to play', icon:'\u{1F4D6}', items:[
+      'The deck is split evenly between you and the CPU',
+      'Each round you both flip your top card',
+      'The higher card wins both cards',
+      'Whoever collects the most cards wins the game']},
+    {title:'War!', icon:'\u2694\uFE0F', items:[
+      'If both cards match, it is WAR',
+      'Each side lays cards face down, then flips one more',
+      'The higher of those takes the whole pile — which can be huge',
+      'A single war can swing the entire game']}
+  ],
+  controls:[{key:'Click / tap',action:'Flip the next card'}],
+  tip:'<strong>It is pure luck — and that is the fun.</strong> Nothing you do changes the odds, so enjoy the swings.'
+});
 </script>
 </body>
 </html>
