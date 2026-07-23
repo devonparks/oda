@@ -205,6 +205,8 @@ async function enterWorld() {
   window.__world = {
     state, world, THREE,
     tp: (x, z) => { player.pos.set(x, 6, z); player.vel.y = 0; },
+    combo: (n) => coinCombo(n),
+    resetCombo: () => { comboCount = 0; comboExpire = 0; },
     stats: () => ({
       drawCalls: world.renderer.info.render.calls,
       tris: world.renderer.info.render.triangles,
@@ -302,7 +304,7 @@ function loop() {
 
   // coins
   const got = world.collectCoins(player.pos.x, player.pos.z, player.pos.y);
-  if (got.length) { awardCoins(got.length); sfx('coin'); state.progress?.addCoins(got.length); }
+  if (got.length) coinCombo(got.length);
 
   // proximity prompt
   updateZonePrompt();
@@ -561,6 +563,57 @@ function awardCoins(n, silent) {
   clearTimeout(flushTimer);
   flushTimer = setTimeout(flushCoins, 2500);
 }
+
+/**
+ * Coin combo. Coins are still worth 1 each — the economy stays honest — but
+ * grabbing them in quick succession builds a streak with rising pitch and a
+ * growing on-screen counter, and hitting a milestone (every 5) drops a small
+ * bonus. Pure juice on the world's most common action, with a bounded payout so
+ * it can't be farmed (30 coins per lap, 90s respawn).
+ */
+let comboCount = 0, comboExpire = 0;
+const COMBO_WINDOW = 2800;
+function coinCombo(n) {
+  const now = performance.now();
+  comboCount = now < comboExpire ? comboCount + n : n;
+  comboExpire = now + COMBO_WINDOW;
+
+  awardCoins(n, true);                 // base coins, silent (the combo IS the feedback)
+  state.progress?.addCoins(n);
+
+  // rising pitch with the streak, capped so it never gets shrill
+  const step = Math.min(comboCount, 12);
+  window.odaSfx && window.odaSfx.tone(880 + step * 70, 0.09, 'square', 0.11);
+  if (comboCount >= 2) window.odaSfx && window.odaSfx.tone(1180 + step * 90, 0.08, 'square', 0.08, 0.05);
+
+  showCombo(comboCount);
+
+  // milestone bonus + celebration
+  if (comboCount % 5 === 0) {
+    const bonus = Math.min(2 + (comboCount / 5 - 1) * 3, 12);
+    awardCoins(bonus, false);          // this one toasts "+N coins"
+    window.odaSfx && window.odaSfx.play('combo');
+    if (comboCount >= 10 && window.odaCelebrate) window.odaCelebrate('confetti');
+  }
+}
+
+let comboEl = null, comboHideT = 0;
+function showCombo(count) {
+  if (!comboEl) {
+    comboEl = document.createElement('div');
+    comboEl.className = 'coin-combo';
+    $('hud').appendChild(comboEl);
+  }
+  comboEl.textContent = count > 1 ? `\u{1FA99} x${count}` : '\u{1FA99}';
+  if (window.amgEmojiParse) window.amgEmojiParse(comboEl);
+  // retrigger the pop animation
+  comboEl.classList.remove('pop'); void comboEl.offsetWidth; comboEl.classList.add('pop');
+  comboEl.style.setProperty('--combo-scale', String(1 + Math.min(count, 12) * 0.06));
+  clearTimeout(comboHideT);
+  comboHideT = setTimeout(() => { comboEl && comboEl.classList.remove('pop', 'show'); }, COMBO_WINDOW);
+  comboEl.classList.add('show');
+}
+
 
 async function flushCoins() {
   const delta = pendingCoins;
