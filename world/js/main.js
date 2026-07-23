@@ -228,6 +228,7 @@ async function enterWorld() {
   state.progress.init();
   toast(`Welcome to Recess Park, ${state.name}!`);
   maybeOnboard();
+  setTimeout(dailyBonus, 2600);   // after the welcome toast + any coach
 
   window.addEventListener('beforeunload', () => {
     saveP0s();
@@ -321,6 +322,44 @@ function loop() {
  * Audio. The world uses the shared odaSfx from oda-core, so it honours the same
  * mute toggle as every arcade game and adds no files to the download.
  */
+/**
+ * Daily park bonus. First visit of a new day drops bonus coins that grow with a
+ * consecutive-day streak (reset if a day is missed) — a gentle reason to open
+ * the world every day, on top of the coins you find. Bounded and coin-only, so
+ * it's a nudge, not a grind. Persisted in localStorage, keyed per day.
+ */
+function dailyBonus() {
+  const today = new Date().toISOString().slice(0, 10);   // YYYY-MM-DD, local enough for a daily gate
+  const last = localStorage.getItem('amgw_last_visit');
+  if (last === today) return;                            // already claimed today
+
+  // streak: +1 if yesterday, else reset to 1
+  let streak = parseInt(localStorage.getItem('amgw_visit_streak') || '0', 10) || 0;
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  streak = last === yesterday ? streak + 1 : 1;
+
+  const bonus = Math.min(10 + (streak - 1) * 5, 40);
+  localStorage.setItem('amgw_last_visit', today);
+  localStorage.setItem('amgw_visit_streak', String(streak));
+
+  awardCoins(bonus, true);
+  window.odaSfx && window.odaSfx.play('levelup');
+  const streakLine = streak > 1 ? ` · ${streak}-day streak!` : '';
+  bannerReward(`\u{1F381} Daily Bonus +${bonus}${streakLine}`);
+  if (window.odaCelebrate) window.odaCelebrate('confetti');
+}
+
+/** A centered one-shot reward banner (bigger than a toast) for daily/milestone moments. */
+function bannerReward(html) {
+  const el = document.createElement('div');
+  el.className = 'reward-banner';
+  el.innerHTML = html;
+  $('hud').appendChild(el);
+  if (window.amgEmojiParse) window.amgEmojiParse(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 400); }, 3600);
+}
+
 function sfx(name) { window.odaSfx && window.odaSfx.play(name); }
 
 // ---------------------------------------------------------------------------
