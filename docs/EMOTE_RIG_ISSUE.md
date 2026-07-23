@@ -74,6 +74,54 @@ rotations at all — it's in the arm chain's **bone offsets**. The two rigs put
 the elbow and wrist in different places relative to the shoulder, so even a
 perfect rotation transfer produces a different hand position.
 
+## Progress: the rig re-export works
+
+`tools/world/rig_to_glb.py` plus Unity's FBX Exporter (already installed,
+`com.unity.formats.fbx` 5.1.6) produces a kid GLB whose bind pose matches Unity
+**exactly**:
+
+| | Hand_R | Hand_L | Head | Shoulder_R |
+|---|---|---|---|---|
+| Unity bind | 0.868 | 0.868 | 1.001 | 0.871 |
+| re-exported GLB | **0.868** | **0.868** | **1.001** | **0.871** |
+| GLB that ships today | 0.600 | 0.600 | 1.001 | — |
+
+387 KB, 42 joints, 4 parts, textures rebound and the atlas downscaled to 512.
+So the blocker identified above is solved: a rig whose rest matches the clips
+now exists and can be built for all 16 characters.
+
+## What's still unresolved
+
+The Blender FBX→GLB round trip rotates bone LOCAL frames by ~90° (Blender's
+bones point along their own +Y), even though world positions match. So the
+transfer still needs a per-bone axis correction — but now, with the binds
+agreeing, that correction is a genuine axis-only rotation rather than the
+polluted 103° it used to be.
+
+**The combination that has NOT been tried yet is the obvious one:** re-bake the
+deltas against Unity's **BIND** pose (the original bake did this; it was later
+overwritten with an idle-referenced bake) and run those on the **new** rig, with
+`c_b` solved bind-to-bind. Every previous test mixed one old element with one
+new one:
+
+| bake reference | rig | result |
+|---|---|---|
+| bind | old (arms down) | 8/58 — arms in the air |
+| idle | old | 11/58 |
+| idle | new, no correction | 25/58 within 12 cm |
+| idle→bind converted arithmetically | new, bind-to-bind correction | 3/58 |
+| **bind** | **new** | **untried — do this first** |
+
+Unity's editor process died partway through exporting the 16 characters (4 of
+16 landed as binary FBX, in `_unity_export/rig/`), so the bind re-bake needs
+Unity restarted.
+
+A caution learned the hard way: the hand-height metric in
+`world/assets/emotes/_truth.json` is only good for RELATIVE comparison. The old
+rig differed from Unity by 8 cm at rest in the arm chain, which is baked into
+every number. Judge the result on screen, not on the metric — several times the
+metric and the screenshot disagreed, and the screenshot was right.
+
 ## The fix
 
 **Re-export the kid characters from Unity so their rest pose matches the rig the
