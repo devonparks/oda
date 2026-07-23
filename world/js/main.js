@@ -222,6 +222,7 @@ async function enterWorld() {
   $('loading').classList.add('hidden');
   $('hud').classList.remove('hidden');
   toast(`Welcome to Recess Park, ${state.name}!`);
+  maybeOnboard();
 
   window.addEventListener('beforeunload', () => {
     saveP0s();
@@ -315,6 +316,63 @@ function loop() {
  * mute toggle as every arcade game and adds no files to the download.
  */
 function sfx(name) { window.odaSfx && window.odaSfx.play(name); }
+
+// ---------------------------------------------------------------------------
+// first-run onboarding
+// ---------------------------------------------------------------------------
+/**
+ * A new kid drops into a 3D park with no idea what to do. This is a light,
+ * once-only coach that teaches the loop: move → coins → zones → express. It
+ * never blocks play (you can walk while it's up), it's touch/keyboard aware,
+ * and it's skippable. Shown once, remembered in localStorage.
+ */
+function maybeOnboard() {
+  if (localStorage.getItem('amgWorldOnboarded') === '1') return;
+  const touch = matchMedia('(pointer: coarse)').matches;
+  const steps = [
+    { icon: '🕹️', text: touch
+        ? 'Hold the <b>left side</b> of the screen to walk — or just tap where you want to go.'
+        : 'Move with <b>W A S D</b> or the arrow keys. Hold <b>Shift</b> to run.' },
+    { icon: '🪙', text: 'Grab the <b>gold coins</b> around the park — they go straight to your AMG Hub balance.' },
+    { icon: '🎮', text: touch
+        ? 'Walk into a <b>glowing ring</b> and tap it to jump into games.'
+        : 'Walk into a <b>glowing ring</b> and press <b>E</b> to jump into games.' },
+    { icon: '😀', text: 'Tap the <b>😀 button</b> (or press <b>Q</b>) to wave, dance and more. Have fun!' },
+  ];
+
+  const card = document.createElement('div');
+  card.className = 'coach';
+  card.innerHTML = `
+    <button class="coach-skip" aria-label="Skip">Skip</button>
+    <div class="coach-icon"></div>
+    <div class="coach-text"></div>
+    <div class="coach-row">
+      <div class="coach-dots"></div>
+      <button class="coach-next"></button>
+    </div>`;
+  $('hud').appendChild(card);
+
+  let i = 0;
+  const render = () => {
+    card.querySelector('.coach-icon').textContent = steps[i].icon;
+    card.querySelector('.coach-text').innerHTML = steps[i].text;
+    card.querySelector('.coach-next').textContent = i === steps.length - 1 ? "Let's go!" : 'Next ›';
+    card.querySelector('.coach-dots').innerHTML =
+      steps.map((_, k) => `<span class="${k === i ? 'on' : ''}"></span>`).join('');
+    if (window.amgEmojiParse) window.amgEmojiParse(card);
+  };
+  const finish = () => {
+    localStorage.setItem('amgWorldOnboarded', '1');
+    card.classList.add('coach-out');
+    setTimeout(() => card.remove(), 300);
+  };
+  card.querySelector('.coach-next').onclick = () => { sfx('click'); if (i < steps.length - 1) { i++; render(); } else finish(); };
+  card.querySelector('.coach-skip').onclick = () => { sfx('click'); finish(); };
+  render();
+  // let the welcome toast breathe first
+  card.style.opacity = '0';
+  setTimeout(() => { card.style.opacity = ''; card.classList.add('coach-in'); }, 1400);
+}
 
 /**
  * A footstep on each half of the walk cycle. Driven off the rig's phase rather
