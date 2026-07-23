@@ -82,9 +82,15 @@ frames somewhere past ~200 draw calls.
 | Avatars | ~4 each (body, hood, eyes, face), capped at the 24 nearest players |
 | Download | 1.34 MB park + 417 KB props + ~400 KB character + 127 KB locomotion. **No textures at all** — the Synty atlas is baked into vertex colours. |
 
-Measured solo on `medium` with shadows on: **49 draw calls, 206k triangles**.
-(The shadow pass re-draws casters, which is most of the gap between that and
-the object count.) `low` turns shadows off and roughly halves it.
+Measured on `medium` with shadows on and a full NPC crowd: **47 draw calls,
+210k triangles** — NPCs barely add cost because clones share geometry. `low`
+turns shadows off and roughly halves it.
+
+The render loop is allocation-lean on purpose (GC pauses are what kill frame
+rate on a Chromebook): camera scratch vectors and the coin instancing dummy are
+hoisted, each coin's static ground is resolved once at build (not per frame),
+and the collision grid query fills a reused Set (`nearShared`) for the hot
+per-entity callers. The character GLB downloads in parallel with the park.
 
 Three quality tiers (`low` / `medium` / `high`) are offered on the entry screen
 and control pixel ratio, shadows and fog distance. "Smooth (Chromebook)" turns

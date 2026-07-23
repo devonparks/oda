@@ -153,11 +153,16 @@ async function buildPicker() {
 async function enterWorld() {
   const world = new World($('stage'), { quality: state.quality });
   state.world = world;
-  await world.load(setProgress);
 
+  // Start the character download in parallel with the park — they're separate
+  // files, so overlapping them shaves the character's ~400 KB off the total
+  // wait on slow school wifi instead of loading it after the 1.75 MB park.
   const model = state.manifest.find((m) => m.id === state.charId) || state.manifest[0];
+  const protoPromise = preloadCharacter(model.id, '../' + model.glb);
+
+  await world.load(setProgress);
   setProgress(0.9, 'Getting you dressed…');
-  const proto = await preloadCharacter(model.id, '../' + model.glb);
+  const proto = await protoPromise;
 
   const player = new Avatar(proto, { local: true, name: state.name });
   const saved = readSavedPos();
