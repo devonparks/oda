@@ -191,6 +191,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <h3>Shop</h3>
       <p>Piece skins &amp; board themes</p>
     </div>
+    <div class="mode-card" onclick="showAchievements()">
+      <span class="mode-icon">&#127942;</span>
+      <h3>Achievements</h3>
+      <p>12 badges to earn</p>
+    </div>
   </div>
   <div class="quick-stats">
     <div class="stat-pill">&#x1F3AE; Games <span class="stat-num" id="homeGames">0</span></div>
@@ -280,6 +285,13 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 </div>
 
 <!-- SHOP SCREEN -->
+<div class="screen" id="achScreen">
+  <div class="home-header"><h1>&#127942; Achievements</h1></div>
+  <p id="achProgress" style="text-align:center;color:var(--text2);margin-bottom:14px"></p>
+  <div id="achGrid" style="max-width:620px;margin:0 auto;width:92%"></div>
+  <div style="text-align:center;margin-top:20px"><button class="btn" onclick="showScreen('homeScreen')">Back</button></div>
+</div>
+
 <div class="screen" id="shopScreen">
   <div style="width:92%;max-width:640px;margin:0 auto;padding-top:70px">
     <h2 style="text-align:center;font-size:28px;margin-bottom:4px">&#x1F6CD;&#xFE0F; <span style="color:var(--accent2)">Block Shop</span></h2>
@@ -368,6 +380,29 @@ function loadMyCosmetics(){
   if(bw&&boardTheme)bw.style.borderColor=boardTheme.border;
 }
 loadMyCosmetics();
+
+odaAchievements.init('tetris',[
+  {id:'firstLine',  name:'First Line',  icon:'\u{1F9F1}', desc:'Clear your first line'},
+  {id:'double',     name:'Double',      icon:'✌️', desc:'Clear 2 lines at once'},
+  {id:'triple',     name:'Triple',      icon:'\u{1F947}', desc:'Clear 3 lines at once'},
+  {id:'quad',       name:'Quad!',       icon:'\u{1F4A5}', desc:'Clear 4 lines at once'},
+  {id:'lines40',    name:'Forty',       icon:'\u{1F4CF}', desc:'Clear 40 lines in one game'},
+  {id:'lines100',   name:'Century',     icon:'\u{1F4AF}', desc:'Clear 100 lines in one game'},
+  {id:'level5',     name:'Speeding Up', icon:'⚡',    desc:'Reach level 5'},
+  {id:'level10',    name:'Blur',        icon:'\u{1F300}', desc:'Reach level 10'},
+  {id:'score10k',   name:'Ten Thousand',icon:'\u{1F31F}', desc:'Score 10,000 points'},
+  {id:'score50k',   name:'Big Stack',   icon:'\u{1F3D7}️', desc:'Score 50,000 points'},
+  {id:'sprintDone', name:'Sprinter',    icon:'\u{1F3C3}', desc:'Finish a Sprint run'},
+  {id:'newBest',    name:'New Best',    icon:'\u{1F4C8}', desc:'Beat your personal best'}
+]);
+
+function showAchievements(){
+  showScreen('achScreen');
+  odaAchievements.renderGrid('achGrid');
+  var pr=odaAchievements.progress();
+  document.getElementById('achProgress').textContent=pr.unlocked+' of '+pr.total+' unlocked';
+}
+window.showAchievements=showAchievements;
 
 function showShopScreen(){
   showScreen('shopScreen');
@@ -502,12 +537,23 @@ function clearLines(){
   score+=pts[cleared.length]*level;
   lines+=cleared.length;
 
+  odaAchievements.unlock('firstLine');
+  odaAchievements.check('double', cleared.length===2);
+  odaAchievements.check('triple', cleared.length===3);
+  odaAchievements.check('quad',   cleared.length>=4);
+  odaAchievements.check('lines40',  lines>=40);
+  odaAchievements.check('lines100', lines>=100);
+  odaAchievements.check('score10k', score>=10000);
+  odaAchievements.check('score50k', score>=50000);
+
   /* Level up every 10 lines */
   linesForLevel+=cleared.length;
   if(linesForLevel>=10){
     linesForLevel-=10;
     level++;
     dropInterval=Math.max(50,1000-((level-1)*75));
+    odaAchievements.check('level5',  level>=5);
+    odaAchievements.check('level10', level>=10);
   }
 
   updateHUD();
@@ -829,6 +875,8 @@ function gameOverHandler(){
   d.classList.add('active');
   /* Celebrate a new best with the player's equipped win effect */
   if(isRecord&&score>0&&window.odaPlayEquippedWinEffect)window.odaPlayEquippedWinEffect(myIdentity||'stars');
+  odaAchievements.check('newBest', isRecord&&score>0);
+  odaAchievements.check('sprintDone', currentMode==='sprint'&&lines>=sprintTarget);
   setTimeout(function(){d.classList.add('show-bg')},50);
 
   updateHomeStats();

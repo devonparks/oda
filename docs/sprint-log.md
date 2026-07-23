@@ -23,8 +23,8 @@ and walk into any of 6 zone portals to open a themed set of hub games.
 Asset pipeline (`tools/world/`): the Synty POLYGON Kids demo scene is 1117 renderers
 sharing one 2048^2 atlas. Unity bakes each vertex's atlas colour into a vertex colour
 and writes OBJ; Blender converts to Draco GLB. The whole park is **1.34 MB with no
-textures at all**, and the static shell is **one draw call**. Full park + a class in
-it lands around 40 draw calls.
+textures at all**, and the static shell is **one draw call**. Measured solo on medium
+with shadows: 49 draw calls, 206k triangles.
 
 The kid GLBs are rigged but ship no animation clips, and the POLYGON locomotion pack
 isn't licensed here — so walk/run/idle/jump and 8 emotes are generated procedurally

@@ -76,8 +76,12 @@ frames somewhere past ~200 draw calls.
 | Static park | **1** draw call — 930 renderers pre-merged at build time |
 | Props | **1** merged batch + ~12 that actually animate |
 | Coins | **1** InstancedMesh |
-| Avatars | 1 each, capped at the 24 nearest players |
+| Avatars | ~4 each (body, hood, eyes, face), capped at the 24 nearest players |
 | Download | 1.34 MB park + 417 KB props + ~400 KB character. **No textures at all** — the Synty atlas is baked into vertex colours. |
+
+Measured solo on `medium` with shadows on: **49 draw calls, 206k triangles**.
+(The shadow pass re-draws casters, which is most of the gap between that and
+the object count.) `low` turns shadows off and roughly halves it.
 
 Three quality tiers (`low` / `medium` / `high`) are offered on the entry screen
 and control pixel ratio, shadows and fog distance. "Smooth (Chromebook)" turns

@@ -259,19 +259,21 @@ function loop() {
   if (!state.paused) {
     intent.target = state.input.moveTarget;
     intent.clearTarget = () => { state.input.moveTarget = null; };
+    if (intent.jump && player.grounded) sfx('whoosh');
     world.stepPlayer(player, intent, dt);
   } else {
     player.speed = 0;
   }
   world.updateCamera(player, state.paused ? { x: 0, y: 0 } : intent.look, intent.zoom, dt);
   player.update(dt, world.camera);
+  footsteps(player, dt);
   world.update(dt, t, player.pos);
 
   for (const r of state.remotes.values()) r.avatar.update(dt, world.camera);
 
   // coins
   const got = world.collectCoins(player.pos.x, player.pos.z, player.pos.y);
-  if (got.length) awardCoins(got.length);
+  if (got.length) { awardCoins(got.length); sfx('coin'); }
 
   // proximity prompt
   updateZonePrompt();
@@ -282,6 +284,34 @@ function loop() {
 
   drawMinimap();
   world.render();
+}
+
+/**
+ * Audio. The world uses the shared odaSfx from oda-core, so it honours the same
+ * mute toggle as every arcade game and adds no files to the download.
+ */
+function sfx(name) { window.odaSfx && window.odaSfx.play(name); }
+
+/**
+ * A footstep on each half of the walk cycle. Driven off the rig's phase rather
+ * than a timer, so steps land with the feet whether walking or sprinting.
+ */
+let lastStepPhase = 0, wasGrounded = true;
+function footsteps(p, dt) {
+  if (!p.grounded) { wasGrounded = false; return; }
+  if (!wasGrounded) {          // just landed
+    wasGrounded = true;
+    lastStepPhase = p.rig.phase;
+    window.odaSfx && window.odaSfx.tone(150, 0.09, 'triangle', 0.09);
+    return;
+  }
+  if (p.speed < 0.3) { lastStepPhase = p.rig.phase; return; }
+  // one step per half-cycle
+  if (Math.floor(p.rig.phase / Math.PI) !== Math.floor(lastStepPhase / Math.PI)) {
+    const vol = 0.035 + Math.min(p.speed / 4.6, 1) * 0.03;
+    window.odaSfx && window.odaSfx.tone(120 + Math.random() * 40, 0.06, 'triangle', vol);
+  }
+  lastStepPhase = p.rig.phase;
 }
 
 // ---------------------------------------------------------------------------
@@ -308,6 +338,7 @@ function enterZone() {
 }
 
 function openZoneModal(zone) {
+  sfx('powerup');
   const games = gamesForZone(zone, window.ODA_GAMES || []);
   $('zoneEmoji').textContent = zone.icon;
   $('zoneName').textContent = zone.name;
@@ -337,7 +368,7 @@ function runActivity(zone) {
     state.presence?.broadcast({ emote: 'cheer' });
     setTimeout(() => {
       const won = Math.random() < 0.35 ? 15 : 0;
-      if (won) { awardCoins(won); toast(`The ride paid out ${won} coins!`, 'gold'); }
+      if (won) { sfx('win'); awardCoins(won); toast(`The ride paid out ${won} coins!`, 'gold'); }
       else toast('What a ride!');
     }, 1400);
   } else if (zone.id === 'pond') {
@@ -478,6 +509,7 @@ function buildEmoteWheel() {
 }
 
 function doEmote(id) {
+  sfx('select');
   state.player.playEmote(id);
   state.presence?.broadcast({ emote: id });
 }
@@ -505,6 +537,7 @@ function buildChatPanel() {
 function say(index) {
   const text = renderPhrase(index);
   if (!text) return;
+  sfx('click');
   state.player.say(text);
   state.presence?.broadcast({ message: index });
 }
