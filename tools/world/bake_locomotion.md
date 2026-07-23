@@ -1,5 +1,21 @@
 # Baking Synty locomotion onto the kid rig
 
+> **⚠️ Import gotcha (cost a safe-mode incident 2026-07-23).** The Base
+> Locomotion `.unitypackage` includes `Samples/Scripts/` — a demo character
+> controller that depends on Unity's **new Input System** package. Unlike the
+> Sidekick sample scripts (which guard every reference with
+> `#if ENABLE_INPUT_SYSTEM`), these have **no guard**, so if the Input System
+> package isn't installed they fail to compile and drop the whole project into
+> safe mode. The MCP bridge is itself a script, so it goes dark too.
+>
+> **Fix:** delete `Assets/Synty/AnimationBaseLocomotion/Samples/Scripts/` (and
+> its `.meta`). The clips you bake from are all under `Animations/`, never
+> `Samples/`, so nothing you need is lost. Do this right after importing the
+> pack, before touching anything else. (Installing `com.unity.inputsystem`
+> instead would also work, but it flips the project's input backend and forces
+> an editor restart — not worth it for a demo you don't use.)
+
+
 How `world/assets/locomotion.json` is produced. Re-run this only when changing
 which clips ship, or if the kid character GLBs are ever re-exported.
 
