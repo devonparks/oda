@@ -32,6 +32,12 @@ const MODEL_SCALE = 1;
 /** Roughly the top of a 1.2 m kid's head, for nametag / bubble placement. */
 const HEAD_TOP = 1.32;
 
+/* Sprite sizing. Labels are authored for a ~7 m camera (the default follow
+   distance) and scaled from there so they hold a constant on-screen size. */
+const NAMETAG_REF_DIST = 7;
+const LABEL_H = 0.30, LABEL_W = LABEL_H * (256 / 64);
+const BUBBLE_H = 0.62, BUBBLE_W = BUBBLE_H * (512 / 160);
+
 export async function preloadCharacter(id, url) {
   if (cache.has(id)) return cache.get(id);
   const p = loader.loadAsync(url).then((gltf) => {
@@ -148,10 +154,21 @@ export class Avatar {
     if (camera) {
       this.label.quaternion.copy(camera.quaternion);
       if (this.bubble) this.bubble.quaternion.copy(camera.quaternion);
-      // fade distant nametags out so a busy park doesn't turn into a wall of text
+
       const d = camera.position.distanceTo(this.pos);
-      this.label.material.opacity = THREE.MathUtils.clamp(1 - (d - 14) / 10, 0, 1);
-      this.label.visible = this.label.material.opacity > 0.02;
+      // Sprites are sized in world units, so a nametag that reads nicely from
+      // across the park covers half the screen when the camera swings in
+      // close. Scale with distance to hold a roughly constant on-screen size.
+      const k = THREE.MathUtils.clamp(d / NAMETAG_REF_DIST, 0.42, 1.9);
+      this.label.scale.set(LABEL_W * k, LABEL_H * k, 1);
+      if (this.bubble) this.bubble.scale.set(BUBBLE_W * k, BUBBLE_H * k, 1);
+
+      // Fade distant nametags so a busy park isn't a wall of text. Your own
+      // name is hidden entirely — you know who you are, and at a close camera
+      // it sits right where you're trying to look.
+      const far = THREE.MathUtils.clamp(1 - (d - 16) / 10, 0, 1);
+      this.label.material.opacity = far;
+      this.label.visible = !this.local && far > 0.02;
     }
 
     if (this.bubble && performance.now() > this.bubbleUntil) {
