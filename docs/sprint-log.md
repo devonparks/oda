@@ -1,5 +1,80 @@
 # Sprint Log
 
+## 2026-07-23 — Synty animation + win effects (continued overnight session)
+
+Continues the 2026-07-22 session below. Branch `amg-world`, still unpushed.
+
+### Real animation replaced the sine waves
+Devon already owned `ANIMATION_Base_Locomotion` — it was in `Downloads/`, just
+never imported into the AMG Engine project, which is why searching the project
+for walk/run clips came up empty and I nearly had him buy it again. Imported it
+(1694 clips now, 346 POLYGON locomotion).
+
+Baked 7 clips (idle/walk/run/sprint/jump/fall/land, 127 KB) onto the kid rig.
+The kid characters and the Synty packs share an identical bone hierarchy and the
+PolygonKids rig is a valid Mecanim humanoid, so Unity's own retargeter maps an
+adult clip onto a 1.2 m child for free.
+
+Two traps, both documented in `tools/world/bake_locomotion.md`:
+- Bake DELTAS from the reference pose, not absolute local quaternions — the kid
+  GLBs are centimetres with up along local Z, Unity's prefab is metres with up
+  along +Y, and absolutes lay the character on its side.
+- Deltas alone splayed the arms, because the rigs assign different local AXES
+  per bone. Solvable from the two rest poses: `c_b = u_b^-1 * c_p * g_b`, then
+  conjugate each delta into this rig's frame.
+
+Movement speeds dropped 2.4/4.6 -> 1.6/3.4 m/s: measuring ankle travel puts the
+walk clip at ~0.74 m/s on a kid's proportions, so adult speeds made the legs
+whirl.
+
+### Emotes: built, curated, and deliberately switched OFF
+Baked 58 emotes from the two packs Devon already had imported, as Int16 binary,
+one file per category, lazy-loaded (724 KB total; a kid who only waves downloads
+83 KB). Tabbed wheel with a favourites row and digit shortcuts.
+
+**Curation is a safeguarding decision** and is written down in
+`tools/world/emote_allowlist.json`. The Synty packs ship gestures that must
+never appear in a space where 9-13 year olds interact: the entire Taunt category
+(it exists to mock another player), throat-slit, strangling, finger guns, the
+Reproach set, drunk sway, and religious clips. 58 kept of 235.
+
+**They don't transfer, so they're gated off** (`CLIP_EMOTES_ENABLED`). The bake
+is provably correct — deltas match Unity byte for byte — but the exported kid
+GLBs rest with arms DOWN (hands at 0.600) while Unity's bind is a T-POSE
+(0.868). Head matches exactly, so spine and legs agree and only the arm chain
+differs. The frame correction assumes the two rests are the same pose in
+different axes, so it absorbs a real 103-degree pose difference and throws the
+arms into the air. Three approaches measured against Unity ground truth; the
+telling one is that re-baking against Unity's arms-down idle (8 cm from the
+GLB's rest instead of 27 cm) barely helped — so the residual is in the arm
+chain's BONE OFFSETS, not its rotations.
+
+**Fix: re-export the kid characters from Unity so their rest matches the rig the
+clips were authored against.** That's a change to Devon's character export
+pipeline, not something to guess at from the runtime. Everything else is in
+place and lights up when the flag flips. Full analysis: `docs/EMOTE_RIG_ISSUE.md`.
+
+Locomotion is unaffected and live — its arm motion is small relative to rest.
+
+### Win effects — the audit's biggest ecosystem win, now real
+The shop sold 8 win effects and no game rendered any of them. Added
+`odaWinEffect()` to oda-core (resolves + caches the student's equipped
+cosmetics, warms on load, falls back for guests) and wired it into the
+personal-best path of 8 more games. Verified live: 40 confetti elements spawn
+and self-clean.
+
+### Verified
+- Gait blend clean at every speed; stride 0.25 m with proper foot lift
+- Character stands, walks and runs correctly on real keyframes (screenshots)
+- With clip emotes gated: procedural wheel works, locomotion live, no errors
+- All edited inline scripts parse clean
+
+### Open
+- **Re-export the kid GLBs** to unblock 58 emotes (see EMOTE_RIG_ISSUE.md)
+- Multiplayer still needs the RTDB instance + `firebase deploy --only database`
+- Mobile still untested on a real device
+- Foot-skate (`CLIP_SPEED` in clips.js) tuned from measurement, not by eye
+
 ## 2026-07-22 — AMG World + shared game systems (overnight session)
 
 **Mission:** build AMG World (the 3D hub Devon described as Poptropica x Club Penguin x
