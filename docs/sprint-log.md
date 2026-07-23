@@ -1,5 +1,62 @@
 # Sprint Log
 
+## 2026-07-23 — Emote diagnosis, Unity rescue, AMG World enrichment (remote-control day)
+
+Devon out at work; drove the session by remote control. Branch `amg-world` in
+`Desktop\ODA` (still unpushed — pushing = deploy, Devon's call). The Drop4→Hub
+conversion is running IN PARALLEL in another chat (Phase 0 = pure connect-N
+engine + AI + 41 tests landed on this branch as 913f3ee); this session stayed in
+the AMG World / shared-hub lane to avoid conflicts.
+
+### Emote clip transfer — precise final diagnosis, then parked
+Isolated the failure with a NUMERIC test (bone world positions vs a Unity
+ground-truth sample, in cm) instead of screenshots, which had misled repeatedly.
+On the re-exported rig (bind POSITIONS match Unity exactly), "arms folded"
+retargets the whole BODY to <5cm but the arm chain is off 20-30cm. TWO
+independent retarget methods (local-frame delta + world-space delta) fail
+IDENTICALLY on the arms → the fault is the data, not the math: Blender's
+FBX→glTF round trip rolls the horizontal arm bones (armature bones must point
+down their length), so hand positions match but bone frames don't. Fix =
+Unity-native glTF exporter (gltfast), deferred to a supervised session (package
+installs already caused one safe-mode incident today). Procedural emotes ship
+and work. Full detail in docs/EMOTE_RIG_ISSUE.md.
+
+### Unity safe-mode rescue
+The Base Locomotion pack's Samples/Scripts/ (a demo controller) references the
+new Input System with NO #if ENABLE_INPUT_SYSTEM guard, so with the package
+absent it wouldn't compile and dropped the whole AMG Engine project into safe
+mode (taking the MCP bridge down). Deleted Samples/Scripts/; clips live under
+Animations/ so nothing was lost. Documented in tools/world/bake_locomotion.md.
+
+### AMG World — seven enhancements (all verified in real Chrome, committed)
+- **NPC crowd** — wandering ambient kids so a solo park (everyone, 0 users) feels
+  alive. Never counted in the live-player number (honest); no chat bubbles;
+  scale down as real players arrive + by quality. Fixed a real Avatar bug:
+  non-local avatars ran remote-interp unconditionally, dragging NPCs to origin.
+- **Ambience** — generative wind + birds (WebAudio, no files, honours the toggle).
+- **Onboarding coach** — one-time move→coins→zones→express, touch/kbd-aware,
+  non-blocking.
+- **Park achievements** — 8 badges via shared odaAchievements, counters persist,
+  shown in the Help panel.
+- **Character viewer rest-pose** — POLYGON Kids rest A-posed; the viewer now drops
+  arms down (fixes the picker's first impression + the hub landing hero).
+- **Coin combo** — streak juice on the most common action, bounded so it can't be
+  farmed, milestone bonuses + confetti.
+- **Sound mute toggle** — the world lacked one; now syncs odaSfx + ambience.
+
+### Also
+- Sent a fresh Drop4→Hub bridge prompt to the "Drop 4 submission audit" chat, and
+  surfaced that a complete conversion plan already existed at
+  docs/DROP4_HUB_CONVERSION.md (from an earlier round) — Devon can paste it into
+  the fresh chat without waiting.
+- Re-verified the "games missing in-game cosmetics" audit gap: 13 of 14 were
+  false positives (they read via myCosmetics[...]); only racers genuinely differs
+  (its own garage). Games are in good shape.
+
+### Verified end-to-end
+Fresh entry → picker (arms-down) → world → onboarding → NPCs + ambience →
+coins/combo → achievements → sound toggle → solo presence. Zero console errors.
+
 ## 2026-07-23 — Synty animation + win effects (continued overnight session)
 
 Continues the 2026-07-22 session below. Branch `amg-world`, still unpushed.
