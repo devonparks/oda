@@ -764,6 +764,24 @@ function bindHud() {
   $('chatBtn').onclick = () => toggle('chatWheel', ['emoteWheel']);
   $('jumpBtn').onclick = () => { state.input.jumpQueued = true; };
   $('mapBtn').onclick = () => $('minimap').classList.toggle('hidden');
+  const soundBtn = $('soundBtn');
+  const syncSoundIcon = () => {
+    const on = window.odaSfx ? window.odaSfx.isEnabled() : localStorage.getItem('odaSoundEnabled') !== 'false';
+    soundBtn.textContent = on ? '\u{1F50A}' : '\u{1F507}';
+    if (window.amgEmojiParse) window.amgEmojiParse(soundBtn);
+  };
+  soundBtn.onclick = () => {
+    let on;
+    if (window.odaSfx) { on = window.odaSfx.toggle(); }
+    else {
+      on = localStorage.getItem('odaSoundEnabled') === 'false';
+      localStorage.setItem('odaSoundEnabled', on ? 'true' : 'false');
+    }
+    state.ambience?.setEnabled(on);
+    syncSoundIcon();
+    if (on) sfx('click');
+  };
+  syncSoundIcon();
   $('helpBtn').onclick = () => { showModal('helpModal'); renderBadges(); };
   $('helpClose').onclick = () => hideModal('helpModal');
   $('zoneClose').onclick = () => hideModal('zoneModal');
