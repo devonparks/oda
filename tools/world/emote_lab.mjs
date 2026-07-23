@@ -318,9 +318,63 @@ export function step5() {
   console.log(`  TOTAL: ${totalEmotes} emotes, ${(totalBytes / 1024).toFixed(0)} KB + manifest`);
 }
 
+// ═══ STEP 6 — bake the IDLE clip (bind-referenced locomotion) → v2local ═════
+/** So Express never shows a T-pose: the real Synty standing idle as a base
+ *  layer. Source: locomotion_bindref.json clips.idle = BIND-referenced deltas
+ *  (float arrays), so Unity locals = bind ⊗ Δ directly — no idle→bind hop. */
+export function step6() {
+  console.log('\n═══ STEP 6: bake idle → v2local idle.bin ═══');
+  const v2 = parseGLB(P('assets', 'characters', 'v2', 'kid_hoodie.glb'));
+  const restW = fkGLB(v2, null);
+  const uBindW = fkUnity(refQ(BIND));
+  const M = MAPS['mirrorX (x,-y,-z,w)'];
+  const clip = bindref.clips.idle;
+  const nb = BONES.length;
+  const fps = bindref.fps || 30;
+  const arr = new Int16Array(clip.frames * nb * 4 + clip.frames);
+  for (let f = 0; f < clip.frames; f++) {
+    // Unity absolute locals at frame f: bind ⊗ Δ_bind
+    const uLocals = {};
+    for (let b = 0; b < nb; b++) {
+      const i = (f * nb + b) * 4;
+      const d = qnorm([clip.rot[i], clip.rot[i + 1], clip.rot[i + 2], clip.rot[i + 3]]);
+      uLocals[BONES[b]] = qmul(BIND[BONES[b]].q, d);
+    }
+    const uW = fkUnity(uLocals);
+    const desiredW = {}, locals = {};
+    BONES.forEach((b) => {
+      if (!v2.byName[b]) return;
+      const A = qmul(qinv(M(uBindW[b])), restW[b].q);
+      desiredW[b] = qnorm(qmul(M(uW[b]), A));
+    });
+    BONES.forEach((b) => {
+      const node = v2.byName[b]; if (!node) return;
+      const parent = node.parent >= 0 ? v2.nodes[node.parent] : null;
+      const pW = parent && desiredW[parent.name] ? desiredW[parent.name] : (parent ? fkGLB(v2, locals)[parent.name].q : [0, 0, 0, 1]);
+      locals[b] = qnorm(qmul(qinv(pW), desiredW[b]));
+    });
+    for (let b = 0; b < nb; b++) {
+      const q = locals[BONES[b]] || [0, 0, 0, 1];
+      const p = (f * nb + b) * 4;
+      arr[p] = Math.round(q[0] * 32767); arr[p + 1] = Math.round(q[1] * 32767);
+      arr[p + 2] = Math.round(q[2] * 32767); arr[p + 3] = Math.round(q[3] * 32767);
+    }
+    arr[clip.frames * nb * 4 + f] = Math.round((clip.hipY ? clip.hipY[f] : 0) * 1000);
+  }
+  const outDir = P('assets', 'characters', 'emotes');
+  fs.writeFileSync(path.join(outDir, 'idle.bin'), Buffer.from(arr.buffer));
+  // extend the manifest with the idle block
+  const mPath = path.join(outDir, 'manifest.json');
+  const m = JSON.parse(fs.readFileSync(mPath));
+  m.idle = { file: 'idle.bin', frames: clip.frames, fps, dur: clip.frames / fps };
+  fs.writeFileSync(mPath, JSON.stringify(m));
+  console.log(`  idle.bin: ${clip.frames} frames @ ${fps}fps (${(arr.byteLength / 1024).toFixed(0)} KB); manifest updated`);
+}
+
 // ── CLI ─────────────────────────────────────────────────────────────────────
 const step = process.argv[2] || 'all';
 if (step === '2' || step === 'all') step2();
 if (step === '3' || step === 'all') step3(process.argv[3] || 'armsfolded', +(process.argv[4] || 20));
 if (step === '4' || step === 'all') step4();
 if (step === '5') step5();
+if (step === '6') step6();

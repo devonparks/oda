@@ -24,11 +24,14 @@ try {
   await page.evaluate(() => window.D4.showExpress());
   await page.waitForSelector('.d4x-emote', { timeout: 30000 });
   await new Promise((r) => setTimeout(r, 1500)); // let the GLB land
-  // tap the emote by label
-  const clicked = await page.evaluate((label) => {
-    const btns = [...document.querySelectorAll('.d4x-emote')];
-    const b = btns.find((x) => x.textContent.toLowerCase().includes(label.toLowerCase()));
-    if (b) { b.click(); return b.textContent.trim(); }
+  // tap the emote by label — walking every category tab until found
+  const clicked = await page.evaluate(async (label) => {
+    const tabs = [...document.querySelectorAll('.d4x-tab')];
+    for (const t of [null, ...tabs]) {
+      if (t) { t.click(); await new Promise((r) => setTimeout(r, 80)); }
+      const b = [...document.querySelectorAll('.d4x-emote')].find((x) => x.textContent.toLowerCase().includes(label.toLowerCase()));
+      if (b) { b.click(); return b.textContent.trim(); }
+    }
     return null;
   }, emote);
   console.log('clicked:', clicked);

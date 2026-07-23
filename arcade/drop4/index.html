@@ -204,6 +204,7 @@ img{max-width:100%}
 <!-- RESULT -->
 <div class="screen" id="resultScreen">
   <div class="result-container">
+    <div id="resultCelebration"></div>
     <h2 id="resultTitle">You Win!</h2>
     <p class="result-sub" id="resultSub"></p>
     <div class="stars" id="resultStars"></div>
@@ -374,6 +375,7 @@ async function loadRecords() {
 // ── match lifecycle ──
 function startMatch(opts, careerLevel) {
   currentCareer = careerLevel || null;
+  destroyCeleb();
   const canvas = $('d4Canvas');
   if (match) match.destroy();
   $('hudP1').src = thumbFor(getEquippedCharacterId());
@@ -436,8 +438,12 @@ async function handleResult(r) {
   refreshCoinChip();
 }
 
+let celebCtl = null;
+function destroyCeleb() { if (celebCtl) { try { celebCtl.then ? celebCtl.then((c) => c && c.destroy()) : celebCtl.destroy(); } catch (e) {} celebCtl = null; } $('resultCelebration').innerHTML = ''; }
 function showResult(r, coins) {
   const win = r.result === 'win', draw = r.result === 'draw';
+  destroyCeleb();
+  celebCtl = import('./express.js').then((m) => m.mountCelebration($('resultCelebration'), { result: r.result })).catch(() => null);
   $('resultTitle').textContent = win ? 'You Win!' : draw ? 'Draw!' : 'You Lost';
   $('resultTitle').style.color = win ? 'var(--accent)' : draw ? 'var(--gold)' : 'var(--accent3)';
   $('resultSub').textContent = win ? (r.playerMoves + ' moves') : draw ? 'The board filled up' : 'Good effort — try again!';
@@ -461,11 +467,21 @@ function startCasual(difficulty) {
 }
 
 function leaveMatch() { if (match) { match.destroy(); match = null; } goHome(); }
-function goHome() { if (match) { match.destroy(); match = null; } if (expressCtl) { expressCtl.destroy(); expressCtl = null; } currentCareer = null; showScreen('homeScreen'); loadQuickStats(); refreshCoinChip(); }
+function goHome() { if (match) { match.destroy(); match = null; } if (expressCtl) { expressCtl.destroy(); expressCtl = null; } destroyCeleb(); currentCareer = null; showScreen('homeScreen'); loadQuickStats(); refreshCoinChip(); }
 
 // ── screen entries ──
 let heroViewer = null;
-async function mountHero() { try { if (heroViewer) heroViewer.dispose(); heroViewer = await mountHeroCharacter($('heroCanvas')); } catch (e) {} }
+async function mountHero() {
+  try { if (heroViewer) { (heroViewer.destroy || heroViewer.dispose).call(heroViewer); heroViewer = null; } } catch (e) {}
+  // Prefer the idling v2 character (breathes, no static pose); fall back to
+  // the plain spinning shipping model if the express stack can't load.
+  try {
+    const m = await import('./express.js');
+    heroViewer = await m.mountIdleHero($('heroCanvas'));
+    if (heroViewer) return;
+  } catch (e) {}
+  try { heroViewer = await mountHeroCharacter($('heroCanvas')); } catch (e) {}
+}
 function showCharacters() { showScreen('charactersScreen'); mountCharacterPicker($('charactersContainer'), { onEquip: () => { mountHero(); refreshCoinChip(); } }); }
 let expressCtl = null;
 async function showExpress() {
@@ -510,6 +526,7 @@ window.odaHelp.init({
   sections: [
     { title: 'How to Play', icon: '📖', items: ['Tap a column to drop your piece', 'Connect 4 in a row — across, up, or diagonal', 'Block the computer from connecting 4 first!'] },
     { title: 'Career Mode', icon: '🗺️', items: ['180 levels across 15 cities', 'Beat city bosses to unlock power pieces', 'Earn coins to unlock characters, boards & piece styles'] },
+    { title: 'Express', icon: '🎭', items: ['58 emotes & poses for your character', 'Wave, dance, dab, flex — tap to play', 'Your character celebrates your wins!'] },
     { title: 'Learn & Earn', icon: '🪙', items: ['Win matches to earn coins', 'Complete assignments in the hub to earn coins faster', 'Spend coins on characters and cosmetics — never real money'] },
   ],
   controls: [{ key: 'Tap', action: 'Drop a piece in that column' }],

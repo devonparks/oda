@@ -38,6 +38,23 @@ point avatars at the v2 rigs, play the v2local bins directly, retire the
 corr/delta path + CLIP_EMOTES_ENABLED gate. Locomotion rebase = same lab.
 world/js deliberately untouched — that's the world chat's lane.
 
+**Final polish round (same evening):**
+- **Idle base layer** — baked the real Synty standing idle (53f @30fps, 9 KB,
+  from the bind-referenced locomotion in `locomotion_bindref.json`) and made it
+  Express's base layer: the character NEVER shows a T-pose; emotes blend over
+  idle and blend back to it. `manifest.idle` + `idle.bin`.
+- **Victory celebrations** — the result screen now shows the equipped character
+  playing a random happy emote on a win (cheer/fistpump/dab/…), a kind shrug on
+  a loss, checkwatch on a draw. `mountCelebration()` in express.js, mounted by
+  showResult, torn down on navigation. THE cosmetic loop paying off in-game.
+- **Idling home hero** — the home screen character is the v2 rig breathing the
+  real idle (falls back to the static shipping model if express can't load).
+- express.js refactored around one shared rig player (idle + emote channels);
+  playing-state gold highlight on emote buttons; tab click SFX.
+- Verified in real Chrome: Express idle stance (no T-pose), loss-shrug result
+  screen from a real played match, superhero2 (trimmed) + dino onesie pose
+  grids all correct, mobile 375px no-overflow with Curtsy mid-pose, 60/60 tests.
+
 ## 2026-07-23 — Drop4 → AMG Hub conversion (full build, autonomous, Devon at work)
 
 Built the AMG Hub (nonprofit, educational, Chromebook) edition of Drop4 as a new
