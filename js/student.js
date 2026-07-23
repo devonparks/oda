@@ -38,14 +38,19 @@ var WORD_BANKS={
 
 var activeQuiz=null; // {assignId, words, current, correct, type}
 
-var stuTabOrder=['work','tools','arcade'];
+var stuTabOrder=['work','tools','arcade','world'];
 function switchTab(id){
 var tabs=document.querySelectorAll('.tab');
 var secs=document.querySelectorAll('.section');
-for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');tabs[i].setAttribute('aria-selected','false');tabs[i].setAttribute('tabindex','-1');secs[i].classList.remove('show')}
-document.getElementById('sec-'+id).classList.add('show');
-var m={work:0,tools:1,arcade:2};
-if(m[id]!==undefined){tabs[m[id]].classList.add('active');tabs[m[id]].setAttribute('aria-selected','true');tabs[m[id]].setAttribute('tabindex','0')}
+// Look tabs/sections up by id rather than by position. The old version paired
+// tabs[i] with secs[i] and kept a hardcoded name->index map, so adding a tab
+// silently mismatched the pairs.
+for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');tabs[i].setAttribute('aria-selected','false');tabs[i].setAttribute('tabindex','-1')}
+for(var j=0;j<secs.length;j++){secs[j].classList.remove('show')}
+var sec=document.getElementById('sec-'+id);
+var tab=document.getElementById('tab-'+id);
+if(sec)sec.classList.add('show');
+if(tab){tab.classList.add('active');tab.setAttribute('aria-selected','true');tab.setAttribute('tabindex','0')}
 if(id==='tools')renderMyTools();
 odaAnnounce(id+' tab selected');
 }

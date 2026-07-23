@@ -1,0 +1,65 @@
+{
+  "//": [
+    "AMG World presence — Firebase Realtime Database.",
+    "",
+    "Firestore is wrong for this: a 2 Hz position feed is ~2.4k document writes",
+    "per player per session, so one class period would burn the daily free",
+    "quota. RTDB is priced on bandwidth and holds a single socket.",
+    "",
+    "Deploy:  firebase deploy --only database",
+    "Requires an RTDB instance to exist (Firebase console > Realtime Database >",
+    "Create Database, locked mode, then deploy these rules). Until then the",
+    "world detects the missing instance and runs solo — see world/js/presence.js.",
+    "",
+    "Threat model: kids are on anonymous auth, so a uid is not proof of",
+    "identity. These rules therefore only guarantee the structural things that",
+    "matter — you may only write your OWN node, the payload is shape-checked,",
+    "and chat is an INDEX into a fixed phrase book (world/js/chat.js), never",
+    "free text. A hostile client can move a fake avatar around and pick a rude",
+    "display name; it cannot inject arbitrary text into another kid's screen.",
+    "Display names come from the teacher-managed roster and are re-sanitised",
+    "client-side on render."
+  ],
+
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "world": {
+      "$room": {
+        ".read": "auth != null",
+
+        "$playerId": {
+          "//": [
+            "Nodes are keyed by the anonymous-auth UID, not the roster",
+            "studentId, precisely so this rule can be enforced: you may write",
+            "your own node and nobody else's. presence.js resolves the uid",
+            "before it claims multiplayer is available."
+          ],
+          ".write": "auth != null && $playerId === auth.uid",
+
+          ".validate": "!newData.exists() || newData.hasChildren(['n','c','x','y','z','r','t'])",
+
+          "n": { ".validate": "newData.isString() && newData.val().length <= 16" },
+          "c": { ".validate": "newData.isString() && newData.val().length <= 32" },
+
+          "x": { ".validate": "newData.isNumber() && newData.val() >= -200 && newData.val() <= 200" },
+          "y": { ".validate": "newData.isNumber() && newData.val() >= -50  && newData.val() <= 100" },
+          "z": { ".validate": "newData.isNumber() && newData.val() >= -200 && newData.val() <= 200" },
+          "r": { ".validate": "newData.isNumber() && newData.val() >= -7   && newData.val() <= 7" },
+          "s": { ".validate": "newData.isNumber() && newData.val() >= 0    && newData.val() <= 20" },
+
+          "e": { ".validate": "newData.isString() && newData.val().length <= 16" },
+
+          "m": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 200"
+          },
+
+          "t": { ".validate": "newData.val() <= now + 5000" },
+
+          "$other": { ".validate": false }
+        }
+      }
+    }
+  }
+}

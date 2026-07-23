@@ -62,13 +62,20 @@ export class Presence {
         `https://${cfg.projectId}-default-rtdb.firebaseio.com`;
       const app = getApps().length ? getApp() : initializeApp(cfg);
 
-      // An anonymous session already exists for every kid (amgEnsureAnonAuth).
+      // Presence nodes are keyed by the anonymous-auth UID rather than the
+      // roster studentId. That is what lets database.rules.json enforce
+      // "you may only write your own node" — a roster id is client-supplied
+      // and proves nothing. Without a uid we cannot write safely, so we don't.
+      const auth = await import(`${base}/firebase-auth.js`);
       if (window.amgEnsureAnonAuth) { try { await window.amgEnsureAnonAuth(); } catch (e) {} }
+      const uid = auth.getAuth(app).currentUser?.uid;
+      if (!uid) throw new Error('no anonymous session');
+      this.nodeId = uid;
 
       this._rtdb = rtdb;
       this._db = rtdb.getDatabase(app, dbUrl);
       this._ref = rtdb.ref(this._db, `world/${this.room}`);
-      this._selfRef = rtdb.ref(this._db, `world/${this.room}/${this.playerId}`);
+      this._selfRef = rtdb.ref(this._db, `world/${this.room}/${uid}`);
 
       // Prove the instance actually exists before claiming multiplayer works.
       await Promise.race([
@@ -97,7 +104,7 @@ export class Presence {
     const { onChildAdded, onChildChanged, onChildRemoved } = this._rtdb;
     const upsert = (snap) => {
       const id = snap.key;
-      if (id === this.playerId) return;
+      if (id === this.nodeId) return;   // our own echo
       const val = snap.val();
       if (!val) return;
       const known = this.players.has(id);
