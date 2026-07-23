@@ -21,6 +21,7 @@ import { PHRASE_GROUPS, PHRASES, renderPhrase, safeName } from './chat.js';
 import { ZONES, ACTIVITIES, SPAWN, nearestZone, gamesForZone } from './zones.js';
 import { NpcCrowd } from './npc.js';
 import { Ambience } from './ambience.js';
+import { WorldProgress } from './achievements.js';
 
 const LS = {
   char: 'amgWorldChar',
@@ -221,6 +222,8 @@ async function enterWorld() {
   setProgress(1, 'Have fun!');
   $('loading').classList.add('hidden');
   $('hud').classList.remove('hidden');
+  state.progress = new WorldProgress(EMOTE_IDS.length);
+  state.progress.init();
   toast(`Welcome to Recess Park, ${state.name}!`);
   maybeOnboard();
 
@@ -283,6 +286,7 @@ function loop() {
   } else {
     player.speed = 0;
   }
+  if (!state.paused && player.speed > 0.05) state.progress?.addDistance(player.speed * dt);
   world.updateCamera(player, state.paused ? { x: 0, y: 0 } : intent.look, intent.zoom, dt);
   player.update(dt, world.camera);
   footsteps(player, dt);
@@ -298,7 +302,7 @@ function loop() {
 
   // coins
   const got = world.collectCoins(player.pos.x, player.pos.z, player.pos.y);
-  if (got.length) { awardCoins(got.length); sfx('coin'); }
+  if (got.length) { awardCoins(got.length); sfx('coin'); state.progress?.addCoins(got.length); }
 
   // proximity prompt
   updateZonePrompt();
@@ -421,6 +425,7 @@ function enterZone() {
 
 function openZoneModal(zone) {
   sfx('powerup');
+  state.progress?.visitZone(zone.id);
   const games = gamesForZone(zone, window.ODA_GAMES || []);
   $('zoneEmoji').textContent = zone.icon;
   $('zoneName').textContent = zone.name;
@@ -445,6 +450,7 @@ function runActivity(zone) {
   const p = state.player;
   if (zone.id === 'coinride') {
     if (state.coins < 5) return toast('Coin rides cost 5 coins — go find some!');
+    state.progress?.activity('coinride');
     awardCoins(-5, true);
     p.playEmote('cheer');
     state.presence?.broadcast({ emote: 'cheer' });
@@ -662,6 +668,7 @@ function emoteButton(id, info, favIndex) {
 
 function doEmote(id) {
   sfx('select');
+  state.progress?.usedEmote(id);
   state.player.playEmote(id);
   noteFav(id);
   state.presence?.broadcast({ emote: id });
@@ -704,7 +711,7 @@ function bindHud() {
   $('chatBtn').onclick = () => toggle('chatWheel', ['emoteWheel']);
   $('jumpBtn').onclick = () => { state.input.jumpQueued = true; };
   $('mapBtn').onclick = () => $('minimap').classList.toggle('hidden');
-  $('helpBtn').onclick = () => showModal('helpModal');
+  $('helpBtn').onclick = () => { showModal('helpModal'); renderBadges(); };
   $('helpClose').onclick = () => hideModal('helpModal');
   $('zoneClose').onclick = () => hideModal('zoneModal');
   $('zoneModal').onclick = (e) => { if (e.target.id === 'zoneModal') hideModal('zoneModal'); };
@@ -732,6 +739,14 @@ function bindHud() {
 }
 
 function showModal(id) { $(id).classList.remove('hidden'); state.paused = true; }
+
+function renderBadges() {
+  if (!state.progress) return;
+  state.progress.renderGrid('achGrid');
+  const pr = state.progress.progress();
+  const el = $('achProgress');
+  if (el) el.textContent = pr.unlocked + '/' + pr.total;
+}
 function hideModal(id) {
   $(id).classList.add('hidden');
   state.paused = !$('zoneModal').classList.contains('hidden')

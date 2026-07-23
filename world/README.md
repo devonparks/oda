@@ -20,6 +20,8 @@ Entry point: **student.html → World tab**, or `world/index.html` directly.
 | **Activities** | Coin rides (spend 5, small chance of a payout), the duck pond, the bike rack. |
 | **Coins** | 30 pickups along the paths, respawning after 90 s, paid into the shared `students/{id}.coins` balance in batches. |
 | **Social** | 8 emotes, safe canned chat, nametags, speech bubbles, live player count. |
+| **Progress** | 8 park badges via the shared `odaAchievements` — coins, zones, emotes, distance. Shown in the Help panel, persisted per student. |
+| **Onboarding** | A one-time coach teaches move → coins → zones → express. |
 | **Multiplayer** | Firebase Realtime Database presence. Runs solo and says so if no RTDB instance exists. |
 | **Ambient life** | Wandering NPC kids so a solo park feels populated. They're never counted in the live-player number, and thin out as real players arrive. |
 
