@@ -1,6 +1,51 @@
 # Why the Synty emote clips don't transfer (and locomotion does)
 
-**Status:** clip emotes are baked and shipped but **gated off**. The world uses
+## ✅ RESOLVED 2026-07-23 (evening) — solved OFFLINE, no supervised session needed
+
+All 58 emotes now play correctly. Proof: rendered frames (armsfolded folds,
+wave waves right-handed, dab dabs) + the live Drop4 Hub Express screen
+(`arcade/drop4` → Express). What cracked it:
+
+1. **The idle→bind delta conversion was proven exactly** before use:
+   `locomotion.json` (idle-ref) and `_unity_export/rig/locomotion_bindref.json`
+   (bind-ref, preserved on disk — NOT lost) hold the same 7 clips in both
+   frames, so `Δ_bind = bind⁻¹·idle·Δ_idle` could be checked against ground
+   truth: worst error 0.016° (= Int16 noise). The earlier "arithmetic
+   conversion → 3/58" failure was a composition-order bug (the wrong order
+   shows 151°), not a data problem.
+2. **World-space per-bone retarget** instead of the c_b recursion:
+   `W_tgt(b,t) = M(W_U(b,t)·BindW_U(b)⁻¹)·BindW_tgt(b)` with M = mirror-X and
+   the per-bone constant absorbing Blender's bone-frame roll. Implemented
+   offline in `tools/world/emote_lab.mjs` (zero-dep Node; includes a minimal
+   GLB parser + FK).
+3. **All 16 characters re-exported from Unity via MCP** (binary FBX — the
+   ExportModelOptions overload; the 2-arg default writes ASCII which Blender
+   rejects) → `tools/world/rig_to_glb.py` → `assets/characters/v2/*.glb`
+   (190–540 KB each, bind = Unity's T-pose exactly, skeletons bit-identical
+   across all 16). Two traps fixed in that pipeline: a CYAN `emissiveFactor`
+   the FBX import carried from Unity's material (washed everything pale blue —
+   now zeroed in rig_to_glb.py), and the Superhero prefabs crashing Blender's
+   FBX importer (fixed by trimming the prefab to its 6 kept parts in Unity
+   BEFORE export).
+4. **Production bake**: `emote_lab.mjs 5` → `assets/characters/emotes/*.bin`
+   (58 emotes, 724 KB, per-category lazy-load) as ABSOLUTE v2-local quats —
+   no runtime correction needed, players just slerp and assign.
+   Player + wheel UI: `arcade/drop4/express.js`.
+
+**For the world to adopt**: point avatars at `assets/characters/v2/{id}.glb`
+and play `assets/characters/emotes/*.bin` (format `v2local`) directly —
+`arcade/drop4/express.js` is the reference player. The old delta+corr path and
+`CLIP_EMOTES_ENABLED` gate can then be retired. Locomotion would need the same
+one-time rebase onto the v2 rigs (same lab, `locomotion_bindref.json` already
+has the bind-referenced clips).
+
+The original diagnosis below is kept for history — its core finding (the
+shipping GLBs' arm frames/rest differ from Unity's) was correct; the "needs a
+supervised Unity session" conclusion turned out to be avoidable.
+
+---
+
+**Status (historical):** clip emotes are baked and shipped but **gated off**. The world uses
 the procedural emotes in `world/js/animator.js`, which are verified and look
 right. Locomotion clips are **on** and working.
 

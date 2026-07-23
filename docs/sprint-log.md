@@ -1,5 +1,43 @@
 # Sprint Log
 
+## 2026-07-23 (evening) — EMOTES SOLVED: 58 Synty clips live on all 16 kids (remote, Devon at work)
+
+Devon flipped this chat to Fable 5 and asked for "a real shot" at the emote
+blocker. It's solved — offline, no supervised Unity session, no package installs.
+Drop4 Hub now has a working **Express Mode** (🎭 card → stage + 6-category wheel →
+real clip playback), verified end-to-end in real Chrome with screenshots.
+
+**How the blocker fell:**
+- `_unity_export/rig/locomotion_bindref.json` turned out to hold the SAME 7
+  locomotion clips as the shipped idle-referenced bake, in BIND reference — a
+  ground-truth pair. That let the idle→bind conversion be PROVEN (worst error
+  0.016° = quantization) before touching emotes. The old "arithmetic conversion
+  → 3/58" was a composition-order bug (wrong order = 151° error).
+- New retarget (tools/world/emote_lab.mjs, zero-dep Node with its own GLB
+  parser/FK): world-space per-bone transfer W_tgt = M(W_U·BindW_U⁻¹)·BindW_tgt,
+  M = mirror-X, per-bone constant absorbs Blender's bone-frame roll. Judged by
+  RENDERED FRAMES (puppeteer + system Chrome), per the doc's own warning that
+  the hand-height metric misleads.
+- All 16 characters re-exported from the RUNNING Unity via MCP (binary FBX via
+  the ExportModelOptions overload — the default writes ASCII, which Blender
+  rejects; the property is named ModelAnimIncludeOption, type Include).
+  Superheros crashed Blender's FBX importer → fixed by trimming the prefab to
+  its kept parts in Unity BEFORE export. rig_to_glb.py also gained a fix for a
+  CYAN emissiveFactor the FBX import carried from Unity (washed characters blue).
+- Result: `assets/characters/v2/*.glb` — 16 rigs, 190-540 KB, bind = Unity
+  T-pose exactly, skeletons bit-identical → ONE bake serves all 16.
+- `assets/characters/emotes/*.bin` — 58 emotes, 724 KB, ABSOLUTE v2-local quats
+  (format 'v2local'), per-category lazy-load. Player: `arcade/drop4/express.js`.
+
+**Verified:** pose grid renders (armsfolded folds, wave is right-handed, dab
+dabs, textures correct) + live Express screen screenshot mid-wave + engine/career
+suites still 60/60 green.
+
+**World adoption path** (documented in EMOTE_RIG_ISSUE.md RESOLVED header):
+point avatars at the v2 rigs, play the v2local bins directly, retire the
+corr/delta path + CLIP_EMOTES_ENABLED gate. Locomotion rebase = same lab.
+world/js deliberately untouched — that's the world chat's lane.
+
 ## 2026-07-23 — Drop4 → AMG Hub conversion (full build, autonomous, Devon at work)
 
 Built the AMG Hub (nonprofit, educational, Chromebook) edition of Drop4 as a new

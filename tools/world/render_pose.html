@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>emote pose render harness</title>
+<style>body{margin:0;background:#223}#grid{display:grid;grid-template-columns:repeat(3,340px)}.cell{position:relative}.cell .lbl{position:absolute;top:6px;left:8px;color:#fff;font:700 15px sans-serif;text-shadow:0 1px 3px #000}</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="grid"></div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const params = new URLSearchParams(location.search);
+const posesUrl = params.get('poses') || '/tools/world/_lab_poses.json';
+
+const data = await fetch(posesUrl).then(r => r.json());
+const grid = document.getElementById('grid');
+
+const loader = new GLTFLoader();
+const gltf = await loader.loadAsync(data.glb);
+
+// ONE model + skeleton, re-posed per cell (SkinnedMesh.clone does not clone
+// skeletons — the classic trap). Remember the rest locals so REST resets work.
+const model = gltf.scene;
+const restLocals = {};
+model.traverse((o) => { if (o.isBone || o.type === 'Bone') restLocals[o.name] = o.quaternion.clone(); });
+
+// Same material normalization as js/amg-character-viewer.js — Synty COLOR_0
+// vertex colors wreck the texture in three.js; the face sheet needs alpha.
+model.traverse((o) => {
+  if (o.isMesh && o.material) {
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    mats.forEach((m) => {
+      if ((m.name || '').toLowerCase().includes('face')) { m.transparent = true; m.depthWrite = false; m.alphaTest = 0.01; }
+      m.vertexColors = false;
+      m.roughness = Math.max(m.roughness ?? 0.85, 0.6);
+      m.needsUpdate = true;
+    });
+  }
+});
+
+const scene = new THREE.Scene();
+scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+const sun = new THREE.DirectionalLight(0xffffff, 2.2); sun.position.set(2, 4, 3); scene.add(sun);
+scene.add(model);
+
+for (const pose of data.poses) {
+  const cell = document.createElement('div'); cell.className = 'cell';
+  const canvas = document.createElement('canvas'); canvas.width = 340; canvas.height = 430;
+  const lbl = document.createElement('div'); lbl.className = 'lbl'; lbl.textContent = pose.label;
+  cell.appendChild(canvas); cell.appendChild(lbl); grid.appendChild(cell);
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setClearColor(0x2a2a44);
+
+  // reset to rest, then apply pose locals by bone name (null = rest pose)
+  model.traverse((o) => { if (restLocals[o.name]) o.quaternion.copy(restLocals[o.name]); });
+  if (pose.locals) {
+    model.traverse((o) => {
+      const q = pose.locals[o.name];
+      if (q) o.quaternion.set(q[0], q[1], q[2], q[3]);
+    });
+  }
+  model.updateMatrixWorld(true);
+
+  // frame the whole character
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
+  const cam = new THREE.PerspectiveCamera(32, 340 / 430, 0.05, 60);
+  const dist = Math.max(size.y / 2 / Math.tan(cam.fov * Math.PI / 360), size.x / 2 / (Math.tan(cam.fov * Math.PI / 360) * cam.aspect)) * 1.35;
+  cam.position.set(center.x, center.y + size.y * 0.02, center.z + dist);
+  cam.lookAt(center);
+  renderer.render(scene, cam);
+  renderer.dispose();
+}
+document.title = 'RENDER-DONE';
+</script>
+</body>
+</html>

@@ -104,6 +104,18 @@ for mat in bpy.data.materials:
     nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
     bsdf.inputs["Roughness"].default_value = 0.9
     bsdf.inputs["Metallic"].default_value = 0.0
+    # Kill any emission the FBX import carried over from the Unity material —
+    # Synty's atlas material imports with a CYAN emissive that the glTF
+    # exporter writes as emissiveFactor, washing the whole character pale blue.
+    for _k in ("Emission Strength",):
+        if _k in bsdf.inputs:
+            bsdf.inputs[_k].default_value = 0.0
+    for _k in ("Emission Color", "Emission"):
+        if _k in bsdf.inputs:
+            try:
+                bsdf.inputs[_k].default_value = (0.0, 0.0, 0.0, 1.0)
+            except Exception:
+                pass
     if "face" in mat.name.lower():
         # face sheets are cut-outs over the head
         nt.links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])

@@ -195,12 +195,12 @@ nothing half-built ships. To go live:
 
 ## 8. Known deferrals (be honest about these)
 
-- **Express Mode / character emotes**: the 58-clip Polygon bake mis-poses the
-  arms (rig bind-pose mismatch vs the Unity clips). The fix needs a *supervised*
-  Unity-native glTF re-export of all 16 characters (only 4/16 done; a package
-  install already caused a safe-mode incident). Until then Express degrades to
-  the spin/drag character showcase, with real emotes flagged coming-soon. Do not
-  schedule Express UI that assumes clip playback works.
+- **Express Mode / character emotes**: ~~blocked on a rig re-export~~ **SOLVED
+  2026-07-23 evening** — all 58 emotes play on all 16 characters via offline
+  retargeting (see `docs/EMOTE_RIG_ISSUE.md` RESOLVED header). Assets:
+  `assets/characters/v2/*.glb` (Unity-exact rigs) + `assets/characters/emotes/`
+  (v2-local bins). Reference player: `arcade/drop4/express.js`. Any converted
+  game gets Express by copying that module.
 - **Drop Rush minigame**: engine ports cleanly; the tetromino/spawn layer wasn't
   ported. Optional add-on.
 

@@ -163,6 +163,9 @@ img{max-width:100%}
     <div class="card mode-card" onclick="D4.showCharacters()">
       <span class="mode-icon">🧑‍🚀</span><h3>Characters</h3><p>Pick your Polygon Kid</p>
     </div>
+    <div class="card mode-card" onclick="D4.showExpress()">
+      <span class="mode-icon">🎭</span><h3>Express</h3><p>58 emotes &amp; poses — dance, dab, flex!</p>
+    </div>
     <div class="card mode-card" onclick="D4.showShop()">
       <span class="mode-icon">🛍️</span><h3>Shop</h3><p>Boards &amp; piece styles — earned with coins</p>
     </div>
@@ -227,6 +230,13 @@ img{max-width:100%}
     <div id="leaderboardWrap"><p style="color:var(--text2);font-size:14px;text-align:center;padding:20px">Loading…</p></div>
     <h3 class="section-title" style="margin-top:26px">Achievements</h3>
     <div id="achGrid"></div>
+    <div style="text-align:center;margin-top:20px"><button class="btn btn-outline btn-small" onclick="D4.goHome()">&larr; Back</button></div>
+  </div>
+</div>
+
+<!-- EXPRESS -->
+<div class="screen" id="expressScreen">
+  <div class="wrap"><h2>🎭 Express</h2><div id="expressContainer"></div>
     <div style="text-align:center;margin-top:20px"><button class="btn btn-outline btn-small" onclick="D4.goHome()">&larr; Back</button></div>
   </div>
 </div>
@@ -451,12 +461,21 @@ function startCasual(difficulty) {
 }
 
 function leaveMatch() { if (match) { match.destroy(); match = null; } goHome(); }
-function goHome() { if (match) { match.destroy(); match = null; } currentCareer = null; showScreen('homeScreen'); loadQuickStats(); refreshCoinChip(); }
+function goHome() { if (match) { match.destroy(); match = null; } if (expressCtl) { expressCtl.destroy(); expressCtl = null; } currentCareer = null; showScreen('homeScreen'); loadQuickStats(); refreshCoinChip(); }
 
 // ── screen entries ──
 let heroViewer = null;
 async function mountHero() { try { if (heroViewer) heroViewer.dispose(); heroViewer = await mountHeroCharacter($('heroCanvas')); } catch (e) {} }
 function showCharacters() { showScreen('charactersScreen'); mountCharacterPicker($('charactersContainer'), { onEquip: () => { mountHero(); refreshCoinChip(); } }); }
+let expressCtl = null;
+async function showExpress() {
+  showScreen('expressScreen');
+  if (expressCtl) { expressCtl.destroy(); expressCtl = null; }
+  try {
+    const m = await import('./express.js');
+    expressCtl = await m.mountExpress($('expressContainer'));
+  } catch (e) { $('expressContainer').innerHTML = '<p style="text-align:center;color:var(--text2)">Express Mode could not load.</p>'; console.warn('express', e); }
+}
 function showShop() { showScreen('shopScreen'); mountShop(GAME_ID, 'shopContainer', { onEquip: refreshCoinChip, onBuy: refreshCoinChip }); }
 function showRecords() { showScreen('recordsScreen'); loadRecords(); }
 async function showCareer() {
@@ -466,7 +485,7 @@ async function showCareer() {
 }
 
 // expose public API for inline onclick + career.js callbacks
-window.D4 = { showScreen, goHome, startCasual, leaveMatch, toggleSound, showCharacters, showShop, showRecords, showCareer };
+window.D4 = { showScreen, goHome, startCasual, leaveMatch, toggleSound, showCharacters, showShop, showRecords, showCareer, showExpress };
 
 // ── achievements ──
 const ACHIEVEMENTS = [
