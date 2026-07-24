@@ -22,6 +22,7 @@ import { PHRASE_GROUPS, PHRASES, renderPhrase, safeName } from './chat.js';
 import { ZONES, ACTIVITIES, SPAWN, nearestZone, gamesForZone } from './zones.js';
 import { NpcCrowd } from './npc.js';
 import { TagGame } from './tag.js';
+import { Fishing, CATCH_TABLE } from './fishing.js';
 import { Butterflies } from './critters.js';
 import { Ambience } from './ambience.js';
 import { WorldProgress } from './achievements.js';
@@ -277,6 +278,19 @@ async function enterWorld() {
   // a few butterflies looping the greenery (skip on low-end machines)
   if (state.quality !== 'low') state.butterflies = new Butterflies(world.scene, 6);
 
+  // fishing at the pond's south bank
+  state.fishing = new Fishing(world, {
+    toast: (m, cls) => toast(m, cls),
+    sfx: (f, d, ty, v) => window.odaSfx && window.odaSfx.tone(f, d, ty, v),
+    lap: () => state.ambience?.lap(0.7),
+    coins: (n) => awardCoins(n),
+    caught: (c, isNew, logSize) => {
+      state.progress?.activity('fish');
+      if (logSize >= CATCH_TABLE.length) state.progress?.activity('fishlog');
+      if (c.rare) sfx('win');
+    },
+  });
+
   setProgress(1, 'Have fun!');
   $('loading').classList.add('hidden');
   $('hud').classList.remove('hidden');
@@ -457,6 +471,7 @@ function loop() {
 
   waterAndDustFX(player, dt);
   state.butterflies?.update(dt, t, player.pos);
+  state.fishing?.update(dt, player, Math.hypot(intent.move.x, intent.move.y) > 0.1);
 
   // coins
   const got = world.collectCoins(player.pos.x, player.pos.z, player.pos.y);
@@ -681,6 +696,11 @@ function runActivity(zone) {
     if (state.tag?.active) return toast('A round is already going!');
     const ok = state.tag?.start(state.npcs, p);
     if (!ok) toast('Not enough kids around for tag — wait for the crowd!');
+  } else if (zone.id === 'fish') {
+    // E is both "start fishing" and "hook the bite": while a cast is live,
+    // route the press to the rod instead of starting a second cast.
+    if (state.fishing?.busy) { state.fishing.hook(); return; }
+    state.fishing?.cast(p);
   } else if (zone.id === 'coinride') {
     if (state.coins < 5) return toast('Coin rides cost 5 coins — go find some!');
     state.progress?.activity('coinride');
@@ -1104,6 +1124,18 @@ function renderBadges() {
   const pr = state.progress.progress();
   const el = $('achProgress');
   if (el) el.textContent = pr.unlocked + '/' + pr.total;
+  // fishing log line under the badge grid
+  if (state.fishing) {
+    let row = $('fishLogRow');
+    if (!row) {
+      row = document.createElement('div');
+      row.id = 'fishLogRow';
+      row.style.cssText = 'margin-top:8px;font-size:13px;color:var(--text2,#a7a2cc)';
+      $('achGrid')?.after(row);
+    }
+    const s = state.fishing.logSummary();
+    row.textContent = `🎣 Fishing log: ${s.caught.length}/${s.total}` + (s.icons ? ` — ${s.icons}` : '');
+  }
 }
 function hideModal(id) {
   $(id).classList.add('hidden');

@@ -109,6 +109,15 @@ export const ACTIVITIES = [
     prompt: 'Feed the ducks',
   },
   {
+    id: 'fish',
+    name: 'Fishing Spot',
+    icon: '🎣',
+    // South bank of the pond, on the path side.
+    pos: [21.0, -9.6],
+    radius: 3.4,
+    prompt: 'Go fishing',
+  },
+  {
     id: 'bikerack',
     name: 'Bike Rack',
     icon: '🚲',

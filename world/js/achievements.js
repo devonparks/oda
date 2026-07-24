@@ -24,6 +24,8 @@ export const WORLD_ACHIEVEMENTS = [
   { id: 'starHunter', name: 'Star Hunter',  icon: '⭐', desc: 'Find all 5 hidden stars' },
   { id: 'tagChamp',   name: 'Unfrozen',     icon: '\u{1F3C3}', desc: 'Win a game of freeze tag' },
   { id: 'duckFriend', name: 'Duck Friend',  icon: '\u{1F986}', desc: 'Feed the ducks' },
+  { id: 'angler',     name: 'Angler',       icon: '\u{1F3A3}', desc: 'Catch your first fish' },
+  { id: 'masterAngler', name: 'Master Angler', icon: '\u{1F420}', desc: 'Complete the fishing log' },
 ];
 
 const LS = {
@@ -119,6 +121,8 @@ export class WorldProgress {
     if (id === 'coinride') this.ach?.unlock('thrillride');
     else if (id === 'pond') this.ach?.unlock('duckFriend');
     else if (id === 'tagwin') this.ach?.unlock('tagChamp');
+    else if (id === 'fish') this.ach?.unlock('angler');
+    else if (id === 'fishlog') this.ach?.unlock('masterAngler');
   }
 
   /** @returns true if this was the 5th (final) star */
