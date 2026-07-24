@@ -41,6 +41,38 @@ not deleted): `world/assets/emotes/*` (old delta bins), `emotes.js` EmotePlayer 
 delta locomotion in `clips.js`. Once v2 is confirmed on a real Chromebook, delete
 those and drop the flag branch in `avatar.js`.
 
+### Polish round (same session) — 5 more commits
+
+Ran a 5-dimension adversarial audit over `world/` (18 agents: find → refute).
+13 findings, **11 confirmed, 2 refuted** — and the refutations were the sweep
+working: both were already-fixed issues the verifier correctly read as fixed.
+
+- **P0, my own regression** (`8a256e5`): `footsteps()` gates the step tone on
+  `p.rig.phase`. v1's RigAnimator had it; RigV2 didn't — so
+  `Math.floor(undefined/π)` is NaN, `NaN !== NaN` is always true, and the tone
+  fired **every frame** while walking. `odaSfx.tone()` has no throttle and builds
+  a fresh oscillator per call: an audible buzz plus ~60 WebAudio nodes/sec on the
+  target Chromebooks. RigV2 now tracks `phase` (2π per gait cycle); `footsteps()`
+  bails on a non-finite phase so this class of bug can't recur. Measured: 3s of
+  walking now fires **11 triggers, was 180**; standing fires 0.
+- **Wheel layout** (`c1f9660`): unscoped v1 `.wheel button` rules out-specified
+  the v2 wheel (0,1,1 vs 0,1,0), pinning buttons to 58px inside 79px cells and
+  rendering tab icons at 25px so they spilled over neighbours. Scoped to
+  `.wheel.wheel-grid`. The tab row also scrolled horizontally with the scrollbar
+  hidden and no affordance — at phone width **38 of 58 emotes were unreachable**;
+  it now wraps to two rows. Unselected tab text --text3 → --text2 (~1.9:1 → ~3.9:1;
+  still short of 4.5 AA — a panel-opacity call left to Devon).
+- **Honesty** (`abd1a68`, `b2a5498`): Show-off ("try *every* emote") unlocked at 8
+  of 58 because the threshold came from the 8 procedural fallbacks; category tabs
+  rendered "undefinedHello" because the v2 bake stores icons per emote, not per
+  category.
+- **Presence** (`a975f67`): join-then-drop mid-download left a frozen ghost avatar
+  inflating the player count; favourites could hold stale v1 ids that desynced
+  the digit-key row from the visible buttons; and `MAX_RENDERED=24` + `visible()`
+  were never called despite world.js's draw-call budget assuming them. All fixed;
+  the cap is guarded so it's the old path exactly below 24. Remote-race and cap
+  paths are reasoned, not exercised — multiplayer is off until RTDB exists.
+
 ## 2026-07-23 (evening) — EMOTES SOLVED: 58 Synty clips live on all 16 kids (remote, Devon at work)
 
 Devon flipped this chat to Fable 5 and asked for "a real shot" at the emote
