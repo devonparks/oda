@@ -375,7 +375,10 @@ export class World {
     for (let i = 2; i <= steps; i++) {
       const t = (i / steps) * dist;
       const x = from.x + dir.x * t, y = from.y + dir.y * t, z = from.z + dir.z * t;
-      for (const idx of this.collision.near(x, z, 0.3)) {
+      // nearShared, not near: this ran 7 times a frame and `near()` allocates a
+      // fresh Set each call (~420/sec of garbage). Safe here because each result
+      // is fully drained inside this loop body before the next collision call.
+      for (const idx of this.collision.nearShared(x, z, 0.3)) {
         const b = this.collision.boxes[idx];
         if (x > b.minX && x < b.maxX && z > b.minZ && z < b.maxZ && y > b.minY && y < b.maxY) {
           return t;

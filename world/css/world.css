@@ -163,14 +163,19 @@ html, body {
   animation: pop .16s ease;
 }
 @keyframes pop { from { opacity: 0; transform: scale(.9) } }
-.wheel button {
+/* Scoped to .wheel-grid (the v1 procedural fallback) ON PURPOSE. Unscoped,
+   `.wheel button` (0,1,1) out-specifies `.emote-tab` (0,1,0) and pinned every
+   v2 tab/grid button to a fixed 62px box, and `.wheel button span` (0,1,2) beat
+   `.emote-tab span` (0,1,1) so tab icons rendered at 25px and spilled over the
+   neighbouring tab. Keep these selectors off the v2 markup. */
+.wheel.wheel-grid button {
   width: 62px; height: 62px; border-radius: 16px; cursor: pointer;
   background: var(--surface2); border: 1px solid var(--border); color: var(--text);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 2px; font: inherit; font-size: 11px; font-weight: 600;
 }
-.wheel button span { font-size: 25px; line-height: 1; }
-.wheel button:active { background: var(--accent-dim); border-color: var(--accent); }
+.wheel.wheel-grid button span { font-size: 25px; line-height: 1; }
+.wheel.wheel-grid button:active { background: var(--accent-dim); border-color: var(--accent); }
 
 /* ---------------- safe chat ---------------- */
 .chat-panel {
@@ -269,7 +274,7 @@ kbd {
 
 @media (max-width: 560px) {
   .wheel { grid-template-columns: repeat(3, 58px); right: 82px; }
-  .wheel button { width: 58px; height: 58px; }
+  .wheel.wheel-grid button { width: 58px; height: 58px; }
   .minimap { display: none !important; }
 }
 
@@ -279,16 +284,19 @@ kbd {
 .wheel { display: block; width: min(360px, calc(100vw - 110px)); }
 .wheel.wheel-grid { display: grid; }        /* procedural fallback keeps the old look */
 
+/* WRAPS rather than scrolls. This row used to be `overflow-x:auto` with the
+   scrollbar hidden and no affordance, so at phone width only Faves/Hello/Happy
+   fit — Dance, Sporty, Feelings and Poses (38 of the 58 emotes) were off-screen
+   with zero cue they existed. Seven short tabs wrap to two rows comfortably, so
+   everything is reachable without a swipe nobody knew to make. */
 .emote-tabs {
-  display: flex; gap: 4px; overflow-x: auto; padding-bottom: 8px;
+  display: flex; flex-wrap: wrap; gap: 4px; padding-bottom: 8px;
   margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);
-  scrollbar-width: none;
 }
-.emote-tabs::-webkit-scrollbar { display: none; }
 .emote-tab {
   flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 1px;
   background: transparent; border: 0; border-radius: 10px; cursor: pointer;
-  color: var(--text3); font: inherit; font-size: 10px; font-weight: 700;
+  color: var(--text2); font: inherit; font-size: 10px; font-weight: 700;
   padding: 6px 9px; min-height: 0;
 }
 .emote-tab span { font-size: 19px; line-height: 1; }
