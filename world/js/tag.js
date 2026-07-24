@@ -66,6 +66,7 @@ export class TagGame {
     this.world = world;
     this.hooks = hooks;
     this.state = 'idle';        // idle | countdown | running | over
+    this.mode = 'runner';       // 'runner' (an NPC hunts you) | 'it' (you hunt)
     this.t = 0;
     this.it = null;             // conscripted NPC entry acting as It
     this.runners = [];          // conscripted NPC entries (runner role)
@@ -91,17 +92,27 @@ export class TagGame {
    */
   get active() { return this.state !== 'idle'; }
 
-  /** @param {NpcCrowd} crowd  @param {Avatar} player */
-  start(crowd, player) {
+  /**
+   * @param {NpcCrowd} crowd  @param {Avatar} player
+   * @param {'runner'|'it'} mode  runner = classic (an NPC hunts you);
+   *   it = the GDD's other half: YOU hunt, the whole conscript set runs.
+   */
+  start(crowd, player, mode = 'runner') {
     if (this.active || !crowd || crowd.npcs.length < 3) return false;
+    this.mode = mode;
     // nearest NPCs play; farthest keep wandering as scenery
     const sorted = [...crowd.npcs].sort((a, b) =>
       a.avatar.pos.distanceToSquared(player.pos) - b.avatar.pos.distanceToSquared(player.pos));
     const picked = sorted.slice(0, Math.min(5, sorted.length));
     for (const n of picked) { n.controlled = true; n.tag = { frozen: false, immune: 0 }; }
     this._player = player;   // so release can unstick a frozen player's hold pose
-    this.it = picked[0];
-    this.runners = picked.slice(1);
+    if (mode === 'it') {
+      this.it = null;                    // the player is the hunter
+      this.runners = picked;
+    } else {
+      this.it = picked[0];
+      this.runners = picked.slice(1);
+    }
     this.playerFrozen = false;
     this._playerImmune = 0;
     this._itCool = 0;
@@ -115,9 +126,14 @@ export class TagGame {
       this.world.scene.add(m);
       this.freezeRings.push(m);
     }
-    this.it.avatar.playEmote('beatchest');
+    if (mode === 'it') {
+      player.playEmote('beatchest');
+      this.hooks.toast && this.hooks.toast("YOU'RE IT! Sprint (Shift) and tag them all!");
+    } else {
+      this.it.avatar.playEmote('beatchest');
+      this.hooks.toast && this.hooks.toast(`${this.it.avatar.name} is IT! Don't get caught!`);
+    }
     this._ensureHud();
-    this.hooks.toast && this.hooks.toast(`${this.it.avatar.name} is IT! Don't get caught!`);
     return true;
   }
 
@@ -198,6 +214,21 @@ export class TagGame {
       this._player?.rig.stopEmote?.();
       this._player?.playEmote('cheer');
     }
+    if (this.mode === 'it') {
+      // you were the hunter: win = clean sweep, lose = the bell saved them
+      for (const n of this.runners) { n.tag.frozen = false; n.avatar.rig.stopEmote?.(); }
+      if (playerWon) {
+        this._player?.playEmote('cheer');
+        for (const n of this.runners) n.avatar.playEmote(Math.random() < 0.5 ? 'headshake' : 'shrug');
+        this.hooks.onWin && this.hooks.onWin(reason);
+      } else {
+        this._player?.playEmote('shrug');
+        for (const n of this.runners) n.avatar.playEmote(Math.random() < 0.5 ? 'cheer' : 'fistpump');
+        this.hooks.onLose && this.hooks.onLose(reason);
+      }
+      this._hud(playerWon ? '🏷️ CLEAN SWEEP — you got them all!' : '🔔 The bell! They got away!');
+      return;
+    }
     if (playerWon) {
       for (const n of this.runners) { n.tag.frozen = false; n.avatar.rig.stopEmote?.(); n.avatar.playEmote(Math.random() < 0.5 ? 'cheer' : 'fistpump'); }
       this.it.avatar.playEmote('shrug');
@@ -245,12 +276,29 @@ export class TagGame {
     const sec = Math.ceil(this.t);
     if (sec !== this._lastSecond) {
       this._lastSecond = sec;
-      this._hud(`🏃 0:${String(Math.max(sec, 0)).padStart(2, '0')} · ${frozenCount} frozen · ${this.playerFrozen ? 'wait for rescue!' : "don't get caught!"}`);
+      this._hud(this.mode === 'it'
+        ? `🏷️ 0:${String(Math.max(sec, 0)).padStart(2, '0')} · ${frozenCount}/${this.runners.length} frozen · TAG THEM ALL!`
+        : `🏃 0:${String(Math.max(sec, 0)).padStart(2, '0')} · ${frozenCount} frozen · ${this.playerFrozen ? 'wait for rescue!' : "don't get caught!"}`);
       if (sec === 10) this.hooks.sfx && this.hooks.sfx(520, 0.1, 'square', 0.05);
     }
 
-    const itA = this.it.avatar;
+    // In 'it' mode the hunter IS the player; every runner steers off itA below.
+    const itA = this.mode === 'it' ? player : this.it.avatar;
 
+    if (this.mode === 'it') {
+      // ---- the player tags by touch; sprint (3.4) outruns runners (2.4) ----
+      if (this._itCool <= 0) {
+        for (const n of this.runners) {
+          if (n.tag.frozen || n.tag.immune > 0) continue;
+          if (player.pos.distanceTo(n.avatar.pos) < TAG_R + 0.08) {
+            this._itCool = 0.8;
+            this._freeze(n);
+            this.hooks.toast && this.hooks.toast(`Tagged ${n.avatar.name}!`);
+            break;
+          }
+        }
+      }
+    } else {
     // ---- It: pick a target and COMMIT ----
     // Pure nearest-target retargets every frame, and with runners fleeing in
     // all directions the It ping-pongs forever and never catches anyone — a
@@ -302,6 +350,7 @@ export class TagGame {
     } else {
       itA.speed += (0 - itA.speed) * Math.min(1, 8 * dt);   // everyone frozen/immune
     }
+    }   // end runner-mode It AI
 
     // ---- runners: flee / rescue / drift ----
     for (const n of this.runners) {
@@ -344,10 +393,12 @@ export class TagGame {
       }
       a.update(dt, this.world.camera);
     }
-    itA.update(dt, this.world.camera);
+    // In it-mode itA IS the player, whose avatar.update the main loop already
+    // ran this frame — running it twice would double-advance the rig.
+    if (this.mode !== 'it') itA.update(dt, this.world.camera);
 
-    // ---- player rescue by touch ----
-    if (!this.playerFrozen) {
+    // ---- player rescue by touch (hunters don't thaw their own victims) ----
+    if (this.mode !== 'it' && !this.playerFrozen) {
       for (const n of this.runners) {
         if (n.tag.frozen && player.pos.distanceTo(n.avatar.pos) < RESCUE_R) this._thaw(n, player);
       }
@@ -355,14 +406,20 @@ export class TagGame {
 
     this._syncRings(player);
 
-    // ---- win / lose ----
-    const allFrozen = this.playerFrozen && this.runners.every((n) => n.tag.frozen);
-    if (allFrozen) this.end(false, 'all frozen');
-    else if (this.t <= 0) this.end(true, 'bell');
+    // ---- win / lose (inverted between the two roles) ----
+    if (this.mode === 'it') {
+      const sweep = this.runners.every((n) => n.tag.frozen);
+      if (sweep) this.end(true, 'clean sweep');
+      else if (this.t <= 0) this.end(false, 'bell');
+    } else {
+      const allFrozen = this.playerFrozen && this.runners.every((n) => n.tag.frozen);
+      if (allFrozen) this.end(false, 'all frozen');
+      else if (this.t <= 0) this.end(true, 'bell');
+    }
   }
 
   _syncRings(player) {
-    const itA = this.it.avatar;
+    const itA = this.mode === 'it' ? player : this.it.avatar;
     this.itRing.visible = true;
     this.itRing.position.set(itA.pos.x, itA.pos.y + 0.04, itA.pos.z);
     let i = 0;

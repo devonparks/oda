@@ -226,13 +226,25 @@ async function enterWorld() {
     sfx: (f, d, ty, v) => window.odaSfx && window.odaSfx.tone(f, d, ty, v),
     onWin: () => {
       sfx('win');
-      awardCoins(15);
-      toast('You survived the bell! +15 coins 🎉', 'gold');
+      if (state.tag.mode === 'it') {
+        awardCoins(20);
+        toast('Clean sweep — you tagged everyone! +20 coins 🏷️', 'gold');
+      } else {
+        awardCoins(15);
+        toast('You survived the bell! +15 coins 🎉', 'gold');
+        // first runner win unlocks playing as the It; rounds alternate after
+        if (localStorage.getItem('amgwTagWon') !== '1') {
+          try { localStorage.setItem('amgwTagWon', '1'); } catch (e) {}
+          setTimeout(() => toast('Unlocked: next round YOU are the It! 🏷️', 'gold'), 1800);
+        }
+      }
       state.progress?.activity('tagwin');
     },
     onLose: () => {
       awardCoins(2);
-      toast('The It got everyone… +2 for trying. Rematch?');
+      toast(state.tag.mode === 'it'
+        ? 'The bell rang — they got away! +2 for the hustle'
+        : 'The It got everyone… +2 for trying. Rematch?');
     },
   });
 
@@ -694,8 +706,12 @@ function runActivity(zone) {
   const p = state.player;
   if (zone.id === 'tag') {
     if (state.tag?.active) return toast('A round is already going!');
-    const ok = state.tag?.start(state.npcs, p);
+    // once you've won as a runner, rounds alternate: runner, It, runner, It…
+    const unlocked = localStorage.getItem('amgwTagWon') === '1';
+    const mode = unlocked && state.tagNextIt ? 'it' : 'runner';
+    const ok = state.tag?.start(state.npcs, p, mode);
     if (!ok) toast('Not enough kids around for tag — wait for the crowd!');
+    else if (unlocked) state.tagNextIt = !state.tagNextIt;
   } else if (zone.id === 'fish') {
     // E is both "start fishing" and "hook the bite": while a cast is live,
     // route the press to the rod instead of starting a second cast.
