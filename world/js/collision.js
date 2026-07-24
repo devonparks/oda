@@ -13,13 +13,50 @@
  * anyone.
  */
 const CELL = 4;             // metres per grid cell
-const STEP_HEIGHT = 0.42;   // anything this low is climbed, not blocked
+/** Anything this low is climbed, not blocked. Raised from 0.42 because a row of
+ *  props (pond rocks at 0.46, kerbs, ramp lips) sat just above the old value and
+ *  read as invisible shin-high walls. */
+const STEP_HEIGHT = 0.55;
+
+/**
+ * The park's boxes are world-space RENDERER bounds straight out of the Synty
+ * demo scene. That's fine for a crate and catastrophic for a tree: the AABB of
+ * SM_Env_Tree_Large_01 is 10.95 x 12.28 m spanning y -0.15..8.91, because it
+ * wraps the whole canopy DOWN TO THE GROUND — so you hit an invisible wall five
+ * metres from the trunk. Measured over the shipped data, 145 boxes could block a
+ * walking kid and their footprints covered ~36% of the park.
+ *
+ * So every box is refined by what the prop actually is before it enters the grid:
+ *   'trunk' — keep the height, shrink the footprint to a trunk you can bump into
+ *             while walking under the canopy (trees: 361 m2, half the problem)
+ *   'none'  — no collision at all: soft foliage, loose clutter, pickups, water
+ *   'solid' — unchanged (buildings, play structures, fountain base, ramps)
+ *
+ * Order matters — first match wins. Tune here rather than re-exporting the JSON,
+ * so the raw Unity bounds stay intact as the source of truth.
+ */
+const TRUNK_RADIUS = 0.45;
+const COLLISION_RULES = [
+  [/Fountain_Water|Pond_Water|_Water|Pool/i, 'none'],   // water is for wading, not walls
+  [/Tree/i, 'trunk'],                                    // canopy AABB -> trunk
+  [/Bush|Hedge|Flower|Grass|Plant/i, 'none'],            // soft foliage, walk through it
+  [/Coin|Gem|Star/i, 'none'],                            // pickups must never block
+  [/Rocker_Top|_Top_|Canopy|Awning|Umbrella/i, 'none'],  // roofs/tops, same canopy trap
+  [/Plush|Toy|Stick|Pogo|Bike|Trike|Pram|Jumping|Soapbox|Ball/i, 'none'], // kid clutter
+];
+
+/** @returns {'solid'|'trunk'|'none'} */
+export function collisionRuleFor(name) {
+  for (const [re, rule] of COLLISION_RULES) if (re.test(name)) return rule;
+  return 'solid';
+}
 
 export class CollisionWorld {
   constructor(boxes = []) {
     this.boxes = [];
     this.grid = new Map();
     this.bounds = { minX: -60, maxX: 60, minZ: -60, maxZ: 60 };
+    this.skipped = 0;               // boxes dropped by a 'none' rule, for __world.stats()
     this._nearShared = new Set();   // reused by the per-frame hot paths, see nearShared()
     for (const b of boxes) this.add(b);
   }
@@ -27,11 +64,18 @@ export class CollisionWorld {
   static key(cx, cz) { return cx * 100000 + cz; }
 
   add(b) {
+    const name = b.n || '';
+    const rule = collisionRuleFor(name);
+    if (rule === 'none') { this.skipped++; return; }
+    // A trunk keeps the prop's height (you can't walk through the bole) but
+    // gives up the canopy's footprint (you can walk under the branches).
+    const ex = rule === 'trunk' ? Math.min(b.e[0], TRUNK_RADIUS) : b.e[0];
+    const ez = rule === 'trunk' ? Math.min(b.e[2], TRUNK_RADIUS) : b.e[2];
     const box = {
-      minX: b.c[0] - b.e[0], maxX: b.c[0] + b.e[0],
+      minX: b.c[0] - ex, maxX: b.c[0] + ex,
       minY: b.c[1] - b.e[1], maxY: b.c[1] + b.e[1],
-      minZ: b.c[2] - b.e[2], maxZ: b.c[2] + b.e[2],
-      name: b.n || '',
+      minZ: b.c[2] - ez, maxZ: b.c[2] + ez,
+      name,
     };
     const i = this.boxes.push(box) - 1;
     const x0 = Math.floor(box.minX / CELL), x1 = Math.floor(box.maxX / CELL);

@@ -1680,4 +1680,32 @@ window.odaWinEffect = (function() {
   };
 })();
 
+/**
+ * Return-to-AMG-World.
+ *
+ * Every arcade game's Back button is hardcoded to the hub (`student.html`). If
+ * you walked to the sports area IN the 3D world and stepped into a game, being
+ * dumped on the hub home when you back out breaks the illusion that the game
+ * was a place you walked into. The world sets a one-shot marker before it
+ * navigates; each game consumes it on load and points Back at the world instead.
+ *
+ * One-shot on purpose: consumed on read, so a game later opened from the hub
+ * still backs out to the hub. Fails silently and changes nothing if the marker
+ * isn't there, so all 49 games behave exactly as before by default.
+ */
+(function () {
+  try {
+    var ret = sessionStorage.getItem('amgReturnTo');
+    if (!ret) return;
+    sessionStorage.removeItem('amgReturnTo');
+    var apply = function () {
+      var links = document.querySelectorAll('a.back-btn, a#backBtn');
+      for (var i = 0; i < links.length; i++) links[i].href = ret;
+    };
+    // after DOMContentLoaded so it wins over per-game inline href tweaks
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply);
+    else apply();
+  } catch (e) { /* storage blocked — leave Back alone */ }
+})();
+
 console.log('[ODA] Core loaded v1.9');

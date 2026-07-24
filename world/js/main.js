@@ -546,6 +546,13 @@ function openZoneModal(zone) {
     const a = document.createElement('a');
     a.className = 'game-card';
     a.href = '../' + g.file;
+    // Mark where we came from so the game's Back button returns to the park
+    // instead of the hub home — you walked here, so you should walk back.
+    // oda-core.js consumes this once on the game's side. Path is relative to
+    // the game page (arcade/<game>/index.html).
+    a.addEventListener('click', () => {
+      try { sessionStorage.setItem('amgReturnTo', '../../world/'); } catch (e) {}
+    });
     a.innerHTML = `<div class="ge">${g.emoji}</div><div class="gt">${g.title}</div><div class="gd">${g.desc}</div>`;
     grid.appendChild(a);
   }
@@ -897,7 +904,10 @@ function say(index) {
 function bindHud() {
   const toggle = (el, others = []) => {
     others.forEach((o) => $(o).classList.add('hidden'));
-    $(el).classList.toggle('hidden');
+    const opened = $(el).classList.toggle('hidden') === false;
+    // Free-look captures the cursor, so anything you have to CLICK has to hand
+    // it back first or the wheel is unreachable.
+    if (opened) state.input?.releaseMouse();
   };
   $('emoteBtn').onclick = () => toggle('emoteWheel', ['chatWheel']);
   $('chatBtn').onclick = () => toggle('chatWheel', ['emoteWheel']);
@@ -948,7 +958,11 @@ function bindHud() {
   $('zonePrompt').onclick = () => enterZone();
 }
 
-function showModal(id) { $(id).classList.remove('hidden'); state.paused = true; }
+function showModal(id) {
+  $(id).classList.remove('hidden');
+  state.paused = true;
+  state.input?.releaseMouse();   // modals are click targets; give the cursor back
+}
 
 function renderBadges() {
   if (!state.progress) return;

@@ -26,9 +26,39 @@ export class Input {
     this._stick = null;
     this._orbit = null;
     this._tapStart = null;
+    /** true while the mouse is captured and moving it looks around */
+    this.pointerLocked = false;
+    /** called when lock state changes, so the HUD can update its hint */
+    this.onLockChange = null;
 
     this._bindKeyboard();
     this._bindPointer();
+    this._bindPointerLock();
+  }
+
+  /**
+   * Desktop free-look. Holding a button to look is a modelling-tool convention,
+   * not a game one — click once and the mouse looks around, Esc gives the cursor
+   * back. Touch is untouched: it keeps the stick + right-half drag, since there
+   * is no pointer to lock.
+   */
+  _bindPointerLock() {
+    const el = this.dom;
+    document.addEventListener('pointerlockchange', () => {
+      this.pointerLocked = document.pointerLockElement === el;
+      // drop any half-finished drag so the camera doesn't jump on release
+      this._orbit = null;
+      this._tapStart = null;
+      this.onLockChange && this.onLockChange(this.pointerLocked);
+    });
+    // Some browsers reject the request (not focused, iframe); just stay unlocked
+    // and the drag-to-orbit fallback below still works.
+    document.addEventListener('pointerlockerror', () => { this.pointerLocked = false; });
+  }
+
+  /** Give the cursor back — used when a panel that needs clicking opens. */
+  releaseMouse() {
+    if (document.pointerLockElement) document.exitPointerLock();
   }
 
   _bindKeyboard() {
@@ -53,6 +83,16 @@ export class Input {
       if (e.target !== el) return;
       const touchLike = e.pointerType !== 'mouse';
       const leftHalf = e.clientX < window.innerWidth * 0.45;
+
+      // Mouse, not yet captured: the first click grabs the pointer and from then
+      // on looking around needs no button at all. No orbit/tap is started for
+      // that click, so it doesn't also fire a tap-to-move.
+      if (!touchLike && !this.pointerLocked && e.button === 0) {
+        el.requestPointerLock && el.requestPointerLock();
+        return;
+      }
+      if (this.pointerLocked) return;   // look is driven by movementX/Y below
+
       el.setPointerCapture(e.pointerId);
 
       if (touchLike && leftHalf && !this._stick) {
@@ -65,6 +105,12 @@ export class Input {
     });
 
     el.addEventListener('pointermove', (e) => {
+      // Captured mouse: raw deltas steer the camera, no button needed.
+      if (this.pointerLocked) {
+        this.look.x += e.movementX || 0;
+        this.look.y += e.movementY || 0;
+        return;
+      }
       if (this._stick && e.pointerId === this._stick.id) {
         const R = 56;
         let dx = e.clientX - this._stick.ox;
@@ -139,7 +185,11 @@ export class Input {
     const d = Math.hypot(x, y);
     if (d > 1) { x /= d; y /= d; }
     this.move.x = x; this.move.y = y;
-    this.run = k.has('ShiftLeft') || k.has('ShiftRight') || d > 0.85;
+    // Push-the-stick-far-to-run is a TOUCH affordance. Applying it to `d` meant
+    // any keyboard key gave d === 1 > 0.85, so WASD was permanently running and
+    // holding Shift changed nothing — which reads as "Shift stopped working".
+    const stickMag = this._stick ? Math.hypot(this._stick.x, this._stick.y) : 0;
+    this.run = k.has('ShiftLeft') || k.has('ShiftRight') || stickMag > 0.85;
     if (d > 0.05) this.moveTarget = null;   // manual input cancels tap-to-move
 
     const look = { x: this.look.x, y: this.look.y };
