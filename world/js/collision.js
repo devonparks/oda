@@ -38,6 +38,11 @@ const STEP_HEIGHT = 0.55;
 const TRUNK_RADIUS = 0.45;
 const COLLISION_RULES = [
   [/Fountain_Water|Pond_Water|_Water|Pool/i, 'none'],   // water is for wading, not walls
+  // The pond's rock RING: its AABB fills the disc inside the ring, putting a
+  // phantom 0.3 m floor over the whole pond — which held everyone above the
+  // waterline so wading never triggered. The individual rock clusters are the
+  // Rocks_02/03/04 boxes; the ring AABB adds nothing but that phantom floor.
+  [/Pond_Rocks_01/i, 'none'],
   [/Tree/i, 'trunk'],                                    // canopy AABB -> trunk
   [/Bush|Hedge|Flower|Grass|Plant/i, 'none'],            // soft foliage, walk through it
   [/Coin|Gem|Star/i, 'none'],                            // pickups must never block
@@ -65,6 +70,21 @@ export class CollisionWorld {
 
   add(b) {
     const name = b.n || '';
+    // A gazebo is a roof on posts — one solid AABB walls off a shelter you're
+    // supposed to stand inside. Swap it for four corner posts plus a low plinth
+    // you step onto; the roof is above head height so it needs no box at all.
+    if (/Gazebo/i.test(name)) {
+      const inset = 0.32, post = 0.16;
+      const x0 = b.c[0] - b.e[0] + inset, x1 = b.c[0] + b.e[0] - inset;
+      const z0 = b.c[2] - b.e[2] + inset, z1 = b.c[2] + b.e[2] - inset;
+      // child names must NOT contain 'Gazebo' or this branch would recurse
+      for (const [px, pz] of [[x0, z0], [x0, z1], [x1, z0], [x1, z1]]) {
+        this.add({ c: [px, b.c[1], pz], e: [post, b.e[1], post], n: '_shelter_post' });
+      }
+      const floorY = b.c[1] - b.e[1];
+      this.add({ c: [b.c[0], floorY + 0.15, b.c[2]], e: [b.e[0], 0.15, b.e[2]], n: '_shelter_plinth' });
+      return;
+    }
     const rule = collisionRuleFor(name);
     if (rule === 'none') { this.skipped++; return; }
     // A trunk keeps the prop's height (you can't walk through the bole) but

@@ -16,9 +16,16 @@ import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 import { CollisionWorld } from './collision.js';
 import { ZONES, ACTIVITIES, COIN_SPOTS, SPAWN } from './zones.js';
+import { DynamicProps, GroundFX } from './physics.js';
 
 /** Props that must stay separate objects because they move. */
-const ANIMATED = ['Swings', 'Seesaw', 'Rocker', 'Coin_Ride', 'Track_Ride', 'Kite', 'Ball_0'];
+const ANIMATED = ['Swings', 'Seesaw', 'Rocker', 'Coin_Ride', 'Track_Ride', 'Kite'];
+/** Props adopted by the physics layer instead of being baked/wobbled:
+ *  balls get kicked around, the duck floats in the pond. */
+const DYNAMIC = [
+  { match: 'Ball_0', kind: 'ball' },
+  { match: 'Toy_Duck', kind: 'floater' },
+];
 
 export const QUALITY = {
   low:    { pixelRatio: 1,    shadows: false, shadowSize: 0,    fogNear: 26, fogFar: 62,  antialias: false },
@@ -155,19 +162,32 @@ export class World {
     this.scene.add(shell);
     this.shell = shell;
 
-    // ---- props ----
-    const protos = new Map();
-    propsGltf.scene.traverse((o) => { if (o.isMesh) protos.set(o.name, o); });
-    this._placeProps(protos, layout);
-    onProgress(0.78, 'Setting out the toys…');
-
-    // ---- collision ----
+    // ---- collision (before props: dynamic props settle against it) ----
     for (const box of collision) this.collision.add(box);
     const xs = collision.map((b) => b.c[0]), zs = collision.map((b) => b.c[2]);
     this.collision.bounds = {
       minX: Math.min(...xs) - 3, maxX: Math.max(...xs) + 3,
       minZ: Math.min(...zs) - 3, maxZ: Math.max(...zs) + 3,
     };
+
+    // ---- water ----
+    // The pond's own renderer bounds define the swim-able disc: extents are
+    // square (13.74 x 13.74 = the AABB of a round pond), the rock ring sits at
+    // ~8.4, so the actual water is safely inside r=8. Surface = top of the box.
+    const pond = collision.find((b) => /Park_Pond_01/.test(b.n || ''));
+    this.water = pond
+      ? { x: pond.c[0], z: pond.c[2], r: Math.min(pond.e[0], pond.e[2]) * 0.58, y: pond.c[1] + pond.e[1] }
+      : null;
+
+    // ---- physics + ground FX ----
+    this.fx = new GroundFX(this.scene);
+    this.dynamics = new DynamicProps(this);
+
+    // ---- props ----
+    const protos = new Map();
+    propsGltf.scene.traverse((o) => { if (o.isMesh) protos.set(o.name, o); });
+    this._placeProps(protos, layout);
+    onProgress(0.78, 'Setting out the toys…');
 
     this._buildCoins();
     this._buildZoneMarkers();
@@ -187,6 +207,11 @@ export class World {
       dummy.scale.fromArray(p.s);
       dummy.updateMatrix();
 
+      const dyn = DYNAMIC.find((d) => p.mesh.includes(d.match));
+      if (dyn) {
+        this.dynamics.add(proto, p, { kind: dyn.kind });
+        continue;
+      }
       if (ANIMATED.some((k) => p.mesh.includes(k))) {
         const m = new THREE.Mesh(proto.geometry, parkMaterial(proto.material));
         m.applyMatrix4(dummy.matrix);
@@ -302,8 +327,13 @@ export class World {
       else { dx = tx / d; dz = tz / d; }
     }
 
+    // Wading: water is walkable but slow — legs push against it, and main.js
+    // spawns ripples/splashes off the flag this sets.
+    const water = this.waterAt(avatar.pos.x, avatar.pos.z);
+    avatar.wading = water != null && avatar.pos.y < water + 0.05;
+
     const wish = Math.hypot(dx, dz);
-    const maxSpeed = intent.run ? RUN : WALK;
+    const maxSpeed = (intent.run ? RUN : WALK) * (avatar.wading ? 0.55 : 1);
     const target = wish > 0.01 ? maxSpeed : 0;
     avatar.speed += THREE.MathUtils.clamp(target - avatar.speed, -ACCEL * dt, ACCEL * dt);
     if (avatar.speed < 0.02) avatar.speed = 0;
@@ -412,7 +442,16 @@ export class World {
     return got;
   }
 
+  /** Water surface height at (x, z), or null when not over water. */
+  waterAt(x, z) {
+    const w = this.water;
+    if (!w) return null;
+    const dx = x - w.x, dz = z - w.z;
+    return dx * dx + dz * dz < w.r * w.r ? w.y : null;
+  }
+
   update(dt, t, playerPos) {
+    this.fx?.update(dt);
     // swings/seesaws/rockers drift so the park never reads as a still photo
     for (const p of this.animatedProps) {
       const ph = p.userData.phase;

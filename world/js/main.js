@@ -238,6 +238,19 @@ async function enterWorld() {
   state.ambience = new Ambience();
   state.ambience.arm();   // begins on the next gesture, per autoplay policy
 
+  // Physics feedback: a thump when a ball is kicked, wake rings from anything
+  // moving through the pond (ball, duck).
+  if (world.dynamics) {
+    world.dynamics.onKick = (it, speed) => {
+      window.odaSfx && window.odaSfx.tone(150 + Math.random() * 60, 0.07, 'square', 0.055);
+      world.fx.spawn(it.pos.x, it.pos.y - it.r + 0.03, it.pos.z,
+        { color: 0xcbb794, from: 0.15, to: 0.7, dur: 0.35, alpha: 0.35 });
+    };
+    world.dynamics.onSplash = (x, y, z, r) => {
+      world.fx.spawn(x, y, z, { from: 0.2, to: r, dur: 0.7, alpha: 0.35 });
+    };
+  }
+
   setProgress(1, 'Have fun!');
   $('loading').classList.add('hidden');
   $('hud').classList.remove('hidden');
@@ -297,6 +310,45 @@ function saveP0s() {
 // frame loop
 // ---------------------------------------------------------------------------
 let lastSave = 0;
+/** Reused every frame by the dynamics update — see loop(). */
+const _kickers = [];
+
+/**
+ * Water + landing feedback, driven off flags the sim already sets:
+ * avatar.wading (stepPlayer) and avatar.landedThisFrame (vertical resolve).
+ * Rings come from the shared GroundFX pool — nothing here allocates.
+ */
+let _wasWading = false, _rippleT = 0;
+function waterAndDustFX(player, dt) {
+  const world = state.world;
+  if (!world.fx) return;
+
+  if (player.wading && !_wasWading) {
+    // stepping in: one bright burst + two tones ≈ a splash
+    const y = world.waterAt(player.pos.x, player.pos.z) + 0.02;
+    world.fx.spawn(player.pos.x, y, player.pos.z, { from: 0.3, to: 1.6, dur: 0.6, alpha: 0.7 });
+    world.fx.spawn(player.pos.x, y, player.pos.z, { from: 0.15, to: 0.9, dur: 0.45, alpha: 0.5 });
+    window.odaSfx && (window.odaSfx.tone(360, 0.05, 'sine', 0.05), window.odaSfx.tone(170, 0.10, 'sine', 0.06));
+  }
+  if (player.wading && player.speed > 0.4) {
+    _rippleT -= dt;
+    if (_rippleT <= 0) {
+      _rippleT = 0.24;
+      const y = world.waterAt(player.pos.x, player.pos.z) + 0.02;
+      world.fx.spawn(player.pos.x, y, player.pos.z, { from: 0.25, to: 1.1, dur: 0.8, alpha: 0.4 });
+    }
+  }
+  _wasWading = player.wading;
+
+  if (player.landedThisFrame) {
+    player.landedThisFrame = false;
+    if (!player.wading) {
+      world.fx.spawn(player.pos.x, player.pos.y + 0.03, player.pos.z,
+        { color: 0xcbb794, from: 0.2, to: 0.9, dur: 0.4, alpha: 0.4 });
+    }
+  }
+}
+
 function loop() {
   requestAnimationFrame(loop);
   const world = state.world;
@@ -342,6 +394,18 @@ function loop() {
   if (state.npcs && !state.paused) {
     state.npcs.update(dt, world.camera, player.pos, state.remotes.size);
   }
+
+  // Dynamic props: every kid in the park — you, NPCs, remotes — can kick a
+  // ball or nudge the duck. The kickers array is reused, never reallocated.
+  if (world.dynamics && !state.paused) {
+    _kickers.length = 0;
+    _kickers.push(player);
+    if (state.npcs) for (const n of state.npcs.npcs) _kickers.push(n.avatar);
+    for (const r of state.remotes.values()) _kickers.push(r.avatar);
+    world.dynamics.update(dt, _kickers);
+  }
+
+  waterAndDustFX(player, dt);
 
   // coins
   const got = world.collectCoins(player.pos.x, player.pos.z, player.pos.y);
