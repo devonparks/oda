@@ -1,5 +1,35 @@
 # Sprint Log
 
+## 2026-07-24 (continued) — "Don't stop": FISHING, play-as-It, map/help, coin magnetism
+
+Devon: "keep going and make the world as good as you can." Five more commits,
+each verified live before landing:
+
+- **FISHING (`1e4a6c9`)** — the pond finally pays off. Fishing Spot marker on the
+  south bank; E casts (baseball emote = the wind-up), bobber arcs out with a rod
+  line from the Hand_R bone, then the little story: bobbing… teasing dip… the
+  DIVE — E/click within 0.9 s hooks it. Ten catches (minnow → golden koi, an Old
+  Boot, a Message Bottle whose four notes include one breadcrumb: "C.E. was
+  here — 755 Broadway"), persistent fishing log under the badge grid, Angler /
+  Master Angler badges, coins through the shared economy. E is routed so the
+  zone prompt never double-casts; the sporty emote bin is pre-warmed so the
+  first cast animates.
+- **Play as the It (`798fb48`)** — the GDD's other seat. First runner win
+  unlocks it (toast reveal); rounds then alternate roles. As the It you tag by
+  touch, sprint to catch, and the kids RESCUE each other while you hunt — the
+  verification round took 6 tags to freeze 5 kids. Clean sweep +20 coins.
+- **Map + Help (`c7bcaf4`)** — activities now render on the minimap as icons;
+  the Help modal teaches the real controls (click-to-look landed yesterday) and
+  advertises the park's verbs. Caught in self-review: an HTML entity was
+  U+1F3B0 SLOT MACHINE instead of U+1F3A0 CAROUSEL — wrong glyph for a kids'
+  product; all entities now verified by Unicode name.
+- **Coin magnetism (`61e8a11`)** — coins within 2.4 m fly to the player;
+  respawns snap back to authored homes; distant coins never drift.
+
+Full-system regression at the end: RigV2 + finite stride phase, 58 emotes
+reachable, 5 NPCs, 17 dynamic props (14 ducks in-pond), 6 butterflies, tag and
+fishing idle, wading at exactly 0.88, 30 coins, zero console errors. Unpushed.
+
 ## 2026-07-24 (overnight) — "Bring the world alive": ducks, FREEZE TAG, playing kids, butterflies
 
 Devon (heading to sleep): "just try to cook… bring that whole thing alive…
