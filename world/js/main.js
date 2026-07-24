@@ -446,8 +446,11 @@ function loop() {
   // ball or nudge the duck. The kickers array is reused, never reallocated.
   if (world.dynamics && !state.paused) {
     _kickers.length = 0;
-    _kickers.push(player);
-    if (state.npcs) for (const n of state.npcs.npcs) _kickers.push(n.avatar);
+    // A frozen kid is an ice block, not a foot — physics.js's kick has a
+    // nonzero floor, so without this filter a frozen statue still booted any
+    // ball that drifted into it.
+    if (!state.tag?.playerFrozen) _kickers.push(player);
+    if (state.npcs) for (const n of state.npcs.npcs) { if (!n.tag?.frozen) _kickers.push(n.avatar); }
     for (const r of state.remotes.values()) _kickers.push(r.avatar);
     world.dynamics.update(dt, _kickers);
   }

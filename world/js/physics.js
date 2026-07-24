@@ -111,6 +111,21 @@ export class DynamicProps {
         }
       }
 
+      // ── beached floater: a duck kicked (or lured) out of the pond waddles
+      //    home rather than stranding forever — the steering block below only
+      //    runs in water, so without this the stale target never cleared and
+      //    the duck just sat on the bank. ──
+      if (it.kind === 'floater' && !inWater && this.world.water) {
+        const w = this.world.water;
+        const dx = w.x - it.pos.x, dz = w.z - it.pos.z;
+        const d = Math.hypot(dx, dz) || 1;
+        const k = 1 - Math.exp(-3 * dt);
+        it.vel.x += ((dx / d) * 0.45 - it.vel.x) * k;
+        it.vel.z += ((dz / d) * 0.45 - it.vel.z) * k;
+        it.mesh.rotation.y = Math.atan2(dx, dz);
+        it.target = null;   // whatever it was chasing is moot on land
+      }
+
       // ── floater steering: crumbs first, else lazy drifting ──
       if (it.kind === 'floater' && inWater) {
         let want = null, speed = 0;
@@ -184,8 +199,10 @@ export class DynamicProps {
         it.vel.x *= k; it.vel.z *= k;
       }
       if (inWater) {
+        // real vertical bob (a `* 0` here once made this dead code — the rock
+        // was visible but the duck never actually rose and fell)
         const bob = Math.sin(it.bobPhase) * 0.02;
-        it.pos.y = Math.max(it.pos.y, water - it.r * 0.4) + bob * 0;
+        it.pos.y = Math.max(it.pos.y, water - it.r * 0.4) + bob;
         it.mesh.rotation.z = Math.sin(it.bobPhase) * 0.06;
         it.mesh.rotation.x = Math.cos(it.bobPhase * 0.8) * 0.05;
       }

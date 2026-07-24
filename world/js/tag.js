@@ -81,7 +81,15 @@ export class TagGame {
     this.hud = null;
   }
 
-  get active() { return this.state === 'countdown' || this.state === 'running'; }
+  /**
+   * Busy for the WHOLE lifecycle including the 4s 'over' celebration. This
+   * gate excluded 'over' once, and mashing E right after a round ended started
+   * a new round mid-celebration — orphaning the old conscripts (controlled
+   * stays true forever, the crowd skips and never retires them) and leaving a
+   * stale _lock whose avatar isn't in the new roster, which made _freeze(...)
+   * dereference undefined. Found by the audit sweep; kids WILL mash E.
+   */
+  get active() { return this.state !== 'idle'; }
 
   /** @param {NpcCrowd} crowd  @param {Avatar} player */
   start(crowd, player) {
@@ -91,11 +99,13 @@ export class TagGame {
       a.avatar.pos.distanceToSquared(player.pos) - b.avatar.pos.distanceToSquared(player.pos));
     const picked = sorted.slice(0, Math.min(5, sorted.length));
     for (const n of picked) { n.controlled = true; n.tag = { frozen: false, immune: 0 }; }
+    this._player = player;   // so release can unstick a frozen player's hold pose
     this.it = picked[0];
     this.runners = picked.slice(1);
     this.playerFrozen = false;
     this._playerImmune = 0;
     this._itCool = 0;
+    this._lock = null;           // never inherit a chase from a previous round
     this.state = 'countdown';
     this.t = COUNTDOWN;
     this._lastSecond = -1;
@@ -155,12 +165,17 @@ export class TagGame {
   _all() { return [this.it, ...this.runners]; }
 
   _release() {
+    // A round that ends while the player is frozen leaves them looping the
+    // armsfolded HOLD pose forever unless it's explicitly stopped.
+    if (this.playerFrozen && this._player) this._player.rig.stopEmote?.();
+    this._player = null;
     for (const n of this._all()) {
       if (!n) continue;
       n.controlled = false;
       n.tag = null;
       n.state = 'idle';
       n.timer = 1 + Math.random() * 2;
+      n.avatar.rig.stopEmote?.();   // no lingering frozen poses on the kids either
     }
     this.itRing.visible = false;
     for (const m of this.freezeRings) m.visible = false;
@@ -175,6 +190,14 @@ export class TagGame {
     if (this.state !== 'running' && this.state !== 'countdown') return;
     this.state = 'over';
     this.t = 4;
+    this._lock = null;
+    // A player tagged near the bell must not spend their own victory screen
+    // frozen: end() clears the flag (main.js gates input on it every frame).
+    if (this.playerFrozen && playerWon) {
+      this.playerFrozen = false;
+      this._player?.rig.stopEmote?.();
+      this._player?.playEmote('cheer');
+    }
     if (playerWon) {
       for (const n of this.runners) { n.tag.frozen = false; n.avatar.rig.stopEmote?.(); n.avatar.playEmote(Math.random() < 0.5 ? 'cheer' : 'fistpump'); }
       this.it.avatar.playEmote('shrug');
@@ -256,9 +279,12 @@ export class TagGame {
         targetIsPlayer = lock.avatar === player;
       }
     }
-    this._lock = target
-      ? { avatar: target, entry: targetIsPlayer ? null : this.runners.find((n) => n.avatar === target) }
-      : null;
+    // only rebuild the lock when the target actually changes — this runs every
+    // frame for the whole round, and the codebase keeps its rAF loop allocation-free
+    if (!target) this._lock = null;
+    else if (!this._lock || this._lock.avatar !== target) {
+      this._lock = { avatar: target, entry: targetIsPlayer ? null : this.runners.find((n) => n.avatar === target) };
+    }
     if (target) {
       const d = steer(this.world, itA, target.pos.x, target.pos.z, IT_SPEED, dt);
       if (d < TAG_R && this._itCool <= 0) {

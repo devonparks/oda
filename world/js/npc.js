@@ -41,6 +41,12 @@ const WALK_SPEED = 1.45;      // sits in the walk gait, so locomotion reads righ
 const ARRIVE = 1.1;           // metres from target that counts as "there"
 const TURN_RATE = 8;          // yaw easing toward travel direction
 
+/** NPCs wade like the player does (stepPlayer slows the player to 0.55x). */
+function wadeFactor(world, a) {
+  const w = world.waterAt && world.waterAt(a.pos.x, a.pos.z);
+  return w != null && a.pos.y < w + 0.05 ? 0.55 : 1;
+}
+
 export class NpcCrowd {
   /**
    * @param {World} world
@@ -187,7 +193,7 @@ export class NpcCrowd {
           if (dy > Math.PI) dy -= Math.PI * 2;
           if (dy < -Math.PI) dy += Math.PI * 2;
           a.yaw += dy * Math.min(1, TURN_RATE * dt);
-          a.speed += (WALK_SPEED * 1.25 - a.speed) * Math.min(1, 8 * dt);
+          a.speed += (WALK_SPEED * 1.25 * wadeFactor(this.world, a) - a.speed) * Math.min(1, 8 * dt);
           const nx = a.pos.x + ux * a.speed * dt, nz = a.pos.z + uz * a.speed * dt;
           const c = this.world.collision.clampToBounds(nx, nz, 1.2);
           const solved = this.world.collision.resolve(c.x, c.z, a.pos.y, 0.28, 1.4);
@@ -223,7 +229,7 @@ export class NpcCrowd {
           if (d < -Math.PI) d += Math.PI * 2;
           a.yaw += d * Math.min(1, TURN_RATE * dt);
 
-          a.speed += (WALK_SPEED - a.speed) * Math.min(1, 8 * dt);
+          a.speed += (WALK_SPEED * wadeFactor(this.world, a) - a.speed) * Math.min(1, 8 * dt);
           const nx = a.pos.x + ux * a.speed * dt;
           const nz = a.pos.z + uz * a.speed * dt;
           const c = this.world.collision.clampToBounds(nx, nz, 1.2);
@@ -258,9 +264,11 @@ export class NpcCrowd {
         if (npc.emoteBackT) {
           npc.emoteBackT -= dt;
           if (npc.emoteBackT <= 0) {
-            npc.emoteBackT = 0;
-            npc.emoteBackAt = performance.now();
-            if (!a.rig.emoting) {
+            if (a.rig.emoting) {
+              npc.emoteBackT = 0.35;   // mid-gesture: try again shortly, don't eat the reply
+            } else {
+              npc.emoteBackT = 0;
+              npc.emoteBackAt = performance.now();
               const pool = ['wave', 'clap', 'thumbsup', 'cheer', 'heart'];
               a.playEmote(pool[(Math.random() * pool.length) | 0]);
             }
