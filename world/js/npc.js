@@ -80,6 +80,19 @@ export class NpcCrowd {
     return this._nameBag.pop();
   }
 
+  /** Nearest dynamic ball within `maxD`, or null. */
+  _nearestBall(pos, maxD) {
+    const dyn = this.world.dynamics;
+    if (!dyn) return null;
+    let best = null, bestD = maxD;
+    for (const it of dyn.items) {
+      if (it.kind !== 'ball') continue;
+      const d = pos.distanceTo(it.pos);
+      if (d < bestD) { bestD = d; best = it; }
+    }
+    return best;
+  }
+
   /**
    * A random open point. If `from` is given, the point is at least MIN_TRAVEL
    * away, so an NPC walks a real distance and settles into the walk gait rather
@@ -133,8 +146,12 @@ export class NpcCrowd {
     npc.avatar.dispose();
   }
 
-  /** @param {number} realPlayers count of REAL remote players (never includes NPCs) */
-  update(dt, camera, playerPos, realPlayers) {
+  /**
+   * @param {Avatar}  player      the local player (pos + rig, for emote-backs)
+   * @param {number} realPlayers count of REAL remote players (never includes NPCs)
+   */
+  update(dt, camera, player, realPlayers) {
+    const playerPos = player.pos ? player.pos : player;   // accepts Avatar or Vector3
     // --- population control (throttled) ---
     this._adjustTimer -= dt;
     if (this._adjustTimer <= 0) {
@@ -153,9 +170,41 @@ export class NpcCrowd {
       npc.timer -= dt;
       npc.emoteCooldown -= dt;
 
-      if (npc.state === 'idle') {
+      if (npc.state === 'ball') {
+        // Kid chases the ball; the shared kicker system boots it the moment
+        // they overlap, so "chase" + "kick" is just walking at it repeatedly.
+        const ball = npc.ball;
+        const gone = !ball || a.pos.distanceTo(ball.pos) > 18;
+        if (gone || npc.ballKicks <= 0 || npc.timer <= 0) {
+          npc.state = 'idle'; npc.ball = null; npc.timer = 2 + Math.random() * 3;
+        } else {
+          const dx = ball.pos.x - a.pos.x, dz = ball.pos.z - a.pos.z;
+          const dist = Math.hypot(dx, dz);
+          if (dist < 0.55) npc.ballKicks--;      // overlapping: dynamics kicks it
+          const ux = dx / (dist || 1), uz = dz / (dist || 1);
+          const wantYaw = Math.atan2(ux, uz);
+          let dy = (wantYaw - a.yaw) % (Math.PI * 2);
+          if (dy > Math.PI) dy -= Math.PI * 2;
+          if (dy < -Math.PI) dy += Math.PI * 2;
+          a.yaw += dy * Math.min(1, TURN_RATE * dt);
+          a.speed += (WALK_SPEED * 1.25 - a.speed) * Math.min(1, 8 * dt);
+          const nx = a.pos.x + ux * a.speed * dt, nz = a.pos.z + uz * a.speed * dt;
+          const c = this.world.collision.clampToBounds(nx, nz, 1.2);
+          const solved = this.world.collision.resolve(c.x, c.z, a.pos.y, 0.28, 1.4);
+          a.pos.x = solved.x; a.pos.z = solved.z;
+        }
+      } else if (npc.state === 'idle') {
         a.speed += (0 - a.speed) * Math.min(1, 10 * dt);
-        if (npc.timer <= 0) { npc.state = 'walk'; npc.target = this._randomPoint(a.pos); npc.timer = 6 + Math.random() * 6; }
+        if (npc.timer <= 0) {
+          // sometimes the nearby ball is more interesting than wandering
+          const ball = this._nearestBall(a.pos, 12);
+          if (ball && Math.random() < 0.4) {
+            npc.state = 'ball'; npc.ball = ball; npc.ballKicks = 2 + ((Math.random() * 2) | 0);
+            npc.timer = 14;   // give up eventually no matter what
+          } else {
+            npc.state = 'walk'; npc.target = this._randomPoint(a.pos); npc.timer = 6 + Math.random() * 6;
+          }
+        }
       } else {
         // seek target
         const dx = npc.target.x - a.pos.x, dz = npc.target.z - a.pos.z;
@@ -198,6 +247,24 @@ export class NpcCrowd {
         if (near < 3.2 && !a.rig.emoting && performance.now() - npc.wavedAt > 12000) {
           a.playEmote('wave');
           npc.wavedAt = performance.now();
+        }
+        // Emote-back: you emote near a kid, they answer after a beat — the
+        // difference between scenery and company.
+        if (player.rig && near < 4.5) {
+          if (player.rig.emoting && !npc.emoteBackT && performance.now() - (npc.emoteBackAt || 0) > 9000) {
+            npc.emoteBackT = 0.5 + Math.random() * 0.8;
+          }
+        }
+        if (npc.emoteBackT) {
+          npc.emoteBackT -= dt;
+          if (npc.emoteBackT <= 0) {
+            npc.emoteBackT = 0;
+            npc.emoteBackAt = performance.now();
+            if (!a.rig.emoting) {
+              const pool = ['wave', 'clap', 'thumbsup', 'cheer', 'heart'];
+              a.playEmote(pool[(Math.random() * pool.length) | 0]);
+            }
+          }
         }
       }
       if (npc.emoteCooldown <= 0 && npc.state === 'idle' && !a.rig.emoting) {

@@ -464,13 +464,27 @@ export class World {
 
   update(dt, t, playerPos) {
     this.fx?.update(dt);
-    // swings/seesaws/rockers drift so the park never reads as a still photo
+    // Swings/seesaws/rockers drift so the park never reads as a still photo —
+    // and walking into one gives it a real PUSH that rings down over ~4s. (The
+    // swings themselves turned out to be baked into the static shell; the
+    // rockers and seesaw are the play equipment that actually animates.)
     for (const p of this.animatedProps) {
       const ph = p.userData.phase;
       const k = p.userData.kind;
-      if (k.includes('Swings')) p.rotation.x = p.userData.rest.x + Math.sin(t * 1.1 + ph) * 0.16;
-      else if (k.includes('Seesaw')) p.rotation.z = p.userData.rest.z + Math.sin(t * 0.9 + ph) * 0.18;
-      else if (k.includes('Rocker')) p.rotation.x = p.userData.rest.x + Math.sin(t * 1.6 + ph) * 0.12;
+      const pushable = k.includes('Rocker') || k.includes('Seesaw') || k.includes('Swings');
+      let push = 0;
+      if (pushable) {
+        push = p.userData.push || 0;
+        if (playerPos) {
+          const d = Math.hypot(playerPos.x - p.position.x, playerPos.z - p.position.z);
+          if (d < 1.4) push = 1;
+        }
+        push = Math.max(0, push - dt * 0.25);
+        p.userData.push = push;
+      }
+      if (k.includes('Swings')) p.rotation.x = p.userData.rest.x + Math.sin(t * (1.1 + push) + ph) * (0.16 + push * 0.55);
+      else if (k.includes('Seesaw')) p.rotation.z = p.userData.rest.z + Math.sin(t * (0.9 + push) + ph) * (0.18 + push * 0.30);
+      else if (k.includes('Rocker')) p.rotation.x = p.userData.rest.x + Math.sin(t * (1.6 + push * 1.2) + ph) * (0.12 + push * 0.38);
       else if (k.includes('Coin_Ride')) p.rotation.y = p.userData.rest.y + Math.sin(t * 1.3 + ph) * 0.10;
       else if (k.includes('Kite')) p.rotation.z = p.userData.rest.z + Math.sin(t * 2.0 + ph) * 0.22;
       else p.rotation.y = p.userData.rest.y + Math.sin(t * 0.7 + ph) * 0.05;

@@ -415,7 +415,7 @@ function loop() {
   // NPC crowd — realPlayers is the true remote count, never counting NPCs, so
   // the "players here" number stays honest while the park still feels alive.
   if (state.npcs && !state.paused) {
-    state.npcs.update(dt, world.camera, player.pos, state.remotes.size);
+    state.npcs.update(dt, world.camera, player, state.remotes.size);
   }
 
   // Freeze tag round (drives its conscripted NPCs itself)
