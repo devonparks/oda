@@ -265,7 +265,8 @@ export class World {
     // Ground under a coin never moves, so resolve it ONCE here instead of
     // calling groundAt() per coin every frame (~1800 grid lookups/sec saved).
     this.coinState = COIN_SPOTS.map(([x, z]) => ({
-      x, z, y: 0, taken: false, respawnAt: 0, phase: Math.random() * Math.PI * 2,
+      x, z, hx: x, hz: z,   // hx/hz = home; magnetism drifts x/z, respawn resets
+      y: 0, taken: false, respawnAt: 0, phase: Math.random() * Math.PI * 2,
       groundY: this.collision.groundAt(x, z, 2),
     }));
   }
@@ -439,12 +440,24 @@ export class World {
   }
 
   /** @returns indices of coins collected this frame */
-  collectCoins(x, z, y) {
+  collectCoins(x, z, y, dt = 0.016) {
     const got = [];
     const now = performance.now();
     for (let i = 0; i < this.coinState.length; i++) {
       const c = this.coinState[i];
-      if (c.taken) { if (now > c.respawnAt) c.taken = false; continue; }
+      if (c.taken) {
+        if (now > c.respawnAt) { c.taken = false; c.x = c.hx; c.z = c.hz; }
+        continue;
+      }
+      // magnetism: within arm's reach-and-a-bit the coin flies to the player —
+      // pickup feels generous instead of pixel-hunty. Respawn resets to home.
+      const dxm = x - c.x, dzm = z - c.z;
+      const dm = Math.hypot(dxm, dzm);
+      if (dm < 2.4 && dm > 1e-3 && Math.abs(c.y + 0.7 - y) < 2.2) {
+        const pull = Math.min(1, (10 * dt) * (1.2 - dm / 2.4 + 0.3));
+        c.x += dxm * pull;
+        c.z += dzm * pull;
+      }
       if (Math.abs(c.x - x) < 0.9 && Math.abs(c.z - z) < 0.9 && Math.abs(c.y + 0.7 - y) < 2.0) {
         c.taken = true;
         c.respawnAt = now + 90000;   // come back in 90s so the park isn't farmable

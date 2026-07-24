@@ -486,7 +486,7 @@ function loop() {
   state.fishing?.update(dt, player, Math.hypot(intent.move.x, intent.move.y) > 0.1);
 
   // coins
-  const got = world.collectCoins(player.pos.x, player.pos.z, player.pos.y);
+  const got = world.collectCoins(player.pos.x, player.pos.z, player.pos.y, dt);
   if (got.length) coinCombo(got.length);
 
   // hidden star hunt
