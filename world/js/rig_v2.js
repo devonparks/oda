@@ -135,6 +135,20 @@ export class RigV2 {
     this.t = {};           // per-clip playheads (s)
     this._jumpT = 0; this._landT = 0; this._wasGrounded = true;
 
+    /**
+     * Stride progress in radians, 2π per full gait cycle (so it crosses a
+     * multiple of π twice per cycle — once per foot). main.js's footsteps()
+     * triggers the step SFX off this. The v1 RigAnimator exposed the same
+     * field; without it every `Math.floor(phase/π)` comparison there is
+     * NaN !== NaN — always true — and the tone fires every single frame.
+     */
+    this.phase = 0;
+
+    // Per-frame scratch, reused so update() stays allocation-free (the whole
+    // point of hand-rolling this instead of using THREE.AnimationMixer).
+    this._target = { idle: 0, walk: 0, run: 0, sprint: 0, jump: 0, fall: 0, land: 0 };
+    this._active = [];
+
     // emote channel
     this.emote = null;     // { info, data:Int16Array, t }
     this.emWeight = 0;
@@ -186,7 +200,9 @@ export class RigV2 {
     const speed = s.speed || 0;
 
     // ── 1. gait target weights (ported from clips.js) ──
-    const target = { idle: 0, walk: 0, run: 0, sprint: 0, jump: 0, fall: 0, land: 0 };
+    const target = this._target;
+    target.idle = 0; target.walk = 0; target.run = 0; target.sprint = 0;
+    target.jump = 0; target.fall = 0; target.land = 0;
     if (!s.grounded) {
       this._jumpT += dt;
       const j = clamp(1 - this._jumpT / 0.35, 0, 1);
@@ -218,8 +234,21 @@ export class RigV2 {
       const c = loco.clips[name];
       if (c.loop && this.t[name] > c.dur) this.t[name] %= c.dur;
     }
-    const active = [];
+    const active = this._active;
+    active.length = 0;
     for (const name in this.w) if (this.w[name] > 0) active.push(name);
+
+    // Stride phase from the dominant ground gait, for footstep SFX. 2π per gait
+    // cycle => two π-crossings per cycle => one trigger per foot. Held (not
+    // reset) while standing so the next step doesn't fire a spurious trigger.
+    let domName = null, domW = 0;
+    for (const n of ['walk', 'run', 'sprint']) {
+      if (this.w[n] > domW) { domW = this.w[n]; domName = n; }
+    }
+    if (domName) {
+      const dc = loco.clips[domName];
+      if (dc && dc.dur) this.phase = (this.t[domName] / dc.dur) * Math.PI * 2;
+    }
 
     // ── 2. emote channel envelope (ported from emotes.js / express.js) ──
     const targetLeg = 1 - clamp(speed / GAIT.walk, 0, 1);  // legs freed while moving

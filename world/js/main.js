@@ -470,20 +470,27 @@ function maybeOnboard() {
  */
 let lastStepPhase = 0, wasGrounded = true;
 function footsteps(p, dt) {
+  // A rig with no stride phase gets NO steps rather than one per frame: an
+  // absent `phase` reads as undefined, and `Math.floor(undefined / Math.PI)`
+  // is NaN — and NaN !== NaN is ALWAYS true, so the half-cycle guard below
+  // silently degrades into firing a fresh oscillator every rAF frame. That
+  // regressed once already when RigV2 landed without the field.
+  const phase = p.rig.phase;
+  if (typeof phase !== 'number' || !isFinite(phase)) return;
   if (!p.grounded) { wasGrounded = false; return; }
   if (!wasGrounded) {          // just landed
     wasGrounded = true;
-    lastStepPhase = p.rig.phase;
+    lastStepPhase = phase;
     window.odaSfx && window.odaSfx.tone(150, 0.09, 'triangle', 0.09);
     return;
   }
-  if (p.speed < 0.3) { lastStepPhase = p.rig.phase; return; }
+  if (p.speed < 0.3) { lastStepPhase = phase; return; }
   // one step per half-cycle
-  if (Math.floor(p.rig.phase / Math.PI) !== Math.floor(lastStepPhase / Math.PI)) {
+  if (Math.floor(phase / Math.PI) !== Math.floor(lastStepPhase / Math.PI)) {
     const vol = 0.035 + Math.min(p.speed / 4.6, 1) * 0.03;
     window.odaSfx && window.odaSfx.tone(120 + Math.random() * 40, 0.06, 'triangle', vol);
   }
-  lastStepPhase = p.rig.phase;
+  lastStepPhase = phase;
 }
 
 // ---------------------------------------------------------------------------
