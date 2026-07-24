@@ -122,12 +122,13 @@ export class NpcCrowd {
   }
 
   _retireFarthest(fromPos) {
-    if (!this.npcs.length) return;
-    let idx = 0, far = -1;
+    let idx = -1, far = -1;
     for (let i = 0; i < this.npcs.length; i++) {
+      if (this.npcs[i].controlled) continue;   // never retire a kid mid-game
       const d = this.npcs[i].avatar.pos.distanceToSquared(fromPos);
       if (d > far) { far = d; idx = i; }
     }
+    if (idx < 0) return;
     const [npc] = this.npcs.splice(idx, 1);
     npc.avatar.dispose();
   }
@@ -145,6 +146,9 @@ export class NpcCrowd {
 
     // --- per-NPC wander ---
     for (const npc of this.npcs) {
+      // Conscripted by a park game (freeze tag drives them itself, including
+      // their avatar.update) — the crowd leaves them completely alone.
+      if (npc.controlled) continue;
       const a = npc.avatar;
       npc.timer -= dt;
       npc.emoteCooldown -= dt;

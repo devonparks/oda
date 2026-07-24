@@ -80,6 +80,15 @@ export const ZONES = [
  */
 export const ACTIVITIES = [
   {
+    id: 'tag',
+    name: 'Freeze Tag',
+    icon: '🏃',
+    // Open ground by the spawn path (the NW coin trail runs through here).
+    pos: [-1.5, 20.5],
+    radius: 3.4,
+    prompt: 'Start freeze tag',
+  },
+  {
     id: 'coinride',
     name: 'Coin Rides',
     icon: '🎠',

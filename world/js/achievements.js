@@ -22,6 +22,8 @@ export const WORLD_ACHIEVEMENTS = [
   { id: 'wanderer',   name: 'Wanderer',     icon: '\u{1F45F}', desc: 'Walk 500 metres in the park' },
   { id: 'thrillride', name: 'Thrill Ride',  icon: '\u{1F3A0}', desc: 'Take a coin ride' },
   { id: 'starHunter', name: 'Star Hunter',  icon: '⭐', desc: 'Find all 5 hidden stars' },
+  { id: 'tagChamp',   name: 'Unfrozen',     icon: '\u{1F3C3}', desc: 'Win a game of freeze tag' },
+  { id: 'duckFriend', name: 'Duck Friend',  icon: '\u{1F986}', desc: 'Feed the ducks' },
 ];
 
 const LS = {
@@ -115,6 +117,8 @@ export class WorldProgress {
 
   activity(id) {
     if (id === 'coinride') this.ach?.unlock('thrillride');
+    else if (id === 'pond') this.ach?.unlock('duckFriend');
+    else if (id === 'tagwin') this.ach?.unlock('tagChamp');
   }
 
   /** @returns true if this was the 5th (final) star */

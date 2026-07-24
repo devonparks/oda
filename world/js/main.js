@@ -21,6 +21,7 @@ import { getEmoteLibraryV2, getLocomotionV2 } from './rig_v2.js';
 import { PHRASE_GROUPS, PHRASES, renderPhrase, safeName } from './chat.js';
 import { ZONES, ACTIVITIES, SPAWN, nearestZone, gamesForZone } from './zones.js';
 import { NpcCrowd } from './npc.js';
+import { TagGame } from './tag.js';
 import { Ambience } from './ambience.js';
 import { WorldProgress } from './achievements.js';
 import { StarHunt } from './stars.js';
@@ -217,6 +218,22 @@ async function enterWorld() {
     for (let i = 0; i < npcBase; i++) state.npcs._spawnOne();
   });
 
+  // Freeze tag with the NPC kids — the Recess GDD's loop at hub-world scale.
+  state.tag = new TagGame(world, {
+    toast: (m) => toast(m),
+    sfx: (f, d, ty, v) => window.odaSfx && window.odaSfx.tone(f, d, ty, v),
+    onWin: () => {
+      sfx('win');
+      awardCoins(15);
+      toast('You survived the bell! +15 coins 🎉', 'gold');
+      state.progress?.activity('tagwin');
+    },
+    onLose: () => {
+      awardCoins(2);
+      toast('The It got everyone… +2 for trying. Rematch?');
+    },
+  });
+
   // Debug hook, same idea as Drop4's window.__gameStore: lets a browser-driving
   // agent (or Devon in devtools) inspect and teleport without a build step.
   window.__world = {
@@ -359,6 +376,12 @@ function loop() {
   const player = state.player;
 
   const intent = state.input.sample();
+  // Tagged in freeze tag: you're an ice block until a friend thaws you. Camera
+  // still orbits so you can watch the rescue coming.
+  if (state.tag?.playerFrozen) {
+    intent.move.x = 0; intent.move.y = 0; intent.jump = false;
+    state.input.moveTarget = null;
+  }
   if (!state.paused) {
     intent.target = state.input.moveTarget;
     intent.clearTarget = () => { state.input.moveTarget = null; };
@@ -394,6 +417,9 @@ function loop() {
   if (state.npcs && !state.paused) {
     state.npcs.update(dt, world.camera, player.pos, state.remotes.size);
   }
+
+  // Freeze tag round (drives its conscripted NPCs itself)
+  if (state.tag && !state.paused) state.tag.update(dt, player);
 
   // Dynamic props: every kid in the park — you, NPCs, remotes — can kick a
   // ball or nudge the duck. The kickers array is reused, never reallocated.
@@ -626,7 +652,11 @@ function openZoneModal(zone) {
 /** Non-game things to do. Small, cheap and worth walking to. */
 function runActivity(zone) {
   const p = state.player;
-  if (zone.id === 'coinride') {
+  if (zone.id === 'tag') {
+    if (state.tag?.active) return toast('A round is already going!');
+    const ok = state.tag?.start(state.npcs, p);
+    if (!ok) toast('Not enough kids around for tag — wait for the crowd!');
+  } else if (zone.id === 'coinride') {
     if (state.coins < 5) return toast('Coin rides cost 5 coins — go find some!');
     state.progress?.activity('coinride');
     awardCoins(-5, true);
