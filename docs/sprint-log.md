@@ -1,5 +1,53 @@
 # Sprint Log
 
+## 2026-07-24 (overnight) — "Bring the world alive": ducks, FREEZE TAG, playing kids, butterflies
+
+Devon (heading to sleep): "just try to cook… bring that whole thing alive…
+physics, animations, everything," + the **Recess GDD** (asymmetric freeze tag on
+a playground; the hang-out hub IS this world) as inspiration — not to build the
+Steam game, but its soul. Six commits, every feature verified live before
+committing (the pane stops rAF while hidden, so sims were driven manually
+through the real code paths).
+
+**Ducks (`1fcca78`)** — Devon's call: all 14 on the pond (golden-angle spread),
+floating, lazily paddling between drift targets, facing where they swim, and
+actually bobbing. 'Feed the ducks' marker moved to the real pond's bank; feeding
+= beckon + crumbs splash + every duck in range paddles over and nibbles. Ducks
+kicked out of the water waddle home.
+
+**FREEZE TAG (`fe2d7be`)** — the GDD's loop at hub scale, solo-vs-AI on the NPC
+kids (its own "anti-death floor" idea). world/js/tag.js: 3s countdown, 60s to
+the bell; nearest 5 NPCs conscripted (1 It — red ring, faster than runners,
+slower than a sprinting player — so YOU do the risky rescues). Tagged kids
+freeze in an armsfolded hold with an ice ring; touch thaws (thanks/thumbsup,
+brief immunity). Survive the bell: +15 coins + Unfrozen badge. Balance came from
+simulation: pure nearest-target made the It ping-pong forever (an idle player
+won untouched) → target COMMIT (lock until tagged or beaten by 4m) + 0.75x
+player bias. Re-sim: idle player frozen twice, rescued twice by AI teammates.
+
+**Kids play (`317606f`)** — NPCs chase and boot the balls (2-3 kicks then wander),
+answer your emotes after a human half-beat (wave/clap/thumbsup/cheer/heart, 9s
+cooldown), and walking into the rockers/seesaw gives them a real push that rings
+down (~4s). The swings turned out to be baked static — push went to what animates.
+
+**Sensory layer (`2e570d5`)** — six code-drawn butterflies (two triangles a wing,
+closed-form figure-eights, flee when charged — skipped on low quality), soft
+filtered-noise pond swashes near the water, impact-scaled ball thumps.
+
+**Audit round (`bd64d7d`)** — 15-agent adversarial sweep over tonight's code:
+9 confirmed, 1 refuted. Headline: TAG REENTRANCY — `active` excluded the 4s
+'over' state, so mashing E after a round started a new one mid-celebration,
+permanently orphaning conscripted NPCs (controlled=true forever; the crowd
+skips them and refuses to retire them) and crashing on a stale _lock
+(_freeze(undefined)). Kids WILL mash E. Also: victory-screen-while-frozen,
+frozen kids still kicking balls (kick has a velocity floor), beached ducks
+stranding, dead bob code, eaten emote-back replies, NPCs not slowing in water.
+All fixed and re-verified live.
+
+Not pushed — Devon's deploy call, as always. Full dawn regression green:
+58 emotes reachable, wading 0.88, tag idle, 14 ducks in pond, 6 butterflies,
+5 shelter boxes, zero console errors.
+
 ## 2026-07-23 (evening, later) — AMG World adopts the v2 rig: real 58 emotes + rebased locomotion (remote)
 
 Follow-on to the Drop4-Hub "EMOTES SOLVED" entry below. That chat shipped the v2
