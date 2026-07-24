@@ -281,10 +281,18 @@ export class World {
     // sync with GAIT in clips.js.
     const WALK = 1.6, RUN = 3.4, ACCEL = 18, GRAVITY = -19, JUMP = 5.4;
 
-    // camera-relative desired direction
+    // Camera-relative desired direction.
+    //
+    // (fx, fz) is the BOOM direction: updateCamera puts the camera at
+    // focus + dir*dist with dir = (sin camYaw, cos camYaw), i.e. it points from
+    // the player OUT TO the camera. So the way you're looking is MINUS that.
+    // W (move.y = -1, screen-up) therefore has to move along -(fx, fz); using
+    // +(fx, fz) walked the kid straight back into the camera, which is why W and
+    // S felt swapped. The strafe terms are unchanged — (fz, -fx) is already
+    // screen-right for this yaw convention.
     const fx = Math.sin(this.camYaw), fz = Math.cos(this.camYaw);
-    let dx = intent.move.x * fz - intent.move.y * fx;
-    let dz = -intent.move.x * fx - intent.move.y * fz;
+    let dx = intent.move.x * fz + intent.move.y * fx;
+    let dz = -intent.move.x * fx + intent.move.y * fz;
 
     // tap-to-move steers toward a world point until it is reached
     if (intent.target && Math.hypot(intent.move.x, intent.move.y) < 0.05) {
