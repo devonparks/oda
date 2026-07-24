@@ -41,6 +41,40 @@ not deleted): `world/assets/emotes/*` (old delta bins), `emotes.js` EmotePlayer 
 delta locomotion in `clips.js`. Once v2 is confirmed on a real Chromebook, delete
 those and drop the flag branch in `avatar.js`.
 
+### Physics round (same session, Devon's walkaround feedback)
+
+Devon walked the park remotely and reported: inverted W/S, hold-click-to-look,
+Shift-run dead, invisible walls everywhere, back-from-game breaking immersion,
+"needs more life / water physics". All addressed (`87b6fb1`, `4aa7524`, `2350721`):
+
+- **W/S inversion**: stepPlayer's basis was the camera BOOM direction (points
+  player→camera), so W walked INTO the camera. Verified against
+  camera.getWorldDirection() at 6 yaws: W = +1.00 forward everywhere.
+- **Free mouse-look**: pointer lock — click once, mouse looks, Esc releases;
+  wheels/modals release it automatically. Touch unchanged.
+- **Shift-run**: never intermittent — `d > 0.85` auto-run (a touch-stick
+  affordance) made keyboard ALWAYS run, so Shift changed nothing. Stick-only now.
+- **Invisible walls**: renderer-bounds AABBs. Tree canopies spanned up to
+  10.95x12.28 m down to the ground; 36.1% of the park was blocked. Boxes now
+  refined by prop kind (trees→0.45 m trunks, foliage/clutter/pickups/water→none):
+  10.1% blocked, 544 m2 reclaimed. Same disease found twice more: the pond rock
+  RING's AABB was a phantom 0.3 m floor over the whole pond, and the gazebo's
+  AABB walled off the shelter (now 4 posts + steppable plinth).
+- **Back-from-game**: world sets a one-shot sessionStorage marker; oda-core
+  repoints every game's Back button at the park. Without the marker all 49 games
+  behave exactly as before (verified both directions).
+- **Physics layer** (`world/js/physics.js`): the layout's own 3 balls + 14 toy
+  ducks (a flock around the fountain — surprise from the data) are now dynamic:
+  kick balls (NPCs kick too), bounce off collision, float with a wake in the
+  pond; duck bobs. Wading slows to 0.55x with splash + ripples; landing puffs
+  dust. All measured live (wade speed exactly 0.88, duck at surface, no errors).
+
+OPEN OBSERVATION for Devon: the 'pond / Feed the ducks' ACTIVITY marker sits at
+(-9.5,-4), but the actual pond is at (21,0) r~8 and the duck flock is around the
+fountain (-8,8.5). The marker may be pointing at grass — didn't move it without
+knowing the intent. Next obvious build: fishing at the real pond (cast → wait →
+catch table → collection), now that the water is real.
+
 ### Polish round (same session) — 5 more commits
 
 Ran a 5-dimension adversarial audit over `world/` (18 agents: find → refute).
