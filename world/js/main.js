@@ -763,6 +763,10 @@ async function buildEmoteWheel() {
   grid.className = 'emote-grid';
   wheel.append(tabs, grid);
 
+  // The v2 bake stores icons per EMOTE but not per CATEGORY, so supply them here.
+  // Same set as arcade/drop4/express.js, so the wheel reads identically in the hub
+  // games and the world. Falls back for any category added later.
+  const CAT_ICONS = { greet: '👋', happy: '🎉', dance: '🕺', sporty: '🤸', feelings: '💭', poses: '🧍' };
   const cats = [{ id: '_favs', label: 'Faves', icon: '⭐' }, ...emoteLib.categories];
   const showCat = (cat) => {
     [...tabs.children].forEach((t) => t.classList.toggle('sel', t.dataset.cat === cat.id));
@@ -783,7 +787,7 @@ async function buildEmoteWheel() {
     const t = document.createElement('button');
     t.className = 'emote-tab';
     t.dataset.cat = cat.id;
-    t.innerHTML = `<span>${cat.icon}</span>${cat.label}`;
+    t.innerHTML = `<span>${cat.icon || CAT_ICONS[cat.id] || '🎭'}</span>${cat.label || cat.id}`;
     t.onclick = () => showCat(cat);
     tabs.appendChild(t);
   }
@@ -792,8 +796,9 @@ async function buildEmoteWheel() {
 
 function emoteButton(id, info, favIndex) {
   const b = document.createElement('button');
-  b.innerHTML = `<span>${info.icon}</span>${info.label}`;
-  b.title = favIndex != null ? `${info.label} (${favIndex + 1})` : info.label;
+  const label = info.label || id;
+  b.innerHTML = `<span>${info.icon || '🎭'}</span>${label}`;
+  b.title = favIndex != null ? `${label} (${favIndex + 1})` : label;
   b.onclick = () => { doEmote(id); $('emoteWheel').classList.add('hidden'); };
   return b;
 }
