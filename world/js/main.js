@@ -1197,6 +1197,14 @@ function drawMinimap() {
     ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill();
     ctx.globalAlpha = 1;
   }
+  // activities show as their icons, so tag/fishing/ducks are findable from the map
+  ctx.font = '10px system-ui';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (const a of ACTIVITIES) {
+    const [x, y] = map(a.pos[0], a.pos[1]);
+    ctx.fillText(a.icon, x, y);
+  }
   ctx.fillStyle = '#7dd3fc';
   for (const r of state.remotes.values()) {
     const [x, y] = map(r.avatar.pos.x, r.avatar.pos.z);
