@@ -14,7 +14,7 @@ import * as THREE from 'three';
 import { World } from './world.js';
 import { Avatar, preloadCharacter, characterUrl, RIG } from './avatar.js';
 import { Input } from './input.js';
-import { Presence } from './presence.js';
+import { Presence, MAX_RENDERED } from './presence.js';
 import { EMOTES, EMOTE_IDS } from './animator.js';
 import { getEmoteLibrary } from './emotes.js';
 import { getEmoteLibraryV2, getLocomotionV2 } from './rig_v2.js';
@@ -321,7 +321,21 @@ function loop() {
   footsteps(player, dt);
   world.update(dt, t, player.pos);
 
-  for (const r of state.remotes.values()) r.avatar.update(dt, world.camera);
+  // Cap how many remote avatars are actually driven/drawn. world.js's draw-call
+  // budget is written assuming presence.js's MAX_RENDERED applies, but nothing
+  // ever called visible() — so a class of 30 rendered 30 full rigs. Guarded so
+  // that below the cap (every session today) this is byte-for-byte the old path
+  // and allocates nothing.
+  if (state.presence && state.remotes.size > MAX_RENDERED) {
+    const near = new Set(state.presence.visible(player.pos.x, player.pos.z).map((e) => e[0]));
+    for (const [id, r] of state.remotes) {
+      const show = near.has(id);
+      if (r.avatar.group.visible !== show) r.avatar.group.visible = show;
+      if (show) r.avatar.update(dt, world.camera);
+    }
+  } else {
+    for (const r of state.remotes.values()) r.avatar.update(dt, world.camera);
+  }
 
   // NPC crowd — realPlayers is the true remote count, never counting NPCs, so
   // the "players here" number stays honest while the park still feels alive.
@@ -584,10 +598,25 @@ function tapToMove(sx, sy) {
 // ---------------------------------------------------------------------------
 // remote players
 // ---------------------------------------------------------------------------
+/** Ids whose character GLB is downloading right now, so a leave that lands
+ *  mid-download can cancel the add (see below). */
+const pendingRemotes = new Set();
+
 async function addRemote(id, packet) {
   if (state.remotes.has(id)) return updateRemote(id, packet);
+  if (pendingRemotes.has(id)) return;  // a load for this id is already in flight
+  pendingRemotes.add(id);
   const model = state.manifest.find((m) => m.id === packet.c) || state.manifest[0];
-  const proto = await preloadCharacter(model.id, characterUrl(model));
+  let proto;
+  try { proto = await preloadCharacter(model.id, characterUrl(model)); }
+  catch (e) { pendingRemotes.delete(id); return; }
+  // The player may have left while their ~400 KB model downloaded. Firebase
+  // fires child-removed exactly once, and removeRemote() no-ops when the id
+  // isn't in state.remotes yet — so without this check the leave is swallowed
+  // and we'd add a frozen ghost that never moves, never leaves, and
+  // permanently inflates the "players here" count. removeRemote() clears the
+  // pending flag, so a false return here means "they already left".
+  if (!pendingRemotes.delete(id)) return;
   if (state.remotes.has(id)) return;   // raced with another packet
   const avatar = new Avatar(proto, { name: safeName(packet.n) });
   avatar.pos.set(packet.x, packet.y, packet.z);
@@ -619,6 +648,7 @@ function updateRemote(id, packet) {
 }
 
 function removeRemote(id) {
+  pendingRemotes.delete(id);   // cancels an add whose model is still loading
   const r = state.remotes.get(id);
   if (!r) return;
   r.avatar.dispose();
@@ -737,15 +767,14 @@ async function flushCoins() {
  * without opening the wheel at all.
  */
 const FAV_KEY = 'amgWorldEmoteFavs';
+const DEFAULT_FAVS = ['wave', 'cheer', 'dab', 'thumbsup', 'clap', 'shrug', 'twist', 'heart'];
 let emoteLib = null;
 let emoteFavs = [];
 
 function loadFavs() {
   try { emoteFavs = JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); }
   catch (e) { emoteFavs = []; }
-  if (!Array.isArray(emoteFavs) || !emoteFavs.length) {
-    emoteFavs = ['wave', 'cheer', 'dab', 'thumbsup', 'clap', 'shrug', 'twist', 'heart'];
-  }
+  if (!Array.isArray(emoteFavs) || !emoteFavs.length) emoteFavs = DEFAULT_FAVS.slice();
 }
 
 function noteFav(id) {
@@ -766,6 +795,18 @@ async function buildEmoteWheel() {
     wheel.classList.add('wheel-grid');
     EMOTE_IDS.forEach((id, i) => wheel.appendChild(emoteButton(id, EMOTES[id], i)));
     return;
+  }
+
+  // Drop favourites the ACTIVE library doesn't know. One unnamespaced key is
+  // shared with the v1 procedural set, so a session where the v2 bake failed to
+  // load can persist ids like 'dance'/'laugh'/'yes' that don't exist here. The
+  // grid silently skips those without leaving a gap while the digit-key handler
+  // still indexes the raw array — so key N would fire a different emote than the
+  // button sitting at position N.
+  const knownFavs = emoteFavs.filter((id) => emoteLib.info(id));
+  if (knownFavs.length !== emoteFavs.length) {
+    emoteFavs = knownFavs.length ? knownFavs : DEFAULT_FAVS.filter((id) => emoteLib.info(id));
+    try { localStorage.setItem(FAV_KEY, JSON.stringify(emoteFavs)); } catch (e) {}
   }
 
   // Favourites are the most-used clips, so fetch that binary up front.

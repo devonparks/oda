@@ -24,7 +24,7 @@ const MOVE_EPS = 0.35;             // metres of movement before a resend
 const YAW_EPS = 0.25;              // radians
 const HEARTBEAT_MS = 12000;        // idle keepalive so we don't look stale
 const STALE_MS = 30000;            // drop players we haven't heard from
-const MAX_RENDERED = 24;           // cap avatars on screen for Chromebooks
+export const MAX_RENDERED = 24;    // cap avatars on screen for Chromebooks
 
 export class Presence {
   constructor(opts = {}) {
