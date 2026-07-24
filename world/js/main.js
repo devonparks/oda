@@ -638,9 +638,24 @@ function runActivity(zone) {
       else toast('What a ride!');
     }, 1400);
   } else if (zone.id === 'pond') {
-    p.playEmote(A_EMOTE.laugh);
-    state.presence?.broadcast({ emote: A_EMOTE.laugh });
-    toast('The ducks seem happy 🦆');
+    // Toss crumbs a couple of metres out into the water; every duck in range
+    // paddles over. The beckon emote reads as the throw.
+    const world = state.world, w = world.water;
+    p.playEmote('beckon');
+    state.presence?.broadcast({ emote: 'beckon' });
+    if (w) {
+      const dx = w.x - p.pos.x, dz = w.z - p.pos.z;
+      const d = Math.hypot(dx, dz) || 1;
+      const t = Math.min(2.4, Math.max(d - w.r + 1.6, 1.2));  // just past the bank
+      const cx = p.pos.x + (dx / d) * t, cz = p.pos.z + (dz / d) * t;
+      const cy = (world.waterAt(cx, cz) ?? w.y) + 0.02;
+      world.fx.spawn(cx, cy, cz, { from: 0.15, to: 0.8, dur: 0.5, alpha: 0.6 });
+      world.fx.spawn(cx, cy, cz, { from: 0.3, to: 1.3, dur: 0.8, alpha: 0.4 });
+      const came = world.dynamics.callDucks(cx, cz);
+      window.odaSfx && (window.odaSfx.tone(740, 0.06, 'square', 0.04), window.odaSfx.tone(520, 0.09, 'square', 0.035));
+      toast(came > 0 ? `${came} duck${came > 1 ? 's' : ''} come paddling over! 🦆` : 'The crumbs float away… 🍞');
+      state.progress?.activity('pond');
+    }
   } else if (zone.id === 'bikerack') {
     p.playEmote(A_EMOTE.yes);
     state.presence?.broadcast({ emote: A_EMOTE.yes });

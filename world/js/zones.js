@@ -92,8 +92,11 @@ export const ACTIVITIES = [
     id: 'pond',
     name: 'The Pond',
     icon: '🦆',
-    pos: [-9.5, -4.0],
-    radius: 4.0,
+    // On the pond's west bank. The old spot (-9.5, -4) pointed at grass — the
+    // actual water (SM_Env_Park_Pond_01) is the big pond at (21, 0), and the
+    // ducks live on it now.
+    pos: [12.6, -0.4],
+    radius: 3.6,
     prompt: 'Feed the ducks',
   },
   {

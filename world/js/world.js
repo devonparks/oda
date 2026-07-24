@@ -209,7 +209,19 @@ export class World {
 
       const dyn = DYNAMIC.find((d) => p.mesh.includes(d.match));
       if (dyn) {
-        this.dynamics.add(proto, p, { kind: dyn.kind });
+        // Ducks belong ON the water (Devon's call): the layout scattered its 14
+        // toy ducks around the fountain, so re-seat every floater onto the pond
+        // in a golden-angle spread — even fill, no clumps, all inside the rock
+        // ring (water r≈8, spread stays under 6.4). NOTE: `p` is a const loop
+        // binding — build a separate entry rather than reassigning it.
+        let entry = p;
+        if (dyn.kind === 'floater' && this.water) {
+          const k = this._floaterCount = (this._floaterCount || 0) + 1;
+          const r = 1.6 + 4.8 * Math.sqrt(k / 14);
+          const a = k * 2.39996 + 0.7;
+          entry = { ...p, p: [this.water.x + Math.cos(a) * r, this.water.y, this.water.z + Math.sin(a) * r] };
+        }
+        this.dynamics.add(proto, entry, { kind: dyn.kind });
         continue;
       }
       if (ANIMATED.some((k) => p.mesh.includes(k))) {

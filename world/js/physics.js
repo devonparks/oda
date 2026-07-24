@@ -63,6 +63,11 @@ export class DynamicProps {
       cooldown: 0,
       bobPhase: Math.random() * Math.PI * 2,
       rippleT: 0,
+      // floaters only: lazy paddling between drift targets, or a beeline to
+      // thrown crumbs (see callDucks)
+      driftT: 2 + Math.random() * 6,
+      target: null,
+      crumbT: 0,
     };
     // settle onto whatever is actually below the authored position
     item.pos.y = Math.max(item.pos.y, this.world.collision.groundAt(item.pos.x, item.pos.z, item.pos.y + 1) + item.r);
@@ -101,6 +106,45 @@ export class DynamicProps {
           it.cooldown = KICK_COOLDOWN;
           this.onKick && this.onKick(it, k.speed);
           break;
+        }
+      }
+
+      // ── floater steering: crumbs first, else lazy drifting ──
+      if (it.kind === 'floater' && inWater) {
+        let want = null, speed = 0;
+        if (it.target && it.crumbT > 0) {
+          it.crumbT -= dt;
+          want = it.target; speed = 0.7;                  // paddling for food
+        } else {
+          it.driftT -= dt;
+          if (it.driftT <= 0) {
+            // a new spot to mosey toward, kept well inside the water
+            const w = this.world.water;
+            const a = Math.random() * Math.PI * 2, rr = Math.random() * (w.r * 0.72);
+            it.target = { x: w.x + Math.cos(a) * rr, z: w.z + Math.sin(a) * rr };
+            it.crumbT = 0;
+            it.driftT = 6 + Math.random() * 8;
+          }
+          if (it.target) { want = it.target; speed = 0.25; }   // no hurry
+        }
+        if (want) {
+          const dx = want.x - it.pos.x, dz = want.z - it.pos.z;
+          const d = Math.hypot(dx, dz);
+          if (d < 0.35) {
+            // arrived: crumbs get a happy nibble-bob + ring
+            if (it.crumbT > 0) {
+              it.crumbT = 0;
+              it.bobPhase += 2.5;
+              this.onSplash && this.onSplash(it.pos.x, water + 0.02, it.pos.z, 0.5);
+            }
+            it.target = null;
+          } else {
+            const k = 1 - Math.exp(-3 * dt);
+            it.vel.x += ((dx / d) * speed - it.vel.x) * k;
+            it.vel.z += ((dz / d) * speed - it.vel.z) * k;
+            // face the way it's paddling
+            it.mesh.rotation.y = Math.atan2(dx, dz);
+          }
         }
       }
 
@@ -179,6 +223,26 @@ export class DynamicProps {
       }
       it.mesh.position.copy(it.pos);
     }
+  }
+
+  /**
+   * Crumbs hit the water at (x, z): every floater within `radius` paddles over.
+   * Returns how many ducks answered — the toast reads differently for zero.
+   */
+  callDucks(x, z, radius = 11) {
+    let n = 0;
+    for (const it of this.items) {
+      if (it.kind !== 'floater') continue;
+      const d = Math.hypot(it.pos.x - x, it.pos.z - z);
+      if (d > radius) continue;
+      // fan out around the crumb point so they don't stack on one spot
+      const a = Math.random() * Math.PI * 2;
+      it.target = { x: x + Math.cos(a) * 0.5, z: z + Math.sin(a) * 0.5 };
+      it.crumbT = 7;
+      it.driftT = 3 + Math.random() * 4;   // resume drifting a bit after
+      n++;
+    }
+    return n;
   }
 
   get count() { return this.items.length; }
