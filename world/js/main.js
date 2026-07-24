@@ -243,6 +243,13 @@ async function enterWorld() {
   $('hud').classList.remove('hidden');
   state.progress = new WorldProgress(EMOTE_IDS.length);
   state.progress.init();
+  // Seed Show-off ("try every emote") from the ACTIVE library rather than the 8
+  // procedural fallbacks — on the v2 rig that's 58 clips, so the old threshold
+  // handed out the badge at 8. Both getters are cached singletons, so this is
+  // order-independent with buildEmoteWheel().
+  (RIG === 'v2' ? getEmoteLibraryV2() : getEmoteLibrary())
+    .then((lib) => { if (lib && lib.index) state.progress?.setTotalEmoteTypes(lib.index.size); })
+    .catch(() => {});
   state.stars = new StarHunt(world, state.progress);
   toast(`Welcome to Recess Park, ${state.name}!`);
   maybeOnboard();

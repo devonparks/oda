@@ -49,6 +49,20 @@ export class WorldProgress {
   _num(k) { return parseInt(localStorage.getItem(k) || '0', 10) || 0; }
   _arr(k) { try { const a = JSON.parse(localStorage.getItem(k) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
 
+  /**
+   * The ACTIVE emote library decides what "every emote" means. The constructor
+   * is called before the library has loaded, so it starts from the small
+   * procedural fallback count; call this once the real library resolves.
+   * Without it, Show-off ("Try every emote at least once") unlocked at 8 of the
+   * 58 real clips — a badge that told a kid something untrue.
+   * Never lowers an already-earned badge; odaAchievements only ever unlocks.
+   */
+  setTotalEmoteTypes(n) {
+    if (!n || n === this.totalEmoteTypes) return;
+    this.totalEmoteTypes = n;
+    this.ach?.check('showoff', this.emoteSet.size >= n);
+  }
+
   init() {
     if (this.ach) this.ach.init('amgworld', WORLD_ACHIEVEMENTS);
     // firstSteps fires the moment you're in the park
