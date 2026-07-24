@@ -22,6 +22,7 @@ import { PHRASE_GROUPS, PHRASES, renderPhrase, safeName } from './chat.js';
 import { ZONES, ACTIVITIES, SPAWN, nearestZone, gamesForZone } from './zones.js';
 import { NpcCrowd } from './npc.js';
 import { TagGame } from './tag.js';
+import { Butterflies } from './critters.js';
 import { Ambience } from './ambience.js';
 import { WorldProgress } from './achievements.js';
 import { StarHunt } from './stars.js';
@@ -266,7 +267,15 @@ async function enterWorld() {
     world.dynamics.onSplash = (x, y, z, r) => {
       world.fx.spawn(x, y, z, { from: 0.2, to: r, dur: 0.7, alpha: 0.35 });
     };
+    world.dynamics.onBounce = (it, impact) => {
+      // hollow toy-ball thump, louder for harder falls, never loud
+      const vol = Math.min(0.028 + impact * 0.012, 0.07);
+      window.odaSfx && window.odaSfx.tone(82 + impact * 9, 0.07, 'sine', vol);
+    };
   }
+
+  // a few butterflies looping the greenery (skip on low-end machines)
+  if (state.quality !== 'low') state.butterflies = new Butterflies(world.scene, 6);
 
   setProgress(1, 'Have fun!');
   $('loading').classList.add('hidden');
@@ -335,10 +344,22 @@ const _kickers = [];
  * avatar.wading (stepPlayer) and avatar.landedThisFrame (vertical resolve).
  * Rings come from the shared GroundFX pool — nothing here allocates.
  */
-let _wasWading = false, _rippleT = 0;
+let _wasWading = false, _rippleT = 0, _lapT = 2;
 function waterAndDustFX(player, dt) {
   const world = state.world;
   if (!world.fx) return;
+
+  // soft water swashes while anywhere near the pond, closer/wetter = louder
+  if (world.water && state.ambience) {
+    const d = Math.hypot(player.pos.x - world.water.x, player.pos.z - world.water.z);
+    if (d < world.water.r + 5) {
+      _lapT -= dt;
+      if (_lapT <= 0) {
+        _lapT = 1.6 + Math.random() * 2.2;
+        state.ambience.lap(player.wading ? 0.9 : 0.45);
+      }
+    }
+  }
 
   if (player.wading && !_wasWading) {
     // stepping in: one bright burst + two tones ≈ a splash
@@ -432,6 +453,7 @@ function loop() {
   }
 
   waterAndDustFX(player, dt);
+  state.butterflies?.update(dt, t, player.pos);
 
   // coins
   const got = world.collectCoins(player.pos.x, player.pos.z, player.pos.y);

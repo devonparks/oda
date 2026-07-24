@@ -38,6 +38,8 @@ export class DynamicProps {
     /** called with (item, kickerSpeed) whenever something gets kicked */
     this.onKick = null;
     this.onSplash = null;
+    /** called with (item, impactSpeed) when a ball thumps the ground */
+    this.onBounce = null;
   }
 
   /**
@@ -173,7 +175,10 @@ export class DynamicProps {
       const ground = col.groundAt(it.pos.x, it.pos.z, it.pos.y, it.r) + it.r;
       if (it.pos.y < ground && !inWater) {
         it.pos.y = ground;
-        if (it.vel.y < -0.8) it.vel.y = -it.vel.y * GROUND_REST;
+        if (it.vel.y < -0.8) {
+          this.onBounce && this.onBounce(it, -it.vel.y);   // impact speed, m/s
+          it.vel.y = -it.vel.y * GROUND_REST;
+        }
         else it.vel.y = 0;
         const k = Math.exp(-ROLL_DRAG * dt);
         it.vel.x *= k; it.vel.z *= k;

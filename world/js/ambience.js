@@ -114,6 +114,42 @@ export class Ambience {
     }, next);
   }
 
+  /**
+   * One soft water swash — filtered noise, nothing like an oscillator "bloop".
+   * main.js calls this on a lazy timer while the player is near the pond, a
+   * touch louder when actually wading.
+   */
+  lap(intensity = 0.5) {
+    if (!this.enabled || !this.ctx) return;
+    const ctx = this.ctx;
+    const dur = 0.5;
+    const buf = this._lapBuf || (this._lapBuf = (() => {
+      const b = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+      const d = b.getChannelData(0);
+      let last = 0;
+      for (let i = 0; i < d.length; i++) {
+        const white = Math.random() * 2 - 1;
+        last = (last + 0.06 * white) / 1.06;
+        d[i] = last * 3;
+      }
+      return b;
+    })());
+    const t0 = ctx.currentTime;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.playbackRate.value = 0.8 + Math.random() * 0.5;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(300 + Math.random() * 250, t0);
+    lp.frequency.exponentialRampToValueAtTime(140, t0 + dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.12 * intensity, t0 + 0.08);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(lp); lp.connect(g); g.connect(this.master);
+    src.start(t0); src.stop(t0 + dur);
+  }
+
   setEnabled(on) {
     this.enabled = !!on;
     if (!this.ctx) { if (on) this._start(); return; }
