@@ -1,5 +1,62 @@
 # Sprint Log
 
+## 2026-07-25 (night) — AMG World: collision from real geometry, and one swing
+
+Devon's feedback on the animations: the bench sit "looks almost perfect", the
+swing "still not synced up… make it one system instead of two". And then the
+real headline — **"the main thing is the collision"**: falling through
+playground floors, not fitting into spaces built for kids, and having to press
+Space to get up stairs. "It's just one big invisible block on the object, so
+you can't actually fit where you're supposed to." Bases before features.
+
+Those three complaints are ONE bug: a single AABB per prop.
+
+- **`World._deriveCollision`** — rasterise a mesh's TRIANGLES into 25 cm
+  columns, band by height, greedy-merge each band into rectangles, emit one
+  thin box per rectangle. Two dozen boxes describing the real shape instead of
+  one that describes nothing. Thin bands are load-bearing: `resolve` skips a
+  box whose bottom is over your head, so a 25 cm floor slab lets a kid walk
+  underneath. Vertices alone wouldn't do — Synty floors are often two triangles
+  across three metres.
+- **Stairs walk now.** The heightfield ALREADY held a real staircase (0.10,
+  0.22, 0.31, 0.44, 0.99, 1.16, 1.29 — every rise inside the step gate). You
+  couldn't use one step of it because `Playground_Stairs_01` exports as 1 m
+  cubes capped at 1.00 sitting on top. Dropped → walking with no Space traces
+  0.09 → 1.40 and ends on the platform. Tunnels were the same cube pointed the
+  other way.
+- **The treehouse opens.** It hangs off `SM_Env_Tree_Large_01`, so it inherited
+  the tree's `trunk` rule and a 3.6 × 3.4 m house became a 0.9 m post you walked
+  through. Its floor can never come from the heightfield either — top-down
+  first-hit, and it has a roof. Derived from the shell: 257 boxes, floor 3.0,
+  roof 4.25, ladder between. A 12-approach step-climb sweep now reaches y 5.0
+  **by walking**. Devon: "I need to be able to get into the treehouse."
+- **The capsule was an adult** (0.28 × 1.4) for ~1.0 m kids. Now
+  `KID_RADIUS`/`KID_HEIGHT` (0.24 × 1.05), shared by player, NPCs and tag.
+- **THE TRAP:** derived boxes must skip the name rules. The treehouse's own 257
+  boxes matched the `/Treehouse/` `'none'` rule written for its export AABB, so
+  all 257 were silently dropped on insert and the house stayed walk-through.
+  `derived: true` now bypasses the rules — they refine the RAW export only.
+
+**The swing became one system.** It was a pendulum in rides.js and a clip
+running beside it, agreeing by accident. Now: frequency from the chain length
+(√(g/L) = 2.468 rad/s, the old hand-picked 2.35 was 5% slow); phase locked
+(measured t = ph/2π·1.2 to the last digit across the 2π wrap); and **intensity
+= the swing's own amplitude**, via a new second blended clip slot on RigV2
+(`setOverlay`) — coasting is the calm sit, full pump is the pump, and they
+arrive together instead of the clip flailing at full throw over a gentle sway.
+
+Last piece: the pelvis was drifting 25 cm off the plank at full swing, because
+RigV2 applies a seated clip's hip offset along **world** up while the avatar
+rotates about its own origin. `pelvis = pos + R(tilt)·(0,BIND_PELVIS_Y,0) +
+(0,SEATED_HIP_OFFSET,0)` — solving that for pos pins it at 0.060 m, Z exact, at
+every amplitude.
+
+Still open from Devon's list, in his order: **inventory system**, **UI//usability
+pass**, more collision sweeps (he says there are still things you can walk
+through — the systematic next step is running `_deriveCollision` over the
+remaining structural props rather than fixing them one at a time), fine-tuning
+the kart driver position, and then his backlog of playground ideas.
+
 ## 2026-07-25 (evening) — AMG World: the activities get REAL animations
 
 Every park activity was borrowing an emote as a pose. `squat` frozen at 1.8 s
