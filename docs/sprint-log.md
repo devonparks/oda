@@ -1,5 +1,49 @@
 # Sprint Log
 
+## 2026-07-25 (day) — AMG World: the playtest-fix marathon (all deployed live)
+
+Devon's first live playtest found the map "not rendered right" — poles flat,
+slides inverted, ducks vertical, bikes in pieces — plus floating over the
+skate bowl, and a wishlist: sit on benches, working swings/slides, fishing at
+the water, drivable karts. Eight deploys, each verified in-browser first:
+
+- **`1f91ab7` prop orientation (THE bug):** every prototype in park_props.glb
+  carries a +90° X node rotation (Z-up geometry) that all three placement
+  paths discarded — all 187 layout props rendered tipped over. One fix: bake
+  each proto's matrixWorld into its vertices at load. Every landmark
+  re-verified upright (lamps, benches, slides, ducks, coin rides, bikes,
+  skateboards).
+- **`84a6526` ground heightfield:** the ground was a flat y=0 plane + AABB
+  lids. Now load() renders the shell top-down through a height-encoding
+  shader (512², ~60ms, no asset file), masks canopy/roof footprints via the
+  named collision boxes, inpaints, needle-cleans fence lines, carves a pond
+  dish. Walk DOWN into the skate bowl (y=-1) and out its slopes; hip-deep
+  wading (player, NPCs, tag). Two traps for the record: the needle pass must
+  compare a SNAPSHOT (in-place min-propagation flooded the whole map from
+  the -5 border), and the pond's own box top was the invisible waterline
+  floor.
+- **`fbf3879` sittable benches:** 20 seats derived from bench geometry
+  (backrest side read from the tall vertices). RigV2 gained
+  playEmote(freezeAt) — squat's deepest frame IS the sit.
+- **`377d004` rideable swings + slides:** baked swing seats carved out of the
+  shell (whole-triangle degeneration) and rebuilt dynamic: pump to amp 0.88,
+  jump-off LAUNCH with tangential carry. Slides: exit-prompted scripted
+  glide, top/exit read from vertices. avatar.tilt (YXZ) leans the kid.
+- **`7920ab0` fishing:** whole pond bank fishable (water-distance annulus),
+  marker AT the waterline, rod carried on the shoulder in the zone.
+- **`3700ce0` playground: seesaw + 4 spring riders rideable, hula hoops**
+  (code-drawn, twist-dance loop). Plus: multi-part props (coin rides) no
+  longer wiggle apart — only true independents animate.
+- **`6d857a0` drivable soapbox kart** (layout parts diverted into a rigid
+  group; stepPlayer keeps running with speedScale → real collision at 6 m/s;
+  parks where you hop out) **+ the fountain runs** (jet, drop ring, ripples).
+- **`14aa6da` carved out SM_Wep_Makeshift_Gun_07** — a stray Synty toy gun
+  baked into the shell behind a bush. Kids' park.
+
+Still queued from the playtest: climbing (tire wall, ladders, treehouse) +
+crouch, pond floatie seats, rideable bikes (same diversion pattern as the
+kart), Tony Hawk-style skate mode, Minecraft-style hotbar/inventory.
+
 ## 2026-07-25 (deep night) — 3PT Showdown: your character takes the shots
 
 Devon: "research Basketball Stars, then make 3PT as good as it — with the
