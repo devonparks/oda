@@ -272,6 +272,33 @@ export class DynamicProps {
     return n;
   }
 
+  /**
+   * Throw a ball from the player's hands, out along the way they're facing.
+   *
+   * The park already OWNS its three balls — they're layout props turned
+   * dynamic — so "throwing" fetches the nearest one to the kid rather than
+   * spawning litter. Otherwise every press of E would add another ball to a
+   * park that would eventually be nothing but balls.
+   *
+   * @returns {boolean} false if there is no ball to throw
+   */
+  throwBall(player) {
+    let best = null, bestD = Infinity;
+    for (const it of this.items) {
+      if (it.kind !== 'ball') continue;
+      const d = Math.hypot(it.pos.x - player.pos.x, it.pos.z - player.pos.z);
+      if (d < bestD) { bestD = d; best = it; }
+    }
+    if (!best) return false;
+    const fx = Math.sin(player.yaw), fz = Math.cos(player.yaw);
+    // start it just in front of the chest so it doesn't spawn inside the kid
+    best.pos.set(player.pos.x + fx * 0.45, player.pos.y + 0.95, player.pos.z + fz * 0.45);
+    best.vel.set(fx * 7.2, 3.4, fz * 7.2);
+    best.cooldown = 0.25;                       // don't insta-kick it back
+    this.onKick && this.onKick(best, 4);
+    return true;
+  }
+
   get count() { return this.items.length; }
 }
 

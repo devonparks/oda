@@ -23,6 +23,7 @@ import { ZONES, ACTIVITIES, SPAWN, nearestZone, gamesForZone } from './zones.js'
 import { NpcCrowd } from './npc.js';
 import { TagGame } from './tag.js';
 import { Fishing, CATCH_TABLE } from './fishing.js';
+import { Inventory, ITEMS, registerCatches, HOTBAR } from './inventory.js';
 import { Rides } from './rides.js';
 import { Butterflies } from './critters.js';
 import { Ambience } from './ambience.js';
@@ -292,12 +293,20 @@ async function enterWorld() {
   if (state.quality !== 'low') state.butterflies = new Butterflies(world.scene, 6);
 
   // fishing at the pond's south bank
+  // The pond's catch table becomes keepsake items, so a Golden Koi pulled out
+  // at nine in the morning is still in your backpack at home time.
+  registerCatches(CATCH_TABLE);
+  state.inv = new Inventory(renderHotbar);
+  buildHotbar();
+  renderHotbar();
+
   state.fishing = new Fishing(world, {
     toast: (m, cls) => toast(m, cls),
     sfx: (f, d, ty, v) => window.odaSfx && window.odaSfx.tone(f, d, ty, v),
     lap: () => state.ambience?.lap(0.7),
     coins: (n) => awardCoins(n),
     caught: (c, isNew, logSize) => {
+      state.inv?.add(c.id, 1);
       state.progress?.activity('fish');
       if (logSize >= CATCH_TABLE.length) state.progress?.activity('fishlog');
       if (c.rare) sfx('win');
@@ -682,6 +691,7 @@ function updateZonePrompt() {
     || (!state.seated && nearestZone(p.x, p.z, state.world.seats || []))
     || nearestZone(p.x, p.z, ACTIVITIES) || nearestZone(p.x, p.z, ZONES)
     || bankFishZone(p) || null;
+  checkPickups();
   const el = $('zonePrompt');
   if (zone === state.activeZone) return;
   state.activeZone = zone;
@@ -705,9 +715,15 @@ function bankFishZone(p) {
   return d > w.r - 0.6 && d < 8.6 ? FISH_BANK : null;
 }
 
+/**
+ * E, one key, in priority order: whatever you are standing next to, else
+ * whatever is in your hand. Kids do not learn two action keys, and a park where
+ * "the button" sometimes does nothing feels broken — so if there is no zone,
+ * the press still lands on the rod or the hoop you are carrying.
+ */
 function enterZone() {
   const zone = state.activeZone;
-  if (!zone) return;
+  if (!zone) { useHeld(); return; }
   if (zone.seat) return sitDown(zone);
   if (zone.ride) {
     const line = state.rides?.begin(zone, state.player);
@@ -791,6 +807,173 @@ function openZoneModal(zone) {
     grid.appendChild(a);
   }
   showModal('zoneModal');
+}
+
+// ---------------------------------------------------------------------------
+// hotbar + backpack
+// ---------------------------------------------------------------------------
+function buildHotbar() {
+  const bar = $('hotbar');
+  bar.innerHTML = '';
+  for (let i = 0; i < HOTBAR; i++) {
+    const b = document.createElement('button');
+    b.className = 'hb-slot';
+    b.dataset.i = i;
+    // Tapping the slot you ALREADY hold uses it. On a tablet there is no number
+    // row and no E key, so the slot has to be the verb as well as the noun.
+    b.onclick = () => { if (state.inv.selected === i) useHeld(); else state.inv.select(i); };
+    bar.appendChild(b);
+  }
+  bar.classList.remove('hidden');
+  window.addEventListener('wheel', (e) => {
+    if (state.paused || !state.inv) return;
+    if (!$('bagModal').classList.contains('hidden')) return;
+    state.inv.scroll(e.deltaY);
+  }, { passive: true });
+}
+
+let _heldNameT = null;
+function renderHotbar() {
+  const inv = state.inv;
+  if (!inv) return;
+  const bar = $('hotbar');
+  [...bar.children].forEach((el, i) => {
+    const s = inv.item(i), def = inv.def(i);
+    el.classList.toggle('sel', i === inv.selected);
+    el.classList.toggle('empty', !s);
+    el.title = def ? def.name : '';
+    el.innerHTML = '<span class="hb-num">' + (i + 1) + '</span>' + (def ? def.icon : '')
+      + (s && s.n > 1 ? '<span class="hb-n">' + s.n + '</span>' : '');
+  });
+  // Name the thing in your hand for a few seconds after it changes. An icon on
+  // its own does not teach a seven-year-old what they just picked up.
+  const def = inv.heldDef();
+  const el = $('heldName');
+  if (def) {
+    el.innerHTML = def.name + (def.hint ? '<small>' + def.hint + '</small>' : '');
+    el.classList.remove('hidden');
+    el.style.opacity = '1';
+    clearTimeout(_heldNameT);
+    _heldNameT = setTimeout(() => { el.style.opacity = '0'; }, 2600);
+  } else {
+    el.classList.add('hidden');
+  }
+  if (!$('bagModal').classList.contains('hidden')) renderBag();
+}
+
+function toggleBag() {
+  const m = $('bagModal');
+  if (m.classList.contains('hidden')) { renderBag(); showModal('bagModal'); }
+  else hideModal('bagModal');
+}
+
+function renderBag() {
+  const inv = state.inv;
+  const fill = (host, from, to) => {
+    host.innerHTML = '';
+    for (let i = from; i < to; i++) {
+      const s = inv.item(i), def = inv.def(i);
+      const b = document.createElement('button');
+      b.className = 'bag-slot' + (i === inv.selected ? ' sel' : '');
+      b.innerHTML = (def ? def.icon : '') + (s && s.n > 1 ? '<span class="hb-n">' + s.n + '</span>' : '');
+      b.title = def ? def.name : 'Empty';
+      // One tap, no dragging: a packed item swaps into the hand slot, a hand
+      // item just becomes the selected one. Drag-and-drop is a mouse idiom and
+      // half of these kids are on a Chromebook trackpad or a tablet.
+      b.onclick = () => {
+        if (i >= HOTBAR) { if (s) inv.swap(i, inv.selected); }
+        else inv.select(i);
+        showBagDetail(inv.selected);
+      };
+      b.onmouseenter = () => showBagDetail(i);
+      host.appendChild(b);
+    }
+  };
+  fill($('bagHotbar'), 0, HOTBAR);
+  fill($('bagPack'), HOTBAR, inv.size);
+  showBagDetail(inv.selected);
+}
+
+function showBagDetail(i) {
+  const def = state.inv.def(i), s = state.inv.item(i);
+  $('bagDetail').innerHTML = def
+    ? '<b>' + def.name + (s.n > 1 ? ' x' + s.n : '') + '</b>'
+      + (def.hint || (def.keepsake ? 'One you caught. Nice.' : ''))
+    : '<b>Empty</b>Find things around the park and they land here.';
+}
+
+/**
+ * Use whatever is in your hand. Every behaviour works ANYWHERE it makes sense
+ * rather than only inside the zone that granted it — carrying the rod to a
+ * different bit of bank is the entire point of having a hotbar.
+ */
+function useHeld() {
+  const inv = state.inv, def = inv && inv.heldDef();
+  const p = state.player;
+  if (!def || state.rides?.busy || state.seated) return false;
+  switch (def.use) {
+    case 'fish': {
+      if (state.fishing?.busy) { state.fishing.hook(); return true; }
+      const w = state.world?.water;
+      const d = w ? Math.hypot(p.pos.x - w.x, p.pos.z - w.z) : 1e9;
+      if (!w || d > 9.5) { toast('Take the rod down to the water first \u{1F41F}'); return true; }
+      state.fishing?.cast(p);
+      return true;
+    }
+    case 'hula': {
+      const z = state.rides?.zones.find((r) => r.ride === 'hoop');
+      if (!z) return false;
+      const line = state.rides.begin(z, p);
+      if (line) toast(line);
+      return true;
+    }
+    case 'ball': {
+      const ok = state.world?.dynamics?.throwBall?.(p);
+      toast(ok ? 'Go get it!' : 'Nothing to throw right now.');
+      return true;
+    }
+    default:
+      if (def.keepsake) { toast(def.icon + ' ' + def.name + ' \u2014 one you caught.'); return true; }
+      return false;
+  }
+}
+
+/**
+ * Hand a kid an item the first time they walk to where it lives. No shop, no
+ * currency, no menu to discover: you find the rod at the pond because that is
+ * where a rod is.
+ */
+const PICKUPS = [
+  {
+    id: 'rod', r: 9.5,
+    at: () => { const w = state.world?.water; return w && [w.x, w.z]; },
+    msg: 'You found a fishing rod! \u{1F3A3} Click at the water to cast.',
+  },
+  {
+    id: 'hoop', r: 3.0,
+    at: () => { const z = state.rides?.zones.find((r) => r.ride === 'hoop'); return z && z.pos; },
+    msg: 'You picked up a hula hoop! \u2B55 Click to spin it.',
+  },
+  {
+    id: 'ball', r: 6.0,
+    at: () => [0, -2],
+    msg: 'You found a ball! \u26BD Click to throw it.',
+  },
+];
+function checkPickups() {
+  const inv = state.inv, p = state.player;
+  if (!inv || !p) return;
+  for (const pk of PICKUPS) {
+    if (inv.has(pk.id)) continue;
+    const at = pk.at();
+    if (!at) continue;
+    if (Math.hypot(p.pos.x - at[0], p.pos.z - at[1]) > pk.r) continue;
+    inv.add(pk.id, 1);
+    inv.equip(pk.id);
+    toast(pk.msg, 'gold');
+    sfx('powerup');
+    break;                                   // one surprise at a time
+  }
 }
 
 /** Non-game things to do. Small, cheap and worth walking to. */
@@ -1211,17 +1394,44 @@ function bindHud() {
     else if (k === 'KeyC') toggle('chatWheel', ['emoteWheel']);
     else if (k === 'KeyM') $('minimap').classList.toggle('hidden');
     else if (k === 'KeyH') showModal('helpModal');
-    else if (k === 'Escape') { hideModal('zoneModal'); hideModal('helpModal'); $('emoteWheel').classList.add('hidden'); $('chatWheel').classList.add('hidden'); }
+    else if (k === 'Escape') { hideModal('zoneModal'); hideModal('helpModal'); hideModal('bagModal'); $('emoteWheel').classList.add('hidden'); $('chatWheel').classList.add('hidden'); }
+    else if (k === 'Tab') { e.preventDefault(); toggleBag(); }
     else if (/^Digit[1-8]$/.test(k)) {
-      // 1-8 always hit the favourites row, so muscle memory works without
-      // opening the wheel.
-      const id = (emoteLib ? emoteFavs : EMOTE_IDS)[+k.slice(5) - 1];
-      if (id) doEmote(id);
+      // 1-8 are the HOTBAR now (the shape every kid already knows). While the
+      // emote wheel is open they still pick emote favourites, so the old muscle
+      // memory keeps working exactly where it is visible.
+      const n = +k.slice(5) - 1;
+      if (!$('emoteWheel').classList.contains('hidden')) {
+        const id = (emoteLib ? emoteFavs : EMOTE_IDS)[n];
+        if (id) doEmote(id);
+      } else if (state.inv) {
+        state.inv.select(n);
+      }
     }
   });
 
   // Walking into a zone on touch should be enough — no keyboard needed.
   $('zonePrompt').onclick = () => enterZone();
+  $('bagBtn').onclick = () => toggleBag();
+  /**
+   * CLICK always uses what's in your hand.
+   *
+   * E is context-first — if you're standing at a zone it opens the zone — which
+   * is right, but it means a kid holding a ball inside the playground ring
+   * could never throw it without walking out of the ring first. So the held
+   * item gets its own verb that nothing else competes for. Three ways in, all
+   * doing the same thing: click, E (when there's no zone), or tap the slot
+   * you're already holding.
+   */
+  $('stage').addEventListener('mousedown', (e) => {
+    if (e.button !== 0 || state.paused) return;
+    if (!$('bagModal').classList.contains('hidden')) return;
+    if (!$('zoneModal').classList.contains('hidden')) return;
+    if (!$('helpModal').classList.contains('hidden')) return;
+    useHeld();
+  });
+  $('bagClose').onclick = () => hideModal('bagModal');
+  $('bagModal').onclick = (e) => { if (e.target.id === 'bagModal') hideModal('bagModal'); };
 }
 
 function showModal(id) {
