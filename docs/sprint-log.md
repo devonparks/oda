@@ -1,5 +1,73 @@
 # Sprint Log
 
+## 2026-07-25 (evening) — AMG World: the activities get REAL animations
+
+Every park activity was borrowing an emote as a pose. `squat` frozen at 1.8 s
+was the "sit" for benches, swings, the seesaw, the spring riders, the kart and
+the slides; the `twist` dance was the "hula hoop"; the `baseball` bat swing was
+the "fishing cast". They read as placeholders because they were. Eleven real
+clips now ship in a new `actions` bin, and every activity plays one.
+
+**Source check first** (price-to-quality): inventoried all 816 Polygon clips in
+the three Synty animation packs the AMG Engine project owns — Base Locomotion,
+Idles, Emotes & Taunts. **No sit, no swing pump, no slide, no cast, no hula.**
+Synty sells exactly six animation packs; the three we don't own are Sword Combat
+($18), Bow Combat ($30) and Goblin Locomotion ($21) — combat and creature sets,
+none of them relevant. **Nothing to buy.** Mixamo would need an Adobe login and
+file downloads, and its generic sit still wouldn't put a hand on a swing chain.
+So the poses are authored ON the rig against measured contact points, and the
+LIFE is sampled from the real Synty idle. Blender never opened.
+
+- **The Unity export recipe got reverse-engineered and proved.** Nothing in the
+  repo said how `_unity_export/rig/locomotion_bindref.json` was made. It is:
+  sample the clip onto `Assets/PolygonKids/Models/Characters_Kids.fbx` at 30 fps
+  via `clip.SampleAnimation`, take Δ = bind⁻¹·local per bone, hipY = the Hips'
+  world-Y delta from rest. Re-exporting `A_POLY_IDL_Base_Masc` reproduces that
+  committed file's bindPose exactly and its frame-0 deltas to the 4 decimals it
+  carries. **All 816 Synty clips are now reachable by this route**, not just the
+  11 baked here — that's the reusable part.
+
+- **`tools/world/unity/AMGActionBaker.cs`** (menu: AMG > Bake World Action Clips)
+  poses the real rig with world-space aim directions and analytic two-bone IK to
+  contact points, so a grip lands ON the chain rather than near it, then stamps
+  the Synty idle's residual (×3.5 — that idle is very still) plus authored
+  breath, weight shift and a head that looks around.
+
+- **`tools/world/bake_actions_v2.mjs`** retargets with emote_lab.mjs step-6's
+  math (copied, as bake_locomotion_v2.mjs did — that file stays untouched) →
+  `assets/characters/emotes/actions.bin` (70 KB) + one `hidden:true` manifest
+  category. `verify` runs **43 FK assertions on the shipped bin**; all green.
+  Existing bins are byte-identical and the run refuses to write if they aren't.
+
+- **Wire-in:** benches, swings, seesaw, spring riders and the kart play real
+  sits; the slide plays a slide ride; the hoops play a hula whose hip orbit the
+  hoop now tracks off the actual Hips bone; fishing plays cast → wait → reel.
+  The **swing pump is driven off the swing's own phase** (`RigV2.setEmoteTime`),
+  not dt — measured in-browser at ph 1.72→4.59 against t 0.33→0.88, exactly
+  `(ph/2π)·dur`, so the legs kick out at the back of the arc every time.
+
+- Two traps worth writing down. (1) The seated clips carry `hipY = -0.261` on
+  purpose — the same drop the frozen squat had — so **every seat offset already
+  tuned in rides.js keeps working**; a verify assertion guards it. (2) The v2
+  GLB is the Unity rig with **X negated** (Y and Z identical, so "forward" is
+  still +Z) — the first contact assertions had the sign backwards and reported
+  a 0.38 m miss on a grip that was actually exact.
+
+- `_stop` added to the presence emote channel: the sits and the hula are `hold`
+  clips, so standing up has to tell the other kids, or the park keeps watching a
+  ghost sit on an empty bench.
+
+Verified twice over: an offline 3/4-and-side render sheet of all 11 clips
+(`tools/world/render_action.{html,mjs}`, one WebGL context blitted per cell —
+the older harness's renderer-per-cell silently blanks the first rows past
+Chrome's ~16 context cap), then every activity driven through its real key path
+in real Chrome, with the pose numbers and screenshots to match. Zero console
+errors, zero failed requests. The in-app browser pane freezes rAF, so the world
+never steps there — real Chrome is the only way to check this.
+
+Open: the seesaw plank's low end can dip a foot below ground (it did with the
+squat too, 26 cm worse); the hula's arms could sit wider.
+
 ## 2026-07-25 (day) — AMG World: the playtest-fix marathon (all deployed live)
 
 Devon's first live playtest found the map "not rendered right" — poles flat,

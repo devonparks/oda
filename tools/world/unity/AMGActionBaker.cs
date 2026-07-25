@@ -172,12 +172,32 @@ public static class AMGActionBaker
         }
     }
 
+    /**
+     * How far a SEATED pelvis sits below the standing bind height, in metres.
+     *
+     * This is not cosmetic — it is the contract with the world's ride code. Every
+     * seat offset in world/js/rides.js and main.js was tuned against the old
+     * stand-in (the 'squat' emote frozen at 1.8 s), whose deepest frame carries
+     * hipY = -0.261, putting its pelvis 0.283 above the avatar origin. Baking the
+     * same drop into the sits means the new pose lands exactly where the old one
+     * did, and not one of those tuned numbers has to move. Feet then hang just
+     * below the pelvis instead of standing under it, which is the whole point.
+     */
+    const float SIT_HIP_DROP = -0.261f;
+    static bool Seated(string id)
+    {
+        return id == "sit" || id == "sit_swing" || id == "swing_pump" || id == "slide_ride"
+            || id == "sit_kart" || id == "sit_seesaw" || id == "sit_rocker";
+    }
+
     /** @param u normalised playhead in [0,1) for loops, [0,1] for one-shots. */
     static Pose Build(string id, float u)
     {
         var p = BuildRaw(id, u);
         float life = LifeAmount(id);
-        return life > 0f ? Alive(p, u, life) : p;
+        if (life > 0f) p = Alive(p, u, life);
+        if (Seated(id)) p.hipY += SIT_HIP_DROP;
+        return p;
     }
 
     /** The pose itself. Clips inherit from each other through HERE, so the life
@@ -458,9 +478,15 @@ public static class AMGActionBaker
         IK2(M["Shoulder_L"], M["Elbow_L"], M["Hand_L"], p.handL, p.poleL);
         IK2(M["Shoulder_R"], M["Elbow_R"], M["Hand_R"], p.handR, p.poleR);
 
+        // Offset the pelvis the way the RUNTIME does it (RigV2.update step 4):
+        // along WORLD up expressed in the parent's space, scale-corrected — not
+        // along the parent's local +Y, which would slide the pelvis sideways for
+        // any rig whose Root carries a rotation.
         var hips = M["Hips"];
-        var lp = hips.localPosition;
-        hips.localPosition = new Vector3(lp.x, lp.y + p.hipY / Mathf.Max(1e-4f, hips.parent.lossyScale.y), lp.z);
+        var parent = hips.parent;
+        Vector3 up = parent != null ? parent.InverseTransformDirection(Vector3.up) : Vector3.up;
+        float sy = parent != null ? Mathf.Max(1e-4f, parent.lossyScale.y) : 1f;
+        hips.localPosition = hips.localPosition + up * (p.hipY / sy);
     }
 
     // ── bake ─────────────────────────────────────────────────────────────────

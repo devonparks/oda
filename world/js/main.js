@@ -724,28 +724,44 @@ function sitDown(seat) {
   if (state.seated || state.tag?.playerFrozen) return;
   state.seated = seat;
   state.input.moveTarget = null;   // a lingering tap-to-move would insta-stand
-  // Feet on the ground at the bench's front edge (NOT on the seat: the bench's
-  // own box top would pass the step gate from a raised fromY and perch the kid
-  // on the backrest). The frozen squat's hips-back shape settles over the seat.
+  // Sit ON the plank. The seat plane comes from the bench's own geometry
+  // (world.js reads it off the vertices), and PELVIS_ABOVE_ORIGIN is where the
+  // baked `sit` clip puts the pelvis — hipY -0.261 below a 0.544 bind, so 0.283.
+  // Park the avatar origin so the two meet, and the legs hang off the front.
+  //
+  // The kid is NOT stood on the seat: nothing here goes through the step gate
+  // (stepPlayer is skipped while seated), so the old "feet at the front edge"
+  // workaround for the bench's collision box is no longer needed.
+  const PELVIS_ABOVE_ORIGIN = 0.283;
   const fx = Math.sin(seat.yaw), fz = Math.cos(seat.yaw);
-  const sx = seat.x + fx * 0.34, sz = seat.z + fz * 0.34;
+  const sx = seat.x + fx * 0.06, sz = seat.z + fz * 0.06;
   const g = state.world.collision.heightAt(sx, sz);
-  p.pos.set(sx, g, sz);
+  const seatY = seat.seatY != null ? seat.seatY : g + 0.42;
+  p.pos.set(sx, seatY + 0.04 - PELVIS_ABOVE_ORIGIN, sz);
   p.yaw = p.targetYaw = seat.yaw;
   p.speed = 0;
   p.vel.y = 0;
   p.grounded = true;
-  // No sit clip in the library — squat frozen at its deepest frame reads as
-  // sitting on the bench (see RigV2.playEmote freezeAt).
-  p.playEmote('squat', { freezeAt: 1.8 });
-  state.presence?.broadcast({ emote: 'squat' });
+  p.playAction('sit');
+  state.presence?.broadcast({ emote: 'sit' });
   toast('Taking a break \u{1FA91} — move to stand up');
 }
 
 function standUp() {
   if (!state.seated) return;
+  const seat = state.seated;
   state.seated = null;
   state.player.rig.stopEmote?.();
+  // Stand back down on real ground in front of the bench — the sit parked the
+  // avatar origin below the plank, so without this the kid walks away sunk.
+  const p = state.player;
+  const fx = Math.sin(seat.yaw), fz = Math.cos(seat.yaw);
+  p.pos.x = seat.x + fx * 0.55;
+  p.pos.z = seat.z + fz * 0.55;
+  p.pos.y = state.world.collision.groundAt(p.pos.x, p.pos.z, p.pos.y + 1.2);
+  // `sit` is a hold clip: without a stop, every other kid in the park keeps
+  // seeing this one seated on a bench they already walked away from.
+  state.presence?.broadcast({ emote: '_stop' });
 }
 
 function openZoneModal(zone) {
@@ -890,7 +906,11 @@ function updateRemote(id, packet) {
   // emotes and phrases arrive as fire-once fields; de-dupe on the packet stamp
   if (packet.e && packet.e !== r.lastEmote + '@' + packet.t) {
     r.lastEmote = packet.e + '@' + packet.t;
-    r.avatar.playEmote(packet.e);
+    // '_stop' is the release for the HELD activity poses (sit, hula, the ride
+    // sits). They loop forever by design, so standing up has to say so — or the
+    // rest of the park watches a ghost sit on a bench nobody is on.
+    if (packet.e === '_stop') r.avatar.rig.stopEmote?.();
+    else r.avatar.playEmote(packet.e);
   }
   const key = packet.m + '@' + packet.t;
   if (packet.m != null && key !== r.lastMsg) {

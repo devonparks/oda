@@ -84,9 +84,9 @@ export class Fishing {
     // click hooks too (E is primary; pointer-locked clicks are free)
     window.addEventListener('mousedown', () => { if (this.state === 'bite') this.hook(); });
 
-    // warm the sporty emote bin so the FIRST cast's wind-up isn't swallowed by
-    // a lazy category fetch (each bin only loads when first used)
-    getEmoteLibraryV2().then((lib) => lib && lib.loadCategory('sporty').catch(() => {}));
+    // Warm the ACTIONS bin so the FIRST cast's wind-up isn't swallowed by a lazy
+    // category fetch (each bin only loads when first used).
+    getEmoteLibraryV2().then((lib) => lib && lib.loadCategory('actions').catch(() => {}));
   }
 
   _loadLog() {
@@ -128,7 +128,9 @@ export class Fishing {
     this._castFrom.set(player.pos.x, player.pos.y + 1.1, player.pos.z);
     this._castTo.set(player.pos.x + (dx / d) * reach, w.y, player.pos.z + (dz / d) * reach);
 
-    player.playEmote('baseball');            // the wind-up reads as the cast
+    // The real cast: rod back over the shoulder, whip, settle. (Was the
+    // 'baseball' bat swing — a horizontal cut, nothing like a cast.)
+    player.playAction('fish_cast', 'baseball', null);
     this.hooks.sfx && this.hooks.sfx(520, 0.08, 'triangle', 0.05);
     this.state = 'cast';
     this.t = 0;
@@ -161,7 +163,8 @@ export class Fishing {
         setTimeout(() => this.hooks.toast && this.hooks.toast('The note says: ' + msg), 1700);
       }
       this._hud(`${c.icon} ${c.name}!`);
-      this._reel();
+      // A golden koi earns the cheer — don't stomp it with the reel crank.
+      this._reel(false, c.rare);
       return true;
     }
     if (this.state === 'wait') {             // impatient yank: scares the fish
@@ -177,9 +180,11 @@ export class Fishing {
     this._reel(true);
   }
 
-  _reel(silent) {
+  _reel(silent, keepPose) {
     this.state = 'reel';
     this.t = 0;
+    // Left hand cranks the reel while the right steadies the rod.
+    if (this.player && !keepPose) this.player.playAction('fish_reel', null);
     if (!silent) this.hooks.sfx && this.hooks.sfx(300, 0.06, 'triangle', 0.04);
   }
 
@@ -237,6 +242,9 @@ export class Fishing {
       if (k >= 1) {
         this.state = 'wait';
         this.t = 0;
+        // Bobber down: settle into holding the rod and watching it. The cast
+        // clip's whip is already through by here (it lands at 0.62 s of 1.1).
+        player.playAction('fish_wait', null);
         this._waitFor = 3 + Math.random() * 6;
         this._nibbleT = 1 + Math.random() * 2;
         this.world.fx.spawn(this._castTo.x, w.y + 0.02, this._castTo.z, { from: 0.15, to: 0.9, dur: 0.6, alpha: 0.6 });
@@ -284,6 +292,7 @@ export class Fishing {
       this.bobber.position.lerp(_v, k * 0.35 + 0.1);
       if (k >= 1) {
         this.state = 'idle';
+        player.rig.stopEmote?.();
         this.bobber.visible = false;
         this.rod.visible = false;
         this.line.visible = false;

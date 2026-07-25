@@ -489,13 +489,22 @@ export class World {
       const bb = geo.boundingBox;
       const alongX = (bb.max.x - bb.min.x) >= (bb.max.z - bb.min.z);
       const pos = geo.attributes.position;
-      let acc = 0, n = 0;
+      let acc = 0, n = 0, seatTop = -Infinity;
       for (let i = 0; i < pos.count; i++) {
-        if (pos.getY(i) > 0.55) { acc += alongX ? pos.getZ(i) : pos.getX(i); n++; }
+        const y = pos.getY(i);
+        if (y > 0.55) { acc += alongX ? pos.getZ(i) : pos.getX(i); n++; }
+        // Seat plane = the highest vertex BELOW the backrest band. Now that a
+        // kid actually sits (rather than freezing a squat with their feet on the
+        // ground at the bench's front edge), the pose needs to know where the
+        // plank is — read from the mesh, not typed in.
+        else if (y > 0.12 && y > seatTop) seatTop = y;
       }
-      proto.userData._benchInfo = { alongX, backSign: n && acc / n > 0 ? 1 : -1 };
+      proto.userData._benchInfo = {
+        alongX, backSign: n && acc / n > 0 ? 1 : -1,
+        seatTop: seatTop > -Infinity ? seatTop : 0.42,
+      };
     }
-    const { alongX, backSign } = proto.userData._benchInfo;
+    const { alongX, backSign, seatTop } = proto.userData._benchInfo;
     const along = alongX ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
     const face = alongX ? new THREE.Vector3(0, 0, -backSign) : new THREE.Vector3(-backSign, 0, 0);
     along.applyQuaternion(dummy.quaternion);
@@ -508,6 +517,7 @@ export class World {
         id: `seat${this.seats.length}`, seat: true,
         icon: '\u{1FA91}', name: 'Park Bench', prompt: 'Sit down',
         pos: [x, z], radius: 1.0, x, z, yaw,
+        seatY: dummy.position.y + seatTop * dummy.scale.y,
       });
     }
   }

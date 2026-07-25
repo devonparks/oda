@@ -210,6 +210,26 @@ export class RigV2 {
   stopEmote() { this.emote = null; }
 
   /**
+   * Drive the emote playhead from outside instead of from dt.
+   *
+   * The swing pump is one baked cycle, and it only reads as pumping if the kid
+   * kicks out in time with the swing — so rides.js hands the swing's own phase
+   * straight in here every frame. Anything with an external phase (a ride, a
+   * scripted beat) can do the same. No-op if that clip isn't the one playing.
+   */
+  setEmoteTime(id, t) {
+    const em = this.emote;
+    if (!em || em.info.id !== id) return false;
+    const dur = em.info.dur || 1;
+    em.t = ((t % dur) + dur) % dur;
+    em.driven = true;
+    return true;
+  }
+
+  /** True once `id` is the clip actually playing (not still fetching its bin). */
+  isEmote(id) { return !!this.emote && this.emote.info.id === id; }
+
+  /**
    * @param {number} dt
    * @param {{speed:number, grounded:boolean, airTime:number}} s
    */
@@ -278,7 +298,10 @@ export class RigV2 {
     this.legWeight += (targetLeg - this.legWeight) * ek;
     let em = this.emote, emInfo = null, emBase = 0;
     if (em) {
-      emInfo = em.info; em.t += dt;
+      emInfo = em.info;
+      // setEmoteTime() owns the playhead for the frame it was called on; adding
+      // dt on top would drift the swing pump a constant frame ahead of the swing.
+      if (em.driven) em.driven = false; else em.t += dt;
       if (em.freezeAt != null) {
         if (em.t > em.freezeAt) em.t = em.freezeAt;   // held pose until stopEmote()
         this.emWeight += (1 - this.emWeight) * ek;

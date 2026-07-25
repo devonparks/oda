@@ -181,6 +181,27 @@ export class Avatar {
     return this.rig.playEmote(id, opts);
   }
 
+  /**
+   * Play a baked ACTIVITY clip (assets/characters/emotes/actions.bin — the real
+   * sits, swing pump, slide, hula, fishing), falling back to the emote-as-a-pose
+   * stand-in this park shipped with if that bin ever fails to load.
+   *
+   * The fallback is not paranoia: actions.bin is one more fetch on a school
+   * Chromebook, and a kid who taps "Sit down" on a flaky connection should get
+   * the old frozen squat, not a T-pose. Fire and forget.
+   *
+   * @param {string} id       clip id in the `actions` category
+   * @param {string} [fbId]   emote id to freeze if the clip is unavailable
+   * @param {number} [fbAt]   second to freeze that fallback at
+   */
+  playAction(id, fbId = 'squat', fbAt = 1.8) {
+    const r = this.rig.playEmote(id);
+    if (r && typeof r.then === 'function') {
+      r.then((ok) => { if (!ok && fbId) this.rig.playEmote(fbId, { freezeAt: fbAt }); });
+    }
+    return r;
+  }
+
   /** Remote avatars only: latest authoritative transform from the network. */
   setNetworkTarget(x, y, z, yaw, speed) {
     this.netPos.set(x, y, z);

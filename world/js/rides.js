@@ -45,8 +45,9 @@ export class Rides {
     this._buildSlides();
     this._buildPlayground();
     this._buildKart();
-    // warm the dance bin so the first hula spin isn't swallowed by a lazy fetch
-    getEmoteLibraryV2().then((lib) => lib && lib.loadCategory('dance').catch(() => {}));
+    // Warm the ACTIONS bin: every ride below plays out of it, and a lazy fetch
+    // on the first hop-on would swallow the pose for a beat.
+    getEmoteLibraryV2().then((lib) => lib && lib.loadCategory('actions').catch(() => {}));
   }
 
   get busy() { return !!this.active; }
@@ -137,9 +138,9 @@ export class Rides {
       const d = Math.abs(player.pos.x - s.pivot.x);
       if (d < best) { best = d; seat = s; }
     }
-    this.active = { kind: 'swing', seat, phase: 0, amp: 0.22 };
-    player.playEmote('squat', { freezeAt: 1.8 });
-    this.state.presence?.broadcast({ emote: 'squat' });
+    this.active = { kind: 'swing', seat, phase: 0, amp: 0.22, pumping: false };
+    player.playAction('sit_swing');
+    this.state.presence?.broadcast({ emote: 'sit_swing' });
     return 'Pump with W · jump off with Space!';
   }
 
@@ -151,12 +152,33 @@ export class Rides {
     a.amp += Math.max(-dt * 0.10, Math.min(dt * 0.26, target - a.amp));
     const ang = Math.sin(a.phase) * a.amp;
     s.group.rotation.x = ang;
+    // The pump is a real baked cycle, driven off the SWING's phase rather than
+    // dt: legs kick out at the back of the arc and tuck at the front, in time,
+    // because that is the only way a pump reads as a pump. Sitting still while
+    // coasting falls back to the grip-the-chains idle.
+    if (pumping !== a.pumping) {
+      a.pumping = pumping;
+      player.playAction(pumping ? 'swing_pump' : 'sit_swing');
+      this.state.presence?.broadcast({ emote: pumping ? 'swing_pump' : 'sit_swing' });
+    }
+    if (pumping) {
+      // u = phase/2pi makes the clip's own sin(2*pi*u) equal sin(phase) exactly:
+      // legs shoot out at the BACK of the arc (max +ang, the kid faces +Z so
+      // +ang is behind them) and tuck at the front. That is how a pump works,
+      // and being a quarter-cycle off makes it look like flailing.
+      const dur = player.rig.emote?.info?.dur || 1.2;
+      player.rig.setEmoteTime?.('swing_pump', (a.phase / (Math.PI * 2)) * dur);
+    }
     // Where rotation.x REALLY puts the seat: child (0,-L,0) rotated about X
     // lands at z = -L·sin. The old +L·sin put the KID mirror-opposite the
     // seat — "swinging and crossing each other like pendulums" (Devon).
     const py = s.pivot.y - Math.cos(ang) * SWING_L;
     const pz = s.pivot.z - Math.sin(ang) * SWING_L;
-    player.pos.set(s.pivot.x, py - 0.42, pz);   // squat butt (~0.45) on the seat
+    // 0.42 unchanged from the frozen-squat days on purpose: the baked sits carry
+    // hipY = -0.26, so a seated pelvis sits 0.28 above the avatar origin —
+    // exactly where the squat's frozen pelvis was. Every offset tuned against
+    // the old pose still lands.
+    player.pos.set(s.pivot.x, py - 0.42, pz);
     player.yaw = player.targetYaw = 0;          // swing plane faces +Z
     player.tilt = ang;                          // lean with the chains
     player.speed = 0; player.vel.y = 0; player.grounded = true;
@@ -171,6 +193,7 @@ export class Rides {
     const v = -dAng * SWING_L;                             // seat z = -L·sin(θ), so dz/dt is NEGATIVE dθ
     player.tilt = 0;
     player.rig.stopEmote?.();
+    this.state.presence?.broadcast({ emote: '_stop' });
     player.vel.y = 3.4 + Math.min(2.4, Math.abs(v) * 0.8);
     player.grounded = false;
     this.launch = { x: 0, z: v * 1.15 };
@@ -198,8 +221,8 @@ export class Rides {
     const p1 = p0.clone().lerp(p2, 0.5);
     p1.y = p0.y * 0.42 + p2.y * 0.58;
     this.active = { kind: 'slide', t: 0, p0, p1, p2 };
-    player.playEmote('squat', { freezeAt: 1.8 });
-    this.state.presence?.broadcast({ emote: 'squat' });
+    player.playAction('slide_ride');
+    this.state.presence?.broadcast({ emote: 'slide_ride' });
     window.odaSfx && window.odaSfx.play('whoosh');
     return 'Wheee!';
   }
@@ -220,6 +243,7 @@ export class Rides {
     if (k >= 1) {
       player.tilt = 0;
       player.rig.stopEmote?.();
+      this.state.presence?.broadcast({ emote: '_stop' });
       const g = this.world.collision.groundAt(player.pos.x, player.pos.z, player.pos.y + 0.3);
       player.pos.y = g;
       this.world.fx.spawn(player.pos.x, g + 0.03, player.pos.z, { color: 0xcbb794, from: 0.2, to: 0.9, dur: 0.45, alpha: 0.4 });
@@ -279,8 +303,8 @@ export class Rides {
     _va.copy(this.seesawAxis).applyQuaternion(m.quaternion);
     const end = Math.sign(_va.dot(_vb.copy(player.pos).sub(m.position))) || 1;
     this.active = { kind: 'seesaw', end };
-    player.playEmote('squat', { freezeAt: 1.8 });
-    this.state.presence?.broadcast({ emote: 'squat' });
+    player.playAction('sit_seesaw');
+    this.state.presence?.broadcast({ emote: 'sit_seesaw' });
     return 'Hold on! Move to hop off.';
   }
 
@@ -298,8 +322,8 @@ export class Rides {
 
   _beginRocker(player, zone) {
     this.active = { kind: 'rocker', mesh: zone.mesh };
-    player.playEmote('squat', { freezeAt: 1.8 });
-    this.state.presence?.broadcast({ emote: 'squat' });
+    player.playAction('sit_rocker');
+    this.state.presence?.broadcast({ emote: 'sit_rocker' });
     return 'Yeehaw! Move to hop off.';
   }
 
@@ -315,9 +339,9 @@ export class Rides {
   }
 
   _beginHoop(player) {
-    this.active = { kind: 'hoop', t: 0, hoop: this.hoops[0] };
-    player.playEmote('twist');
-    this.state.presence?.broadcast({ emote: 'twist' });
+    this.active = { kind: 'hoop', t: 0, hoop: this.hoops[0], hips: null };
+    player.playAction('hula', 'twist', null);
+    this.state.presence?.broadcast({ emote: 'hula' });
     return 'Hips like a helicopter! Move to stop.';
   }
 
@@ -325,15 +349,19 @@ export class Rides {
     const a = this.active;
     a.t += dt;
     const h = a.hoop.mesh;
-    // the hoop orbits the hips — the offset circling is what sells the spin
+    // The hoop rides the REAL pelvis. The hula clip actually orbits the hips
+    // (~6 cm in X and Z), so tracking the Hips bone instead of player.pos is
+    // what makes the hoop look driven BY the kid rather than floating near her.
+    if (!a.hips) player.model.traverse((o) => { if (!a.hips && o.name === 'Hips') a.hips = o; });
+    if (a.hips) a.hips.getWorldPosition(_va); else _va.set(player.pos.x, player.pos.y + 0.62, player.pos.z);
     h.position.set(
-      player.pos.x + Math.sin(a.t * 7) * 0.10,
-      player.pos.y + 0.62,
-      player.pos.z + Math.cos(a.t * 7) * 0.10,
+      _va.x + Math.sin(a.t * 7) * 0.10,
+      _va.y + 0.09,
+      _va.z + Math.cos(a.t * 7) * 0.10,
     );
     h.rotation.set(Math.PI / 2 + Math.sin(a.t * 7 + 1.2) * 0.16, 0, Math.cos(a.t * 7) * 0.16);
     player.speed = 0; player.vel.y = 0; player.grounded = true;
-    if (!player.rig.emote) player.playEmote('twist');   // keep the dance looping
+    if (!player.rig.emote) player.playAction('hula', 'twist', null);   // keep it looping
     if (Math.hypot(intent.move.x, intent.move.y) > 0.25 || intent.jump) {
       h.position.copy(a.hoop.home.pos);
       h.rotation.copy(a.hoop.home.rot);
@@ -351,6 +379,7 @@ export class Rides {
     }
     player.tilt = 0;
     player.rig.stopEmote?.();
+    this.state.presence?.broadcast({ emote: '_stop' });
     player.pos.y = this.world.collision.groundAt(player.pos.x, player.pos.z, player.pos.y + 0.3);
     this.active = null;
   }
@@ -407,8 +436,8 @@ export class Rides {
     player.pos.set(k.group.position.x, k.group.position.y, k.group.position.z);
     player.yaw = player.targetYaw = k.group.rotation.y;
     player.rig.forceLegEmote = true;
-    player.playEmote('squat', { freezeAt: 1.8 });
-    this.state.presence?.broadcast({ emote: 'squat' });
+    player.playAction('sit_kart');
+    this.state.presence?.broadcast({ emote: 'sit_kart' });
     return 'Vroom! Drive with WASD · Space to hop out';
   }
 
@@ -432,6 +461,7 @@ export class Rides {
     if (intent.dismount || intent.jump) {
       player.rig.forceLegEmote = false;
       player.rig.stopEmote?.();
+      this.state.presence?.broadcast({ emote: '_stop' });
       // hop out to the side; the kart PARKS here (its zone moves with it)
       player.pos.x += Math.cos(player.yaw) * 0.8;
       player.pos.z -= Math.sin(player.yaw) * 0.8;

@@ -309,6 +309,25 @@ if (process.argv[2] === 'verify') {
     chk('swing pump: feet travel > 25 cm over the cycle', hi - lo > 0.25, `${(hi - lo).toFixed(3)} m`);
     chk('swing pump: hands stay welded to the chain (< 6 cm)', handSpread < 0.06, `${handSpread.toFixed(3)} m`);
   }
+  // THE CONTRACT WITH rides.js / main.js: a seated clip drops the pelvis to
+  // where the old frozen-'squat' stand-in put it (hipY -0.261), so every seat
+  // offset those files tuned against the squat still lands. Break this and the
+  // kids float above the benches — silently, at runtime, on the live site.
+  {
+    const SEATED = ['sit', 'sit_swing', 'swing_pump', 'slide_ride', 'sit_kart', 'sit_seesaw', 'sit_rocker'];
+    const hipOf = (id, f) => {
+      const e = info[id];
+      const arrI = new Int16Array(bin.buffer, bin.byteOffset, bin.byteLength >> 1);
+      return arrI[(e.off >> 1) + e.frames * nb * 4 + f] / 1000;
+    };
+    let worst = 0;
+    for (const id of SEATED) for (let f = 0; f < info[id].frames; f++) worst = Math.max(worst, Math.abs(hipOf(id, f) + 0.261));
+    chk('seated clips carry the -0.261 pelvis drop (rides.js offsets depend on it)', worst < 0.03, `max deviation ${worst.toFixed(3)} m`);
+    const standing = ['hula', 'fish_cast', 'fish_wait', 'fish_reel'];
+    let stand = 0;
+    for (const id of standing) for (let f = 0; f < info[id].frames; f++) stand = Math.max(stand, Math.abs(hipOf(id, f)));
+    chk('standing clips keep the pelvis at standing height', stand < 0.05, `max |hipY| ${stand.toFixed(3)} m`);
+  }
   // straddle sits: the knees must actually FOLD. Legs merely spread with straight
   // knees renders as a kid standing and leaning, which is what the first bake did.
   for (const id of ['sit_seesaw', 'sit_rocker']) {
