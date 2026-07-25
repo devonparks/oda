@@ -200,7 +200,13 @@ export class Avatar {
     }
 
     this.group.position.copy(this.pos);
+    // YXZ so the tilt below is about the avatar's own (post-yaw) X axis —
+    // default XYZ would lean everyone in a fixed WORLD direction instead.
+    this.group.rotation.order = 'YXZ';
     this.group.rotation.y = this.yaw;
+    // Whole-body tilt (lean). Used by rides.js so a kid on a swing pivots with
+    // it; anyone not riding stays exactly upright.
+    this.group.rotation.x = this.tilt || 0;
     this.rig.update(dt, {
       speed: this.speed, maxSpeed: 3.4,
       grounded: this.grounded, airTime: this.airTime,

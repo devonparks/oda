@@ -367,6 +367,7 @@ export class World {
     const merge = [];      // geometries for the static-prop batch
     const dummy = new THREE.Object3D();
     this.seats = [];       // sittable spots, harvested from bench layout entries
+    this.slideData = [];   // slide top/exit points, harvested for rides.js
     for (const p of layout) {
       const proto = protos.get(p.mesh);
       if (!proto) continue;
@@ -376,6 +377,7 @@ export class World {
       dummy.updateMatrix();
 
       if (p.mesh === 'SM_Env_Park_Seat_01') this._addBenchSeats(proto, dummy);
+      if (/Playground_Slide/.test(p.mesh)) this._addSlideData(proto, dummy);
 
       const dyn = DYNAMIC.find((d) => p.mesh.includes(d.match));
       if (dyn) {
@@ -453,6 +455,40 @@ export class World {
         pos: [x, z], radius: 1.0, x, z, yaw,
       });
     }
+  }
+
+  /**
+   * Slide geometry analysis for rides.js: where the chute starts (top) and
+   * where it spits you out (exit), in world space, read from the vertices —
+   * the top band's centroid, and the low band's centroid EXCLUDING anything
+   * directly under the top (ladders and platform legs live there).
+   */
+  _addSlideData(proto, dummy) {
+    const posA = proto.geometry.attributes.position;
+    const v = new THREE.Vector3();
+    let minY = Infinity, maxY = -Infinity;
+    for (let i = 0; i < posA.count; i++) {
+      v.fromBufferAttribute(posA, i).applyMatrix4(dummy.matrix);
+      if (v.y < minY) minY = v.y;
+      if (v.y > maxY) maxY = v.y;
+    }
+    let tx = 0, ty = 0, tz = 0, tn = 0;
+    for (let i = 0; i < posA.count; i++) {
+      v.fromBufferAttribute(posA, i).applyMatrix4(dummy.matrix);
+      if (v.y > maxY - 0.3) { tx += v.x; ty += v.y; tz += v.z; tn++; }
+    }
+    if (!tn) return;
+    tx /= tn; ty /= tn; tz /= tn;
+    let bx = 0, by = 0, bz = 0, bn = 0;
+    for (let i = 0; i < posA.count; i++) {
+      v.fromBufferAttribute(posA, i).applyMatrix4(dummy.matrix);
+      if (v.y < minY + 0.3 && Math.hypot(v.x - tx, v.z - tz) > 0.7) { bx += v.x; by += v.y; bz += v.z; bn++; }
+    }
+    if (!bn) return;
+    this.slideData.push({
+      top: { x: tx, y: ty, z: tz },
+      exit: { x: bx / bn, y: by / bn, z: bz / bn },
+    });
   }
 
   _buildCoins() {

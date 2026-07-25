@@ -23,6 +23,7 @@ import { ZONES, ACTIVITIES, SPAWN, nearestZone, gamesForZone } from './zones.js'
 import { NpcCrowd } from './npc.js';
 import { TagGame } from './tag.js';
 import { Fishing, CATCH_TABLE } from './fishing.js';
+import { Rides } from './rides.js';
 import { Butterflies } from './critters.js';
 import { Ambience } from './ambience.js';
 import { WorldProgress } from './achievements.js';
@@ -303,6 +304,9 @@ async function enterWorld() {
     },
   });
 
+  // rideable playthings: the swing set + all four slides
+  state.rides = new Rides(world, state);
+
   setProgress(1, 'Have fun!');
   $('loading').classList.add('hidden');
   $('hud').classList.remove('hidden');
@@ -435,7 +439,7 @@ function loop() {
   if (state.seated) {
     if (Math.hypot(intent.move.x, intent.move.y) > 0.25 || intent.jump || state.input.moveTarget) standUp();
   }
-  if (!state.paused && !state.seated) {
+  if (!state.paused && !state.seated && !state.rides?.busy) {
     intent.target = state.input.moveTarget;
     intent.clearTarget = () => { state.input.moveTarget = null; };
     if (intent.jump && player.grounded) sfx('whoosh');
@@ -443,6 +447,10 @@ function loop() {
   } else {
     player.speed = 0;
   }
+  // Rides own the player while active (swing pendulum / slide path), and carry
+  // the dismount arc while airborne. Runs before player.update so the frame
+  // renders this frame's ride position, not last frame's.
+  if (!state.paused) state.rides?.update(dt, player, intent);
   if (!state.paused && player.speed > 0.05) state.progress?.addDistance(player.speed * dt);
   world.updateCamera(player, state.paused ? { x: 0, y: 0 } : intent.look, intent.zoom, dt);
   player.update(dt, world.camera);
@@ -660,8 +668,12 @@ function footsteps(p, dt) {
 // ---------------------------------------------------------------------------
 function updateZonePrompt() {
   const p = state.player.pos;
-  const zone = nearestZone(p.x, p.z, ZONES) || nearestZone(p.x, p.z, ACTIVITIES)
-    || (!state.seated && nearestZone(p.x, p.z, state.world.seats || [])) || null;
+  // Most specific first: ride/seat prompts have ~1m discs and must not be
+  // shadowed by the broad zone portals (the playground zone covers three
+  // slide exits entirely).
+  const zone = (!state.rides?.busy && nearestZone(p.x, p.z, state.rides?.zones || []))
+    || (!state.seated && nearestZone(p.x, p.z, state.world.seats || []))
+    || nearestZone(p.x, p.z, ACTIVITIES) || nearestZone(p.x, p.z, ZONES) || null;
   const el = $('zonePrompt');
   if (zone === state.activeZone) return;
   state.activeZone = zone;
@@ -676,6 +688,11 @@ function enterZone() {
   const zone = state.activeZone;
   if (!zone) return;
   if (zone.seat) return sitDown(zone);
+  if (zone.ride) {
+    const line = state.rides?.begin(zone, state.player);
+    if (line) toast(line);
+    return;
+  }
   if (zone.categories) return openZoneModal(zone);
   runActivity(zone);
 }

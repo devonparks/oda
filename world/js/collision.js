@@ -50,8 +50,15 @@ const COLLISION_RULES = [
   [/Tree/i, 'trunk'],                                    // canopy AABB -> trunk
   [/Bush|Hedge|Flower|Grass|Plant/i, 'none'],            // soft foliage, walk through it
   [/Coin|Gem|Star/i, 'none'],                            // pickups must never block
-  [/Rocker_Top|_Top_|Canopy|Awning|Umbrella/i, 'none'],  // roofs/tops, same canopy trap
+  // roofs/tops, same canopy trap. Playground_Cover is the shade sails over the
+  // swing corner — as solids you could LAND on them from a fall. Kites float
+  // at y≈6 and are scenery, not platforms.
+  [/Rocker_Top|_Top_|Canopy|Awning|Umbrella|Playground_Cover|Playground_Roof|Track_Ride|Kite/i, 'none'],
   [/Plush|Toy|Stick|Pogo|Bike|Trike|Pram|Jumping|Soapbox|Ball/i, 'none'], // kid clutter
+  // Slides: the AABB wraps the whole diagonal chute, so as a solid it's an
+  // invisible lid you land ON and a wall you bounce OFF. Riding is scripted
+  // (rides.js) and the heightfield never captures props, so no box at all.
+  [/Playground_Slide/i, 'none'],
   // The skate park is CARVED INTO the terrain (bowl floor y≈-1). Its renderer
   // bounds put a phantom lid at rim height over every depression — you floated
   // across the bowl instead of walking down into it. The heightfield is the
