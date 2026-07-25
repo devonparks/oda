@@ -19,6 +19,19 @@ const CELL = 4;             // metres per grid cell
 const STEP_HEIGHT = 0.55;
 
 /**
+ * The player capsule — ONE definition, used by the player, the NPCs and tag.
+ *
+ * It used to be 0.28 x 1.4, which is an adult. The kids are ~1.0 m tall and the
+ * park is built for them: tunnel mouths, the gap under the ship's prow, the
+ * space between playground uprights. A 1.4 m capsule can't fit through
+ * anything a 1.0 m kid is obviously meant to fit through — Devon's playtest:
+ * "spaces you should be able to get into, but you can't actually fit where
+ * you're supposed to."
+ */
+export const KID_RADIUS = 0.24;
+export const KID_HEIGHT = 1.05;
+
+/**
  * The park's boxes are world-space RENDERER bounds straight out of the Synty
  * demo scene. That's fine for a crate and catastrophic for a tree: the AABB of
  * SM_Env_Tree_Large_01 is 10.95 x 12.28 m spanning y -0.15..8.91, because it
@@ -47,6 +60,12 @@ const COLLISION_RULES = [
   // invisible floor at the waterline — kids stood ON the water. The
   // heightfield's dish + the hip-deep clamp in stepPlayer own the pond now.
   [/Park_Pond(?!_Rocks)/i, 'none'],
+  // The treehouse hangs off SM_Env_Tree_Large_01, so it inherits the tree's
+  // name — and with it the 'trunk' rule, which shrank a 3.6 x 3.4 m house into
+  // a 0.9 m post you walk straight through. It is a STRUCTURE, not foliage.
+  // World._deriveCollision reads its real floor, walls, roof and ladder off
+  // the merged park shell instead.
+  [/Treehouse|Tree_House/i, 'none'],
   [/Tree/i, 'trunk'],                                    // canopy AABB -> trunk
   [/Bush|Hedge|Flower|Grass|Plant/i, 'none'],            // soft foliage, walk through it
   [/Coin|Gem|Star/i, 'none'],                            // pickups must never block
@@ -58,11 +77,25 @@ const COLLISION_RULES = [
   // Slides: the AABB wraps the whole diagonal chute, so as a solid it's an
   // invisible lid you land ON and a wall you bounce OFF. Riding is scripted
   // (rides.js) and the heightfield never captures props, so no box at all.
+  // ── THE COARSE-CUBE FAMILY ────────────────────────────────────────────────
+  // These props export as 1 m cubes that sit ON TOP of geometry the ground
+  // heightfield already resolves properly, so the cube is a pure invisible
+  // wall. Measured on the live park along a walk up the main structure, the
+  // heightfield reads a real staircase — 0.10, 0.22, 0.31, 0.44, 0.99, 1.16,
+  // 1.29 — every rise inside the step gate. You could not use ONE of those
+  // steps, because a Stairs_01 cube capped at 1.00 blocked the whole run and
+  // the only way up was to jump. Devon's playtest, exactly: "you have to press
+  // space to jump up the stairs, but you should just be able to walk up
+  // naturally."
+  //
+  // Tunnels are the same shape of bug pointed the other way: a solid 1 m cube
+  // where the whole point of the prop is to crawl THROUGH it.
+  [/Playground_Stairs|Playground_Tunnel/i, 'none'],
   [/Playground_Slide/i, 'none'],
   // The pirate ship's export box runs from the ground to the MAST TIP (3.3 m),
   // so as one solid it is a monolith: you can't board it, and `groundAt` never
-  // offers a top inside the step gate. World._addShipDecks reads the real hull,
-  // deck, castle and mast off the prop's vertices and adds those instead.
+  // offers a top inside the step gate. World._deriveCollision rebuilds the real
+  // hull, deck, castle and mast from its mesh instead.
   [/Playground_Ship/i, 'none'],
   // The skate park is CARVED INTO the terrain (bowl floor y≈-1). Its renderer
   // bounds put a phantom lid at rim height over every depression — you floated
@@ -146,8 +179,18 @@ export class CollisionWorld {
 
   static key(cx, cz) { return cx * 100000 + cz; }
 
+  /**
+   * @param {{c:number[], e:number[], n?:string, derived?:boolean}} b
+   *   `derived: true` = this box was already computed FROM real geometry
+   *   (World._deriveCollision), so it must skip the name rules below. Those
+   *   rules exist to refine the raw Synty export; re-applying them to a derived
+   *   box is a live trap — the treehouse's own boxes matched the very
+   *   /Treehouse/ 'none' rule that drops its export AABB, so all 257 of them
+   *   were silently discarded on insert and the house stayed walk-through.
+   */
   add(b) {
     const name = b.n || '';
+    if (b.derived) return this._insert(b, name);
     // A gazebo is a roof on posts — one solid AABB walls off a shelter you're
     // supposed to stand inside. Swap it for four corner posts plus a low plinth
     // you step onto; the roof is above head height so it needs no box at all.
@@ -167,6 +210,12 @@ export class CollisionWorld {
     if (rule === 'none') { this.skipped++; return; }
     // A trunk keeps the prop's height (you can't walk through the bole) but
     // gives up the canopy's footprint (you can walk under the branches).
+    return this._insert(b, name, rule);
+  }
+
+  /** Insert a box into the flat grid. Rules have already been applied (or
+   *  deliberately skipped, for derived geometry). */
+  _insert(b, name, rule = 'solid') {
     const ex = rule === 'trunk' ? Math.min(b.e[0], TRUNK_RADIUS) : b.e[0];
     const ez = rule === 'trunk' ? Math.min(b.e[2], TRUNK_RADIUS) : b.e[2];
     const box = {
@@ -238,7 +287,7 @@ export class CollisionWorld {
    * Slide a cylinder from its current position to (x, z).
    * @returns {{x:number, z:number, hit:boolean}}
    */
-  resolve(x, z, y, radius = 0.28, height = 1.4) {
+  resolve(x, z, y, radius = KID_RADIUS, height = KID_HEIGHT) {
     const footY = y, headY = y + height;
     let hit = false;
     // A couple of passes settles corners where two boxes push in turn.

@@ -14,6 +14,7 @@
  * afterwards; nothing is spawned or destroyed.
  */
 import * as THREE from 'three';
+import { KID_RADIUS, KID_HEIGHT } from './collision.js';
 
 const ROUND_LEN = 60;
 const COUNTDOWN = 3;
@@ -40,7 +41,7 @@ function steer(world, a, tx, tz, speed, dt) {
   const nx = a.pos.x + Math.sin(a.yaw) * a.speed * dt;
   const nz = a.pos.z + Math.cos(a.yaw) * a.speed * dt;
   const c = world.collision.clampToBounds(nx, nz, 1.2);
-  const s = world.collision.resolve(c.x, c.z, a.pos.y, 0.28, 1.4);
+  const s = world.collision.resolve(c.x, c.z, a.pos.y, KID_RADIUS, KID_HEIGHT);
   a.pos.x = s.x; a.pos.z = s.z;
   let g = world.collision.groundAt(a.pos.x, a.pos.z, a.pos.y + 0.3);
   const w = world.waterAt && world.waterAt(a.pos.x, a.pos.z);

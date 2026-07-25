@@ -34,6 +34,35 @@ export const QUALITY = {
   high:   { pixelRatio: 2,    shadows: true,  shadowSize: 2048, fogNear: 55, fogFar: 130, antialias: true },
 };
 
+/**
+ * Greedy rectangle decomposition of a set of occupied "ix,iz" cells.
+ *
+ * Turns a band of voxel columns into as few boxes as possible: grow a run along
+ * X, then extend that whole run along Z while every cell of it is occupied.
+ * A treehouse floor collapses to one box; a wall ring to four. Without this a
+ * single structure would emit hundreds of 25 cm cubes into the collision grid.
+ */
+function greedyRects(set) {
+  const cells = new Set(set);
+  const keys = [...cells].map((k) => k.split(',').map(Number)).sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+  const rects = [];
+  for (const [ix, iz] of keys) {
+    if (!cells.has(ix + ',' + iz)) continue;
+    let x1 = ix;
+    while (cells.has((x1 + 1) + ',' + iz)) x1++;
+    let z1 = iz;
+    for (;;) {
+      let full = true;
+      for (let x = ix; x <= x1; x++) if (!cells.has(x + ',' + (z1 + 1))) { full = false; break; }
+      if (!full) break;
+      z1++;
+    }
+    for (let z = iz; z <= z1; z++) for (let x = ix; x <= x1; x++) cells.delete(x + ',' + z);
+    rects.push({ x0: ix, x1, z0: iz, z1 });
+  }
+  return rects;
+}
+
 export class World {
   constructor(canvas, opts = {}) {
     this.canvas = canvas;
@@ -186,6 +215,26 @@ export class World {
     // ---- ground heightfield (before physics: props settle against it) ----
     onProgress(0.62, 'Reading the ground…');
     this._bakeGroundHeightfield(collision);
+
+    // ---- structures whose ONE export box was a lie ----
+    // The treehouse is baked into the merged park shell and named after the
+    // tree it hangs in, so the 'trunk' rule shrank a whole house to a 0.9 m
+    // post. Its floor can never come from the heightfield either — that is a
+    // top-down first-hit render, and the treehouse has a ROOF. Real geometry
+    // is the only source of truth for it.
+    const th = collision.find((b) => /Treehouse|Tree_House/i.test(b.n || ''));
+    if (th) {
+      let shellMesh = null;
+      this.shell.traverse((o) => { if (o.isMesh && !shellMesh) shellMesh = o; });
+      if (shellMesh) {
+        shellMesh.updateWorldMatrix(true, false);
+        const pad = 0.15;
+        const clip = new THREE.Box3(
+          new THREE.Vector3(th.c[0] - th.e[0] - pad, th.c[1] - th.e[1] - pad, th.c[2] - th.e[2] - pad),
+          new THREE.Vector3(th.c[0] + th.e[0] + pad, th.c[1] + th.e[1] + pad, th.c[2] + th.e[2] + pad));
+        this._addStructureCollision(shellMesh.geometry, shellMesh.matrixWorld, '_treehouse', clip);
+      }
+    }
 
     // ---- the fountain comes alive: jet, falling drops, basin ripples ----
     const fnt = collision.find((b) => /Env_Fountain_01/.test(b.n || ''));
@@ -387,7 +436,7 @@ export class World {
 
       if (p.mesh === 'SM_Env_Park_Seat_01') this._addBenchSeats(proto, dummy);
       if (/Playground_Slide/.test(p.mesh)) this._addSlideData(proto, dummy);
-      if (/Playground_Ship/.test(p.mesh)) this._addShipDecks(proto, dummy);
+      if (/Playground_Ship/.test(p.mesh)) this._addStructureCollision(proto.geometry, dummy.matrix, '_ship');
 
       // The soapbox racer becomes DRIVABLE: divert its parts (frame, steering
       // wheel, four wheels — each its own layout entry) out of the static
@@ -524,91 +573,116 @@ export class World {
   }
 
   /**
-   * The pirate ship, opened up.
+   * REAL collision from REAL geometry.
    *
-   * Its collision export is ONE box spanning y -0.29 to 3.02 — floor to MAST
-   * TIP. Nothing about a 3.3 m monolith is climbable: `resolve` walls you off
-   * at every height and `groundAt` never offers a top within the step gate, so
-   * the biggest play structure in the park was a rock you bounced off.
+   * The park ships one axis-aligned box per prop, straight out of the Synty
+   * demo scene's renderer bounds. For a crate that is fine. For anything a kid
+   * is supposed to get INTO or ONTO it is the whole problem — Devon's playtest:
+   * "it's just one big invisible block on the object, so you can't actually fit
+   * where you're supposed to." One box cannot express a deck you stand on, a
+   * doorway you walk through, or a floor you don't fall through.
    *
-   * The real shape is a hull that narrows as it rises to a deck, a raised stern
-   * castle, and a mast. Reading those planes off the prop's own vertices (like
-   * the bench seats and the slide chutes are) gives back the structure kids can
-   * actually use: jump onto the deck (apex 0.767 m + a 0.55 step gate clears a
-   * 1.15 m rise), then jump again onto the castle. No teleporters, no invented
-   * geometry, and it re-derives itself if the layout ever moves the ship.
+   * So for the structures that matter, collision is derived from the mesh:
+   * rasterise the triangles into 25 cm columns, band them by height, greedy-
+   * merge each band's occupied cells into rectangles, and emit one thin box per
+   * rectangle. What comes out is the actual shape — the ship's deck and hull,
+   * the treehouse's floor and its walls WITH the gap between them — at a couple
+   * of dozen boxes per structure instead of one lie.
    *
-   * Emits: a hull whose TOP is the deck, a castle block, and a mast post.
-   * The raw export box is dropped by a 'none' rule in collision.js.
+   * Thin bands matter: `resolve` skips any box whose bottom is above your head,
+   * so a floor emitted as a 25 cm slab lets a kid walk underneath it, while a
+   * floor-to-ground slab would wall off the space below.
+   *
+   * @param {THREE.BufferGeometry} geo   source geometry
+   * @param {THREE.Matrix4} matrix       geometry → world
+   * @param {string} name                collision box name (debug/rules)
+   * @param {{clip?:THREE.Box3, cell?:number, band?:number}} [opts]
+   *        clip — only take triangles whose centroid is inside (for pulling one
+   *        structure out of the merged park shell).
+   * @returns {number} boxes emitted
    */
-  _addShipDecks(proto, dummy) {
-    const pos = proto.geometry.attributes.position;
-    const v = new THREE.Vector3();
-    // Histogram world-space Y in 10 cm bands, with each band's XZ extent. A
-    // deck is a band that is both high and WIDE; the mast is high and thin.
-    const BAND = 0.1;
-    const bands = new Map();
+  _deriveCollision(geo, matrix, name, opts = {}) {
+    const CELL = opts.cell || 0.25;      // horizontal resolution
+    const BAND = opts.band || 0.25;      // vertical resolution
+    const clip = opts.clip || null;
+    const pos = geo.attributes.position;
+    const idx = geo.index;
+    const triCount = idx ? idx.count / 3 : pos.count / 3;
+    const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+    const q = new THREE.Vector3();
+
+    // ── 1. rasterise triangle SURFACES into (band, cell) occupancy ──
+    // Vertices alone are not enough: Synty floors are often two triangles
+    // spanning three metres, which would mark four columns and miss the floor.
+    const cells = new Map();             // bandIndex -> Set("ix,iz")
     let minY = Infinity, maxY = -Infinity;
-    for (let i = 0; i < pos.count; i++) {
-      v.fromBufferAttribute(pos, i).applyMatrix4(dummy.matrix);
-      minY = Math.min(minY, v.y); maxY = Math.max(maxY, v.y);
-      const k = Math.round(v.y / BAND);
-      let b = bands.get(k);
-      if (!b) bands.set(k, (b = { n: 0, x0: Infinity, x1: -Infinity, z0: Infinity, z1: -Infinity }));
-      b.n++;
-      b.x0 = Math.min(b.x0, v.x); b.x1 = Math.max(b.x1, v.x);
-      b.z0 = Math.min(b.z0, v.z); b.z1 = Math.max(b.z1, v.z);
-    }
-    const area = (b) => (b.x1 - b.x0) * (b.z1 - b.z0);
-    const keys = [...bands.keys()].sort((a, b) => a - b);
-    const widest = Math.max(...keys.map((k) => area(bands.get(k))));
-    // Walkable = at least a third of the footprint. Anything narrower up top is
-    // rigging, not floor.
-    const walkable = keys.filter((k) => area(bands.get(k)) > widest * 0.33 && bands.get(k).n > 60);
-    if (!walkable.length) return;
-
-    const add = (b, top, name) => {
-      const cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2;
-      this.collision.add({
-        c: [cx, (minY + top) / 2, cz],
-        e: [(b.x1 - b.x0) / 2, (top - minY) / 2, (b.z1 - b.z0) / 2],
-        n: name,
-      });
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    const mark = (p) => {
+      const bi = Math.floor(p.y / BAND);
+      let set = cells.get(bi);
+      if (!set) cells.set(bi, (set = new Set()));
+      set.add(Math.floor(p.x / CELL) + ',' + Math.floor(p.z / CELL));
+      if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
+      if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+      if (p.z < minZ) minZ = p.z; if (p.z > maxZ) maxZ = p.z;
     };
-
-    // Main deck: the highest wide band.
-    const deckK = walkable[walkable.length - 1];
-    const deck = bands.get(deckK);
-    const deckY = (deckK + 0.5) * BAND;          // stand on the band's top edge
-    add(deck, deckY, '_ship_deck');
-
-    // Stern castle: the highest band above the deck that still has real area —
-    // narrow relative to the hull, but a platform in its own right.
-    let castleK = null;
-    for (const k of keys) {
-      const b = bands.get(k);
-      if ((k + 0.5) * BAND <= deckY + 0.35) continue;
-      if (b.n < 40 || area(b) < widest * 0.1) continue;
-      castleK = k;
+    for (let t = 0; t < triCount; t++) {
+      const i0 = idx ? idx.getX(t * 3) : t * 3;
+      const i1 = idx ? idx.getX(t * 3 + 1) : t * 3 + 1;
+      const i2 = idx ? idx.getX(t * 3 + 2) : t * 3 + 2;
+      a.fromBufferAttribute(pos, i0).applyMatrix4(matrix);
+      b.fromBufferAttribute(pos, i1).applyMatrix4(matrix);
+      c.fromBufferAttribute(pos, i2).applyMatrix4(matrix);
+      if (clip) {
+        q.copy(a).add(b).add(c).multiplyScalar(1 / 3);
+        if (!clip.containsPoint(q)) continue;
+      }
+      // subdivide by the longest edge so no cell is stepped over
+      const step = Math.min(CELL, BAND) * 0.6;
+      const n = Math.min(64, Math.max(1, Math.ceil(
+        Math.max(a.distanceTo(b), b.distanceTo(c), c.distanceTo(a)) / step)));
+      for (let i = 0; i <= n; i++) {
+        for (let j = 0; i + j <= n; j++) {
+          const u = i / n, v = j / n, w = 1 - u - v;
+          q.set(a.x * w + b.x * u + c.x * v, a.y * w + b.y * u + c.y * v, a.z * w + b.z * u + c.z * v);
+          mark(q);
+        }
+      }
     }
-    if (castleK != null) {
-      const c = bands.get(castleK);
-      add(c, (castleK + 0.5) * BAND, '_ship_castle');
-    }
+    if (!cells.size) return 0;
 
-    // Mast: whatever is left above, kept as a thin post you bump into.
-    const mastK = keys[keys.length - 1];
-    const mast = bands.get(mastK);
-    if ((mastK + 0.5) * BAND > (castleK != null ? (castleK + 0.5) * BAND : deckY) + 0.4) {
-      const cx = (mast.x0 + mast.x1) / 2, cz = (mast.z0 + mast.z1) / 2;
-      const r = Math.max(0.12, Math.min(0.3, Math.max(mast.x1 - mast.x0, mast.z1 - mast.z0) / 2));
-      this.collision.add({
-        c: [cx, ((mastK + 0.5) * BAND + deckY) / 2, cz],
-        e: [r, ((mastK + 0.5) * BAND - deckY) / 2, r],
-        n: '_ship_mast',
-      });
+    // ── 2. greedy-merge each band's cells into rectangles ──
+    let emitted = 0;
+    for (const [bi, set] of cells) {
+      const rects = greedyRects(set);
+      const y0 = bi * BAND, y1 = y0 + BAND;
+      for (const r of rects) {
+        const x0 = r.x0 * CELL, x1 = (r.x1 + 1) * CELL;
+        const z0 = r.z0 * CELL, z1 = (r.z1 + 1) * CELL;
+        this.collision.add({
+          c: [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2],
+          e: [(x1 - x0) / 2, (y1 - y0) / 2, (z1 - z0) / 2],
+          n: name, derived: true,
+        });
+        emitted++;
+      }
     }
-    this.shipDecks = { deckY, castleY: castleK != null ? (castleK + 0.5) * BAND : null };
+    return emitted;
+  }
+
+  /**
+   * The pirate ship and the treehouse: the two structures whose export box was
+   * a flat lie. The ship's ran from the ground to the MAST TIP (3.3 m of solid,
+   * so you bounced off it at every height); the treehouse inherits the name of
+   * the tree it hangs in, so the tree's 'trunk' rule shrank a 3.6 x 3.4 m house
+   * into a 0.9 m post you walked straight through. Both are dropped by 'none'
+   * rules in collision.js and rebuilt here from their real geometry.
+   */
+  _addStructureCollision(geo, matrix, name, clip) {
+    const t0 = performance.now();
+    const n = this._deriveCollision(geo, matrix, name, clip ? { clip } : undefined);
+    console.log(`[world] ${name}: ${n} collision boxes from real geometry (${(performance.now() - t0).toFixed(0)}ms)`);
+    return n;
   }
 
   /**

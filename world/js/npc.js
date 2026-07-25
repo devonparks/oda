@@ -21,6 +21,7 @@
  */
 import * as THREE from 'three';
 import { Avatar, preloadCharacter, characterUrl, RIG } from './avatar.js';
+import { KID_RADIUS, KID_HEIGHT } from './collision.js';
 
 /** Little idle bursts of life. Ids must exist in the active rig's emote set:
  *  the v2 library (real Synty clips) vs the v1 procedural set have different
@@ -196,7 +197,7 @@ export class NpcCrowd {
           a.speed += (WALK_SPEED * 1.25 * wadeFactor(this.world, a) - a.speed) * Math.min(1, 8 * dt);
           const nx = a.pos.x + ux * a.speed * dt, nz = a.pos.z + uz * a.speed * dt;
           const c = this.world.collision.clampToBounds(nx, nz, 1.2);
-          const solved = this.world.collision.resolve(c.x, c.z, a.pos.y, 0.28, 1.4);
+          const solved = this.world.collision.resolve(c.x, c.z, a.pos.y, KID_RADIUS, KID_HEIGHT);
           a.pos.x = solved.x; a.pos.z = solved.z;
         }
       } else if (npc.state === 'idle') {
@@ -233,7 +234,7 @@ export class NpcCrowd {
           const nx = a.pos.x + ux * a.speed * dt;
           const nz = a.pos.z + uz * a.speed * dt;
           const c = this.world.collision.clampToBounds(nx, nz, 1.2);
-          const solved = this.world.collision.resolve(c.x, c.z, a.pos.y, 0.28, 1.4);
+          const solved = this.world.collision.resolve(c.x, c.z, a.pos.y, KID_RADIUS, KID_HEIGHT);
           a.pos.x = solved.x;
           a.pos.z = solved.z;
           // if we bumped something, pick a fresh target so we don't grind a wall
