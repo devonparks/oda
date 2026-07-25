@@ -170,14 +170,15 @@ export class Avatar {
     this.bubbleUntil = performance.now() + seconds * 1000;
   }
 
-  /** Clip emote if we have it, else the procedural one of the same name. */
-  playEmote(id) {
+  /** Clip emote if we have it, else the procedural one of the same name.
+   *  opts (v2 rigs only): { freezeAt } — hold the clip at that second. */
+  playEmote(id, opts) {
     if (this.rig.emotes && this.rig.emotes.lib.has(id)) {
       this.rig.emote = null;              // clip wins; drop any procedural one
       this.rig.emotes.play(id);
       return true;
     }
-    return this.rig.playEmote(id);
+    return this.rig.playEmote(id, opts);
   }
 
   /** Remote avatars only: latest authoritative transform from the network. */

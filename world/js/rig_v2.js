@@ -190,15 +190,20 @@ export class RigV2 {
 
   get emoting() { return !!this.emote; }
 
-  /** Start an emote by id. Loads its category bin if needed; fire-and-forget. */
-  async playEmote(id) {
+  /**
+   * Start an emote by id. Loads its category bin if needed; fire-and-forget.
+   * opts.freezeAt (seconds): clamp the playhead there and hold that frame
+   * until stopEmote() — turns any moment of any clip into a held pose (the
+   * bench "sit" is squat's deepest frame; no sit clip exists in the library).
+   */
+  async playEmote(id, opts = {}) {
     const lib = this.emlib || (this.emlib = await getEmoteLibraryV2());
     if (!lib) return false;
     const info = lib.info(id);
     if (!info) return false;
     let data = lib.data.get(info.cat);
     if (!data) { try { data = await lib.loadCategory(info.cat); } catch (e) { return false; } }
-    this.emote = { info, data, t: 0 };
+    this.emote = { info, data, t: 0, freezeAt: opts.freezeAt ?? null };
     return true;
   }
   play(id) { return this.playEmote(id); }
@@ -272,7 +277,11 @@ export class RigV2 {
     let em = this.emote, emInfo = null, emBase = 0;
     if (em) {
       emInfo = em.info; em.t += dt;
-      if (emInfo.hold) { em.t %= emInfo.dur; this.emWeight += (1 - this.emWeight) * ek; }
+      if (em.freezeAt != null) {
+        if (em.t > em.freezeAt) em.t = em.freezeAt;   // held pose until stopEmote()
+        this.emWeight += (1 - this.emWeight) * ek;
+      }
+      else if (emInfo.hold) { em.t %= emInfo.dur; this.emWeight += (1 - this.emWeight) * ek; }
       else if (em.t >= emInfo.dur) { this.emote = null; em = null; }
       else {
         const inK = Math.min(em.t / 0.14, 1), outK = Math.min((emInfo.dur - em.t) / 0.20, 1);

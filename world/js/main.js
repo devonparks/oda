@@ -429,7 +429,13 @@ function loop() {
     intent.move.x = 0; intent.move.y = 0; intent.jump = false;
     state.input.moveTarget = null;
   }
-  if (!state.paused) {
+  // Seated on a bench: pinned in the sit pose (stepPlayer skipped — resolve()
+  // would shove the capsule out of the bench's own collision box every frame).
+  // Any movement input stands the kid up and hands control straight back.
+  if (state.seated) {
+    if (Math.hypot(intent.move.x, intent.move.y) > 0.25 || intent.jump || state.input.moveTarget) standUp();
+  }
+  if (!state.paused && !state.seated) {
     intent.target = state.input.moveTarget;
     intent.clearTarget = () => { state.input.moveTarget = null; };
     if (intent.jump && player.grounded) sfx('whoosh');
@@ -654,7 +660,8 @@ function footsteps(p, dt) {
 // ---------------------------------------------------------------------------
 function updateZonePrompt() {
   const p = state.player.pos;
-  const zone = nearestZone(p.x, p.z, ZONES) || nearestZone(p.x, p.z, ACTIVITIES);
+  const zone = nearestZone(p.x, p.z, ZONES) || nearestZone(p.x, p.z, ACTIVITIES)
+    || (!state.seated && nearestZone(p.x, p.z, state.world.seats || [])) || null;
   const el = $('zonePrompt');
   if (zone === state.activeZone) return;
   state.activeZone = zone;
@@ -668,8 +675,39 @@ function updateZonePrompt() {
 function enterZone() {
   const zone = state.activeZone;
   if (!zone) return;
+  if (zone.seat) return sitDown(zone);
   if (zone.categories) return openZoneModal(zone);
   runActivity(zone);
+}
+
+/** Park a kid on a bench: pinned, held sit pose, any movement stands up. */
+function sitDown(seat) {
+  const p = state.player;
+  if (state.seated || state.tag?.playerFrozen) return;
+  state.seated = seat;
+  state.input.moveTarget = null;   // a lingering tap-to-move would insta-stand
+  // Feet on the ground at the bench's front edge (NOT on the seat: the bench's
+  // own box top would pass the step gate from a raised fromY and perch the kid
+  // on the backrest). The frozen squat's hips-back shape settles over the seat.
+  const fx = Math.sin(seat.yaw), fz = Math.cos(seat.yaw);
+  const sx = seat.x + fx * 0.34, sz = seat.z + fz * 0.34;
+  const g = state.world.collision.heightAt(sx, sz);
+  p.pos.set(sx, g, sz);
+  p.yaw = p.targetYaw = seat.yaw;
+  p.speed = 0;
+  p.vel.y = 0;
+  p.grounded = true;
+  // No sit clip in the library — squat frozen at its deepest frame reads as
+  // sitting on the bench (see RigV2.playEmote freezeAt).
+  p.playEmote('squat', { freezeAt: 1.8 });
+  state.presence?.broadcast({ emote: 'squat' });
+  toast('Taking a break \u{1FA91} — move to stand up');
+}
+
+function standUp() {
+  if (!state.seated) return;
+  state.seated = null;
+  state.player.rig.stopEmote?.();
 }
 
 function openZoneModal(zone) {

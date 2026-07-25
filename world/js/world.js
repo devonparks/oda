@@ -366,6 +366,7 @@ export class World {
   _placeProps(protos, layout) {
     const merge = [];      // geometries for the static-prop batch
     const dummy = new THREE.Object3D();
+    this.seats = [];       // sittable spots, harvested from bench layout entries
     for (const p of layout) {
       const proto = protos.get(p.mesh);
       if (!proto) continue;
@@ -373,6 +374,8 @@ export class World {
       dummy.quaternion.fromArray(p.q);
       dummy.scale.fromArray(p.s);
       dummy.updateMatrix();
+
+      if (p.mesh === 'SM_Env_Park_Seat_01') this._addBenchSeats(proto, dummy);
 
       const dyn = DYNAMIC.find((d) => p.mesh.includes(d.match));
       if (dyn) {
@@ -413,6 +416,42 @@ export class World {
       this.scene.add(mesh);
       this.propBatch = mesh;
       merge.forEach((g) => g.dispose());
+    }
+  }
+
+  /**
+   * Two sittable spots per park bench, derived from the layout transform.
+   * Which local axis runs along the bench and which side holds the backrest
+   * are read from the geometry itself (the tall backrest vertices), so no
+   * hand-tuned signs — main.js turns these into "Sit down" prompts.
+   */
+  _addBenchSeats(proto, dummy) {
+    const geo = proto.geometry;
+    if (!proto.userData._benchInfo) {
+      if (!geo.boundingBox) geo.computeBoundingBox();
+      const bb = geo.boundingBox;
+      const alongX = (bb.max.x - bb.min.x) >= (bb.max.z - bb.min.z);
+      const pos = geo.attributes.position;
+      let acc = 0, n = 0;
+      for (let i = 0; i < pos.count; i++) {
+        if (pos.getY(i) > 0.55) { acc += alongX ? pos.getZ(i) : pos.getX(i); n++; }
+      }
+      proto.userData._benchInfo = { alongX, backSign: n && acc / n > 0 ? 1 : -1 };
+    }
+    const { alongX, backSign } = proto.userData._benchInfo;
+    const along = alongX ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
+    const face = alongX ? new THREE.Vector3(0, 0, -backSign) : new THREE.Vector3(-backSign, 0, 0);
+    along.applyQuaternion(dummy.quaternion);
+    face.applyQuaternion(dummy.quaternion);
+    const yaw = Math.atan2(face.x, face.z);
+    for (const s of [-0.55, 0.55]) {
+      const x = dummy.position.x + along.x * s + face.x * 0.1;
+      const z = dummy.position.z + along.z * s + face.z * 0.1;
+      this.seats.push({
+        id: `seat${this.seats.length}`, seat: true,
+        icon: '\u{1FA91}', name: 'Park Bench', prompt: 'Sit down',
+        pos: [x, z], radius: 1.0, x, z, yaw,
+      });
     }
   }
 
