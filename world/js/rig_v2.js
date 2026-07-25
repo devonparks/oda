@@ -34,10 +34,25 @@ import { EmoteLibrary } from './emotes.js';
  * This deliberately does NOT go through emotes.js's gated getEmoteLibrary(),
  * which still serves the v1 rollback path its old world/assets/emotes bins.
  */
+/**
+ * Asset bases are PAGE-relative (this module fetches, and fetch resolves
+ * against the document, not the module). The defaults serve world/index.html;
+ * a hub game embedding a kid (e.g. arcade/basketball) calls setAssetBase()
+ * with its own relative prefixes BEFORE the first getLocomotionV2/
+ * getEmoteLibraryV2 call — the promises cache on first use.
+ */
+let LOCO_BASE = 'assets/';
+let EMOTE_BASE = '../assets/characters/emotes/';
+export function setAssetBase(locoBase, emoteBase) {
+  if (_locoPromise || _emPromise) { console.warn('[rig_v2] setAssetBase after first load — ignored'); return; }
+  if (locoBase != null) LOCO_BASE = locoBase;
+  if (emoteBase != null) EMOTE_BASE = emoteBase;
+}
+
 let _emPromise = null;
 export function getEmoteLibraryV2() {
   if (!_emPromise) {
-    _emPromise = EmoteLibrary.load('../assets/characters/emotes/')
+    _emPromise = EmoteLibrary.load(EMOTE_BASE)
       .catch((e) => { console.warn('[world] v2 emotes unavailable:', e.message); return null; });
   }
   return _emPromise;
@@ -59,11 +74,11 @@ let _locoPromise = null;
 export function getLocomotionV2() {
   if (!_locoPromise) {
     _locoPromise = (async () => {
-      const manifest = await fetch('assets/locomotion_v2.json').then((r) => {
+      const manifest = await fetch(LOCO_BASE + 'locomotion_v2.json').then((r) => {
         if (!r.ok) throw new Error('locomotion_v2.json ' + r.status);
         return r.json();
       });
-      const buf = await fetch('assets/locomotion_v2.bin').then((r) => {
+      const buf = await fetch(LOCO_BASE + 'locomotion_v2.bin').then((r) => {
         if (!r.ok) throw new Error('locomotion_v2.bin ' + r.status);
         return r.arrayBuffer();
       });

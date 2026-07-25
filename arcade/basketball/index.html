@@ -343,9 +343,13 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 </div>
 
 <script src="../../js/oda-core.js"></script>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 <script type="module">
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RigV2, setAssetBase } from '../../world/js/rig_v2.js';
+// rig_v2's fetches resolve against THIS page, not the world's
+setAssetBase('../../world/assets/', '../../assets/characters/emotes/');
 /* ============================================================
    3PT SHOWDOWN - ODA Arcade
    ============================================================ */
@@ -932,6 +936,155 @@ function stopGame() {
 document.addEventListener('visibilitychange', function() { if (document.hidden && gameActive) stopGame(); });
 window.addEventListener('beforeunload', stopGame);
 
+/* ── THE KID SHOOTER ─────────────────────────────────────────
+   Your equipped AMG character (the same Polygon Kid you walk around the 3D
+   world as) stands on the arc and takes the shots. Driven by the shared RigV2
+   player (world/js/rig_v2.js): real Synty idle while you aim, the real JUMP
+   clip on release — a believable jump shot with zero hand-keyed animation —
+   and emote reactions (fistpump on a hot swish, facepalm on a brick). The
+   primitive capsule-person stays as the instant placeholder and the fallback
+   if the GLB can't load, so a slow connection never blocks the game. */
+var kidModel = null, kidRig = null, kidReady = false;
+var kidHandBone = null;
+var kidAirT = 0, kidGrounded = true, kidJumpT = 0;
+var kidCrouch = 0;
+var _kidV = null; /* scratch Vector3, created after THREE is live */
+
+function loadKidShooter() {
+  var charId = 'kid_hoodie';
+  try { charId = localStorage.getItem('amgCharacterId') || 'kid_hoodie'; } catch (e) {}
+  var loader = new GLTFLoader();
+  loader.load('../../assets/characters/v2/' + charId + '.glb', function (gltf) {
+    kidModel = gltf.scene;
+    kidModel.traverse(function (o) {
+      if (o.isMesh || o.isSkinnedMesh) {
+        o.castShadow = true;
+        o.frustumCulled = false;      /* skinned bounds go stale as the rig moves */
+        var mats = Array.isArray(o.material) ? o.material : [o.material];
+        for (var i = 0; i < mats.length; i++) {
+          var m = mats[i]; if (!m) continue;
+          m.vertexColors = false;     /* Synty COLOR_0 renders black in three */
+          m.metalness = 0;
+          if ((m.name || '').indexOf('Face') >= 0 || (m.name || '').indexOf('Eye') >= 0) {
+            m.transparent = true; m.depthWrite = false; m.alphaTest = 0.02;
+          }
+          m.needsUpdate = true;
+        }
+      }
+      if (o.name === 'Hand_R') kidHandBone = o;
+    });
+    kidRig = new RigV2(kidModel);
+    scene.add(kidModel);
+    _kidV = new THREE.Vector3();
+    placeKidAtPosition();
+    kidReady = true;
+    if (playerChar) playerChar.visible = false;   /* retire the capsule-person */
+  }, undefined, function (err) {
+    console.warn('[3PT] kid character unavailable, using fallback shooter:', err && err.message);
+  });
+}
+
+/** Stand the kid at the current arc spot, a step behind the ball, facing the hoop. */
+function placeKidAtPosition() {
+  if (!kidModel) return;
+  var bp = getBallStartPos(currentPosIdx);
+  var dx = HOOP_POS.x - bp.x, dz = HOOP_POS.z - bp.z;
+  var d = Math.sqrt(dx * dx + dz * dz) || 1;
+  /* feet slightly behind the held ball so the ball sits in front of the chest */
+  kidModel.position.set(bp.x - (dx / d) * 0.22, 0, bp.z - (dz / d) * 0.22);
+  kidModel.rotation.y = Math.atan2(dx, dz);
+}
+
+function updateKidShooter(dt) {
+  if (!kidReady || !kidRig) return;
+
+  /* jump shot: release flips us airborne for 0.45s — RigV2's own state
+     machine plays the real jump clip, then land on touchdown */
+  var hop = 0;
+  if (kidJumpT > 0) {
+    kidJumpT -= dt;
+    kidGrounded = false;
+    kidAirT += dt;
+    var jt = 1 - Math.max(kidJumpT, 0) / 0.45;
+    hop = Math.sin(jt * Math.PI) * 0.32;
+  } else if (!kidGrounded) {
+    kidGrounded = true;             /* touchdown → rig fires its land blend */
+    kidAirT = 0;
+  }
+
+  /* charge crouch: sink into the legs while the meter runs */
+  var crouchTarget = playerIsCharging ? 1 : 0;
+  kidCrouch += (crouchTarget - kidCrouch) * Math.min(1, 10 * dt);
+  kidModel.position.y = hop - kidCrouch * 0.09;
+
+  kidRig.update(dt, { speed: 0, grounded: kidGrounded, airTime: kidAirT });
+
+  /* the ball lives in the kid's shooting hand until it flies */
+  if (!shotInFlight && gameActive && !cpuTurn && kidHandBone && ball) {
+    kidHandBone.getWorldPosition(_kidV);
+    ball.position.set(_kidV.x, _kidV.y + 0.05, _kidV.z);
+    if (ballShadow) {
+      ballShadow.position.set(_kidV.x, 0.01, _kidV.z);
+      ballShadow.scale.set(0.55, 0.55, 1);
+    }
+  }
+}
+
+/** A little personality between shots — never while mid-air. */
+function kidReact(ids) {
+  if (!kidReady || !kidRig) return;
+  var id = ids[Math.floor(Math.random() * ids.length)];
+  setTimeout(function () { if (kidGrounded && kidRig) kidRig.playEmote(id); }, 380);
+}
+
+/* ── ON FIRE (Basketball Stars rule: 3 straight makes lights you up) ── */
+var onFire = false;
+var fireTrail = [], fireTrailIdx = 0;
+
+function initFireTrail() {
+  var geo = new THREE.SphereGeometry(0.09, 6, 5);
+  for (var i = 0; i < 10; i++) {
+    var m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+      color: 0xff7a1a, transparent: true, opacity: 0, depthWrite: false }));
+    m.visible = false;
+    scene.add(m);
+    fireTrail.push({ mesh: m, life: 0 });
+  }
+}
+
+function setOnFire(on) {
+  onFire = on;
+  if (ball && ball.material) {
+    ball.material.emissive = new THREE.Color(on ? 0xff5500 : 0x000000);
+    ball.material.emissiveIntensity = on ? 0.7 : 0;
+    ball.material.needsUpdate = true;
+  }
+  var el = document.getElementById('hudStreak');
+  if (el && on) el.textContent = '\u{1F525} ON FIRE ×2';
+}
+
+function updateFireTrail(dt) {
+  for (var i = 0; i < fireTrail.length; i++) {
+    var f = fireTrail[i];
+    if (f.life <= 0) continue;
+    f.life -= dt;
+    var k = Math.max(f.life, 0) / 0.35;
+    f.mesh.material.opacity = 0.55 * k;
+    f.mesh.scale.setScalar(0.4 + 0.6 * k);
+    f.mesh.position.y += dt * 0.6;      /* embers drift up */
+    if (f.life <= 0) f.mesh.visible = false;
+  }
+  if (onFire && shotInFlight && shotPhase === 0 && ball) {
+    var f2 = fireTrail[fireTrailIdx];
+    fireTrailIdx = (fireTrailIdx + 1) % fireTrail.length;
+    if (f2) {
+      f2.mesh.position.copy(ball.position);
+      f2.mesh.visible = true;
+      f2.life = 0.35;
+    }
+  }
+}
+
 /* ── INIT THREE.JS SCENE ─────────────────────────────────── */
 function initThree() {
   if (threeInited) return;
@@ -959,6 +1112,8 @@ function initThree() {
   buildHoop(THREE);
   buildBall(THREE);
   buildPlayerCharacter(THREE);
+  initFireTrail();
+  loadKidShooter();   /* async: your real AMG character replaces the capsule */
 
   document.getElementById('loadingOverlay').style.display = 'none';
 
@@ -1774,10 +1929,11 @@ function positionBall(posIdx) {
     var dx = HOOP_POS.x - p.x;
     var dz = HOOP_POS.z - p.z;
     playerChar.rotation.y = Math.atan2(dx, dz);
-    playerChar.visible = true;
+    playerChar.visible = !kidReady;   /* the real kid replaces the capsule */
     playerIsCharging = false;
     shootAnimTime = -1;
   }
+  placeKidAtPosition();
 
   /* Camera behind the player, looking at the hoop */
   var dx2 = HOOP_POS.x - p.x;
@@ -2014,9 +2170,18 @@ function launchBall(result) {
   netSquishTime = 0;
 
   var startPos = getBallStartPos(currentPosIdx);
-  flightStart.x = startPos.x;
-  flightStart.y = startPos.y;
-  flightStart.z = startPos.z;
+  if (kidReady && !cpuTurn && ball) {
+    /* the ball leaves from the kid's actual shooting hand */
+    flightStart.x = ball.position.x;
+    flightStart.y = ball.position.y;
+    flightStart.z = ball.position.z;
+    kidJumpT = 0.45;   /* and the kid rises into a real jump shot */
+    kidAirT = 0;
+  } else {
+    flightStart.x = startPos.x;
+    flightStart.y = startPos.y;
+    flightStart.z = startPos.z;
+  }
 
   if (result === 'swish') {
     /* Target: center of rim for clean swish */
@@ -2106,16 +2271,19 @@ function handleShotResult(result) {
     netSquishTime = 0.3;
     if (hoop.net) hoop.net.scale.set(1, 0.5, 1);
   } else if (result === 'backboard') {
-    basePts = 2;
+    /* Basketball Stars rule: the bank is the RISKY overshoot band above the
+       green zone, so it pays MORE than a swish (4 > 3) — worth aiming for. */
+    basePts = 4;
     backboardCount++;
     streak++;
     if (isCurrentGold) {
-      basePts = 4;
+      basePts = 8;
       goldBallsHit++;
       sfxGold();
       showShotPopup('MONEY BALL! \u{1F4B0}', 'gold');
     } else {
       sfxBackboard();
+      showShotPopup(randFrom(BANK_TEXTS), 'backboard');
     }
     netSquishTime = 0.3;
     if (hoop.net) hoop.net.scale.set(1, 0.6, 1);
@@ -2148,7 +2316,11 @@ function handleShotResult(result) {
   }
 
   var totalPts = basePts + bonusPts;
-  ptsText = '+' + totalPts;
+
+  /* ON FIRE doubles everything while it lasts (lit by the 3rd straight make,
+     doused by a miss) — the Basketball Stars loop that makes streaks matter */
+  if (onFire && !cpuTurn && totalPts > 0) totalPts *= 2;
+  ptsText = '+' + totalPts + (onFire && totalPts > 0 && !cpuTurn ? ' \u{1F525}' : '');
 
   if (cpuTurn) {
     cpuScore += totalPts;
@@ -2162,9 +2334,23 @@ function handleShotResult(result) {
   }
 
   if (!cpuTurn) {
+    if (basePts > 0 && streak >= 3 && !onFire) {
+      setOnFire(true);
+      showStreakPopup('\u{1F525} ON FIRE — DOUBLE POINTS! \u{1F525}');
+      sfxStreak(2);
+    } else if (basePts === 0 && onFire) {
+      setOnFire(false);
+    }
     if (streak === 2) { showStreakPopup('HEATING UP! \u{1F525}'); sfxStreak(1); }
-    else if (streak === 3) { showStreakPopup('ON FIRE! \u{1F525}\u{1F525}'); sfxStreak(2); }
     else if (streak === 5) { showStreakPopup("HE'S UNCONSCIOUS! \u{1F525}\u{1F525}\u{1F525}"); sfxStreak(3); }
+
+    /* the kid reacts like a kid */
+    if (basePts > 0) {
+      if (isCurrentGold || streak >= 3) kidReact(['fistpump', 'cheer', 'amped']);
+      else if (Math.random() < 0.4) kidReact(['thumbsup', 'confident']);
+    } else if (Math.random() < 0.6) {
+      kidReact(['headshake', 'facepalm']);
+    }
   }
 
   updateHUD();
@@ -2230,6 +2416,7 @@ function startGame() {
   shotPhase = 0;
   bbBonusActive = false; bbBonusClaimed = false;
   goldBallsHit = 0; goldBallsTotal = 0;
+  if (onFire) setOnFire(false);
   removeBBBonusFromBackboard();
 
   var ds = DIFF_SETTINGS[difficulty];
@@ -2322,10 +2509,8 @@ function updateHUD() {
   }
   document.getElementById('hudPos').textContent = POSITIONS[currentPosIdx].name;
 
-  if (streak >= 5) {
-    document.getElementById('hudStreak').textContent = "UNCONSCIOUS! x" + streak + " \u{1F525}\u{1F525}\u{1F525}";
-  } else if (streak >= 3) {
-    document.getElementById('hudStreak').textContent = "On Fire! x" + streak + " \u{1F525}\u{1F525}";
+  if (onFire) {
+    document.getElementById('hudStreak').textContent = '\u{1F525} ON FIRE ×2' + (streak >= 5 ? ' · UNCONSCIOUS x' + streak : ' · x' + streak);
   } else if (streak >= 2) {
     document.getElementById('hudStreak').textContent = "Heating Up x" + streak + " \u{1F525}";
   } else {
@@ -2520,8 +2705,10 @@ function animate(now) {
     updateBBBonusSprite(now);
   }
 
-  /* Player character animation */
-  updatePlayerCharacterAnim(dt);
+  /* Player character animation — the real kid when loaded, capsule until then */
+  if (kidReady) updateKidShooter(dt);
+  else updatePlayerCharacterAnim(dt);
+  updateFireTrail(dt);
 
   /* Ball flight - smooth parabolic arc */
   if (shotInFlight && ball) {
@@ -2616,6 +2803,18 @@ window.cancelQuickMatch = cancelQuickMatch;
 window.toggleSound = toggleSound;
 window.selectModeAndPlay = selectModeAndPlay;
 window.loadRecordsScreen = loadRecordsScreen;
+
+/* debug/verification hook (same convention as world's __world) */
+window.__bball = {
+  get kidReady() { return kidReady; },
+  get rigOk() { return !!(kidRig && kidRig.ok); },
+  get handBone() { return !!kidHandBone; },
+  get onFire() { return onFire; },
+  get state() { return { gameActive: gameActive, shotInFlight: shotInFlight, score: score, streak: streak, pos: currentPosIdx }; },
+  shoot: function (result) { shotResult = result; launchBall(result); },
+  resolve: function (result) { handleShotResult(result); },
+  fire: setOnFire,
+};
 </script>
 </body>
 </html>
