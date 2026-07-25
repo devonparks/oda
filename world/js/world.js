@@ -39,7 +39,18 @@ export const QUALITY = {
  * Their raw export boxes are dropped by 'none' rules in collision.js.
  */
 const SHELL_STRUCTURES = [
-  { match: /Treehouse|Tree_House/i, name: '_treehouse' },
+  /**
+   * The treehouse, clipped BELOW its roof.
+   *
+   * Measured after Devon climbed it: the deck is 1.4 m2 of standable balcony
+   * (the trunk goes straight through the middle of it) while the ROOF is 7.2 —
+   * so the biggest surface up there was the one you're not supposed to be on,
+   * and he ended up perched on top rather than in it. "It's really not even
+   * that much room up there because the tree is in the way… it's like I'm
+   * standing on top of it." The roof is no longer standable; the balcony is
+   * small, but it is a balcony, and it is what the prop actually is.
+   */
+  { match: /Treehouse|Tree_House/i, name: '_treehouse', maxH: 3.35 },
   /**
    * STAIRS, everywhere there are any.
    *

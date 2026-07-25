@@ -44,6 +44,8 @@ const PUMP_AMP = 0.88;
  *  coasting is the calm grip-the-chains sit and not a fraction of a pump. */
 const COAST_AMP = 0.30;
 const SLIDE_TIME = 1.15;     // s top→exit
+/** How close to a chute's top counts as stepping onto it. */
+const SLIDE_MOUTH = 1.0;
 /** How far above your feet a ledge can be and still be climbable. */
 const CLIMB_REACH = 3.4;
 const CLIMB_SPEED = 1.15;    // m/s up the rungs
@@ -230,13 +232,39 @@ export class Rides {
 
   // ── slides ────────────────────────────────────────────────────────────────
 
-  _buildSlides() {
+  /**
+   * Slides have NO prompt. You walk to the top and go.
+   *
+   * Devon's playtest, once the stairs were climbable: "the most ideal situation
+   * would be to get rid of the prompt to slide down. You go up the stairs, and
+   * then you go to the top of the slide, press W, and it just triggers the
+   * slide animation." He's right, and it's less code than the prompt was.
+   *
+   * It also quietly fixes the other half of his report — "the slide doesn't
+   * have any collision" — without giving the chute any. A slide you can WALK on
+   * is a ramp; the chute stays non-solid (its AABB wraps the whole diagonal, so
+   * as a solid it's an invisible lid you land on) and the top catches you before
+   * you can fall through the place where it isn't.
+   *
+   * The prompt used to sit at the EXIT, because back then the top was
+   * unreachable. It is reachable now, so the exit marker has no job left.
+   */
+  _buildSlides() { /* no zones: entry is by walking, see _checkSlideEntry */ }
+
+  /** Walked to the top of a chute, facing down it, actually moving? Then go. */
+  _checkSlideEntry(player) {
+    if (this.active || this.state.seated) return;
+    if (!player.grounded || player.speed < 0.35) return;
     for (const d of this.world.slideData || []) {
-      this.zones.push({
-        id: `slide${this.zones.length}`, ride: 'slide', data: d,
-        icon: '\u{1F6DD}', name: 'Slide', prompt: 'Ride the slide!',
-        pos: [d.exit.x, d.exit.z], radius: 1.2,
-      });
+      if (Math.hypot(player.pos.x - d.top.x, player.pos.z - d.top.z) > SLIDE_MOUTH) continue;
+      if (Math.abs(player.pos.y - d.top.y) > 0.75) continue;
+      // heading DOWN the chute, not wandering past its mouth
+      const ex = d.exit.x - d.top.x, ez = d.exit.z - d.top.z;
+      const el = Math.hypot(ex, ez) || 1;
+      if ((Math.sin(player.yaw) * ex + Math.cos(player.yaw) * ez) / el < 0.3) continue;
+      const line = this._beginSlide(player, { data: d });
+      if (line) this.state.toast?.(line);
+      return;
     }
   }
 
@@ -606,6 +634,7 @@ export class Rides {
   }
 
   update(dt, player, intent) {
+    this._checkSlideEntry(player);
     const t = this.world.clock.elapsedTime;
     // unoccupied swings sway in the breeze
     for (const s of this.swings) {
