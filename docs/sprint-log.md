@@ -1,5 +1,61 @@
 # Sprint Log
 
+## 2026-07-25 (late night, cont.) — playtest 4: interiors, first person, a real climb
+
+Devon: "the hardest part is the tight spaces… you can't go into any interior…
+the pirate ship is real small, I should be able to squeeze into spaces like
+that", "we need the ability to switch between third and first person", and the
+treehouse "has to actually be a separate climbing animation".
+
+**Interiors — two causes, both in `_deriveCollision`.**
+
+1. Voxelising **snapped every surface to the 25 cm grid**, so a 10 cm plank
+   became a 25 cm wall and a doorway lost up to half a metre from each side.
+   Cells now remember the **true extents** of the geometry inside them and rects
+   are emitted at those. A thin wall stays thin; the doorway comes back. The
+   ship's deck went from a shape you bounce off to one you can walk around, with
+   the mast as the only thing in the middle of it.
+2. **"Sometimes it bugs out and makes you try to climb and get on top of
+   something."** A long thin wall sailed past the footprint-area test — 3 m ×
+   0.25 m is plenty of area — so its top was a ledge. Standable is now decided by
+   **headroom**: is there air above this? A wall has more wall above it; a step
+   has sky.
+
+   **The area rule had to go, and finding that out cost a debugging pass.**
+   Splitting a band into open/solid groups fragments the greedy merge (a deck
+   cell next to a bulwark cell can't merge with it), so rects come out small —
+   and the area test then condemned every fragment. 82% of the ship was marked
+   wall-only and every climb in the park broke. Headroom alone is enough: a pole
+   has pole above it at every band but its tip, and the tip is unreachable
+   because the band below it is blocked.
+
+**A real climb.** The headroom rule also makes a ladder unwalkable, which is
+correct and is exactly what Devon asked for. Two new baked clips (`climb`, hand
+over hand with opposite arm and leg; `climb_top`, the heave over the lip) plus a
+scripted ride. It's offered by **shape, not by a marker** — something solid
+ahead and a standable ledge above within a kid's reach — so it covers the
+treehouse ladder, the tyre wall and anything built like them, with no per-prop
+list. Measured: from four of six approaches you climb the treehouse from the
+ground to its floor at **3.04**. Space lets go mid-climb.
+
+**First person** (`V`, or the 🎥 button). Third person physically cannot work in
+a space the size of the ship's cabin — the boom is longer than the room. Eye
+level rides the Head bone, hides the model, changes nothing else. Minimum zoom
+also drops 3.2 → 1.4 m, since 3.2 was wider than the whole deck.
+
+### Devon's stated goal, for whoever picks this up
+
+> "I want every vehicle to be driven… a skateboard, the bicycles, everything.
+> And I want every single attraction to be interactable."
+
+Named, still to do: the **rocket ship** by the fountain; the **four-tyre spinner
+behind the fountain** (supposed to spin); the **thing next to the seesaw** (also
+supposed to spin — currently borrowing seesaw physics); **seesaw physics needs
+work**; **monkey bars** need a crossing animation; **picnic tables** need a sit
+with ~4 seats each (benches too). The kart already drives — the same
+diversion-into-a-rigid-group pattern is how the bikes and skateboard should go.
+Then multiplayer.
+
 ## 2026-07-25 (late night, cont.) — playtest round 3: poles, the corner, the pavilion
 
 Devon walked the park again. Four findings, all fixed and deployed (`462cec9`):
