@@ -13,6 +13,10 @@
  * slides work without a single hand-placed coordinate.
  */
 import * as THREE from 'three';
+import { getEmoteLibraryV2 } from './rig_v2.js';
+
+const _va = new THREE.Vector3();
+const _vb = new THREE.Vector3();
 
 // The swing frame (SM_Prop_Plaground_Swings_01) in world space, from the
 // collision export: c=(27.5, 1.16, 25.0), e=(1.46, 1.22, 0.88). Bar along X.
@@ -39,6 +43,9 @@ export class Rides {
     this.launch = null;      // airborne carry after a swing dismount
     this._buildSwings();
     this._buildSlides();
+    this._buildPlayground();
+    // warm the dance bin so the first hula spin isn't swallowed by a lazy fetch
+    getEmoteLibraryV2().then((lib) => lib && lib.loadCategory('dance').catch(() => {}));
   }
 
   get busy() { return !!this.active; }
@@ -209,12 +216,146 @@ export class Rides {
     }
   }
 
+  // ── playground: seesaw, spring riders, hula hoops ─────────────────────────
+
+  _buildPlayground() {
+    const props = this.world.animatedProps || [];
+
+    this.seesaw = props.find((p) => /Seesaw_01_Top/.test(p.userData.kind)) || null;
+    if (this.seesaw) {
+      const g = this.seesaw.geometry;
+      if (!g.boundingBox) g.computeBoundingBox();
+      const bb = g.boundingBox;
+      const sx = bb.max.x - bb.min.x, sz = bb.max.z - bb.min.z;
+      this.seesawAxis = sx >= sz ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
+      this.seesawHalf = Math.max(sx, sz) * 0.39;   // sit near the plank end
+      this.zones.push({
+        id: 'seesaw', ride: 'seesaw', icon: '⚖️', name: 'Seesaw',
+        prompt: 'Ride the seesaw', pos: [this.seesaw.position.x, this.seesaw.position.z], radius: 1.5,
+      });
+    }
+
+    this.rockers = props.filter((p) => /Playground_Rocker_\d+_Top/.test(p.userData.kind));
+    this.rockers.forEach((r, i) => this.zones.push({
+      id: `rocker${i}`, ride: 'rocker', mesh: r, icon: '\u{1F40E}', name: 'Spring Rider',
+      prompt: 'Bounce!', pos: [r.position.x, r.position.z], radius: 1.1,
+    }));
+
+    // hula hoops: nothing in the kit, so two code-drawn rings on the lawn
+    this.hoops = [];
+    const hoopGeo = new THREE.TorusGeometry(0.42, 0.035, 8, 22);
+    const rack = { x: -5.0, z: -1.2 };
+    [0xf6c344, 0xe85fa2].forEach((color, i) => {
+      const mesh = new THREE.Mesh(hoopGeo, new THREE.MeshStandardMaterial({ color, roughness: 0.7 }));
+      const home = {
+        pos: new THREE.Vector3(rack.x + i * 0.55 - 0.27, 0.44, rack.z),
+        rot: new THREE.Euler(0.16 + i * 0.1, 0.5 * i, 0),
+      };
+      mesh.position.copy(home.pos);
+      mesh.rotation.copy(home.rot);
+      this.world.scene.add(mesh);
+      this.hoops.push({ mesh, home });
+    });
+    this.zones.push({
+      id: 'hoops', ride: 'hoop', icon: '⭕', name: 'Hula Hoops',
+      prompt: 'Hula hoop!', pos: [rack.x, rack.z], radius: 1.4,
+    });
+  }
+
+  _beginSeesaw(player) {
+    const m = this.seesaw;
+    _va.copy(this.seesawAxis).applyQuaternion(m.quaternion);
+    const end = Math.sign(_va.dot(_vb.copy(player.pos).sub(m.position))) || 1;
+    this.active = { kind: 'seesaw', end };
+    player.playEmote('squat', { freezeAt: 1.8 });
+    this.state.presence?.broadcast({ emote: 'squat' });
+    return 'Hold on! Move to hop off.';
+  }
+
+  _updateSeesaw(dt, player, intent) {
+    const m = this.seesaw, a = this.active;
+    m.userData.push = 1;                     // riding = big swings
+    _va.copy(this.seesawAxis).multiplyScalar(a.end * this.seesawHalf / m.scale.x);
+    m.localToWorld(_vb.copy(_va));           // follows the animated tilt
+    player.pos.set(_vb.x, _vb.y + 0.02, _vb.z);
+    player.yaw = player.targetYaw = Math.atan2(m.position.x - _vb.x, m.position.z - _vb.z);
+    player.tilt = (m.rotation.z - m.userData.rest.z) * a.end;
+    player.speed = 0; player.vel.y = 0; player.grounded = true;
+    if (Math.hypot(intent.move.x, intent.move.y) > 0.25 || intent.jump) this._exitToGround(player, m.position);
+  }
+
+  _beginRocker(player, zone) {
+    this.active = { kind: 'rocker', mesh: zone.mesh };
+    player.playEmote('squat', { freezeAt: 1.8 });
+    this.state.presence?.broadcast({ emote: 'squat' });
+    return 'Yeehaw! Move to hop off.';
+  }
+
+  _updateRocker(dt, player, intent) {
+    const m = this.active.mesh;
+    m.userData.push = 1;
+    const rock = m.rotation.x - m.userData.rest.x;
+    player.pos.set(m.position.x, m.position.y + 0.5 + Math.abs(rock) * 0.12, m.position.z);
+    player.yaw = player.targetYaw = m.rotation.y;
+    player.tilt = rock;
+    player.speed = 0; player.vel.y = 0; player.grounded = true;
+    if (Math.hypot(intent.move.x, intent.move.y) > 0.25 || intent.jump) this._exitToGround(player);
+  }
+
+  _beginHoop(player) {
+    this.active = { kind: 'hoop', t: 0, hoop: this.hoops[0] };
+    player.playEmote('twist');
+    this.state.presence?.broadcast({ emote: 'twist' });
+    return 'Hips like a helicopter! Move to stop.';
+  }
+
+  _updateHoop(dt, player, intent) {
+    const a = this.active;
+    a.t += dt;
+    const h = a.hoop.mesh;
+    // the hoop orbits the hips — the offset circling is what sells the spin
+    h.position.set(
+      player.pos.x + Math.sin(a.t * 7) * 0.10,
+      player.pos.y + 0.62,
+      player.pos.z + Math.cos(a.t * 7) * 0.10,
+    );
+    h.rotation.set(Math.PI / 2 + Math.sin(a.t * 7 + 1.2) * 0.16, 0, Math.cos(a.t * 7) * 0.16);
+    player.speed = 0; player.vel.y = 0; player.grounded = true;
+    if (!player.rig.emote) player.playEmote('twist');   // keep the dance looping
+    if (Math.hypot(intent.move.x, intent.move.y) > 0.25 || intent.jump) {
+      h.position.copy(a.hoop.home.pos);
+      h.rotation.copy(a.hoop.home.rot);
+      this._exitToGround(player);
+    }
+  }
+
+  /** Common hop-off: stand on real ground beside whatever was ridden. */
+  _exitToGround(player, awayFrom) {
+    if (awayFrom) {
+      _va.copy(player.pos).sub(awayFrom); _va.y = 0;
+      const l = _va.length() || 1;
+      player.pos.x += (_va.x / l) * 0.45;
+      player.pos.z += (_va.z / l) * 0.45;
+    }
+    player.tilt = 0;
+    player.rig.stopEmote?.();
+    player.pos.y = this.world.collision.groundAt(player.pos.x, player.pos.z, player.pos.y + 0.3);
+    this.active = null;
+  }
+
   // ── shared ────────────────────────────────────────────────────────────────
 
   /** Start a ride from its prompt zone. Returns a toast line or null. */
   begin(zone, player) {
     if (this.active || this.state.seated || this.state.tag?.playerFrozen) return null;
-    return zone.ride === 'swing' ? this._beginSwing(player) : this._beginSlide(player, zone);
+    switch (zone.ride) {
+      case 'swing': return this._beginSwing(player);
+      case 'slide': return this._beginSlide(player, zone);
+      case 'seesaw': return this._beginSeesaw(player);
+      case 'rocker': return this._beginRocker(player, zone);
+      case 'hoop': return this._beginHoop(player);
+      default: return null;
+    }
   }
 
   update(dt, player, intent) {
@@ -237,7 +378,12 @@ export class Rides {
       }
     }
     if (!this.active) return;
-    if (this.active.kind === 'swing') this._updateSwing(dt, player, intent);
-    else this._updateSlide(dt, player);
+    switch (this.active.kind) {
+      case 'swing': this._updateSwing(dt, player, intent); break;
+      case 'slide': this._updateSlide(dt, player); break;
+      case 'seesaw': this._updateSeesaw(dt, player, intent); break;
+      case 'rocker': this._updateRocker(dt, player, intent); break;
+      case 'hoop': this._updateHoop(dt, player, intent); break;
+    }
   }
 }

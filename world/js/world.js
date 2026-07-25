@@ -728,9 +728,15 @@ export class World {
     for (const p of this.animatedProps) {
       const ph = p.userData.phase;
       const k = p.userData.kind;
-      const pushable = k.includes('Rocker') || k.includes('Seesaw') || k.includes('Swings');
+      // Only parts that read as INDEPENDENT may wiggle. Multi-part assemblies
+      // (coin-ride car + steering wheel + rider, rocker springs + animals)
+      // each got their own random phase, which was invisible while the props
+      // rendered tipped over — upright, the parts visibly drift apart. Now:
+      // rocker/seesaw TOPS move (their bases hold still), kites flutter, and
+      // the coin rides stand still until someone pays for a ride.
+      const isTop = k.includes('_Top');
       let push = 0;
-      if (pushable) {
+      if (isTop && (k.includes('Rocker') || k.includes('Seesaw'))) {
         push = p.userData.push || 0;
         if (playerPos) {
           const d = Math.hypot(playerPos.x - p.position.x, playerPos.z - p.position.z);
@@ -739,12 +745,9 @@ export class World {
         push = Math.max(0, push - dt * 0.25);
         p.userData.push = push;
       }
-      if (k.includes('Swings')) p.rotation.x = p.userData.rest.x + Math.sin(t * (1.1 + push) + ph) * (0.16 + push * 0.55);
-      else if (k.includes('Seesaw')) p.rotation.z = p.userData.rest.z + Math.sin(t * (0.9 + push) + ph) * (0.18 + push * 0.30);
-      else if (k.includes('Rocker')) p.rotation.x = p.userData.rest.x + Math.sin(t * (1.6 + push * 1.2) + ph) * (0.12 + push * 0.38);
-      else if (k.includes('Coin_Ride')) p.rotation.y = p.userData.rest.y + Math.sin(t * 1.3 + ph) * 0.10;
+      if (k.includes('Seesaw') && isTop) p.rotation.z = p.userData.rest.z + Math.sin(t * (0.9 + push) + ph) * (0.18 + push * 0.30);
+      else if (k.includes('Rocker') && isTop) p.rotation.x = p.userData.rest.x + Math.sin(t * (1.6 + push * 1.2) + ph) * (0.12 + push * 0.38);
       else if (k.includes('Kite')) p.rotation.z = p.userData.rest.z + Math.sin(t * 2.0 + ph) * 0.22;
-      else p.rotation.y = p.userData.rest.y + Math.sin(t * 0.7 + ph) * 0.05;
     }
 
     // coins bob and spin; taken ones are scaled to zero rather than removed.
