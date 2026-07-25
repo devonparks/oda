@@ -112,9 +112,12 @@ export const ACTIVITIES = [
     id: 'fish',
     name: 'Fishing Spot',
     icon: '🎣',
-    // South bank of the pond, on the path side.
-    pos: [21.0, -9.6],
-    radius: 3.4,
+    // AT the waterline on the south bank (the old spot sat across the path,
+    // too far from the water to read as fishing). The marker is wayfinding —
+    // main.js also offers fishing along the ENTIRE bank via a water-distance
+    // check, so any spot at the pond's edge works.
+    pos: [21.0, -8.6],
+    radius: 2.2,
     prompt: 'Go fishing',
   },
   {

@@ -497,7 +497,8 @@ function loop() {
 
   waterAndDustFX(player, dt);
   state.butterflies?.update(dt, t, player.pos);
-  state.fishing?.update(dt, player, Math.hypot(intent.move.x, intent.move.y) > 0.1);
+  state.fishing?.update(dt, player, Math.hypot(intent.move.x, intent.move.y) > 0.1,
+    state.activeZone?.id === 'fish');
 
   // coins
   const got = world.collectCoins(player.pos.x, player.pos.z, player.pos.y, dt);
@@ -673,7 +674,8 @@ function updateZonePrompt() {
   // slide exits entirely).
   const zone = (!state.rides?.busy && nearestZone(p.x, p.z, state.rides?.zones || []))
     || (!state.seated && nearestZone(p.x, p.z, state.world.seats || []))
-    || nearestZone(p.x, p.z, ACTIVITIES) || nearestZone(p.x, p.z, ZONES) || null;
+    || nearestZone(p.x, p.z, ACTIVITIES) || nearestZone(p.x, p.z, ZONES)
+    || bankFishZone(p) || null;
   const el = $('zonePrompt');
   if (zone === state.activeZone) return;
   state.activeZone = zone;
@@ -682,6 +684,17 @@ function updateZonePrompt() {
   el.querySelector('.zp-text strong').textContent = zone.name;
   el.querySelector('.zp-text span').textContent = zone.blurb || zone.prompt || '';
   el.classList.remove('hidden');
+}
+
+// The WHOLE pond bank is a fishing spot, not just the marker disc: anywhere
+// within a couple of metres of the water's edge offers a cast. One stable
+// object so updateZonePrompt's reference-equality caching still works.
+const FISH_BANK = { id: 'fish', icon: '🎣', name: 'Fishing Spot', prompt: 'Go fishing' };
+function bankFishZone(p) {
+  const w = state.world?.water;
+  if (!w) return null;
+  const d = Math.hypot(p.x - w.x, p.z - w.z);
+  return d > w.r - 0.4 && d < w.r + 2.4 ? FISH_BANK : null;
 }
 
 function enterZone() {

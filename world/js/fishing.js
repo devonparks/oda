@@ -103,13 +103,18 @@ export class Fishing {
 
   get busy() { return this.state !== 'idle'; }
 
+  /** Find (or re-find after a character swap) the right hand bone. */
+  _ensureHand(player) {
+    if (this.player === player && this.handBone && this.handBone.parent) return;
+    this.player = player;
+    this.handBone = null;
+    player.model.traverse((o) => { if (!this.handBone && o.name === 'Hand_R') this.handBone = o; });
+  }
+
   /** @param {Avatar} player */
   cast(player) {
     if (this.busy || !this.world.water) return false;
-    this.player = player;
-    // cache the hand bone once per character
-    this.handBone = null;
-    player.model.traverse((o) => { if (!this.handBone && o.name === 'Hand_R') this.handBone = o; });
+    this._ensureHand(player);
 
     // aim from the player toward open water: past the bank, well inside the ring
     const w = this.world.water;
@@ -198,9 +203,20 @@ export class Fishing {
    * @param {number} dt
    * @param {Avatar} player
    * @param {boolean} moving  true when there is movement input this frame
+   * @param {boolean} carry   true while standing in the fishing area — the rod
+   *                          rides on the shoulder so the spot feels owned
    */
-  update(dt, player, moving) {
-    if (this.state === 'idle') return;
+  update(dt, player, moving, carry = false) {
+    if (this.state === 'idle') {
+      if (carry && player) {
+        this._ensureHand(player);
+        this.rod.visible = true;
+        this._poseCarry(player);
+      } else if (this.rod.visible) {
+        this.rod.visible = false;
+      }
+      return;
+    }
     this.t += dt;
 
     // walking away reels in without fuss (not during the 1s result flash)
@@ -274,6 +290,19 @@ export class Fishing {
     }
 
     this._poseRod(player);
+  }
+
+  /** Rod resting on the shoulder, angled up past the head. No line. */
+  _poseCarry(player) {
+    let hx = player.pos.x, hy = player.pos.y + 0.95, hz = player.pos.z;
+    if (this.handBone) {
+      this.handBone.getWorldPosition(_v);
+      hx = _v.x; hy = _v.y; hz = _v.z;
+    }
+    const fx = Math.sin(player.yaw), fz = Math.cos(player.yaw);
+    _v.set(fx * -0.35, 1, fz * -0.35).normalize();   // tipped back over the shoulder
+    this.rod.position.set(hx + _v.x * 0.26, hy + _v.y * 0.26, hz + _v.z * 0.26);
+    this.rod.quaternion.setFromUnitVectors(this.rod.up, _v);
   }
 
   /** Rod from the right hand toward the bobber; line from rod tip to bobber. */
