@@ -35,6 +35,24 @@ export const QUALITY = {
 };
 
 /**
+ * Structures pulled out of the merged park shell and given REAL collision.
+ * Their raw export boxes are dropped by 'none' rules in collision.js.
+ */
+const SHELL_STRUCTURES = [
+  { match: /Treehouse|Tree_House/i, name: '_treehouse' },
+  { match: /Env_Fountain_01/i, name: '_fountain' },
+  {
+    match: /Swings_01/i, name: '_swingframe',
+    // rides.js carves the baked seats + chains out of the shell at runtime and
+    // rebuilds them dynamic; freeze their triangles into collision here and the
+    // park gets invisible seats hanging in the air. Same box rides.js carves.
+    exclude: () => new THREE.Box3(
+      new THREE.Vector3(27.5 - 1.05, 0.18, 25.0 - 0.8),
+      new THREE.Vector3(27.5 + 1.05, 2.06, 25.0 + 0.8)),
+  },
+];
+
+/**
  * Greedy rectangle decomposition of a set of occupied "ix,iz" cells.
  *
  * Turns a band of voxel columns into as few boxes as possible: grow a run along
@@ -217,22 +235,30 @@ export class World {
     this._bakeGroundHeightfield(collision);
 
     // ---- structures whose ONE export box was a lie ----
-    // The treehouse is baked into the merged park shell and named after the
-    // tree it hangs in, so the 'trunk' rule shrank a whole house to a 0.9 m
-    // post. Its floor can never come from the heightfield either — that is a
-    // top-down first-hit render, and the treehouse has a ROOF. Real geometry
-    // is the only source of truth for it.
-    const th = collision.find((b) => /Treehouse|Tree_House/i.test(b.n || ''));
-    if (th) {
-      let shellMesh = null;
-      this.shell.traverse((o) => { if (o.isMesh && !shellMesh) shellMesh = o; });
-      if (shellMesh) {
-        shellMesh.updateWorldMatrix(true, false);
-        const pad = 0.15;
-        const clip = new THREE.Box3(
-          new THREE.Vector3(th.c[0] - th.e[0] - pad, th.c[1] - th.e[1] - pad, th.c[2] - th.e[2] - pad),
-          new THREE.Vector3(th.c[0] + th.e[0] + pad, th.c[1] + th.e[1] + pad, th.c[2] + th.e[2] + pad));
-        this._addStructureCollision(shellMesh.geometry, shellMesh.matrixWorld, '_treehouse', clip);
+    // Ranked by measuring, for every solid box, how much of its volume the real
+    // mesh actually fills. The worst offenders by empty-but-blocking volume:
+    //   Fountain  81.9 m3 at 32% fill — 56 m3 of invisible wall, the single
+    //             biggest lie in the park, parked in the middle of it
+    //   Swing set 12.5 m3 at 34% — you couldn't walk between the A-frame legs
+    //   Treehouse trunk-ruled down to a 0.9 m post you walked straight through
+    // Everything below them in the ranking is a tree, and trees are already
+    // refined to trunks on purpose. Derived from the merged park shell, clipped
+    // to each structure's own export box.
+    let shellMesh = null;
+    this.shell.traverse((o) => { if (o.isMesh && !shellMesh) shellMesh = o; });
+    if (shellMesh) {
+      shellMesh.updateWorldMatrix(true, false);
+      const pad = 0.15;
+      const boxOf = (b, p) => new THREE.Box3(
+        new THREE.Vector3(b.c[0] - b.e[0] - p, b.c[1] - b.e[1] - p, b.c[2] - b.e[2] - p),
+        new THREE.Vector3(b.c[0] + b.e[0] + p, b.c[1] + b.e[1] + p, b.c[2] + b.e[2] + p));
+      for (const d of SHELL_STRUCTURES) {
+        const raw = collision.find((b) => d.match.test(b.n || ''));
+        if (!raw) continue;
+        this._addStructureCollision(shellMesh.geometry, shellMesh.matrixWorld, d.name, {
+          clip: boxOf(raw, pad),
+          exclude: d.exclude ? d.exclude() : null,
+        });
       }
     }
 
@@ -437,6 +463,9 @@ export class World {
       if (p.mesh === 'SM_Env_Park_Seat_01') this._addBenchSeats(proto, dummy);
       if (/Playground_Slide/.test(p.mesh)) this._addSlideData(proto, dummy);
       if (/Playground_Ship/.test(p.mesh)) this._addStructureCollision(proto.geometry, dummy.matrix, '_ship');
+      // A tent is a thing you go INSIDE; its box was 3.9 m2 of solid at 58%
+      // fill, so the doorway didn't exist.
+      if (/Prop_Tent_/.test(p.mesh)) this._addStructureCollision(proto.geometry, dummy.matrix, '_tent');
 
       // The soapbox racer becomes DRIVABLE: divert its parts (frame, steering
       // wheel, four wheels — each its own layout entry) out of the static
@@ -596,15 +625,21 @@ export class World {
    * @param {THREE.BufferGeometry} geo   source geometry
    * @param {THREE.Matrix4} matrix       geometry → world
    * @param {string} name                collision box name (debug/rules)
-   * @param {{clip?:THREE.Box3, cell?:number, band?:number}} [opts]
+   * @param {{clip?:THREE.Box3, exclude?:THREE.Box3, cell?:number, band?:number}} [opts]
    *        clip — only take triangles whose centroid is inside (for pulling one
    *        structure out of the merged park shell).
+   *        exclude — and skip the ones inside THIS box. The swing set needs it:
+   *        rides.js degenerates the baked seats and chains out of the shell and
+   *        rebuilds them as dynamic meshes, but that happens after load, so
+   *        without the exclusion their triangles would be frozen into collision
+   *        boxes hanging in mid-air where the seats used to rest.
    * @returns {number} boxes emitted
    */
   _deriveCollision(geo, matrix, name, opts = {}) {
     const CELL = opts.cell || 0.25;      // horizontal resolution
     const BAND = opts.band || 0.25;      // vertical resolution
     const clip = opts.clip || null;
+    const exclude = opts.exclude || null;
     const pos = geo.attributes.position;
     const idx = geo.index;
     const triCount = idx ? idx.count / 3 : pos.count / 3;
@@ -633,9 +668,10 @@ export class World {
       a.fromBufferAttribute(pos, i0).applyMatrix4(matrix);
       b.fromBufferAttribute(pos, i1).applyMatrix4(matrix);
       c.fromBufferAttribute(pos, i2).applyMatrix4(matrix);
-      if (clip) {
+      if (clip || exclude) {
         q.copy(a).add(b).add(c).multiplyScalar(1 / 3);
-        if (!clip.containsPoint(q)) continue;
+        if (clip && !clip.containsPoint(q)) continue;
+        if (exclude && exclude.containsPoint(q)) continue;
       }
       // subdivide by the longest edge so no cell is stepped over
       const step = Math.min(CELL, BAND) * 0.6;
@@ -678,9 +714,9 @@ export class World {
    * into a 0.9 m post you walked straight through. Both are dropped by 'none'
    * rules in collision.js and rebuilt here from their real geometry.
    */
-  _addStructureCollision(geo, matrix, name, clip) {
+  _addStructureCollision(geo, matrix, name, opts) {
     const t0 = performance.now();
-    const n = this._deriveCollision(geo, matrix, name, clip ? { clip } : undefined);
+    const n = this._deriveCollision(geo, matrix, name, opts);
     console.log(`[world] ${name}: ${n} collision boxes from real geometry (${(performance.now() - t0).toFixed(0)}ms)`);
     return n;
   }

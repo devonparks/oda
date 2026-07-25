@@ -66,13 +66,29 @@ const COLLISION_RULES = [
   // World._deriveCollision reads its real floor, walls, roof and ladder off
   // the merged park shell instead.
   [/Treehouse|Tree_House/i, 'none'],
+  // Measured worst-two AABB liars in the park. The fountain's box is 81.9 m3
+  // at 32% fill — 56 m3 of invisible wall around a thing kids should be able to
+  // walk up to and paddle in. The swing frame's is 34% — you couldn't walk
+  // between the A-frame legs or under the bar. Both rebuilt from the real shell
+  // geometry by World._deriveCollision (see SHELL_STRUCTURES).
+  [/Env_Fountain_01/i, 'none'],
+  [/Plaground_Swings_01|Playground_Swings_01/i, 'none'],
   [/Tree/i, 'trunk'],                                    // canopy AABB -> trunk
   [/Bush|Hedge|Flower|Grass|Plant/i, 'none'],            // soft foliage, walk through it
   [/Coin|Gem|Star/i, 'none'],                            // pickups must never block
   // roofs/tops, same canopy trap. Playground_Cover is the shade sails over the
   // swing corner — as solids you could LAND on them from a fall. Kites float
   // at y≈6 and are scenery, not platforms.
-  [/Rocker_Top|_Top_|Canopy|Awning|Umbrella|Playground_Cover|Playground_Roof|Track_Ride|Kite/i, 'none'],
+  // `_Top` props are the ANIMATED halves — a rocker's horse, a seesaw's plank.
+  // They move every frame, so a static box is a phantom by definition, and the
+  // audit proved it: SM_Prop_Playground_Rocker_01_Top is 2.3 m2 of solid box
+  // with a measured fill of 0.000 — nothing there at all, just an invisible
+  // wall beside the spring rider. rides.js owns riding them.
+  // (The old pattern was `_Top_`, needing a TRAILING underscore, so every real
+  // name — Rocker_01_Top, Seesaw_01_Top — sailed straight past it. Anchor on
+  // the END so a Table_Top_Grill doesn't get swept up with them.)
+  [/_Top$|Rocker_Top|Canopy|Awning|Umbrella|Playground_Cover|Playground_Roof|Track_Ride|Kite/i, 'none'],
+  [/Prop_Tent_/i, 'none'],                               // derived; see SHELL_STRUCTURES note
   [/Plush|Toy|Stick|Pogo|Bike|Trike|Pram|Jumping|Soapbox|Ball/i, 'none'], // kid clutter
   // Slides: the AABB wraps the whole diagonal chute, so as a solid it's an
   // invisible lid you land ON and a wall you bounce OFF. Riding is scripted
