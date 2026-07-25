@@ -184,8 +184,19 @@ export class World {
     this.dynamics = new DynamicProps(this);
 
     // ---- props ----
+    // Every prototype node in park_props.glb carries a +90° X rotation (the
+    // geometry is authored Z-up; the NODE corrects it to Y-up). All placement
+    // paths use raw geometry + the layout transform only, so bake the node's
+    // world matrix into the vertices once — otherwise every prop renders
+    // tipped on its back (flat lightpoles, inverted slides, nose-up ducks).
     const protos = new Map();
-    propsGltf.scene.traverse((o) => { if (o.isMesh) protos.set(o.name, o); });
+    propsGltf.scene.updateMatrixWorld(true);
+    const baked = new Set();
+    propsGltf.scene.traverse((o) => {
+      if (!o.isMesh) return;
+      if (!baked.has(o.geometry)) { o.geometry.applyMatrix4(o.matrixWorld); baked.add(o.geometry); }
+      protos.set(o.name, o);
+    });
     this._placeProps(protos, layout);
     onProgress(0.78, 'Setting out the toys…');
 
