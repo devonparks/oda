@@ -1,5 +1,41 @@
 # Sprint Log
 
+## 2026-07-24 (late night) — Ecosystem: discovery, name audit, calling cards & emblems
+
+Devon: "figure out the whole ecosystem… two-tier shop… calling cards and
+emblems… full send it." Three deliverables, all committed:
+
+**Discovery first** (5-agent parallel inventory): mapped all 51 games + IP risk,
+oda-core's full API, the complete auth flow (class code → classCodes lookup →
+name pick, anon-auth bootstrap already live, teacher/parent = one engine with
+accountType relabel, parentCode quick-check), both shop systems and their
+5-slot identity bridge, and found that Devon's remembered "calling cards"
+shipped as the Profile Card modal — data model intact on students/{id}.equipped.
+
+**docs/AMG_NAME_AUDIT.md** (`3bcdb84`): 1 HIGH (Block Blast — collides with a
+trademarked hit; propose "Blocksplode"), 6 medium (Floppy Bird→"Wing It",
+Whack-a-Mole→"Mole Patrol", 2048→"Number Crunch" + internal dir names deferred
+to overhauls since gameId keys Firestore collections). Most of the catalog was
+already de-branded.
+
+**docs/AMG_HUB_ECOSYSTEM.md** (`3bcdb84`): the reference — one-door auth (Just
+Play anon + save codes / class code + PIN + join-class merge), two-tier shops
+formalized, calling-cards plan, character rails, control matrix, economy notes,
+Devon's 3-week build order. Flags the Drop4/connect4 cosmetics-namespace
+re-buy issue for cutover.
+
+**Calling cards + emblems SHIPPED** (`135488c`): odaPlayerCard in oda-core v2.0
+— one shared card renderer (banner+emblem+avatar+border+name+title), 17
+code-drawn CSS banners + 14 emblems in the shop with rarity pricing and
+achievement locks, loadout preview IS the card, profile modal wears it.
+Verified live on a second dev server (this session's own): 17 live banner
+previews, renderer produces cc-royal + 🐐 + gradient title. Leaderboards adopt
+the card as each game gets its quality overhaul.
+
+OPEN next: world picker ↔ character.html ownership gap (world shows all 16
+free); Wing It overhaul is the template game (rename + gameplay bar + card on
+leaderboard).
+
 ## 2026-07-24 (continued) — "Don't stop": FISHING, play-as-It, map/help, coin magnetism
 
 Devon: "keep going and make the world as good as you can." Five more commits,
