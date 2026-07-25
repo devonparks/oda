@@ -116,12 +116,15 @@ export class Fishing {
     if (this.busy || !this.world.water) return false;
     this._ensureHand(player);
 
-    // aim from the player toward open water: past the bank, well inside the ring
+    // The bobber lands at a fixed radius INSIDE the open water, along the
+    // player→centre line — casting from the dirt path always clears the bank
+    // and actually splashes down in the pond (Devon: "when you aim the rod it
+    // should actually go in the water").
     const w = this.world.water;
     const dx = w.x - player.pos.x, dz = w.z - player.pos.z;
     const d = Math.hypot(dx, dz) || 1;
-    const past = Math.max(d - w.r, 0) + 2.6 + Math.random() * 1.6;
-    const reach = Math.min(past, d - 1.2);   // never overshoot the centre area
+    const landR = Math.max(1.0, w.r - 1.4 - Math.random() * 1.2);
+    const reach = d - landR;
     this._castFrom.set(player.pos.x, player.pos.y + 1.1, player.pos.z);
     this._castTo.set(player.pos.x + (dx / d) * reach, w.y, player.pos.z + (dz / d) * reach);
 

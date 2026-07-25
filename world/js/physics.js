@@ -140,9 +140,9 @@ export class DynamicProps {
             const a = Math.random() * Math.PI * 2, rr = Math.random() * (w.r * 0.72);
             it.target = { x: w.x + Math.cos(a) * rr, z: w.z + Math.sin(a) * rr };
             it.crumbT = 0;
-            it.driftT = 6 + Math.random() * 8;
+            it.driftT = 3 + Math.random() * 5;
           }
-          if (it.target) { want = it.target; speed = 0.25; }   // no hurry
+          if (it.target) { want = it.target; speed = 0.4; }   // visibly cruising
         }
         if (want) {
           const dx = want.x - it.pos.x, dz = want.z - it.pos.z;
@@ -199,12 +199,16 @@ export class DynamicProps {
         it.vel.x *= k; it.vel.z *= k;
       }
       if (inWater) {
-        // real vertical bob (a `* 0` here once made this dead code — the rock
-        // was visible but the duck never actually rose and fell)
-        const bob = Math.sin(it.bobPhase) * 0.02;
-        it.pos.y = Math.max(it.pos.y, water - it.r * 0.4) + bob;
+        // Bob is VISUAL ONLY (applied at mesh-copy time below). Adding it into
+        // pos.y integrated the sine into the persistent state every frame —
+        // the ducks slowly LEVITATED up and down instead of floating (Devon:
+        // "they're going up and down as if they're flying").
+        if (it.pos.y < water - it.r * 0.4) it.pos.y = water - it.r * 0.4;
+        it.visBob = Math.sin(it.bobPhase) * 0.02;
         it.mesh.rotation.z = Math.sin(it.bobPhase) * 0.06;
         it.mesh.rotation.x = Math.cos(it.bobPhase * 0.8) * 0.05;
+      } else {
+        it.visBob = 0;
       }
 
       // ── walls: slide-resolve the sphere, reflect velocity off the push ──
@@ -244,6 +248,7 @@ export class DynamicProps {
         }
       }
       it.mesh.position.copy(it.pos);
+      it.mesh.position.y += it.visBob || 0;
     }
   }
 

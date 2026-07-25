@@ -151,8 +151,11 @@ export class Rides {
     a.amp += Math.max(-dt * 0.10, Math.min(dt * 0.26, target - a.amp));
     const ang = Math.sin(a.phase) * a.amp;
     s.group.rotation.x = ang;
+    // Where rotation.x REALLY puts the seat: child (0,-L,0) rotated about X
+    // lands at z = -L·sin. The old +L·sin put the KID mirror-opposite the
+    // seat — "swinging and crossing each other like pendulums" (Devon).
     const py = s.pivot.y - Math.cos(ang) * SWING_L;
-    const pz = s.pivot.z + Math.sin(ang) * SWING_L;
+    const pz = s.pivot.z - Math.sin(ang) * SWING_L;
     player.pos.set(s.pivot.x, py - 0.42, pz);   // squat butt (~0.45) on the seat
     player.yaw = player.targetYaw = 0;          // swing plane faces +Z
     player.tilt = ang;                          // lean with the chains
@@ -165,7 +168,7 @@ export class Rides {
 
   _dismountSwing(player, a, ang) {
     const dAng = Math.cos(a.phase) * a.amp * SWING_FREQ;   // dθ/dt
-    const v = dAng * SWING_L;                              // tangential, +Z forward
+    const v = -dAng * SWING_L;                             // seat z = -L·sin(θ), so dz/dt is NEGATIVE dθ
     player.tilt = 0;
     player.rig.stopEmote?.();
     player.vel.y = 3.4 + Math.min(2.4, Math.abs(v) * 0.8);
@@ -288,7 +291,7 @@ export class Rides {
     m.localToWorld(_vb.copy(_va));           // follows the animated tilt
     player.pos.set(_vb.x, _vb.y + 0.02, _vb.z);
     player.yaw = player.targetYaw = Math.atan2(m.position.x - _vb.x, m.position.z - _vb.z);
-    player.tilt = (m.rotation.z - m.userData.rest.z) * a.end;
+    player.tilt = (m.userData.angle || 0) * a.end;
     player.speed = 0; player.vel.y = 0; player.grounded = true;
     if (Math.hypot(intent.move.x, intent.move.y) > 0.25 || intent.jump) this._exitToGround(player, m.position);
   }
@@ -303,7 +306,7 @@ export class Rides {
   _updateRocker(dt, player, intent) {
     const m = this.active.mesh;
     m.userData.push = 1;
-    const rock = m.rotation.x - m.userData.rest.x;
+    const rock = m.userData.angle || 0;
     player.pos.set(m.position.x, m.position.y + 0.5 + Math.abs(rock) * 0.12, m.position.z);
     player.yaw = player.targetYaw = m.rotation.y;
     player.tilt = rock;

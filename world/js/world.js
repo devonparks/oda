@@ -20,6 +20,7 @@ import { DynamicProps, GroundFX } from './physics.js';
 
 /** Props that must stay separate objects because they move. */
 const ANIMATED = ['Swings', 'Seesaw', 'Rocker', 'Coin_Ride', 'Track_Ride', 'Kite'];
+const _tiltQ = new THREE.Quaternion();   // scratch for the seesaw/rocker tilts
 /** Props adopted by the physics layer instead of being baked/wobbled:
  *  balls get kicked around, the duck floats in the pond. */
 const DYNAMIC = [
@@ -171,12 +172,15 @@ export class World {
     };
 
     // ---- water ----
-    // The pond's own renderer bounds define the swim-able disc: extents are
-    // square (13.74 x 13.74 = the AABB of a round pond), the rock ring sits at
-    // ~8.4, so the actual water is safely inside r=8. Surface = top of the box.
+    // The pond box (HALF-extents 13.7!) is the AABB of the whole pond AREA:
+    // water + dirt shore + the rock ring (~8.4). The actual WATER disc is much
+    // smaller — anchored by the props floating on it (toy boat d=3.3, floaties
+    // d≤2.5) and the visible edge in playtests: r≈5.2. Deriving r from the box
+    // (0.58×e ≈ 8) painted "water" over the whole dirt path: wading slowdown
+    // and hip-deep sinking on dry land (Devon's report). Surface = box top.
     const pond = collision.find((b) => /Park_Pond_01/.test(b.n || ''));
     this.water = pond
-      ? { x: pond.c[0], z: pond.c[2], r: Math.min(pond.e[0], pond.e[2]) * 0.58, y: pond.c[1] + pond.e[1] }
+      ? { x: pond.c[0], z: pond.c[2], r: 5.2, y: pond.c[1] + pond.e[1] }
       : null;
 
     // ---- ground heightfield (before physics: props settle against it) ----
@@ -402,7 +406,9 @@ export class World {
         let entry = p;
         if (dyn.kind === 'floater' && this.water) {
           const k = this._floaterCount = (this._floaterCount || 0) + 1;
-          const r = 1.6 + 4.8 * Math.sqrt(k / 14);
+          // spread scales with the ACTUAL water radius — the old 6.4m max
+          // beached half the flock on the dirt shore
+          const r = 0.9 + (this.water.r - 1.4) * Math.sqrt(k / 14);
           const a = k * 2.39996 + 0.7;
           entry = { ...p, p: [this.water.x + Math.cos(a) * r, this.water.y, this.water.z + Math.sin(a) * r] };
         }
@@ -416,7 +422,20 @@ export class World {
         m.receiveShadow = this.quality.shadows;
         m.userData.kind = p.mesh;
         m.userData.rest = m.rotation.clone();
+        m.userData.restQuat = dummy.quaternion.clone();
         m.userData.phase = Math.random() * Math.PI * 2;
+        // Tilt axis for seesaw planks / rocker animals, in the GEOMETRY's own
+        // frame: ends (or nose/tail) go up-down = rotation about the horizontal
+        // axis PERPENDICULAR to the long axis. Poking Euler .x/.z on a yaw'd
+        // mesh span the wrong axes — Devon's playtest: "the seesaw just twists
+        // left and right", spring riders "straight up broken".
+        if (/Seesaw|Rocker/.test(p.mesh)) {
+          if (!proto.geometry.boundingBox) proto.geometry.computeBoundingBox();
+          const bb = proto.geometry.boundingBox;
+          const alongX = (bb.max.x - bb.min.x) >= (bb.max.z - bb.min.z);
+          m.userData.tiltAxis = alongX ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0);
+          m.userData.angle = 0;
+        }
         this.scene.add(m);
         this.animatedProps.push(m);
       } else {
@@ -782,9 +801,17 @@ export class World {
         push = Math.max(0, push - dt * 0.25);
         p.userData.push = push;
       }
-      if (k.includes('Seesaw') && isTop) p.rotation.z = p.userData.rest.z + Math.sin(t * (0.9 + push) + ph) * (0.18 + push * 0.30);
-      else if (k.includes('Rocker') && isTop) p.rotation.x = p.userData.rest.x + Math.sin(t * (1.6 + push * 1.2) + ph) * (0.12 + push * 0.38);
-      else if (k.includes('Kite')) p.rotation.z = p.userData.rest.z + Math.sin(t * 2.0 + ph) * 0.22;
+      if (k.includes('Seesaw') && isTop) {
+        const ang = Math.sin(t * (0.9 + push) + ph) * (0.18 + push * 0.30);
+        p.userData.angle = ang;
+        p.quaternion.copy(p.userData.restQuat)
+          .multiply(_tiltQ.setFromAxisAngle(p.userData.tiltAxis, ang));
+      } else if (k.includes('Rocker') && isTop) {
+        const ang = Math.sin(t * (1.6 + push * 1.2) + ph) * (0.12 + push * 0.38);
+        p.userData.angle = ang;
+        p.quaternion.copy(p.userData.restQuat)
+          .multiply(_tiltQ.setFromAxisAngle(p.userData.tiltAxis, ang));
+      } else if (k.includes('Kite')) p.rotation.z = p.userData.rest.z + Math.sin(t * 2.0 + ph) * 0.22;
     }
 
     // fountain: pulsing jet, drops arcing outward, occasional basin ripples

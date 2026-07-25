@@ -699,8 +699,10 @@ const FISH_BANK = { id: 'fish', icon: '🎣', name: 'Fishing Spot', prompt: 'Go 
 function bankFishZone(p) {
   const w = state.world?.water;
   if (!w) return null;
+  // From just inside the water's edge across the WHOLE dirt shore to the rock
+  // ring (~8.4) — stand anywhere on the path against the water and fish.
   const d = Math.hypot(p.x - w.x, p.z - w.z);
-  return d > w.r - 0.4 && d < w.r + 2.4 ? FISH_BANK : null;
+  return d > w.r - 0.6 && d < 8.6 ? FISH_BANK : null;
 }
 
 function enterZone() {
