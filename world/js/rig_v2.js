@@ -271,7 +271,9 @@ export class RigV2 {
     }
 
     // ── 2. emote channel envelope (ported from emotes.js / express.js) ──
-    const targetLeg = 1 - clamp(speed / GAIT.walk, 0, 1);  // legs freed while moving
+    // forceLegEmote: a kid driving the kart is MOVING fast but must keep the
+    // full-body sit pose — without this the legs would run inside the kart.
+    const targetLeg = this.forceLegEmote ? 1 : 1 - clamp(speed / GAIT.walk, 0, 1);
     const ek = 1 - Math.exp(-12 * dt);
     this.legWeight += (targetLeg - this.legWeight) * ek;
     let em = this.emote, emInfo = null, emBase = 0;

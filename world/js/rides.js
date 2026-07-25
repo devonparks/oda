@@ -44,6 +44,7 @@ export class Rides {
     this._buildSwings();
     this._buildSlides();
     this._buildPlayground();
+    this._buildKart();
     // warm the dance bin so the first hula spin isn't swallowed by a lazy fetch
     getEmoteLibraryV2().then((lib) => lib && lib.loadCategory('dance').catch(() => {}));
   }
@@ -343,6 +344,92 @@ export class Rides {
     this.active = null;
   }
 
+  // ── kart: the soapbox racer, actually drivable ────────────────────────────
+
+  _buildKart() {
+    const parts = this.world.kartParts || [];
+    if (!parts.length) return;
+    // Root = the frame part's translation; all parts re-parented relative to
+    // it, so the whole racer moves as one rigid body.
+    const frame = parts.find((p) => p.mesh === 'SM_Veh_Soapbox_Racer_03') || parts[0];
+    const rootPos = new THREE.Vector3().setFromMatrixPosition(frame.matrix);
+    const rootInv = new THREE.Matrix4().makeTranslation(-rootPos.x, -rootPos.y, -rootPos.z);
+    const group = new THREE.Group();
+    group.position.copy(rootPos);
+    const wheels = [];
+    for (const p of parts) {
+      const mesh = new THREE.Mesh(p.proto.geometry, p.proto.material);
+      mesh.applyMatrix4(new THREE.Matrix4().multiplyMatrices(rootInv, p.matrix));
+      mesh.castShadow = !!this.world.quality?.shadows;
+      group.add(mesh);
+      if (/Wheel/.test(p.mesh)) {
+        // axle in the wheel's own local frame = the kart's sideways axis
+        const q = new THREE.Quaternion().setFromRotationMatrix(p.matrix).invert();
+        wheels.push({ mesh, axle: new THREE.Vector3(1, 0, 0).applyQuaternion(q).normalize() });
+      }
+    }
+    this.world.scene.add(group);
+    // the racer as authored faces… wherever the layout left it; note its yaw
+    const q0 = new THREE.Quaternion().setFromRotationMatrix(frame.matrix);
+    _va.set(0, 0, 1).applyQuaternion(q0);
+    this.kart = { group, wheels, yaw: Math.atan2(_va.x, _va.z) };
+    group.rotation.y = 0;   // parts carry their own layout rotations already
+    this.kartZone = {
+      id: 'kart', ride: 'kart', icon: '\u{1F3CE}️', name: 'Soapbox Racer',
+      prompt: 'Drive it!', pos: [rootPos.x, rootPos.z], radius: 1.6,
+    };
+    this.zones.push(this.kartZone);
+  }
+
+  _beginKart(player) {
+    const k = this.kart;
+    // strip the parts' baked layout yaw down to a group yaw so driving can
+    // steer. Full matrix (not just quaternion): part POSITIONS must rotate
+    // about the group origin too or the racer un-assembles on the first turn.
+    if (!k.normalized) {
+      k.normalized = true;
+      const undo = new THREE.Matrix4().makeRotationY(-k.yaw);
+      for (const c of k.group.children) c.applyMatrix4(undo);
+      k.group.rotation.y = k.yaw;
+    }
+    this.active = { kind: 'kart' };
+    player.pos.set(k.group.position.x, k.group.position.y, k.group.position.z);
+    player.yaw = player.targetYaw = k.group.rotation.y;
+    player.rig.forceLegEmote = true;
+    player.playEmote('squat', { freezeAt: 1.8 });
+    this.state.presence?.broadcast({ emote: 'squat' });
+    return 'Vroom! Drive with WASD · Space to hop out';
+  }
+
+  get driving() { return this.active?.kind === 'kart'; }
+
+  _updateKart(dt, player, intent) {
+    const k = this.kart;
+    // stepPlayer already moved the player (with speedScale); the kart follows
+    k.group.position.set(player.pos.x, player.pos.y, player.pos.z);
+    const prev = k.group.rotation.y;
+    let dy = (player.yaw - prev) % (Math.PI * 2);
+    if (dy > Math.PI) dy -= Math.PI * 2;
+    if (dy < -Math.PI) dy += Math.PI * 2;
+    k.group.rotation.y = prev + dy * Math.min(1, 10 * dt);
+    player.tilt = 0;
+    for (const w of k.wheels) w.mesh.rotateOnAxis(w.axle, player.speed * dt / 0.16);
+    // engine putter while moving
+    if (player.speed > 0.5 && Math.random() < dt * 8 && window.odaSfx) {
+      window.odaSfx.tone(70 + player.speed * 14 + Math.random() * 18, 0.05, 'square', 0.028);
+    }
+    if (intent.dismount || intent.jump) {
+      player.rig.forceLegEmote = false;
+      player.rig.stopEmote?.();
+      // hop out to the side; the kart PARKS here (its zone moves with it)
+      player.pos.x += Math.cos(player.yaw) * 0.8;
+      player.pos.z -= Math.sin(player.yaw) * 0.8;
+      player.pos.y = this.world.collision.groundAt(player.pos.x, player.pos.z, player.pos.y + 0.3);
+      this.kartZone.pos = [k.group.position.x, k.group.position.z];
+      this.active = null;
+    }
+  }
+
   // ── shared ────────────────────────────────────────────────────────────────
 
   /** Start a ride from its prompt zone. Returns a toast line or null. */
@@ -354,6 +441,7 @@ export class Rides {
       case 'seesaw': return this._beginSeesaw(player);
       case 'rocker': return this._beginRocker(player, zone);
       case 'hoop': return this._beginHoop(player);
+      case 'kart': return this._beginKart(player);
       default: return null;
     }
   }
@@ -384,6 +472,7 @@ export class Rides {
       case 'seesaw': this._updateSeesaw(dt, player, intent); break;
       case 'rocker': this._updateRocker(dt, player, intent); break;
       case 'hoop': this._updateHoop(dt, player, intent); break;
+      case 'kart': this._updateKart(dt, player, intent); break;
     }
   }
 }

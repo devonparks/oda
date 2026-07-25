@@ -183,6 +183,10 @@ export class World {
     onProgress(0.62, 'Reading the ground…');
     this._bakeGroundHeightfield(collision);
 
+    // ---- the fountain comes alive: jet, falling drops, basin ripples ----
+    const fnt = collision.find((b) => /Env_Fountain_01/.test(b.n || ''));
+    if (fnt) this._buildFountain(fnt);
+
     // ---- physics + ground FX ----
     this.fx = new GroundFX(this.scene);
     this.dynamics = new DynamicProps(this);
@@ -368,6 +372,7 @@ export class World {
     const dummy = new THREE.Object3D();
     this.seats = [];       // sittable spots, harvested from bench layout entries
     this.slideData = [];   // slide top/exit points, harvested for rides.js
+    this.kartParts = [];   // soapbox racer parts diverted to rides.js (drivable)
     for (const p of layout) {
       const proto = protos.get(p.mesh);
       if (!proto) continue;
@@ -378,6 +383,14 @@ export class World {
 
       if (p.mesh === 'SM_Env_Park_Seat_01') this._addBenchSeats(proto, dummy);
       if (/Playground_Slide/.test(p.mesh)) this._addSlideData(proto, dummy);
+
+      // The soapbox racer becomes DRIVABLE: divert its parts (frame, steering
+      // wheel, four wheels — each its own layout entry) out of the static
+      // batch; rides.js reassembles them into a rigid dynamic group.
+      if (p.mesh.startsWith('SM_Veh_Soapbox_Racer_03')) {
+        this.kartParts.push({ proto, matrix: dummy.matrix.clone(), mesh: p.mesh });
+        continue;
+      }
 
       const dyn = DYNAMIC.find((d) => p.mesh.includes(d.match));
       if (dyn) {
@@ -419,6 +432,29 @@ export class World {
       this.propBatch = mesh;
       merge.forEach((g) => g.dispose());
     }
+  }
+
+  /**
+   * The fountain was a dry statue (Devon's playtest note). A pulsing
+   * translucent jet above the spout, eight drops falling in a widening ring,
+   * and occasional basin ripples — all shared-material, ~9 tiny meshes.
+   */
+  _buildFountain(box) {
+    const x = box.c[0], z = box.c[2];
+    const topY = box.c[1] + box.e[1];
+    const mat = new THREE.MeshBasicMaterial({ color: 0xbfe9ff, transparent: true, opacity: 0.55, depthWrite: false });
+    const jet = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.1, 0.55, 8, 1, true), mat);
+    jet.position.set(x, topY + 0.18, z);
+    this.scene.add(jet);
+    const drops = [];
+    const dropGeo = new THREE.SphereGeometry(0.035, 6, 5);
+    for (let i = 0; i < 8; i++) {
+      const d = new THREE.Mesh(dropGeo, mat);
+      d.userData = { a: (i / 8) * Math.PI * 2, k: Math.random() };
+      this.scene.add(d);
+      drops.push(d);
+    }
+    this.fountain = { x, z, topY, jet, drops };
   }
 
   /**
@@ -588,7 +624,8 @@ export class World {
     avatar.wading = water != null && avatar.pos.y < water + 0.05;
 
     const wish = Math.hypot(dx, dz);
-    const maxSpeed = (intent.run ? RUN : WALK) * (avatar.wading ? 0.55 : 1);
+    // speedScale: vehicles (rides.js kart) go faster than legs allow
+    const maxSpeed = (intent.run ? RUN : WALK) * (intent.speedScale || 1) * (avatar.wading ? 0.55 : 1);
     const target = wish > 0.01 ? maxSpeed : 0;
     avatar.speed += THREE.MathUtils.clamp(target - avatar.speed, -ACCEL * dt, ACCEL * dt);
     if (avatar.speed < 0.02) avatar.speed = 0;
@@ -748,6 +785,29 @@ export class World {
       if (k.includes('Seesaw') && isTop) p.rotation.z = p.userData.rest.z + Math.sin(t * (0.9 + push) + ph) * (0.18 + push * 0.30);
       else if (k.includes('Rocker') && isTop) p.rotation.x = p.userData.rest.x + Math.sin(t * (1.6 + push * 1.2) + ph) * (0.12 + push * 0.38);
       else if (k.includes('Kite')) p.rotation.z = p.userData.rest.z + Math.sin(t * 2.0 + ph) * 0.22;
+    }
+
+    // fountain: pulsing jet, drops arcing outward, occasional basin ripples
+    if (this.fountain) {
+      const f = this.fountain;
+      f.jet.scale.set(1, 0.85 + Math.sin(t * 7) * 0.18, 1);
+      f.jet.rotation.y = t * 2;
+      for (const d of f.drops) {
+        const u = d.userData;
+        u.k += dt * 0.9;
+        if (u.k >= 1) {
+          u.k = 0; u.a = Math.random() * Math.PI * 2;
+          if (Math.random() < 0.35) {
+            this.fx.spawn(f.x + Math.cos(u.a) * 0.9, 0.52, f.z + Math.sin(u.a) * 0.9,
+              { from: 0.08, to: 0.5, dur: 0.6, alpha: 0.35 });
+          }
+        }
+        const r = 0.55 + u.k * 0.35;
+        d.position.set(
+          f.x + Math.cos(u.a) * r,
+          (f.topY - 0.1) - u.k * u.k * (f.topY - 0.75),
+          f.z + Math.sin(u.a) * r);
+      }
     }
 
     // coins bob and spin; taken ones are scaled to zero rather than removed.

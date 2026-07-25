@@ -439,7 +439,13 @@ function loop() {
   if (state.seated) {
     if (Math.hypot(intent.move.x, intent.move.y) > 0.25 || intent.jump || state.input.moveTarget) standUp();
   }
-  if (!state.paused && !state.seated && !state.rides?.busy) {
+  // Driving the kart: stepPlayer still runs (real collision, real ground) but
+  // faster; the kart mesh chases the player in rides.update below.
+  if (state.rides?.driving) {
+    intent.run = true; intent.speedScale = 1.75;
+    intent.dismount = intent.jump; intent.jump = false;   // Space exits, not hops
+  }
+  if (!state.paused && !state.seated && (!state.rides?.busy || state.rides?.driving)) {
     intent.target = state.input.moveTarget;
     intent.clearTarget = () => { state.input.moveTarget = null; };
     if (intent.jump && player.grounded) sfx('whoosh');
