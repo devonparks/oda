@@ -59,6 +59,11 @@ const COLLISION_RULES = [
   // invisible lid you land ON and a wall you bounce OFF. Riding is scripted
   // (rides.js) and the heightfield never captures props, so no box at all.
   [/Playground_Slide/i, 'none'],
+  // The pirate ship's export box runs from the ground to the MAST TIP (3.3 m),
+  // so as one solid it is a monolith: you can't board it, and `groundAt` never
+  // offers a top inside the step gate. World._addShipDecks reads the real hull,
+  // deck, castle and mast off the prop's vertices and adds those instead.
+  [/Playground_Ship/i, 'none'],
   // The skate park is CARVED INTO the terrain (bowl floor y≈-1). Its renderer
   // bounds put a phantom lid at rim height over every depression — you floated
   // across the bowl instead of walking down into it. The heightfield is the

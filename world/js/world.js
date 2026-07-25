@@ -387,6 +387,7 @@ export class World {
 
       if (p.mesh === 'SM_Env_Park_Seat_01') this._addBenchSeats(proto, dummy);
       if (/Playground_Slide/.test(p.mesh)) this._addSlideData(proto, dummy);
+      if (/Playground_Ship/.test(p.mesh)) this._addShipDecks(proto, dummy);
 
       // The soapbox racer becomes DRIVABLE: divert its parts (frame, steering
       // wheel, four wheels — each its own layout entry) out of the static
@@ -520,6 +521,94 @@ export class World {
         seatY: dummy.position.y + seatTop * dummy.scale.y,
       });
     }
+  }
+
+  /**
+   * The pirate ship, opened up.
+   *
+   * Its collision export is ONE box spanning y -0.29 to 3.02 — floor to MAST
+   * TIP. Nothing about a 3.3 m monolith is climbable: `resolve` walls you off
+   * at every height and `groundAt` never offers a top within the step gate, so
+   * the biggest play structure in the park was a rock you bounced off.
+   *
+   * The real shape is a hull that narrows as it rises to a deck, a raised stern
+   * castle, and a mast. Reading those planes off the prop's own vertices (like
+   * the bench seats and the slide chutes are) gives back the structure kids can
+   * actually use: jump onto the deck (apex 0.767 m + a 0.55 step gate clears a
+   * 1.15 m rise), then jump again onto the castle. No teleporters, no invented
+   * geometry, and it re-derives itself if the layout ever moves the ship.
+   *
+   * Emits: a hull whose TOP is the deck, a castle block, and a mast post.
+   * The raw export box is dropped by a 'none' rule in collision.js.
+   */
+  _addShipDecks(proto, dummy) {
+    const pos = proto.geometry.attributes.position;
+    const v = new THREE.Vector3();
+    // Histogram world-space Y in 10 cm bands, with each band's XZ extent. A
+    // deck is a band that is both high and WIDE; the mast is high and thin.
+    const BAND = 0.1;
+    const bands = new Map();
+    let minY = Infinity, maxY = -Infinity;
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(dummy.matrix);
+      minY = Math.min(minY, v.y); maxY = Math.max(maxY, v.y);
+      const k = Math.round(v.y / BAND);
+      let b = bands.get(k);
+      if (!b) bands.set(k, (b = { n: 0, x0: Infinity, x1: -Infinity, z0: Infinity, z1: -Infinity }));
+      b.n++;
+      b.x0 = Math.min(b.x0, v.x); b.x1 = Math.max(b.x1, v.x);
+      b.z0 = Math.min(b.z0, v.z); b.z1 = Math.max(b.z1, v.z);
+    }
+    const area = (b) => (b.x1 - b.x0) * (b.z1 - b.z0);
+    const keys = [...bands.keys()].sort((a, b) => a - b);
+    const widest = Math.max(...keys.map((k) => area(bands.get(k))));
+    // Walkable = at least a third of the footprint. Anything narrower up top is
+    // rigging, not floor.
+    const walkable = keys.filter((k) => area(bands.get(k)) > widest * 0.33 && bands.get(k).n > 60);
+    if (!walkable.length) return;
+
+    const add = (b, top, name) => {
+      const cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2;
+      this.collision.add({
+        c: [cx, (minY + top) / 2, cz],
+        e: [(b.x1 - b.x0) / 2, (top - minY) / 2, (b.z1 - b.z0) / 2],
+        n: name,
+      });
+    };
+
+    // Main deck: the highest wide band.
+    const deckK = walkable[walkable.length - 1];
+    const deck = bands.get(deckK);
+    const deckY = (deckK + 0.5) * BAND;          // stand on the band's top edge
+    add(deck, deckY, '_ship_deck');
+
+    // Stern castle: the highest band above the deck that still has real area —
+    // narrow relative to the hull, but a platform in its own right.
+    let castleK = null;
+    for (const k of keys) {
+      const b = bands.get(k);
+      if ((k + 0.5) * BAND <= deckY + 0.35) continue;
+      if (b.n < 40 || area(b) < widest * 0.1) continue;
+      castleK = k;
+    }
+    if (castleK != null) {
+      const c = bands.get(castleK);
+      add(c, (castleK + 0.5) * BAND, '_ship_castle');
+    }
+
+    // Mast: whatever is left above, kept as a thin post you bump into.
+    const mastK = keys[keys.length - 1];
+    const mast = bands.get(mastK);
+    if ((mastK + 0.5) * BAND > (castleK != null ? (castleK + 0.5) * BAND : deckY) + 0.4) {
+      const cx = (mast.x0 + mast.x1) / 2, cz = (mast.z0 + mast.z1) / 2;
+      const r = Math.max(0.12, Math.min(0.3, Math.max(mast.x1 - mast.x0, mast.z1 - mast.z0) / 2));
+      this.collision.add({
+        c: [cx, ((mastK + 0.5) * BAND + deckY) / 2, cz],
+        e: [r, ((mastK + 0.5) * BAND - deckY) / 2, r],
+        n: '_ship_mast',
+      });
+    }
+    this.shipDecks = { deckY, castleY: castleK != null ? (castleK + 0.5) * BAND : null };
   }
 
   /**
