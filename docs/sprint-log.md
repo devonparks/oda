@@ -1,5 +1,67 @@
 # Sprint Log
 
+## 2026-07-25 (late night) — AMG World: the collision sweep, the hotbar, the UI
+
+Devon: "keep going on the collision and engine stuff and then I want to add the
+hot bar and inventory system and upgrade the ui and functionality / controls."
+Three commits, in that order, all deployed.
+
+**Collision, by measurement instead of guesswork.** Wrote an audit that
+voxelises the real meshes inside every solid box and ranks them by
+empty-but-still-blocking volume. The ranking was unambiguous:
+
+| lie | vol | fill | what |
+|---|---|---|---|
+| 55.8 m³ | 81.9 | 32% | **Fountain** — the biggest lie in the park, in the middle of it |
+| 8.3 | 12.5 | 34% | **Swing set** — couldn't walk between the A-frame legs |
+| 1.9 | 4.4 | 58% | **Tent** — a thing you go inside, with no doorway |
+| ≤1.8 | | ~53% | every remaining entry is a tree, already refined to trunks on purpose |
+
+All three now come from `_deriveCollision`. Walked engine-accurately
+(`resolve()` from the previous position, not a naive point test): under the
+swing bar, between its legs, into the tent, through the tunnels — never pushed
+once. The fountain became a rim you step onto with the basin wall inside.
+`_deriveCollision` gained `exclude`, which the swing needs: rides.js carves its
+seats out of the shell AFTER load, so without it those triangles freeze into
+collision boxes hanging in mid-air (verified 0 ghosts).
+
+Also: **the `_Top` rule never matched anything.** Written `_Top_`, needing a
+trailing underscore, so `Rocker_01_Top` and `Seesaw_01_Top` sailed past and
+stayed solid — and the audit caught `Rocker_01_Top` at a measured fill of
+**0.000**, pure phantom wall beside the spring rider, because those props are
+ANIMATED and move out from under their static box every frame.
+
+780 boxes now vs 255. `resolve()` measured at 2 µs by the swing, 11 µs inside
+the treehouse's 257 — a rounding error at 60 fps.
+
+**Hotbar + backpack** (`world/js/inventory.js`, pure — no THREE, no DOM). 8
+hotbar + 16 backpack, stacks that merge, localStorage round trip, and a save
+naming an unknown item drops that slot rather than wedging the file. You FIND
+things: the pond hands you a rod, the lawn a hoop, the playground a ball, each
+with a toast. Fish become keepsakes. `throwBall` fetches the park's nearest
+existing ball rather than spawning one, or the park would end up being nothing
+but balls.
+
+**Three ways to use what you hold**, because one didn't cover three input
+styles: click (desktop), E when you're not at a zone (E stays context-first),
+and tapping the slot you already hold (the only one a tablet has). The click
+path is what made it work — a kid holding a ball inside the playground ring
+could never throw it, because E always went to the ring.
+
+**UI/controls.** Fixed the conflict I'd just created (the first stage click
+grabs the pointer for looking — use-on-click now requires the pointer already
+captured). Unstacked the bottom of the screen (hotbar 18 / prompt 96 / held
+name 152). Mobile: eight 42px slots is 374px, the whole width of a phone, so
+the bar and the button column can't share a row — side by side instead, bar
+left at 34px a slot, buttons right; measured no-overlap at 390×760. And **you
+can see what you're holding** — ball and hoop are code-drawn and posed from the
+Hand_R bone (0.082 m from the hand, measured), because a hotbar that's only
+icons is a menu, not a possession.
+
+Still open, Devon's own order: more of his playground ideas, kart driver
+position, slide prompts to the tops (needs a climb first — see the note below),
+and whatever the next playtest turns up.
+
 ## 2026-07-25 (night) — AMG World: collision from real geometry, and one swing
 
 Devon's feedback on the animations: the bench sit "looks almost perfect", the
