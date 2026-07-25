@@ -58,7 +58,15 @@ export class Rides {
     //    triangles only — collapsing single verts would smear slivers).
     let shellMesh = null;
     this.world.shell.traverse((o) => { if (o.isMesh && !shellMesh) shellMesh = o; });
-    if (shellMesh) this._carve(shellMesh, CARVE);
+    if (shellMesh) {
+      this._carve(shellMesh, CARVE);
+      // One stray Synty prop is baked into the shell: SM_Wep_Makeshift_Gun_07,
+      // a toy gun tucked behind the bush at (-14.3, 16.2). Not in a kids'
+      // park — carved out. (Box from the collision export, slightly padded.)
+      this._carve(shellMesh, {
+        minX: -14.42, maxX: -14.10, minY: 0.67, maxY: 0.93, minZ: 16.03, maxZ: 16.37,
+      });
+    }
 
     // 2. dynamic replacements
     const chainMat = new THREE.MeshStandardMaterial({ color: 0x8a9096, roughness: 0.55, metalness: 0.35 });
