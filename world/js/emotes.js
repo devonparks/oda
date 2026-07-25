@@ -50,7 +50,15 @@ export class EmoteLibrary {
     return new EmoteLibrary(manifest, baseUrl);
   }
 
-  get categories() { return this.manifest.categories; }
+  /**
+   * Categories a PICKER should show. `hidden` ones (the `actions` bin: sits,
+   * swing pump, slide, hula, fishing) are library content the world plays
+   * through rides.js / fishing.js, not emotes a kid chooses off a wheel — they
+   * stay in `index` so info()/loadCategory() resolve them, but out of every UI.
+   */
+  get categories() { return this.manifest.categories.filter((c) => !c.hidden); }
+  /** Every category, hidden included — for loaders, not for pickers. */
+  get allCategories() { return this.manifest.categories; }
   has(id) { return this.index.has(id); }
   info(id) { return this.index.get(id); }
 

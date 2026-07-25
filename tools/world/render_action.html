@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>action pose render harness</title>
+<!--
+  Same idea as render_pose.html, but framed for ACTIVITY poses: a 3/4 view plus a
+  side view of each frame, because a sit, a swing pump and a fishing cast are all
+  read from the side — dead-on front (what render_pose.html does) hides every
+  hip and knee angle that matters here. A ground plane is drawn at y=0 so you can
+  see where the feet actually are.
+  Query: ?poses=<url to a {glb, poses:[{label, locals}]} json>
+-->
+<style>
+  body{margin:0;background:#20232e;font-family:system-ui}
+  #grid{display:grid;grid-template-columns:repeat(4,270px)}
+  .cell{position:relative}
+  .cell .lbl{position:absolute;top:6px;left:8px;color:#fff;font:700 13px sans-serif;text-shadow:0 1px 3px #000}
+  .cell .vw{position:absolute;top:6px;right:8px;color:#8ff;font:600 11px sans-serif;text-shadow:0 1px 3px #000}
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="grid"></div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const params = new URLSearchParams(location.search);
+const data = await fetch(params.get('poses') || '/tools/world/_action_poses.json').then(r => r.json());
+const grid = document.getElementById('grid');
+
+const gltf = await new GLTFLoader().loadAsync(data.glb);
+const model = gltf.scene;                       // ONE model, re-posed per cell
+const restLocals = {};
+model.traverse((o) => { if (o.isBone || o.type === 'Bone') restLocals[o.name] = o.quaternion.clone(); });
+model.traverse((o) => {
+  if (o.isMesh && o.material) {
+    (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => {
+      if ((m.name || '').toLowerCase().includes('face')) { m.transparent = true; m.depthWrite = false; m.alphaTest = 0.01; }
+      m.vertexColors = false;
+      m.roughness = Math.max(m.roughness ?? 0.85, 0.6);
+      m.needsUpdate = true;
+    });
+  }
+});
+
+const scene = new THREE.Scene();
+scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+const sun = new THREE.DirectionalLight(0xffffff, 2.1); sun.position.set(2, 4, 3); scene.add(sun);
+// ground + a 10 cm grid, so foot height and forward reach are readable
+const grid3 = new THREE.GridHelper(3, 30, 0x66ffcc, 0x445566);
+scene.add(grid3);
+scene.add(model);
+
+// azimuth (radians) per view: 3/4 from the character's front-left, and pure side
+const VIEWS = [{ name: '3/4', a: 0.85 }, { name: 'side', a: Math.PI / 2 }];
+
+// ONE WebGLRenderer for the whole sheet, blitted into a 2D canvas per cell.
+// A renderer-per-cell hits Chrome's ~16 live context cap and silently loses the
+// EARLIEST contexts — which renders the first rows blank white while the last
+// rows look fine. (render_pose.html has the same latent bug; it just never got
+// past 9 cells.)
+const W = 270, H = 340;
+const gl = document.createElement('canvas'); gl.width = W; gl.height = H;
+const renderer = new THREE.WebGLRenderer({ canvas: gl, antialias: true, preserveDrawingBuffer: true });
+renderer.setClearColor(0x2a2e3e);
+
+for (const pose of data.poses) {
+  model.traverse((o) => { if (restLocals[o.name]) o.quaternion.copy(restLocals[o.name]); });
+  if (pose.locals) model.traverse((o) => { const q = pose.locals[o.name]; if (q) o.quaternion.set(q[0], q[1], q[2], q[3]); });
+  model.updateMatrixWorld(true);
+
+  for (const view of VIEWS) {
+    const cell = document.createElement('div'); cell.className = 'cell';
+    const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H;
+    const lbl = document.createElement('div'); lbl.className = 'lbl'; lbl.textContent = pose.label;
+    const vw = document.createElement('div'); vw.className = 'vw'; vw.textContent = view.name;
+    cell.append(canvas, lbl, vw); grid.appendChild(cell);
+
+    // Fixed frame (NOT fit-to-bounds): every cell shares one camera distance so
+    // poses are comparable — a fitted camera silently rescales a sit vs a stand.
+    const cam = new THREE.PerspectiveCamera(30, W / H, 0.05, 60);
+    const d = 3.05, cy = 0.62;
+    cam.position.set(Math.sin(view.a) * d, cy + 0.45, Math.cos(view.a) * d);
+    cam.lookAt(0, cy, 0.05);
+    renderer.render(scene, cam);
+    canvas.getContext('2d').drawImage(gl, 0, 0);
+  }
+}
+document.title = 'RENDER-DONE';
+</script>
+</body>
+</html>

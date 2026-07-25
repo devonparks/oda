@@ -207,11 +207,14 @@ export async function mountExpress(container, opts = {}) {
   const tabs = container.querySelector('#d4ExpressTabs');
   const grid = container.querySelector('#d4ExpressGrid');
   const CAT_ICONS = { greet: '👋', happy: '🎉', dance: '🕺', sporty: '🤸', feelings: '💭', poses: '🧍' };
-  let activeCat = manifest.categories[0].id;
+  // `hidden` categories (the world's `actions` bin — sits, swing pump, fishing)
+  // are library content played by code, never emotes a kid picks off a tab.
+  const pickable = manifest.categories.filter((c) => !c.hidden);
+  let activeCat = pickable[0].id;
 
   function renderTabs() {
     tabs.innerHTML = '';
-    manifest.categories.forEach((c) => {
+    pickable.forEach((c) => {
       const b = document.createElement('button');
       b.className = 'd4x-tab' + (c.id === activeCat ? ' on' : '');
       b.textContent = (CAT_ICONS[c.id] || '🎭') + ' ' + (c.label || c.id);
