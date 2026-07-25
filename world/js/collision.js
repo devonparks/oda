@@ -72,6 +72,10 @@ const COLLISION_RULES = [
   // between the A-frame legs or under the bar. Both rebuilt from the real shell
   // geometry by World._deriveCollision (see SHELL_STRUCTURES).
   [/Env_Fountain_01/i, 'none'],
+  // The gazebo used to be swapped for four posts + a plinth here. The plinth
+  // topped out at ground level, so there was never a deck to step onto — it
+  // is derived from the real shell now, like the rest.
+  [/Env_Gazebo_01/i, 'none'],
   [/Plaground_Swings_01|Playground_Swings_01/i, 'none'],
   [/Tree/i, 'trunk'],                                    // canopy AABB -> trunk
   [/Bush|Hedge|Flower|Grass|Plant/i, 'none'],            // soft foliage, walk through it
@@ -197,6 +201,10 @@ export class CollisionWorld {
 
   /**
    * @param {{c:number[], e:number[], n?:string, derived?:boolean}} b
+   *   `noStand: true` = blocks you, but its top is NOT a surface. See
+   *   World._deriveCollision — a pole sliced into 25 cm boxes is a perfect
+   *   staircase otherwise, and Devon's playtest found exactly that: "you can
+   *   walk up the poles of the swing set, you shouldn't be able to do that."
    *   `derived: true` = this box was already computed FROM real geometry
    *   (World._deriveCollision), so it must skip the name rules below. Those
    *   rules exist to refine the raw Synty export; re-applying them to a derived
@@ -207,21 +215,6 @@ export class CollisionWorld {
   add(b) {
     const name = b.n || '';
     if (b.derived) return this._insert(b, name);
-    // A gazebo is a roof on posts — one solid AABB walls off a shelter you're
-    // supposed to stand inside. Swap it for four corner posts plus a low plinth
-    // you step onto; the roof is above head height so it needs no box at all.
-    if (/Gazebo/i.test(name)) {
-      const inset = 0.32, post = 0.16;
-      const x0 = b.c[0] - b.e[0] + inset, x1 = b.c[0] + b.e[0] - inset;
-      const z0 = b.c[2] - b.e[2] + inset, z1 = b.c[2] + b.e[2] - inset;
-      // child names must NOT contain 'Gazebo' or this branch would recurse
-      for (const [px, pz] of [[x0, z0], [x0, z1], [x1, z0], [x1, z1]]) {
-        this.add({ c: [px, b.c[1], pz], e: [post, b.e[1], post], n: '_shelter_post' });
-      }
-      const floorY = b.c[1] - b.e[1];
-      this.add({ c: [b.c[0], floorY + 0.15, b.c[2]], e: [b.e[0], 0.15, b.e[2]], n: '_shelter_plinth' });
-      return;
-    }
     const rule = collisionRuleFor(name);
     if (rule === 'none') { this.skipped++; return; }
     // A trunk keeps the prop's height (you can't walk through the bole) but
@@ -238,7 +231,7 @@ export class CollisionWorld {
       minX: b.c[0] - ex, maxX: b.c[0] + ex,
       minY: b.c[1] - b.e[1], maxY: b.c[1] + b.e[1],
       minZ: b.c[2] - ez, maxZ: b.c[2] + ez,
-      name,
+      name, noStand: !!b.noStand,
     };
     const i = this.boxes.push(box) - 1;
     const x0 = Math.floor(box.minX / CELL), x1 = Math.floor(box.maxX / CELL);
@@ -294,6 +287,7 @@ export class CollisionWorld {
       const b = this.boxes[i];
       if (x + radius < b.minX || x - radius > b.maxX) continue;
       if (z + radius < b.minZ || z - radius > b.maxZ) continue;
+      if (b.noStand) continue;              // a wall, not a ledge
       if (b.maxY <= fromY + STEP_HEIGHT && b.maxY > best) best = b.maxY;
     }
     return best;

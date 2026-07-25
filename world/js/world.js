@@ -40,6 +40,32 @@ export const QUALITY = {
  */
 const SHELL_STRUCTURES = [
   { match: /Treehouse|Tree_House/i, name: '_treehouse' },
+  /**
+   * STAIRS, everywhere there are any.
+   *
+   * The main playground's steps live in the merged shell, so the ground
+   * heightfield resolves them and dropping their 1 m export cubes was enough.
+   * The corner set by the swings does NOT get that: three Playground_Cover
+   * shade sails (~32 m2 each) blanket that whole corner, and the heightfield
+   * MASKS overhangs so their tops don't become floors — which also erases the
+   * ground and the steps underneath them. Dropping the cubes there left
+   * nothing at all, exactly as Devon found: "the whole slide area has no
+   * collision, you walk right through it… you can't climb up the stairs, and
+   * that's the whole point of it."
+   *
+   * So: derive the real geometry around every stairs box. Where the
+   * heightfield already had it this is harmless duplication of the truth;
+   * where the mask ate it, it is the only collision there is.
+   */
+  { match: /Playground_Stairs/i, name: '_stairs', all: true, pad: 0.7 },
+  /**
+   * The gazebo. collision.js swaps its one 25 m2 box for four corner posts and
+   * a plinth, which lets you walk INSIDE — but the plinth tops out at 0.09,
+   * i.e. the floor, so there was never anything to step up onto. Devon: "a
+   * little pavilion thing… you can't go up it at all, you walk right through
+   * it." The real deck comes off the shell like everything else.
+   */
+  { match: /Env_Gazebo_01/i, name: '_gazebo', pad: 0.25, maxH: 2.6 },
   { match: /Env_Fountain_01/i, name: '_fountain' },
   {
     match: /Swings_01/i, name: '_swingframe',
@@ -249,15 +275,28 @@ export class World {
     if (shellMesh) {
       shellMesh.updateWorldMatrix(true, false);
       const pad = 0.15;
-      const boxOf = (b, p) => new THREE.Box3(
+      /**
+       * @param maxH cap the clip this far above the structure's own base.
+       * A ROOF needs no collision — it is above head height, nothing can reach
+       * it, and deriving it costs boxes AND hands you a walkable ramp to the
+       * top. The gazebo proved both: its roof was 60% of its 413 boxes and a
+       * step-climb sweep strolled up it to y 6.25.
+       */
+      const boxOf = (b, p, maxH) => new THREE.Box3(
         new THREE.Vector3(b.c[0] - b.e[0] - p, b.c[1] - b.e[1] - p, b.c[2] - b.e[2] - p),
-        new THREE.Vector3(b.c[0] + b.e[0] + p, b.c[1] + b.e[1] + p, b.c[2] + b.e[2] + p));
+        new THREE.Vector3(b.c[0] + b.e[0] + p,
+          maxH != null ? b.c[1] - b.e[1] + maxH : b.c[1] + b.e[1] + p,
+          b.c[2] + b.e[2] + p));
       for (const d of SHELL_STRUCTURES) {
-        const raw = collision.find((b) => d.match.test(b.n || ''));
-        if (!raw) continue;
-        this._addStructureCollision(shellMesh.geometry, shellMesh.matrixWorld, d.name, {
-          clip: boxOf(raw, pad),
-          exclude: d.exclude ? d.exclude() : null,
+        const raws = d.all
+          ? collision.filter((b) => d.match.test(b.n || ''))
+          : [collision.find((b) => d.match.test(b.n || ''))].filter(Boolean);
+        raws.forEach((raw, i) => {
+          this._addStructureCollision(shellMesh.geometry, shellMesh.matrixWorld,
+            d.all ? d.name + i : d.name, {
+              clip: boxOf(raw, d.pad != null ? d.pad : pad, d.maxH),
+              exclude: d.exclude ? d.exclude() : null,
+            });
         });
       }
     }
@@ -688,21 +727,32 @@ export class World {
     if (!cells.size) return 0;
 
     // ── 2. greedy-merge each band's cells into rectangles ──
-    let emitted = 0;
+    //
+    // A merged rect narrower than MIN_STAND is a POLE, a rail or a chain — it
+    // blocks you, but its top is not a ledge. Without this, slicing the swing
+    // set's A-frame legs into 25 cm boxes builds a perfect spiral staircase up
+    // each leg, which is what Devon's playtest found: "you can walk up the
+    // poles of the swing set, you shouldn't be able to do that." A real step
+    // merges across the full width of its tread and clears the bar easily.
+    const MIN_STAND = 0.18;                  // m2 of footprint, ~3 cells
+    let emitted = 0, walls = 0;
     for (const [bi, set] of cells) {
       const rects = greedyRects(set);
       const y0 = bi * BAND, y1 = y0 + BAND;
       for (const r of rects) {
         const x0 = r.x0 * CELL, x1 = (r.x1 + 1) * CELL;
         const z0 = r.z0 * CELL, z1 = (r.z1 + 1) * CELL;
+        const noStand = (x1 - x0) * (z1 - z0) < MIN_STAND;
+        if (noStand) walls++;
         this.collision.add({
           c: [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2],
           e: [(x1 - x0) / 2, (y1 - y0) / 2, (z1 - z0) / 2],
-          n: name, derived: true,
+          n: name, derived: true, noStand,
         });
         emitted++;
       }
     }
+    this._lastWalls = walls;
     return emitted;
   }
 
@@ -717,7 +767,9 @@ export class World {
   _addStructureCollision(geo, matrix, name, opts) {
     const t0 = performance.now();
     const n = this._deriveCollision(geo, matrix, name, opts);
-    console.log(`[world] ${name}: ${n} collision boxes from real geometry (${(performance.now() - t0).toFixed(0)}ms)`);
+    console.log(`[world] ${name}: ${n} collision boxes from real geometry `
+      + `(${n - (this._lastWalls || 0)} standable, ${this._lastWalls || 0} wall-only, `
+      + `${(performance.now() - t0).toFixed(0)}ms)`);
     return n;
   }
 

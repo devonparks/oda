@@ -87,8 +87,14 @@ export const BIND_PELVIS_Y = 0.5437;
 export const SEATED_HIP_OFFSET = -0.261;
 /** Pelvis height above the avatar origin, UPRIGHT only. Tilted? See above. */
 export const SEATED_PELVIS_Y = BIND_PELVIS_Y + SEATED_HIP_OFFSET;
-/** Pelvis JOINT to the bottom of the butt. A seat wants the joint this far up. */
-export const BUTT_BELOW_PELVIS = 0.06;
+/**
+ * Pelvis JOINT to the bottom of the butt — how far above a seat the joint goes.
+ * Raised 0.06 -> 0.105 after Devon's playtest: on the swing the kid "kinda
+ * clips with the swing a little bit". The seat plank has real thickness and the
+ * shorts have real volume; 6 cm put the joint close enough that the mesh
+ * intersected the board at the bottom of the arc.
+ */
+export const BUTT_BELOW_PELVIS = 0.105;
 
 /** Gait blend thresholds in m/s — matched to the old clips.js so the walk/run
  *  feel that shipped is preserved exactly. */
