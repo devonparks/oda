@@ -514,6 +514,7 @@ function loop() {
   state.butterflies?.update(dt, t, player.pos);
   state.fishing?.update(dt, player, Math.hypot(intent.move.x, intent.move.y) > 0.1,
     state.activeZone?.id === 'fish');
+  updateHeldVisual(player);
 
   // coins
   const got = world.collectCoins(player.pos.x, player.pos.z, player.pos.y, dt);
@@ -613,6 +614,9 @@ function maybeOnboard() {
     { icon: '🎮', text: touch
         ? 'Walk into a <b>glowing ring</b> and tap it to jump into games.'
         : 'Walk into a <b>glowing ring</b> and press <b>E</b> to jump into games.' },
+    { icon: '🎒', text: touch
+        ? 'Things you find go in the <b>row along the bottom</b>. Tap one to hold it, tap it again to use it.'
+        : 'Things you find go in the <b>row along the bottom</b>. Pick one with <b>1</b>–<b>8</b>, then <b>click</b> to use it.' },
     { icon: '😀', text: 'Tap the <b>😀 button</b> (or press <b>Q</b>) to wave, dance and more. Have fun!' },
   ];
 
@@ -973,6 +977,61 @@ function checkPickups() {
     toast(pk.msg, 'gold');
     sfx('powerup');
     break;                                   // one surprise at a time
+  }
+}
+
+/**
+ * Draw the thing in your hand, in your hand.
+ *
+ * A hotbar that only exists as icons at the bottom of the screen is a menu, not
+ * a possession — the kid has no reason to believe the ball is really theirs
+ * until they can see it swinging along beside them. Code-drawn (a sphere, a
+ * ring), parented to nothing and re-posed from the Hand_R bone every frame, so
+ * it costs two meshes total and works on any of the 16 characters.
+ *
+ * The ROD is deliberately absent: fishing.js already draws and poses one, and
+ * two rods in one hand looks exactly as bad as it sounds.
+ */
+const HELD_VISUALS = {
+  ball: () => new THREE.Mesh(
+    new THREE.SphereGeometry(0.11, 12, 10),
+    new THREE.MeshStandardMaterial({ color: 0xf4f4f4, roughness: 0.75 })),
+  hoop: () => new THREE.Mesh(
+    new THREE.TorusGeometry(0.26, 0.026, 8, 20),
+    new THREE.MeshStandardMaterial({ color: 0xf6c344, roughness: 0.7 })),
+};
+let _heldMesh = null, _heldId = null, _handBone = null, _handOwner = null;
+const _hv = new THREE.Vector3();
+
+function updateHeldVisual(player) {
+  const inv = state.inv;
+  const held = inv && inv.held();
+  // While fishing, the rod IS the held thing and fishing.js owns it.
+  const id = held && !state.fishing?.busy ? held.id : null;
+  const want = id && HELD_VISUALS[id] ? id : null;
+
+  if (want !== _heldId) {
+    if (_heldMesh) { state.world.scene.remove(_heldMesh); _heldMesh.geometry.dispose(); _heldMesh.material.dispose(); _heldMesh = null; }
+    _heldId = want;
+    if (want) { _heldMesh = HELD_VISUALS[want](); state.world.scene.add(_heldMesh); }
+  }
+  if (!_heldMesh) return;
+
+  // re-find the bone after a character swap
+  if (_handOwner !== player.model) { _handOwner = player.model; _handBone = null; }
+  if (!_handBone || !_handBone.parent) {
+    player.model.traverse((o) => { if (!_handBone && o.name === 'Hand_R') _handBone = o; });
+  }
+  if (_handBone) _handBone.getWorldPosition(_hv);
+  else _hv.set(player.pos.x, player.pos.y + 0.9, player.pos.z);
+
+  const fx = Math.sin(player.yaw), fz = Math.cos(player.yaw);
+  if (_heldId === 'hoop') {
+    // carried flat against the side, the way a kid actually carries a hoop
+    _heldMesh.position.set(_hv.x + fx * 0.06, _hv.y - 0.06, _hv.z + fz * 0.06);
+    _heldMesh.rotation.set(0.35, player.yaw, 1.25);
+  } else {
+    _heldMesh.position.set(_hv.x + fx * 0.08, _hv.y - 0.02, _hv.z + fz * 0.08);
   }
 }
 
@@ -1425,6 +1484,12 @@ function bindHud() {
    */
   $('stage').addEventListener('mousedown', (e) => {
     if (e.button !== 0 || state.paused) return;
+    // Only once the mouse is CAPTURED. The first click on the stage is the one
+    // that grabs the pointer for looking around (input.js), and a kid clicking
+    // to take control of the camera must not also fling their ball across the
+    // park. Touch has no pointer lock and no cursor to aim — those players use
+    // the hotbar slot tap instead.
+    if (!document.pointerLockElement) return;
     if (!$('bagModal').classList.contains('hidden')) return;
     if (!$('zoneModal').classList.contains('hidden')) return;
     if (!$('helpModal').classList.contains('hidden')) return;
