@@ -42,7 +42,10 @@ function steer(world, a, tx, tz, speed, dt) {
   const c = world.collision.clampToBounds(nx, nz, 1.2);
   const s = world.collision.resolve(c.x, c.z, a.pos.y, 0.28, 1.4);
   a.pos.x = s.x; a.pos.z = s.z;
-  a.pos.y = world.collision.groundAt(a.pos.x, a.pos.z, a.pos.y + 0.3);
+  let g = world.collision.groundAt(a.pos.x, a.pos.z, a.pos.y + 0.3);
+  const w = world.waterAt && world.waterAt(a.pos.x, a.pos.z);
+  if (w != null) g = Math.max(g, w - 0.55);   // hip-deep cap, same as stepPlayer
+  a.pos.y = g;
   return dist;
 }
 

@@ -179,6 +179,10 @@ export class World {
       ? { x: pond.c[0], z: pond.c[2], r: Math.min(pond.e[0], pond.e[2]) * 0.58, y: pond.c[1] + pond.e[1] }
       : null;
 
+    // ---- ground heightfield (before physics: props settle against it) ----
+    onProgress(0.62, 'Reading the ground…');
+    this._bakeGroundHeightfield(collision);
+
     // ---- physics + ground FX ----
     this.fx = new GroundFX(this.scene);
     this.dynamics = new DynamicProps(this);
@@ -205,6 +209,158 @@ export class World {
     onProgress(1, 'Ready');
     draco.dispose();
     return this;
+  }
+
+  /**
+   * Bake the walkable-ground heightfield on the GPU: one orthographic top-down
+   * render of the park SHELL (terrain + fixed structures, no props/avatars)
+   * through a height-encoding shader, read back once. First-hit-from-above is
+   * exactly "the surface you'd stand on" for terrain, the carved skate bowl,
+   * ramps and stairs — the shapes AABBs fundamentally can't represent.
+   *
+   * Overhangs (tree canopies, the gazebo roof, the swing frame's top bar)
+   * would poison their footprints, so those regions — identified by the
+   * collision export's NAMED boxes — are masked out and inpainted from the
+   * surrounding terrain. A needle pass then flattens any leftover thin
+   * verticals (the perimeter fence has no collision box to mask by).
+   *
+   * Runs once at load (~10 ms). No asset file: it can never drift out of sync
+   * with the real geometry.
+   * @param {Array<{c:number[], e:number[], n:string}>} rawBoxes  the raw
+   *        collision export, BEFORE rules — used only for overhang masks.
+   */
+  _bakeGroundHeightfield(rawBoxes) {
+    const t0 = performance.now();
+    const b = this.collision.bounds;
+    const W = 512, H = 512;
+    const spanX = b.maxX - b.minX, spanZ = b.maxZ - b.minZ;
+    const stepX = spanX / (W - 1), stepZ = spanZ / (H - 1);
+
+    // Height → 16-bit fixed point over R,G. y ∈ [-5, 20], ~0.4 mm resolution.
+    const mat = new THREE.ShaderMaterial({
+      vertexShader:
+        'varying float vY;\n' +
+        'void main() { vec4 wp = modelMatrix * vec4(position, 1.0); vY = wp.y;\n' +
+        '  gl_Position = projectionMatrix * viewMatrix * wp; }',
+      fragmentShader:
+        'varying float vY;\n' +
+        'void main() { float n = clamp((vY + 5.0) / 25.0, 0.0, 1.0);\n' +
+        '  float v = floor(n * 65535.0 + 0.5); float hi = floor(v / 256.0);\n' +
+        '  gl_FragColor = vec4(hi / 255.0, (v - hi * 256.0) / 255.0, 0.0, 1.0); }',
+      side: THREE.DoubleSide,
+    });
+
+    // Straight down, up = -Z: image columns run minX→maxX, rows run maxZ→minZ
+    // (flipped back during decode below).
+    const cam = new THREE.OrthographicCamera(-spanX / 2, spanX / 2, spanZ / 2, -spanZ / 2, 0.5, 60);
+    cam.position.set((b.minX + b.maxX) / 2, 40, (b.minZ + b.maxZ) / 2);
+    cam.up.set(0, 0, -1);
+    cam.lookAt(cam.position.x, 0, cam.position.z);
+    cam.updateMatrixWorld(true);
+
+    const rt = new THREE.WebGLRenderTarget(W, H);
+    const tmp = new THREE.Scene();
+    tmp.overrideMaterial = mat;
+    tmp.add(this.shell);                      // reparents out of this.scene
+    const prevTarget = this.renderer.getRenderTarget();
+    const prevColor = this.renderer.getClearColor(new THREE.Color());
+    const prevAlpha = this.renderer.getClearAlpha();
+    this.renderer.setClearColor(0x000000, 1); // no-hit decodes to -5 (out of world)
+    this.renderer.setRenderTarget(rt);
+    this.renderer.render(tmp, cam);
+    const px = new Uint8Array(W * H * 4);
+    this.renderer.readRenderTargetPixels(rt, 0, 0, W, H, px);
+    this.renderer.setRenderTarget(prevTarget);
+    this.renderer.setClearColor(prevColor, prevAlpha);
+    this.scene.add(this.shell);               // put the park back
+    rt.dispose();
+    mat.dispose();
+
+    // Decode. readPixels row 0 is the image BOTTOM = NDC -1 = world maxZ, so
+    // flip rows to make data[row][col] run minZ→maxZ like heightAt expects.
+    const data = new Float32Array(W * H);
+    for (let r = 0; r < H; r++) {
+      const src = r * W, dst = (H - 1 - r) * W;
+      for (let c = 0; c < W; c++) {
+        const j = (src + c) * 4;
+        data[dst + c] = ((px[j] * 256 + px[j + 1]) / 65535) * 25 - 5;
+      }
+    }
+
+    // ── holes to inpaint: no-hit texels (outside the terrain skirt — left as
+    //    -5 they'd poison every later min() against a neighbour) + overhang
+    //    footprints (canopies/roofs would put their tops underfoot) ──
+    for (let i = 0; i < W * H; i++) if (data[i] < -4.5) data[i] = NaN;
+    const MASK = /Tree|Bush|Gazebo|Swings|Playground_Cover|Playground_Roof|Track_Ride|Kite|Umbrella|Tent|Fountain_Water/i;
+    const PAD = 0.35;
+    for (const box of rawBoxes) {
+      if (!MASK.test(box.n || '')) continue;
+      const x0 = Math.max(0, Math.floor((box.c[0] - box.e[0] - PAD - b.minX) / stepX));
+      const x1 = Math.min(W - 1, Math.ceil((box.c[0] + box.e[0] + PAD - b.minX) / stepX));
+      const z0 = Math.max(0, Math.floor((box.c[2] - box.e[2] - PAD - b.minZ) / stepZ));
+      const z1 = Math.min(H - 1, Math.ceil((box.c[2] + box.e[2] + PAD - b.minZ) / stepZ));
+      for (let r = z0; r <= z1; r++) for (let c = x0; c <= x1; c++) data[r * W + c] = NaN;
+    }
+    // Diffusion inpaint: masked texels take the average of known neighbours,
+    // growing inward one texel per pass. Terrain under a canopy is smooth lawn,
+    // so this is the right reconstruction, not just a cheap one.
+    let holes = [];
+    for (let i = 0; i < W * H; i++) if (Number.isNaN(data[i])) holes.push(i);
+    for (let pass = 0; pass < 80 && holes.length; pass++) {
+      const next = [];
+      for (const i of holes) {
+        let sum = 0, n = 0;
+        const l = data[i - 1], rr = data[i + 1], u = data[i - W], dn = data[i + W];
+        if (l === l) { sum += l; n++; }
+        if (rr === rr) { sum += rr; n++; }
+        if (u === u) { sum += u; n++; }
+        if (dn === dn) { sum += dn; n++; }
+        if (n) data[i] = sum / n; else next.push(i);
+      }
+      holes = next;
+    }
+    for (const i of holes) data[i] = 0;        // fully sealed region: flat ground
+
+    // ── needle pass: flatten thin verticals with no mask (fence lines) ──
+    // Anything a big step above ALL its neighbours is a wall texel, not
+    // ground. MUST compare against a read-only snapshot: writing in place
+    // while scanning lets one low texel cascade across the whole row (the -5
+    // border once flooded the entire map to -5 exactly this way).
+    for (let pass = 0; pass < 2; pass++) {
+      const snap = data.slice();
+      for (let r = 1; r < H - 1; r++) {
+        for (let c = 1; c < W - 1; c++) {
+          const i = r * W + c;
+          const m = Math.min(snap[i - 1], snap[i + 1], snap[i - W], snap[i + W]);
+          if (snap[i] - m > 2.0) data[i] = m;
+        }
+      }
+    }
+
+    // ── pond dish: the capture sees the water SURFACE; carve a wading depth
+    //    so kids sink hip-deep (stepPlayer clamps standing depth to match) ──
+    if (this.water) {
+      const w = this.water, rr = w.r + 0.3, bed = w.y - 0.62;
+      const x0 = Math.max(0, Math.floor((w.x - rr - b.minX) / stepX));
+      const x1 = Math.min(W - 1, Math.ceil((w.x + rr - b.minX) / stepX));
+      const z0 = Math.max(0, Math.floor((w.z - rr - b.minZ) / stepZ));
+      const z1 = Math.min(H - 1, Math.ceil((w.z + rr - b.minZ) / stepZ));
+      for (let r = z0; r <= z1; r++) {
+        for (let c = x0; c <= x1; c++) {
+          const px2 = b.minX + c * stepX, pz2 = b.minZ + r * stepZ;
+          if (Math.hypot(px2 - w.x, pz2 - w.z) <= rr) {
+            const i = r * W + c;
+            if (data[i] > bed) data[i] = bed;
+          }
+        }
+      }
+    }
+
+    this.collision.setHeightfield({ data, w: W, h: H, minX: b.minX, minZ: b.minZ, stepX, stepZ });
+    console.log(`[world] heightfield ${W}x${H} baked in ${(performance.now() - t0).toFixed(1)}ms`,
+      'probes:', 'spawn', this.collision.heightAt(4, 14).toFixed(2),
+      'bowl', this.collision.heightAt(14.4, 25).toFixed(2),
+      'pond', this.collision.heightAt(21, 0).toFixed(2));
   }
 
   _placeProps(protos, layout) {
@@ -382,8 +538,10 @@ export class World {
     avatar.pos.x = solved.x;
     avatar.pos.z = solved.z;
 
-    // vertical
-    const ground = this.collision.groundAt(avatar.pos.x, avatar.pos.z, avatar.pos.y);
+    // vertical. The pond bed is real terrain now (heightfield dish) — cap how
+    // deep a kid stands so water reads hip-deep, never over-the-head.
+    let ground = this.collision.groundAt(avatar.pos.x, avatar.pos.z, avatar.pos.y);
+    if (water != null) ground = Math.max(ground, water - 0.55);
     if (intent.jump && avatar.grounded) { avatar.vel.y = JUMP; avatar.grounded = false; }
     avatar.vel.y += GRAVITY * dt;
     avatar.pos.y += avatar.vel.y * dt;

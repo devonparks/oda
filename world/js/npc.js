@@ -243,8 +243,12 @@ export class NpcCrowd {
         }
       }
 
-      // ground follow
-      a.pos.y = this.world.collision.groundAt(a.pos.x, a.pos.z, a.pos.y + 0.3);
+      // ground follow (same hip-deep wading cap as stepPlayer — the pond bed
+      // is real terrain now and would otherwise swallow a kid whole)
+      let g = this.world.collision.groundAt(a.pos.x, a.pos.z, a.pos.y + 0.3);
+      const wtr = this.world.waterAt && this.world.waterAt(a.pos.x, a.pos.z);
+      if (wtr != null) g = Math.max(g, wtr - 0.55);
+      a.pos.y = g;
 
       // a friendly wave when a player walks past (once per pass), or an
       // occasional idle emote so the park has little bursts of life

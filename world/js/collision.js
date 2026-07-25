@@ -43,11 +43,21 @@ const COLLISION_RULES = [
   // waterline so wading never triggered. The individual rock clusters are the
   // Rocks_02/03/04 boxes; the ring AABB adds nothing but that phantom floor.
   [/Pond_Rocks_01/i, 'none'],
+  // The pond box itself: its top IS the water surface, so as a solid it's an
+  // invisible floor at the waterline — kids stood ON the water. The
+  // heightfield's dish + the hip-deep clamp in stepPlayer own the pond now.
+  [/Park_Pond(?!_Rocks)/i, 'none'],
   [/Tree/i, 'trunk'],                                    // canopy AABB -> trunk
   [/Bush|Hedge|Flower|Grass|Plant/i, 'none'],            // soft foliage, walk through it
   [/Coin|Gem|Star/i, 'none'],                            // pickups must never block
   [/Rocker_Top|_Top_|Canopy|Awning|Umbrella/i, 'none'],  // roofs/tops, same canopy trap
   [/Plush|Toy|Stick|Pogo|Bike|Trike|Pram|Jumping|Soapbox|Ball/i, 'none'], // kid clutter
+  // The skate park is CARVED INTO the terrain (bowl floor y≈-1). Its renderer
+  // bounds put a phantom lid at rim height over every depression — you floated
+  // across the bowl instead of walking down into it. The heightfield is the
+  // truth for all carved/sloped skate surfaces; only the low walls and grind
+  // boxes stay solid (they really do block you, and you can jump onto them).
+  [/SkatePark_(?!Wall|Rail_Box)/i, 'none'],
 ];
 
 /** @returns {'solid'|'trunk'|'none'} */
@@ -63,7 +73,63 @@ export class CollisionWorld {
     this.bounds = { minX: -60, maxX: 60, minZ: -60, maxZ: 60 };
     this.skipped = 0;               // boxes dropped by a 'none' rule, for __world.stats()
     this._nearShared = new Set();   // reused by the per-frame hot paths, see nearShared()
+    this.hf = null;                 // ground heightfield, see setHeightfield()
     for (const b of boxes) this.add(b);
+  }
+
+  /**
+   * Ground heightfield: real terrain height per texel (GPU-baked from the park
+   * shell at load, see World._bakeGroundHeightfield). Replaces the old flat
+   * y=0 ground plane so carved terrain — the skate bowl, ramps, the pond dish —
+   * actually exists underfoot. Boxes still provide walls and prop tops.
+   * @param {{data:Float32Array, w:number, h:number, minX:number, minZ:number,
+   *          stepX:number, stepZ:number}} hf
+   */
+  setHeightfield(hf) { this.hf = hf; }
+
+  /** Raw bilinear terrain height (no step gating). 0 without a heightfield. */
+  heightAt(x, z) {
+    const hf = this.hf;
+    if (!hf) return 0;
+    let u = (x - hf.minX) / hf.stepX;
+    let v = (z - hf.minZ) / hf.stepZ;
+    u = Math.max(0, Math.min(hf.w - 1.001, u));
+    v = Math.max(0, Math.min(hf.h - 1.001, v));
+    const x0 = u | 0, z0 = v | 0, fx = u - x0, fz = v - z0;
+    const d = hf.data, i = z0 * hf.w + x0;
+    const h00 = d[i], h10 = d[i + 1], h01 = d[i + hf.w], h11 = d[i + hf.w + 1];
+    return (h00 * (1 - fx) + h10 * fx) * (1 - fz) + (h01 * (1 - fx) + h11 * fx) * fz;
+  }
+
+  /**
+   * Terrain height for someone standing at fromY, cliff-safe. Bilinear blends
+   * across height cliffs (a grind box top beside the bowl floor) smear high
+   * values into neighbouring texels; naive sampling would levitate a player
+   * standing next to one. So corners above the step gate are dropped: all four
+   * pass → smooth bilinear (slopes, stairs); some pass → the lowest passing
+   * corner (conservative, never lifts); none pass → fromY (inside geometry,
+   * resolves as you fall or walk out).
+   */
+  _hfGroundAt(x, z, fromY) {
+    const hf = this.hf;
+    if (!hf) return 0;
+    const gate = fromY + STEP_HEIGHT;
+    let u = (x - hf.minX) / hf.stepX;
+    let v = (z - hf.minZ) / hf.stepZ;
+    u = Math.max(0, Math.min(hf.w - 1.001, u));
+    v = Math.max(0, Math.min(hf.h - 1.001, v));
+    const x0 = u | 0, z0 = v | 0, fx = u - x0, fz = v - z0;
+    const d = hf.data, i = z0 * hf.w + x0;
+    const h00 = d[i], h10 = d[i + 1], h01 = d[i + hf.w], h11 = d[i + hf.w + 1];
+    if (h00 <= gate && h10 <= gate && h01 <= gate && h11 <= gate) {
+      return (h00 * (1 - fx) + h10 * fx) * (1 - fz) + (h01 * (1 - fx) + h11 * fx) * fz;
+    }
+    let best = Infinity;
+    if (h00 <= gate && h00 < best) best = h00;
+    if (h10 <= gate && h10 < best) best = h10;
+    if (h01 <= gate && h01 < best) best = h01;
+    if (h11 <= gate && h11 < best) best = h11;
+    return best === Infinity ? fromY : best;
   }
 
   static key(cx, cz) { return cx * 100000 + cz; }
@@ -146,7 +212,7 @@ export class CollisionWorld {
    * you can't teleport onto a roof you happen to be standing under.
    */
   groundAt(x, z, fromY, radius = 0.28) {
-    let best = 0;
+    let best = this.hf ? this._hfGroundAt(x, z, fromY) : 0;
     for (const i of this.nearShared(x, z, radius)) {
       const b = this.boxes[i];
       if (x + radius < b.minX || x - radius > b.maxX) continue;
