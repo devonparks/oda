@@ -13,7 +13,7 @@
  * slides work without a single hand-placed coordinate.
  */
 import * as THREE from 'three';
-import { getEmoteLibraryV2 } from './rig_v2.js';
+import { getEmoteLibraryV2, BIND_PELVIS_Y, SEATED_HIP_OFFSET, BUTT_BELOW_PELVIS } from './rig_v2.js';
 
 const _va = new THREE.Vector3();
 const _vb = new THREE.Vector3();
@@ -30,7 +30,19 @@ const CARVE = {              // seats + chains live here; legs and bar do not
   minY: 0.18, maxY: 2.06,
   minZ: FRAME.z - 0.8, maxZ: FRAME.z + 0.8,
 };
-const SWING_FREQ = 2.35;     // rad/s — pendulum feel for L≈1.6
+/**
+ * The swing's frequency is the PENDULUM's, derived from its own chain length,
+ * not a hand-picked feel number. w = sqrt(g/L). With L = 1.61 that is 2.47
+ * rad/s (the old hand-tuned 2.35 was 5% slow). It matters because the kid's
+ * pose is now driven off this same phase — a swing running at one rate and a
+ * body running at another is exactly the "two different systems" mismatch.
+ */
+const SWING_FREQ = Math.sqrt(9.81 / SWING_L);
+/** Amplitude a full-effort pump settles at — the pose blend's 100% mark. */
+const PUMP_AMP = 0.88;
+/** Where an un-pumped swing coasts down to — the pose blend's 0% mark, so
+ *  coasting is the calm grip-the-chains sit and not a fraction of a pump. */
+const COAST_AMP = 0.30;
 const SLIDE_TIME = 1.15;     // s top→exit
 
 export class Rides {
@@ -138,7 +150,7 @@ export class Rides {
       const d = Math.abs(player.pos.x - s.pivot.x);
       if (d < best) { best = d; seat = s; }
     }
-    this.active = { kind: 'swing', seat, phase: 0, amp: 0.22, pumping: false };
+    this.active = { kind: 'swing', seat, phase: 0, amp: 0.22 };
     player.playAction('sit_swing');
     this.state.presence?.broadcast({ emote: 'sit_swing' });
     return 'Pump with W · jump off with Space!';
@@ -148,37 +160,48 @@ export class Rides {
     const a = this.active, s = a.seat;
     a.phase += dt * SWING_FREQ;
     const pumping = Math.abs(intent.move.y) > 0.3;
-    const target = pumping ? 0.88 : 0.3;
+    const target = pumping ? PUMP_AMP : COAST_AMP;
     a.amp += Math.max(-dt * 0.10, Math.min(dt * 0.26, target - a.amp));
     const ang = Math.sin(a.phase) * a.amp;
     s.group.rotation.x = ang;
-    // The pump is a real baked cycle, driven off the SWING's phase rather than
-    // dt: legs kick out at the back of the arc and tuck at the front, in time,
-    // because that is the only way a pump reads as a pump. Sitting still while
-    // coasting falls back to the grip-the-chains idle.
-    if (pumping !== a.pumping) {
-      a.pumping = pumping;
-      player.playAction(pumping ? 'swing_pump' : 'sit_swing');
-      this.state.presence?.broadcast({ emote: pumping ? 'swing_pump' : 'sit_swing' });
-    }
-    if (pumping) {
-      // u = phase/2pi makes the clip's own sin(2*pi*u) equal sin(phase) exactly:
-      // legs shoot out at the BACK of the arc (max +ang, the kid faces +Z so
-      // +ang is behind them) and tuck at the front. That is how a pump works,
-      // and being a quarter-cycle off makes it look like flailing.
-      const dur = player.rig.emote?.info?.dur || 1.2;
-      player.rig.setEmoteTime?.('swing_pump', (a.phase / (Math.PI * 2)) * dur);
-    }
+
+    // ── ONE SYSTEM ────────────────────────────────────────────────────────────
+    // Devon: "the angle and the speed the character is swinging isn't the same
+    // as the actual swing — make it one system instead of two."
+    //
+    // So the kid's pose is not an animation that happens to run alongside the
+    // swing; it is a FUNCTION of the swing's own state. Two couplings do it:
+    //
+    //   PHASE — u = phase/2pi makes the pump clip's own sin(2*pi*u) equal
+    //   sin(phase) exactly, so the legs shoot out at the BACK of the arc (max
+    //   +ang; the kid faces +Z, so +ang is behind them) and tuck at the front.
+    //   Set every frame, never free-running.
+    //
+    //   AMPLITUDE — the pump is blended over the calm grip-the-chains sit by
+    //   amp/PUMP_AMP. Before, the clip threw its legs out at full stretch while
+    //   the swing was still rocking gently, because the pose had no idea how
+    //   hard the swing was actually going. Now a gentle sway IS a gentle pose
+    //   and they arrive at full throw together.
+    const dur = player.rig.overlay?.info?.dur || 1.2;
+    player.rig.setEmoteTime?.('swing_pump', (a.phase / (Math.PI * 2)) * dur);
+    player.rig.setOverlay?.('swing_pump', (a.amp - COAST_AMP) / (PUMP_AMP - COAST_AMP));
+
     // Where rotation.x REALLY puts the seat: child (0,-L,0) rotated about X
     // lands at z = -L·sin. The old +L·sin put the KID mirror-opposite the
     // seat — "swinging and crossing each other like pendulums" (Devon).
     const py = s.pivot.y - Math.cos(ang) * SWING_L;
     const pz = s.pivot.z - Math.sin(ang) * SWING_L;
-    // 0.42 unchanged from the frozen-squat days on purpose: the baked sits carry
-    // hipY = -0.26, so a seated pelvis sits 0.28 above the avatar origin —
-    // exactly where the squat's frozen pelvis was. Every offset tuned against
-    // the old pose still lands.
-    player.pos.set(s.pivot.x, py - 0.42, pz);
+    // Put the kid's PELVIS on the seat, not their feet near it — solved for THIS
+    // tilt, so the kid rides the plank instead of drifting off it as the arc
+    // grows. The avatar rotates about its own origin, but the seated clip's hip
+    // drop is applied along WORLD up (see SEATED_HIP_OFFSET), so the two parts
+    // decompose differently:
+    //   pelvis = pos + R(ang)·(0, BIND_PELVIS_Y, 0) + (0, SEATED_HIP_OFFSET, 0)
+    // Solving that for pos, with the pelvis joint sitting BUTT above the plank.
+    player.pos.set(
+      s.pivot.x,
+      py + BUTT_BELOW_PELVIS - BIND_PELVIS_Y * Math.cos(ang) - SEATED_HIP_OFFSET,
+      pz - BIND_PELVIS_Y * Math.sin(ang));
     player.yaw = player.targetYaw = 0;          // swing plane faces +Z
     player.tilt = ang;                          // lean with the chains
     player.speed = 0; player.vel.y = 0; player.grounded = true;
@@ -189,6 +212,7 @@ export class Rides {
   }
 
   _dismountSwing(player, a, ang) {
+    player.rig.setOverlay?.(null, 0);
     const dAng = Math.cos(a.phase) * a.amp * SWING_FREQ;   // dθ/dt
     const v = -dAng * SWING_L;                             // seat z = -L·sin(θ), so dz/dt is NEGATIVE dθ
     player.tilt = 0;

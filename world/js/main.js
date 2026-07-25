@@ -17,7 +17,7 @@ import { Input } from './input.js';
 import { Presence, MAX_RENDERED } from './presence.js';
 import { EMOTES, EMOTE_IDS } from './animator.js';
 import { getEmoteLibrary } from './emotes.js';
-import { getEmoteLibraryV2, getLocomotionV2 } from './rig_v2.js';
+import { getEmoteLibraryV2, getLocomotionV2, SEATED_PELVIS_Y } from './rig_v2.js';
 import { PHRASE_GROUPS, PHRASES, renderPhrase, safeName } from './chat.js';
 import { ZONES, ACTIVITIES, SPAWN, nearestZone, gamesForZone } from './zones.js';
 import { NpcCrowd } from './npc.js';
@@ -732,7 +732,7 @@ function sitDown(seat) {
   // The kid is NOT stood on the seat: nothing here goes through the step gate
   // (stepPlayer is skipped while seated), so the old "feet at the front edge"
   // workaround for the bench's collision box is no longer needed.
-  const PELVIS_ABOVE_ORIGIN = 0.283;
+  const PELVIS_ABOVE_ORIGIN = SEATED_PELVIS_Y;   // upright, so the simple form
   const fx = Math.sin(seat.yaw), fz = Math.cos(seat.yaw);
   const sx = seat.x + fx * 0.06, sz = seat.z + fz * 0.06;
   const g = state.world.collision.heightAt(sx, sz);

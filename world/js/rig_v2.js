@@ -62,6 +62,34 @@ const Q16 = 1 / 32767;     // int16 -> unit quaternion component
 const HIP_MM = 0.001;      // int16 millimetres -> metres
 const LEG_START = 14;      // bones 0 (hips) + 14..21 are the lower body
 
+/**
+ * Where a SEATED baked clip puts the pelvis, in metres above the avatar origin.
+ *
+ * The rig's bind pelvis is 0.5437 up and the seated clips carry hipY -0.261
+ * (see tools/world/unity/AMGActionBaker.cs), so 0.283. Anything placing a kid
+ * on a seat needs this to land the pelvis on the plank instead of guessing —
+ * benches, swings, the seesaw, the kart.
+ */
+export const BIND_PELVIS_Y = 0.5437;
+/**
+ * The seated clips' baked hip offset. CRITICAL: update() applies this along
+ * WORLD up (see step 4 — it un-rotates the parent so the pelvis always drops
+ * vertically), NOT along the model's own up. So for an UPRIGHT kid the pelvis
+ * is simply BIND_PELVIS_Y + SEATED_HIP_OFFSET, but for a TILTED one — a kid on
+ * a swing at the top of its arc — the two parts rotate differently:
+ *
+ *   pelvis = origin + R(tilt)·(0, BIND_PELVIS_Y, 0) + (0, SEATED_HIP_OFFSET, 0)
+ *
+ * Treating the whole 0.283 as one rotating offset drifts the pelvis up to 25 cm
+ * off the seat at full swing — measured, and exactly the kind of "the character
+ * isn't tied to the swing" mismatch this pass exists to kill.
+ */
+export const SEATED_HIP_OFFSET = -0.261;
+/** Pelvis height above the avatar origin, UPRIGHT only. Tilted? See above. */
+export const SEATED_PELVIS_Y = BIND_PELVIS_Y + SEATED_HIP_OFFSET;
+/** Pelvis JOINT to the bottom of the butt. A seat wants the joint this far up. */
+export const BUTT_BELOW_PELVIS = 0.06;
+
 /** Gait blend thresholds in m/s — matched to the old clips.js so the walk/run
  *  feel that shipped is preserved exactly. */
 const GAIT = { walk: 1.6, run: 3.4 };
@@ -95,6 +123,7 @@ export function getLocomotionV2() {
 const _q = new THREE.Quaternion();
 const _acc = new THREE.Quaternion();
 const _e = new THREE.Quaternion();
+const _e2 = new THREE.Quaternion();
 const _wq = new THREE.Quaternion();
 const _ws = new THREE.Vector3();
 const _up = new THREE.Vector3();
@@ -166,6 +195,17 @@ export class RigV2 {
 
     // emote channel
     this.emote = null;     // { info, data:Int16Array, t }
+    /**
+     * A SECOND clip blended over the emote channel. Exists for one reason: a
+     * pose whose INTENSITY is driven by the world. The swing is the case —
+     * a kid barely moving on a gentle sway and a kid pumping flat-out are the
+     * same pose at two amplitudes, and the swing's own amplitude is what picks
+     * between them. Without this, the pump plays at full throw while the swing
+     * is still rocking gently, which is precisely the "two different systems"
+     * mismatch Devon called out.
+     */
+    this.overlay = null;   // { info, data, t }
+    this.overlayW = 0;     // 0 = pure emote, 1 = pure overlay
     this.emWeight = 0;
     this.legWeight = 1;    // 1 = full-body emote (standing), 0 = upper-body only
     this._tIdle = Math.random() * 2;   // desync many kids on screen (idle phase)
@@ -207,7 +247,32 @@ export class RigV2 {
     return true;
   }
   play(id) { return this.playEmote(id); }
-  stopEmote() { this.emote = null; }
+  stopEmote() { this.emote = null; this.overlay = null; this.overlayW = 0; }
+
+  /**
+   * Blend `id` over whatever the emote channel is playing, at `weight` (0..1).
+   * Call every frame; pass weight 0 (or null id) to drop it. Fire-and-forget.
+   */
+  setOverlay(id, weight) {
+    this.overlayW = clamp(weight || 0, 0, 1);
+    if (!id || this.overlayW <= 0.001) { this.overlay = null; this._ovWant = null; return; }
+    if (this.overlay && this.overlay.info.id === id) return;   // sync fast path
+    if (this._ovWant === id) return;                           // load in flight
+    this._ovWant = id;
+    this._loadOverlay(id);
+  }
+
+  /** Called at most once per id; setOverlay's hot path allocates nothing. */
+  async _loadOverlay(id) {
+    const lib = this.emlib || (this.emlib = await getEmoteLibraryV2());
+    if (!lib || this._ovWant !== id || this._disposed) return;
+    const info = lib.info(id);
+    if (!info) return;
+    let data = lib.data.get(info.cat);
+    if (!data) { try { data = await lib.loadCategory(info.cat); } catch (e) { return; } }
+    if (this._ovWant !== id || this._disposed) return;
+    this.overlay = { info, data, t: 0 };
+  }
 
   /**
    * Drive the emote playhead from outside instead of from dt.
@@ -218,8 +283,9 @@ export class RigV2 {
    * scripted beat) can do the same. No-op if that clip isn't the one playing.
    */
   setEmoteTime(id, t) {
-    const em = this.emote;
-    if (!em || em.info.id !== id) return false;
+    const em = this.emote && this.emote.info.id === id ? this.emote
+      : (this.overlay && this.overlay.info.id === id ? this.overlay : null);
+    if (!em) return false;
     const dur = em.info.dur || 1;
     em.t = ((t % dur) + dur) % dur;
     em.driven = true;
@@ -228,6 +294,7 @@ export class RigV2 {
 
   /** True once `id` is the clip actually playing (not still fetching its bin). */
   isEmote(id) { return !!this.emote && this.emote.info.id === id; }
+  hasOverlay(id) { return !!this.overlay && this.overlay.info.id === id; }
 
   /**
    * @param {number} dt
@@ -316,6 +383,13 @@ export class RigV2 {
     if (!em) this.emWeight += (0 - this.emWeight) * ek;
     if (em) emBase = emInfo.off >> 1;
     const emFps = this.emlib ? this.emlib.fps : 20;
+    const ov = this.overlay;
+    if (ov) {
+      if (ov.driven) ov.driven = false; else ov.t += dt;
+      if (ov.t > ov.info.dur) ov.t %= ov.info.dur;
+    }
+    const ovW = ov ? this.overlayW : 0;
+    const ovBase = ov ? ov.info.off >> 1 : 0;
 
     // ── 3. compose per bone: locomotion blend, emote slerped over ──
     for (let b = 0; b < nb; b++) {
@@ -338,6 +412,10 @@ export class RigV2 {
         const w = (b === 0 || b >= LEG_START) ? this.emWeight * this.legWeight : this.emWeight;
         if (w > 0.002) {
           sampleAbs(em.data, emBase, nb, emInfo.frames, !!emInfo.hold, em.t, emFps, b, _e);
+          if (ovW > 0.002) {
+            sampleAbs(ov.data, ovBase, nb, ov.info.frames, !!ov.info.hold, ov.t, emFps, b, _e2);
+            _e.slerp(_e2, ovW);
+          }
           _acc.slerp(_e, w);
         }
       }
@@ -348,7 +426,11 @@ export class RigV2 {
     let hip = 0;
     for (const name of active) hip += sampleHip(loco.bin, loco.clips[name].off >> 1, nb, loco.clips[name].frames, loco.clips[name].loop, this.t[name], fps) * (this.w[name] / total);
     if (em) {
-      const emHip = sampleHip(em.data, emBase, nb, emInfo.frames, !!emInfo.hold, em.t, emFps);
+      let emHip = sampleHip(em.data, emBase, nb, emInfo.frames, !!emInfo.hold, em.t, emFps);
+      if (ovW > 0.002) {
+        const oHip = sampleHip(ov.data, ovBase, nb, ov.info.frames, !!ov.info.hold, ov.t, emFps);
+        emHip = emHip * (1 - ovW) + oHip * ovW;
+      }
       const hw = this.emWeight * this.legWeight;
       hip = hip * (1 - hw) + emHip * hw;
     }
@@ -360,5 +442,5 @@ export class RigV2 {
     }
   }
 
-  dispose() { this._disposed = true; this.emote = null; }
+  dispose() { this._disposed = true; this.emote = null; this.overlay = null; }
 }
