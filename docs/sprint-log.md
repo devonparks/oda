@@ -1,5 +1,34 @@
 # Sprint Log
 
+## 2026-07-25 (late night, cont.) — playtest 5: slides by walking, treehouse roof
+
+Two calls from Devon, both right, both cheap.
+
+**Slides lost their prompt.** "The most ideal situation would be to get rid of
+the prompt to slide down. You go up the stairs, then you go to the top of the
+slide, press W, and it just triggers the slide animation." Walk within a metre
+of a chute's mouth, at its height, facing down it, actually moving → you go.
+It's *less* code than the prompt was.
+
+That also answers the other half of his report — "the slide doesn't have any
+collision" — **without giving the chute any**. A slide you can walk on is a
+ramp. The chute stays non-solid (its AABB wraps the whole diagonal, so as a
+solid it's an invisible lid you land on) and the mouth catches you before you
+reach the place where it isn't. The prompt used to sit at the EXIT because back
+then the top was unreachable; it's reachable now, so that marker had no job.
+
+Measured: all four chutes auto-start from their platform and ride to the exit
+height, and it does **not** fire when walking away from a mouth or standing
+still on one.
+
+**The treehouse roof is no longer standable.** He climbed it, went first person,
+and found "it's really not even that much room up there because the tree is in
+the way… it's like I'm standing on top of it." Measured: the deck is **1.4 m²**
+of balcony with the trunk straight through the middle, while the roof is **7.2**
+— so the biggest surface up there was the one you're not meant to be on.
+Clipped out (same `maxH` the gazebo uses). Small balcony, but it's what the prop
+actually is.
+
 ## 2026-07-25 (late night, cont.) — playtest 4: interiors, first person, a real climb
 
 Devon: "the hardest part is the tight spaces… you can't go into any interior…
