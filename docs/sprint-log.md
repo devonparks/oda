@@ -68,6 +68,40 @@ never steps there — real Chrome is the only way to check this.
 Open: the seesaw plank's low end can dip a foot below ground (it did with the
 squat too, 26 cm worse); the hula's arms could sit wider.
 
+### Same session — the pirate ship opens up, and what the climbing block needs
+
+`38de31c` fixed the specific blocker: the Playground_Ship export box ran from
+the ground to the **mast tip**, one 3.3 m solid, so nothing about it was
+climbable. `World._addShipDecks` now reads the real hull/deck/castle/mast off
+the prop's vertices (deck 1.25, castle 2.15, mast 3.05) and the raw box is
+dropped. Verified by running at it with W+Shift+Space and landing on the deck.
+
+**The numbers the rest of the climbing block needs, so nobody re-derives them:**
+
+- Jump is `JUMP 5.4`, `GRAVITY -19` → **apex 0.767 m**, and `STEP_HEIGHT` is
+  0.55, so a jump lands you on anything up to **1.32 m** above where you took
+  off. That is why the main playground's decks (heightfield reads 1.1–1.3 at
+  x 0..3, z -3..1) are already reachable and the ship's deck now is too.
+- The main playground IS in the shell, so its decks exist in the ground
+  heightfield. The ship is a PROP, so it never was — that asymmetry is the
+  whole reason the ship needed geometry surgery and the playground didn't.
+- Slide tops: Slide_04/03 1.46, Slide_01 2.46, Slide_05 3.20. The two tall ones
+  are more than one jump above the 1.3 decks, so **moving the slide prompts to
+  the tops before there is a real climb would strand them** — do the climb
+  first, in Devon's original order.
+- The tyre wall is a single box `x[6.1,6.4] y[-0.10,2.47] z[-0.6,2.1]` — a thin
+  2.5 m slab, the natural first climb surface. Monkey bars exist as a prop too
+  (`SM_Prop_Playground_Monkey_Bars_01`).
+- **Crouch is free now.** `Synty/AnimationBaseLocomotion` has real
+  `A_Stand_ToCrouch`, `A_Idle_Crouching`, `A_Crouch_ToStand` and four
+  `A_Shuffle_Crouching_*` clips on the Polygon rig, and the Unity export route
+  proved this session reaches any of the 816 clips in those packs. Add them to
+  `AMGActionBaker.CLIPS` as SOURCE clips (sample instead of authoring) and they
+  fall out of the same bake. No authoring, no purchase.
+- A climb wants the same shape as the slide ride: a scripted path (rides.js
+  `_updateSlide` is the template) plus an authored `climb` loop, rather than
+  anything that teleports.
+
 ## 2026-07-25 (day) — AMG World: the playtest-fix marathon (all deployed live)
 
 Devon's first live playtest found the map "not rendered right" — poles flat,
