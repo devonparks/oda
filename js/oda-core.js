@@ -1708,4 +1708,112 @@ window.odaWinEffect = (function() {
   } catch (e) { /* storage blocked — leave Back alone */ }
 })();
 
-console.log('[ODA] Core loaded v1.9');
+/**
+ * AMG Player Card — the calling-card + emblem system (docs/AMG_HUB_ECOSYSTEM.md §3).
+ *
+ * ONE shared renderer for "who is this kid" everywhere it appears: the profile
+ * modal, the shop loadout, and (as each game gets its quality overhaul) the
+ * leaderboards. A card composes: calling-card banner (code-drawn CSS, no image
+ * assets) + emblem stamp + avatar/character portrait + border + colored name +
+ * title. Data comes straight from students/{id}.equipped — no new collections.
+ *
+ * Styles are injected once by this module (same pattern as odaShop), so ANY
+ * page that loads oda-core.js can render cards with zero extra <link>s.
+ */
+window.odaPlayerCard = (function () {
+  var STYLES_ID = 'odaCardStyles';
+
+  /** Calling-card banner styles. Key = the `style` field on shop items. */
+  var CSS = ''
+    + '.amg-card{position:relative;display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.14);min-height:64px}'
+    + '.amg-card-bg{position:absolute;inset:0;z-index:0}'
+    + '.amg-card>*{position:relative;z-index:1}'
+    + '.amg-card-avatar{width:44px;height:44px;border-radius:50%;background:rgba(10,14,26,0.55);display:flex;align-items:center;justify-content:center;font-size:24px;flex:none;overflow:hidden}'
+    + '.amg-card-avatar img{width:100%;height:100%;object-fit:cover;transform:scale(1.35);transform-origin:50% 15%}'
+    + '.amg-card-name{font-family:Fredoka,sans-serif;font-weight:700;font-size:16px;color:#eef2ff;text-shadow:0 1px 3px rgba(0,0,0,0.55);line-height:1.15}'
+    + '.amg-card-title{font-size:11px;font-weight:600;color:rgba(238,242,255,0.85);text-shadow:0 1px 2px rgba(0,0,0,0.5)}'
+    + '.amg-card-emblem{margin-left:auto;font-size:24px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.55));flex:none}'
+    + '.amg-card.cc-none .amg-card-bg{background:linear-gradient(120deg,#141a2e,#1c2440)}'
+    // commons — clean gradients
+    + '.cc-sunset .amg-card-bg{background:linear-gradient(120deg,#7c2d12,#ea580c 55%,#fbbf24)}'
+    + '.cc-ocean .amg-card-bg{background:linear-gradient(120deg,#0c2a4d,#0369a1 55%,#22d3ee)}'
+    + '.cc-forest .amg-card-bg{background:linear-gradient(120deg,#14321f,#15803d 55%,#84cc16)}'
+    + '.cc-grape .amg-card-bg{background:linear-gradient(120deg,#3b0764,#7e22ce 55%,#e879f9)}'
+    // rares — patterns
+    + '.cc-stripes .amg-card-bg{background:repeating-linear-gradient(-55deg,#1d4ed8 0 14px,#172554 14px 28px)}'
+    + '.cc-dots .amg-card-bg{background:#7f1d1d;background-image:radial-gradient(rgba(255,255,255,0.28) 2.5px,transparent 3px);background-size:16px 16px}'
+    + '.cc-circuit .amg-card-bg{background:#052e2b;background-image:linear-gradient(rgba(6,214,160,0.28) 1px,transparent 1px),linear-gradient(90deg,rgba(6,214,160,0.28) 1px,transparent 1px);background-size:14px 14px}'
+    + '.cc-wave .amg-card-bg{background:#0b2545;background-image:radial-gradient(ellipse 120% 40% at 50% 110%,#2563eb 0%,transparent 60%),radial-gradient(ellipse 120% 40% at 50% 135%,#22d3ee 0%,transparent 60%)}'
+    // epics — animated
+    + '@keyframes ccSweep{0%{background-position:0% 50%}100%{background-position:200% 50%}}'
+    + '.cc-aurora .amg-card-bg{background:linear-gradient(110deg,#0f172a,#065f46,#1e40af,#5b21b6,#0f172a);background-size:300% 100%;animation:ccSweep 7s linear infinite}'
+    + '.cc-lava .amg-card-bg{background:linear-gradient(110deg,#450a0a,#dc2626,#f97316,#dc2626,#450a0a);background-size:300% 100%;animation:ccSweep 5s linear infinite}'
+    + '@keyframes ccDrift{0%{background-position:0 0}100%{background-position:64px 32px}}'
+    + '.cc-starfield .amg-card-bg{background:#0b1026;background-image:radial-gradient(rgba(255,255,255,0.9) 1px,transparent 1.6px),radial-gradient(rgba(148,163,255,0.7) 1px,transparent 1.6px);background-size:32px 32px,48px 48px;background-position:0 0,10px 18px;animation:ccDrift 14s linear infinite}'
+    + '.cc-neongrid .amg-card-bg{background:#170b2e;background-image:linear-gradient(rgba(236,72,253,0.4) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,0.4) 1px,transparent 1px);background-size:18px 18px;animation:ccDrift 8s linear infinite}'
+    // legendaries — premium animated
+    + '@keyframes ccShimmer{0%{transform:translateX(-120%)}100%{transform:translateX(220%)}}'
+    + '.cc-royal .amg-card-bg{background:linear-gradient(120deg,#3f2d04,#b45309 45%,#fbbf24 55%,#b45309 65%,#3f2d04)}'
+    + '.cc-royal .amg-card-bg::after{content:"";position:absolute;top:0;bottom:0;width:45%;background:linear-gradient(100deg,transparent,rgba(255,255,240,0.55),transparent);animation:ccShimmer 3.2s ease-in-out infinite}'
+    + '@keyframes ccPulse{0%,100%{opacity:0.5}50%{opacity:1}}'
+    + '.cc-void .amg-card-bg{background:radial-gradient(ellipse at 30% 50%,#312e81 0%,#0b0716 60%)}'
+    + '.cc-void .amg-card-bg::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 70% 50%,rgba(168,85,247,0.5) 0%,transparent 55%);animation:ccPulse 4s ease-in-out infinite}'
+    + '.cc-prisma .amg-card-bg{background:linear-gradient(110deg,#ef4444,#f97316,#fbbf24,#22c55e,#3b82f6,#a855f7,#ef4444);background-size:300% 100%;animation:ccSweep 4s linear infinite}'
+    // achievement-locked
+    + '.cc-champion .amg-card-bg{background:linear-gradient(120deg,#052e16,#15803d 45%,#fbbf24)}'
+    + '.cc-champion .amg-card-bg::after{content:"";position:absolute;top:0;bottom:0;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,0.35),transparent);animation:ccShimmer 4s ease-in-out infinite}'
+    + '.cc-dedicated .amg-card-bg{background:repeating-linear-gradient(45deg,#1e1b4b 0 18px,#312e81 18px 36px)}';
+
+  function injectStyles() {
+    if (document.getElementById(STYLES_ID)) return;
+    var s = document.createElement('style');
+    s.id = STYLES_ID;
+    s.textContent = CSS;
+    document.head.appendChild(s);
+  }
+
+  /**
+   * Render a player card into `el`.
+   * @param {HTMLElement|string} el   element or id
+   * @param {object} p  { name, equipped: { callingCard, emblem, avatar,
+   *                     character, border, nameColor, title } }
+   */
+  function render(el, p) {
+    injectStyles();
+    if (typeof el === 'string') el = document.getElementById(el);
+    if (!el || !p) return;
+    var eq = p.equipped || {};
+    var esc = window.esc || function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+
+    var ccStyle = (eq.callingCard && eq.callingCard.style) ? 'cc-' + eq.callingCard.style : 'cc-none';
+    var avatarHtml = (eq.character && eq.character.thumb)
+      ? '<img src="' + esc(eq.character.thumb) + '" alt="">'
+      : esc((eq.avatar && eq.avatar.emoji) || '\u{1F464}');
+    var borderCss = (eq.border && eq.border.value && eq.border.value !== 'none') ? 'box-shadow:' + eq.border.value : '';
+
+    var nameStyle = '';
+    var nameClass = '';
+    if (eq.nameColor && eq.nameColor.value) {
+      if (eq.nameColor.type === 'gradient' || eq.nameColor.type === 'animated-gradient') {
+        nameStyle = 'background:' + eq.nameColor.value + ';-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;background-size:200% 100%';
+        if (eq.nameColor.type === 'animated-gradient') nameClass = ' animated-gradient';
+      } else {
+        nameStyle = 'color:' + eq.nameColor.value;
+      }
+    }
+
+    el.innerHTML = '<div class="amg-card ' + ccStyle + '">'
+      + '<div class="amg-card-bg"></div>'
+      + '<div class="amg-card-avatar" style="' + borderCss + '">' + avatarHtml + '</div>'
+      + '<div>'
+      + '<div class="amg-card-name' + nameClass + '" style="' + nameStyle + '">' + esc(p.name || 'Player') + '</div>'
+      + (eq.title && eq.title.value ? '<div class="amg-card-title">' + esc(eq.title.value) + '</div>' : '')
+      + '</div>'
+      + (eq.emblem && eq.emblem.emoji ? '<div class="amg-card-emblem">' + esc(eq.emblem.emoji) + '</div>' : '')
+      + '</div>';
+  }
+
+  return { render: render, injectStyles: injectStyles };
+})();
+
+console.log('[ODA] Core loaded v2.0');

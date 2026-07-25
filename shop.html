@@ -30,15 +30,9 @@
     </div>
   </div>
 
-  <!-- LOADOUT PREVIEW -->
+  <!-- LOADOUT PREVIEW — the shared AMG player card (odaPlayerCard) IS the preview -->
   <div class="loadout-preview" id="loadoutPreview" aria-label="Your equipped cosmetics">
-    <div class="loadout-avatar-wrap" id="loadoutBorderWrap">
-      <div class="loadout-avatar" id="loadoutAvatar">&#x1F464;</div>
-    </div>
-    <div class="loadout-info">
-      <div class="loadout-name" id="loadoutName">Player</div>
-      <div class="loadout-title" id="loadoutTitle"></div>
-    </div>
+    <div id="loadoutCardWrap" style="flex:1 1 280px;min-width:240px"></div>
     <div class="loadout-badges">
       <span class="loadout-badge" id="loadoutEffectBadge">&#x2728; Confetti</span>
     </div>
@@ -54,6 +48,8 @@
   <!-- Board Themes + Piece Skins moved to in-game shops -->
   <button class="shop-tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="panel-chatBubbles" id="tab-chatBubbles" onclick="switchShopTab('chatBubbles')" onkeydown="shopTabKeyNav(event)">&#x1F4AC; Bubbles</button>
   <button class="shop-tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="panel-profileBackgrounds" id="tab-profileBackgrounds" onclick="switchShopTab('profileBackgrounds')" onkeydown="shopTabKeyNav(event)">&#x1F5BC;&#xFE0F; Backgrounds</button>
+  <button class="shop-tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="panel-callingCards" id="tab-callingCards" onclick="switchShopTab('callingCards')" onkeydown="shopTabKeyNav(event)">&#x1FAAA; Cards</button>
+  <button class="shop-tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="panel-emblems" id="tab-emblems" onclick="switchShopTab('emblems')" onkeydown="shopTabKeyNav(event)">&#x1F396;&#xFE0F; Emblems</button>
   <button class="shop-tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="panel-winEffects" id="tab-winEffects" onclick="switchShopTab('winEffects')" onkeydown="shopTabKeyNav(event)">&#x1F386; Effects</button>
   <button class="shop-tab" role="tab" tabindex="-1" aria-selected="false" aria-controls="panel-achievements" id="tab-achievements" onclick="switchShopTab('achievements')" onkeydown="shopTabKeyNav(event)">&#x1F3C6; Achievements</button>
 </nav>
@@ -66,6 +62,8 @@
 <!-- Board Themes + Piece Skins panels moved to in-game shops -->
 <div id="panel-chatBubbles" class="shop-panel" role="tabpanel" aria-labelledby="tab-chatBubbles"></div>
 <div id="panel-profileBackgrounds" class="shop-panel" role="tabpanel" aria-labelledby="tab-profileBackgrounds"></div>
+<div id="panel-callingCards" class="shop-panel" role="tabpanel" aria-labelledby="tab-callingCards"></div>
+<div id="panel-emblems" class="shop-panel" role="tabpanel" aria-labelledby="tab-emblems"></div>
 <div id="panel-winEffects" class="shop-panel" role="tabpanel" aria-labelledby="tab-winEffects"></div>
 <div id="panel-achievements" class="shop-panel" role="tabpanel" aria-labelledby="tab-achievements"></div>
 
@@ -307,6 +305,51 @@ const CATALOG = [
   // Legendary
   { id:'bg_matrix_rain', name:'Matrix Rain', rarity:'legendary', cost:10000, category:'profileBackgrounds', style:'matrix-rain', emoji:'💚' },
 
+  // ---- CALLING CARDS (banner behind your player card — CoD-style) ----
+  // Common
+  { id:'cc_sunset', name:'Sunset', rarity:'common', cost:150, category:'callingCards', style:'sunset' },
+  { id:'cc_ocean', name:'Deep Ocean', rarity:'common', cost:150, category:'callingCards', style:'ocean' },
+  { id:'cc_forest', name:'Forest', rarity:'common', cost:150, category:'callingCards', style:'forest' },
+  { id:'cc_grape', name:'Grape Soda', rarity:'common', cost:150, category:'callingCards', style:'grape' },
+  // Rare
+  { id:'cc_stripes', name:'Racing Stripes', rarity:'rare', cost:400, category:'callingCards', style:'stripes' },
+  { id:'cc_dots', name:'Arcade Dots', rarity:'rare', cost:400, category:'callingCards', style:'dots' },
+  { id:'cc_circuit', name:'Circuit Board', rarity:'rare', cost:400, category:'callingCards', style:'circuit' },
+  { id:'cc_wave', name:'Night Wave', rarity:'rare', cost:400, category:'callingCards', style:'wave' },
+  // Epic
+  { id:'cc_aurora', name:'Aurora', rarity:'epic', cost:2000, category:'callingCards', style:'aurora' },
+  { id:'cc_lava', name:'Lava Flow', rarity:'epic', cost:2000, category:'callingCards', style:'lava' },
+  { id:'cc_starfield', name:'Starfield', rarity:'epic', cost:2000, category:'callingCards', style:'starfield' },
+  { id:'cc_neongrid', name:'Neon Grid', rarity:'epic', cost:2000, category:'callingCards', style:'neongrid' },
+  // Legendary
+  { id:'cc_royal', name:'Royal Gold', rarity:'legendary', cost:8000, category:'callingCards', style:'royal' },
+  { id:'cc_void', name:'The Void', rarity:'legendary', cost:8000, category:'callingCards', style:'void' },
+  { id:'cc_prisma', name:'Prisma', rarity:'legendary', cost:8000, category:'callingCards', style:'prisma' },
+  // Achievement-locked (never buyable)
+  { id:'cc_champion', name:'Century Champion', rarity:'legendary', cost:0, category:'callingCards', style:'champion', achievement:'ach_win_100' },
+  { id:'cc_dedicated', name:'Dedicated', rarity:'epic', cost:0, category:'callingCards', style:'dedicated', achievement:'ach_play_100' },
+
+  // ---- EMBLEMS (small stamp on your card, separate from your avatar) ----
+  // Common
+  { id:'emblem_fire', name:'Flame', rarity:'common', cost:100, category:'emblems', emoji:'🔥' },
+  { id:'emblem_bolt', name:'Bolt', rarity:'common', cost:100, category:'emblems', emoji:'⚡' },
+  { id:'emblem_star', name:'Star', rarity:'common', cost:100, category:'emblems', emoji:'🌟' },
+  { id:'emblem_target', name:'Bullseye', rarity:'common', cost:100, category:'emblems', emoji:'🎯' },
+  { id:'emblem_clover', name:'Lucky Clover', rarity:'common', cost:100, category:'emblems', emoji:'🍀' },
+  // Rare
+  { id:'emblem_shark', name:'Shark', rarity:'rare', cost:350, category:'emblems', emoji:'🦈' },
+  { id:'emblem_dragon', name:'Dragon', rarity:'rare', cost:350, category:'emblems', emoji:'🐉' },
+  { id:'emblem_invader', name:'Invader', rarity:'rare', cost:350, category:'emblems', emoji:'👾' },
+  { id:'emblem_rocket', name:'Rocket', rarity:'rare', cost:350, category:'emblems', emoji:'🚀' },
+  // Epic
+  { id:'emblem_rainbow', name:'Rainbow', rarity:'epic', cost:1500, category:'emblems', emoji:'🌈' },
+  { id:'emblem_gem', name:'Gem', rarity:'epic', cost:1500, category:'emblems', emoji:'💎' },
+  // Legendary
+  { id:'emblem_goat', name:'The GOAT', rarity:'legendary', cost:6000, category:'emblems', emoji:'🐐' },
+  // Achievement-locked
+  { id:'emblem_trophy', name:'Victor', rarity:'legendary', cost:0, category:'emblems', emoji:'🏆', achievement:'ach_tourney_win' },
+  { id:'emblem_brain', name:'Galaxy Brain', rarity:'epic', cost:0, category:'emblems', emoji:'🧠', achievement:'ach_ai_master' },
+
   // ---- BOARD THEMES ----
   // Epic
   { id:'theme_neon', name:'Neon', rarity:'epic', cost:2000, category:'boardThemes', vars:{'--board-dark':'#0a1628','--board-light':'#162040','--board-accent':'#06d6a0','--board-glow':'0 0 15px rgba(6,214,160,0.3)'} },
@@ -389,6 +432,9 @@ let playerEquipped = {
   title: { id:'title_none', value:'' },
   chatBubble: null,
   profileBackground: null,
+  callingCard: null,
+  emblem: null,
+  character: null,
   boardTheme: null,
   pieceSkin: null,
   winEffect: { id:'effect_confetti', type:'confetti' }
@@ -419,6 +465,9 @@ async function init() {
           title: eq.title || playerEquipped.title,
           chatBubble: eq.chatBubble || null,
           profileBackground: eq.profileBackground || null,
+          callingCard: eq.callingCard || null,
+          emblem: eq.emblem || null,
+          character: eq.character || null,
           boardTheme: eq.boardTheme || null,
           pieceSkin: eq.pieceSkin || null,
           winEffect: eq.winEffect || playerEquipped.winEffect
@@ -441,6 +490,9 @@ async function init() {
             title: data.equipped.title || playerEquipped.title,
             chatBubble: data.equipped.chatBubble || null,
             profileBackground: data.equipped.profileBackground || null,
+            callingCard: data.equipped.callingCard || null,
+            emblem: data.equipped.emblem || null,
+            character: data.equipped.character || null,
             boardTheme: data.equipped.boardTheme || null,
             pieceSkin: data.equipped.pieceSkin || null,
             winEffect: data.equipped.winEffect || playerEquipped.winEffect
@@ -468,59 +520,10 @@ function updateCoinDisplay() {
    Loadout preview
    ============================================ */
 function updateLoadoutPreview() {
-  // Avatar
-  const avatarEl = document.getElementById('loadoutAvatar');
-  avatarEl.textContent = playerEquipped.avatar.emoji || '👤';
-
-  // Border
-  const borderWrap = document.getElementById('loadoutBorderWrap');
-  if (playerEquipped.border && playerEquipped.border.value && playerEquipped.border.value !== 'none') {
-    borderWrap.style.boxShadow = playerEquipped.border.value;
-    // Add animation class
-    borderWrap.className = 'loadout-avatar-wrap';
-    const borderItem = CATALOG.find(i => i.id === playerEquipped.border.id);
-    if (borderItem && borderItem.animation) {
-      borderWrap.classList.add('border-anim-' + borderItem.animation);
-    }
-  } else {
-    borderWrap.style.boxShadow = 'none';
-    borderWrap.className = 'loadout-avatar-wrap';
-  }
-
-  // Name + color
-  const nameEl = document.getElementById('loadoutName');
-  nameEl.textContent = studentName;
-  const nc = playerEquipped.nameColor;
-  if (nc && nc.value) {
-    const colorItem = CATALOG.find(i => i.id === nc.id);
-    if (colorItem && (colorItem.type === 'gradient' || colorItem.type === 'animated-gradient')) {
-      nameEl.style.background = nc.value;
-      nameEl.style.webkitBackgroundClip = 'text';
-      nameEl.style.webkitTextFillColor = 'transparent';
-      nameEl.style.backgroundClip = 'text';
-      nameEl.style.backgroundSize = '200% 100%';
-      if (colorItem.type === 'animated-gradient') {
-        nameEl.classList.add('animated-gradient');
-      } else {
-        nameEl.classList.remove('animated-gradient');
-      }
-    } else {
-      nameEl.style.background = 'none';
-      nameEl.style.webkitBackgroundClip = 'unset';
-      nameEl.style.webkitTextFillColor = nc.value;
-      nameEl.style.backgroundClip = 'unset';
-      nameEl.classList.remove('animated-gradient');
-    }
-  }
-
-  // Title
-  const titleEl = document.getElementById('loadoutTitle');
-  if (playerEquipped.title && playerEquipped.title.value) {
-    titleEl.textContent = playerEquipped.title.value;
-    titleEl.style.display = '';
-  } else {
-    titleEl.textContent = '';
-    titleEl.style.display = 'none';
+  // The loadout IS the shared AMG player card — the exact card other kids see
+  // on leaderboards. One renderer everywhere (js/oda-core.js odaPlayerCard).
+  if (window.odaPlayerCard) {
+    odaPlayerCard.render('loadoutCardWrap', { name: studentName, equipped: playerEquipped });
   }
 
   // Badge: board theme
@@ -580,6 +583,7 @@ window.switchShopTab = function(tab) {
 const CATEGORY_NAMES = {
   avatars:'Avatars', nameColors:'Name Colors', borders:'Borders', titles:'Titles',
   chatBubbles:'Chat Bubbles', profileBackgrounds:'Profile Backgrounds',
+  callingCards:'Calling Cards', emblems:'Emblems',
   boardThemes:'Board Themes', pieceSkins:'Piece Skins', winEffects:'Win Effects', achievements:'Achievements'
 };
 
@@ -684,6 +688,14 @@ function buildItemCard(item) {
     case 'winEffects':
       preview = '<div class="item-preview-effect">' + (EFFECT_EMOJIS[item.type] || '✨') + '</div>';
       break;
+    case 'callingCards':
+      // live mini banner — the real CSS the card uses, at card-tile scale
+      if (window.odaPlayerCard) odaPlayerCard.injectStyles();
+      preview = '<div class="amg-card cc-' + esc(item.style) + '" style="min-height:44px;padding:0;width:100%"><div class="amg-card-bg"></div></div>';
+      break;
+    case 'emblems':
+      preview = '<div class="item-preview-emoji">' + item.emoji + '</div>';
+      break;
   }
 
   // Status badge
@@ -751,6 +763,8 @@ function isEquipped(item) {
     case 'titles': return playerEquipped.title && playerEquipped.title.id === item.id;
     case 'chatBubbles': return playerEquipped.chatBubble && playerEquipped.chatBubble.id === item.id;
     case 'profileBackgrounds': return playerEquipped.profileBackground && playerEquipped.profileBackground.id === item.id;
+    case 'callingCards': return playerEquipped.callingCard && playerEquipped.callingCard.id === item.id;
+    case 'emblems': return playerEquipped.emblem && playerEquipped.emblem.id === item.id;
     case 'boardThemes': return playerEquipped.boardTheme && playerEquipped.boardTheme.id === item.id;
     case 'pieceSkins': return playerEquipped.pieceSkin && playerEquipped.pieceSkin.id === item.id;
     case 'winEffects': return playerEquipped.winEffect && playerEquipped.winEffect.id === item.id;
@@ -777,7 +791,7 @@ window.handleItemClick = function(itemId) {
 
   if (equipped) {
     // Allow unequipping for optional slots
-    if (['titles','chatBubbles','profileBackgrounds','boardThemes','pieceSkins'].includes(item.category)) {
+    if (['titles','chatBubbles','profileBackgrounds','callingCards','emblems','boardThemes','pieceSkins'].includes(item.category)) {
       unequipItem(item);
     } else {
       odaToast('Already equipped!', 'info');
@@ -816,6 +830,8 @@ function openConfirmModal(item) {
   else if (item.category === 'titles') iconHtml = '🏷️';
   else if (item.category === 'chatBubbles') iconHtml = '💬';
   else if (item.category === 'profileBackgrounds') iconHtml = item.emoji || '🖼️';
+  else if (item.category === 'callingCards') iconHtml = '🪪';
+  else if (item.category === 'emblems') iconHtml = item.emoji || '🎖️';
   else if (item.category === 'boardThemes') iconHtml = '♟️';
   else if (item.category === 'pieceSkins') iconHtml = '⚫';
   else if (item.category === 'winEffects') iconHtml = EFFECT_EMOJIS[item.type] || '✨';
@@ -924,6 +940,14 @@ async function equipItem(item, skipToast) {
       playerEquipped.profileBackground = { id: item.id, style: item.style };
       equipData = { 'equipped.profileBackground': playerEquipped.profileBackground };
       break;
+    case 'callingCards':
+      playerEquipped.callingCard = { id: item.id, style: item.style };
+      equipData = { 'equipped.callingCard': playerEquipped.callingCard };
+      break;
+    case 'emblems':
+      playerEquipped.emblem = { id: item.id, emoji: item.emoji };
+      equipData = { 'equipped.emblem': playerEquipped.emblem };
+      break;
     case 'boardThemes':
       playerEquipped.boardTheme = { id: item.id, vars: item.vars };
       equipData = { 'equipped.boardTheme': playerEquipped.boardTheme };
@@ -971,6 +995,14 @@ async function unequipItem(item) {
     case 'profileBackgrounds':
       playerEquipped.profileBackground = null;
       equipData = { 'equipped.profileBackground': null };
+      break;
+    case 'callingCards':
+      playerEquipped.callingCard = null;
+      equipData = { 'equipped.callingCard': null };
+      break;
+    case 'emblems':
+      playerEquipped.emblem = null;
+      equipData = { 'equipped.emblem': null };
       break;
     case 'boardThemes':
       playerEquipped.boardTheme = null;

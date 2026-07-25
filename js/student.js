@@ -1001,6 +1001,22 @@ function openProfileCard() {
     bgLayer.classList.add('bg-' + eq.profileBackground.style);
   }
 
+  // Calling-card banner + emblem (shop 'Cards'/'Emblems' — CSS lives in
+  // oda-core's odaPlayerCard style block, shared with every card surface)
+  var ccBanner = document.getElementById('profileCcBanner');
+  if (ccBanner) {
+    if (window.odaPlayerCard) odaPlayerCard.injectStyles();
+    if (eq.callingCard && eq.callingCard.style) {
+      ccBanner.className = 'profile-cc-banner cc-' + eq.callingCard.style;
+      ccBanner.style.display = '';
+    } else {
+      ccBanner.className = 'profile-cc-banner';
+      ccBanner.style.display = 'none';
+    }
+    var embEl = document.getElementById('profileCcEmblem');
+    if (embEl) embEl.textContent = (eq.emblem && eq.emblem.emoji) ? eq.emblem.emoji : '';
+  }
+
   // Stats — Level + XP
   var xpVal = d.xp || 0;
   var lvlInfo = window.odaXP ? window.odaXP.getLevel(xpVal) : { level: 1, title: 'Rookie', xpProgress: 0, xpForNext: 50 };
