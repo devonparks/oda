@@ -1,5 +1,33 @@
 # Sprint Log
 
+## 2026-07-25 (deep night) — 3PT Showdown: your character takes the shots
+
+Devon: "research Basketball Stars, then make 3PT as good as it — with the
+characters doing the shooting." Research first (shooting race: perfect-power
+tick, ON FIRE at 3 straight = bonus points until a miss, bank = risky
+overshoot band that pays more, money balls, 60s), then the pass (`b42ce84`):
+
+- **The equipped AMG kid shoots.** Same Polygon Kid as the 3D world, loaded
+  from character.html's amgCharacterId mirror, driven by the SHARED RigV2
+  player: Synty idle while aiming, charge crouch on the meter, the real JUMP
+  clip as the jump shot, ball held in the actual Hand_R bone (flight launches
+  from the hand). Reactions via the 58-emote system: fistpump/amped on hot
+  makes, facepalm on bricks. Capsule-person kept as placeholder/fallback.
+- **rig_v2.setAssetBase()** — the world's rig player now works from ANY hub
+  page (fetches resolve per-page). This is the pattern every game overhaul
+  will use to put the kid on screen. First cross-page consumer proven live.
+- **ON FIRE**: 3 straight → double points until a miss, ember trail + emissive
+  ball + HUD banner. **Bank = 4** (> swish 3, gold bank 8) per the research —
+  the purple band is the risky one; BANK! popups (BANK_TEXTS finally used).
+
+Verified through the real mode flow (kidReady/rigOk/handBone true cross-page,
+bank delta 4, fire swish delta 8 = (3+1)x2, miss extinguishes, no errors).
+Jump-shot MOTION needs a composited frame — Devon's first play test will be
+the eyes; everything under it is the world-proven rig machinery.
+
+Same night, earlier: ecosystem discovery + name audit + AMG_HUB_ECOSYSTEM.md +
+calling cards/emblems/odaPlayerCard (see entry below).
+
 ## 2026-07-24 (late night) — Ecosystem: discovery, name audit, calling cards & emblems
 
 Devon: "figure out the whole ecosystem… two-tier shop… calling cards and
