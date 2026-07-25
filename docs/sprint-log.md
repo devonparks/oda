@@ -1,5 +1,39 @@
 # Sprint Log
 
+## 2026-07-25 (late night, cont.) — playtest round 3: poles, the corner, the pavilion
+
+Devon walked the park again. Four findings, all fixed and deployed (`462cec9`):
+
+- **"You can walk up the poles of the swing set."** Deriving collision slices
+  geometry into 25 cm boxes, which turns a slanted A-frame leg into a perfect
+  spiral staircase. Derived rects under **0.18 m² of footprint are now
+  wall-only** — they block, but `groundAt` won't offer their top as a ledge. A
+  real step merges across its whole tread and clears the bar easily. Sweep at
+  the swing: y 0.25 (the ground) instead of climbing the frame.
+- **"The whole slide area has no collision at all… you can't climb up the
+  stairs, and that's the whole point of it."** This one was mine. The corner
+  playground's stairs live in the shell, so dropping the 1 m `Stairs_01` cubes
+  should have left the heightfield in charge — as it does for the main
+  playground. But three `Playground_Cover` shade sails (~32 m² each) blanket
+  that corner, and the heightfield **masks overhangs**, which also erases the
+  steps beneath them. Dropping the cubes left nothing at all. Now the real
+  geometry is derived around **every** stairs box: duplication of the truth
+  where the heightfield already had it, the only collision there is where the
+  mask ate it. Sweep: 0 → **y 2.0**, so you climb up and slide down.
+- **"A little pavilion thing… you can't go up it at all."** collision.js swapped
+  the gazebo's 25 m² box for four posts and a plinth — but the plinth topped out
+  at 0.09, i.e. the floor, so there was never a deck. Derived now: **16.9 m² of
+  standable deck at y 1.0**. Its ROOF is deliberately not derived (new `maxH`
+  clip) — a roof is above head height and unreachable, so deriving it only cost
+  boxes and handed out a walkable ramp to the top (the sweep strolled to 6.25).
+  Clipping at 2.6 m fixed that and cut 413 boxes to 211.
+- **The kid clipped into the swing seat.** Pelvis joint now rides 0.105 above
+  the plank rather than 0.06 — the plank has thickness and the shorts volume.
+
+No regressions: treehouse still 4.5, main stairs 3.25, ship 3.0, all 12
+activities pass. 1397 boxes; `resolve()` 21.5 µs in the densest spot, 0.4 µs on
+open ground.
+
 ## 2026-07-25 (late night) — AMG World: the collision sweep, the hotbar, the UI
 
 Devon: "keep going on the collision and engine stuff and then I want to add the
