@@ -168,11 +168,13 @@ function encodeClip(clip) {
 // Order is the bin's layout order; `hold` marks a looping clip (RigV2 wraps the
 // playhead and holds the channel open until stopEmote()).
 const ORDER = ['sit', 'sit_swing', 'swing_pump', 'slide_ride', 'sit_kart',
-  'sit_seesaw', 'sit_rocker', 'hula', 'fish_cast', 'fish_wait', 'fish_reel'];
+  'sit_seesaw', 'sit_rocker', 'hula', 'fish_cast', 'fish_wait', 'fish_reel',
+  'climb', 'climb_top'];
 const ICONS = {
   sit: '\u{1FA91}', sit_swing: '\u{1F4BA}', swing_pump: '\u{1F4BA}', slide_ride: '\u{1F6DD}',
   sit_kart: '\u{1F3CE}️', sit_seesaw: '⚖️', sit_rocker: '\u{1F40E}',
   hula: '⭕', fish_cast: '\u{1F3A3}', fish_wait: '\u{1F41F}', fish_reel: '\u{1F41F}',
+  climb: '\u{1F9D7}', climb_top: '\u{1F9D7}',
 };
 
 const OUT_DIR = P('assets', 'characters', 'emotes');
@@ -323,7 +325,7 @@ if (process.argv[2] === 'verify') {
     let worst = 0;
     for (const id of SEATED) for (let f = 0; f < info[id].frames; f++) worst = Math.max(worst, Math.abs(hipOf(id, f) + 0.261));
     chk('seated clips carry the -0.261 pelvis drop (rides.js offsets depend on it)', worst < 0.03, `max deviation ${worst.toFixed(3)} m`);
-    const standing = ['hula', 'fish_cast', 'fish_wait', 'fish_reel'];
+    const standing = ['hula', 'fish_cast', 'fish_wait', 'fish_reel', 'climb_top'];
     let stand = 0;
     for (const id of standing) for (let f = 0; f < info[id].frames; f++) stand = Math.max(stand, Math.abs(hipOf(id, f)));
     chk('standing clips keep the pelvis at standing height', stand < 0.05, `max |hipY| ${stand.toFixed(3)} m`);

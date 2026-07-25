@@ -98,6 +98,8 @@ public static class AMGActionBaker
         new Spec("fish_cast",   22, false, "Cast"),          // wind up over the shoulder, whip, settle
         new Spec("fish_wait",   50, true,  "Waiting"),       // rod out, watching the bobber
         new Spec("fish_reel",   24, true,  "Reeling"),       // left hand cranking the reel
+        new Spec("climb",       28, true,  "Climbing"),      // hand over hand up a ladder
+        new Spec("climb_top",   20, false, "Topping out"),   // the last heave onto the deck
     };
 
     // ── the pose a single frame resolves to ──────────────────────────────────
@@ -160,6 +162,8 @@ public static class AMGActionBaker
     {
         switch (id)
         {
+            case "climb": return 0f;
+            case "climb_top": return 0f;
             case "sit": return 1.00f;
             case "sit_swing": return 0.70f;
             case "sit_kart": return 0.55f;
@@ -363,6 +367,57 @@ public static class AMGActionBaker
                 p.poleR = new Vector3(0.75f, -0.60f, -0.28f);
                 p.hipY = 0.016f * Mathf.Sin(Tau(u) * 2f);
                 break;
+
+            // ── climbing ─────────────────────────────────────────────────────
+            // Hand over hand, opposite arm and leg together, hips close to the
+            // rungs. Devon: the treehouse "has to actually be a separate
+            // climbing animation" — you should not be able to stroll up a
+            // ladder, and this is what plays instead.
+            case "climb":
+                {
+                    float c2 = Mathf.Cos(Tau(u)), s2 = Mathf.Sin(Tau(u));
+                    p.pelvis = new Vector3(0.05f * s2, 1f, 0.16f).normalized;   // chest to the wall
+                    p.spine1 = new Vector3(0.04f * s2, 1f, 0.10f).normalized;
+                    p.spine2 = new Vector3(0.02f * s2, 1f, 0.05f).normalized;
+                    p.neck = new Vector3(0f, 0.94f, 0.34f).normalized;          // looking up
+                    // reach: one hand high while the other is at chest height
+                    p.handL = new Vector3(-0.17f, 1.16f + 0.30f * c2, 0.30f);
+                    p.handR = new Vector3(0.17f, 1.16f - 0.30f * c2, 0.30f);
+                    p.poleL = new Vector3(-0.85f, -0.45f, -0.28f);
+                    p.poleR = new Vector3(0.85f, -0.45f, -0.28f);
+                    // opposite legs: the one under the RAISED hand is planted
+                    p.thighL = new Vector3(-0.10f, -0.80f + 0.34f * c2, 0.59f).normalized;
+                    p.thighR = new Vector3(0.10f, -0.80f - 0.34f * c2, 0.59f).normalized;
+                    p.shinL = new Vector3(-0.05f, -0.93f, -0.36f + 0.30f * c2).normalized;
+                    p.shinR = new Vector3(0.05f, -0.93f, -0.36f - 0.30f * c2).normalized;
+                    p.footL = new Vector3(0f, -0.45f, 0.89f);
+                    p.footR = new Vector3(0f, -0.45f, 0.89f);
+                    p.hipY = -0.03f + 0.03f * c2;
+                    break;
+                }
+
+            // The heave over the lip: both hands plant on the deck, the body
+            // folds forward over them, a knee comes up, then stand.
+            case "climb_top":
+                {
+                    float k = Ease(u);
+                    p.pelvis = new Vector3(0f, 1f, 0.62f - 0.62f * k).normalized;
+                    p.spine1 = new Vector3(0f, 1f, 0.40f - 0.44f * k).normalized;
+                    p.spine2 = new Vector3(0f, 1f, 0.20f - 0.20f * k).normalized;
+                    p.neck = new Vector3(0f, 0.96f, 0.28f);
+                    p.handL = new Vector3(-0.26f, 1.02f + 0.08f * k, 0.34f - 0.30f * k);
+                    p.handR = new Vector3(0.26f, 1.02f + 0.08f * k, 0.34f - 0.30f * k);
+                    p.poleL = new Vector3(-0.80f, -0.40f, -0.44f);
+                    p.poleR = new Vector3(0.80f, -0.40f, -0.44f);
+                    // the knee that comes up first, then both legs straighten
+                    p.thighL = Vector3.Lerp(new Vector3(-0.12f, -0.32f, 0.94f), new Vector3(-0.03f, -0.99f, 0.10f), k).normalized;
+                    p.thighR = Vector3.Lerp(new Vector3(0.12f, -0.86f, 0.49f), new Vector3(0.03f, -0.99f, 0.02f), k).normalized;
+                    p.shinL = Vector3.Lerp(new Vector3(-0.05f, -0.96f, -0.28f), new Vector3(-0.02f, -1f, 0.04f), k).normalized;
+                    p.shinR = Vector3.Lerp(new Vector3(0.05f, -0.94f, -0.34f), new Vector3(0.02f, -1f, 0.02f), k).normalized;
+                    p.footL = new Vector3(0f, -0.55f, 0.84f);
+                    p.footR = new Vector3(0f, -0.55f, 0.84f);
+                    break;
+                }
 
             // ── fishing ──────────────────────────────────────────────────────
             // One shot in three beats: load the rod back over the right

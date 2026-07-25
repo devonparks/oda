@@ -688,17 +688,27 @@ export class World {
     // ── 1. rasterise triangle SURFACES into (band, cell) occupancy ──
     // Vertices alone are not enough: Synty floors are often two triangles
     // spanning three metres, which would mark four columns and miss the floor.
-    const cells = new Map();             // bandIndex -> Set("ix,iz")
-    let minY = Infinity, maxY = -Infinity;
-    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    // bandIndex -> Map("ix,iz" -> true extents of the geometry inside that cell)
+    //
+    // Keeping the TRUE extents (rather than just "this cell was hit") is what
+    // makes interiors enterable. Snapping to the grid inflates every wall to a
+    // full 25 cm cell, so a 10 cm plank becomes 25 cm and a doorway loses up to
+    // half a metre — Devon: "you can't go into any interior… the pirate ship is
+    // real small, I should be able to squeeze into spaces like that." A wall
+    // emitted at its real thickness gives the doorway back.
+    const cells = new Map();
     const mark = (p) => {
       const bi = Math.floor(p.y / BAND);
-      let set = cells.get(bi);
-      if (!set) cells.set(bi, (set = new Set()));
-      set.add(Math.floor(p.x / CELL) + ',' + Math.floor(p.z / CELL));
-      if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
-      if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
-      if (p.z < minZ) minZ = p.z; if (p.z > maxZ) maxZ = p.z;
+      let m = cells.get(bi);
+      if (!m) cells.set(bi, (m = new Map()));
+      const k = Math.floor(p.x / CELL) + ',' + Math.floor(p.z / CELL);
+      const e = m.get(k);
+      if (!e) m.set(k, { x0: p.x, x1: p.x, y0: p.y, y1: p.y, z0: p.z, z1: p.z });
+      else {
+        if (p.x < e.x0) e.x0 = p.x; if (p.x > e.x1) e.x1 = p.x;
+        if (p.y < e.y0) e.y0 = p.y; if (p.y > e.y1) e.y1 = p.y;
+        if (p.z < e.z0) e.z0 = p.z; if (p.z > e.z1) e.z1 = p.z;
+      }
     };
     for (let t = 0; t < triCount; t++) {
       const i0 = idx ? idx.getX(t * 3) : t * 3;
@@ -726,30 +736,70 @@ export class World {
     }
     if (!cells.size) return 0;
 
-    // ── 2. greedy-merge each band's cells into rectangles ──
+    // ── 2. decide what can be STOOD on: is there air above it? ──
     //
-    // A merged rect narrower than MIN_STAND is a POLE, a rail or a chain — it
-    // blocks you, but its top is not a ledge. Without this, slicing the swing
-    // set's A-frame legs into 25 cm boxes builds a perfect spiral staircase up
-    // each leg, which is what Devon's playtest found: "you can walk up the
-    // poles of the swing set, you shouldn't be able to do that." A real step
-    // merges across the full width of its tread and clears the bar easily.
-    const MIN_STAND = 0.18;                  // m2 of footprint, ~3 cells
+    // A surface you can stand on has headroom. A wall has more wall above it, a
+    // pole has more pole. That single test replaces the old footprint-area rule,
+    // which a LONG thin wall sailed straight past (3 m x 0.25 m is plenty of
+    // area) — so kids climbed onto wall tops and, from there, onto everything.
+    // Devon: "sometimes it bugs out and makes you try to climb and get on top of
+    // something." It also, correctly, makes a LADDER unclimbable by walking,
+    // which is what he asked for: the treehouse "has to actually be a separate
+    // climbing animation".
+    //
+    // The area floor stays as a second line of defence for pole TIPS, which
+    // have air above them by definition.
+    // 25 cm of air overhead is enough to call something a surface. Splitting a
+    // band into open/solid groups fragments the greedy merge (a deck cell next
+    // to a bulwark cell can't merge with it), so rects come out small — which is
+    // exactly why there is NO footprint-area rule any more. Area was a proxy for
+    // "is this a pole", and it condemned every fragment once the split arrived.
+    // Headroom answers the real question directly: a pole has pole above it at
+    // every band but its tip, and the tip is unreachable because the band below
+    // it is blocked.
+    const HEAD_BANDS = 1;
+    const occupied = (bi, k) => { const m = cells.get(bi); return !!(m && m.has(k)); };
+
     let emitted = 0, walls = 0;
-    for (const [bi, set] of cells) {
-      const rects = greedyRects(set);
-      const y0 = bi * BAND, y1 = y0 + BAND;
-      for (const r of rects) {
-        const x0 = r.x0 * CELL, x1 = (r.x1 + 1) * CELL;
-        const z0 = r.z0 * CELL, z1 = (r.z1 + 1) * CELL;
-        const noStand = (x1 - x0) * (z1 - z0) < MIN_STAND;
-        if (noStand) walls++;
-        this.collision.add({
-          c: [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2],
-          e: [(x1 - x0) / 2, (y1 - y0) / 2, (z1 - z0) / 2],
-          n: name, derived: true, noStand,
-        });
-        emitted++;
+    for (const [bi, m] of cells) {
+      // split this band's cells into "has headroom" and "doesn't", then merge
+      // each group separately so a rect is never half ledge and half wall
+      const open = new Set(), solid = new Set();
+      for (const k of m.keys()) {
+        let clear = true;
+        for (let h = 1; h <= HEAD_BANDS && clear; h++) if (occupied(bi + h, k)) clear = false;
+        (clear ? open : solid).add(k);
+      }
+      for (const [group, blocked] of [[open, false], [solid, true]]) {
+        if (!group.size) continue;
+        for (const r of greedyRects(group)) {
+          // union the TRUE extents of the member cells — this is what keeps a
+          // thin wall thin and a doorway a doorway
+          let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+          for (let ix = r.x0; ix <= r.x1; ix++) {
+            for (let iz = r.z0; iz <= r.z1; iz++) {
+              const e = m.get(ix + ',' + iz);
+              if (!e) continue;
+              if (e.x0 < x0) x0 = e.x0; if (e.x1 > x1) x1 = e.x1;
+              if (e.y0 < y0) y0 = e.y0; if (e.y1 > y1) y1 = e.y1;
+              if (e.z0 < z0) z0 = e.z0; if (e.z1 > z1) z1 = e.z1;
+            }
+          }
+          if (x0 > x1) continue;
+          // a degenerate (perfectly flat) slab still needs to exist
+          const MINT = 0.05;
+          if (x1 - x0 < MINT) { const c = (x0 + x1) / 2; x0 = c - MINT / 2; x1 = c + MINT / 2; }
+          if (z1 - z0 < MINT) { const c = (z0 + z1) / 2; z0 = c - MINT / 2; z1 = c + MINT / 2; }
+          if (y1 - y0 < MINT) { y0 = y1 - MINT; }
+          const noStand = blocked;
+          if (noStand) walls++;
+          this.collision.add({
+            c: [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2],
+            e: [(x1 - x0) / 2, (y1 - y0) / 2, (z1 - z0) / 2],
+            n: name, derived: true, noStand,
+          });
+          emitted++;
+        }
       }
     }
     this._lastWalls = walls;
@@ -954,7 +1004,40 @@ export class World {
   updateCamera(avatar, look, zoom, dt) {
     this.camYaw -= look.x * 0.0045;
     this.camPitch = THREE.MathUtils.clamp(this.camPitch + look.y * 0.0035, -0.12, 1.15);
-    this.camDist = THREE.MathUtils.clamp(this.camDist + zoom * 3.2, 3.2, 14);
+    // 1.4 rather than 3.2: Devon wants "to be zoned in more" for the interiors,
+    // and 3.2 m of boom is wider than the pirate ship's whole deck.
+    this.camDist = THREE.MathUtils.clamp(this.camDist + zoom * 3.2, 1.4, 14);
+
+    // ── FIRST PERSON ──────────────────────────────────────────────────────
+    // Third person cannot work inside a space the size of a ship's cabin: the
+    // boom either clips through the wall or shoves the camera into the kid's
+    // back. So there's an eye-level mode. The model hides (you'd be looking at
+    // the inside of your own head) but everything else — collision, emotes,
+    // the hotbar — is untouched, so it is a camera change and nothing more.
+    if (this.firstPerson) {
+      let head = null;
+      avatar.model.traverse((o) => { if (!head && o.name === 'Head') head = o; });
+      const eye = (this._camEye || (this._camEye = new THREE.Vector3()));
+      if (head) head.getWorldPosition(eye); else eye.set(avatar.pos.x, avatar.pos.y + 0.95, avatar.pos.z);
+      // a little forward of the skull so the nose isn't in shot
+      eye.x += Math.sin(this.camYaw + Math.PI) * 0.12;
+      eye.z += Math.cos(this.camYaw + Math.PI) * 0.12;
+      eye.y += 0.06;
+      this.camPos.copy(eye);
+      this.camera.position.copy(eye);
+      // look along the camera yaw/pitch, exactly like the boom's own direction
+      const look = (this._camLook || (this._camLook = new THREE.Vector3()));
+      look.set(
+        eye.x - Math.sin(this.camYaw) * Math.cos(this.camPitch),
+        eye.y - Math.sin(this.camPitch),
+        eye.z - Math.cos(this.camYaw) * Math.cos(this.camPitch),
+      );
+      this.camera.lookAt(look);
+      avatar.group.visible = false;
+      this._camReady = true;
+      return;
+    }
+    if (avatar.group.visible === false) avatar.group.visible = true;
 
     // Reuse scratch vectors — updateCamera runs every frame, so allocating here
     // is 200+ short-lived Vector3s/sec of GC pressure on a Chromebook.

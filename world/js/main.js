@@ -694,7 +694,7 @@ function updateZonePrompt() {
   const zone = (!state.rides?.busy && nearestZone(p.x, p.z, state.rides?.zones || []))
     || (!state.seated && nearestZone(p.x, p.z, state.world.seats || []))
     || nearestZone(p.x, p.z, ACTIVITIES) || nearestZone(p.x, p.z, ZONES)
-    || bankFishZone(p) || null;
+    || bankFishZone(p) || climbZone(p) || null;
   checkPickups();
   const el = $('zonePrompt');
   if (zone === state.activeZone) return;
@@ -710,6 +710,24 @@ function updateZonePrompt() {
 // within a couple of metres of the water's edge offers a cast. One stable
 // object so updateZonePrompt's reference-equality caching still works.
 const FISH_BANK = { id: 'fish', icon: '🎣', name: 'Fishing Spot', prompt: 'Go fishing' };
+// A climb is offered by SHAPE, not by a marker: something solid ahead with a
+// ledge above it. One stable object (like FISH_BANK) so updateZonePrompt's
+// reference-equality caching still short-circuits.
+const CLIMB_ZONE = { id: 'climb', ride: 'climb', icon: '\u{1F9D7}', name: 'Climb up', prompt: 'Climb' };
+let _climbT = 0;
+function climbZone(p) {
+  if (!state.rides || state.rides.busy) return null;
+  // the probe does two collision queries; no need to run it every frame
+  const now = performance.now();
+  if (now - _climbT < 120) return CLIMB_ZONE._on ? CLIMB_ZONE : null;
+  _climbT = now;
+  const spot = state.rides.findClimb(state.player);
+  CLIMB_ZONE._on = !!spot;
+  if (!spot) return null;
+  CLIMB_ZONE.spot = spot;
+  return CLIMB_ZONE;
+}
+
 function bankFishZone(p) {
   const w = state.world?.water;
   if (!w) return null;
@@ -863,6 +881,22 @@ function renderHotbar() {
     el.classList.add('hidden');
   }
   if (!$('bagModal').classList.contains('hidden')) renderBag();
+}
+
+/**
+ * Swap between over-the-shoulder and eye-level.
+ *
+ * Devon: "we need the ability to switch between third and first person… I wanna
+ * get into the interior of the playground." Third person physically cannot work
+ * in a space the size of the ship's cabin — the boom is longer than the room.
+ */
+function toggleView() {
+  const w = state.world;
+  if (!w) return;
+  w.firstPerson = !w.firstPerson;
+  $('viewBtn').textContent = w.firstPerson ? '\u{1F441}\uFE0F' : '\u{1F3A5}';
+  $('viewBtn').title = w.firstPerson ? 'First person (V)' : 'Third person (V)';
+  toast(w.firstPerson ? 'First person \u{1F441}\uFE0F  \u2014 V to switch back' : 'Third person \u{1F3A5}');
 }
 
 function toggleBag() {
@@ -1455,6 +1489,7 @@ function bindHud() {
     else if (k === 'KeyH') showModal('helpModal');
     else if (k === 'Escape') { hideModal('zoneModal'); hideModal('helpModal'); hideModal('bagModal'); $('emoteWheel').classList.add('hidden'); $('chatWheel').classList.add('hidden'); }
     else if (k === 'Tab') { e.preventDefault(); toggleBag(); }
+    else if (k === 'KeyV') toggleView();
     else if (/^Digit[1-8]$/.test(k)) {
       // 1-8 are the HOTBAR now (the shape every kid already knows). While the
       // emote wheel is open they still pick emote favourites, so the old muscle
@@ -1472,6 +1507,7 @@ function bindHud() {
   // Walking into a zone on touch should be enough — no keyboard needed.
   $('zonePrompt').onclick = () => enterZone();
   $('bagBtn').onclick = () => toggleBag();
+  $('viewBtn').onclick = () => toggleView();
   /**
    * CLICK always uses what's in your hand.
    *

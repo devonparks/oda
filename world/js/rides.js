@@ -44,6 +44,9 @@ const PUMP_AMP = 0.88;
  *  coasting is the calm grip-the-chains sit and not a fraction of a pump. */
 const COAST_AMP = 0.30;
 const SLIDE_TIME = 1.15;     // s top→exit
+/** How far above your feet a ledge can be and still be climbable. */
+const CLIMB_REACH = 3.4;
+const CLIMB_SPEED = 1.15;    // m/s up the rungs
 
 export class Rides {
   constructor(world, state) {
@@ -393,6 +396,96 @@ export class Rides {
     }
   }
 
+  // ── climbing ──────────────────────────────────────────────────────────────
+
+  /**
+   * Is there something to climb from where the kid is standing and facing?
+   *
+   * Walking up a ladder was never right, and once derived collision started
+   * gating standable surfaces on headroom it stopped being possible at all — a
+   * rung has another rung right above it, so it is a wall, not a step. That is
+   * the correct answer; this is the other half of it. Devon: the treehouse "has
+   * to actually be a separate climbing animation… and one could be used for the
+   * tires, the playground."
+   *
+   * The test is deliberately about SHAPE, not about names: something solid
+   * directly ahead, and a surface you could stand on above it, within a kid's
+   * climbing reach. That covers the treehouse ladder, the tyre wall and
+   * anything else built like them, with no per-prop list to maintain.
+   *
+   * @returns {{x:number, z:number, y:number} | null} where you'd end up
+   */
+  findClimb(player) {
+    const col = this.world.collision;
+    const fx = Math.sin(player.yaw), fz = Math.cos(player.yaw);
+    const feet = player.pos.y;
+    // 1. blocked straight ahead?
+    const ax = player.pos.x + fx * 0.42, az = player.pos.z + fz * 0.42;
+    const hit = col.resolve(ax, az, feet);
+    if (Math.hypot(hit.x - ax, hit.z - az) < 0.04) return null;
+    // 2. a ledge above it, far enough up to be worth a climb and near enough to reach
+    const tx = player.pos.x + fx * 0.85, tz = player.pos.z + fz * 0.85;
+    for (let h = 0.8; h <= CLIMB_REACH; h += 0.2) {
+      const g = col.groundAt(tx, tz, feet + h);
+      if (g > feet + 0.7 && g < feet + CLIMB_REACH) {
+        // and headroom to actually stand there
+        if (col.groundAt(tx, tz, g + 0.05) > g + 0.3) continue;
+        return { x: tx, z: tz, y: g };
+      }
+    }
+    return null;
+  }
+
+  _beginClimb(player, spot) {
+    this.active = { kind: 'climb', t: 0, spot, base: player.pos.y, topping: false };
+    player.rig.forceLegEmote = true;      // the legs are climbing, not walking
+    player.playAction('climb', null);
+    this.state.presence?.broadcast({ emote: 'climb' });
+    window.odaSfx && window.odaSfx.tone(240, 0.06, 'triangle', 0.04);
+    return 'Climbing! \u{1F9D7}';
+  }
+
+  _updateClimb(dt, player, intent) {
+    const a = this.active, s = a.spot;
+    a.t += dt;
+    player.speed = 0; player.vel.y = 0; player.grounded = true; player.tilt = 0;
+    // face the wall the whole way up
+    player.yaw = player.targetYaw = Math.atan2(s.x - player.pos.x, s.z - player.pos.z) || player.yaw;
+
+    if (!a.topping) {
+      player.pos.y += CLIMB_SPEED * dt;
+      // a rung-by-rung tick, so it reads as effort rather than an elevator
+      const rung = Math.floor((player.pos.y - a.base) / 0.34);
+      if (rung !== a._rung) { a._rung = rung; window.odaSfx && window.odaSfx.tone(190 + Math.random() * 40, 0.04, 'triangle', 0.025); }
+      if (player.pos.y >= s.y - 0.12) {
+        a.topping = true; a.t = 0;
+        player.playAction('climb_top', null);
+      }
+      // bail out: let go and drop
+      if (intent.jump) this._endClimb(player, false);
+      return;
+    }
+    // the heave over the lip: ride the clip, then land ON the surface
+    const k = Math.min(1, a.t / 1.0);
+    player.pos.y = s.y + 0.02;
+    player.pos.x += (s.x - player.pos.x) * Math.min(1, 6 * dt);
+    player.pos.z += (s.z - player.pos.z) * Math.min(1, 6 * dt);
+    if (k >= 1) this._endClimb(player, true);
+  }
+
+  _endClimb(player, landed) {
+    const a = this.active;
+    player.rig.forceLegEmote = false;
+    player.rig.stopEmote?.();
+    this.state.presence?.broadcast({ emote: '_stop' });
+    if (landed && a) {
+      player.pos.set(a.spot.x, a.spot.y + 0.02, a.spot.z);
+    } else {
+      player.grounded = false;            // let go — gravity takes it from here
+    }
+    this.active = null;
+  }
+
   /** Common hop-off: stand on real ground beside whatever was ridden. */
   _exitToGround(player, awayFrom) {
     if (awayFrom) {
@@ -507,6 +600,7 @@ export class Rides {
       case 'rocker': return this._beginRocker(player, zone);
       case 'hoop': return this._beginHoop(player);
       case 'kart': return this._beginKart(player);
+      case 'climb': return this._beginClimb(player, zone.spot);
       default: return null;
     }
   }
@@ -538,6 +632,7 @@ export class Rides {
       case 'rocker': this._updateRocker(dt, player, intent); break;
       case 'hoop': this._updateHoop(dt, player, intent); break;
       case 'kart': this._updateKart(dt, player, intent); break;
+      case 'climb': this._updateClimb(dt, player, intent); break;
     }
   }
 }
