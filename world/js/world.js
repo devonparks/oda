@@ -685,46 +685,95 @@ export class World {
    * minus rear-axle midpoint. rides.js applies the same rule (def.axleFacing).
    */
   _extractShellVehicles(shellMesh, collision) {
+    // ── the Jeep: six part boxes, facing from the named axles ──
     const boxes = collision.filter((b) => /^SM_Veh_4x4/.test(b.n || ''));
-    if (!boxes.length) return;
     const body = boxes.find((b) => b.n === 'SM_Veh_4x4');
     const wf = boxes.filter((b) => /_Wheel_f[lr]$/.test(b.n));
     const wr = boxes.filter((b) => /_Wheel_r[lr]$/.test(b.n));
-    if (!body || wf.length !== 2 || wr.length !== 2) return;
-    const t0 = performance.now();
-    const mid = (arr, i) => (arr[0].c[i] + arr[1].c[i]) / 2;
-    const yaw = Math.atan2(mid(wf, 0) - mid(wr, 0), mid(wf, 2) - mid(wr, 2));
-    // the part origins sit at GROUND level under the body (a layout prop's
-    // origin does too — rides.js snaps group.position.y to the ground while
-    // driving, so a mid-air origin would sink the body by its own height)
-    const groundY = Math.min(...boxes.map((b) => b.c[1] - b.e[1]));
-
-    // smallest boxes claim a contested triangle first; the body takes the rest
-    const parts = boxes.filter((b) => b !== body)
-      .sort((a, b2) => (a.e[0] * a.e[1] * a.e[2]) - (b2.e[0] * b2.e[1] * b2.e[2]));
-    parts.push(body);
-    const PAD = 0.04;
-    const inBox = (p, bx, pad) =>
-      Math.abs(p.x - bx.c[0]) < bx.e[0] + pad
-      && Math.abs(p.y - bx.c[1]) < bx.e[1] + pad
-      && Math.abs(p.z - bx.c[2]) < bx.e[2] + pad;
-    // A triangle belongs to a part only if ALL THREE verts are inside its box —
-    // each box IS that part's renderer bound, so every real part triangle
-    // passes by construction. A centroid test grabbed a slab of the skate park
-    // (a big neighbouring triangle's centroid can land inside a small box) and
-    // the Jeep drove off with it. Triangles straddling two part boxes (tyre
-    // arch ↔ wheel) fall through to the UNION box and ride with the body.
-    const union = {
-      c: [0, 0, 0],
-      e: [0, 0, 0],
-    };
-    for (let i = 0; i < 3; i++) {
-      const lo = Math.min(...boxes.map((b) => b.c[i] - b.e[i]));
-      const hi = Math.max(...boxes.map((b) => b.c[i] + b.e[i]));
-      union.c[i] = (lo + hi) / 2;
-      union.e[i] = (hi - lo) / 2;
+    if (body && wf.length === 2 && wr.length === 2) {
+      const t0 = performance.now();
+      const mid = (arr, i) => (arr[0].c[i] + arr[1].c[i]) / 2;
+      const yaw = Math.atan2(mid(wf, 0) - mid(wr, 0), mid(wf, 2) - mid(wr, 2));
+      // the part origins sit at GROUND level under the body (a layout prop's
+      // origin does too — rides.js snaps group.position.y to the ground while
+      // driving, so a mid-air origin would sink the body by its own height)
+      const groundY = Math.min(...boxes.map((b) => b.c[1] - b.e[1]));
+      // smallest boxes claim a contested triangle first; the body takes the
+      // rest, including union-box straddlers (tyre arch ↔ wheel)
+      const parts = boxes.filter((b) => b !== body)
+        .sort((a, b2) => (a.e[0] * a.e[1] * a.e[2]) - (b2.e[0] * b2.e[1] * b2.e[2]));
+      parts.push(body);
+      const taken = this._carveShellTriangles(shellMesh, parts, body);
+      let total = 0, nParts = 0;
+      for (const bx of parts) {
+        const flat = taken.get(bx);
+        if (!flat || !flat.length) continue;
+        const origin = bx === body
+          ? new THREE.Vector3(bx.c[0], groundY, bx.c[2])
+          : new THREE.Vector3(bx.c[0], bx.c[1], bx.c[2]);
+        this.vehicleParts.push({
+          family: 'jeep',
+          proto: { geometry: buildCarvedGeometry(flat, origin, yaw), material: parkMaterial(null) },
+          matrix: new THREE.Matrix4().compose(origin,
+            new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw),
+            new THREE.Vector3(1, 1, 1)),
+          mesh: bx.n,
+        });
+        total += flat.length / 18;
+        nParts++;
+      }
+      console.log(`[world] jeep carved from shell: ${total} triangles across `
+        + `${nParts} parts, yaw ${(yaw * 180 / Math.PI).toFixed(0)}deg, `
+        + `${(performance.now() - t0).toFixed(0)}ms`);
     }
 
+    // ── the pond floaties: one box each, paddled on the water (rides.js) ──
+    // Devon: "the floaties on the pond should be rideable like the vehicles."
+    // Their origin sits at the box BOTTOM: they keep their authored draught
+    // while paddling, so they float exactly as the artist left them.
+    for (const fb of collision.filter((b) => /^SM_Prop_Pool_Float_\d+$/.test(b.n || ''))) {
+      const taken = this._carveShellTriangles(shellMesh, [fb], null);
+      const flat = taken.get(fb);
+      if (!flat || !flat.length) continue;
+      const origin = new THREE.Vector3(fb.c[0], fb.c[1] - fb.e[1], fb.c[2]);
+      this.vehicleParts.push({
+        family: 'floatie',
+        proto: { geometry: buildCarvedGeometry(flat, origin, 0), material: parkMaterial(null) },
+        matrix: new THREE.Matrix4().makeTranslation(origin.x, origin.y, origin.z),
+        mesh: fb.n,
+      });
+      console.log(`[world] ${fb.n} carved from shell: ${flat.length / 18} triangles`);
+    }
+  }
+
+  /**
+   * Claim shell triangles for a set of export boxes and degenerate them in
+   * the shell. A triangle belongs to a box only if ALL THREE verts are inside
+   * it (+pad) — each box IS its part's renderer bound, so every real part
+   * triangle passes by construction, while a big neighbouring triangle fails
+   * even when its centroid happens to land inside (a centroid test once sent
+   * a slab of the skate park driving off with the Jeep). With `fallbackBox`,
+   * triangles inside the UNION of all boxes that no single box claims whole
+   * (straddlers) are given to that box.
+   *
+   * @returns {Map<object, number[]>} box -> flat [x,y,z,r,g,b] per vertex
+   */
+  _carveShellTriangles(shellMesh, parts, fallbackBox) {
+    const PAD = 0.04;
+    const inBox = (p, bx) =>
+      Math.abs(p.x - bx.c[0]) < bx.e[0] + PAD
+      && Math.abs(p.y - bx.c[1]) < bx.e[1] + PAD
+      && Math.abs(p.z - bx.c[2]) < bx.e[2] + PAD;
+    let union = null;
+    if (fallbackBox) {
+      union = { c: [0, 0, 0], e: [0, 0, 0] };
+      for (let i = 0; i < 3; i++) {
+        const lo = Math.min(...parts.map((b) => b.c[i] - b.e[i]));
+        const hi = Math.max(...parts.map((b) => b.c[i] + b.e[i]));
+        union.c[i] = (lo + hi) / 2;
+        union.e[i] = (hi - lo) / 2;
+      }
+    }
     const geo = shellMesh.geometry;
     const matrix = shellMesh.matrixWorld;
     const pos = geo.attributes.position;
@@ -732,8 +781,7 @@ export class World {
     const idx = geo.index;
     const triCount = idx ? idx.count / 3 : pos.count / 3;
     const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
-    const q = new THREE.Vector3();
-    const taken = new Map();       // part box -> flat [x,y,z,r,g,b]*3 per tri
+    const taken = new Map();
     for (const bx of parts) taken.set(bx, []);
     for (let t = 0; t < triCount; t++) {
       const i0 = idx ? idx.getX(t * 3) : t * 3;
@@ -744,10 +792,10 @@ export class World {
       c.fromBufferAttribute(pos, i2).applyMatrix4(matrix);
       let owner = null;
       for (const bx of parts) {
-        if (inBox(a, bx, PAD) && inBox(b, bx, PAD) && inBox(c, bx, PAD)) { owner = bx; break; }
+        if (inBox(a, bx) && inBox(b, bx) && inBox(c, bx)) { owner = bx; break; }
       }
-      if (!owner && inBox(a, union, PAD) && inBox(b, union, PAD) && inBox(c, union, PAD)) {
-        owner = body;
+      if (!owner && union && inBox(a, union) && inBox(b, union) && inBox(c, union)) {
+        owner = fallbackBox;
       }
       if (!owner) continue;
       const out = taken.get(owner);
@@ -762,41 +810,7 @@ export class World {
       }
     }
     if (idx) idx.needsUpdate = true; else pos.needsUpdate = true;
-
-    // per-part geometry in the part's own local frame (origin + baked yaw),
-    // exactly what a layout prototype would carry
-    const unYaw = new THREE.Matrix4().makeRotationY(-yaw);
-    const quat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-    let total = 0;
-    for (const bx of parts) {
-      const flat = taken.get(bx);
-      if (!flat.length) continue;
-      const origin = bx === body
-        ? new THREE.Vector3(bx.c[0], groundY, bx.c[2])
-        : new THREE.Vector3(bx.c[0], bx.c[1], bx.c[2]);
-      const count = flat.length / 6;
-      const p2 = new Float32Array(count * 3);
-      const c2 = new Float32Array(count * 3);
-      for (let i = 0; i < count; i++) {
-        q.set(flat[i * 6], flat[i * 6 + 1], flat[i * 6 + 2]).sub(origin).applyMatrix4(unYaw);
-        p2[i * 3] = q.x; p2[i * 3 + 1] = q.y; p2[i * 3 + 2] = q.z;
-        c2[i * 3] = flat[i * 6 + 3]; c2[i * 3 + 1] = flat[i * 6 + 4]; c2[i * 3 + 2] = flat[i * 6 + 5];
-      }
-      const g2 = new THREE.BufferGeometry();
-      g2.setAttribute('position', new THREE.BufferAttribute(p2, 3));
-      g2.setAttribute('color', new THREE.BufferAttribute(c2, 3));
-      g2.computeVertexNormals();
-      this.vehicleParts.push({
-        family: 'jeep',
-        proto: { geometry: g2, material: parkMaterial(null) },
-        matrix: new THREE.Matrix4().compose(origin, quat, new THREE.Vector3(1, 1, 1)),
-        mesh: bx.n,
-      });
-      total += count / 3;
-    }
-    console.log(`[world] jeep carved from shell: ${total} triangles across `
-      + `${this.vehicleParts.length} parts, yaw ${(yaw * 180 / Math.PI).toFixed(0)}deg, `
-      + `${(performance.now() - t0).toFixed(0)}ms`);
+    return taken;
   }
 
   _placeProps(protos, layout) {
@@ -1270,10 +1284,37 @@ export class World {
       if (v.y < minY + 0.3 && Math.hypot(v.x - tx, v.z - tz) > 0.7) { bx += v.x; by += v.y; bz += v.z; bn++; }
     }
     if (!bn) return;
+    const exit = { x: bx / bn, y: by / bn, z: bz / bn };
     this.slideData.push({
       top: { x: tx, y: ty, z: tz },
-      exit: { x: bx / bn, y: by / bn, z: bz / bn },
+      exit,
     });
+
+    // Devon: "the slide should have collision so you can walk up it." The
+    // chute becomes a RAMP: thin standable boxes laid along the same sagging
+    // path the ride glides down, every rise inside the step gate. (Deriving
+    // the chute's real triangles instead made a WALL — a steep surface crosses
+    // 25 cm bands, so each band has the next overhead and fails the headroom
+    // rule.) Walking up can't trigger the auto-slide — its gate needs you
+    // facing DOWN the chute; turn round at the top and off you go.
+    const p0 = { x: tx, y: ty + 0.06, z: tz };
+    const p2 = { x: exit.x, y: exit.y + 0.02, z: exit.z };
+    const p1 = {
+      x: (p0.x + p2.x) / 2,
+      y: p0.y * 0.42 + p2.y * 0.58,
+      z: (p0.z + p2.z) / 2,
+    };
+    const STEPS = 14;
+    for (let i = 0; i <= STEPS; i++) {
+      const u = i / STEPS, w = 1 - u;
+      const x = w * w * p0.x + 2 * w * u * p1.x + u * u * p2.x;
+      const y = w * w * p0.y + 2 * w * u * p1.y + u * u * p2.y;
+      const z = w * w * p0.z + 2 * w * u * p1.z + u * u * p2.z;
+      this.collision.add({
+        c: [x, y - 0.08, z], e: [0.28, 0.05, 0.28],
+        n: '_slideRamp', derived: true,
+      });
+    }
   }
 
   _buildCoins() {
@@ -1674,6 +1715,29 @@ export class World {
     window.removeEventListener('resize', this.onResize);
     this.renderer.dispose();
   }
+}
+
+/**
+ * Flat carved-triangle data → a BufferGeometry in the part's own local frame
+ * (translated to `origin`, un-rotated by `yaw`) — exactly what a layout
+ * prototype would carry. Used by _extractShellVehicles.
+ */
+function buildCarvedGeometry(flat, origin, yaw) {
+  const unYaw = new THREE.Matrix4().makeRotationY(-yaw);
+  const q = new THREE.Vector3();
+  const count = flat.length / 6;
+  const p2 = new Float32Array(count * 3);
+  const c2 = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    q.set(flat[i * 6], flat[i * 6 + 1], flat[i * 6 + 2]).sub(origin).applyMatrix4(unYaw);
+    p2[i * 3] = q.x; p2[i * 3 + 1] = q.y; p2[i * 3 + 2] = q.z;
+    c2[i * 3] = flat[i * 6 + 3]; c2[i * 3 + 1] = flat[i * 6 + 4]; c2[i * 3 + 2] = flat[i * 6 + 5];
+  }
+  const g2 = new THREE.BufferGeometry();
+  g2.setAttribute('position', new THREE.BufferAttribute(p2, 3));
+  g2.setAttribute('color', new THREE.BufferAttribute(c2, 3));
+  g2.computeVertexNormals();
+  return g2;
 }
 
 /**

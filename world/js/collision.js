@@ -97,6 +97,9 @@ const COLLISION_RULES = [
   // The purple Jeep: carved out of the shell and DRIVEN (rides.js). Its six
   // export boxes (body/steering/wheels) would be phantom walls once it moves.
   [/SM_Veh_4x4/i, 'none'],
+  // The pond floaties: carved out of the shell and PADDLED (rides.js). As
+  // solids they were waist-high walls floating in the swimming water.
+  [/Pool_Float/i, 'none'],
   // Slides: the AABB wraps the whole diagonal chute, so as a solid it's an
   // invisible lid you land ON and a wall you bounce OFF. Riding is scripted
   // (rides.js) and the heightfield never captures props, so no box at all.

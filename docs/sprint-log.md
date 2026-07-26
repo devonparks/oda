@@ -1,5 +1,38 @@
 # Sprint Log
 
+## 2026-07-26 (cont.) — P2: zip line, floaties on the pond, walking up the slides
+
+**THE ZIP LINE RUNS — both ways.** SM_Prop_Playground_Track_Ride_01 with its
+hanging handle, from the playground out over the lawn. Measured, the plan
+changed: there's a 1.08 m ledge under the east end AND a 1.21 m shelf under
+the west, both within a kid's reach of the 3 m track — so it boards from
+EITHER end, like the real toy. The grab is the slide pattern (walk into the
+waiting handle, moving toward it — Devon talked himself out of jump-to-grab),
+the ride hangs off the monkey clip, Space drops early, the landing carries
+the travel speed, and the idle handle trundles over to a kid waiting at the
+other end. Verified end-to-end in Chrome: grab → ride → land on the far
+ledge.
+
+**THE FLOATIES PADDLE.** Both SM_Prop_Pool_Floats were baked into the shell,
+so they went through the Jeep's carve path (now generalized:
+`_carveShellTriangles`) and came out as vehicles that ride the WATER: y
+pinned to their authored draught, movement fenced by the water mask (paddle
+at the shore and you stop, still afloat), 0.55× paddle speed, ripple rings
+and soft splashes. Their old export boxes were waist-high walls in the
+swimming water — dropped. Get in, paddle around, hop off, wade out.
+
+**YOU CAN WALK UP THE SLIDES.** First attempt derived the chute's real
+triangles — and built a WALL: a steep surface crosses 25 cm bands, so every
+band has the next overhead and fails the headroom rule. The fix is simpler
+and exactly right: thin standable boxes laid along the same sagging path the
+ride glides down. Measured: walked from the exit to the very top (2.33 vs
+top 2.30), every rise inside the step gate, and the walk-on auto-slide still
+only fires facing DOWN the chute.
+
+Also: the P2 probes found their own trap — `camYaw` is the camera BOOM
+direction, so synthetic W walks OPPOSITE to it. Two "failures" were the
+probe walking the kid away from the target.
+
 ## 2026-07-26 (cont.) — P1: seesaw seats two, the roundabout has a direction, skateboards do tricks
 
 **THE SEESAW IS A TWO-KID TOY NOW.** The plank's state moved off the rider and

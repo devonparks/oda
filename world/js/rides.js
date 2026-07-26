@@ -78,6 +78,13 @@ const VEHICLE_DEFS = {
    * `mountY` because its bounding-box top is the WINDSCREEN, not the seat.
    */
   jeep: { style: 'sit', clip: 'sit_kart', speed: 1.85, name: 'Jeep', icon: '\u{1F699}', verb: 'Drive it!', spread: 1.6, axleFacing: true, mountY: 0.4, seatAtOrigin: true },
+  /**
+   * Pond floaties — carved from the shell like the Jeep, but they ride the
+   * WATER: y pinned to their authored draught, movement fenced by the water
+   * mask, slow paddling with ripples. Devon: "the floaties should be rideable
+   * like the vehicles… get in, paddle around the pond, get out."
+   */
+  floatie: { style: 'sit', clip: 'sit_kart', speed: 0.55, name: 'Floatie', icon: '\u{1F6F6}', verb: 'Paddle!', seatAtOrigin: true, water: true },
 };
 
 /**
@@ -125,6 +132,7 @@ export class Rides {
     this._buildAttractions();
     this._buildMonkeyBars();
     this._buildTableSeats();
+    this._buildZipline();
     // Warm the ACTIONS bin: every ride below plays out of it, and a lazy fetch
     // on the first hop-on would swallow the pose for a beat.
     getEmoteLibraryV2().then((lib) => lib && lib.loadCategory('actions').catch(() => {}));
@@ -942,6 +950,7 @@ export class Rides {
      */
     const v = {
       family, def, group, wheels, yaw, deck, fwdOffset,
+      baseY: rootPos.y,        // authored rest height — a floatie's draught
       seat: def.seatAtOrigin ? new THREE.Vector3() : deckCentre.applyAxisAngle(_up, -yaw).clone(),
       zone: {
         id: `veh_${family}_${this.vehicles.length}`, ride: 'vehicle',
@@ -1020,6 +1029,27 @@ export class Rides {
       player.pos.y = this._mountY(v, ground + bounce);
       if (Math.sin(a.hop) < 0 && Math.sin(a.hop - dt * 7.4) >= 0 && window.odaSfx) {
         window.odaSfx.tone(300 + Math.random() * 60, 0.06, 'square', 0.03);
+      }
+    } else if (v.def.water) {
+      // ── a floatie rides the WATER, fenced by the mask ──
+      const wet = this.world.waterAt(player.pos.x, player.pos.z) != null;
+      if (!wet && a.lastWet) { player.pos.x = a.lastWet.x; player.pos.z = a.lastWet.z; }
+      else if (wet) {
+        if (!a.lastWet) a.lastWet = { x: 0, z: 0 };
+        a.lastWet.x = player.pos.x; a.lastWet.z = player.pos.z;
+      }
+      a.bobT = (a.bobT || 0) + dt;
+      const baseY = v.baseY + Math.sin(a.bobT * 2.1) * 0.03;
+      v.group.position.set(player.pos.x - _va.x, baseY, player.pos.z - _va.z);
+      player.pos.y = this._mountY(v, baseY);
+      if (player.speed > 0.25) {
+        a.rippleT = (a.rippleT || 0) - dt;
+        if (a.rippleT <= 0) {
+          a.rippleT = 0.3;
+          this.world.fx.spawn(player.pos.x, this.world.water.y + 0.02, player.pos.z,
+            { from: 0.3, to: 1.2, dur: 0.8, alpha: 0.4 });
+          window.odaSfx && window.odaSfx.tone(220 + Math.random() * 80, 0.06, 'sine', 0.03);
+        }
       }
     } else if (board && a.air) {
       // ── airborne trick: the board sticks to the feet and kickflips ──
@@ -1334,6 +1364,88 @@ export class Rides {
     }
   }
 
+  // ── zip line ──────────────────────────────────────────────────────────────
+  //
+  // SM_Prop_Playground_Track_Ride_01: a straight overhead track with a hanging
+  // handle, from the playground's top platform out over the lawn. Devon: "grab
+  // it and ride across" — he floated jump-to-grab and then talked himself out
+  // of it ("that may be too complicated"), so the grab is the SLIDE pattern:
+  // walk up to the handle on the platform, moving toward it, and you're on.
+
+  _buildZipline() {
+    const props = this.world.animatedProps || [];
+    const handle = props.find((p) => /Track_Ride_01_Handle/.test(p.userData.kind)) || null;
+    const track = props.find((p) => /Track_Ride_01$/.test(p.userData.kind)) || null;
+    if (!handle || !track) return;
+    const bb = new THREE.Box3().setFromObject(track);
+    const alongX = (bb.max.x - bb.min.x) >= (bb.max.z - bb.min.z);
+    const y = (bb.min.y + bb.max.y) / 2;
+    const inset = 0.28;                        // stop under the end brackets
+    const a = alongX
+      ? new THREE.Vector3(bb.min.x + inset, y, (bb.min.z + bb.max.z) / 2)
+      : new THREE.Vector3((bb.min.x + bb.max.x) / 2, y, bb.min.z + inset);
+    const b = alongX
+      ? new THREE.Vector3(bb.max.x - inset, y, (bb.min.z + bb.max.z) / 2)
+      : new THREE.Vector3((bb.min.x + bb.max.x) / 2, y, bb.max.z - inset);
+    // BOTH ends are boarding points — measured: a 1.08 m ledge sits under the
+    // east end and a 1.21 m shelf under the west, either within a kid's reach
+    // of the 3 m track. So the zip line runs both ways, like the real toy.
+    this.zip = { handle, a, b, cool: 0 };
+    const hp = handle.position;
+    const near = hp.distanceTo(a) <= hp.distanceTo(b) ? a : b;
+    handle.position.set(near.x, hp.y, near.z);
+  }
+
+  /** Walked into the waiting handle, in reach below the track, moving at it? Go. */
+  _checkZipGrab(player) {
+    const z = this.zip;
+    if (!z || this.active || this.state.seated) return;
+    if (z.cool > 0) return;
+    if (!player.grounded || player.speed < 0.5) return;
+    const h = z.handle.position;
+    const d = Math.hypot(player.pos.x - h.x, player.pos.z - h.z);
+    if (d > 0.62) return;
+    // hands can reach the handle: feet up to ~2 m below the track (the east
+    // ledge is 1.92 below it — arms up, a kid makes that)
+    if (player.pos.y < z.a.y - 2.0 || player.pos.y > z.a.y - 0.2) return;
+    const dot = (Math.sin(player.yaw) * (h.x - player.pos.x)
+      + Math.cos(player.yaw) * (h.z - player.pos.z)) / (d || 1);
+    if (dot < 0.5) return;
+    // ride from the end the handle is at toward the other one
+    const fromA = Math.hypot(h.x - z.a.x, h.z - z.a.z) <= Math.hypot(h.x - z.b.x, h.z - z.b.z);
+    this.active = { kind: 'zip', from: fromA ? z.a : z.b, to: fromA ? z.b : z.a, u: 0, v: 0.8 };
+    player.rig.forceLegEmote = true;
+    player.playAction('monkey', null);
+    this.state.presence?.broadcast({ emote: 'monkey' });
+    window.odaSfx && window.odaSfx.play('whoosh');
+    this.state.toast?.('Zip line! Hold on \u{1F412} · Space to drop');
+  }
+
+  _updateZip(dt, player, intent) {
+    const a = this.active, z = this.zip;
+    a.v = Math.min(4.2, a.v + 3.0 * dt);
+    const len = a.from.distanceTo(a.to);
+    a.u = Math.min(1, a.u + (a.v / len) * dt);
+    _va.lerpVectors(a.from, a.to, a.u);
+    z.handle.position.set(_va.x, z.handle.position.y, _va.z);
+    player.pos.set(_va.x, _va.y - HANG_DROP, _va.z);
+    player.yaw = player.targetYaw = Math.atan2(a.to.x - a.from.x, a.to.z - a.from.z);
+    player.speed = 0; player.vel.y = 0; player.grounded = true; player.tilt = 0;
+    if (Math.random() < dt * 6 && window.odaSfx) {
+      window.odaSfx.tone(900 + a.v * 160 + Math.random() * 120, 0.04, 'triangle', 0.02);
+    }
+    if (a.u >= 1 || intent.jump) {
+      // let go: carry the travel speed into the landing arc
+      const dir = _vb.copy(a.to).sub(a.from).normalize();
+      this.launch = { x: dir.x * a.v * 0.55, z: dir.z * a.v * 0.55 };
+      player.rig.forceLegEmote = false;
+      player.grounded = false;
+      player.vel.y = 0.5;
+      z.cool = 1.5;
+      this._endRide(player);
+    }
+  }
+
   // ── picnic tables ─────────────────────────────────────────────────────────
   // Devon: "you can't sit down on the picnic tables, but you can on the
   // benches. So I want a sit animation for the picnic tables as well, and they
@@ -1403,6 +1515,23 @@ export class Rides {
   update(dt, player, intent) {
     if (this._slideCool > 0) this._slideCool -= dt;
     this._checkSlideEntry(player);
+    if (this.zip) {
+      if (this.zip.cool > 0) this.zip.cool -= dt;
+      this._checkZipGrab(player);
+      // idle handle trundles over to a kid waiting at the other end
+      if (this.active?.kind !== 'zip' && this.zip.cool <= 0) {
+        const h = this.zip.handle.position;
+        for (const end of [this.zip.a, this.zip.b]) {
+          const pd = Math.hypot(player.pos.x - end.x, player.pos.z - end.z);
+          if (pd > 2.5) continue;
+          if (Math.hypot(h.x - end.x, h.z - end.z) > 0.05) {
+            h.x += (end.x - h.x) * Math.min(1, 1.2 * dt);
+            h.z += (end.z - h.z) * Math.min(1, 1.2 * dt);
+          }
+          break;
+        }
+      }
+    }
     const t = this.world.clock.elapsedTime;
     // unoccupied swings sway in the breeze
     for (const s of this.swings) {
@@ -1440,6 +1569,7 @@ export class Rides {
       case 'monkey': this._updateMonkey(dt, player); break;
       case 'tableseat': this._updateTableSeat(dt, player, intent); break;
       case 'climb': this._updateClimb(dt, player, intent); break;
+      case 'zip': this._updateZip(dt, player, intent); break;
     }
   }
 }
