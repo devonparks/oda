@@ -169,12 +169,15 @@ function encodeClip(clip) {
 // playhead and holds the channel open until stopEmote()).
 const ORDER = ['sit', 'sit_swing', 'swing_pump', 'slide_ride', 'sit_kart',
   'sit_seesaw', 'sit_rocker', 'hula', 'fish_cast', 'fish_wait', 'fish_reel',
-  'climb', 'climb_top'];
+  'climb', 'climb_top',
+  'ride_stand', 'bike_pedal', 'pogo', 'monkey', 'sit_table', 'spin_ride'];
 const ICONS = {
   sit: '\u{1FA91}', sit_swing: '\u{1F4BA}', swing_pump: '\u{1F4BA}', slide_ride: '\u{1F6DD}',
   sit_kart: '\u{1F3CE}️', sit_seesaw: '⚖️', sit_rocker: '\u{1F40E}',
   hula: '⭕', fish_cast: '\u{1F3A3}', fish_wait: '\u{1F41F}', fish_reel: '\u{1F41F}',
   climb: '\u{1F9D7}', climb_top: '\u{1F9D7}',
+  ride_stand: '\u{1F6F9}', bike_pedal: '\u{1F6B2}', pogo: '\u{1F998}',
+  monkey: '\u{1F412}', sit_table: '\u{1F37D}\uFE0F', spin_ride: '\u{1F3A0}',
 };
 
 const OUT_DIR = P('assets', 'characters', 'emotes');
@@ -325,10 +328,14 @@ if (process.argv[2] === 'verify') {
     let worst = 0;
     for (const id of SEATED) for (let f = 0; f < info[id].frames; f++) worst = Math.max(worst, Math.abs(hipOf(id, f) + 0.261));
     chk('seated clips carry the -0.261 pelvis drop (rides.js offsets depend on it)', worst < 0.03, `max deviation ${worst.toFixed(3)} m`);
-    const standing = ['hula', 'fish_cast', 'fish_wait', 'fish_reel', 'climb_top'];
+    const standing = ['hula', 'fish_cast', 'fish_wait', 'fish_reel', 'climb_top',
+      'ride_stand', 'pogo', 'monkey'];
     let stand = 0;
     for (const id of standing) for (let f = 0; f < info[id].frames; f++) stand = Math.max(stand, Math.abs(hipOf(id, f)));
-    chk('standing clips keep the pelvis at standing height', stand < 0.05, `max |hipY| ${stand.toFixed(3)} m`);
+    // 0.12, not 0.05: a skateboard stance and a pogo spring are STANDING but
+    // deliberately ride low on bent knees. The check exists to catch a clip
+    // that accidentally inherited the -0.261 SEAT drop, and 0.12 still does.
+    chk('standing clips are not accidentally SEATED', stand < 0.12, `max |hipY| ${stand.toFixed(3)} m`);
   }
   // straddle sits: the knees must actually FOLD. Legs merely spread with straight
   // knees renders as a kid standing and leaning, which is what the first bake did.
@@ -416,10 +423,9 @@ if (process.argv[2] === 'verify') {
 if (process.argv[2] === 'poses') {
   const poses = [];
   const wants = [
-    ['sit', 0], ['sit_swing', 0], ['swing_pump', 6], ['swing_pump', 18],
-    ['slide_ride', 0], ['sit_kart', 0], ['sit_seesaw', 0], ['sit_rocker', 0],
-    ['hula', 0], ['hula', 8], ['fish_cast', 7], ['fish_cast', 12],
-    ['fish_wait', 0], ['fish_reel', 6],
+    ['climb', 0], ['climb', 14], ['climb_top', 10],
+    ['ride_stand', 0], ['bike_pedal', 0], ['bike_pedal', 6], ['pogo', 4], ['pogo', 13],
+    ['monkey', 0], ['monkey', 20], ['sit_table', 0], ['spin_ride', 0],
   ];
   for (const [id, f] of wants) {
     if (!info[id]) continue;

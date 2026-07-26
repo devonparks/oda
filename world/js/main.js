@@ -452,7 +452,8 @@ function loop() {
   // Driving the kart: stepPlayer still runs (real collision, real ground) but
   // faster; the kart mesh chases the player in rides.update below.
   if (state.rides?.driving) {
-    intent.run = true; intent.speedScale = 1.75;
+    // per-vehicle now: a skateboard really is quicker than a trike
+    intent.run = true; intent.speedScale = state.rides.speedScale;
     intent.dismount = intent.jump; intent.jump = false;   // Space exits, not hops
   }
   if (!state.paused && !state.seated && (!state.rides?.busy || state.rides?.driving)) {

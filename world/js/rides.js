@@ -13,7 +13,7 @@
  * slides work without a single hand-placed coordinate.
  */
 import * as THREE from 'three';
-import { getEmoteLibraryV2, BIND_PELVIS_Y, SEATED_HIP_OFFSET, BUTT_BELOW_PELVIS } from './rig_v2.js';
+import { getEmoteLibraryV2, BIND_PELVIS_Y, SEATED_HIP_OFFSET, SEATED_PELVIS_Y, BUTT_BELOW_PELVIS } from './rig_v2.js';
 
 const _va = new THREE.Vector3();
 const _vb = new THREE.Vector3();
@@ -46,6 +46,46 @@ const COAST_AMP = 0.30;
 const SLIDE_TIME = 1.15;     // s top→exit
 /** How close to a chute's top counts as stepping onto it. */
 const SLIDE_MOUTH = 1.0;
+/** How far below a monkey bar a hanging kid's feet-origin sits. */
+const HANG_DROP = 1.15;
+
+/** Ride rules per vehicle family, mirrored from world.js VEHICLE_FAMILIES. */
+const VEHICLE_DEFS = {
+  kart: { style: 'sit', clip: 'sit_kart', speed: 1.75, name: 'Soapbox Racer', icon: '\u{1F3CE}\uFE0F', verb: 'Drive it!', spread: 1.6 },
+  bike: { style: 'bike', clip: 'bike_pedal', speed: 1.9, name: 'Bike', icon: '\u{1F6B2}', verb: 'Ride the bike!' },
+  trike: { style: 'bike', clip: 'bike_pedal', speed: 1.25, name: 'Trike', icon: '\u{1F6B2}', verb: 'Ride the trike!' },
+  scooter: { style: 'stand', clip: 'ride_stand', speed: 1.6, name: 'Scooter', icon: '\u{1F6F4}', verb: 'Scoot!' },
+  board: { style: 'stand', clip: 'ride_stand', speed: 2.05, name: 'Skateboard', icon: '\u{1F6F9}', verb: 'Skate!', spread: 0.9 },
+  wagon: { style: 'sit', clip: 'sit_kart', speed: 1.3, name: 'Wagon', icon: '\u{1F6D2}', verb: 'Ride the wagon!' },
+  pogo: { style: 'pogo', clip: 'pogo', speed: 0.85, name: 'Pogo Stick', icon: '\u{1F998}', verb: 'Boing!', mountY: 0.28 },
+};
+
+/**
+ * Group loose layout rows into individual objects by proximity.
+ *
+ * The layout is a flat list — five skateboards' worth of decks and twenty
+ * wheels, all as siblings — so "which wheel belongs to which board" is a
+ * clustering problem. Single-link within `spread` metres, which is safe here
+ * because the park never parks two of the same vehicle inside a metre of each
+ * other (measured: the closest pair of skateboards is 3.9 m apart).
+ */
+function clusterParts(list, spread = 1.4) {
+  const pos = list.map((p) => new THREE.Vector3().setFromMatrixPosition(p.matrix));
+  const seen = new Array(list.length).fill(false);
+  const out = [];
+  for (let i = 0; i < list.length; i++) {
+    if (seen[i]) continue;
+    const group = [i]; seen[i] = true;
+    for (let g = 0; g < group.length; g++) {
+      for (let j = 0; j < list.length; j++) {
+        if (seen[j]) continue;
+        if (pos[group[g]].distanceTo(pos[j]) <= spread) { seen[j] = true; group.push(j); }
+      }
+    }
+    out.push(group.map((k) => list[k]));
+  }
+  return out;
+}
 /** How far above your feet a ledge can be and still be climbable. */
 const CLIMB_REACH = 3.4;
 const CLIMB_SPEED = 1.15;    // m/s up the rungs
@@ -61,7 +101,9 @@ export class Rides {
     this._buildSwings();
     this._buildSlides();
     this._buildPlayground();
-    this._buildKart();
+    this._buildVehicles();
+    this._buildAttractions();
+    this._buildMonkeyBars();
     // Warm the ACTIONS bin: every ride below plays out of it, and a lazy fetch
     // on the first hop-on would swallow the pose for a beat.
     getEmoteLibraryV2().then((lib) => lib && lib.loadCategory('actions').catch(() => {}));
@@ -529,91 +571,327 @@ export class Rides {
     this.active = null;
   }
 
-  // ── kart: the soapbox racer, actually drivable ────────────────────────────
+  // ── vehicles: everything in the park you can get on ───────────────────────
+  //
+  // The soapbox racer proved the pattern and this is every vehicle on it. Each
+  // one's layout parts are diverted out of the static batch (world.js), then
+  // clustered by position into instances and re-parented into ONE rigid group,
+  // so the whole thing moves and steers as a body. stepPlayer keeps running
+  // with a speedScale, which means a rider gets real collision and real ground
+  // instead of a bespoke physics path. Hop off and it parks where you left it.
+  //
+  // Devon: "I want every vehicle to be driven… a skateboard, the bicycles,
+  // everything." Fifteen of them, one implementation.
 
-  _buildKart() {
-    const parts = this.world.kartParts || [];
-    if (!parts.length) return;
-    // Root = the frame part's translation; all parts re-parented relative to
-    // it, so the whole racer moves as one rigid body.
-    const frame = parts.find((p) => p.mesh === 'SM_Veh_Soapbox_Racer_03') || parts[0];
-    const rootPos = new THREE.Vector3().setFromMatrixPosition(frame.matrix);
+  _buildVehicles() {
+    this.vehicles = [];
+    const parts = this.world.vehicleParts || [];
+    const byFamily = new Map();
+    for (const p of parts) {
+      if (!byFamily.has(p.family)) byFamily.set(p.family, []);
+      byFamily.get(p.family).push(p);
+    }
+    for (const [family, list] of byFamily) {
+      const def = VEHICLE_DEFS[family];
+      if (!def) continue;
+      for (const cluster of clusterParts(list, def.spread || 1.4)) {
+        const v = this._assembleVehicle(family, def, cluster);
+        if (v) this.vehicles.push(v);
+      }
+    }
+  }
+
+  /** One cluster of layout rows → a rigid group + its ride zone. */
+  _assembleVehicle(family, def, cluster) {
+    // Root = the part whose name has no _Suffix (the frame), else the first.
+    const root = cluster.find((p) => !/_[A-Za-z]+(_[a-z]{1,2})?$/.test(p.mesh.replace(/_\d+$/, '')))
+      || cluster[0];
+    const rootPos = new THREE.Vector3().setFromMatrixPosition(root.matrix);
     const rootInv = new THREE.Matrix4().makeTranslation(-rootPos.x, -rootPos.y, -rootPos.z);
     const group = new THREE.Group();
     group.position.copy(rootPos);
     const wheels = [];
-    for (const p of parts) {
+    // The part with the biggest FOOTPRINT is the thing you stand or sit on — a
+    // scooter's footboard, a wagon's floor, a bike's saddle rail, a
+    // skateboard's deck. Measured across all seven families, and much better
+    // than the whole assembly's bounding box, whose top is the HANDLEBARS:
+    // that mounted scooter riders 1.63 m up, standing on the bars.
+    let deckTop = -Infinity, deckArea = -Infinity;
+    const bb = new THREE.Box3(), pb = new THREE.Box3();
+    for (const p of cluster) {
       const mesh = new THREE.Mesh(p.proto.geometry, p.proto.material);
       mesh.applyMatrix4(new THREE.Matrix4().multiplyMatrices(rootInv, p.matrix));
       mesh.castShadow = !!this.world.quality?.shadows;
       group.add(mesh);
-      if (/Wheel/.test(p.mesh)) {
-        // axle in the wheel's own local frame = the kart's sideways axis
+      mesh.updateMatrixWorld(true);
+      bb.expandByObject(mesh);
+      if (/Wheel/i.test(p.mesh)) {
         const q = new THREE.Quaternion().setFromRotationMatrix(p.matrix).invert();
         wheels.push({ mesh, axle: new THREE.Vector3(1, 0, 0).applyQuaternion(q).normalize() });
       }
     }
     this.world.scene.add(group);
-    // the racer as authored faces… wherever the layout left it; note its yaw
-    const q0 = new THREE.Quaternion().setFromRotationMatrix(frame.matrix);
-    _va.set(0, 0, 1).applyQuaternion(q0);
-    this.kart = { group, wheels, yaw: Math.atan2(_va.x, _va.z) };
-    group.rotation.y = 0;   // parts carry their own layout rotations already
-    this.kartZone = {
-      id: 'kart', ride: 'kart', icon: '\u{1F3CE}️', name: 'Soapbox Racer',
-      prompt: 'Drive it!', pos: [rootPos.x, rootPos.z], radius: 1.6,
-    };
-    this.zones.push(this.kartZone);
-  }
-
-  _beginKart(player) {
-    const k = this.kart;
-    // strip the parts' baked layout yaw down to a group yaw so driving can
-    // steer. Full matrix (not just quaternion): part POSITIONS must rotate
-    // about the group origin too or the racer un-assembles on the first turn.
-    if (!k.normalized) {
-      k.normalized = true;
-      const undo = new THREE.Matrix4().makeRotationY(-k.yaw);
-      for (const c of k.group.children) c.applyMatrix4(undo);
-      k.group.rotation.y = k.yaw;
+    // SECOND pass, and it has to be second: setFromObject reads matrixWorld,
+    // and inside the build loop the group's own matrixWorld is still stale, so
+    // every part measured against a garbage parent transform. That silently
+    // mounted scooter riders on the handlebars.
+    group.updateMatrixWorld(true);
+    for (const c of group.children) {
+      pb.setFromObject(c);
+      const area = (pb.max.x - pb.min.x) * (pb.max.z - pb.min.z);
+      if (area > deckArea) { deckArea = area; deckTop = pb.max.y; }
     }
-    this.active = { kind: 'kart' };
-    player.pos.set(k.group.position.x, k.group.position.y, k.group.position.z);
-    player.yaw = player.targetYaw = k.group.rotation.y;
-    player.rig.forceLegEmote = true;
-    player.playAction('sit_kart');
-    this.state.presence?.broadcast({ emote: 'sit_kart' });
-    return 'Vroom! Drive with WASD · Space to hop out';
+    const q0 = new THREE.Quaternion().setFromRotationMatrix(root.matrix);
+    _va.set(0, 0, 1).applyQuaternion(q0);
+    const yaw = Math.atan2(_va.x, _va.z);
+    // Where a rider goes: feet on the deck for a stand-up, pelvis on it for a
+    // sit-down. Read off the assembled body rather than typed in per vehicle.
+    // `mountY` overrides it for the pogo stick, which is a single part: its
+    // widest slab is the whole pole, but you ride the PEGS near the bottom.
+    const deck = def.mountY != null ? def.mountY : deckTop - rootPos.y;
+    const v = {
+      family, def, group, wheels, yaw, deck,
+      zone: {
+        id: `veh_${family}_${this.vehicles.length}`, ride: 'vehicle',
+        icon: def.icon, name: def.name, prompt: def.verb,
+        pos: [rootPos.x, rootPos.z], radius: 1.5,
+      },
+    };
+    v.zone.vehicle = v;
+    this.zones.push(v.zone);
+    return v;
   }
 
-  get driving() { return this.active?.kind === 'kart'; }
+  _mountY(v, groundY) {
+    // 'stand' rides put the feet on the deck; 'sit' rides put the pelvis there.
+    if (v.def.style === 'sit' || v.def.style === 'bike') {
+      return groundY + v.deck + BUTT_BELOW_PELVIS - SEATED_PELVIS_Y;
+    }
+    return groundY + v.deck;
+  }
 
-  _updateKart(dt, player, intent) {
-    const k = this.kart;
-    // stepPlayer already moved the player (with speedScale); the kart follows
-    k.group.position.set(player.pos.x, player.pos.y, player.pos.z);
-    const prev = k.group.rotation.y;
+  _beginVehicle(player, v) {
+    // Strip the parts' baked layout yaw down to a GROUP yaw so steering works.
+    // Full matrix, not just the quaternion: part POSITIONS have to rotate about
+    // the group origin too, or the thing un-assembles on the first turn.
+    if (!v.normalized) {
+      v.normalized = true;
+      const undo = new THREE.Matrix4().makeRotationY(-v.yaw);
+      for (const c of v.group.children) c.applyMatrix4(undo);
+      v.group.rotation.y = v.yaw;
+    }
+    this.active = { kind: 'vehicle', v, hop: 0 };
+    const g = this.world.collision.groundAt(v.group.position.x, v.group.position.z, v.group.position.y + 0.6);
+    player.pos.set(v.group.position.x, this._mountY(v, g), v.group.position.z);
+    player.yaw = player.targetYaw = v.group.rotation.y;
+    player.rig.forceLegEmote = true;
+    player.playAction(v.def.clip, null);
+    this.state.presence?.broadcast({ emote: v.def.clip });
+    return `${v.def.verb} \u00b7 WASD \u00b7 Space to hop off`;
+  }
+
+  get driving() { return this.active?.kind === 'vehicle'; }
+  /** stepPlayer asks how much faster this ride is than walking. */
+  get speedScale() { return this.active?.kind === 'vehicle' ? this.active.v.def.speed : 1; }
+
+  _updateVehicle(dt, player, intent) {
+    const a = this.active, v = a.v;
+    const ground = this.world.collision.groundAt(player.pos.x, player.pos.z, player.pos.y + 0.4);
+    // A pogo stick HOPS. Everything else rides the ground.
+    if (v.def.style === 'pogo') {
+      a.hop += dt * 7.4;
+      const bounce = Math.abs(Math.sin(a.hop)) * 0.34;
+      v.group.position.set(player.pos.x, ground + bounce, player.pos.z);
+      player.pos.y = this._mountY(v, ground + bounce);
+      if (Math.sin(a.hop) < 0 && Math.sin(a.hop - dt * 7.4) >= 0 && window.odaSfx) {
+        window.odaSfx.tone(300 + Math.random() * 60, 0.06, 'square', 0.03);
+      }
+    } else {
+      v.group.position.set(player.pos.x, ground, player.pos.z);
+      player.pos.y = this._mountY(v, ground);
+    }
+    const prev = v.group.rotation.y;
     let dy = (player.yaw - prev) % (Math.PI * 2);
     if (dy > Math.PI) dy -= Math.PI * 2;
     if (dy < -Math.PI) dy += Math.PI * 2;
-    k.group.rotation.y = prev + dy * Math.min(1, 10 * dt);
+    v.group.rotation.y = prev + dy * Math.min(1, 10 * dt);
     player.tilt = 0;
-    for (const w of k.wheels) w.mesh.rotateOnAxis(w.axle, player.speed * dt / 0.16);
-    // engine putter while moving
-    if (player.speed > 0.5 && Math.random() < dt * 8 && window.odaSfx) {
-      window.odaSfx.tone(70 + player.speed * 14 + Math.random() * 18, 0.05, 'square', 0.028);
+    for (const w of v.wheels) w.mesh.rotateOnAxis(w.axle, player.speed * dt / 0.16);
+    if (player.speed > 0.5 && Math.random() < dt * 6 && window.odaSfx) {
+      window.odaSfx.tone(70 + player.speed * 14 + Math.random() * 18, 0.05, 'square', 0.025);
     }
     if (intent.dismount || intent.jump) {
       player.rig.forceLegEmote = false;
       player.rig.stopEmote?.();
       this.state.presence?.broadcast({ emote: '_stop' });
-      // hop out to the side; the kart PARKS here (its zone moves with it)
       player.pos.x += Math.cos(player.yaw) * 0.8;
       player.pos.z -= Math.sin(player.yaw) * 0.8;
-      player.pos.y = this.world.collision.groundAt(player.pos.x, player.pos.z, player.pos.y + 0.3);
-      this.kartZone.pos = [k.group.position.x, k.group.position.z];
+      player.pos.y = this.world.collision.groundAt(player.pos.x, player.pos.z, player.pos.y + 0.5);
+      v.zone.pos = [v.group.position.x, v.group.position.z];   // it parks here
       this.active = null;
     }
+  }
+
+  // ── spinners and coin rides ───────────────────────────────────────────────
+  //
+  // Devon: "there's a thing behind the fountain that has like four tires and
+  // it's supposed to spin. Even on the playground next to the seesaw, that
+  // thing is supposed to spin — right now it's got the same physics as the
+  // seesaw." Both are roundabouts, and both were being animated as spring
+  // rockers. They spin now, and you spin with them.
+
+  _buildAttractions() {
+    this.spinners = [];
+    this.coinRides = [];
+    const parts = this.world.attractionParts || [];
+    const byFamily = new Map();
+    for (const p of parts) {
+      if (!byFamily.has(p.family)) byFamily.set(p.family, []);
+      byFamily.get(p.family).push(p);
+    }
+    for (const [family, list] of byFamily) {
+      for (const cluster of clusterParts(list, 1.6)) {
+        const group = new THREE.Group();
+        const root = cluster[0];
+        const rootPos = new THREE.Vector3().setFromMatrixPosition(root.matrix);
+        const rootInv = new THREE.Matrix4().makeTranslation(-rootPos.x, -rootPos.y, -rootPos.z);
+        group.position.copy(rootPos);
+        const bb = new THREE.Box3();
+        for (const p of cluster) {
+          const mesh = new THREE.Mesh(p.proto.geometry, p.proto.material);
+          mesh.applyMatrix4(new THREE.Matrix4().multiplyMatrices(rootInv, p.matrix));
+          mesh.castShadow = !!this.world.quality?.shadows;
+          group.add(mesh);
+          mesh.updateMatrixWorld(true);
+          bb.expandByObject(mesh);
+        }
+        this.world.scene.add(group);
+        const item = {
+          group, spin: 0, rate: 0, t: Math.random() * 6,
+          deck: bb.max.y - rootPos.y,
+          radius: Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z) / 2,
+        };
+        const isSpin = family === 'spinner';
+        (isSpin ? this.spinners : this.coinRides).push(item);
+        item.zone = {
+          id: `${family}${this.zones.length}`, ride: family,
+          icon: isSpin ? '\u{1F3A0}' : '\u{1F680}',
+          name: isSpin ? 'Roundabout' : 'Coin Ride',
+          prompt: isSpin ? 'Spin!' : 'Take a ride!',
+          pos: [rootPos.x, rootPos.z], radius: Math.max(1.4, item.radius + 0.7), item,
+        };
+        this.zones.push(item.zone);
+      }
+    }
+  }
+
+  _beginSpinner(player, item) {
+    this.active = { kind: 'spinner', item };
+    player.rig.forceLegEmote = true;
+    player.playAction('spin_ride', null);
+    this.state.presence?.broadcast({ emote: 'spin_ride' });
+    return 'Hold W to push it round \u00b7 Space to hop off';
+  }
+
+  _updateSpinner(dt, player, intent) {
+    const it = this.active.item;
+    const pushing = Math.abs(intent.move.y) > 0.3 || Math.abs(intent.move.x) > 0.3;
+    it.rate += ((pushing ? 3.4 : 0) - it.rate) * Math.min(1, dt * (pushing ? 0.9 : 0.5));
+    it.spin += it.rate * dt;
+    it.group.rotation.y = it.spin;
+    // ride a seat out on the rim, so you actually travel round
+    const r = Math.max(0.35, it.radius * 0.52);
+    const g = this.world.collision.groundAt(it.group.position.x, it.group.position.z, it.group.position.y + 0.6);
+    player.pos.set(
+      it.group.position.x + Math.sin(it.spin) * r,
+      g + it.deck + BUTT_BELOW_PELVIS - SEATED_PELVIS_Y,
+      it.group.position.z + Math.cos(it.spin) * r);
+    player.yaw = player.targetYaw = it.spin + Math.PI;   // facing out
+    player.speed = 0; player.vel.y = 0; player.grounded = true; player.tilt = 0;
+    if (it.rate > 1.4 && Math.random() < dt * 4 && window.odaSfx) {
+      window.odaSfx.tone(150 + it.rate * 20, 0.05, 'triangle', 0.02);
+    }
+    if (intent.jump) {
+      // fling off tangentially — the best bit of a roundabout
+      player.rig.forceLegEmote = false;
+      this.launch = { x: Math.cos(it.spin) * it.rate * r, z: -Math.sin(it.spin) * it.rate * r };
+      player.vel.y = 2.6;
+      player.grounded = false;
+      this._endRide(player);
+    }
+  }
+
+  _beginCoinRide(player, item) {
+    this.active = { kind: 'coinride', item, t: 0 };
+    player.rig.forceLegEmote = true;
+    player.playAction('sit_rocker', null);
+    this.state.presence?.broadcast({ emote: 'sit_rocker' });
+    return 'Whee! \u00b7 Space to hop off';
+  }
+
+  _updateCoinRide(dt, player, intent) {
+    const a = this.active, it = a.item;
+    a.t += dt;
+    const rock = Math.sin(a.t * 3.1) * 0.30, bob = Math.sin(a.t * 6.2) * 0.05;
+    it.group.rotation.x = rock * 0.5;
+    const g = this.world.collision.groundAt(it.group.position.x, it.group.position.z, it.group.position.y + 0.6);
+    player.pos.set(it.group.position.x, g + it.deck + bob + BUTT_BELOW_PELVIS - SEATED_PELVIS_Y, it.group.position.z);
+    player.yaw = player.targetYaw = it.group.rotation.y;
+    player.tilt = rock * 0.5;
+    player.speed = 0; player.vel.y = 0; player.grounded = true;
+    if (intent.jump || Math.hypot(intent.move.x, intent.move.y) > 0.25) {
+      it.group.rotation.x = 0;
+      player.rig.forceLegEmote = false;
+      this._endRide(player);
+    }
+  }
+
+  // ── monkey bars ───────────────────────────────────────────────────────────
+
+  _buildMonkeyBars() {
+    const b = (this.world.monkeyBars || null);
+    if (!b) return;
+    this.zones.push({
+      id: 'monkey', ride: 'monkey', icon: '\u{1F412}', name: 'Monkey Bars',
+      prompt: 'Swing across!', pos: [b.a.x, b.a.z], radius: 1.2, bars: b, from: 'a',
+    });
+    this.zones.push({
+      id: 'monkey2', ride: 'monkey', icon: '\u{1F412}', name: 'Monkey Bars',
+      prompt: 'Swing across!', pos: [b.b.x, b.b.z], radius: 1.2, bars: b, from: 'b',
+    });
+  }
+
+  _beginMonkey(player, zone) {
+    const b = zone.bars;
+    const from = zone.from === 'a' ? b.a : b.b, to = zone.from === 'a' ? b.b : b.a;
+    this.active = { kind: 'monkey', t: 0, from, to, dur: from.distanceTo(to) / 1.05 };
+    player.rig.forceLegEmote = true;
+    player.playAction('monkey', null);
+    this.state.presence?.broadcast({ emote: 'monkey' });
+    return 'Hand over hand!';
+  }
+
+  _updateMonkey(dt, player) {
+    const a = this.active;
+    a.t += dt;
+    const k = Math.min(1, a.t / a.dur);
+    player.pos.lerpVectors(a.from, a.to, k);
+    player.pos.y = a.from.y - HANG_DROP;          // hanging below the bars
+    player.yaw = player.targetYaw = Math.atan2(a.to.x - a.from.x, a.to.z - a.from.z);
+    player.speed = 0; player.vel.y = 0; player.grounded = true; player.tilt = 0;
+    if (k >= 1) {
+      player.rig.forceLegEmote = false;
+      player.pos.y = this.world.collision.groundAt(player.pos.x, player.pos.z, player.pos.y);
+      this._endRide(player);
+    }
+  }
+
+  /** Shared teardown for the rides that just stop. */
+  _endRide(player) {
+    player.rig.forceLegEmote = false;
+    player.rig.stopEmote?.();
+    this.state.presence?.broadcast({ emote: '_stop' });
+    this.active = null;
   }
 
   // ── shared ────────────────────────────────────────────────────────────────
@@ -627,7 +905,10 @@ export class Rides {
       case 'seesaw': return this._beginSeesaw(player);
       case 'rocker': return this._beginRocker(player, zone);
       case 'hoop': return this._beginHoop(player);
-      case 'kart': return this._beginKart(player);
+      case 'vehicle': return this._beginVehicle(player, zone.vehicle);
+      case 'spinner': return this._beginSpinner(player, zone.item);
+      case 'coinride': return this._beginCoinRide(player, zone.item);
+      case 'monkey': return this._beginMonkey(player, zone);
       case 'climb': return this._beginClimb(player, zone.spot);
       default: return null;
     }
@@ -660,7 +941,10 @@ export class Rides {
       case 'seesaw': this._updateSeesaw(dt, player, intent); break;
       case 'rocker': this._updateRocker(dt, player, intent); break;
       case 'hoop': this._updateHoop(dt, player, intent); break;
-      case 'kart': this._updateKart(dt, player, intent); break;
+      case 'vehicle': this._updateVehicle(dt, player, intent); break;
+      case 'spinner': this._updateSpinner(dt, player, intent); break;
+      case 'coinride': this._updateCoinRide(dt, player, intent); break;
+      case 'monkey': this._updateMonkey(dt, player); break;
       case 'climb': this._updateClimb(dt, player, intent); break;
     }
   }

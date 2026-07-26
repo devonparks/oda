@@ -35,6 +35,38 @@ export const QUALITY = {
 };
 
 /**
+ * Every rideable vehicle family in the park, and how a kid rides it.
+ *
+ * `style` picks the mount and the clip: 'sit' puts the pelvis on the deck,
+ * 'stand' puts the feet on it, 'pogo' does the same but hops. `speed` scales
+ * stepPlayer, so a skateboard really is quicker than a trike.
+ *
+ * Order matters — first match wins, and the more specific patterns come first
+ * (a scooter's parts are `SM_Veh_Scooter_01_Wheel_Front`, which must not fall
+ * through to a looser rule).
+ */
+const VEHICLE_FAMILIES = [
+  { id: 'kart', re: /^SM_Veh_Soapbox_Racer_03/, style: 'sit', clip: 'sit_kart', speed: 1.75, name: 'Soapbox Racer', icon: '\u{1F3CE}\uFE0F', verb: 'Drive it!' },
+  { id: 'bike', re: /^SM_Veh_Bike_/, style: 'bike', clip: 'bike_pedal', speed: 1.9, name: 'Bike', icon: '\u{1F6B2}', verb: 'Ride the bike!' },
+  { id: 'trike', re: /^SM_Veh_Trike_/, style: 'bike', clip: 'bike_pedal', speed: 1.25, name: 'Trike', icon: '\u{1F6B2}', verb: 'Ride the trike!' },
+  { id: 'scooter', re: /^SM_Veh_Scooter_/, style: 'stand', clip: 'ride_stand', speed: 1.6, name: 'Scooter', icon: '\u{1F6F4}', verb: 'Scoot!' },
+  { id: 'board', re: /^SM_Prop_Skateboard_/, style: 'stand', clip: 'ride_stand', speed: 2.05, name: 'Skateboard', icon: '\u{1F6F9}', verb: 'Skate!' },
+  { id: 'wagon', re: /^SM_Prop_Red_Wagon_/, style: 'sit', clip: 'sit_kart', speed: 1.3, name: 'Wagon', icon: '\u{1F6D2}', verb: 'Ride the wagon!' },
+  { id: 'pogo', re: /^SM_Veh_Pogo_Stick/, style: 'pogo', clip: 'pogo', speed: 0.85, name: 'Pogo Stick', icon: '\u{1F998}', verb: 'Boing!' },
+];
+
+/**
+ * Things that go round or rock where they stand. Devon named both spinners:
+ * "there's a thing behind the fountain that has like four tires and it's
+ * supposed to spin. Even on the playground next to the seesaw, that thing is
+ * supposed to spin — right now it's got the same physics as the seesaw."
+ */
+const ATTRACTION_FAMILIES = [
+  { id: 'spinner', re: /^SM_Prop_Playground_Rocker_01|^SM_Prop_Rocker_01/, name: 'Roundabout', icon: '\u{1F3A0}', verb: 'Spin!' },
+  { id: 'coinride', re: /^SM_Prop_Coin_Ride_/, name: 'Coin Ride', icon: '\u{1F680}', verb: 'Take a ride!' },
+];
+
+/**
  * Structures pulled out of the merged park shell and given REAL collision.
  * Their raw export boxes are dropped by 'none' rules in collision.js.
  */
@@ -501,7 +533,17 @@ export class World {
     const dummy = new THREE.Object3D();
     this.seats = [];       // sittable spots, harvested from bench layout entries
     this.slideData = [];   // slide top/exit points, harvested for rides.js
-    this.kartParts = [];   // soapbox racer parts diverted to rides.js (drivable)
+    /**
+     * Parts diverted out of the static batch so rides.js can reassemble them
+     * as RIGID BODIES you can ride. The soapbox racer proved the pattern; this
+     * is every vehicle in the park on the same rails — bikes, trikes,
+     * scooters, skateboards, the wagon, the pogo stick. Devon: "I want every
+     * vehicle to be driven… I want everything to work and have a function."
+     * Each entry is one layout row; rides.js clusters them into instances.
+     */
+    this.vehicleParts = [];
+    /** Props that spin or rock in place (roundabouts, coin rides). */
+    this.attractionParts = [];
     for (const p of layout) {
       const proto = protos.get(p.mesh);
       if (!proto) continue;
@@ -513,6 +555,7 @@ export class World {
       if (p.mesh === 'SM_Env_Park_Seat_01') this._addBenchSeats(proto, dummy);
       if (/Playground_Slide/.test(p.mesh)) this._addSlideData(proto, dummy);
       if (/Playground_Ship/.test(p.mesh)) this._addStructureCollision(proto.geometry, dummy.matrix, '_ship');
+      if (/Playground_Monkey_Bars/.test(p.mesh)) this._addMonkeyBars(proto, dummy);
       // A tent is a thing you go INSIDE; its box was 3.9 m2 of solid at 58%
       // fill, so the doorway didn't exist.
       if (/Prop_Tent_/.test(p.mesh)) this._addStructureCollision(proto.geometry, dummy.matrix, '_tent');
@@ -520,8 +563,15 @@ export class World {
       // The soapbox racer becomes DRIVABLE: divert its parts (frame, steering
       // wheel, four wheels — each its own layout entry) out of the static
       // batch; rides.js reassembles them into a rigid dynamic group.
-      if (p.mesh.startsWith('SM_Veh_Soapbox_Racer_03')) {
-        this.kartParts.push({ proto, matrix: dummy.matrix.clone(), mesh: p.mesh });
+      // Vehicles and spinning attractions leave the static batch entirely.
+      const fam = VEHICLE_FAMILIES.find((v) => v.re.test(p.mesh));
+      if (fam) {
+        this.vehicleParts.push({ family: fam.id, proto, matrix: dummy.matrix.clone(), mesh: p.mesh });
+        continue;
+      }
+      const att = ATTRACTION_FAMILIES.find((v) => v.re.test(p.mesh));
+      if (att) {
+        this.attractionParts.push({ family: att.id, proto, matrix: dummy.matrix.clone(), mesh: p.mesh });
         continue;
       }
 
@@ -815,6 +865,42 @@ export class World {
     }
     this._lastWalls = walls;
     return emitted;
+  }
+
+  /**
+   * Where the monkey bars start and finish, read off their own geometry.
+   *
+   * The ladder rails run along the prop's LONG horizontal axis and the rungs
+   * sit at the top, so the two ends are the extremes of that axis at the top
+   * band — no hand-placed coordinates, same trick as the bench seats and the
+   * slide chutes. Devon: "you have to have an animation for going across the
+   * monkey bars."
+   */
+  _addMonkeyBars(proto, dummy) {
+    const pos = proto.geometry.attributes.position;
+    const v = new THREE.Vector3();
+    let maxY = -Infinity;
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(dummy.matrix);
+      if (v.y > maxY) maxY = v.y;
+    }
+    // the top band = the rungs you actually hang from
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity, n = 0;
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(dummy.matrix);
+      if (v.y < maxY - 0.25) continue;
+      n++;
+      if (v.x < x0) x0 = v.x; if (v.x > x1) x1 = v.x;
+      if (v.z < z0) z0 = v.z; if (v.z > z1) z1 = v.z;
+    }
+    if (!n) return;
+    const alongX = (x1 - x0) >= (z1 - z0);
+    const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    // pull the ends IN a little so you start under the first rung, not past it
+    const inset = 0.25;
+    this.monkeyBars = alongX
+      ? { a: new THREE.Vector3(x0 + inset, maxY, cz), b: new THREE.Vector3(x1 - inset, maxY, cz) }
+      : { a: new THREE.Vector3(cx, maxY, z0 + inset), b: new THREE.Vector3(cx, maxY, z1 - inset) };
   }
 
   /**

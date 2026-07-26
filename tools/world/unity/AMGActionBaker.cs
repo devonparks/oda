@@ -100,6 +100,12 @@ public static class AMGActionBaker
         new Spec("fish_reel",   24, true,  "Reeling"),       // left hand cranking the reel
         new Spec("climb",       28, true,  "Climbing"),      // hand over hand up a ladder
         new Spec("climb_top",   20, false, "Topping out"),   // the last heave onto the deck
+        new Spec("ride_stand",  36, true,  "Riding"),        // skateboard / scooter
+        new Spec("bike_pedal",  24, true,  "Pedalling"),     // bike / trike
+        new Spec("pogo",        18, true,  "Pogo"),          // spring in the knees
+        new Spec("monkey",      40, true,  "Monkey bars"),   // hanging, hand over hand
+        new Spec("sit_table",   60, true,  "At the table"),  // picnic bench, hands on the top
+        new Spec("spin_ride",   50, true,  "Spinning"),      // roundabout, gripping the bar
     };
 
     // ── the pose a single frame resolves to ──────────────────────────────────
@@ -164,6 +170,12 @@ public static class AMGActionBaker
         {
             case "climb": return 0f;
             case "climb_top": return 0f;
+            case "monkey": return 0f;
+            case "pogo": return 0f;
+            case "bike_pedal": return 0f;
+            case "ride_stand": return 0.30f;
+            case "sit_table": return 0.85f;
+            case "spin_ride": return 0.55f;
             case "sit": return 1.00f;
             case "sit_swing": return 0.70f;
             case "sit_kart": return 0.55f;
@@ -191,7 +203,8 @@ public static class AMGActionBaker
     static bool Seated(string id)
     {
         return id == "sit" || id == "sit_swing" || id == "swing_pump" || id == "slide_ride"
-            || id == "sit_kart" || id == "sit_seesaw" || id == "sit_rocker";
+            || id == "sit_kart" || id == "sit_seesaw" || id == "sit_rocker"
+            || id == "bike_pedal" || id == "sit_table" || id == "spin_ride";
     }
 
     /** @param u normalised playhead in [0,1) for loops, [0,1] for one-shots. */
@@ -367,6 +380,142 @@ public static class AMGActionBaker
                 p.poleR = new Vector3(0.75f, -0.60f, -0.28f);
                 p.hipY = 0.016f * Mathf.Sin(Tau(u) * 2f);
                 break;
+
+            // ── vehicles and the rest of the park ────────────────────────────
+
+            // Standing on a deck: feet across the board, knees loose, arms out
+            // for balance. Skateboards and scooters share it — a scooter rider
+            // just gets their hands put on the bars by the ride code.
+            case "ride_stand":
+                {
+                    float sw = Mathf.Sin(Tau(u));
+                    p.pelvis = new Vector3(0.04f * sw, 1f, -0.06f).normalized;
+                    p.spine1 = new Vector3(0.03f * sw, 1f, 0.04f).normalized;
+                    p.neck = new Vector3(0f, 0.97f, 0.24f).normalized;
+                    // left foot forward and turned out, right foot back — a stance
+                    p.thighL = new Vector3(-0.16f, -0.94f, 0.30f).normalized;
+                    p.thighR = new Vector3(0.20f, -0.96f, -0.19f).normalized;
+                    p.shinL = new Vector3(-0.05f, -0.98f, -0.19f).normalized;
+                    p.shinR = new Vector3(0.06f, -0.97f, 0.22f).normalized;
+                    p.footL = new Vector3(-0.30f, -0.38f, 0.87f).normalized;
+                    p.footR = new Vector3(0.34f, -0.42f, 0.84f).normalized;
+                    p.handL = new Vector3(-0.34f - 0.03f * sw, 0.82f, 0.10f);
+                    p.handR = new Vector3(0.34f + 0.03f * sw, 0.80f, -0.02f);
+                    p.poleL = new Vector3(-0.75f, -0.55f, -0.36f);
+                    p.poleR = new Vector3(0.75f, -0.55f, -0.36f);
+                    p.hipY = -0.06f + 0.015f * sw;          // knees always a bit bent
+                    break;
+                }
+
+            // Seated, hands forward on the bars, legs turning a real circle.
+            case "bike_pedal":
+                {
+                    float a1 = Tau(u), a2 = Tau(u) + Mathf.PI;   // legs half a turn apart
+                    p.pelvis = new Vector3(0f, 0.985f, -0.170f);
+                    p.spine1 = new Vector3(0f, 0.976f, 0.220f).normalized;   // leaning to the bars
+                    p.spine2 = new Vector3(0f, 0.990f, 0.140f).normalized;
+                    p.neck = new Vector3(0f, 0.960f, 0.280f).normalized;
+                    // thigh sweeps up and down; shin follows a beat behind
+                    p.thighL = new Vector3(-0.10f, -0.42f + 0.34f * Mathf.Sin(a1), 0.86f).normalized;
+                    p.thighR = new Vector3(0.10f, -0.42f + 0.34f * Mathf.Sin(a2), 0.86f).normalized;
+                    p.shinL = new Vector3(-0.03f, -0.90f, 0.10f + 0.42f * Mathf.Cos(a1)).normalized;
+                    p.shinR = new Vector3(0.03f, -0.90f, 0.10f + 0.42f * Mathf.Cos(a2)).normalized;
+                    p.footL = new Vector3(0f, -0.36f, 0.93f);
+                    p.footR = new Vector3(0f, -0.36f, 0.93f);
+                    p.handL = new Vector3(-0.20f, 0.905f, 0.315f);
+                    p.handR = new Vector3(0.20f, 0.905f, 0.315f);
+                    p.poleL = new Vector3(-0.88f, -0.44f, -0.18f);
+                    p.poleR = new Vector3(0.88f, -0.44f, -0.18f);
+                    break;
+                }
+
+            // Both feet on the pegs, both hands on the handle, knees springing.
+            // The world bounces the avatar; this is the body doing the spring.
+            case "pogo":
+                {
+                    float sp = Mathf.Sin(Tau(u));
+                    p.pelvis = new Vector3(0f, 1f, -0.10f).normalized;
+                    p.spine1 = new Vector3(0f, 1f, 0.10f).normalized;
+                    p.neck = new Vector3(0f, 0.97f, 0.24f).normalized;
+                    p.thighL = new Vector3(-0.11f, -0.90f + 0.22f * sp, 0.42f).normalized;
+                    p.thighR = new Vector3(0.11f, -0.90f + 0.22f * sp, 0.42f).normalized;
+                    p.shinL = new Vector3(-0.03f, -0.94f, -0.32f + 0.24f * sp).normalized;
+                    p.shinR = new Vector3(0.03f, -0.94f, -0.32f + 0.24f * sp).normalized;
+                    p.footL = new Vector3(0f, -0.30f, 0.95f);
+                    p.footR = new Vector3(0f, -0.30f, 0.95f);
+                    p.handL = new Vector3(-0.14f, 0.945f, 0.245f);
+                    p.handR = new Vector3(0.14f, 0.945f, 0.245f);
+                    p.poleL = new Vector3(-0.90f, -0.40f, -0.16f);
+                    p.poleR = new Vector3(0.90f, -0.40f, -0.16f);
+                    p.hipY = -0.05f + 0.05f * sp;
+                    break;
+                }
+
+            // Hanging by the hands under the bars, body long, legs swinging in
+            // opposition as each hand reaches. Devon: the monkey bars need "an
+            // animation for going across".
+            case "monkey":
+                {
+                    float m = Mathf.Sin(Tau(u)), mc = Mathf.Cos(Tau(u));
+                    p.pelvis = new Vector3(0.06f * m, 1f, -0.10f).normalized;
+                    p.spine1 = new Vector3(0.05f * m, 1f, -0.04f).normalized;
+                    p.spine2 = new Vector3(0.03f * m, 1f, 0.02f).normalized;
+                    p.neck = new Vector3(0f, 0.95f, 0.30f).normalized;      // looking ahead
+                    // one hand ahead and high, the other behind — hand over hand
+                    p.handL = new Vector3(-0.13f, 1.34f, 0.16f + 0.26f * mc);
+                    p.handR = new Vector3(0.13f, 1.34f, 0.16f - 0.26f * mc);
+                    p.poleL = new Vector3(-0.55f, -0.80f, -0.24f);
+                    p.poleR = new Vector3(0.55f, -0.80f, -0.24f);
+                    // legs hang and swing opposite the arms
+                    p.thighL = new Vector3(-0.06f, -0.95f, 0.26f - 0.24f * mc).normalized;
+                    p.thighR = new Vector3(0.06f, -0.95f, 0.26f + 0.24f * mc).normalized;
+                    p.shinL = new Vector3(-0.03f, -0.93f, -0.36f).normalized;
+                    p.shinR = new Vector3(0.03f, -0.93f, -0.36f).normalized;
+                    p.footL = new Vector3(0f, -0.62f, 0.78f);
+                    p.footR = new Vector3(0f, -0.62f, 0.78f);
+                    p.hipY = -0.02f + 0.02f * m;
+                    break;
+                }
+
+            // Picnic bench: legs tucked UNDER the table, forearms on the top.
+            case "sit_table":
+                {
+                    p = BuildRaw("sit", u);
+                    p.pelvis = new Vector3(0f, 0.990f, -0.140f).normalized;
+                    p.spine1 = new Vector3(0f, 0.985f, 0.170f).normalized;   // leaning in
+                    p.spine2 = new Vector3(0f, 0.995f, 0.100f).normalized;
+                    p.thighL = new Vector3(-0.090f, -0.300f, 0.950f).normalized;
+                    p.thighR = new Vector3(0.090f, -0.300f, 0.950f).normalized;
+                    p.shinL = new Vector3(-0.010f, -0.975f, -0.220f).normalized;
+                    p.shinR = new Vector3(0.010f, -0.975f, -0.220f).normalized;
+                    // hands resting on the tabletop, a little apart
+                    p.handL = new Vector3(-0.175f, 0.760f, 0.330f);
+                    p.handR = new Vector3(0.175f, 0.760f, 0.330f);
+                    p.poleL = new Vector3(-0.88f, -0.42f, -0.22f);
+                    p.poleR = new Vector3(0.88f, -0.42f, -0.22f);
+                    break;
+                }
+
+            // Roundabout: sitting on the deck, hanging on to the bar, leaning
+            // OUT against the spin.
+            case "spin_ride":
+                {
+                    p = BuildRaw("sit", u);
+                    p.pelvis = new Vector3(0f, 0.945f, -0.327f).normalized;   // leaning back
+                    p.spine1 = new Vector3(0f, 0.975f, -0.222f).normalized;
+                    p.thighL = new Vector3(-0.150f, -0.180f, 0.972f).normalized;
+                    p.thighR = new Vector3(0.150f, -0.180f, 0.972f).normalized;
+                    p.shinL = new Vector3(-0.040f, -0.700f, 0.713f).normalized;
+                    p.shinR = new Vector3(0.040f, -0.700f, 0.713f).normalized;
+                    p.footL = new Vector3(0f, -0.480f, 0.877f);
+                    p.footR = new Vector3(0f, -0.480f, 0.877f);
+                    // both hands on the grab bar in front
+                    p.handL = new Vector3(-0.165f, 0.880f, 0.300f);
+                    p.handR = new Vector3(0.165f, 0.880f, 0.300f);
+                    p.poleL = new Vector3(-0.86f, -0.48f, -0.18f);
+                    p.poleR = new Vector3(0.86f, -0.48f, -0.18f);
+                    break;
+                }
 
             // ── climbing ─────────────────────────────────────────────────────
             // Hand over hand, opposite arm and leg together, hips close to the
