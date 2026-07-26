@@ -28,10 +28,17 @@ const DYNAMIC = [
   { match: 'Toy_Duck', kind: 'floater' },
 ];
 
+/**
+ * Fog far distances are long now (they used to be 62/95/130). Short fog was
+ * there to hide the void past the fence — but there is a world out there now
+ * (see _buildBackdrop), and fog at 95 m swallowed the whole horizon, leaving
+ * the hills as pale spikes. Long fog turns the same haze into atmospheric
+ * perspective: near trees crisp, hills soft, the far skyline fading into sky.
+ */
 export const QUALITY = {
-  low:    { pixelRatio: 1,    shadows: false, shadowSize: 0,    fogNear: 26, fogFar: 62,  antialias: false },
-  medium: { pixelRatio: 1.5,  shadows: true,  shadowSize: 1024, fogNear: 40, fogFar: 95,  antialias: true },
-  high:   { pixelRatio: 2,    shadows: true,  shadowSize: 2048, fogNear: 55, fogFar: 130, antialias: true },
+  low:    { pixelRatio: 1,    shadows: false, shadowSize: 0,    fogNear: 45, fogFar: 200, antialias: false },
+  medium: { pixelRatio: 1.5,  shadows: true,  shadowSize: 1024, fogNear: 60, fogFar: 300, antialias: true },
+  high:   { pixelRatio: 2,    shadows: true,  shadowSize: 2048, fogNear: 75, fogFar: 380, antialias: true },
 };
 
 /**
@@ -66,7 +73,14 @@ const VEHICLE_FAMILIES = [];
  * supposed to spin — right now it's got the same physics as the seesaw."
  */
 const ATTRACTION_FAMILIES = [
-  { id: 'spinner', re: /^SM_Prop_Playground_Rocker_01|^SM_Prop_Rocker_01/, name: 'Roundabout', icon: '\u{1F3A0}', verb: 'Spin!' },
+  /**
+   * The tyre carousel is THREE objects — base, pole, and the arms-and-tyres
+   * crown — and the crown used to live in the merged shell, so the base spun
+   * invisibly underneath a frozen structure ("it's activating like a stripper
+   * pole"). With the per-object export all three arrive as named rows and
+   * cluster into one spin group, so the whole thing turns.
+   */
+  { id: 'spinner', re: /^SM_Prop_Playground_Rocker_01|^SM_Prop_Rocker_(01|Pole|Top)/, name: 'Roundabout', icon: '\u{1F3A0}', verb: 'Spin!' },
   { id: 'coinride', re: /^SM_Prop_Coin_Ride_/, name: 'Coin Ride', icon: '\u{1F680}', verb: 'Take a ride!' },
 ];
 
@@ -74,6 +88,29 @@ const ATTRACTION_FAMILIES = [
  * Structures pulled out of the merged park shell and given REAL collision.
  * Their raw export boxes are dropped by 'none' rules in collision.js.
  */
+/**
+ * TERRAIN or CLUTTER — which merged layer a placement belongs in.
+ *
+ * The distinction is not cosmetic and it is NOT the scene's own
+ * Environment/Props split (the ground heightfield needs the playground's
+ * stairs and decks, which Synty files under Props). It is about what the
+ * ground bake is allowed to see:
+ *
+ *   TERRAIN — ground, paths, walls, fences, the playground structure, the
+ *     gazebo, the fountain, the pond, the treehouse, the swing frame. The
+ *     heightfield, the water mask and every derived collision structure are
+ *     read off this layer, so it must contain everything you can stand on.
+ *   CLUTTER — the toys and small props: balls, ducks, trikes, prams, the
+ *     picnic-bench seats, the slides. Rendered and shadow-casting, but kept
+ *     OUT of the ground bake, because a toy truck should not be a 20 cm step
+ *     and a slide chute should not become terrain.
+ *
+ * Note `Plaground` — Synty misspells the swing set, which is why the pattern
+ * below has to be about SM_Prop_ vs SM_Prop_Playground_ rather than a tidy
+ * list of names.
+ */
+const CLUTTER = /^SM_Prop_(?!Playground_)|^SM_Veh_|^SM_Wep_|Playground_Slide|^SM_Env_Park_Seat_01/;
+
 const SHELL_STRUCTURES = [
   /**
    * The treehouse, clipped BELOW its roof.
@@ -129,17 +166,12 @@ const SHELL_STRUCTURES = [
    * and all, which is also what the crouch is for).
    */
   { match: /Playground_Roof/i, name: '_roofdeck', all: true, pad: 1.15, maxH: -0.05 },
-  {
-    match: /Swings_01/i, name: '_swingframe',
-    // rides.js carves the baked seats + chains out of the shell at runtime and
-    // rebuilds them dynamic; freeze their triangles into collision here and the
-    // park gets invisible seats hanging in the air. Same box rides.js carves.
-    // maxY 2.12 matches rides.js's CARVE — the chains' top verts sit at 2.07,
-    // and an exclusion that stops at 2.06 freezes them into mid-air collision.
-    exclude: () => new THREE.Box3(
-      new THREE.Vector3(27.5 - 1.05, 0.18, 25.0 - 0.8),
-      new THREE.Vector3(27.5 + 1.05, 2.12, 25.0 + 0.8)),
-  },
+  // The swing FRAME only — its seats are their own objects now (Swing_1,
+  // Swing_2, diverted in _buildLayerMesh), so they are not in this mesh and
+  // there is nothing to exclude. This used to need a hand-typed exclusion box
+  // kept in sync with a carve, and a one-centimetre mismatch left invisible
+  // seats hanging in the air.
+  { match: /Swings_01/i, name: '_swingframe' },
 ];
 
 /**
@@ -261,6 +293,8 @@ export class World {
     sky.frustumCulled = false;
     this.scene.add(sky);
 
+    this._buildBackdrop();
+
     // A few soft clouds so the sky isn't a flat wall.
     const cloudTex = makeCloudTexture();
     const cloudMat = new THREE.SpriteMaterial({
@@ -277,6 +311,79 @@ export class World {
     }
   }
 
+  /**
+   * A WORLD AROUND THE PARK.
+   *
+   * Devon: "it's just a plane floating in the middle of nowhere, there's
+   * nothing around there." The park is a 60 m square with a fence, and past
+   * the fence was sky. This builds the country it sits in: a wide ground
+   * plane under everything, a ring of low hills, and two belts of trees at
+   * different distances so the horizon has depth.
+   *
+   * All code-drawn from cones and spheres in ONE merged mesh per layer — no
+   * download, three draw calls, and it sits far enough out that the fog
+   * carries it. Deterministic (a seeded shuffle, not Math.random) so the
+   * skyline is the same every visit and doesn't shimmer between sessions.
+   */
+  _buildBackdrop() {
+    const rnd = (() => { let s = 20260726; return () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff; })();
+    const parts = { ground: [], hill: [], tree: [] };
+
+    // the land the park sits on, well below the fence line so it reads as
+    // "the field continues" rather than a second floor
+    const ground = new THREE.PlaneGeometry(900, 900);
+    ground.rotateX(-Math.PI / 2);
+    ground.translate(0, -0.6, 6);
+    parts.ground.push(ground);
+
+    // hills: squashed spheres in a broken ring, biggest at the back
+    for (let i = 0; i < 26; i++) {
+      const a = (i / 26) * Math.PI * 2 + rnd() * 0.22;
+      const d = 120 + rnd() * 150;
+      const r = 22 + rnd() * 40;
+      const h = 8 + rnd() * 26;
+      const g = new THREE.SphereGeometry(r, 7, 5);
+      g.scale(1, h / r, 1);
+      g.translate(Math.cos(a) * d, -2 - rnd() * 3, Math.sin(a) * d + 6);
+      parts.hill.push(g);
+    }
+
+    // two tree belts: a near line just past the fence, and a far skyline
+    const treeAt = (x, z, s) => {
+      const trunk = new THREE.CylinderGeometry(0.5 * s, 0.7 * s, 4 * s, 5);
+      trunk.translate(0, 2 * s, 0);
+      const crown = new THREE.ConeGeometry(3.2 * s, 8 * s, 6);
+      crown.translate(0, 7.5 * s, 0);
+      const merged = BufferGeometryUtils.mergeGeometries([trunk, crown], false);
+      merged.translate(x, -0.6, z);
+      trunk.dispose(); crown.dispose();
+      return merged;
+    };
+    for (let i = 0; i < 120; i++) {
+      const a = (i / 120) * Math.PI * 2 + rnd() * 0.5;
+      const d = 62 + rnd() * 26;
+      parts.tree.push(treeAt(Math.cos(a) * d, Math.sin(a) * d + 6, 0.8 + rnd() * 0.7));
+    }
+    for (let i = 0; i < 90; i++) {
+      const a = (i / 90) * Math.PI * 2 + rnd() * 0.6;
+      const d = 105 + rnd() * 60;
+      // ~9-14 m: real trees. At 1.6-3.0 these were 24 m spikes on the skyline.
+      parts.tree.push(treeAt(Math.cos(a) * d, Math.sin(a) * d + 6, 1.0 + rnd() * 0.6));
+    }
+
+    const COLOURS = { ground: 0x6ba43f, hill: 0x5d8f4a, tree: 0x3e6b33 };
+    this.backdrop = new THREE.Group();
+    for (const key of Object.keys(parts)) {
+      if (!parts[key].length) continue;
+      const geo = BufferGeometryUtils.mergeGeometries(parts[key], false);
+      const mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: COLOURS[key] }));
+      mesh.frustumCulled = false;      // it wraps the camera; culling it flickers
+      this.backdrop.add(mesh);
+      parts[key].forEach((g) => g.dispose());
+    }
+    this.scene.add(this.backdrop);
+  }
+
   /** Load the park. Reports 0..1 progress through onProgress. */
   async load(onProgress = () => {}) {
     const loader = new GLTFLoader();
@@ -285,24 +392,37 @@ export class World {
     loader.setDRACOLoader(draco);
 
     onProgress(0.05, 'Loading the park…');
-    const [staticGltf, propsGltf, layout, collision] = await Promise.all([
-      loader.loadAsync('assets/park_static.glb'),
-      loader.loadAsync('assets/park_props.glb'),
-      fetch('assets/park_props_layout.json').then((r) => r.json()),
+    /**
+     * PROTOTYPES + PLACEMENTS, not a baked shell.
+     *
+     * The park ships as 275 unique meshes and 1103 placements of them (see
+     * tools/world/unity/AMGParkExporter.cs). It used to ship as ONE merged
+     * "static shell" mesh plus a small props layout, and that merge was the
+     * root of a month of pain: the Jeep, the pond floaties, the swing seats,
+     * the picnic tables and the tyre carousel's crown were all frozen inside
+     * it, so making any of them move meant carving triangles back out — which
+     * kept dragging neighbouring scenery along. Devon called it: "this is an
+     * export problem… if I open the demo scene in Unity I can select each
+     * item." Now the runtime can too, by name, and merges what's left.
+     */
+    const [protoGltf, layout, collision] = await Promise.all([
+      loader.loadAsync('assets/park_protos.glb'),
+      fetch('assets/park_layout.json').then((r) => r.json()),
       fetch('assets/park_collision.json').then((r) => r.json()),
     ]);
-    onProgress(0.55, 'Building the world…');
+    onProgress(0.5, 'Building the world…');
 
-    // ---- static shell ----
-    const shell = staticGltf.scene;
-    shell.traverse((o) => {
+    // Prototype nodes carry their own transform out of the OBJ→glTF trip, so
+    // bake each node's world matrix into its geometry once — otherwise every
+    // placement renders tipped (flat lightpoles, inverted slides).
+    const protos = new Map();
+    protoGltf.scene.updateMatrixWorld(true);
+    const baked = new Set();
+    protoGltf.scene.traverse((o) => {
       if (!o.isMesh) return;
-      o.receiveShadow = this.quality.shadows;
-      o.castShadow = false;                 // the shell shadowing itself is noise
-      o.material = parkMaterial(o.material);
+      if (!baked.has(o.geometry)) { o.geometry.applyMatrix4(o.matrixWorld); baked.add(o.geometry); }
+      protos.set(o.name, o);
     });
-    this.scene.add(shell);
-    this.shell = shell;
 
     // ---- collision (before props: dynamic props settle against it) ----
     for (const box of collision) this.collision.add(box);
@@ -312,16 +432,15 @@ export class World {
       minZ: Math.min(...zs) - 3, maxZ: Math.max(...zs) + 3,
     };
 
-    // ---- movable things baked into the shell, carved back out ----
-    // Must run before BOTH bakes below — they render the shell, and anything
-    // that is going to MOVE has to be out of it by then (a carved roof would
-    // otherwise still be baked into the ground heightfield as terrain).
-    let shellMesh = null;
-    this.shell.traverse((o) => { if (o.isMesh && !shellMesh) shellMesh = o; });
-    if (shellMesh) {
-      shellMesh.updateWorldMatrix(true, false);
-      this._extractShellAttractions(shellMesh, collision);
-    }
+    // ---- the SHELL: every Environment placement, merged ----
+    // Same one-draw-call shell as before and the same contents, but built here
+    // from parts — so the heightfield, the water mask and the derived
+    // structures all keep working against it, while anything that needs to
+    // move is simply never merged in.
+    const shellMesh = this._buildLayerMesh(protos, layout, 'terrain');
+    this.shell = new THREE.Group();
+    if (shellMesh) this.shell.add(shellMesh);
+    this.scene.add(this.shell);
 
     // ---- water ----
     // The pond box (HALF-extents 13.7!) is the AABB of the whole pond AREA:
@@ -395,21 +514,9 @@ export class World {
     this.fx = new GroundFX(this.scene);
     this.dynamics = new DynamicProps(this);
 
-    // ---- props ----
-    // Every prototype node in park_props.glb carries a +90° X rotation (the
-    // geometry is authored Z-up; the NODE corrects it to Y-up). All placement
-    // paths use raw geometry + the layout transform only, so bake the node's
-    // world matrix into the vertices once — otherwise every prop renders
-    // tipped on its back (flat lightpoles, inverted slides, nose-up ducks).
-    const protos = new Map();
-    propsGltf.scene.updateMatrixWorld(true);
-    const baked = new Set();
-    propsGltf.scene.traverse((o) => {
-      if (!o.isMesh) return;
-      if (!baked.has(o.geometry)) { o.geometry.applyMatrix4(o.matrixWorld); baked.add(o.geometry); }
-      protos.set(o.name, o);
-    });
-    this._placeProps(protos, layout);
+    // ---- props: every Props placement, merged except what moves ----
+    const propMesh = this._buildLayerMesh(protos, layout, 'clutter');
+    if (propMesh) { this.scene.add(propMesh); this.propBatch = propMesh; }
     onProgress(0.78, 'Setting out the toys…');
 
     this._buildCoins();
@@ -687,240 +794,98 @@ export class World {
   }
 
   /**
-   * Attractions BAKED INTO THE SHELL, carved back out so they can move.
-   *
-   * The tyre carousel behind the fountain ships as a spinning BASE prop with
-   * its pole and its whole arms-and-hanging-tyres crown frozen into the merged
-   * park shell — so the base turned invisibly under a static structure and a
-   * rider looked like they were orbiting a bare mast (Devon: "it is activating
-   * like a stripper pole… they are supposed to be on the TIRE"). Carving the
-   * crown out and handing it to the attraction pipeline makes the whole thing
-   * one spinning object.
-   *
-   * (This method also used to carve the purple Jeep and the pond floaties into
-   * drivable vehicles. Both are removed — docs/REMOVED_FOR_LATER.md.)
+   * (Removed 2026-07-26: `_extractShellAttractions` and
+   * `_carveShellTriangles`.) Those pulled the Jeep, the pond floaties and the
+   * tyre carousel's crown back OUT of the merged static shell by rasterising
+   * and flood-filling triangles — the only way to move something the export
+   * had welded into the scenery. The park is exported per object now, so a
+   * prop leaves the merge by NAME in _buildLayerMesh and there is nothing to
+   * carve. Devon called the root cause: "this is an export problem."
+   * git show f454eb1:world/js/world.js has the carve if it is ever needed.
    */
-  _extractShellAttractions(shellMesh, collision) {
-    // ── the tyre carousel: only its BASE is a layout prop; the pole and the
-    // whole arms-plus-hanging-tyres crown are baked into the shell, so the
-    // base spun invisibly underneath a static structure — Devon rode the
-    // mast ("it's activating like a stripper pole… the tires spin around
-    // like a yo-yo"). Carve pole + crown and hand them to the ATTRACTION
-    // pipeline; clusterParts folds them into the base's spin group, and the
-    // whole thing finally turns. Origin at the mast's ground point so the
-    // spin axis is the mast. ──
-    for (const rb of collision.filter((b) => /^SM_Prop_Rocker_(Pole|Top)_01$/.test(b.n || ''))) {
-      const taken = this._carveShellTriangles(shellMesh, [rb], null);
-      const flat = taken.get(rb);
-      if (!flat || !flat.length) continue;
-      const origin = new THREE.Vector3(rb.c[0], 0, rb.c[2]);
-      this.attractionParts.push({
-        family: 'spinner',
-        proto: { geometry: buildCarvedGeometry(flat, origin, 0), material: parkMaterial(null) },
-        matrix: new THREE.Matrix4().makeTranslation(origin.x, origin.y, origin.z),
-        mesh: rb.n,
-      });
-      console.log(`[world] ${rb.n} carved from shell: ${flat.length / 18} triangles`);
-    }
-  }
 
   /**
-   * Claim shell triangles for a set of export boxes and degenerate them in
-   * the shell — by CONNECTIVITY, not by box membership alone.
+   * Build ONE merged mesh for a layer of the layout ('Environment' or
+   * 'Props'), diverting anything that has to move or be interacted with.
    *
-   * Box membership alone dragged the SCENERY along: a pebble or a grass tuft
-   * that happens to sit wholly inside a part's renderer bound got carved and
-   * drove away with the Jeep (Devon: "it has a rock and a piece of grass
-   * attached to it — you can tell you pulled it out of the scene"). So each
-   * part now SEEDS from triangles deep inside its shrunken box and FLOODS
-   * outward along shared vertex positions, bounded by its own box (+pad; the
-   * fallback part floods through the union, so straddlers like tyre arches
-   * ride with the body). Debris is never vertex-welded to the vehicle, so it
-   * is never reached — it stays in the park where it belongs.
+   * This is the whole payoff of the per-object export. Every placement is a
+   * named row pointing at a prototype mesh, so a prop leaves the merge by
+   * NAME — no carving, no triangle surgery, no debris riding along. What is
+   * left still collapses to a single draw call, which is what a school
+   * Chromebook needs.
    *
-   * Parts are processed in the given order (smallest first), and a triangle
-   * claimed by an earlier flood is settled — so a wheel keeps its own shell
-   * and the body takes the rest.
-   *
-   * @returns {Map<object, number[]>} box -> flat [x,y,z,r,g,b] per vertex
+   * @returns {THREE.Mesh|null} the merged layer, or null if nothing merged
    */
-  _carveShellTriangles(shellMesh, parts, fallbackBox) {
-    const PAD = 0.04;
-    const inBox = (p, bx, pad) =>
-      Math.abs(p.x - bx.c[0]) < bx.e[0] + pad
-      && Math.abs(p.y - bx.c[1]) < bx.e[1] + pad
-      && Math.abs(p.z - bx.c[2]) < bx.e[2] + pad;
-    const union = { c: [0, 0, 0], e: [0, 0, 0] };
-    for (let i = 0; i < 3; i++) {
-      const lo = Math.min(...parts.map((b) => b.c[i] - b.e[i]));
-      const hi = Math.max(...parts.map((b) => b.c[i] + b.e[i]));
-      union.c[i] = (lo + hi) / 2;
-      union.e[i] = (hi - lo) / 2;
-    }
-    const geo = shellMesh.geometry;
-    const matrix = shellMesh.matrixWorld;
-    const pos = geo.attributes.position;
-    const col = geo.attributes.color;
-    const idx = geo.index;
-    const triCount = idx ? idx.count / 3 : pos.count / 3;
-    const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
-
-    // ── 1. candidates: every triangle fully inside the union (+pad) ──
-    const cand = [];
-    const byKey = new Map();          // quantized vert position -> candidate ids
-    const keyOf = (v) => Math.round(v.x * 1000) + ',' + Math.round(v.y * 1000) + ',' + Math.round(v.z * 1000);
-    for (let t = 0; t < triCount; t++) {
-      const i0 = idx ? idx.getX(t * 3) : t * 3;
-      const i1 = idx ? idx.getX(t * 3 + 1) : t * 3 + 1;
-      const i2 = idx ? idx.getX(t * 3 + 2) : t * 3 + 2;
-      a.fromBufferAttribute(pos, i0).applyMatrix4(matrix);
-      b.fromBufferAttribute(pos, i1).applyMatrix4(matrix);
-      c.fromBufferAttribute(pos, i2).applyMatrix4(matrix);
-      if (!inBox(a, union, PAD) || !inBox(b, union, PAD) || !inBox(c, union, PAD)) continue;
-      const id = cand.length;
-      const en = {
-        t, i: [i0, i1, i2],
-        v: [{ x: a.x, y: a.y, z: a.z }, { x: b.x, y: b.y, z: b.z }, { x: c.x, y: c.y, z: c.z }],
-        owner: -1,
-      };
-      cand.push(en);
-      for (const v of en.v) {
-        const k = keyOf(v);
-        let l = byKey.get(k);
-        if (!l) byKey.set(k, (l = []));
-        l.push(id);
-      }
-    }
-
-    // ── 2. per part: seed deep inside the shrunken box, flood within bounds,
-    //       then keep only the SUBSTANTIAL connected components ──
-    // A tuft of grass sitting wholly inside a part's shrunken box seeds
-    // itself and rides along (Devon, twice: first a rock, then "a piece of a
-    // plant attached to it"). Debris is its own tiny component, so per part
-    // only components at least a quarter the size of the biggest one keep
-    // their claim; the rest go back to the park.
-    const claimed = new Map();
-    parts.forEach((bx) => claimed.set(bx, []));
-    parts.forEach((bx, pi) => {
-      const bound = bx === fallbackBox ? union : bx;
-      const shrink = { c: bx.c, e: bx.e.map((e) => Math.max(e * 0.7, e - 0.08)) };
-      const comps = [];
-      cand.forEach((en, id) => {
-        if (en.owner >= 0) return;
-        if (!en.v.every((v) => inBox(v, shrink, 0))) return;
-        // BFS one component from this seed
-        const comp = [];
-        en.owner = pi;
-        const stack = [id];
-        while (stack.length) {
-          const cid = stack.pop();
-          comp.push(cid);
-          for (const v of cand[cid].v) {
-            const l = byKey.get(keyOf(v));
-            if (!l) continue;
-            for (const nid of l) {
-              const ne = cand[nid];
-              if (ne.owner >= 0) continue;
-              if (!ne.v.every((v2) => inBox(v2, bound, PAD))) continue;
-              ne.owner = pi;
-              stack.push(nid);
-            }
-          }
-        }
-        comps.push(comp);
-      });
-      if (!comps.length) return;
-      const biggest = Math.max(...comps.map((cmp) => cmp.length));
-      const out = claimed.get(bx);
-      for (const comp of comps) {
-        if (comp.length >= Math.max(6, biggest * 0.25)) {
-          for (const cid of comp) out.push(cand[cid]);
-        } else {
-          for (const cid of comp) cand[cid].owner = -1;   // back to the park
-        }
-      }
-    });
-
-    // ── 3. lift the claimed triangles out ──
-    const taken = new Map();
-    for (const bx of parts) {
-      const flat = [];
-      for (const en of claimed.get(bx)) {
-        for (let k = 0; k < 3; k++) {
-          const v = en.v[k], i = en.i[k];
-          flat.push(v.x, v.y, v.z, col.getX(i), col.getY(i), col.getZ(i));
-        }
-        // degenerate the source triangle — the vehicle owns it now
-        if (idx) { idx.setX(en.t * 3 + 1, en.i[0]); idx.setX(en.t * 3 + 2, en.i[0]); }
-        else {
-          pos.setXYZ(en.t * 3 + 1, pos.getX(en.i[0]), pos.getY(en.i[0]), pos.getZ(en.i[0]));
-          pos.setXYZ(en.t * 3 + 2, pos.getX(en.i[0]), pos.getY(en.i[0]), pos.getZ(en.i[0]));
-        }
-      }
-      taken.set(bx, flat);
-    }
-    if (idx) idx.needsUpdate = true; else pos.needsUpdate = true;
-    return taken;
-  }
-
-  _placeProps(protos, layout) {
-    const merge = [];      // geometries for the static-prop batch
+  _buildLayerMesh(protos, layout, layer) {
+    const merge = [];
     const dummy = new THREE.Object3D();
-    this.seats = [];       // sittable spots, harvested from bench layout entries
-    this.slideData = [];   // slide top/exit points, harvested for rides.js
-    /**
-     * Parts diverted out of the static batch so rides.js can reassemble them
-     * as RIGID BODIES you can ride. The soapbox racer proved the pattern; this
-     * is every vehicle in the park on the same rails — bikes, trikes,
-     * scooters, skateboards, the wagon, the pogo stick. Devon: "I want every
-     * vehicle to be driven… I want everything to work and have a function."
-     * Each entry is one layout row; rides.js clusters them into instances.
-     * (Initialised in the constructor — _extractShellVehicles may already have
-     * pushed the Jeep's parts by the time the layout is placed.)
-     */
-    for (const p of layout) {
-      const proto = protos.get(p.mesh);
+    this.seats = this.seats || [];        // sittable spots, from bench rows
+    this.slideData = this.slideData || [];// slide top/exit points, for rides.js
+    this.swingSeats = this.swingSeats || [];
+    for (const it of layout.items) {
+      const name = it.n;                  // the scene object's own name
+      if ((CLUTTER.test(name) ? 'clutter' : 'terrain') !== layer) continue;
+      const proto = protos.get(layout.protos[it.m]);
       if (!proto) continue;
-      dummy.position.fromArray(p.p);
-      dummy.quaternion.fromArray(p.q);
-      dummy.scale.fromArray(p.s);
+      dummy.position.fromArray(it.p);
+      dummy.quaternion.fromArray(it.q);
+      dummy.scale.fromArray(it.s);
       dummy.updateMatrix();
 
-      if (p.mesh === 'SM_Env_Park_Seat_01') this._addBenchSeats(proto, dummy);
-      if (/Playground_Slide/.test(p.mesh)) this._addSlideData(proto, dummy);
-      if (/Playground_Ship/.test(p.mesh)) this._addStructureCollision(proto.geometry, dummy.matrix, '_ship');
-      if (/Playground_Monkey_Bars/.test(p.mesh)) this._addMonkeyBars(proto, dummy);
+      /**
+       * One stray Synty prop has no business in a kids' park: a toy gun
+       * (SM_Wep_Makeshift_Gun_07) tucked behind a bush. It used to be carved
+       * out of the merged shell by hand-typed coordinates; now it simply never
+       * gets placed.
+       */
+      if (/Wep_|_Gun_/i.test(name)) continue;
+
+      if (/^SM_Env_Park_Seat_01/.test(name)) this._addBenchSeats(proto, dummy);
+      if (/Playground_Slide/.test(name)) this._addSlideData(proto, dummy);
+      if (/Playground_Ship/.test(name)) this._addStructureCollision(proto.geometry, dummy.matrix, '_ship');
+      if (/Playground_Monkey_Bars/.test(name)) this._addMonkeyBars(proto, dummy);
       // A tent is a thing you go INSIDE; its box was 3.9 m2 of solid at 58%
       // fill, so the doorway didn't exist.
-      if (/Prop_Tent_/.test(p.mesh)) this._addStructureCollision(proto.geometry, dummy.matrix, '_tent');
+      if (/Prop_Tent_/.test(name)) this._addStructureCollision(proto.geometry, dummy.matrix, '_tent');
 
-      // The soapbox racer becomes DRIVABLE: divert its parts (frame, steering
-      // wheel, four wheels — each its own layout entry) out of the static
-      // batch; rides.js reassembles them into a rigid dynamic group.
-      // Vehicles and spinning attractions leave the static batch entirely.
-      const fam = VEHICLE_FAMILIES.find((v) => v.re.test(p.mesh));
+      /**
+       * THE SWING SEATS ARE REAL OBJECTS NOW.
+       *
+       * They used to be frozen in the merged shell, so rides.js carved them
+       * out and swung code-drawn replacements — which is where the "two black
+       * bars, one moves and one just stands still" bug lived. The export gives
+       * them their own rows (Swing_1, Swing_2) whose ORIGIN is the pivot on
+       * the top bar, so rides.js can swing the real Synty seat and chains by
+       * rotating the object about its own origin.
+       */
+      if (/Swings_01_Swing_\d/.test(name)) {
+        const m = new THREE.Mesh(proto.geometry, parkMaterial(proto.material));
+        m.applyMatrix4(dummy.matrix);
+        m.castShadow = this.quality.shadows;
+        this.scene.add(m);
+        this.swingSeats.push(m);
+        continue;
+      }
+
+      const fam = VEHICLE_FAMILIES.find((v) => v.re.test(name));
       if (fam) {
-        this.vehicleParts.push({ family: fam.id, proto, matrix: dummy.matrix.clone(), mesh: p.mesh });
+        this.vehicleParts.push({ family: fam.id, proto, matrix: dummy.matrix.clone(), mesh: name });
         continue;
       }
-      const att = ATTRACTION_FAMILIES.find((v) => v.re.test(p.mesh));
+      const att = ATTRACTION_FAMILIES.find((v) => v.re.test(name));
       if (att) {
-        this.attractionParts.push({ family: att.id, proto, matrix: dummy.matrix.clone(), mesh: p.mesh });
+        this.attractionParts.push({ family: att.id, proto, matrix: dummy.matrix.clone(), mesh: name });
         continue;
       }
 
-      const dyn = DYNAMIC.find((d) => p.mesh.includes(d.match));
+      const dyn = DYNAMIC.find((d) => name.includes(d.match));
       if (dyn) {
         // Ducks belong ON the water (Devon's call): the layout scattered its 14
         // toy ducks around the fountain, so re-seat every floater onto the pond
-        // in a golden-angle spread — even fill, no clumps, all inside the rock
-        // ring (water r≈8, spread stays under 6.4). NOTE: `p` is a const loop
-        // binding — build a separate entry rather than reassigning it.
-        let entry = p;
+        // in a golden-angle spread — even fill, no clumps.
+        let entry = { p: it.p, q: it.q, s: it.s };
         if (dyn.kind === 'floater' && this.water) {
           const k = this._floaterCount = (this._floaterCount || 0) + 1;
-          // spread scales with the ACTUAL water radius — the old 6.4m max
-          // beached half the flock on the dirt shore
           const r = 0.9 + (this.water.r - 1.4) * Math.sqrt(k / 14);
           const a = k * 2.39996 + 0.7;
           let wx = this.water.x + Math.cos(a) * r;
@@ -931,26 +896,24 @@ export class World {
             wx += (this.water.x - wx) * 0.15;
             wz += (this.water.z - wz) * 0.15;
           }
-          entry = { ...p, p: [wx, this.water.y, wz] };
+          entry = { ...entry, p: [wx, this.water.y, wz] };
         }
         this.dynamics.add(proto, entry, { kind: dyn.kind });
         continue;
       }
-      if (ANIMATED.some((k) => p.mesh.includes(k))) {
+      if (ANIMATED.some((k) => name.includes(k))) {
         const m = new THREE.Mesh(proto.geometry, parkMaterial(proto.material));
         m.applyMatrix4(dummy.matrix);
         m.castShadow = this.quality.shadows;
         m.receiveShadow = this.quality.shadows;
-        m.userData.kind = p.mesh;
+        m.userData.kind = name;
         m.userData.rest = m.rotation.clone();
         m.userData.restQuat = dummy.quaternion.clone();
         m.userData.phase = Math.random() * Math.PI * 2;
         // Tilt axis for seesaw planks / rocker animals, in the GEOMETRY's own
         // frame: ends (or nose/tail) go up-down = rotation about the horizontal
-        // axis PERPENDICULAR to the long axis. Poking Euler .x/.z on a yaw'd
-        // mesh span the wrong axes — Devon's playtest: "the seesaw just twists
-        // left and right", spring riders "straight up broken".
-        if (/Seesaw|Rocker/.test(p.mesh)) {
+        // axis PERPENDICULAR to the long axis.
+        if (/Seesaw|Rocker/.test(name)) {
           if (!proto.geometry.boundingBox) proto.geometry.computeBoundingBox();
           const bb = proto.geometry.boundingBox;
           const alongX = (bb.max.x - bb.min.x) >= (bb.max.z - bb.min.z);
@@ -963,15 +926,15 @@ export class World {
         merge.push(proto.geometry.clone().applyMatrix4(dummy.matrix));
       }
     }
-    if (merge.length) {
-      const geo = BufferGeometryUtils.mergeGeometries(merge, false);
-      const mesh = new THREE.Mesh(geo, parkMaterial(null));
-      mesh.castShadow = this.quality.shadows;
-      mesh.receiveShadow = this.quality.shadows;
-      this.scene.add(mesh);
-      this.propBatch = mesh;
-      merge.forEach((g) => g.dispose());
-    }
+    if (!merge.length) return null;
+    const geo = BufferGeometryUtils.mergeGeometries(merge, false);
+    const mesh = new THREE.Mesh(geo, parkMaterial(null));
+    // the terrain shadowing itself is noise; the toys on it are not
+    mesh.castShadow = layer === 'clutter' && this.quality.shadows;
+    mesh.receiveShadow = this.quality.shadows;
+    merge.forEach((g) => g.dispose());
+    console.log(`[world] ${layer}: ${merge.length} placements merged`);
+    return mesh;
   }
 
   /**
@@ -1792,29 +1755,6 @@ export class World {
     window.removeEventListener('resize', this.onResize);
     this.renderer.dispose();
   }
-}
-
-/**
- * Flat carved-triangle data → a BufferGeometry in the part's own local frame
- * (translated to `origin`, un-rotated by `yaw`) — exactly what a layout
- * prototype would carry. Used by _extractShellVehicles.
- */
-function buildCarvedGeometry(flat, origin, yaw) {
-  const unYaw = new THREE.Matrix4().makeRotationY(-yaw);
-  const q = new THREE.Vector3();
-  const count = flat.length / 6;
-  const p2 = new Float32Array(count * 3);
-  const c2 = new Float32Array(count * 3);
-  for (let i = 0; i < count; i++) {
-    q.set(flat[i * 6], flat[i * 6 + 1], flat[i * 6 + 2]).sub(origin).applyMatrix4(unYaw);
-    p2[i * 3] = q.x; p2[i * 3 + 1] = q.y; p2[i * 3 + 2] = q.z;
-    c2[i * 3] = flat[i * 6 + 3]; c2[i * 3 + 1] = flat[i * 6 + 4]; c2[i * 3 + 2] = flat[i * 6 + 5];
-  }
-  const g2 = new THREE.BufferGeometry();
-  g2.setAttribute('position', new THREE.BufferAttribute(p2, 3));
-  g2.setAttribute('color', new THREE.BufferAttribute(c2, 3));
-  g2.computeVertexNormals();
-  return g2;
 }
 
 /**

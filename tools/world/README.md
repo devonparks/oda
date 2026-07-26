@@ -12,19 +12,33 @@ the world without Unity or Blender installed.
 
 ## Why this shape
 
-The Synty demo scene is **1117 renderers** sharing one 2048² texture atlas.
-Shipping that as-is to a school Chromebook fails twice over: ~1100 draw calls,
-and a 2 MB texture download before anything appears.
+The Synty demo scene is **1117 renderers** sharing one 2048² texture atlas, but
+they are only **275 unique meshes** — every renderer is a prefab instance.
+Shipping the scene as-is to a school Chromebook fails twice over: ~1100 draw
+calls, and a 2 MB texture download before anything appears.
 
-Two decisions fix both:
+Three decisions fix that:
 
 1. **Bake the atlas into vertex colours.** Synty art is flat colour swatches and
    every face's UVs sit inside a single swatch, so sampling the atlas once per
-   vertex reproduces the look almost exactly. The park then ships with **no
-   textures at all** — 1.34 MB total, and no texture memory on the GPU.
-2. **Merge the static shell.** Scenery never moves, so it is joined into one
-   mesh: one draw call for the entire park. Only props that actually animate
-   (swings, seesaws, rockers, coin rides) stay separate.
+   vertex reproduces the look almost exactly. The park ships with **no textures
+   at all** — 1.3 MB total, and no texture memory on the GPU.
+2. **Ship PROTOTYPES + PLACEMENTS**, not baked geometry: 275 meshes and 1103
+   transforms. Deduplication alone pays for itself (133 grass tiles become one
+   mesh and 133 transforms).
+3. **Merge at runtime, not at export.** world.js joins everything that doesn't
+   move into two meshes — `terrain` and `clutter` — so the draw-call budget is
+   unchanged.
+
+> **Do not go back to a merged static shell.** The original export merged 741
+> renderers into one `park_static.glb`, and that single decision cost weeks: the
+> purple Jeep, the pond floaties, the swing seats, the picnic tables and the
+> tyre carousel's crown were all welded into the scenery, so making any of them
+> move meant carving triangles back out of a merged mesh — which kept dragging
+> neighbours along (a rock, then a plant). Devon diagnosed it exactly: *"this is
+> an export problem — if I open the demo scene in Unity I can select each item."*
+> With per-object placements, a prop becomes interactive by NAME and nothing is
+> ever carved.
 
 Unity does the baking because it already has the material→texture bindings
 resolved; Blender only converts and Draco-compresses.
@@ -33,23 +47,34 @@ resolved; Blender only converts and Draco-compresses.
 
 ## Step 1 — Unity (the AMG Engine project, MCP on port 6400)
 
-Open the project that contains `Assets/PolygonKids`, then run these via the
-Unity MCP `execute_code` tool. Each writes into `_polygon_kids_src/`.
+`tools/world/unity/AMGParkExporter.cs` is committed here; copy it to
+`<AMG Engine>/Assets/Editor/` (same convention as `AMGActionBaker.cs`) and run:
 
-1. **Make the atlases CPU-readable** — `GetPixels()` fails otherwise.
-   Set `isReadable = true` on every texture under `Assets/PolygonKids/Textures`.
-2. **Export the park.** Open `Assets/PolygonKids/Scenes/Demo.unity` with
-   `EditorSceneManager.OpenPreviewScene` (a preview scene leaves whatever you
-   were working on alone), then for every renderer:
-   - sample the material's `mainTexture` at each vertex UV → vertex colour
-   - split into *static* (baked to world space) and *interactive* (kept in local
-     space, one prototype per mesh, with a separate placement list)
-   - record each renderer's world-space AABB for collision
-   - write `obj/park_static.obj`, `obj/park_props.obj`, `obj/props_layout.json`,
-     `obj/collision.json`
+- menu **AMG > Export Park Scene** — exports `Assets/PolygonKids/Scenes/Demo.unity`
+- menu **AMG > Export Park Scene (Overview)** — the second scene, for a future map
 
-The exact script used is in this repo's git history for the commit that added
-`world/` — search the commit body for "park_static.obj".
+Each writes into `_polygon_kids_src/obj/`:
+
+| file | what |
+|---|---|
+| `park_protos.obj` | one OBJ **group** per unique mesh, LOCAL space, vertex-coloured |
+| `park_layout.json` | `{protos:[names], items:[{m,n,g,p,q,s}]}` — one row per renderer |
+| `park_collision.json` | one world-space AABB per renderer |
+
+The exporter opens the scene with `EditorSceneManager.OpenPreviewScene`, so
+whatever you had open is left alone. Textures must be CPU-readable
+(`isReadable = true` on everything under `Assets/PolygonKids/Textures`) or
+`GetPixelBilinear()` throws — they already are in this project.
+
+**The collision file is NOT copied to `world/assets/`.** The committed
+`world/assets/park_collision.json` is a curated, walk-over-filtered subset
+(244 boxes) that the whole collision system is tuned against; the exporter's
+1103-box version is for reference. Only re-derive it deliberately.
+
+### Adding a new map
+Export with a new prefix, drop `<prefix>_protos.glb` + `<prefix>_layout.json`
+into `world/assets/`, and point the loader at them. Nothing else in the runtime
+is map-specific.
 
 ### Coordinate conversion
 
@@ -67,10 +92,14 @@ you end up with a mirrored park.
 ## Step 2 — Blender (headless)
 
 ```bash
-blender -b --factory-startup --python tools/world/obj_to_glb.py -- "$(pwd)"
+"/c/Program Files/Blender Foundation/Blender 4.0/blender.exe" -b --factory-startup --python tools/world/protos_to_glb.py -- "$(pwd)" park
 ```
 
-Writes `world/assets/park_static.glb` and `world/assets/park_props.glb`.
+Writes `world/assets/park_protos.glb` (+ `_park_proto_names.txt`).
+
+**The other trap:** the exporter writes one OBJ `g <name>` per prototype, and
+Blender's importer only splits on `o` — so `use_split_groups=True` is required
+or the whole file arrives as ONE object and every prototype name is lost.
 
 **The one trap:** import the OBJ with Blender's *default* axes
 (`forward=-Z, up=Y`). The OBJ is already in glTF space, so declaring `up=Z`
@@ -78,7 +107,9 @@ tells Blender it's Z-up, and `export_yup` then rotates it a second time — the
 whole park lands on its side with Y and Z swapped. It looks like the ground
 vanished and the props float in the sky.
 
-Draco is on (level 6). It takes 306k low-poly verts from ~11 MB raw to 1.34 MB.
+Draco is on (level 6). It takes the 193k unique verts from ~11.7 MB raw to
+1.3 MB — smaller than the old merged shell + props split (1.76 MB), because
+deduplicating 1103 placements down to 275 meshes is a bigger win than merging.
 
 > Draco decodes in a **blob: Web Worker**. The site CSP must allow
 > `worker-src 'self' blob:` — see `js/oda-core.js`. Without it the loader does
@@ -86,12 +117,13 @@ Draco is on (level 6). It takes 306k low-poly verts from ~11 MB raw to 1.34 MB.
 
 ---
 
-## Step 3 — copy the JSON
+## Step 3 — copy the layout
 
 ```bash
-cp _polygon_kids_src/obj/collision.json    world/assets/park_collision.json
-cp _polygon_kids_src/obj/props_layout.json world/assets/park_props_layout.json
+cp _polygon_kids_src/obj/park_layout.json world/assets/park_layout.json
 ```
+
+(Not the collision file — see the note in step 1.)
 
 ---
 
@@ -100,13 +132,18 @@ cp _polygon_kids_src/obj/props_layout.json world/assets/park_props_layout.json
 - **New zone / portal** → `world/js/zones.js`. Positions came from clustering the
   demo scene's props, so they land where the name says. Portals open a *category*
   of hub games, not one specific game, so the catalogue can grow without edits.
-- **New prop that should animate** → add a name fragment to `ANIMATED` in
-  `world/js/world.js`, then re-run step 2. Anything not matched gets merged into
-  the static batch.
-- **Walk-over vs solid** → the `WALKOVER` list in the Unity exporter decides what
-  gets a collision box at all. Ground tiles, paths and flowers are walk-over;
-  everything else blocks. Boxes shorter than `STEP_HEIGHT` (0.42 m) in
-  `world/js/collision.js` are stepped onto rather than blocked.
+- **New prop that should animate / be ridden / be interactive** → add a name
+  pattern to `ANIMATED`, `ATTRACTION_FAMILIES`, `VEHICLE_FAMILIES` or `DYNAMIC`
+  in `world/js/world.js`. `_buildLayerMesh` diverts it out of the merge by name
+  — no re-export and no geometry surgery.
+- **Terrain vs clutter** → the `CLUTTER` regex in `world/js/world.js` decides
+  which merged layer a placement lands in. Terrain feeds the ground
+  heightfield, the water mask and every derived collision structure; clutter is
+  drawn and casts shadows but is invisible to the ground bake.
+- **Walk-over vs solid** → `COLLISION_RULES` in `world/js/collision.js` refines
+  every raw export box by what the prop actually is ('solid' / 'trunk' /
+  'none'). Boxes shorter than `STEP_HEIGHT` (0.55 m) are stepped onto rather
+  than blocked.
 
 ## Character rig notes
 

@@ -28,32 +28,16 @@ const _vb = new THREE.Vector3();
 const _tiltQ = new THREE.Quaternion();   // seesaw tilt, reused per frame
 const _up = new THREE.Vector3(0, 1, 0);
 
-// The swing frame (SM_Prop_Plaground_Swings_01) in world space, from the
-// collision export: c=(27.5, 1.16, 25.0), e=(1.46, 1.22, 0.88). Bar along X.
-const FRAME = { x: 27.5, z: 25.0, topY: 2.38 };
-const BAR_Y = 2.16;          // chains hang from just under the top bar
-const SEAT_Y = 0.55;         // seat rest height (matches the carved original)
-const SWING_L = BAR_Y - SEAT_Y;
-const SEAT_DX = 0.62;        // two seats, either side of centre
-const CARVE = {              // seats + chains live here; legs and bar do not
-  minX: FRAME.x - 1.05, maxX: FRAME.x + 1.05,
-  // maxY 2.12, not 2.06: the baked chains are single strips whose TOP verts
-  // sit at y 2.07 — one centimetre above the old box, so the all-verts carve
-  // left every chain standing as a static double next to the dynamic ones
-  // (Devon: "two black bars… one moves, one just stands still"). 2.12 catches
-  // exactly the chains (measured: 56 tris) and no bar — every bar triangle
-  // spans past the box in X and fails the carve anyway.
-  minY: 0.18, maxY: 2.12,
-  minZ: FRAME.z - 0.8, maxZ: FRAME.z + 0.8,
-};
 /**
- * The swing's frequency is the PENDULUM's, derived from its own chain length,
- * not a hand-picked feel number. w = sqrt(g/L). With L = 1.61 that is 2.47
- * rad/s (the old hand-tuned 2.35 was 5% slow). It matters because the kid's
- * pose is now driven off this same phase — a swing running at one rate and a
- * body running at another is exactly the "two different systems" mismatch.
+ * The swing's frequency is the PENDULUM's, w = sqrt(g/L), derived per seat
+ * from that seat's own measured chain length (see _buildSwings) rather than
+ * from a hand-picked feel number. It matters because the kid's POSE is driven
+ * off this same phase — a swing running at one rate and a body running at
+ * another is exactly the "two different systems" mismatch Devon reported.
+ *
+ * (The old hand-typed FRAME/BAR_Y/SEAT_Y/CARVE constants are gone with the
+ * carve — the seats are real objects with real transforms now.)
  */
-const SWING_FREQ = Math.sqrt(9.81 / SWING_L);
 /** Amplitude a full-effort pump settles at — the pose blend's 100% mark. */
 const PUMP_AMP = 0.88;
 /** Where an un-pumped swing coasts down to — the pose blend's 0% mark, so
@@ -84,13 +68,17 @@ function clusterParts(list, spread = 1.4) {
   const pos = list.map((p) => new THREE.Vector3().setFromMatrixPosition(p.matrix));
   const seen = new Array(list.length).fill(false);
   const out = [];
+  // HORIZONTAL distance: the parts of one prop are often stacked (the tyre
+  // carousel is a base at y 0, a pole at 1.11 and a crown at 3.16, all on one
+  // spot), and a 3D test splits those into three separate "attractions".
+  const near = (a, b) => Math.hypot(pos[a].x - pos[b].x, pos[a].z - pos[b].z) <= spread;
   for (let i = 0; i < list.length; i++) {
     if (seen[i]) continue;
     const group = [i]; seen[i] = true;
     for (let g = 0; g < group.length; g++) {
       for (let j = 0; j < list.length; j++) {
         if (seen[j]) continue;
-        if (pos[group[g]].distanceTo(pos[j]) <= spread) { seen[j] = true; group.push(j); }
+        if (near(group[g], j)) { seen[j] = true; group.push(j); }
       }
     }
     out.push(group.map((k) => list[k]));
@@ -125,46 +113,41 @@ export class Rides {
 
   // ── swings ────────────────────────────────────────────────────────────────
 
+  /**
+   * THE REAL SWING SEATS.
+   *
+   * These used to be code-drawn replacements — two cylinders and a box — for
+   * seats that were frozen inside the merged static shell and had to be carved
+   * out of it. That carve is where "two black bars, one moves and one just
+   * stands still" came from: miss the chains by a centimetre and the originals
+   * stand beside your replacements forever.
+   *
+   * The per-object export hands us the actual Synty seats (Swing_1, Swing_2),
+   * and their ORIGIN is the pivot on the top bar — so swinging them is
+   * literally rotating the object about its own origin. No carve, no
+   * replacement geometry, no way for a double to appear.
+   */
   _buildSwings() {
-    // 1. carve the baked seats/chains out of the shell (degenerate whole
-    //    triangles only — collapsing single verts would smear slivers).
-    let shellMesh = null;
-    this.world.shell.traverse((o) => { if (o.isMesh && !shellMesh) shellMesh = o; });
-    if (shellMesh) {
-      this._carve(shellMesh, CARVE);
-      // One stray Synty prop is baked into the shell: SM_Wep_Makeshift_Gun_07,
-      // a toy gun tucked behind the bush at (-14.3, 16.2). Not in a kids'
-      // park — carved out. (Box from the collision export, slightly padded.)
-      this._carve(shellMesh, {
-        minX: -14.42, maxX: -14.10, minY: 0.67, maxY: 0.93, minZ: 16.03, maxZ: 16.37,
+    const seats = this.world.swingSeats || [];
+    for (const mesh of seats) {
+      // chain length from the seat's own geometry: pivot (the origin) down to
+      // the lowest vertex, minus half the seat plank's thickness
+      const bb = new THREE.Box3().setFromObject(mesh);
+      const len = Math.max(0.6, mesh.position.y - bb.min.y - 0.03);
+      this.swings.push({
+        group: mesh, pivot: mesh.position.clone(), len,
+        phase0: Math.random() * Math.PI * 2,
       });
     }
-
-    // 2. dynamic replacements
-    const chainMat = new THREE.MeshStandardMaterial({ color: 0x8a9096, roughness: 0.55, metalness: 0.35 });
-    const seatMat = new THREE.MeshStandardMaterial({ color: 0xd9483b, roughness: 0.8 });
-    const chainGeo = new THREE.CylinderGeometry(0.02, 0.02, SWING_L, 6);
-    const seatGeo = new THREE.BoxGeometry(0.5, 0.055, 0.26);
-    for (const side of [-1, 1]) {
-      const group = new THREE.Group();
-      group.position.set(FRAME.x + side * SEAT_DX, BAR_Y, FRAME.z);
-      for (const dx of [-0.19, 0.19]) {
-        const chain = new THREE.Mesh(chainGeo, chainMat);
-        chain.position.set(dx, -SWING_L / 2, 0);
-        group.add(chain);
-      }
-      const seat = new THREE.Mesh(seatGeo, seatMat);
-      seat.position.set(0, -SWING_L, 0);
-      seat.castShadow = !!this.world.quality?.shadows;
-      group.add(seat);
-      this.world.scene.add(group);
-      this.swings.push({ group, pivot: group.position, phase0: Math.random() * Math.PI * 2 });
-    }
-
+    if (!this.swings.length) return;
+    // the zone sits in front of the frame, between the seats
+    let sx = 0, sz = 0;
+    for (const s of this.swings) { sx += s.pivot.x; sz += s.pivot.z; }
+    sx /= this.swings.length; sz /= this.swings.length;
     this.zones.push({
       id: 'swing', ride: 'swing',
       icon: '\u{1F4BA}', name: 'Swing Set', prompt: 'Hop on a swing',
-      pos: [FRAME.x, FRAME.z + 1.55], radius: 1.7,
+      pos: [sx, sz + 1.55], radius: 1.7,
     });
   }
 
@@ -217,7 +200,10 @@ export class Rides {
 
   _updateSwing(dt, player, intent) {
     const a = this.active, s = a.seat;
-    a.phase += dt * SWING_FREQ;
+    // w = sqrt(g/L) from THIS seat's measured chain length — the seats are
+    // real objects now and need not be identical.
+    const freq = Math.sqrt(9.81 / s.len);
+    a.phase += dt * freq;
     const pumping = Math.abs(intent.move.y) > 0.3;
     const target = pumping ? PUMP_AMP : COAST_AMP;
     a.amp += Math.max(-dt * 0.10, Math.min(dt * 0.26, target - a.amp));
@@ -248,8 +234,8 @@ export class Rides {
     // Where rotation.x REALLY puts the seat: child (0,-L,0) rotated about X
     // lands at z = -L·sin. The old +L·sin put the KID mirror-opposite the
     // seat — "swinging and crossing each other like pendulums" (Devon).
-    const py = s.pivot.y - Math.cos(ang) * SWING_L;
-    const pz = s.pivot.z - Math.sin(ang) * SWING_L;
+    const py = s.pivot.y - Math.cos(ang) * s.len;
+    const pz = s.pivot.z - Math.sin(ang) * s.len;
     // Put the kid's PELVIS on the seat, not their feet near it — solved for THIS
     // tilt, so the kid rides the plank instead of drifting off it as the arc
     // grows. The avatar rotates about its own origin, but the seated clip's hip
@@ -265,15 +251,15 @@ export class Rides {
     player.tilt = ang;                          // lean with the chains
     player.speed = 0; player.vel.y = 0; player.grounded = true;
     // creak at each peak once it's really going
-    const peak = Math.cos(a.phase) * Math.cos(a.phase - dt * SWING_FREQ) < 0;
+    const peak = Math.cos(a.phase) * Math.cos(a.phase - dt * freq) < 0;
     if (peak && a.amp > 0.45 && window.odaSfx) window.odaSfx.tone(210 + Math.random() * 30, 0.09, 'triangle', 0.03);
     if (intent.jump) this._dismountSwing(player, a, ang);
   }
 
   _dismountSwing(player, a, ang) {
     player.rig.setOverlay?.(null, 0);
-    const dAng = Math.cos(a.phase) * a.amp * SWING_FREQ;   // dθ/dt
-    const v = -dAng * SWING_L;                             // seat z = -L·sin(θ), so dz/dt is NEGATIVE dθ
+    const dAng = Math.cos(a.phase) * a.amp * Math.sqrt(9.81 / a.seat.len);   // dθ/dt
+    const v = -dAng * a.seat.len;   // seat z = -L·sin(θ), so dz/dt is NEGATIVE dθ
     player.tilt = 0;
     player.rig.stopEmote?.();
     this.state.presence?.broadcast({ emote: '_stop' });

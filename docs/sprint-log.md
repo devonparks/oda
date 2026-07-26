@@ -1,5 +1,66 @@
 # Sprint Log
 
+## 2026-07-26 (cont.) — Devon was right: it was an export problem
+
+*"I think this is an export problem, because if I open up the demo scene in
+Unity I should be able to select each item — so maybe we need to import those
+separately."* That diagnosis was correct and it explains the whole month.
+
+**THE NUMBERS MADE IT OBVIOUS.** The Synty demo scene is 1117 renderers, all
+prefab instances, referencing only **275 unique meshes**. The original export
+merged 741 of them into one baked `park_static.glb` — so the purple Jeep, the
+pond floaties, the swing seats, the picnic tables and the tyre carousel's
+crown were welded into the scenery, and every attempt to make one of them move
+meant carving triangles back out of a merged mesh. That carve is where the
+rock, the plant, the doubled swing chains and three sessions of pain came
+from.
+
+**NEW EXPORT: prototypes + placements.** `tools/world/unity/AMGParkExporter.cs`
+(committed, menu **AMG > Export Park Scene**) writes 275 local-space prototypes
+with the atlas baked to vertex colours, plus 1103 placements — name, position,
+rotation, scale. `tools/world/protos_to_glb.py` converts. It is also **smaller**:
+1.3 MB against the old 1.76 MB, because deduplicating 133 grass tiles into one
+mesh beats merging them.
+
+**RUNTIME: merge from parts.** `_buildLayerMesh` merges everything that doesn't
+move into two meshes and diverts anything interactive **by name**. 51 draw
+calls, i.e. unchanged. Two layers, and the split is by purpose rather than by
+the scene's own folders: `terrain` (ground, paths, playground structure,
+gazebo, fountain, pond, treehouse, swing frame) feeds the ground heightfield,
+the water mask and every derived collision structure; `clutter` (toys, prams,
+benches, slides) is drawn and casts shadows but is invisible to the ground
+bake. Getting that split wrong first time cost the roof decks — worth knowing.
+
+**WHAT THAT IMMEDIATELY FIXED, for free:**
+- **The swings are the real Synty seats now.** Swing_1 and Swing_2 are their
+  own objects whose ORIGIN is the pivot on the top bar, so swinging them is
+  rotating an object about its own origin. The carve, the code-drawn chains,
+  the hand-typed FRAME/BAR_Y/CARVE constants and the whole "two black bars, one
+  moves and one stands still" bug class are deleted.
+- **The tyre carousel is one object again** — base, pole and crown cluster by
+  name, no shell carve.
+- **The toy gun** behind the bush is skipped by name instead of being carved
+  out by hand-typed coordinates.
+- `_extractShellAttractions`, `_carveShellTriangles` and `buildCarvedGeometry`
+  are gone: ~200 lines of triangle surgery deleted.
+
+**AND THERE'S A WORLD OUT THERE NOW.** Devon: "it's just a plane floating in
+the middle of nowhere." `_buildBackdrop` draws the country the park sits in —
+a wide ground plane, a broken ring of low hills, and two tree belts at
+different distances — code-drawn from cones and spheres, merged into three
+meshes, deterministic so the skyline never shimmers. Fog far went 95 → 300 m,
+because at 95 the haze swallowed the horizon and left the hills as pale
+spikes; long fog turns the same haze into atmospheric perspective.
+
+**One trap paid for:** Blender truncates object names at 63 characters. The
+prototype key `SM_Prop_Playground_Track_Ride_01_Handle$PolygonKids_Material_01_A`
+is 65, so the handle came back from the GLB under a clipped name, the runtime
+couldn't find its prototype, and **the zip line silently vanished**. Keys are
+`<mesh>#<n>` now — longest is 39.
+
+Next map: export with a new prefix and drop the two files in. Nothing in the
+runtime is map-specific any more.
+
 ## 2026-07-26 (cont.) — the step back: no vehicles, and the props fit properly
 
 Devon called it: *"I think we need to take a step back because we are
