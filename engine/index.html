@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>AMG World Engine — Babylon + Havok</title>
+<meta name="description" content="The AMG World Engine: the park on Babylon.js and Havok.">
+<link rel="icon" href="../assets/amg-icon.svg">
+<link rel="stylesheet" href="css/engine.css">
+
+<!--
+  WHICH BABYLON TO LOAD.
+
+  Two self-contained bundles live in vendor/ (see tools/engine/build_vendor.mjs):
+  `babylon.js` is the tree-shaken student build, `babylon.dev.js` is the same
+  surface with the Inspector inside it — about four times the size, and the
+  reason it is not the default. Engine source imports the bare specifier
+  `babylon` and never knows which one it got.
+
+  This has to be a classic inline script rather than a static import map
+  because the choice depends on the URL. It runs synchronously, before the
+  module script below is fetched, which is the condition an import map has to
+  meet. Verified in real Chrome by tools/engine/probe_boot.mjs — if a browser
+  ever refuses a dynamically inserted map, the fallback is two static maps in
+  two HTML files.
+-->
+<script>
+(function () {
+  var dev = /[?&]dev\b/.test(location.search);
+  var map = document.createElement('script');
+  map.type = 'importmap';
+  map.textContent = JSON.stringify({
+    imports: { babylon: dev ? './vendor/babylon.dev.js' : './vendor/babylon.js' },
+  });
+  document.head.appendChild(map);
+  window.__AMG_DEV = dev;
+})();
+</script>
+</head>
+<body>
+
+<canvas id="stage" touch-action="none"></canvas>
+
+<div id="boot" class="boot">
+  <div class="boot-card">
+    <div class="boot-logo">AMG <span>WORLD</span></div>
+    <div class="boot-sub">Engine — Babylon + Havok</div>
+    <div class="boot-bar"><div id="bootFill"></div></div>
+    <div id="bootMsg" class="boot-msg">Starting the engine…</div>
+  </div>
+</div>
+
+<div id="hud" class="hud hidden">
+  <div id="stats" class="stats"></div>
+  <div id="hint" class="hint">
+    <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> fly &middot;
+    <kbd>Q</kbd><kbd>E</kbd> down/up &middot;
+    drag to look &middot;
+    <kbd>~</kbd> inspector &middot;
+    <kbd>F</kbd> stats
+  </div>
+</div>
+
+<div id="fatal" class="fatal hidden"><div class="fatal-card"><h2>The engine stopped</h2><pre id="fatalMsg"></pre></div></div>
+
+<script type="module" src="js/boot.js"></script>
+</body>
+</html>

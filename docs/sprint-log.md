@@ -1,5 +1,78 @@
 # Sprint Log
 
+## 2026-07-26 (engine) — M1: the park boots on Babylon + Havok
+
+First milestone of `docs/AMG_WORLD_ENGINE_BRIEF.md`. New directory `engine/`;
+**`/world` is untouched and still live**, and both read the same asset files.
+275 prototypes, 1103 thin instances, 275 draw calls, 60 fps, Havok up, the
+Inspector on backtick. 13 invariants green in `tools/engine/probe_boot.mjs`.
+
+**THE ASSET PIPELINE FED BABYLON UNCHANGED, exactly as hoped.** No re-export, no
+new tooling — `park_protos.glb` + `park_layout.json` straight in. That decision
+is now paying for itself twice.
+
+**THREE THINGS WENT WRONG, AND ALL THREE WERE FOUND BY LOOKING.** Every one of
+them passed a plausible-sounding numeric check first, which is the whole lesson.
+
+1. **The park came up on its side.** I reset each prototype node's transform to
+   identity — the obvious move, since thin-instance matrices are relative to the
+   mesh's own world matrix. But those node transforms *carry* Blender's
+   Z-up→Y-up conversion (`export_yup=True` puts it on the nodes, not in the
+   vertex data). Measured against `park_collision.json`: the fountain came back
+   2.91 x 2.91 x 1.21 where the truth is 2.91 x 1.21 x 2.91 — Y and Z swapped,
+   on all 275. The three.js park already solved this and said so in a comment I
+   had read and not believed. **Bake the node's world matrix into the geometry**,
+   guarded on the geometry so a shared one is never baked twice.
+
+2. **The park was dark olive where the live park is vivid green.** The art is
+   entirely vertex colours and glTF declares COLOR_0 LINEAR; three.js applies a
+   linear→sRGB transfer at output (`outputColorSpace = SRGBColorSpace`, read off
+   the live renderer) and Babylon's StandardMaterial path does not. Two wrong
+   turns first, both recorded in the code: enabling Babylon's ACES tone mapping
+   to "match three.js" made it WORSE (ACES crushes midtones and its gamma step
+   never reached this material), and raising light intensity only blew out the
+   reds while the shadows stayed crushed. The fix is the real sRGB transfer
+   applied to the colour attribute once at load — exact, free per frame, and it
+   leaves the material a plain frozen StandardMaterial.
+
+3. **A passing check that was itself the bug.** "Inspector actually opens"
+   failed while the screenshot showed a fully working Inspector. `debugLayer.show()`
+   is async, so `isVisible()` on the next line is still false. The assertion was
+   wrong, not the code — worth remembering before "fixing" anything a probe
+   accuses.
+
+**RIGHT-HANDED SCENE, and it is load-bearing.** `scene.useRightHandedSystem = true`
+makes Babylon's glTF loader leave `__root__` at identity (confirmed in the loader
+source), so the Unity exporter's output applies verbatim and every measurement
+the three.js park paid for still holds: curated collision boxes, seat and saddle
+positions, the water mask, zone coordinates. Flip that flag and all of it
+silently mirrors.
+
+**VENDORING, and why there are two bundles.** Babylon is thousands of ES modules,
+which an import map cannot serve, and the hub has no bundler. So esbuild builds
+a tree-shaken bundle that is COMMITTED: 3.2 MB / **508 KB gzipped**, or ~1.2 MB
+with the Havok WASM and Draco — the Chromebook budget. The Inspector cannot be
+the CDN UMD build (it installs a second `window.BABYLON`, so every `instanceof`
+fails and the scene explorer comes up empty) and code splitting emitted **1242
+chunk files**, so it is a second self-contained `babylon.dev.js` that
+`index.html` swaps in via the import map on `?dev`. Draco is vendored too: the
+park GLB lists it as *required*, so a school filter blocking cdn.babylonjs.com
+would serve a park with no geometry. `probe_boot.mjs` asserts zero
+cross-origin fetches.
+
+**Thin instances deliver the thing merging could not.** 1103 placements keep
+their identity AND cost 275 draw calls — the 133 grass tiles cost the same as
+one. In three.js the same budget needed merged geometry, which is why hiding a
+single bench meant collapsing a slice of a shared vertex buffer by hand. That
+whole class of triangle surgery does not exist here, which is what should make
+the object layer (M3) short.
+
+Known gaps, carried forward: no backdrop yet (the live park's code-drawn hills
+and tree belts — without them it is "a plane floating in the middle of
+nowhere"), no shadow casters wired, and the fly camera stands in for the
+character until M2.
+
+
 ## 2026-07-26 (final) — finishing the park: the green pool, real trees, and the object layer
 
 Last pass on the three.js park before the engine decision (Devon is moving to
