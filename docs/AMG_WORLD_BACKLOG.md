@@ -149,7 +149,8 @@ not at a zone, **tap the held slot** (the only one a tablet has).
 7. **Skateboard.** Too fast. Wants a **push-off animation**, **tricks**, and
    **collision with the grind rails**. Tricks could pay XP.
 8. **Hula hoops** stand upright and look wrong. Devon: *"I feel like that could
-   just be an item you purchase."*
+   just be an item you purchase."* Confirmed — it becomes a shop item like the
+   vehicles, so fix the pose but don't build it as a fixed attraction.
 
 ### P2 — new interactables
 
@@ -188,9 +189,20 @@ not at a zone, **tap the held slot** (the only one a tablet has).
 
 ---
 
-## 5. Open questions for Devon
+## 5. Decisions Devon has already made
 
-- **Coin rides**: the three by the gazebo (dragon, car, rocket) currently rock
-  in place, which is what a coin-operated kiddie ride does. Leave as is?
-- **Hula hoops**: convert to a purchasable item and remove the fixed
-  attraction, or fix the standing pose?
+- **The gazebo coin rides stay as they are.** Dragon, car and rocket rock in
+  place and do not travel. Devon: *"that's how they're supposed to be in real
+  life."* Do not make them drivable.
+- **Everything rideable eventually becomes a SHOP ITEM.** The vehicles, the
+  hula hoop, and the rest of the toys are all destined for the hub shop. But:
+  *"I just want to make it work, though, and then it all will be shop items."*
+
+  **So: build the mechanics unlocked and working NOW.** Do not gate anything
+  behind currency yet, and do not design a system that would fight a shop
+  later. Concretely, keep "can I ride this?" a *separate* question from "do I
+  own this?" — a single ownership check in front of the existing ride/zone
+  path, added when the shop lands, should be the whole change. The inventory
+  module (`world/js/inventory.js`) is already the natural home for ownership,
+  and the hub already has a coin economy (`awardCoins`) and a shop
+  (`odaShop` in `js/oda-core.js`) to hang it off.
