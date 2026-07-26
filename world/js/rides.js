@@ -74,7 +74,7 @@ const VEHICLE_DEFS = {
   // out level), so its centroid lands between them — a rider on neither.
   bike: { style: 'bike', clip: 'bike_pedal', speed: 1.9, name: 'Bike', icon: '\u{1F6B2}', verb: 'Ride the bike!', saddle: true },
   trike: { style: 'bike', clip: 'bike_pedal', speed: 1.25, name: 'Trike', icon: '\u{1F6B2}', verb: 'Ride the trike!', saddle: true },
-  scooter: { style: 'stand', clip: 'ride_stand', speed: 1.6, name: 'Scooter', icon: '\u{1F6F4}', verb: 'Scoot!' },
+  scooter: { style: 'stand', clip: 'scoot_stand', speed: 1.6, name: 'Scooter', icon: '\u{1F6F4}', verb: 'Scoot!' },
   // 2.05 was "too fast" (Devon) — and flat anyway. 1.7 with the kick-pulse in
   // speedScale averages ~1.6 and actually reads like skating. board_stand is
   // the SIDEWAYS stance (ride_stand stays forward-facing for the scooters).
@@ -87,7 +87,7 @@ const VEHICLE_DEFS = {
    * parks diagonally (square AABB, so the long-axis test is a coin flip);
    * `mountY` because its bounding-box top is the WINDSCREEN, not the seat.
    */
-  jeep: { style: 'sit', clip: 'sit_kart', speed: 1.85, name: 'Jeep', icon: '\u{1F699}', verb: 'Drive it!', spread: 1.6, axleFacing: true, mountY: 0.4, seatAtOrigin: true },
+  jeep: { style: 'sit', clip: 'sit_kart', speed: 1.85, name: 'Jeep', icon: '\u{1F699}', verb: 'Drive it!', spread: 1.6, axleFacing: true, mountY: 0.3, seatAtOrigin: true },
   /**
    * Pond floaties — carved from the shell like the Jeep, but they ride the
    * WATER: y pinned to their authored draught, movement fenced by the water
@@ -414,6 +414,11 @@ export class Rides {
        * remote player when multiplayer lands).
        */
       this.seesawSim = { lift: 0, vel: 0, riders: { '-1': null, '1': null }, npc: null, npcTimer: 0 };
+      // The sim owns the plank PERMANENTLY. The old ambient sine (world.js)
+      // made the seesaw sway on its own and amplified as you walked up — but
+      // a real seesaw doesn't sway in the breeze, it RESTS with one end on
+      // the ground, and the sim's empty-plank gravity gives exactly that.
+      this.seesaw.userData.ridden = true;
       this.zones.push({
         id: 'seesaw', ride: 'seesaw', icon: '⚖️', name: 'Seesaw',
         prompt: 'Ride the seesaw', pos: [this.seesaw.position.x, this.seesaw.position.z], radius: 1.5,
@@ -457,6 +462,10 @@ export class Rides {
     if (sim.riders[end]) end = -end;         // that end is taken — sit opposite
     if (sim.riders[end]) return null;        // both taken
     sim.riders[end] = { kind: 'player' };
+    // your weight lands NOW: the plank starts moving your way the instant you
+    // sit, even if your end was resting in the air (Devon: "I'm the only one
+    // on it — I should be weighing it down")
+    if (sim.vel * end > -1.6) sim.vel = -1.6 * end;
     this.active = { kind: 'seesaw', end };
     player.playAction('sit_seesaw');
     this.state.presence?.broadcast({ emote: 'sit_seesaw' });
@@ -481,14 +490,12 @@ export class Rides {
     const m = this.seesaw, sim = this.seesawSim;
     if (!m) return;
     const w1 = sim.riders['1'] ? 1 : 0, w0 = sim.riders['-1'] ? 1 : 0;
-    if (!w1 && !w0 && Math.abs(sim.lift) < 0.01 && Math.abs(sim.vel) < 0.02) {
-      m.userData.ridden = false;             // hand the idle drift back to world.js
-      return;
-    }
-    m.userData.ridden = true;
     sim.vel -= SEESAW_G * (w1 - w0) * dt;    // the heavy side sinks
     if (w1 && w0) sim.vel *= Math.exp(-0.35 * dt);   // two kids: bleed a little
-    if (!w1 && !w0) sim.vel -= Math.sign(sim.lift) * SEESAW_G * 0.6 * dt;  // empty: settle
+    // EMPTY plank: it falls to whichever side it's already leaning and RESTS
+    // there, one end on the ground — a seesaw's actual resting shape (it
+    // used to settle level and sway, which is a mobile, not a seesaw)
+    if (!w1 && !w0) sim.vel += (sim.lift >= 0 ? 1 : -1) * SEESAW_G * 0.5 * dt;
     sim.lift += sim.vel * dt;
     if (sim.lift <= -1) {
       sim.lift = -1;
@@ -1331,25 +1338,44 @@ export class Rides {
           group.updateMatrixWorld(true);   // SECOND pass — build-loop matrices are stale
           const vv = new THREE.Vector3();
           const pts = [];
+          let maxR = 0;
           group.traverse((o) => {
             if (!o.isMesh) return;
             const posA = o.geometry.attributes.position;
             for (let i = 0; i < posA.count; i++) {
               vv.fromBufferAttribute(posA, i).applyMatrix4(o.matrixWorld);
               const r = Math.hypot(vv.x - rootPos.x, vv.z - rootPos.z);
-              if (r > 0.2) pts.push([r, vv.y - rootPos.y]);
+              if (r > 0.2) { pts.push([r, vv.y - rootPos.y]); if (r > maxR) maxR = r; }
             }
           });
-          if (pts.length > 20) {
-            const ys = pts.map((p) => p[1]).sort((q, w) => q - w);
-            seatY = ys[Math.floor(ys.length * 0.9)];
-            const ring = pts.filter((p) => p[1] > seatY - 0.2).map((p) => p[0]).sort((q, w) => q - w);
+          // the SEAT lives in the outer band, below a kid's reach (the tyre
+          // carousel's arms rise to 3 m — they're structure, not seats). The
+          // seat LEVEL is the band's densest horizontal slab — that's the
+          // tyre itself, not the arm it hangs from.
+          const outer = pts.filter((p) => p[0] > maxR * 0.55 && p[1] < 2.0);
+          if (outer.length > 20) {
+            const BIN = 0.15;
+            const hist = new Map();
+            for (const p of outer) {
+              const k = Math.floor(p[1] / BIN);
+              hist.set(k, (hist.get(k) || 0) + 1);
+            }
+            const best = [...hist.entries()].sort((q, w) => w[1] - q[1])[0][0];
+            seatY = (best + 1) * BIN;          // the slab's TOP — you sit on it
+            const ring = outer.filter((p) => Math.abs(p[1] - seatY) < 0.3)
+              .map((p) => p[0]).sort((q, w) => q - w);
             if (ring.length > 10) seatR = ring[Math.floor(ring.length * 0.7)];
           }
         }
         const item = {
           group, spin: 0, rate: 0, t: Math.random() * 6,
           deck: seatY, seatR: Math.max(0.28, seatR),
+          // Sitting far out (the tyres) you face OUTWARD, legs dangling over
+          // the edge, hands on the tyre beside you — facing the hub from out
+          // there stretched the legs at the pole and read as pole-hugging.
+          // Sitting close (the wheel-spinner's disc) you face IN, hands on
+          // the wheel you spin.
+          faceOut: seatR >= 0.45,
           radius,
         };
         const isSpin = family === 'spinner';
@@ -1369,8 +1395,9 @@ export class Rides {
   _beginSpinner(player, item) {
     this.active = { kind: 'spinner', item, dir: 1 };
     player.rig.forceLegEmote = true;
-    player.playAction('spin_ride', null);
-    this.state.presence?.broadcast({ emote: 'spin_ride' });
+    const clip = item.faceOut ? 'sit' : 'spin_ride';
+    player.playAction(clip, null);
+    this.state.presence?.broadcast({ emote: clip });
     return 'A/D spin it either way \u00b7 S slows it \u00b7 Space to fly off';
   }
 
@@ -1383,12 +1410,16 @@ export class Rides {
    */
   _updateSpinner(dt, player, intent) {
     const a = this.active, it = a.item;
-    // rider faces OUT, so their screen-right is spin-negative (measured from
-    // the seat parametrisation: pos runs (sin, cos)\u00b7r, right = (-cos, sin))
-    if (Math.abs(intent.move.x) > 0.3) a.dir = intent.move.x > 0 ? -1 : 1;
+    // steering: D throws it toward your screen-right. Facing the hub, right =
+    // spin-negative (from the seat parametrisation pos = (sin, cos)\u00b7r);
+    // facing outward it's the opposite.
+    if (Math.abs(intent.move.x) > 0.3) {
+      a.dir = (intent.move.x > 0 ? -1 : 1) * (it.faceOut ? -1 : 1);
+    }
     const braking = intent.move.y > 0.3;
     const pushing = !braking && (Math.abs(intent.move.x) > 0.3 || intent.move.y < -0.3);
-    const target = pushing ? 3.4 * a.dir : 0;
+    // big carousels cap lower: 3.4 rad/s on a 2 m tyre arm is 7 m/s of kid
+    const target = pushing ? Math.min(3.4, 4.6 / Math.max(1, it.seatR)) * a.dir : 0;
     it.rate += (target - it.rate) * Math.min(1, dt * (pushing ? 0.9 : braking ? 2.4 : 0.5));
     it.spin += it.rate * dt;
     it.group.rotation.y = it.spin;
@@ -1399,7 +1430,7 @@ export class Rides {
       it.group.position.x + Math.sin(it.spin) * r,
       g + it.deck + BUTT_BELOW_PELVIS - SEATED_PELVIS_Y,
       it.group.position.z + Math.cos(it.spin) * r);
-    player.yaw = player.targetYaw = it.spin + Math.PI;   // facing the hub, hands to the bar/wheel
+    player.yaw = player.targetYaw = it.spin + (it.faceOut ? 0 : Math.PI);
     player.speed = 0; player.vel.y = 0; player.grounded = true; player.tilt = 0;
     if (Math.abs(it.rate) > 1.4 && Math.random() < dt * 4 && window.odaSfx) {
       window.odaSfx.tone(150 + Math.abs(it.rate) * 20, 0.05, 'triangle', 0.02);

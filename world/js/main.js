@@ -537,7 +537,7 @@ function loop() {
   // be when you walk up to the pond the fishing rod automatically comes out. I
   // just want to be able to use the fishing rod wherever you want."
   state.fishing?.update(dt, player, Math.hypot(intent.move.x, intent.move.y) > 0.1,
-    state.inv?.heldDef()?.use === 'fish');
+    state.inv?.heldDef()?.use === 'fish' && !state.rides?.busy && !state.seated && !player.crouching);
   updateHeldVisual(player);
 
   // coins

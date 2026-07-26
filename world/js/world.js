@@ -49,7 +49,7 @@ const VEHICLE_FAMILIES = [
   { id: 'kart', re: /^SM_Veh_Soapbox_Racer_03/, style: 'sit', clip: 'sit_kart', speed: 1.75, name: 'Soapbox Racer', icon: '\u{1F3CE}\uFE0F', verb: 'Drive it!' },
   { id: 'bike', re: /^SM_Veh_Bike_/, style: 'bike', clip: 'bike_pedal', speed: 1.9, name: 'Bike', icon: '\u{1F6B2}', verb: 'Ride the bike!' },
   { id: 'trike', re: /^SM_Veh_Trike_/, style: 'bike', clip: 'bike_pedal', speed: 1.25, name: 'Trike', icon: '\u{1F6B2}', verb: 'Ride the trike!' },
-  { id: 'scooter', re: /^SM_Veh_Scooter_/, style: 'stand', clip: 'ride_stand', speed: 1.6, name: 'Scooter', icon: '\u{1F6F4}', verb: 'Scoot!' },
+  { id: 'scooter', re: /^SM_Veh_Scooter_/, style: 'stand', clip: 'scoot_stand', speed: 1.6, name: 'Scooter', icon: '\u{1F6F4}', verb: 'Scoot!' },
   { id: 'board', re: /^SM_Prop_Skateboard_/, style: 'stand', clip: 'board_stand', speed: 1.7, name: 'Skateboard', icon: '\u{1F6F9}', verb: 'Skate!' },
   { id: 'wagon', re: /^SM_Prop_Red_Wagon_/, style: 'sit', clip: 'sit_kart', speed: 1.3, name: 'Wagon', icon: '\u{1F6D2}', verb: 'Ride the wagon!' },
   { id: 'pogo', re: /^SM_Veh_Pogo_Stick/, style: 'pogo', clip: 'pogo', speed: 0.85, name: 'Pogo Stick', icon: '\u{1F998}', verb: 'Boing!' },
@@ -761,6 +761,28 @@ export class World {
       });
       console.log(`[world] ${fb.n} carved from shell: ${flat.length / 18} triangles`);
     }
+
+    // ── the tyre carousel: only its BASE is a layout prop; the pole and the
+    // whole arms-plus-hanging-tyres crown are baked into the shell, so the
+    // base spun invisibly underneath a static structure — Devon rode the
+    // mast ("it's activating like a stripper pole… the tires spin around
+    // like a yo-yo"). Carve pole + crown and hand them to the ATTRACTION
+    // pipeline; clusterParts folds them into the base's spin group, and the
+    // whole thing finally turns. Origin at the mast's ground point so the
+    // spin axis is the mast. ──
+    for (const rb of collision.filter((b) => /^SM_Prop_Rocker_(Pole|Top)_01$/.test(b.n || ''))) {
+      const taken = this._carveShellTriangles(shellMesh, [rb], null);
+      const flat = taken.get(rb);
+      if (!flat || !flat.length) continue;
+      const origin = new THREE.Vector3(rb.c[0], 0, rb.c[2]);
+      this.attractionParts.push({
+        family: 'spinner',
+        proto: { geometry: buildCarvedGeometry(flat, origin, 0), material: parkMaterial(null) },
+        matrix: new THREE.Matrix4().makeTranslation(origin.x, origin.y, origin.z),
+        mesh: rb.n,
+      });
+      console.log(`[world] ${rb.n} carved from shell: ${flat.length / 18} triangles`);
+    }
   }
 
   /**
@@ -831,31 +853,51 @@ export class World {
       }
     }
 
-    // ── 2. per part: seed deep inside the shrunken box, flood within bounds ──
+    // ── 2. per part: seed deep inside the shrunken box, flood within bounds,
+    //       then keep only the SUBSTANTIAL connected components ──
+    // A tuft of grass sitting wholly inside a part's shrunken box seeds
+    // itself and rides along (Devon, twice: first a rock, then "a piece of a
+    // plant attached to it"). Debris is its own tiny component, so per part
+    // only components at least a quarter the size of the biggest one keep
+    // their claim; the rest go back to the park.
     const claimed = new Map();
     parts.forEach((bx) => claimed.set(bx, []));
     parts.forEach((bx, pi) => {
       const bound = bx === fallbackBox ? union : bx;
       const shrink = { c: bx.c, e: bx.e.map((e) => Math.max(e * 0.7, e - 0.08)) };
-      const stack = [];
+      const comps = [];
       cand.forEach((en, id) => {
         if (en.owner >= 0) return;
-        if (en.v.every((v) => inBox(v, shrink, 0))) { en.owner = pi; stack.push(id); }
-      });
-      const out = claimed.get(bx);
-      while (stack.length) {
-        const id = stack.pop();
-        out.push(cand[id]);
-        for (const v of cand[id].v) {
-          const l = byKey.get(keyOf(v));
-          if (!l) continue;
-          for (const nid of l) {
-            const ne = cand[nid];
-            if (ne.owner >= 0) continue;
-            if (!ne.v.every((v2) => inBox(v2, bound, PAD))) continue;
-            ne.owner = pi;
-            stack.push(nid);
+        if (!en.v.every((v) => inBox(v, shrink, 0))) return;
+        // BFS one component from this seed
+        const comp = [];
+        en.owner = pi;
+        const stack = [id];
+        while (stack.length) {
+          const cid = stack.pop();
+          comp.push(cid);
+          for (const v of cand[cid].v) {
+            const l = byKey.get(keyOf(v));
+            if (!l) continue;
+            for (const nid of l) {
+              const ne = cand[nid];
+              if (ne.owner >= 0) continue;
+              if (!ne.v.every((v2) => inBox(v2, bound, PAD))) continue;
+              ne.owner = pi;
+              stack.push(nid);
+            }
           }
+        }
+        comps.push(comp);
+      });
+      if (!comps.length) return;
+      const biggest = Math.max(...comps.map((cmp) => cmp.length));
+      const out = claimed.get(bx);
+      for (const comp of comps) {
+        if (comp.length >= Math.max(6, biggest * 0.25)) {
+          for (const cid of comp) out.push(cand[cid]);
+        } else {
+          for (const cid of comp) cand[cid].owner = -1;   // back to the park
         }
       }
     });

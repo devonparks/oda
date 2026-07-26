@@ -109,6 +109,7 @@ public static class AMGActionBaker
         new Spec("board_push",  24, true,  "Push off"),      // skateboard kick — rides.js drives the playhead off its push cycle
         new Spec("crawl",       24, true,  "Crawling"),      // hands-and-knees clamber (tyres, low ledges)
         new Spec("board_stand", 36, true,  "Board stance"),  // SIDEWAYS skate stance — ride_stand stays forward-facing for scooters
+        new Spec("scoot_stand", 36, true,  "Scooting"),      // forward stance, hands ON the scooter bars (low and close)
     };
 
     // ── the pose a single frame resolves to ──────────────────────────────────
@@ -188,6 +189,7 @@ public static class AMGActionBaker
             case "bike_pedal": return 0f;
             case "ride_stand": return 0.30f;
             case "board_stand": return 0.30f;
+            case "scoot_stand": return 0.30f;
             case "sit_table": return 0.85f;
             case "spin_ride": return 0.55f;
             case "sit": return 1.00f;
@@ -277,9 +279,12 @@ public static class AMGActionBaker
                 p.shinR = new Vector3(0f, -0.960f, 0.020f + 0.06f * s);
                 p.footL = new Vector3(0f, -0.400f, 0.917f);
                 p.footR = new Vector3(0f, -0.400f, 0.917f);
-                // hands on the chains: rides.js hangs them at x = ±0.19
-                p.handL = new Vector3(-0.190f, 1.185f, 0.005f);
-                p.handR = new Vector3(0.190f, 1.185f, 0.005f);
+                // Hands on the chains at x = ±0.19 — and 6 cm LOWER than the
+                // natural reach: the wrist joint is what lands on the target,
+                // so dropping it puts the PALM (which extends up the reach
+                // line) around the chain instead of leaving it floating beside.
+                p.handL = new Vector3(-0.190f, 1.125f, 0.005f);
+                p.handR = new Vector3(0.190f, 1.125f, 0.005f);
                 p.poleL = new Vector3(-0.80f, -0.55f, -0.25f);
                 p.poleR = new Vector3(0.80f, -0.55f, -0.25f);
                 break;
@@ -421,6 +426,22 @@ public static class AMGActionBaker
                     break;
                 }
 
+            // Scooter: same staggered stance as ride_stand, but the hands GRIP
+            // THE BARS — low, close together, forward — instead of ballooning
+            // out for balance (the audit caught them holding air a head above
+            // the toy scooter's bars). Slight forward lean into the push.
+            case "scoot_stand":
+                {
+                    p = BuildRaw("ride_stand", u);
+                    p.pelvis = new Vector3(0f, 1f, 0.02f).normalized;
+                    p.spine1 = new Vector3(0f, 1f, 0.10f).normalized;
+                    p.handL = new Vector3(-0.11f, 0.625f, 0.295f);
+                    p.handR = new Vector3(0.11f, 0.625f, 0.295f);
+                    p.poleL = new Vector3(-0.72f, -0.52f, -0.30f);
+                    p.poleR = new Vector3(0.72f, -0.52f, -0.30f);
+                    break;
+                }
+
             // Seated, hands forward on the bars, legs turning a real circle.
             case "bike_pedal":
                 {
@@ -436,8 +457,10 @@ public static class AMGActionBaker
                     p.shinR = new Vector3(0.03f, -0.90f, 0.10f + 0.42f * Mathf.Cos(a2)).normalized;
                     p.footL = new Vector3(0f, -0.36f, 0.93f);
                     p.footR = new Vector3(0f, -0.36f, 0.93f);
-                    p.handL = new Vector3(-0.20f, 0.905f, 0.315f);
-                    p.handR = new Vector3(0.20f, 0.905f, 0.315f);
+                    // reach DOWN to the toy bike's bars (they're at a kid's
+                    // thigh height — the audit caught the hands hovering high)
+                    p.handL = new Vector3(-0.17f, 0.79f, 0.36f);
+                    p.handR = new Vector3(0.17f, 0.79f, 0.36f);
                     p.poleL = new Vector3(-0.88f, -0.44f, -0.18f);
                     p.poleR = new Vector3(0.88f, -0.44f, -0.18f);
                     break;
@@ -457,8 +480,11 @@ public static class AMGActionBaker
                     p.shinR = new Vector3(0.03f, -0.94f, -0.32f + 0.24f * sp).normalized;
                     p.footL = new Vector3(0f, -0.30f, 0.95f);
                     p.footR = new Vector3(0f, -0.30f, 0.95f);
-                    p.handL = new Vector3(-0.14f, 0.945f, 0.245f);
-                    p.handR = new Vector3(0.14f, 0.945f, 0.245f);
+                    // hands ON the pogo's grips: the stick runs up the body's
+                    // centre, so the grips are close in, not out front (the
+                    // audit caught the hands holding air 20 cm ahead of it)
+                    p.handL = new Vector3(-0.11f, 0.95f, 0.09f);
+                    p.handR = new Vector3(0.11f, 0.95f, 0.09f);
                     p.poleL = new Vector3(-0.90f, -0.40f, -0.16f);
                     p.poleR = new Vector3(0.90f, -0.40f, -0.16f);
                     p.hipY = -0.05f + 0.05f * sp;
@@ -549,19 +575,21 @@ public static class AMGActionBaker
                     p.legPoleR = new Vector3(0.85f, -0.30f, -0.15f);
                     p.footL = new Vector3(0.79f, -0.42f, 0.44f).normalized;   // toes across the deck, front angled
                     p.footR = new Vector3(0.88f, -0.45f, 0.12f).normalized;
-                    // hips over the board, chest twisted to face +X
+    // hips over the board, chest opened toward +X — 45°, not more: the
+                    // audit read the harder twist as "not possible" against
+                    // legs that stay on the board line
                     p.pelvis = new Vector3(0.06f * sw2, 1f, -0.05f).normalized;
-                    p.pelvisTwist = -58f;
+                    p.pelvisTwist = -45f;
                     p.spine1 = new Vector3(0.05f, 1f, 0.02f).normalized;
                     p.spine2 = new Vector3(0.03f, 1f, 0.03f).normalized;
                     // shoulder line runs along the BOARD: Clavicle_L toward the nose
                     p.spine3 = new Vector3(0.30f, 0.40f, 0.87f).normalized;
                     // head turns to look down the line of travel
                     p.neck = new Vector3(0.05f, 0.97f, 0.24f).normalized;
-                    p.neckTwist = 34f;
-                    // arms spread along the board for balance, front arm higher
-                    p.handL = new Vector3(-0.02f - 0.02f * sw2, 0.86f, 0.38f);
-                    p.handR = new Vector3(0.10f, 0.80f, -0.36f + 0.02f * sw2);
+                    p.neckTwist = 30f;
+                    // arms loose along the board — elbows soft, not a T-pose
+                    p.handL = new Vector3(-0.05f - 0.02f * sw2, 0.80f, 0.34f);
+                    p.handR = new Vector3(0.10f, 0.76f, -0.30f + 0.02f * sw2);
                     p.poleL = new Vector3(-0.30f, -0.55f, 0.72f);
                     p.poleR = new Vector3(0.55f, -0.55f, -0.55f);
                     p.hipY = -0.055f + 0.012f * sw2;     // knees always a bit bent
@@ -620,7 +648,7 @@ public static class AMGActionBaker
                     p.footR = new Vector3(0.55f, -0.50f, 0.67f).normalized;   // push foot points along travel
                     p.hipY = -0.055f - 0.075f * dip;
                     p.pelvis = new Vector3(0.10f * dip, 1f, -0.05f + 0.06f * dip).normalized;
-                    p.handR = new Vector3(0.10f + 0.06f * dip, 0.80f, -0.36f + 0.10f * dip);
+                    p.handR = new Vector3(0.10f + 0.06f * dip, 0.76f, -0.30f + 0.10f * dip);
                     break;
                 }
 

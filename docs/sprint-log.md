@@ -1,5 +1,49 @@
 # Sprint Log
 
+## 2026-07-26 (cont.) — playtest 8: the visual audit Devon asked for three times
+
+Process change first: `tools/world/probe_ride_gallery.mjs` mounts EVERY ride
+and takes a close-up screenshot; every image got LOOKED at, fixed, reshot.
+That gallery is now the standing definition of done for animation work — the
+FK numbers said "0.029 m from the chain" while the screenshots said "holding
+air", and the screenshots were right.
+
+**The "stripper pole" was a misdiagnosis of a missing structure.** The
+roundabout Devon kept reporting is the TYRE CAROUSEL behind the fountain —
+and only its spinning BASE is a layout prop. The pole and the entire
+arms-plus-hanging-tyres crown were baked into the static shell: he rode an
+invisible disc while the tyres stood still. Both carved out (2,296 triangles)
+and folded into the spin group — the whole carousel turns now, and the rider
+sits ON a hanging tyre at r 1.95, facing out, seat level measured as the
+outer band's densest slab (the tyre itself, not the arm it hangs from).
+Spinner riders face OUTWARD on tyre seats with hands resting beside them.
+
+**The fishing rod was in every rider's hand.** Held-item visuals were hidden
+during rides earlier, but fishing.js draws its own rod — gated now while
+riding, seated or crouched. This alone polluted every "animation is wrong"
+impression with a rod sticking through the kid.
+
+**Seesaw solo reads right**: the sim owns the plank permanently (no ambient
+sway — a real seesaw RESTS with one end down), and mounting seeds your
+weight so your end starts sinking the instant you sit, even from the high
+end. The NPC playmate and the two-rider alternation are untouched.
+
+**The Jeep's plant is gone** — a tuft wholly inside a part's seed box seeded
+itself; per part only connected components ≥25% of the largest keep their
+claim. And the driver sits IN the tub now (mountY 0.30, was perched at
+roll-bar height).
+
+**Clip polish, 23 clips total**: NEW `scoot_stand` (hands ON the scooter
+bars, low and close — scooters no longer share the skateboard's balance
+arms), pogo hands wrap the stick (were 20 cm in front), bike hands reach
+DOWN to the toy bars, board stance twist softened to 45° with relaxed arms
+(the 58° twist over board-line legs read as impossible), swing grip dropped
+6 cm so the PALM wraps the chain instead of the wrist floating beside it.
+
+Audit verdicts worth keeping: kart, wagon, floatie, bench, picnic table,
+seesaw and the 4-tyre roundabout all read FITTED now; monkey/zip stills were
+probe staging flakes (their rides verified separately).
+
 ## 2026-07-26 (cont.) — playtest 7: sideways skating, tyre seats, saddles, and a crouch
 
 Devon's verdict on the last four deploys was "definitely better," then a
