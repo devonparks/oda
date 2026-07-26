@@ -344,6 +344,14 @@ export class World {
       }
     }
 
+    // ---- picnic tables: four seats each, read off the benches ----
+    if (shellMesh) {
+      this.tableSeats = [];
+      for (const raw of collision.filter((b) => /Park_Table/i.test(b.n || ''))) {
+        this._addTableSeats(shellMesh, raw);
+      }
+    }
+
     // ---- the fountain comes alive: jet, falling drops, basin ripples ----
     const fnt = collision.find((b) => /Env_Fountain_01/.test(b.n || ''));
     if (fnt) this._buildFountain(fnt);
@@ -868,6 +876,50 @@ export class World {
   }
 
   /**
+   * Four seats per picnic table, derived from the benches themselves.
+   *
+   * A picnic table is a top with a bench down each side, and the benches are
+   * the widest thing BELOW the top — so find that band, take its long axis, and
+   * put two seats a side facing in. No hand-placed coordinates and no layout
+   * rotation to read (these tables live in the shell, so there isn't one).
+   */
+  _addTableSeats(shellMesh, raw) {
+    const geo = shellMesh.geometry;
+    const pos = geo.attributes.position;
+    const m = shellMesh.matrixWorld;
+    const v = new THREE.Vector3();
+    const x0 = raw.c[0] - raw.e[0], x1 = raw.c[0] + raw.e[0];
+    const z0 = raw.c[2] - raw.e[2], z1 = raw.c[2] + raw.e[2];
+    const yTop = raw.c[1] + raw.e[1];
+    // the seat band: everything between knee and just under the tabletop
+    let sx0 = Infinity, sx1 = -Infinity, sz0 = Infinity, sz1 = -Infinity, sy = 0, n = 0;
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(m);
+      if (v.x < x0 || v.x > x1 || v.z < z0 || v.z > z1) continue;
+      if (v.y < yTop - 0.42 || v.y > yTop - 0.18) continue;      // bench slats
+      n++; sy += v.y;
+      if (v.x < sx0) sx0 = v.x; if (v.x > sx1) sx1 = v.x;
+      if (v.z < sz0) sz0 = v.z; if (v.z > sz1) sz1 = v.z;
+    }
+    if (n < 12) return;
+    sy /= n;
+    const cx = raw.c[0], cz = raw.c[2];
+    const alongX = (sx1 - sx0) >= (sz1 - sz0);
+    const half = (alongX ? sx1 - sx0 : sz1 - sz0) / 2;
+    const side = (alongX ? sz1 - sz0 : sx1 - sx0) / 2;
+    for (const along of [-half * 0.42, half * 0.42]) {
+      for (const across of [-side * 0.82, side * 0.82]) {
+        const x = alongX ? cx + along : cx + across;
+        const z = alongX ? cz + across : cz + along;
+        this.tableSeats.push({
+          x, y: sy, z, tx: cx, tz: cz,
+          yaw: Math.atan2(cx - x, cz - z),      // facing the table
+        });
+      }
+    }
+  }
+
+  /**
    * Where the monkey bars start and finish, read off their own geometry.
    *
    * The ladder rails run along the prop's LONG horizontal axis and the rungs
@@ -1242,7 +1294,9 @@ export class World {
         push = Math.max(0, push - dt * 0.25);
         p.userData.push = push;
       }
-      if (k.includes('Seesaw') && isTop) {
+      if (k.includes('Seesaw') && isTop && p.userData.ridden) {
+        // rides.js is driving it as a real lever — don't fight it
+      } else if (k.includes('Seesaw') && isTop) {
         const ang = Math.sin(t * (0.9 + push) + ph) * (0.18 + push * 0.30);
         p.userData.angle = ang;
         p.quaternion.copy(p.userData.restQuat)

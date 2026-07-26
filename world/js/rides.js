@@ -17,6 +17,7 @@ import { getEmoteLibraryV2, BIND_PELVIS_Y, SEATED_HIP_OFFSET, SEATED_PELVIS_Y, B
 
 const _va = new THREE.Vector3();
 const _vb = new THREE.Vector3();
+const _tiltQ = new THREE.Quaternion();   // seesaw tilt, reused per frame
 
 // The swing frame (SM_Prop_Plaground_Swings_01) in world space, from the
 // collision export: c=(27.5, 1.16, 25.0), e=(1.46, 1.22, 0.88). Bar along X.
@@ -48,6 +49,13 @@ const SLIDE_TIME = 1.15;     // s top→exit
 const SLIDE_MOUTH = 1.0;
 /** How far below a monkey bar a hanging kid's feet-origin sits. */
 const HANG_DROP = 1.15;
+const SEESAW_G = 3.1;        // how fast your end drops
+// Tuned against the arc, not by feel: peak = v^2/(2*G) in `up` units, so 3.4
+// carries you from the ground (-1) to about +0.9 — one good shove takes you
+// almost all the way up, which is the entire point of a seesaw. 2.6 only
+// reached +0.11 and felt like the plank was stuck.
+const SEESAW_PUSH = 3.4;
+const SEESAW_MAX = 0.34;     // rad at either extreme
 
 /** Ride rules per vehicle family, mirrored from world.js VEHICLE_FAMILIES. */
 const VEHICLE_DEFS = {
@@ -104,6 +112,7 @@ export class Rides {
     this._buildVehicles();
     this._buildAttractions();
     this._buildMonkeyBars();
+    this._buildTableSeats();
     // Warm the ACTIONS bin: every ride below plays out of it, and a lazy fetch
     // on the first hop-on would swallow the pose for a beat.
     getEmoteLibraryV2().then((lib) => lib && lib.loadCategory('actions').catch(() => {}));
@@ -399,22 +408,58 @@ export class Rides {
     const m = this.seesaw;
     _va.copy(this.seesawAxis).applyQuaternion(m.quaternion);
     const end = Math.sign(_va.dot(_vb.copy(player.pos).sub(m.position))) || 1;
-    this.active = { kind: 'seesaw', end };
+    // up = where the rider's end is, -1 (on the ground) .. +1 (in the air)
+    this.active = { kind: 'seesaw', end, up: -1, vel: 0 };
     player.playAction('sit_seesaw');
     this.state.presence?.broadcast({ emote: 'sit_seesaw' });
     return 'Hold on! Move to hop off.';
   }
 
+  /**
+   * A seesaw is a LEVER, not a sine wave.
+   *
+   * It used to be `sin(t)` with an amplitude that grew while someone stood
+   * near it — the plank swung whether or not that made any sense, and getting
+   * on changed nothing about how it moved. Devon: "the seesaw physics needs a
+   * lot of work."
+   *
+   * So: with one rider, their end falls to the ground and STAYS there, exactly
+   * like the real thing. Push off with a movement key while you're down and you
+   * launch — the harder the launch, the longer you hang at the top before
+   * gravity brings you back. Everything is expressed as `up`, the rider's own
+   * end from -1 (grounded) to +1 (top), which keeps the sign conventions
+   * honest: gravity is always -, a push is always +.
+   */
   _updateSeesaw(dt, player, intent) {
     const m = this.seesaw, a = this.active;
-    m.userData.push = 1;                     // riding = big swings
+    m.userData.ridden = true;                // world.js leaves the plank to us
+
+    a.vel -= SEESAW_G * dt;                  // your end always wants the ground
+    const grounded = a.up <= -0.985;
+    if (grounded) {
+      a.vel = Math.max(0, a.vel);            // it can't go through the floor
+      // shove off — only works from the bottom, like actually pushing off
+      if (Math.hypot(intent.move.x, intent.move.y) > 0.3) {
+        a.vel = SEESAW_PUSH;
+        window.odaSfx && window.odaSfx.tone(150, 0.07, 'square', 0.05);
+      }
+    }
+    a.up += a.vel * dt;
+    if (a.up > 1) { a.up = 1; a.vel = Math.min(0, a.vel) - 0.4; }   // thump at the top
+    if (a.up < -1) { a.up = -1; a.vel = 0; }
+
+    const ang = a.up * a.end * SEESAW_MAX;
+    m.userData.angle = ang;
+    m.quaternion.copy(m.userData.restQuat)
+      .multiply(_tiltQ.setFromAxisAngle(m.userData.tiltAxis, ang));
+
     _va.copy(this.seesawAxis).multiplyScalar(a.end * this.seesawHalf / m.scale.x);
-    m.localToWorld(_vb.copy(_va));           // follows the animated tilt
+    m.localToWorld(_vb.copy(_va));
     player.pos.set(_vb.x, _vb.y + 0.02, _vb.z);
     player.yaw = player.targetYaw = Math.atan2(m.position.x - _vb.x, m.position.z - _vb.z);
-    player.tilt = (m.userData.angle || 0) * a.end;
+    player.tilt = ang * a.end;
     player.speed = 0; player.vel.y = 0; player.grounded = true;
-    if (Math.hypot(intent.move.x, intent.move.y) > 0.25 || intent.jump) this._exitToGround(player, m.position);
+    if (intent.jump) { m.userData.ridden = false; this._exitToGround(player, m.position); }
   }
 
   _beginRocker(player, zone) {
@@ -886,6 +931,43 @@ export class Rides {
     }
   }
 
+  // ── picnic tables ─────────────────────────────────────────────────────────
+  // Devon: "you can't sit down on the picnic tables, but you can on the
+  // benches. So I want a sit animation for the picnic tables as well, and they
+  // should have like four different spots you could sit at." Four per table,
+  // two a side, each facing in — which is also the shape multiplayer wants.
+
+  _buildTableSeats() {
+    for (const t of this.world.tableSeats || []) {
+      this.zones.push({
+        id: `table${this.zones.length}`, ride: 'tableseat',
+        icon: '\u{1F37D}\uFE0F', name: 'Picnic Table', prompt: 'Sit down',
+        pos: [t.x, t.z], radius: 0.85, seat: t,
+      });
+    }
+  }
+
+  _beginTableSeat(player, zone) {
+    const t = zone.seat;
+    this.active = { kind: 'tableseat', t };
+    player.pos.set(t.x, t.y + BUTT_BELOW_PELVIS - SEATED_PELVIS_Y, t.z);
+    player.yaw = player.targetYaw = t.yaw;
+    player.speed = 0; player.vel.y = 0; player.grounded = true; player.tilt = 0;
+    player.playAction('sit_table');
+    this.state.presence?.broadcast({ emote: 'sit_table' });
+    return 'Pull up a seat \u{1F37D}\uFE0F \u00b7 move to get up';
+  }
+
+  _updateTableSeat(dt, player, intent) {
+    const t = this.active.t;
+    player.pos.set(t.x, t.y + BUTT_BELOW_PELVIS - SEATED_PELVIS_Y, t.z);
+    player.yaw = player.targetYaw = t.yaw;
+    player.speed = 0; player.vel.y = 0; player.grounded = true;
+    if (Math.hypot(intent.move.x, intent.move.y) > 0.25 || intent.jump) {
+      this._exitToGround(player, new THREE.Vector3(t.tx, t.y, t.tz));
+    }
+  }
+
   /** Shared teardown for the rides that just stop. */
   _endRide(player) {
     player.rig.forceLegEmote = false;
@@ -909,6 +991,7 @@ export class Rides {
       case 'spinner': return this._beginSpinner(player, zone.item);
       case 'coinride': return this._beginCoinRide(player, zone.item);
       case 'monkey': return this._beginMonkey(player, zone);
+      case 'tableseat': return this._beginTableSeat(player, zone);
       case 'climb': return this._beginClimb(player, zone.spot);
       default: return null;
     }
@@ -945,6 +1028,7 @@ export class Rides {
       case 'spinner': this._updateSpinner(dt, player, intent); break;
       case 'coinride': this._updateCoinRide(dt, player, intent); break;
       case 'monkey': this._updateMonkey(dt, player); break;
+      case 'tableseat': this._updateTableSeat(dt, player, intent); break;
       case 'climb': this._updateClimb(dt, player, intent); break;
     }
   }
