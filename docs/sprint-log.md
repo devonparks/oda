@@ -1,5 +1,62 @@
 # Sprint Log
 
+## 2026-07-26 (cont.) — the step back: no vehicles, and the props fit properly
+
+Devon called it: *"I think we need to take a step back because we are
+struggling with this. Get rid of all the vehicles… let's just focus on making
+the map traversable and all the props working."* He's right — three sessions
+went into making a rider's body sit convincingly on a small moving toy, and
+the Jeep still shed scenery when you drove away.
+
+**THE FLEET IS PARKED.** Bikes, trikes, scooters, skateboards, the wagon, the
+kart, the pogo stick, the Jeep and the pond floaties are no longer rideable.
+Every one of them still STANDS in the park as scenery — with the family table
+empty, the parts fall back into the merged static batch, exactly as they were
+before any of this. The Jeep is a solid parked car again. The hula hoops are
+gone too (they were headed for the shop as a carried item anyway).
+Everything removed, why, and how to restore it is in
+**`docs/REMOVED_FOR_LATER.md`**, which names commit `63b7d22` as the source.
+What's left: **32 interactable spots**, no vehicles, 47 draw calls, no errors.
+
+**THE SADDLE IS NOW A MEASUREMENT.** The one question every ride-on prop asks
+is "where does the kid's backside go", and it finally has a real answer: a
+saddle is the DIP in the prop's top surface — the low point between the
+dragon's head and its tail, between a car's windscreen and its boot. So
+`_saddleOf()` rasterises the top surface into 10 cm columns, drops the ones
+that only see the base plate, keeps the ones on the prop's spine (a fin or a
+running board is not a seat) and takes the lowest. Coin rides and spring
+riders both use it, through `localToWorld`, so the rider rides the rocking.
+The old answers were the assembly's bbox top (a dragon's horns) and a
+hard-coded +0.5.
+
+**AND SO IS THE FACING.** Riders inherited `group.rotation.y`, which is zero
+for every attraction — so the kid on the rocket sat side-saddle facing the
+lawn. `_frontYawOf()` takes the assembly's long axis and points it at the
+taller end (head, nose cone, windscreen), or at the named steering wheel when
+there is one.
+
+**ONE SEAT FORMULA, TAKEN FROM THE BENCH.** Devon: the bench is the one that
+looks right. Measured why: it sinks the kid 6.5 cm into the seat plane, and
+that contact is what reads as sitting — tangency reads as hovering. Every
+seat in the park now uses `_seatOriginY()`, the bench's own arithmetic.
+
+**THE PICNIC TABLE MATCHES THE BENCH NOW.** Three separate bugs: the seat
+height came from the MEAN of the plank band (so kids sat inside the wood, not
+on it), the seat position was 82% of the way to the band's outer edge (which
+is the far side of the far plank — kids sat on the lip), and the clip rested
+hands 15 cm above the tabletop. All three measured and fixed: plank top, the
+mean across-offset of each bench strip (its centreline), and a hand height
+derived from the real 0.344 m seat-to-tabletop gap.
+
+**Clip polish**: pogo hands wrap the stick, bike hands reach down to the toy
+bars, the board twist eased to 45°, swing palms wrap the chain.
+
+**The audit gallery got usable.** It hides the HUD and the zone signs (they
+covered exactly the lap and seat I needed to see), shoots front-quarter at
+kid height, and can hide the static park entirely — the gazebo's roof and
+railing block every camera angle onto the coin rides inside it. It also
+prints the sink number per seat next to the picture.
+
 ## 2026-07-26 (cont.) — playtest 8: the visual audit Devon asked for three times
 
 Process change first: `tools/world/probe_ride_gallery.mjs` mounts EVERY ride

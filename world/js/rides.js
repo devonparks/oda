@@ -1,5 +1,13 @@
 /**
- * AMG World — rideable playthings: the swing set and the slides.
+ * AMG World — the park's interactive playthings.
+ *
+ * NOTE (2026-07-26): the RIDEABLE VEHICLE FLEET — bikes, trikes, scooters,
+ * skateboards, the wagon, the kart, the pogo stick, the purple Jeep and the
+ * pond floaties — is REMOVED. Devon: "get rid of all the vehicles… let's just
+ * focus on making the map traversable and all the props working." Everything
+ * about that system (and the hula hoop) is catalogued in
+ * docs/REMOVED_FOR_LATER.md, with the commit to lift the code back out of.
+ * The props themselves still stand in the park as scenery.
  *
  * Swings: the Synty swing set is baked into the static shell, so its seats and
  * chains are surgically degenerated out of the merged mesh at load and rebuilt
@@ -63,48 +71,14 @@ const HANG_DROP = 1.15;
 const SEESAW_G = 5.2;
 const SEESAW_PUSH = 4.6;
 const SEESAW_MAX = 0.34;     // rad at either extreme
-const GRIND_SPEED = 4.2;     // m/s along a rail
-const FLIP_T = 0.45;         // s for a full kickflip rotation
-
-/** Ride rules per vehicle family, mirrored from world.js VEHICLE_FAMILIES. */
-const VEHICLE_DEFS = {
-  kart: { style: 'sit', clip: 'sit_kart', speed: 1.75, name: 'Soapbox Racer', icon: '\u{1F3CE}\uFE0F', verb: 'Drive it!', spread: 1.6 },
-  // `saddle`: mount on the top-band centroid of the frame's REAR half. The
-  // frame's whole top band mixes the SADDLE and the handlebar STEM (both top
-  // out level), so its centroid lands between them — a rider on neither.
-  bike: { style: 'bike', clip: 'bike_pedal', speed: 1.9, name: 'Bike', icon: '\u{1F6B2}', verb: 'Ride the bike!', saddle: true },
-  trike: { style: 'bike', clip: 'bike_pedal', speed: 1.25, name: 'Trike', icon: '\u{1F6B2}', verb: 'Ride the trike!', saddle: true },
-  scooter: { style: 'stand', clip: 'scoot_stand', speed: 1.6, name: 'Scooter', icon: '\u{1F6F4}', verb: 'Scoot!' },
-  // 2.05 was "too fast" (Devon) — and flat anyway. 1.7 with the kick-pulse in
-  // speedScale averages ~1.6 and actually reads like skating. board_stand is
-  // the SIDEWAYS stance (ride_stand stays forward-facing for the scooters).
-  board: { style: 'stand', clip: 'board_stand', speed: 1.7, name: 'Skateboard', icon: '\u{1F6F9}', verb: 'Skate!', spread: 0.9 },
-  wagon: { style: 'sit', clip: 'sit_kart', speed: 1.3, name: 'Wagon', icon: '\u{1F6D2}', verb: 'Ride the wagon!' },
-  pogo: { style: 'pogo', clip: 'pogo', speed: 0.85, name: 'Pogo Stick', icon: '\u{1F998}', verb: 'Boing!', mountY: 0.28 },
-  /**
-   * The purple Jeep — not a layout prop: world.js carves it out of the shell
-   * (_extractShellVehicles) and pushes its parts here. `axleFacing` because it
-   * parks diagonally (square AABB, so the long-axis test is a coin flip);
-   * `mountY` because its bounding-box top is the WINDSCREEN, not the seat.
-   */
-  jeep: { style: 'sit', clip: 'sit_kart', speed: 1.85, name: 'Jeep', icon: '\u{1F699}', verb: 'Drive it!', spread: 1.6, axleFacing: true, mountY: 0.3, seatAtOrigin: true },
-  /**
-   * Pond floaties — carved from the shell like the Jeep, but they ride the
-   * WATER: y pinned to their authored draught, movement fenced by the water
-   * mask, slow paddling with ripples. Devon: "the floaties should be rideable
-   * like the vehicles… get in, paddle around the pond, get out."
-   */
-  floatie: { style: 'sit', clip: 'sit_kart', speed: 0.55, name: 'Floatie', icon: '\u{1F6F6}', verb: 'Paddle!', seatAtOrigin: true, water: true },
-};
 
 /**
  * Group loose layout rows into individual objects by proximity.
  *
- * The layout is a flat list — five skateboards' worth of decks and twenty
- * wheels, all as siblings — so "which wheel belongs to which board" is a
- * clustering problem. Single-link within `spread` metres, which is safe here
- * because the park never parks two of the same vehicle inside a metre of each
- * other (measured: the closest pair of skateboards is 3.9 m apart).
+ * A prop arrives as a FLAT list of sibling parts, so "which part belongs to
+ * which instance" is a clustering problem. Single-link within `spread` metres.
+ * (Written for the vehicle fleet, which is PARKED for now — see
+ * docs/REMOVED_FOR_LATER.md — and still used by the attractions.)
  */
 function clusterParts(list, spread = 1.4) {
   const pos = list.map((p) => new THREE.Vector3().setFromMatrixPosition(p.matrix));
@@ -138,7 +112,6 @@ export class Rides {
     this._buildSwings();
     this._buildSlides();
     this._buildPlayground();
-    this._buildVehicles();
     this._buildAttractions();
     this._buildMonkeyBars();
     this._buildTableSeats();
@@ -394,7 +367,7 @@ export class Rides {
     }
   }
 
-  // ── playground: seesaw, spring riders, hula hoops ─────────────────────────
+  // ── playground: seesaw and spring riders ──────────────────────────────────
 
   _buildPlayground() {
     const props = this.world.animatedProps || [];
@@ -426,33 +399,14 @@ export class Rides {
     }
 
     this.rockers = props.filter((p) => /Playground_Rocker_\d+_Top/.test(p.userData.kind));
+    this.rockers.forEach((r) => { r.userData.saddle = this._saddleOf(r); });
     this.rockers.forEach((r, i) => this.zones.push({
       id: `rocker${i}`, ride: 'rocker', mesh: r, icon: '\u{1F40E}', name: 'Spring Rider',
       prompt: 'Bounce!', pos: [r.position.x, r.position.z], radius: 1.1,
     }));
 
-    // Hula hoops: nothing in the kit, so two code-drawn rings on the lawn.
-    // They LIE on the grass like dropped toys — standing upright with nothing
-    // holding them read as a glitch (Devon: "the hula hoops look weird
-    // standing straight up"). Destined for the shop as a carried item anyway.
-    this.hoops = [];
-    const hoopGeo = new THREE.TorusGeometry(0.42, 0.035, 8, 22);
-    const rack = { x: -5.0, z: -1.2 };
-    [0xf6c344, 0xe85fa2].forEach((color, i) => {
-      const mesh = new THREE.Mesh(hoopGeo, new THREE.MeshStandardMaterial({ color, roughness: 0.7 }));
-      const home = {
-        pos: new THREE.Vector3(rack.x + i * 0.62 - 0.31, 0.045 + i * 0.03, rack.z + i * 0.34),
-        rot: new THREE.Euler(Math.PI / 2 - 0.07 + i * 0.05, 0.6 * i, 0),
-      };
-      mesh.position.copy(home.pos);
-      mesh.rotation.copy(home.rot);
-      this.world.scene.add(mesh);
-      this.hoops.push({ mesh, home });
-    });
-    this.zones.push({
-      id: 'hoops', ride: 'hoop', icon: '⭕', name: 'Hula Hoops',
-      prompt: 'Hula hoop!', pos: [rack.x, rack.z], radius: 1.4,
-    });
+    // (The hula hoops used to be built here — removed with the vehicles, see
+    // docs/REMOVED_FOR_LATER.md. The `hula` clip is still in the actions bin.)
   }
 
   _beginSeesaw(player) {
@@ -642,6 +596,107 @@ export class Rides {
     av.update(dt, this.world.camera);
   }
 
+  /**
+   * WHERE THE SADDLE IS, measured — the one question every ride-on toy asks.
+   *
+   * A saddle is the DIP in a toy's top surface: the low point between the
+   * dragon's head and its tail, between a car's windscreen and its boot,
+   * between a rocket's nose and its fin. So: rasterise the prop's top surface
+   * into 10 cm columns, keep the highest vertex in each, throw away the
+   * columns that only see the base plate, and take the LOWEST of what's left
+   * near the middle. That is the seat, on every one of these props, without a
+   * single hand-typed height.
+   *
+   * (The old answer was the assembly's bounding-box top, which is a dragon's
+   * horns and a car's steering wheel — kids perched on both.)
+   *
+   * @returns {THREE.Vector3|null} the saddle in the prop's LOCAL space, so a
+   *          rocking prop carries its rider exactly.
+   */
+  _saddleOf(root) {
+    const CELL = 0.1;
+    root.updateMatrixWorld(true);
+    const bb = new THREE.Box3().setFromObject(root);
+    const cx = (bb.min.x + bb.max.x) / 2, cz = (bb.min.z + bb.max.z) / 2;
+    const R = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z) / 2;
+    // ignore everything in the bottom 45% — that's the base/spring/plinth, and
+    // a column that only sees it would win the "lowest" test every time
+    const floorY = bb.min.y + (bb.max.y - bb.min.y) * 0.45;
+    const cells = new Map();
+    const v = new THREE.Vector3();
+    root.traverse((o) => {
+      if (!o.isMesh) return;
+      const pos = o.geometry.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+        const k = Math.floor(v.x / CELL) + ',' + Math.floor(v.z / CELL);
+        const e = cells.get(k);
+        if (!e) cells.set(k, { y: v.y, x: v.x, z: v.z, n: 1 });
+        else { e.n++; if (v.y > e.y) { e.y = v.y; e.x = v.x; e.z = v.z; } }
+      }
+    });
+    // You sit ON THE SPINE of a ride-on toy, so the saddle has to be near its
+    // long centre line — otherwise the lowest central column is a wing, a fin
+    // or a running board, and the kid rides along beside the rocket.
+    const alongX = (bb.max.x - bb.min.x) >= (bb.max.z - bb.min.z);
+    let best = null;
+    for (const c of cells.values()) {
+      if (c.n < 4 || c.y < floorY) continue;
+      if (Math.hypot(c.x - cx, c.z - cz) > R * 0.6) continue;   // not the skirt
+      if (Math.abs(alongX ? c.z - cz : c.x - cx) > 0.22) continue;   // on the spine
+      if (!best || c.y < best.y) best = c;
+    }
+    if (!best) return null;
+    return root.worldToLocal(new THREE.Vector3(best.x, best.y, best.z));
+  }
+
+  /**
+   * Park a rider's ORIGIN so their backside lands on a seat at world `seatY`.
+   *
+   * One formula for every seat in the park, taken from the bench — the pose
+   * Devon calls the good one. It sinks the kid 6.5 cm into the seat plane,
+   * and that contact is exactly what reads as SITTING; sitting a rider
+   * tangent to the surface (the old `BUTT_BELOW_PELVIS - SEATED_PELVIS_Y`
+   * form) reads as hovering.
+   */
+  _seatOriginY(seatY) { return seatY + 0.04 - SEATED_PELVIS_Y; }
+
+  /**
+   * Which way a ride-on toy FACES, measured off its own shape.
+   *
+   * The rider used to inherit `group.rotation.y`, which is 0 for every
+   * attraction (their parts carry their own baked matrices), so a kid on the
+   * rocket sat side-saddle facing the park. A dragon, a rocket and a car are
+   * all longer along their travel axis, and their FRONT is the taller end —
+   * the head, the nose cone, the windscreen. A named steering part settles it
+   * outright when there is one.
+   */
+  _frontYawOf(root, cluster) {
+    const steer = (cluster || []).find((q) => /SteeringW|Handlebar/i.test(q.mesh));
+    root.updateMatrixWorld(true);
+    const bb = new THREE.Box3().setFromObject(root);
+    const cx = (bb.min.x + bb.max.x) / 2, cz = (bb.min.z + bb.max.z) / 2;
+    if (steer) {
+      _va.setFromMatrixPosition(steer.matrix);
+      return Math.atan2(_va.x - cx, _va.z - cz);
+    }
+    const alongX = (bb.max.x - bb.min.x) >= (bb.max.z - bb.min.z);
+    let posTop = -Infinity, negTop = -Infinity;
+    const v = new THREE.Vector3();
+    root.traverse((o) => {
+      if (!o.isMesh) return;
+      const pos = o.geometry.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+        const t = alongX ? v.x - cx : v.z - cz;
+        if (t > 0) { if (v.y > posTop) posTop = v.y; }
+        else if (v.y > negTop) negTop = v.y;
+      }
+    });
+    const s = posTop >= negTop ? 1 : -1;
+    return Math.atan2(alongX ? s : 0, alongX ? 0 : s);
+  }
+
   _beginRocker(player, zone) {
     this.active = { kind: 'rocker', mesh: zone.mesh };
     player.playAction('sit_rocker');
@@ -653,43 +708,20 @@ export class Rides {
     const m = this.active.mesh;
     m.userData.push = 1;
     const rock = m.userData.angle || 0;
-    player.pos.set(m.position.x, m.position.y + 0.5 + Math.abs(rock) * 0.12, m.position.z);
+    // ride the measured saddle THROUGH the rock: the offset is in the mesh's
+    // own space, so localToWorld carries the kid with the tilt
+    if (m.userData.saddle) {
+      m.localToWorld(_vb.copy(m.userData.saddle));
+      player.pos.set(_vb.x, this._seatOriginY(_vb.y), _vb.z);
+    } else {
+      player.pos.set(m.position.x, this._seatOriginY(m.position.y + 0.5), m.position.z);
+    }
     player.yaw = player.targetYaw = m.rotation.y;
     player.tilt = rock;
     player.speed = 0; player.vel.y = 0; player.grounded = true;
     if (Math.hypot(intent.move.x, intent.move.y) > 0.25 || intent.jump) this._exitToGround(player);
   }
 
-  _beginHoop(player) {
-    this.active = { kind: 'hoop', t: 0, hoop: this.hoops[0], hips: null };
-    player.playAction('hula', 'twist', null);
-    this.state.presence?.broadcast({ emote: 'hula' });
-    return 'Hips like a helicopter! Move to stop.';
-  }
-
-  _updateHoop(dt, player, intent) {
-    const a = this.active;
-    a.t += dt;
-    const h = a.hoop.mesh;
-    // The hoop rides the REAL pelvis. The hula clip actually orbits the hips
-    // (~6 cm in X and Z), so tracking the Hips bone instead of player.pos is
-    // what makes the hoop look driven BY the kid rather than floating near her.
-    if (!a.hips) player.model.traverse((o) => { if (!a.hips && o.name === 'Hips') a.hips = o; });
-    if (a.hips) a.hips.getWorldPosition(_va); else _va.set(player.pos.x, player.pos.y + 0.62, player.pos.z);
-    h.position.set(
-      _va.x + Math.sin(a.t * 7) * 0.10,
-      _va.y + 0.09,
-      _va.z + Math.cos(a.t * 7) * 0.10,
-    );
-    h.rotation.set(Math.PI / 2 + Math.sin(a.t * 7 + 1.2) * 0.16, 0, Math.cos(a.t * 7) * 0.16);
-    player.speed = 0; player.vel.y = 0; player.grounded = true;
-    if (!player.rig.emote) player.playAction('hula', 'twist', null);   // keep it looping
-    if (Math.hypot(intent.move.x, intent.move.y) > 0.25 || intent.jump) {
-      h.position.copy(a.hoop.home.pos);
-      h.rotation.copy(a.hoop.home.rot);
-      this._exitToGround(player);
-    }
-  }
 
   // ── climbing ──────────────────────────────────────────────────────────────
 
@@ -808,483 +840,6 @@ export class Rides {
     this.active = null;
   }
 
-  // ── vehicles: everything in the park you can get on ───────────────────────
-  //
-  // The soapbox racer proved the pattern and this is every vehicle on it. Each
-  // one's layout parts are diverted out of the static batch (world.js), then
-  // clustered by position into instances and re-parented into ONE rigid group,
-  // so the whole thing moves and steers as a body. stepPlayer keeps running
-  // with a speedScale, which means a rider gets real collision and real ground
-  // instead of a bespoke physics path. Hop off and it parks where you left it.
-  //
-  // Devon: "I want every vehicle to be driven… a skateboard, the bicycles,
-  // everything." Fifteen of them, one implementation.
-
-  _buildVehicles() {
-    this.vehicles = [];
-    const parts = this.world.vehicleParts || [];
-    const byFamily = new Map();
-    for (const p of parts) {
-      if (!byFamily.has(p.family)) byFamily.set(p.family, []);
-      byFamily.get(p.family).push(p);
-    }
-    for (const [family, list] of byFamily) {
-      const def = VEHICLE_DEFS[family];
-      if (!def) continue;
-      for (const cluster of clusterParts(list, def.spread || 1.4)) {
-        const v = this._assembleVehicle(family, def, cluster);
-        if (v) this.vehicles.push(v);
-      }
-    }
-  }
-
-  /** One cluster of layout rows → a rigid group + its ride zone. */
-  _assembleVehicle(family, def, cluster) {
-    // Root = the part whose name has no _Suffix (the frame), else the first.
-    const root = cluster.find((p) => !/_[A-Za-z]+(_[a-z]{1,2})?$/.test(p.mesh.replace(/_\d+$/, '')))
-      || cluster[0];
-    const rootPos = new THREE.Vector3().setFromMatrixPosition(root.matrix);
-    const rootInv = new THREE.Matrix4().makeTranslation(-rootPos.x, -rootPos.y, -rootPos.z);
-    const group = new THREE.Group();
-    group.position.copy(rootPos);
-    const wheels = [];
-    // The part with the biggest FOOTPRINT is the thing you stand or sit on — a
-    // scooter's footboard, a wagon's floor, a bike's saddle rail, a
-    // skateboard's deck. Measured across all seven families, and much better
-    // than the whole assembly's bounding box, whose top is the HANDLEBARS:
-    // that mounted scooter riders 1.63 m up, standing on the bars.
-    let deckTop = -Infinity, deckArea = -Infinity;
-    const bb = new THREE.Box3(), pb = new THREE.Box3();
-    const wheelMeshes = [];
-    const deckCentre = new THREE.Vector3();
-    for (const p of cluster) {
-      const mesh = new THREE.Mesh(p.proto.geometry, p.proto.material);
-      mesh.applyMatrix4(new THREE.Matrix4().multiplyMatrices(rootInv, p.matrix));
-      mesh.castShadow = !!this.world.quality?.shadows;
-      group.add(mesh);
-      mesh.updateMatrixWorld(true);
-      bb.expandByObject(mesh);
-      if (/Wheel/i.test(p.mesh)) wheelMeshes.push(mesh);
-    }
-    this.world.scene.add(group);
-    // SECOND pass, and it has to be second: setFromObject reads matrixWorld,
-    // and inside the build loop the group's own matrixWorld is still stale, so
-    // every part measured against a garbage parent transform. That silently
-    // mounted scooter riders on the handlebars.
-    group.updateMatrixWorld(true);
-    let deckChild = null;
-    for (const c of group.children) {
-      pb.setFromObject(c);
-      const area = (pb.max.x - pb.min.x) * (pb.max.z - pb.min.z);
-      if (area > deckArea) {
-        deckArea = area; deckTop = pb.max.y; deckChild = c;
-        // ...and WHERE it is, not just how high. A bike's saddle sits behind
-        // the frame's origin and a wagon's floor sits ahead of its handle, so
-        // mounting at the group origin put the rider next to the vehicle
-        // rather than on it. Devon: "the character isn't on the seat, and it
-        // doesn't match up with the handlebars… it's like that for literally
-        // everything." Group rotation is still 0 here, so this offset is in
-        // the model's own frame and rotates with it later.
-        pb.getCenter(_va);
-        deckCentre.set(_va.x - group.position.x, 0, _va.z - group.position.z);
-      }
-    }
-
-    /**
-     * A WHEEL spins about its own centre, around its own thin axis.
-     *
-     * It used to be rotated in place about a guessed local X — which is why
-     * Devon saw "the wheels are spinning on the wrong axis, they're not
-     * spinning how bike wheels are supposed to spin." Two things were wrong:
-     * the mesh's origin is the VEHICLE's origin (so it orbited rather than
-     * spun), and the axle was assumed rather than measured. Now each wheel gets
-     * a pivot at its own bbox centre, and the axle is the THINNEST horizontal
-     * axis of the wheel — which is what an axle is.
-     */
-    for (const mesh of wheelMeshes) {
-      pb.setFromObject(mesh);
-      pb.getCenter(_va);
-      const pivot = new THREE.Object3D();
-      pivot.position.copy(_va).sub(group.position);
-      group.remove(mesh);
-      mesh.position.sub(pivot.position);
-      mesh.updateMatrix();
-      // re-bake the offset into the mesh so the pivot really is its centre
-      mesh.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0, 0));
-      pivot.add(mesh);
-      group.add(pivot);
-      const thinX = (pb.max.x - pb.min.x) <= (pb.max.z - pb.min.z);
-      wheels.push({ mesh: pivot, axle: thinX ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1) });
-    }
-    group.updateMatrixWorld(true);
-
-    /**
-     * Which way does this thing FACE?
-     *
-     * The old answer was "+Z rotated by the root part's matrix", i.e. an
-     * assumption about how the artist modelled it — and it was wrong often
-     * enough that Devon reported it across the board: "on a skateboard you're
-     * not standing sideways, you're standing straight ahead", "the position of
-     * the character is wrong… it's like that for literally everything."
-     *
-     * A vehicle is LONGER along the way it travels, so the long horizontal axis
-     * of the assembly is the travel axis. Which END is the front comes from the
-     * steering part (handlebars, steering wheel, tow handle) when there is one.
-     * Both measured, neither assumed.
-     */
-    const bakedQ = new THREE.Quaternion().setFromRotationMatrix(root.matrix);
-    _va.set(0, 0, 1).applyQuaternion(bakedQ);
-    const yaw = Math.atan2(_va.x, _va.z);          // the baked orientation
-    bb.setFromObject(group);
-    const longX = (bb.max.x - bb.min.x) >= (bb.max.z - bb.min.z);
-    _vb.set(longX ? 1 : 0, 0, longX ? 0 : 1);
-    const steer = cluster.find((q) => /Handlebar|SteeringW|_Handle$/i.test(q.mesh));
-    if (steer) {
-      _va.setFromMatrixPosition(steer.matrix).sub(rootPos);
-      if (_vb.dot(_va) < 0) _vb.negate();
-    }
-    /**
-     * axleFacing (the Jeep): a diagonally parked body has a near-square AABB,
-     * so the long-axis test above is a coin flip there. Its wheels carry
-     * front/rear in their NAMES, which is exact: forward = front-axle midpoint
-     * minus rear-axle midpoint. The wheels' spin axles follow for free — the
-     * horizontal perpendicular of a measured forward beats the thinnest-axis
-     * guess, which is equally ambiguous on a diagonal wheel's square AABB.
-     */
-    let axlePerp = null;
-    if (def.axleFacing) {
-      const wfP = cluster.filter((q) => /_Wheel_f[lr]$/i.test(q.mesh));
-      const wrP = cluster.filter((q) => /_Wheel_r[lr]$/i.test(q.mesh));
-      if (wfP.length === 2 && wrP.length === 2) {
-        const midX = (l) => (l[0].matrix.elements[12] + l[1].matrix.elements[12]) / 2;
-        const midZ = (l) => (l[0].matrix.elements[14] + l[1].matrix.elements[14]) / 2;
-        _vb.set(midX(wfP) - midX(wrP), 0, midZ(wfP) - midZ(wrP)).normalize();
-        axlePerp = new THREE.Vector3(_vb.z, 0, -_vb.x);
-        for (const w of wheels) w.axle.copy(axlePerp);
-      }
-    }
-    const fwdYaw = Math.atan2(_vb.x, _vb.z);
-    /**
-     * saddle (bike/trike): the mount is the top band of the frame's REAR half.
-     * The frame's full top band mixes the saddle and the handlebar stem (they
-     * top out level, measured), so its centroid put the rider between them —
-     * Devon: "the character is nowhere near on the seat." _vb still holds the
-     * measured forward here; rear = along < 0.05 m.
-     */
-    if (def.saddle && deckChild) {
-      const mesh = deckChild.isMesh ? deckChild : deckChild.children.find((m) => m.isMesh);
-      if (mesh) {
-        mesh.updateWorldMatrix(true, false);
-        const posA = mesh.geometry.attributes.position;
-        let maxY = -Infinity;
-        for (let i = 0; i < posA.count; i++) {
-          _va.fromBufferAttribute(posA, i).applyMatrix4(mesh.matrixWorld);
-          const along = (_va.x - rootPos.x) * _vb.x + (_va.z - rootPos.z) * _vb.z;
-          if (along < 0.05 && _va.y > maxY) maxY = _va.y;
-        }
-        let sx = 0, sz = 0, n = 0;
-        for (let i = 0; i < posA.count; i++) {
-          _va.fromBufferAttribute(posA, i).applyMatrix4(mesh.matrixWorld);
-          const along = (_va.x - rootPos.x) * _vb.x + (_va.z - rootPos.z) * _vb.z;
-          if (along < 0.05 && _va.y > maxY - 0.08) { sx += _va.x; sz += _va.z; n++; }
-        }
-        if (n > 8) {
-          deckCentre.set(sx / n - rootPos.x, 0, sz / n - rootPos.z);
-          deckTop = maxY;
-        }
-      }
-    }
-    // how far the MODEL's forward sits from the orientation baked into the parts
-    const fwdOffset = fwdYaw - yaw;
-    // Where a rider goes: feet on the deck for a stand-up, pelvis on it for a
-    // sit-down. Read off the assembled body rather than typed in per vehicle.
-    // `mountY` overrides it for the pogo stick, which is a single part: its
-    // widest slab is the whole pole, but you ride the PEGS near the bottom.
-    const deck = def.mountY != null ? def.mountY : deckTop - rootPos.y;
-    /**
-     * The seat offset is stored in the vehicle's NORMALIZED local frame.
-     *
-     * It was stored as the raw world-space offset — but _mountXZ rotates the
-     * stored seat by group.rotation.y, and after _beginVehicle's normalization
-     * that starts at the baked yaw, so a world-frame offset got rotated TWICE.
-     * The miss is 2·|seat|·sin(yaw/2): measured rider-to-saddle bike 0.399,
-     * scooter 0.173/0.364, trike 0.024, kart 0.001 — the formula reproduces
-     * every one of those to the millimetre, which is why the kart sat perfectly
-     * (seat ≈ origin) while Devon watched bike riders float beside the saddle.
-     */
-    /**
-     * seatAtOrigin (the Jeep): its group origin IS the body's export-box
-     * centre (world.js puts it there), which beats the carved mesh's AABB
-     * centre — edge triangles claimed by the wheel boxes skew that 0.29 m
-     * sideways, and the kid rode the rim of the tub instead of the seat.
-     */
-    const v = {
-      family, def, group, wheels, yaw, deck, fwdOffset,
-      baseY: rootPos.y,        // authored rest height — a floatie's draught
-      seat: def.seatAtOrigin ? new THREE.Vector3() : deckCentre.applyAxisAngle(_up, -yaw).clone(),
-      zone: {
-        id: `veh_${family}_${this.vehicles.length}`, ride: 'vehicle',
-        icon: def.icon, name: def.name, prompt: def.verb,
-        pos: [rootPos.x, rootPos.z], radius: 1.5,
-      },
-    };
-    v.zone.vehicle = v;
-    this.zones.push(v.zone);
-    return v;
-  }
-
-  /** Where the rider's origin goes: the vehicle's SEAT, rotated with the body. */
-  _mountXZ(v, out) {
-    return out.copy(v.seat).applyAxisAngle(_up, v.group.rotation.y).add(v.group.position);
-  }
-
-  _mountY(v, groundY) {
-    // 'stand' rides put the feet on the deck; 'sit' rides put the pelvis there.
-    if (v.def.style === 'sit' || v.def.style === 'bike') {
-      return groundY + v.deck + BUTT_BELOW_PELVIS - SEATED_PELVIS_Y;
-    }
-    return groundY + v.deck;
-  }
-
-  _beginVehicle(player, v) {
-    // Strip the parts' baked layout yaw down to a GROUP yaw so steering works.
-    // Full matrix, not just the quaternion: part POSITIONS have to rotate about
-    // the group origin too, or the thing un-assembles on the first turn.
-    if (!v.normalized) {
-      v.normalized = true;
-      const undo = new THREE.Matrix4().makeRotationY(-v.yaw);
-      for (const c of v.group.children) c.applyMatrix4(undo);
-      v.group.rotation.y = v.yaw;
-    }
-    this.active = { kind: 'vehicle', v, hop: 0 };
-    this._mountXZ(v, _vb);
-    const g = this.world.collision.groundAt(_vb.x, _vb.z, v.group.position.y + 0.6);
-    player.pos.set(_vb.x, this._mountY(v, g), _vb.z);
-    // face the way the VEHICLE faces, not the way its parts happened to be baked
-    player.yaw = player.targetYaw = v.group.rotation.y + v.fwdOffset;
-    player.rig.forceLegEmote = true;
-    player.playAction(v.def.clip, null);
-    this.state.presence?.broadcast({ emote: v.def.clip });
-    return `${v.def.verb} \u00b7 WASD \u00b7 Space to hop off`;
-  }
-
-  get driving() { return this.active?.kind === 'vehicle'; }
-  /** stepPlayer asks how much faster this ride is than walking. */
-  get speedScale() {
-    if (this.active?.kind !== 'vehicle') return 1;
-    const a = this.active;
-    // A skateboard's thrust comes in KICKS — surge, glide, surge — driven off
-    // the push cycle _updateVehicle advances. Constant speed read as a
-    // conveyor belt (and "too fast").
-    if (a.v.family === 'board' && !a.grind && !a.air) {
-      const k = Math.max(0, Math.sin(a.pushPhase || 0));
-      return a.v.def.speed * (0.82 + 0.34 * k * k);
-    }
-    return a.v.def.speed;
-  }
-
-  _updateVehicle(dt, player, intent) {
-    const a = this.active, v = a.v;
-    if (a.grind) return this._updateGrind(dt, player, intent);
-    const board = v.family === 'board';
-    const ground = this.world.collision.groundAt(player.pos.x, player.pos.z, player.pos.y + 0.4);
-    // A pogo stick HOPS. Everything else rides the ground.
-    // Place the BODY so its seat lands under the rider, rather than dragging
-    // the rider to the body's origin.
-    _va.copy(v.seat).applyAxisAngle(_up, v.group.rotation.y);
-    if (v.def.style === 'pogo') {
-      a.hop += dt * 7.4;
-      const bounce = Math.abs(Math.sin(a.hop)) * 0.34;
-      v.group.position.set(player.pos.x - _va.x, ground + bounce, player.pos.z - _va.z);
-      player.pos.y = this._mountY(v, ground + bounce);
-      if (Math.sin(a.hop) < 0 && Math.sin(a.hop - dt * 7.4) >= 0 && window.odaSfx) {
-        window.odaSfx.tone(300 + Math.random() * 60, 0.06, 'square', 0.03);
-      }
-    } else if (v.def.water) {
-      // ── a floatie rides the WATER, fenced by the mask ──
-      const wet = this.world.waterAt(player.pos.x, player.pos.z) != null;
-      if (!wet && a.lastWet) { player.pos.x = a.lastWet.x; player.pos.z = a.lastWet.z; }
-      else if (wet) {
-        if (!a.lastWet) a.lastWet = { x: 0, z: 0 };
-        a.lastWet.x = player.pos.x; a.lastWet.z = player.pos.z;
-      }
-      a.bobT = (a.bobT || 0) + dt;
-      const baseY = v.baseY + Math.sin(a.bobT * 2.1) * 0.03;
-      v.group.position.set(player.pos.x - _va.x, baseY, player.pos.z - _va.z);
-      player.pos.y = this._mountY(v, baseY);
-      if (player.speed > 0.25) {
-        a.rippleT = (a.rippleT || 0) - dt;
-        if (a.rippleT <= 0) {
-          a.rippleT = 0.3;
-          this.world.fx.spawn(player.pos.x, this.world.water.y + 0.02, player.pos.z,
-            { from: 0.3, to: 1.2, dur: 0.8, alpha: 0.4 });
-          window.odaSfx && window.odaSfx.tone(220 + Math.random() * 80, 0.06, 'sine', 0.03);
-        }
-      }
-    } else if (board && a.air) {
-      // ── airborne trick: the board sticks to the feet and kickflips ──
-      a.trickT += dt;
-      v.group.position.set(player.pos.x - _va.x, player.pos.y - v.deck, player.pos.z - _va.z);
-      if (a.trickFlip) v.group.rotation.z = Math.min(1, a.trickT / FLIP_T) * Math.PI * 2;
-      if (player.grounded) {
-        // touched down: a rail underfoot becomes a grind, a full rotation pays
-        v.group.rotation.z = 0;
-        const clean = a.trickFlip && a.trickT >= FLIP_T * 0.9;
-        a.air = false;
-        const rail = this._railUnder(player.pos.x, player.pos.z, player.pos.y);
-        if (rail) this._beginGrind(rail, player);
-        else if (clean) {
-          window.odaSfx && window.odaSfx.play('powerup');
-          const now = performance.now();
-          if (!this._trickPayAt || now - this._trickPayAt > 10000) {
-            this._trickPayAt = now;
-            this.state.award?.(2);
-            this.state.toast?.('Kickflip! +2 \u{1F6F9}', 'gold');
-          } else {
-            this.state.toast?.('Kickflip! \u{1F6F9}');
-          }
-        }
-      }
-    } else {
-      v.group.position.set(player.pos.x - _va.x, ground, player.pos.z - _va.z);
-      player.pos.y = this._mountY(v, ground);
-      if (board) {
-        // The push cycle drives BOTH the speed surge (speedScale) and the
-        // baked `board_push` clip's playhead — one system, like the swing
-        // pump: the leg kicks exactly when the board surges. Standing still
-        // drops back to the ride stance.
-        if (player.speed > 0.4) {
-          a.pushPhase = (a.pushPhase || 0) + dt * 5.2;
-          if (a.clipNow !== 'board_push') {
-            a.clipNow = 'board_push';
-            player.playAction('board_push', null);
-            this.state.presence?.broadcast({ emote: 'board_push' });
-          }
-          player.rig.setEmoteTime?.('board_push', ((a.pushPhase / (Math.PI * 2)) % 1) * 1.2);
-        } else if (a.clipNow !== 'board_stand') {
-          a.clipNow = 'board_stand';
-          player.playAction('board_stand', null);
-          this.state.presence?.broadcast({ emote: 'board_stand' });
-        }
-        // rolling down a slope leaves `grounded` false most frames (constant
-        // micro-airtime), so the ollie gets COYOTE TIME off this stamp
-        if (player.grounded) a.lastGroundMs = performance.now();
-      }
-    }
-    // Steer the BODY so its own forward lines up with where the rider is
-    // heading. Without the offset a skateboard travels sideways under a kid who
-    // is facing forwards, which is exactly what Devon saw.
-    const prev = v.group.rotation.y;
-    let dy = ((player.yaw - v.fwdOffset) - prev) % (Math.PI * 2);
-    if (dy > Math.PI) dy -= Math.PI * 2;
-    if (dy < -Math.PI) dy += Math.PI * 2;
-    v.group.rotation.y = prev + dy * Math.min(1, 10 * dt);
-    player.tilt = 0;
-    for (const w of v.wheels) w.mesh.rotateOnAxis(w.axle, player.speed * dt / 0.16);
-    if (player.speed > 0.5 && Math.random() < dt * 6 && window.odaSfx) {
-      window.odaSfx.tone(70 + player.speed * 14 + Math.random() * 18, 0.05, 'square', 0.025);
-    }
-    if ((intent.dismount || intent.jump) && !a.air) {
-      // On a skateboard at speed, Space is an OLLIE, not an exit — Devon wants
-      // tricks. Slow down (or stop) and Space hops off like everywhere else.
-      if (board && player.speed >= 0.6) {
-        // grounded OR just was (riding a slope flickers `grounded` every
-        // frame; a strict check dumped the kid off half the time instead)
-        if (player.grounded || (a.lastGroundMs && performance.now() - a.lastGroundMs < 220)) {
-          a.air = true;
-          a.trickT = 0;
-          a.trickFlip = true;
-          player.vel.y = 4.9;
-          player.grounded = false;
-          window.odaSfx && window.odaSfx.play('whoosh');
-        }
-        return;   // moving fast: Space never means "bail off the board"
-      }
-      player.rig.forceLegEmote = false;
-      player.rig.stopEmote?.();
-      this.state.presence?.broadcast({ emote: '_stop' });
-      player.pos.x += Math.cos(player.yaw) * 0.8;
-      player.pos.z -= Math.sin(player.yaw) * 0.8;
-      player.pos.y = this.world.collision.groundAt(player.pos.x, player.pos.z, player.pos.y + 0.5);
-      this._mountXZ(v, _vb);
-      v.zone.pos = [_vb.x, _vb.z];      // the prompt sits on the seat, not the origin
-      this.active = null;
-    }
-  }
-
-  /** The grind rails, read once off the collision export's own boxes. */
-  _railUnder(x, z, y) {
-    if (!this._rails) {
-      this._rails = this.world.collision.boxes
-        .filter((b) => /SkatePark_Rail_Box/.test(b.name))
-        .map((b) => {
-          const alongX = (b.maxX - b.minX) >= (b.maxZ - b.minZ);
-          return {
-            cx: (b.minX + b.maxX) / 2, cz: (b.minZ + b.maxZ) / 2, top: b.maxY,
-            ax: alongX ? 1 : 0, az: alongX ? 0 : 1,
-            half: (alongX ? b.maxX - b.minX : b.maxZ - b.minZ) / 2,
-            width: (alongX ? b.maxZ - b.minZ : b.maxX - b.minX) / 2,
-          };
-        });
-    }
-    for (const r of this._rails) {
-      const along = (x - r.cx) * r.ax + (z - r.cz) * r.az;
-      const across = (x - r.cx) * r.az - (z - r.cz) * r.ax;
-      if (Math.abs(along) > r.half + 0.1 || Math.abs(across) > r.width + 0.2) continue;
-      if (Math.abs(y - r.top) > 0.45) continue;
-      return r;
-    }
-    return null;
-  }
-
-  _beginGrind(rail, player) {
-    const a = this.active;
-    const dir = Math.sign(Math.sin(player.yaw) * rail.ax + Math.cos(player.yaw) * rail.az) || 1;
-    a.grind = {
-      rail, dir,
-      along: (player.pos.x - rail.cx) * rail.ax + (player.pos.z - rail.cz) * rail.az,
-    };
-    this.state.toast?.('Grind! \u{1F6F9}');
-    window.odaSfx && window.odaSfx.tone(2200, 0.1, 'square', 0.03);
-  }
-
-  /**
-   * Grinding: the board rides the rail's own line. Devon: the skateboard needs
-   * "collision with the grind rails" — the rails ARE solid (you can ollie onto
-   * them); this is what happens when you land there. Slide to the end and drop
-   * off, or Space pops off with a fresh flip.
-   */
-  _updateGrind(dt, player, intent) {
-    const a = this.active, v = a.v, g = a.grind, r = g.rail;
-    g.along += g.dir * GRIND_SPEED * dt;
-    const offEnd = Math.abs(g.along) > r.half + 0.15;
-    player.pos.x = r.cx + r.ax * g.along;
-    player.pos.z = r.cz + r.az * g.along;
-    player.pos.y = r.top + v.deck;             // board on the rail, feet on the board
-    player.yaw = player.targetYaw = Math.atan2(r.ax * g.dir, r.az * g.dir);
-    player.speed = GRIND_SPEED;
-    player.vel.y = 0; player.grounded = true; player.tilt = 0;
-    _va.copy(v.seat).applyAxisAngle(_up, v.group.rotation.y);
-    v.group.position.set(player.pos.x - _va.x, r.top, player.pos.z - _va.z);
-    let dy = ((player.yaw - v.fwdOffset) - v.group.rotation.y) % (Math.PI * 2);
-    if (dy > Math.PI) dy -= Math.PI * 2;
-    if (dy < -Math.PI) dy += Math.PI * 2;
-    v.group.rotation.y += dy * Math.min(1, 14 * dt);
-    // metal rasp while it slides
-    if (Math.random() < dt * 10 && window.odaSfx) {
-      window.odaSfx.tone(1800 + Math.random() * 500, 0.03, 'square', 0.018);
-    }
-    if (intent.dismount || intent.jump || offEnd) {
-      a.grind = null;
-      a.air = true;
-      a.trickT = offEnd ? FLIP_T : 0;          // rolling off the end doesn't re-flip
-      a.trickFlip = !offEnd;                   // popping off with Space does
-      player.vel.y = offEnd ? 1.6 : 3.8;
-      player.grounded = false;
-      if (!offEnd) window.odaSfx && window.odaSfx.play('whoosh');
-    }
-  }
-
   // ── spinners and coin rides ───────────────────────────────────────────────
   //
   // Devon: "there's a thing behind the fountain that has like four tires and
@@ -1369,6 +924,11 @@ export class Rides {
         }
         const item = {
           group, spin: 0, rate: 0, t: Math.random() * 6,
+          // a coin ride is SAT ON: the saddle is the dip in its own top
+          // surface. (Spinners use the seat RING below instead — you sit out
+          // on a tyre, not on the hub.)
+          saddle: family === 'coinride' ? this._saddleOf(group) : null,
+          faceYaw: family === 'coinride' ? this._frontYawOf(group, cluster) : 0,
           deck: seatY, seatR: Math.max(0.28, seatR),
           // Sitting far out (the tyres) you face OUTWARD, legs dangling over
           // the edge, hands on the tyre beside you — facing the hub from out
@@ -1428,7 +988,7 @@ export class Rides {
     const g = this.world.collision.groundAt(it.group.position.x, it.group.position.z, it.group.position.y + 0.6);
     player.pos.set(
       it.group.position.x + Math.sin(it.spin) * r,
-      g + it.deck + BUTT_BELOW_PELVIS - SEATED_PELVIS_Y,
+      this._seatOriginY(g + it.deck),
       it.group.position.z + Math.cos(it.spin) * r);
     player.yaw = player.targetYaw = it.spin + (it.faceOut ? 0 : Math.PI);
     player.speed = 0; player.vel.y = 0; player.grounded = true; player.tilt = 0;
@@ -1458,9 +1018,17 @@ export class Rides {
     a.t += dt;
     const rock = Math.sin(a.t * 3.1) * 0.30, bob = Math.sin(a.t * 6.2) * 0.05;
     it.group.rotation.x = rock * 0.5;
-    const g = this.world.collision.groundAt(it.group.position.x, it.group.position.z, it.group.position.y + 0.6);
-    player.pos.set(it.group.position.x, g + it.deck + bob + BUTT_BELOW_PELVIS - SEATED_PELVIS_Y, it.group.position.z);
-    player.yaw = player.targetYaw = it.group.rotation.y;
+    // sit on the measured SADDLE, carried through the rock by localToWorld —
+    // the old mount was the assembly's bbox top at the group's origin, i.e.
+    // the dragon's horns / the car's steering wheel
+    if (it.saddle) {
+      it.group.localToWorld(_vb.copy(it.saddle));
+      player.pos.set(_vb.x, this._seatOriginY(_vb.y) + bob, _vb.z);
+    } else {
+      const g = this.world.collision.groundAt(it.group.position.x, it.group.position.z, it.group.position.y + 0.6);
+      player.pos.set(it.group.position.x, this._seatOriginY(g + it.deck) + bob, it.group.position.z);
+    }
+    player.yaw = player.targetYaw = it.faceYaw + it.group.rotation.y;
     player.tilt = rock * 0.5;
     player.speed = 0; player.vel.y = 0; player.grounded = true;
     if (intent.jump || Math.hypot(intent.move.x, intent.move.y) > 0.25) {
@@ -1611,7 +1179,7 @@ export class Rides {
   _beginTableSeat(player, zone) {
     const t = zone.spot;
     this.active = { kind: 'tableseat', t };
-    player.pos.set(t.x, t.y + BUTT_BELOW_PELVIS - SEATED_PELVIS_Y, t.z);
+    player.pos.set(t.x, this._seatOriginY(t.y), t.z);
     player.yaw = player.targetYaw = t.yaw;
     player.speed = 0; player.vel.y = 0; player.grounded = true; player.tilt = 0;
     player.playAction('sit_table');
@@ -1621,7 +1189,7 @@ export class Rides {
 
   _updateTableSeat(dt, player, intent) {
     const t = this.active.t;
-    player.pos.set(t.x, t.y + BUTT_BELOW_PELVIS - SEATED_PELVIS_Y, t.z);
+    player.pos.set(t.x, this._seatOriginY(t.y), t.z);
     player.yaw = player.targetYaw = t.yaw;
     player.speed = 0; player.vel.y = 0; player.grounded = true;
     if (Math.hypot(intent.move.x, intent.move.y) > 0.25 || intent.jump) {
@@ -1647,8 +1215,6 @@ export class Rides {
       case 'slide': return this._beginSlide(player, zone);
       case 'seesaw': return this._beginSeesaw(player);
       case 'rocker': return this._beginRocker(player, zone);
-      case 'hoop': return this._beginHoop(player);
-      case 'vehicle': return this._beginVehicle(player, zone.vehicle);
       case 'spinner': return this._beginSpinner(player, zone.item);
       case 'coinride': return this._beginCoinRide(player, zone.item);
       case 'monkey': return this._beginMonkey(player, zone);
@@ -1708,8 +1274,6 @@ export class Rides {
       case 'slide': this._updateSlide(dt, player); break;
       case 'seesaw': this._updateSeesaw(dt, player, intent); break;
       case 'rocker': this._updateRocker(dt, player, intent); break;
-      case 'hoop': this._updateHoop(dt, player, intent); break;
-      case 'vehicle': this._updateVehicle(dt, player, intent); break;
       case 'spinner': this._updateSpinner(dt, player, intent); break;
       case 'coinride': this._updateCoinRide(dt, player, intent); break;
       case 'monkey': this._updateMonkey(dt, player); break;

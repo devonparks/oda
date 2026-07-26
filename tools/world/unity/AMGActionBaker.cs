@@ -528,9 +528,13 @@ public static class AMGActionBaker
                     p.thighR = new Vector3(0.090f, -0.300f, 0.950f).normalized;
                     p.shinL = new Vector3(-0.010f, -0.975f, -0.220f).normalized;
                     p.shinR = new Vector3(0.010f, -0.975f, -0.220f).normalized;
-                    // hands resting on the tabletop, a little apart
-                    p.handL = new Vector3(-0.175f, 0.760f, 0.330f);
-                    p.handR = new Vector3(0.175f, 0.760f, 0.330f);
+                    // Hands resting ON the tabletop — measured, not guessed:
+                    // the picnic table's top sits 0.344 m above its seat plank,
+                    // and a seated rider's origin is (seat + 0.04 − 0.2827), so
+                    // the top lands at local y 0.60. The old 0.76 hovered them
+                    // 15 cm above the wood.
+                    p.handL = new Vector3(-0.175f, 0.600f, 0.330f);
+                    p.handR = new Vector3(0.175f, 0.600f, 0.330f);
                     p.poleL = new Vector3(-0.88f, -0.42f, -0.22f);
                     p.poleR = new Vector3(0.88f, -0.42f, -0.22f);
                     break;

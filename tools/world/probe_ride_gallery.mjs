@@ -15,8 +15,17 @@ fs.mkdirSync(OUT, { recursive: true });
 
 const { browser, page } = await bootWorld({ headless: true, log: false });
 
+// A clean stage: the HUD (hotbar, toasts, zone prompt) covers the bottom of
+// the frame, which is exactly where a seated kid's lap and seat are, and the
+// floating zone signs draw THROUGH scenery. Both off for the audit.
+await page.evaluate(() => {
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('toastRail').style.display = 'none';
+  for (const g of window.__world.world.zoneMarkers) g.visible = false;
+});
+
 /** Frame the rider: camera at yawOff from their facing, close in. */
-async function frame(yawOff = 2.45, dist = 3.0, pitch = 0.5) {
+async function frame(yawOff = 2.45, dist = 2.6, pitch = 0.16) {
   await page.evaluate((yo, d, p) => {
     const w = window.__world.world, player = window.__world.state.player;
     w.camYaw = player.yaw + yo;
@@ -28,6 +37,16 @@ async function frame(yawOff = 2.45, dist = 3.0, pitch = 0.5) {
 async function shot(name) {
   await page.screenshot({ path: `${OUT}/${name}.png` });
   console.log('shot', name);
+}
+/** Hide the static park (shell + merged props) — the gazebo roof and railing
+ *  block every camera angle onto the coin rides inside it. The rides
+ *  themselves are their own groups, so they stay. */
+async function setScenery(on) {
+  await page.evaluate((vis) => {
+    const w = window.__world.world;
+    w.shell.visible = vis;
+    if (w.propBatch) w.propBatch.visible = vis;
+  }, on);
 }
 async function clearRide() {
   await page.evaluate(() => {
@@ -41,39 +60,6 @@ async function clearRide() {
   await sleep(150);
 }
 
-// ── vehicles (one per family) ───────────────────────────────────────────────
-const fams = await page.evaluate(() => [...new Set(window.__world.state.rides.vehicles.map((v) => v.family))]);
-for (const fam of fams) {
-  await page.evaluate(async (f) => {
-    const S = window.__world.state, player = S.player, rides = S.rides;
-    const v = rides.vehicles.find((x) => x.family === f);
-    player.pos.set(v.group.position.x + 1, v.group.position.y + 0.5, v.group.position.z + 1);
-    player.vel.y = 0;
-    rides.begin(v.zone, player);
-  }, fam);
-  await sleep(500);
-  await frame(2.45, fam === 'jeep' ? 3.6 : 2.8);
-  await shot('veh_' + fam);
-  // a second angle for the board (the stance is the hot one)
-  if (fam === 'board') { await frame(1.57, 2.6); await shot('veh_board_side'); }
-  await clearRide();
-}
-
-// board MOVING (push cycle)
-await page.evaluate(async () => {
-  const S = window.__world.state, player = S.player, rides = S.rides;
-  const v = rides.vehicles.find((x) => x.family === 'board');
-  player.pos.set(v.group.position.x + 1, 1, v.group.position.z + 1);
-  player.vel.y = 0;
-  rides.begin(v.zone, player);
-  document.body.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW', bubbles: true }));
-});
-await sleep(1100);
-await frame(2.3, 2.9);
-await shot('veh_board_pushing');
-await page.evaluate(() => document.body.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyW', bubbles: true })));
-await clearRide();
-
 // ── spinners + coin rides ───────────────────────────────────────────────────
 const nSpin = await page.evaluate(() => window.__world.state.rides.spinners.length);
 for (let i = 0; i < nSpin; i++) {
@@ -85,21 +71,43 @@ for (let i = 0; i < nSpin; i++) {
     rides.begin(it.zone, player);
   }, i);
   await sleep(500);
-  await frame(2.45, 3.0);
+  await frame(0.5, 3.2, 0.24);
   await shot('spinner_' + i);
   await clearRide();
 }
-await page.evaluate(async () => {
-  const S = window.__world.state, player = S.player, rides = S.rides;
-  const it = rides.coinRides[0];
-  player.pos.set(it.group.position.x + 1, it.group.position.y + 0.5, it.group.position.z + 1);
-  player.vel.y = 0;
-  rides.begin(it.zone, player);
-});
-await sleep(700);
-await frame(-2.2, 3.4, 0.4);
-await shot('coinride');
-await clearRide();
+const nCoin = await page.evaluate(() => window.__world.state.rides.coinRides.length);
+for (let i = 0; i < nCoin; i++) {
+  await page.evaluate(async (k) => {
+    const S = window.__world.state, player = S.player, rides = S.rides;
+    const it = rides.coinRides[k];
+    player.pos.set(it.group.position.x + 1, it.group.position.y + 0.5, it.group.position.z + 1);
+    player.vel.y = 0;
+    rides.begin(it.zone, player);
+  }, i);
+  await sleep(800);
+  await setScenery(false);
+  await frame(2.45, 2.6, 0.26);
+  await shot('coinride_' + i);
+  await frame(0.45, 2.6, 0.26);
+  await shot('coinride_' + i + 'b');
+  await setScenery(true);
+  await clearRide();
+}
+// spring riders
+const nRock = await page.evaluate(() => window.__world.state.rides.rockers.length);
+for (let i = 0; i < nRock; i++) {
+  await page.evaluate(async (k) => {
+    const S = window.__world.state, player = S.player, rides = S.rides;
+    const z = rides.zones.filter((zz) => zz.ride === 'rocker')[k];
+    player.pos.set(z.pos[0], 1, z.pos[1]);
+    player.vel.y = 0;
+    rides.begin(z, player);
+  }, i);
+  await sleep(700);
+  await frame(0.45, 2.1, 0.28);
+  await shot('rocker_' + i);
+  await clearRide();
+}
 
 // ── seesaw (solo: my end must be DOWN) ──────────────────────────────────────
 await page.evaluate(async () => {
@@ -110,7 +118,7 @@ await page.evaluate(async () => {
   rides.begin(rides.zones.find((z) => z.id === 'seesaw'), player);
 });
 await sleep(1500);
-await frame(2.0, 3.4);
+await frame(0.5, 3.0, 0.20);
 await shot('seesaw_solo');
 await clearRide();
 
@@ -123,7 +131,7 @@ await page.evaluate(async () => {
   rides.begin(z, player);
 });
 await sleep(900);
-await frame(2.45, 2.4, 0.12);
+await frame(0.4, 2.4, 0.14);
 await shot('swing');
 await frame(1.57, 2.2, 0.05);
 await shot('swing_side');
@@ -137,7 +145,7 @@ await page.evaluate(async () => {
   rides._beginSlide(player, { data: d });
 });
 await sleep(500);
-await frame(2.2, 3.2);
+await frame(2.2, 3.2, 0.20);
 await shot('slide_mid');
 await clearRide();
 
@@ -163,8 +171,10 @@ await page.evaluate(async () => {
   rides.begin(z, player);
 });
 await sleep(600);
-await frame(2.45, 2.6);
+await frame(0.35, 2.4, 0.28);
 await shot('table_seat');
+await frame(1.8, 2.4, 0.28);
+await shot('table_seat_b');
 await clearRide();
 
 await page.evaluate(() => {
@@ -175,7 +185,7 @@ await page.evaluate(() => {
   document.body.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE', bubbles: true }));
 });
 await sleep(700);
-await frame(2.45, 2.4);
+await frame(0.35, 2.4, 0.28);
 await shot('bench_sit');
 await page.evaluate(() => {
   document.body.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW', bubbles: true }));
@@ -228,18 +238,50 @@ await frame(2.45, 3.2, 0.0);
 await shot('zip_mid');
 await clearRide();
 
-// ── hula hoop in use ────────────────────────────────────────────────────────
-await page.evaluate(async () => {
-  const S = window.__world.state, player = S.player, rides = S.rides;
-  const z = rides.zones.find((zz) => zz.ride === 'hoop');
-  player.pos.set(z.pos[0], 0.5, z.pos[1]);
-  player.vel.y = 0;
-  rides.begin(z, player);
+// ── numbers to pair with the pictures ──────────────────────────────────────
+const nums = await page.evaluate(async () => {
+  const S = window.__world.state, T = window.__world.THREE, player = S.player, rides = S.rides;
+  const sleep2 = (ms) => new Promise((r) => setTimeout(r, ms));
+  const out = [];
+  const buttY = () => player.pos.y + 0.2827 - 0.105;   // SEATED_PELVIS_Y - BUTT_BELOW
+  for (let i = 0; i < rides.coinRides.length; i++) {
+    const it = rides.coinRides[i];
+    player.pos.set(it.group.position.x + 1, it.group.position.y + 0.5, it.group.position.z + 1);
+    player.vel.y = 0;
+    rides.begin(it.zone, player);
+    await sleep2(300);
+    const w = it.saddle ? it.group.localToWorld(it.saddle.clone()) : null;
+    out.push({ ride: 'coin' + i, saddleY: w ? +w.y.toFixed(3) : null,
+      buttY: +buttY().toFixed(3), sink: w ? +(w.y - buttY()).toFixed(3) : null,
+      offXZ: w ? +Math.hypot(player.pos.x - w.x, player.pos.z - w.z).toFixed(3) : null });
+    rides.active = null; player.rig.forceLegEmote = false; player.rig.stopEmote && player.rig.stopEmote();
+    await sleep2(80);
+  }
+  const rz = rides.zones.filter((z) => z.ride === 'rocker');
+  for (let i = 0; i < rz.length; i++) {
+    player.pos.set(rz[i].pos[0], 1, rz[i].pos[1]);
+    player.vel.y = 0;
+    rides.begin(rz[i], player);
+    await sleep2(300);
+    const m = rz[i].mesh;
+    const w = m.userData.saddle ? m.localToWorld(m.userData.saddle.clone()) : null;
+    out.push({ ride: 'rocker' + i, saddleY: w ? +w.y.toFixed(3) : null,
+      buttY: +buttY().toFixed(3), sink: w ? +(w.y - buttY()).toFixed(3) : null,
+      offXZ: w ? +Math.hypot(player.pos.x - w.x, player.pos.z - w.z).toFixed(3) : null });
+    rides.active = null; player.rig.stopEmote && player.rig.stopEmote();
+    await sleep2(80);
+  }
+  const tz = rides.zones.find((z) => z.ride === 'tableseat');
+  player.pos.set(tz.pos[0], 1, tz.pos[1]);
+  rides.begin(tz, player);
+  await sleep2(300);
+  out.push({ ride: 'table', saddleY: +tz.spot.y.toFixed(3), buttY: +buttY().toFixed(3),
+    sink: +(tz.spot.y - buttY()).toFixed(3), offXZ: 0 });
+  rides.active = null; player.rig.stopEmote && player.rig.stopEmote();
+  return out;
 });
-await sleep(900);
-await frame(2.45, 2.6);
-await shot('hula');
-await clearRide();
+console.log('seat numbers (sink = seat - butt; the bench standard is 0.065):');
+for (const n of nums) console.log(' ', JSON.stringify(n));
 
 console.log('gallery complete');
 await browser.close();

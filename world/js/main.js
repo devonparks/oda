@@ -450,14 +450,7 @@ function loop() {
   if (state.seated) {
     if (Math.hypot(intent.move.x, intent.move.y) > 0.25 || intent.jump || state.input.moveTarget) standUp();
   }
-  // Driving the kart: stepPlayer still runs (real collision, real ground) but
-  // faster; the kart mesh chases the player in rides.update below.
-  if (state.rides?.driving) {
-    // per-vehicle now: a skateboard really is quicker than a trike
-    intent.run = true; intent.speedScale = state.rides.speedScale;
-    intent.dismount = intent.jump; intent.jump = false;   // Space exits, not hops
-  }
-  if (!state.paused && !state.seated && (!state.rides?.busy || state.rides?.driving)) {
+  if (!state.paused && !state.seated && !state.rides?.busy) {
     intent.target = state.input.moveTarget;
     intent.clearTarget = () => { state.input.moveTarget = null; };
     if (intent.jump && player.grounded) sfx('whoosh');
@@ -988,13 +981,6 @@ function useHeld() {
       state.fishing?.cast(p);
       return true;
     }
-    case 'hula': {
-      const z = state.rides?.zones.find((r) => r.ride === 'hoop');
-      if (!z) return false;
-      const line = state.rides.begin(z, p);
-      if (line) toast(line);
-      return true;
-    }
     case 'ball': {
       const ok = state.world?.dynamics?.throwBall?.(p);
       toast(ok ? 'Go get it!' : 'Nothing to throw right now.');
@@ -1017,11 +1003,7 @@ const PICKUPS = [
     at: () => { const w = state.world?.water; return w && [w.x, w.z]; },
     msg: 'You found a fishing rod! \u{1F3A3} Click at the water to cast.',
   },
-  {
-    id: 'hoop', r: 3.0,
-    at: () => { const z = state.rides?.zones.find((r) => r.ride === 'hoop'); return z && z.pos; },
-    msg: 'You picked up a hula hoop! \u2B55 Click to spin it.',
-  },
+  // (the hula hoop pickup lived here \u2014 removed, see docs/REMOVED_FOR_LATER.md)
   {
     id: 'ball', r: 6.0,
     at: () => [0, -2],
@@ -1060,9 +1042,6 @@ const HELD_VISUALS = {
   ball: () => new THREE.Mesh(
     new THREE.SphereGeometry(0.11, 12, 10),
     new THREE.MeshStandardMaterial({ color: 0xf4f4f4, roughness: 0.75 })),
-  hoop: () => new THREE.Mesh(
-    new THREE.TorusGeometry(0.26, 0.026, 8, 20),
-    new THREE.MeshStandardMaterial({ color: 0xf6c344, roughness: 0.7 })),
 };
 let _heldMesh = null, _heldId = null, _handBone = null, _handOwner = null;
 const _hv = new THREE.Vector3();
@@ -1091,13 +1070,7 @@ function updateHeldVisual(player) {
   else _hv.set(player.pos.x, player.pos.y + 0.9, player.pos.z);
 
   const fx = Math.sin(player.yaw), fz = Math.cos(player.yaw);
-  if (_heldId === 'hoop') {
-    // carried flat against the side, the way a kid actually carries a hoop
-    _heldMesh.position.set(_hv.x + fx * 0.06, _hv.y - 0.06, _hv.z + fz * 0.06);
-    _heldMesh.rotation.set(0.35, player.yaw, 1.25);
-  } else {
-    _heldMesh.position.set(_hv.x + fx * 0.08, _hv.y - 0.02, _hv.z + fz * 0.08);
-  }
+  _heldMesh.position.set(_hv.x + fx * 0.08, _hv.y - 0.02, _hv.z + fz * 0.08);
 }
 
 /** Non-game things to do. Small, cheap and worth walking to. */

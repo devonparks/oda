@@ -94,11 +94,11 @@ const COLLISION_RULES = [
   [/_Top$|Rocker_Top|Canopy|Awning|Umbrella|Playground_Cover|Playground_Roof|Track_Ride|Kite/i, 'none'],
   [/Prop_Tent_/i, 'none'],                               // derived; see SHELL_STRUCTURES note
   [/Plush|Toy|Stick|Pogo|Bike|Trike|Pram|Jumping|Soapbox|Ball/i, 'none'], // kid clutter
-  // The purple Jeep: carved out of the shell and DRIVEN (rides.js). Its six
-  // export boxes (body/steering/wheels) would be phantom walls once it moves.
-  [/SM_Veh_4x4/i, 'none'],
-  // The pond floaties: carved out of the shell and PADDLED (rides.js). As
-  // solids they were waist-high walls floating in the swimming water.
+  // The purple Jeep is a parked CAR again (the drivable version is removed —
+  // docs/REMOVED_FOR_LATER.md), so its export boxes are honest solids: you
+  // walk around it, like every other car in the world.
+  // The pond floaties stay non-solid: they are inflatable toys sitting on the
+  // water where kids wade, and a solid one is a waist-high wall in the pond.
   [/Pool_Float/i, 'none'],
   // Slides: the AABB wraps the whole diagonal chute, so as a solid it's an
   // invisible lid you land ON and a wall you bounce OFF. Riding is scripted

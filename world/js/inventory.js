@@ -27,10 +27,9 @@ export const ITEMS = {
     name: 'Fishing Rod', icon: '🎣', stack: 1, use: 'fish',
     hint: 'Stand by the water and click to cast',
   },
-  hoop: {
-    name: 'Hula Hoop', icon: '⭕', stack: 1, use: 'hula',
-    hint: 'Click to spin it round your hips',
-  },
+  // (the Hula Hoop item lived here — removed with the hoops themselves, see
+  // docs/REMOVED_FOR_LATER.md. _load() drops unknown ids, so a hoop saved in
+  // a kid's localStorage from the old build disappears cleanly.)
   ball: {
     name: 'Playground Ball', icon: '⚽', stack: 1, use: 'ball',
     hint: 'Click to throw it — then go kick it',

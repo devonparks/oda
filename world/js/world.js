@@ -45,15 +45,19 @@ export const QUALITY = {
  * (a scooter's parts are `SM_Veh_Scooter_01_Wheel_Front`, which must not fall
  * through to a looser rule).
  */
-const VEHICLE_FAMILIES = [
-  { id: 'kart', re: /^SM_Veh_Soapbox_Racer_03/, style: 'sit', clip: 'sit_kart', speed: 1.75, name: 'Soapbox Racer', icon: '\u{1F3CE}\uFE0F', verb: 'Drive it!' },
-  { id: 'bike', re: /^SM_Veh_Bike_/, style: 'bike', clip: 'bike_pedal', speed: 1.9, name: 'Bike', icon: '\u{1F6B2}', verb: 'Ride the bike!' },
-  { id: 'trike', re: /^SM_Veh_Trike_/, style: 'bike', clip: 'bike_pedal', speed: 1.25, name: 'Trike', icon: '\u{1F6B2}', verb: 'Ride the trike!' },
-  { id: 'scooter', re: /^SM_Veh_Scooter_/, style: 'stand', clip: 'scoot_stand', speed: 1.6, name: 'Scooter', icon: '\u{1F6F4}', verb: 'Scoot!' },
-  { id: 'board', re: /^SM_Prop_Skateboard_/, style: 'stand', clip: 'board_stand', speed: 1.7, name: 'Skateboard', icon: '\u{1F6F9}', verb: 'Skate!' },
-  { id: 'wagon', re: /^SM_Prop_Red_Wagon_/, style: 'sit', clip: 'sit_kart', speed: 1.3, name: 'Wagon', icon: '\u{1F6D2}', verb: 'Ride the wagon!' },
-  { id: 'pogo', re: /^SM_Veh_Pogo_Stick/, style: 'pogo', clip: 'pogo', speed: 0.85, name: 'Pogo Stick', icon: '\u{1F998}', verb: 'Boing!' },
-];
+/**
+ * EMPTY ON PURPOSE (2026-07-26). Every family that used to live here \u2014 kart,
+ * bike, trike, scooter, skateboard, wagon, pogo \u2014 is parked. Devon: "get rid
+ * of all the vehicles\u2026 let's just focus on making the map traversable and all
+ * the props working." With the table empty, the parts fall through to the
+ * merged static batch and the toys simply stand in the park as scenery, which
+ * is what they were before any of this.
+ *
+ * Restoring them is: put the rows back, restore the rides.js vehicle block
+ * (see docs/REMOVED_FOR_LATER.md for the commit), and re-add the 'none'
+ * collision rules. The baked clips are all still in the actions bin.
+ */
+const VEHICLE_FAMILIES = [];
 
 /**
  * Things that go round or rock where they stand. Devon named both spinners:
@@ -308,14 +312,15 @@ export class World {
       minZ: Math.min(...zs) - 3, maxZ: Math.max(...zs) + 3,
     };
 
-    // ---- the purple Jeep: baked into the shell, carved back out ----
-    // Must run before BOTH bakes below — they render the shell, and the Jeep
-    // has to be out of it by then (its roof was becoming terrain).
+    // ---- movable things baked into the shell, carved back out ----
+    // Must run before BOTH bakes below — they render the shell, and anything
+    // that is going to MOVE has to be out of it by then (a carved roof would
+    // otherwise still be baked into the ground heightfield as terrain).
     let shellMesh = null;
     this.shell.traverse((o) => { if (o.isMesh && !shellMesh) shellMesh = o; });
     if (shellMesh) {
       shellMesh.updateWorldMatrix(true, false);
-      this._extractShellVehicles(shellMesh, collision);
+      this._extractShellAttractions(shellMesh, collision);
     }
 
     // ---- water ----
@@ -682,86 +687,20 @@ export class World {
   }
 
   /**
-   * Vehicles BAKED INTO THE SHELL, carved back out and made drivable.
+   * Attractions BAKED INTO THE SHELL, carved back out so they can move.
    *
-   * The purple Jeep (SM_Veh_4x4, by the skate park) is in the collision
-   * export but NOT in the props layout — its geometry shipped inside the
-   * merged park shell, which is why the vehicle pass never saw it. Devon:
-   * "the purple car next to the skate park, you can't drive that one."
+   * The tyre carousel behind the fountain ships as a spinning BASE prop with
+   * its pole and its whole arms-and-hanging-tyres crown frozen into the merged
+   * park shell — so the base turned invisibly under a static structure and a
+   * rider looked like they were orbiting a bare mast (Devon: "it is activating
+   * like a stripper pole… they are supposed to be on the TIRE"). Carving the
+   * crown out and handing it to the attraction pipeline makes the whole thing
+   * one spinning object.
    *
-   * Same recipe as the derive-from-shell structures, pointed the other way:
-   * assign each shell triangle to the most specific part box it sits in
-   * (steering wheel and wheels first, body last), pull those triangles out
-   * into per-part geometries, degenerate them in the shell so the park
-   * doesn't render a ghost, and hand rides.js the same {proto, matrix, mesh}
-   * entries a layout vehicle would produce.
-   *
-   * Facing can't come from the assembly's long axis here — a diagonally
-   * parked body has a near-square AABB, so that test is a coin flip. It
-   * comes from the wheels' own names instead: forward = front-axle midpoint
-   * minus rear-axle midpoint. rides.js applies the same rule (def.axleFacing).
+   * (This method also used to carve the purple Jeep and the pond floaties into
+   * drivable vehicles. Both are removed — docs/REMOVED_FOR_LATER.md.)
    */
-  _extractShellVehicles(shellMesh, collision) {
-    // ── the Jeep: six part boxes, facing from the named axles ──
-    const boxes = collision.filter((b) => /^SM_Veh_4x4/.test(b.n || ''));
-    const body = boxes.find((b) => b.n === 'SM_Veh_4x4');
-    const wf = boxes.filter((b) => /_Wheel_f[lr]$/.test(b.n));
-    const wr = boxes.filter((b) => /_Wheel_r[lr]$/.test(b.n));
-    if (body && wf.length === 2 && wr.length === 2) {
-      const t0 = performance.now();
-      const mid = (arr, i) => (arr[0].c[i] + arr[1].c[i]) / 2;
-      const yaw = Math.atan2(mid(wf, 0) - mid(wr, 0), mid(wf, 2) - mid(wr, 2));
-      // the part origins sit at GROUND level under the body (a layout prop's
-      // origin does too — rides.js snaps group.position.y to the ground while
-      // driving, so a mid-air origin would sink the body by its own height)
-      const groundY = Math.min(...boxes.map((b) => b.c[1] - b.e[1]));
-      // smallest boxes claim a contested triangle first; the body takes the
-      // rest, including union-box straddlers (tyre arch ↔ wheel)
-      const parts = boxes.filter((b) => b !== body)
-        .sort((a, b2) => (a.e[0] * a.e[1] * a.e[2]) - (b2.e[0] * b2.e[1] * b2.e[2]));
-      parts.push(body);
-      const taken = this._carveShellTriangles(shellMesh, parts, body);
-      let total = 0, nParts = 0;
-      for (const bx of parts) {
-        const flat = taken.get(bx);
-        if (!flat || !flat.length) continue;
-        const origin = bx === body
-          ? new THREE.Vector3(bx.c[0], groundY, bx.c[2])
-          : new THREE.Vector3(bx.c[0], bx.c[1], bx.c[2]);
-        this.vehicleParts.push({
-          family: 'jeep',
-          proto: { geometry: buildCarvedGeometry(flat, origin, yaw), material: parkMaterial(null) },
-          matrix: new THREE.Matrix4().compose(origin,
-            new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw),
-            new THREE.Vector3(1, 1, 1)),
-          mesh: bx.n,
-        });
-        total += flat.length / 18;
-        nParts++;
-      }
-      console.log(`[world] jeep carved from shell: ${total} triangles across `
-        + `${nParts} parts, yaw ${(yaw * 180 / Math.PI).toFixed(0)}deg, `
-        + `${(performance.now() - t0).toFixed(0)}ms`);
-    }
-
-    // ── the pond floaties: one box each, paddled on the water (rides.js) ──
-    // Devon: "the floaties on the pond should be rideable like the vehicles."
-    // Their origin sits at the box BOTTOM: they keep their authored draught
-    // while paddling, so they float exactly as the artist left them.
-    for (const fb of collision.filter((b) => /^SM_Prop_Pool_Float_\d+$/.test(b.n || ''))) {
-      const taken = this._carveShellTriangles(shellMesh, [fb], null);
-      const flat = taken.get(fb);
-      if (!flat || !flat.length) continue;
-      const origin = new THREE.Vector3(fb.c[0], fb.c[1] - fb.e[1], fb.c[2]);
-      this.vehicleParts.push({
-        family: 'floatie',
-        proto: { geometry: buildCarvedGeometry(flat, origin, 0), material: parkMaterial(null) },
-        matrix: new THREE.Matrix4().makeTranslation(origin.x, origin.y, origin.z),
-        mesh: fb.n,
-      });
-      console.log(`[world] ${fb.n} carved from shell: ${flat.length / 18} triangles`);
-    }
-
+  _extractShellAttractions(shellMesh, collision) {
     // ── the tyre carousel: only its BASE is a layout prop; the pole and the
     // whole arms-plus-hanging-tyres crown are baked into the shell, so the
     // base spun invisibly underneath a static structure — Devon rode the
@@ -1287,23 +1226,44 @@ export class World {
     const z0 = raw.c[2] - raw.e[2], z1 = raw.c[2] + raw.e[2];
     const yTop = raw.c[1] + raw.e[1];
     // the seat band: everything between knee and just under the tabletop
-    let sx0 = Infinity, sx1 = -Infinity, sz0 = Infinity, sz1 = -Infinity, sy = 0, n = 0;
+    let sx0 = Infinity, sx1 = -Infinity, sz0 = Infinity, sz1 = -Infinity, sy = -Infinity, n = 0;
     for (let i = 0; i < pos.count; i++) {
       v.fromBufferAttribute(pos, i).applyMatrix4(m);
       if (v.x < x0 || v.x > x1 || v.z < z0 || v.z > z1) continue;
       if (v.y < yTop - 0.42 || v.y > yTop - 0.18) continue;      // bench slats
-      n++; sy += v.y;
+      n++;
+      // the plank's TOP, exactly like the park bench reads its own seat plane.
+      // This was the band's MEAN — the middle of the slat, so every kid at a
+      // picnic table sat a few centimetres inside the wood.
+      if (v.y > sy) sy = v.y;
       if (v.x < sx0) sx0 = v.x; if (v.x > sx1) sx1 = v.x;
       if (v.z < sz0) sz0 = v.z; if (v.z > sz1) sz1 = v.z;
     }
     if (n < 12) return;
-    sy /= n;
     const cx = raw.c[0], cz = raw.c[2];
     const alongX = (sx1 - sx0) >= (sz1 - sz0);
     const half = (alongX ? sx1 - sx0 : sz1 - sz0) / 2;
-    const side = (alongX ? sz1 - sz0 : sx1 - sx0) / 2;
+    /**
+     * WHERE THE BENCH IS, not where the bench band ENDS.
+     *
+     * A picnic table's seat band is two separate strips, one either side, so
+     * its outer extent is the far edge of the far plank — and 0.82 of that
+     * landed kids on the outer lip or off it entirely. Measured properly: take
+     * the mean across-offset of the band's verts on each side, which is the
+     * centreline of that plank, and sit there.
+     */
+    let acrossNeg = 0, nNeg = 0, acrossPos = 0, nPos = 0;
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(m);
+      if (v.x < x0 || v.x > x1 || v.z < z0 || v.z > z1) continue;
+      if (v.y < yTop - 0.42 || v.y > yTop - 0.18) continue;
+      const across = alongX ? v.z - cz : v.x - cx;
+      if (across < 0) { acrossNeg += across; nNeg++; } else { acrossPos += across; nPos++; }
+    }
+    if (!nNeg || !nPos) return;
+    const sides = [acrossNeg / nNeg, acrossPos / nPos];
     for (const along of [-half * 0.42, half * 0.42]) {
-      for (const across of [-side * 0.82, side * 0.82]) {
+      for (const across of sides) {
         const x = alongX ? cx + along : cx + across;
         const z = alongX ? cz + across : cz + along;
         this.tableSeats.push({
