@@ -18,6 +18,7 @@ import { getEmoteLibraryV2, BIND_PELVIS_Y, SEATED_HIP_OFFSET, SEATED_PELVIS_Y, B
 const _va = new THREE.Vector3();
 const _vb = new THREE.Vector3();
 const _tiltQ = new THREE.Quaternion();   // seesaw tilt, reused per frame
+const _up = new THREE.Vector3(0, 1, 0);
 
 // The swing frame (SM_Prop_Plaground_Swings_01) in world space, from the
 // collision export: c=(27.5, 1.16, 25.0), e=(1.46, 1.22, 0.88). Bar along X.
@@ -669,6 +670,8 @@ export class Rides {
     // that mounted scooter riders 1.63 m up, standing on the bars.
     let deckTop = -Infinity, deckArea = -Infinity;
     const bb = new THREE.Box3(), pb = new THREE.Box3();
+    const wheelMeshes = [];
+    const deckCentre = new THREE.Vector3();
     for (const p of cluster) {
       const mesh = new THREE.Mesh(p.proto.geometry, p.proto.material);
       mesh.applyMatrix4(new THREE.Matrix4().multiplyMatrices(rootInv, p.matrix));
@@ -676,10 +679,7 @@ export class Rides {
       group.add(mesh);
       mesh.updateMatrixWorld(true);
       bb.expandByObject(mesh);
-      if (/Wheel/i.test(p.mesh)) {
-        const q = new THREE.Quaternion().setFromRotationMatrix(p.matrix).invert();
-        wheels.push({ mesh, axle: new THREE.Vector3(1, 0, 0).applyQuaternion(q).normalize() });
-      }
+      if (/Wheel/i.test(p.mesh)) wheelMeshes.push(mesh);
     }
     this.world.scene.add(group);
     // SECOND pass, and it has to be second: setFromObject reads matrixWorld,
@@ -690,18 +690,83 @@ export class Rides {
     for (const c of group.children) {
       pb.setFromObject(c);
       const area = (pb.max.x - pb.min.x) * (pb.max.z - pb.min.z);
-      if (area > deckArea) { deckArea = area; deckTop = pb.max.y; }
+      if (area > deckArea) {
+        deckArea = area; deckTop = pb.max.y;
+        // ...and WHERE it is, not just how high. A bike's saddle sits behind
+        // the frame's origin and a wagon's floor sits ahead of its handle, so
+        // mounting at the group origin put the rider next to the vehicle
+        // rather than on it. Devon: "the character isn't on the seat, and it
+        // doesn't match up with the handlebars… it's like that for literally
+        // everything." Group rotation is still 0 here, so this offset is in
+        // the model's own frame and rotates with it later.
+        pb.getCenter(_va);
+        deckCentre.set(_va.x - group.position.x, 0, _va.z - group.position.z);
+      }
     }
-    const q0 = new THREE.Quaternion().setFromRotationMatrix(root.matrix);
-    _va.set(0, 0, 1).applyQuaternion(q0);
-    const yaw = Math.atan2(_va.x, _va.z);
+
+    /**
+     * A WHEEL spins about its own centre, around its own thin axis.
+     *
+     * It used to be rotated in place about a guessed local X — which is why
+     * Devon saw "the wheels are spinning on the wrong axis, they're not
+     * spinning how bike wheels are supposed to spin." Two things were wrong:
+     * the mesh's origin is the VEHICLE's origin (so it orbited rather than
+     * spun), and the axle was assumed rather than measured. Now each wheel gets
+     * a pivot at its own bbox centre, and the axle is the THINNEST horizontal
+     * axis of the wheel — which is what an axle is.
+     */
+    for (const mesh of wheelMeshes) {
+      pb.setFromObject(mesh);
+      pb.getCenter(_va);
+      const pivot = new THREE.Object3D();
+      pivot.position.copy(_va).sub(group.position);
+      group.remove(mesh);
+      mesh.position.sub(pivot.position);
+      mesh.updateMatrix();
+      // re-bake the offset into the mesh so the pivot really is its centre
+      mesh.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0, 0));
+      pivot.add(mesh);
+      group.add(pivot);
+      const thinX = (pb.max.x - pb.min.x) <= (pb.max.z - pb.min.z);
+      wheels.push({ mesh: pivot, axle: thinX ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1) });
+    }
+    group.updateMatrixWorld(true);
+
+    /**
+     * Which way does this thing FACE?
+     *
+     * The old answer was "+Z rotated by the root part's matrix", i.e. an
+     * assumption about how the artist modelled it — and it was wrong often
+     * enough that Devon reported it across the board: "on a skateboard you're
+     * not standing sideways, you're standing straight ahead", "the position of
+     * the character is wrong… it's like that for literally everything."
+     *
+     * A vehicle is LONGER along the way it travels, so the long horizontal axis
+     * of the assembly is the travel axis. Which END is the front comes from the
+     * steering part (handlebars, steering wheel, tow handle) when there is one.
+     * Both measured, neither assumed.
+     */
+    const bakedQ = new THREE.Quaternion().setFromRotationMatrix(root.matrix);
+    _va.set(0, 0, 1).applyQuaternion(bakedQ);
+    const yaw = Math.atan2(_va.x, _va.z);          // the baked orientation
+    bb.setFromObject(group);
+    const longX = (bb.max.x - bb.min.x) >= (bb.max.z - bb.min.z);
+    _vb.set(longX ? 1 : 0, 0, longX ? 0 : 1);
+    const steer = cluster.find((q) => /Handlebar|SteeringW|_Handle$/i.test(q.mesh));
+    if (steer) {
+      _va.setFromMatrixPosition(steer.matrix).sub(rootPos);
+      if (_vb.dot(_va) < 0) _vb.negate();
+    }
+    const fwdYaw = Math.atan2(_vb.x, _vb.z);
+    // how far the MODEL's forward sits from the orientation baked into the parts
+    const fwdOffset = fwdYaw - yaw;
     // Where a rider goes: feet on the deck for a stand-up, pelvis on it for a
     // sit-down. Read off the assembled body rather than typed in per vehicle.
     // `mountY` overrides it for the pogo stick, which is a single part: its
     // widest slab is the whole pole, but you ride the PEGS near the bottom.
     const deck = def.mountY != null ? def.mountY : deckTop - rootPos.y;
     const v = {
-      family, def, group, wheels, yaw, deck,
+      family, def, group, wheels, yaw, deck, fwdOffset, seat: deckCentre.clone(),
       zone: {
         id: `veh_${family}_${this.vehicles.length}`, ride: 'vehicle',
         icon: def.icon, name: def.name, prompt: def.verb,
@@ -711,6 +776,11 @@ export class Rides {
     v.zone.vehicle = v;
     this.zones.push(v.zone);
     return v;
+  }
+
+  /** Where the rider's origin goes: the vehicle's SEAT, rotated with the body. */
+  _mountXZ(v, out) {
+    return out.copy(v.seat).applyAxisAngle(_up, v.group.rotation.y).add(v.group.position);
   }
 
   _mountY(v, groundY) {
@@ -732,9 +802,11 @@ export class Rides {
       v.group.rotation.y = v.yaw;
     }
     this.active = { kind: 'vehicle', v, hop: 0 };
-    const g = this.world.collision.groundAt(v.group.position.x, v.group.position.z, v.group.position.y + 0.6);
-    player.pos.set(v.group.position.x, this._mountY(v, g), v.group.position.z);
-    player.yaw = player.targetYaw = v.group.rotation.y;
+    this._mountXZ(v, _vb);
+    const g = this.world.collision.groundAt(_vb.x, _vb.z, v.group.position.y + 0.6);
+    player.pos.set(_vb.x, this._mountY(v, g), _vb.z);
+    // face the way the VEHICLE faces, not the way its parts happened to be baked
+    player.yaw = player.targetYaw = v.group.rotation.y + v.fwdOffset;
     player.rig.forceLegEmote = true;
     player.playAction(v.def.clip, null);
     this.state.presence?.broadcast({ emote: v.def.clip });
@@ -749,20 +821,26 @@ export class Rides {
     const a = this.active, v = a.v;
     const ground = this.world.collision.groundAt(player.pos.x, player.pos.z, player.pos.y + 0.4);
     // A pogo stick HOPS. Everything else rides the ground.
+    // Place the BODY so its seat lands under the rider, rather than dragging
+    // the rider to the body's origin.
+    _va.copy(v.seat).applyAxisAngle(_up, v.group.rotation.y);
     if (v.def.style === 'pogo') {
       a.hop += dt * 7.4;
       const bounce = Math.abs(Math.sin(a.hop)) * 0.34;
-      v.group.position.set(player.pos.x, ground + bounce, player.pos.z);
+      v.group.position.set(player.pos.x - _va.x, ground + bounce, player.pos.z - _va.z);
       player.pos.y = this._mountY(v, ground + bounce);
       if (Math.sin(a.hop) < 0 && Math.sin(a.hop - dt * 7.4) >= 0 && window.odaSfx) {
         window.odaSfx.tone(300 + Math.random() * 60, 0.06, 'square', 0.03);
       }
     } else {
-      v.group.position.set(player.pos.x, ground, player.pos.z);
+      v.group.position.set(player.pos.x - _va.x, ground, player.pos.z - _va.z);
       player.pos.y = this._mountY(v, ground);
     }
+    // Steer the BODY so its own forward lines up with where the rider is
+    // heading. Without the offset a skateboard travels sideways under a kid who
+    // is facing forwards, which is exactly what Devon saw.
     const prev = v.group.rotation.y;
-    let dy = (player.yaw - prev) % (Math.PI * 2);
+    let dy = ((player.yaw - v.fwdOffset) - prev) % (Math.PI * 2);
     if (dy > Math.PI) dy -= Math.PI * 2;
     if (dy < -Math.PI) dy += Math.PI * 2;
     v.group.rotation.y = prev + dy * Math.min(1, 10 * dt);
@@ -778,7 +856,8 @@ export class Rides {
       player.pos.x += Math.cos(player.yaw) * 0.8;
       player.pos.z -= Math.sin(player.yaw) * 0.8;
       player.pos.y = this.world.collision.groundAt(player.pos.x, player.pos.z, player.pos.y + 0.5);
-      v.zone.pos = [v.group.position.x, v.group.position.z];   // it parks here
+      this._mountXZ(v, _vb);
+      v.zone.pos = [_vb.x, _vb.z];      // the prompt sits on the seat, not the origin
       this.active = null;
     }
   }
