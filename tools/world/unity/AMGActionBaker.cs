@@ -108,6 +108,7 @@ public static class AMGActionBaker
         new Spec("spin_ride",   50, true,  "Spinning"),      // roundabout, gripping the bar
         new Spec("board_push",  24, true,  "Push off"),      // skateboard kick — rides.js drives the playhead off its push cycle
         new Spec("crawl",       24, true,  "Crawling"),      // hands-and-knees clamber (tyres, low ledges)
+        new Spec("board_stand", 36, true,  "Board stance"),  // SIDEWAYS skate stance — ride_stand stays forward-facing for scooters
     };
 
     // ── the pose a single frame resolves to ──────────────────────────────────
@@ -121,6 +122,16 @@ public static class AMGActionBaker
         public Vector3 handL, handR;           // world-space grip targets
         public Vector3 poleL, poleR;           // which way each elbow breaks
         public float hipY;                     // Hips vertical offset from rest (m)
+        /**
+         * Optional LEG IK: when legIK is set, the ankles are placed AT these
+         * world points (two-bone IK, same solver as the arms) instead of via
+         * the thigh/shin aims. This exists for the skateboard stance, where
+         * "the feet are ON the board line" is an exact contact requirement —
+         * aims put them near it; IK puts them on it.
+         */
+        public bool legIK;
+        public Vector3 ankleL, ankleR;
+        public Vector3 legPoleL, legPoleR;     // which way each knee breaks
     }
 
     /** The neutral standing skeleton, as aim directions — every pose starts here. */
@@ -176,6 +187,7 @@ public static class AMGActionBaker
             case "pogo": return 0f;
             case "bike_pedal": return 0f;
             case "ride_stand": return 0.30f;
+            case "board_stand": return 0.30f;
             case "sit_table": return 0.85f;
             case "spin_ride": return 0.55f;
             case "sit": return 1.00f;
@@ -519,57 +531,96 @@ public static class AMGActionBaker
                     break;
                 }
 
-            // Skateboard push-off: the stance leg stays welded to the deck while
-            // the right leg reaches down past it, drives back along the ground,
-            // lifts and recovers. rides.js drives u off its own push cycle, so
-            // the kick lands exactly when the speed surges — one system, like
-            // the swing. Timeline: reach 0-0.18, drive 0.18-0.5, lift 0.5-0.68,
-            // glide 0.68-1 (glide == frame 0, so the loop is seamless).
+            // ── the SIDEWAYS skate stance ────────────────────────────────────
+            // Devon: "the character doesn't stay sideways on the skateboard —
+            // it looks impossible… the feet should be ON TOP of the skateboard."
+            // Regular stance: the BOARD points along travel (+Z), the feet
+            // stand ON its line (x ≈ 0) — left foot near the nose, right near
+            // the tail — and the BODY faces across it (+X), head turned to
+            // look where you're going. Feet are exact leg-IK contacts, not
+            // aims: this pose IS its contacts.
+            case "board_stand":
+                {
+                    float sw2 = Mathf.Sin(Tau(u));
+                    p.legIK = true;
+                    p.ankleL = new Vector3(-0.015f, 0.088f, 0.235f);   // front foot, on the nose
+                    p.ankleR = new Vector3(0.015f, 0.088f, -0.235f);   // back foot, on the tail
+                    p.legPoleL = new Vector3(0.85f, -0.30f, 0.25f);    // knees break toward the chest side
+                    p.legPoleR = new Vector3(0.85f, -0.30f, -0.15f);
+                    p.footL = new Vector3(0.79f, -0.42f, 0.44f).normalized;   // toes across the deck, front angled
+                    p.footR = new Vector3(0.88f, -0.45f, 0.12f).normalized;
+                    // hips over the board, chest twisted to face +X
+                    p.pelvis = new Vector3(0.06f * sw2, 1f, -0.05f).normalized;
+                    p.pelvisTwist = -58f;
+                    p.spine1 = new Vector3(0.05f, 1f, 0.02f).normalized;
+                    p.spine2 = new Vector3(0.03f, 1f, 0.03f).normalized;
+                    // shoulder line runs along the BOARD: Clavicle_L toward the nose
+                    p.spine3 = new Vector3(0.30f, 0.40f, 0.87f).normalized;
+                    // head turns to look down the line of travel
+                    p.neck = new Vector3(0.05f, 0.97f, 0.24f).normalized;
+                    p.neckTwist = 34f;
+                    // arms spread along the board for balance, front arm higher
+                    p.handL = new Vector3(-0.02f - 0.02f * sw2, 0.86f, 0.38f);
+                    p.handR = new Vector3(0.10f, 0.80f, -0.36f + 0.02f * sw2);
+                    p.poleL = new Vector3(-0.30f, -0.55f, 0.72f);
+                    p.poleR = new Vector3(0.55f, -0.55f, -0.55f);
+                    p.hipY = -0.055f + 0.012f * sw2;     // knees always a bit bent
+                    break;
+                }
+
+            // Skateboard push-off, in the SAME sideways frame as board_stand:
+            // the front (left) foot stays welded to the deck while the back
+            // (right) foot steps off, drives back along the ground beside the
+            // board, lifts and returns to the tail. rides.js drives u off its
+            // own push cycle, so the kick lands exactly when the speed surges.
+            // The ground is a deck-height BELOW the origin (the origin rides
+            // the deck top), so contact frames reach y ≈ -0.04 and the hips
+            // dip to keep the stance knee honest.
+            // Timeline (starts and ends ON the tail, so the loop is seamless):
+            // step-off 0-0.14, reach 0.14-0.30, DRIVE 0.30-0.60, lift 0.60-0.76,
+            // back to the tail 0.76-1.
             case "board_push":
                 {
-                    p = BuildRaw("ride_stand", 0f);
-                    Vector3 reach = new Vector3(0.16f, -0.78f, 0.60f);
-                    Vector3 back = new Vector3(0.14f, -0.82f, -0.55f);
-                    Vector3 lift = new Vector3(0.16f, -0.92f, 0.12f);
-                    Vector3 shinReach = new Vector3(0.04f, -0.92f, 0.38f);
-                    Vector3 shinBack = new Vector3(0.03f, -0.97f, -0.24f);
-                    Vector3 shinLift = new Vector3(0.05f, -0.72f, -0.69f);
+                    p = BuildRaw("board_stand", 0f);
+                    Vector3 tail = new Vector3(0.015f, 0.088f, -0.235f);
+                    Vector3 reach = new Vector3(0.185f, -0.035f, 0.30f);
+                    Vector3 back = new Vector3(0.165f, -0.035f, -0.44f);
+                    Vector3 lift = new Vector3(0.13f, 0.16f, -0.02f);
                     float dip;
-                    if (u < 0.18f)
+                    if (u < 0.14f)
                     {
-                        float k = Ease(u / 0.18f);
-                        p.thighR = Vector3.Lerp(lift, reach, k).normalized;
-                        p.shinR = Vector3.Lerp(shinLift, shinReach, k).normalized;
+                        float k = Ease(u / 0.14f);
+                        p.ankleR = Vector3.Lerp(tail, lift, k);
+                        dip = 0f;
+                    }
+                    else if (u < 0.30f)
+                    {
+                        float k = Ease((u - 0.14f) / 0.16f);
+                        p.ankleR = Vector3.Lerp(lift, reach, k);
                         dip = k;
                     }
-                    else if (u < 0.5f)
+                    else if (u < 0.60f)
                     {
-                        float k = Ease((u - 0.18f) / 0.32f);
-                        p.thighR = Vector3.Lerp(reach, back, k).normalized;
-                        p.shinR = Vector3.Lerp(shinReach, shinBack, k).normalized;
+                        float k = Ease((u - 0.30f) / 0.30f);
+                        p.ankleR = Vector3.Lerp(reach, back, k);
                         dip = 1f;
                     }
-                    else if (u < 0.68f)
+                    else if (u < 0.76f)
                     {
-                        float k = Ease((u - 0.5f) / 0.18f);
-                        p.thighR = Vector3.Lerp(back, lift, k).normalized;
-                        p.shinR = Vector3.Lerp(shinBack, shinLift, k).normalized;
+                        float k = Ease((u - 0.60f) / 0.16f);
+                        p.ankleR = Vector3.Lerp(back, lift, k);
                         dip = 1f - k;
                     }
                     else
                     {
-                        p.thighR = lift.normalized;
-                        p.shinR = shinLift.normalized;
+                        float k = Ease((u - 0.76f) / 0.24f);
+                        p.ankleR = Vector3.Lerp(lift, tail, k);
                         dip = 0f;
                     }
-                    // the standing knee takes the dip (the push foot reaches the
-                    // GROUND, a deck-height below the stance foot); torso leans in
-                    p.hipY = -0.06f - 0.07f * dip;
-                    p.pelvis = new Vector3(0f, 1f, -0.06f + 0.10f * dip).normalized;
-                    p.spine1 = new Vector3(0f, 1f, 0.04f + 0.10f * dip).normalized;
-                    p.handL = new Vector3(-0.33f, 0.84f, 0.16f - 0.10f * dip);
-                    p.handR = new Vector3(0.33f, 0.80f, -0.06f + 0.10f * dip);
-                    p.footR = new Vector3(0.10f, -0.42f, 0.90f).normalized;
+                    p.footR = new Vector3(0.55f, -0.50f, 0.67f).normalized;   // push foot points along travel
+                    p.hipY = -0.055f - 0.075f * dip;
+                    p.pelvis = new Vector3(0.10f * dip, 1f, -0.05f + 0.06f * dip).normalized;
+                    p.handR = new Vector3(0.10f + 0.06f * dip, 0.80f, -0.36f + 0.10f * dip);
                     break;
                 }
 
@@ -754,12 +805,22 @@ public static class AMGActionBaker
         if (Mathf.Abs(p.neckTwist) > 1e-4f)
             M["Neck"].rotation = Quaternion.AngleAxis(p.neckTwist, p.neck.normalized) * M["Neck"].rotation;
 
-        Aim(M["UpperLeg_L"], M["LowerLeg_L"], p.thighL);
-        Aim(M["LowerLeg_L"], M["Ankle_L"], p.shinL);
-        Aim(M["Ankle_L"], M["Ball_L"], p.footL);
-        Aim(M["UpperLeg_R"], M["LowerLeg_R"], p.thighR);
-        Aim(M["LowerLeg_R"], M["Ankle_R"], p.shinR);
-        Aim(M["Ankle_R"], M["Ball_R"], p.footR);
+        if (p.legIK)
+        {
+            IK2(M["UpperLeg_L"], M["LowerLeg_L"], M["Ankle_L"], p.ankleL, p.legPoleL);
+            IK2(M["UpperLeg_R"], M["LowerLeg_R"], M["Ankle_R"], p.ankleR, p.legPoleR);
+            Aim(M["Ankle_L"], M["Ball_L"], p.footL);
+            Aim(M["Ankle_R"], M["Ball_R"], p.footR);
+        }
+        else
+        {
+            Aim(M["UpperLeg_L"], M["LowerLeg_L"], p.thighL);
+            Aim(M["LowerLeg_L"], M["Ankle_L"], p.shinL);
+            Aim(M["Ankle_L"], M["Ball_L"], p.footL);
+            Aim(M["UpperLeg_R"], M["LowerLeg_R"], p.thighR);
+            Aim(M["LowerLeg_R"], M["Ankle_R"], p.shinR);
+            Aim(M["Ankle_R"], M["Ball_R"], p.footR);
+        }
 
         IK2(M["Shoulder_L"], M["Elbow_L"], M["Hand_L"], p.handL, p.poleL);
         IK2(M["Shoulder_R"], M["Elbow_R"], M["Hand_R"], p.handR, p.poleR);

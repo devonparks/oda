@@ -513,6 +513,23 @@ function loop() {
     world.dynamics.update(dt, _kickers);
   }
 
+  // Crouch pose: hold X (or the HUD button) and the kid drops to hands and
+  // knees — the crawl clip carries both moving and holding still. The pose is
+  // camera-independent; the capsule/speed change lives in stepPlayer.
+  const wantCrouch = !!player.crouching && !state.rides?.busy && !state.seated && !state.paused;
+  if (wantCrouch !== !!state.crouchClip) {
+    state.crouchClip = wantCrouch;
+    if (wantCrouch) {
+      player.rig.forceLegEmote = true;
+      player.playAction('crawl', null);
+      state.presence?.broadcast({ emote: 'crawl' });
+    } else {
+      player.rig.forceLegEmote = false;
+      player.rig.stopEmote?.();
+      state.presence?.broadcast({ emote: '_stop' });
+    }
+  }
+
   waterAndDustFX(player, dt);
   state.butterflies?.update(dt, t, player.pos);
   // `carry` false: the rod is an inventory item now, so it appears when you're
@@ -1053,8 +1070,9 @@ const _hv = new THREE.Vector3();
 function updateHeldVisual(player) {
   const inv = state.inv;
   const held = inv && inv.held();
-  // While fishing, the rod IS the held thing and fishing.js owns it.
-  const id = held && !state.fishing?.busy ? held.id : null;
+  // While fishing, the rod IS the held thing and fishing.js owns it. Riding
+  // or sitting, both hands are busy — the held toy goes away until you're off.
+  const id = held && !state.fishing?.busy && !state.rides?.busy && !state.seated ? held.id : null;
   const want = id && HELD_VISUALS[id] ? id : null;
 
   if (want !== _heldId) {
@@ -1467,6 +1485,15 @@ function bindHud() {
   $('emoteBtn').onclick = () => toggle('emoteWheel', ['chatWheel']);
   $('chatBtn').onclick = () => toggle('chatWheel', ['emoteWheel']);
   $('jumpBtn').onclick = () => { state.input.jumpQueued = true; };
+  // crouch is HELD, not toggled — the same shape as holding X
+  const cBtn = $('crouchBtn');
+  if (cBtn) {
+    const set = (on) => { state.input.crouchHeld = on; cBtn.classList.toggle('sel', on); };
+    cBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); set(true); });
+    cBtn.addEventListener('pointerup', () => set(false));
+    cBtn.addEventListener('pointercancel', () => set(false));
+    cBtn.addEventListener('pointerleave', () => set(false));
+  }
   $('mapBtn').onclick = () => $('minimap').classList.toggle('hidden');
   const soundBtn = $('soundBtn');
   const syncSoundIcon = () => {

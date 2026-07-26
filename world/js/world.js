@@ -50,7 +50,7 @@ const VEHICLE_FAMILIES = [
   { id: 'bike', re: /^SM_Veh_Bike_/, style: 'bike', clip: 'bike_pedal', speed: 1.9, name: 'Bike', icon: '\u{1F6B2}', verb: 'Ride the bike!' },
   { id: 'trike', re: /^SM_Veh_Trike_/, style: 'bike', clip: 'bike_pedal', speed: 1.25, name: 'Trike', icon: '\u{1F6B2}', verb: 'Ride the trike!' },
   { id: 'scooter', re: /^SM_Veh_Scooter_/, style: 'stand', clip: 'ride_stand', speed: 1.6, name: 'Scooter', icon: '\u{1F6F4}', verb: 'Scoot!' },
-  { id: 'board', re: /^SM_Prop_Skateboard_/, style: 'stand', clip: 'ride_stand', speed: 1.7, name: 'Skateboard', icon: '\u{1F6F9}', verb: 'Skate!' },
+  { id: 'board', re: /^SM_Prop_Skateboard_/, style: 'stand', clip: 'board_stand', speed: 1.7, name: 'Skateboard', icon: '\u{1F6F9}', verb: 'Skate!' },
   { id: 'wagon', re: /^SM_Prop_Red_Wagon_/, style: 'sit', clip: 'sit_kart', speed: 1.3, name: 'Wagon', icon: '\u{1F6D2}', verb: 'Ride the wagon!' },
   { id: 'pogo', re: /^SM_Veh_Pogo_Stick/, style: 'pogo', clip: 'pogo', speed: 0.85, name: 'Pogo Stick', icon: '\u{1F998}', verb: 'Boing!' },
 ];
@@ -110,14 +110,31 @@ const SHELL_STRUCTURES = [
    */
   { match: /Env_Gazebo_01/i, name: '_gazebo', pad: 0.25, maxH: 2.6 },
   { match: /Env_Fountain_01/i, name: '_fountain' },
+  /**
+   * The DECKS AND WALLS beneath the playground roofs.
+   *
+   * The roofs are masked out of the ground heightfield (their tops must not
+   * become floors), but the mask erases the DECK underneath too, and the
+   * diffusion inpaint blends it with the ground outside — measured: a hole at
+   * (3.0, -3.2) read 0.0 and a ring of ~1.0 mush around the real 2.05 deck.
+   * Devon, twice now: "I still fall through… it's just kinda tight up there."
+   * So the real geometry under each roof gets derived boxes: pad 0.75 reaches
+   * the deck edges past the roof's own footprint, maxH 0.70 clips BELOW the
+   * roof slab itself (the rim would otherwise become a shin-height wall right
+   * where you walk in — and the little building's walls stay real, doorway
+   * and all, which is also what the crouch is for).
+   */
+  { match: /Playground_Roof/i, name: '_roofdeck', all: true, pad: 1.15, maxH: -0.05 },
   {
     match: /Swings_01/i, name: '_swingframe',
     // rides.js carves the baked seats + chains out of the shell at runtime and
     // rebuilds them dynamic; freeze their triangles into collision here and the
     // park gets invisible seats hanging in the air. Same box rides.js carves.
+    // maxY 2.12 matches rides.js's CARVE — the chains' top verts sit at 2.07,
+    // and an exclusion that stops at 2.06 freezes them into mid-air collision.
     exclude: () => new THREE.Box3(
       new THREE.Vector3(27.5 - 1.05, 0.18, 25.0 - 0.8),
-      new THREE.Vector3(27.5 + 1.05, 2.06, 25.0 + 0.8)),
+      new THREE.Vector3(27.5 + 1.05, 2.12, 25.0 + 0.8)),
   },
 ];
 
@@ -748,31 +765,36 @@ export class World {
 
   /**
    * Claim shell triangles for a set of export boxes and degenerate them in
-   * the shell. A triangle belongs to a box only if ALL THREE verts are inside
-   * it (+pad) — each box IS its part's renderer bound, so every real part
-   * triangle passes by construction, while a big neighbouring triangle fails
-   * even when its centroid happens to land inside (a centroid test once sent
-   * a slab of the skate park driving off with the Jeep). With `fallbackBox`,
-   * triangles inside the UNION of all boxes that no single box claims whole
-   * (straddlers) are given to that box.
+   * the shell — by CONNECTIVITY, not by box membership alone.
+   *
+   * Box membership alone dragged the SCENERY along: a pebble or a grass tuft
+   * that happens to sit wholly inside a part's renderer bound got carved and
+   * drove away with the Jeep (Devon: "it has a rock and a piece of grass
+   * attached to it — you can tell you pulled it out of the scene"). So each
+   * part now SEEDS from triangles deep inside its shrunken box and FLOODS
+   * outward along shared vertex positions, bounded by its own box (+pad; the
+   * fallback part floods through the union, so straddlers like tyre arches
+   * ride with the body). Debris is never vertex-welded to the vehicle, so it
+   * is never reached — it stays in the park where it belongs.
+   *
+   * Parts are processed in the given order (smallest first), and a triangle
+   * claimed by an earlier flood is settled — so a wheel keeps its own shell
+   * and the body takes the rest.
    *
    * @returns {Map<object, number[]>} box -> flat [x,y,z,r,g,b] per vertex
    */
   _carveShellTriangles(shellMesh, parts, fallbackBox) {
     const PAD = 0.04;
-    const inBox = (p, bx) =>
-      Math.abs(p.x - bx.c[0]) < bx.e[0] + PAD
-      && Math.abs(p.y - bx.c[1]) < bx.e[1] + PAD
-      && Math.abs(p.z - bx.c[2]) < bx.e[2] + PAD;
-    let union = null;
-    if (fallbackBox) {
-      union = { c: [0, 0, 0], e: [0, 0, 0] };
-      for (let i = 0; i < 3; i++) {
-        const lo = Math.min(...parts.map((b) => b.c[i] - b.e[i]));
-        const hi = Math.max(...parts.map((b) => b.c[i] + b.e[i]));
-        union.c[i] = (lo + hi) / 2;
-        union.e[i] = (hi - lo) / 2;
-      }
+    const inBox = (p, bx, pad) =>
+      Math.abs(p.x - bx.c[0]) < bx.e[0] + pad
+      && Math.abs(p.y - bx.c[1]) < bx.e[1] + pad
+      && Math.abs(p.z - bx.c[2]) < bx.e[2] + pad;
+    const union = { c: [0, 0, 0], e: [0, 0, 0] };
+    for (let i = 0; i < 3; i++) {
+      const lo = Math.min(...parts.map((b) => b.c[i] - b.e[i]));
+      const hi = Math.max(...parts.map((b) => b.c[i] + b.e[i]));
+      union.c[i] = (lo + hi) / 2;
+      union.e[i] = (hi - lo) / 2;
     }
     const geo = shellMesh.geometry;
     const matrix = shellMesh.matrixWorld;
@@ -781,8 +803,11 @@ export class World {
     const idx = geo.index;
     const triCount = idx ? idx.count / 3 : pos.count / 3;
     const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
-    const taken = new Map();
-    for (const bx of parts) taken.set(bx, []);
+
+    // ── 1. candidates: every triangle fully inside the union (+pad) ──
+    const cand = [];
+    const byKey = new Map();          // quantized vert position -> candidate ids
+    const keyOf = (v) => Math.round(v.x * 1000) + ',' + Math.round(v.y * 1000) + ',' + Math.round(v.z * 1000);
     for (let t = 0; t < triCount; t++) {
       const i0 = idx ? idx.getX(t * 3) : t * 3;
       const i1 = idx ? idx.getX(t * 3 + 1) : t * 3 + 1;
@@ -790,24 +815,68 @@ export class World {
       a.fromBufferAttribute(pos, i0).applyMatrix4(matrix);
       b.fromBufferAttribute(pos, i1).applyMatrix4(matrix);
       c.fromBufferAttribute(pos, i2).applyMatrix4(matrix);
-      let owner = null;
-      for (const bx of parts) {
-        if (inBox(a, bx) && inBox(b, bx) && inBox(c, bx)) { owner = bx; break; }
+      if (!inBox(a, union, PAD) || !inBox(b, union, PAD) || !inBox(c, union, PAD)) continue;
+      const id = cand.length;
+      const en = {
+        t, i: [i0, i1, i2],
+        v: [{ x: a.x, y: a.y, z: a.z }, { x: b.x, y: b.y, z: b.z }, { x: c.x, y: c.y, z: c.z }],
+        owner: -1,
+      };
+      cand.push(en);
+      for (const v of en.v) {
+        const k = keyOf(v);
+        let l = byKey.get(k);
+        if (!l) byKey.set(k, (l = []));
+        l.push(id);
       }
-      if (!owner && union && inBox(a, union) && inBox(b, union) && inBox(c, union)) {
-        owner = fallbackBox;
+    }
+
+    // ── 2. per part: seed deep inside the shrunken box, flood within bounds ──
+    const claimed = new Map();
+    parts.forEach((bx) => claimed.set(bx, []));
+    parts.forEach((bx, pi) => {
+      const bound = bx === fallbackBox ? union : bx;
+      const shrink = { c: bx.c, e: bx.e.map((e) => Math.max(e * 0.7, e - 0.08)) };
+      const stack = [];
+      cand.forEach((en, id) => {
+        if (en.owner >= 0) return;
+        if (en.v.every((v) => inBox(v, shrink, 0))) { en.owner = pi; stack.push(id); }
+      });
+      const out = claimed.get(bx);
+      while (stack.length) {
+        const id = stack.pop();
+        out.push(cand[id]);
+        for (const v of cand[id].v) {
+          const l = byKey.get(keyOf(v));
+          if (!l) continue;
+          for (const nid of l) {
+            const ne = cand[nid];
+            if (ne.owner >= 0) continue;
+            if (!ne.v.every((v2) => inBox(v2, bound, PAD))) continue;
+            ne.owner = pi;
+            stack.push(nid);
+          }
+        }
       }
-      if (!owner) continue;
-      const out = taken.get(owner);
-      for (const [v, i] of [[a, i0], [b, i1], [c, i2]]) {
-        out.push(v.x, v.y, v.z, col.getX(i), col.getY(i), col.getZ(i));
+    });
+
+    // ── 3. lift the claimed triangles out ──
+    const taken = new Map();
+    for (const bx of parts) {
+      const flat = [];
+      for (const en of claimed.get(bx)) {
+        for (let k = 0; k < 3; k++) {
+          const v = en.v[k], i = en.i[k];
+          flat.push(v.x, v.y, v.z, col.getX(i), col.getY(i), col.getZ(i));
+        }
+        // degenerate the source triangle — the vehicle owns it now
+        if (idx) { idx.setX(en.t * 3 + 1, en.i[0]); idx.setX(en.t * 3 + 2, en.i[0]); }
+        else {
+          pos.setXYZ(en.t * 3 + 1, pos.getX(en.i[0]), pos.getY(en.i[0]), pos.getZ(en.i[0]));
+          pos.setXYZ(en.t * 3 + 2, pos.getX(en.i[0]), pos.getY(en.i[0]), pos.getZ(en.i[0]));
+        }
       }
-      // degenerate the source triangle — the vehicle owns it now
-      if (idx) { idx.setX(t * 3 + 1, i0); idx.setX(t * 3 + 2, i0); }
-      else {
-        pos.setXYZ(t * 3 + 1, pos.getX(i0), pos.getY(i0), pos.getZ(i0));
-        pos.setXYZ(t * 3 + 2, pos.getX(i0), pos.getY(i0), pos.getZ(i0));
-      }
+      taken.set(bx, flat);
     }
     if (idx) idx.needsUpdate = true; else pos.needsUpdate = true;
     return taken;
@@ -1415,7 +1484,12 @@ export class World {
 
     const wish = Math.hypot(dx, dz);
     // speedScale: vehicles (rides.js kart) go faster than legs allow
-    const maxSpeed = (intent.run ? RUN : WALK) * (intent.speedScale || 1) * (avatar.wading ? 0.55 : 1);
+    // crouching: slow crawl pace, and a SHORT capsule so low gaps (the little
+    // roof building at the playground top) are passable — Devon: "you should
+    // have to crouch to get back up the slide"
+    avatar.crouching = !!intent.crouch && !intent.speedScale;
+    const maxSpeed = (intent.run ? RUN : WALK) * (intent.speedScale || 1)
+      * (avatar.wading ? 0.55 : 1) * (avatar.crouching ? 0.42 : 1);
     const target = wish > 0.01 ? maxSpeed : 0;
     avatar.speed += THREE.MathUtils.clamp(target - avatar.speed, -ACCEL * dt, ACCEL * dt);
     if (avatar.speed < 0.02) avatar.speed = 0;
@@ -1436,7 +1510,8 @@ export class World {
     }
 
     const clamped = this.collision.clampToBounds(nx, nz, 1.2);
-    const solved = this.collision.resolve(clamped.x, clamped.z, avatar.pos.y);
+    const solved = this.collision.resolve(clamped.x, clamped.z, avatar.pos.y,
+      undefined, avatar.crouching ? 0.58 : undefined);
     avatar.pos.x = solved.x;
     avatar.pos.z = solved.z;
 

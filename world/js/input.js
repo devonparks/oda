@@ -17,6 +17,8 @@ export class Input {
     this.move = { x: 0, y: 0 };
     this.run = false;
     this.jumpQueued = false;
+    /** held by the touch crouch button; keyboard is X (sampled per frame) */
+    this.crouchHeld = false;
     /** accumulated camera orbit since last read */
     this.look = { x: 0, y: 0 };
     this.zoom = 0;
@@ -196,6 +198,7 @@ export class Input {
     this.look.x = 0; this.look.y = 0;
     const zoom = this.zoom; this.zoom = 0;
     const jump = this.jumpQueued; this.jumpQueued = false;
-    return { move: this.move, run: this.run, jump, look, zoom };
+    const crouch = k.has('KeyX') || this.crouchHeld;
+    return { move: this.move, run: this.run, jump, crouch, look, zoom };
   }
 }

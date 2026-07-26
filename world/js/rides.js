@@ -29,7 +29,13 @@ const SWING_L = BAR_Y - SEAT_Y;
 const SEAT_DX = 0.62;        // two seats, either side of centre
 const CARVE = {              // seats + chains live here; legs and bar do not
   minX: FRAME.x - 1.05, maxX: FRAME.x + 1.05,
-  minY: 0.18, maxY: 2.06,
+  // maxY 2.12, not 2.06: the baked chains are single strips whose TOP verts
+  // sit at y 2.07 — one centimetre above the old box, so the all-verts carve
+  // left every chain standing as a static double next to the dynamic ones
+  // (Devon: "two black bars… one moves, one just stands still"). 2.12 catches
+  // exactly the chains (measured: 56 tris) and no bar — every bar triangle
+  // spans past the box in X and fails the carve anyway.
+  minY: 0.18, maxY: 2.12,
   minZ: FRAME.z - 0.8, maxZ: FRAME.z + 0.8,
 };
 /**
@@ -50,12 +56,12 @@ const SLIDE_TIME = 1.15;     // s top→exit
 const SLIDE_MOUTH = 0.62;
 /** How far below a monkey bar a hanging kid's feet-origin sits. */
 const HANG_DROP = 1.15;
-const SEESAW_G = 3.1;        // how fast your end drops
-// Tuned against the arc, not by feel: peak = v^2/(2*G) in `up` units, so 3.4
-// carries you from the ground (-1) to about +0.9 — one good shove takes you
-// almost all the way up, which is the entire point of a seesaw. 2.6 only
-// reached +0.11 and felt like the plank was stuck.
-const SEESAW_PUSH = 3.4;
+// 5.2, up from 3.1: at 3.1 the plank FLOATED ("the physics still don't make
+// sense") — a kid-laden seesaw drops fast and thumps. Push re-tuned to match:
+// peak = v^2/(2*G), so 4.6 carries you from the ground (-1) to +1.03 — one
+// good shove slams the far end down with a thump, which is the point.
+const SEESAW_G = 5.2;
+const SEESAW_PUSH = 4.6;
 const SEESAW_MAX = 0.34;     // rad at either extreme
 const GRIND_SPEED = 4.2;     // m/s along a rail
 const FLIP_T = 0.45;         // s for a full kickflip rotation
@@ -63,12 +69,16 @@ const FLIP_T = 0.45;         // s for a full kickflip rotation
 /** Ride rules per vehicle family, mirrored from world.js VEHICLE_FAMILIES. */
 const VEHICLE_DEFS = {
   kart: { style: 'sit', clip: 'sit_kart', speed: 1.75, name: 'Soapbox Racer', icon: '\u{1F3CE}\uFE0F', verb: 'Drive it!', spread: 1.6 },
-  bike: { style: 'bike', clip: 'bike_pedal', speed: 1.9, name: 'Bike', icon: '\u{1F6B2}', verb: 'Ride the bike!' },
-  trike: { style: 'bike', clip: 'bike_pedal', speed: 1.25, name: 'Trike', icon: '\u{1F6B2}', verb: 'Ride the trike!' },
+  // `saddle`: mount on the top-band centroid of the frame's REAR half. The
+  // frame's whole top band mixes the SADDLE and the handlebar STEM (both top
+  // out level), so its centroid lands between them — a rider on neither.
+  bike: { style: 'bike', clip: 'bike_pedal', speed: 1.9, name: 'Bike', icon: '\u{1F6B2}', verb: 'Ride the bike!', saddle: true },
+  trike: { style: 'bike', clip: 'bike_pedal', speed: 1.25, name: 'Trike', icon: '\u{1F6B2}', verb: 'Ride the trike!', saddle: true },
   scooter: { style: 'stand', clip: 'ride_stand', speed: 1.6, name: 'Scooter', icon: '\u{1F6F4}', verb: 'Scoot!' },
   // 2.05 was "too fast" (Devon) — and flat anyway. 1.7 with the kick-pulse in
-  // speedScale averages ~1.6 and actually reads like skating.
-  board: { style: 'stand', clip: 'ride_stand', speed: 1.7, name: 'Skateboard', icon: '\u{1F6F9}', verb: 'Skate!', spread: 0.9 },
+  // speedScale averages ~1.6 and actually reads like skating. board_stand is
+  // the SIDEWAYS stance (ride_stand stays forward-facing for the scooters).
+  board: { style: 'stand', clip: 'board_stand', speed: 1.7, name: 'Skateboard', icon: '\u{1F6F9}', verb: 'Skate!', spread: 0.9 },
   wagon: { style: 'sit', clip: 'sit_kart', speed: 1.3, name: 'Wagon', icon: '\u{1F6D2}', verb: 'Ride the wagon!' },
   pogo: { style: 'pogo', clip: 'pogo', speed: 0.85, name: 'Pogo Stick', icon: '\u{1F998}', verb: 'Boing!', mountY: 0.28 },
   /**
@@ -482,12 +492,12 @@ export class Rides {
     sim.lift += sim.vel * dt;
     if (sim.lift <= -1) {
       sim.lift = -1;
-      if (sim.vel < -1.2) window.odaSfx && window.odaSfx.tone(95, 0.08, 'sine', 0.06);
+      if (sim.vel < -1.2) this._seesawThump(1);    // the +1 end just hit
       sim.vel = Math.max(0, sim.vel);        // legs absorb the landing
     }
     if (sim.lift >= 1) {
       sim.lift = 1;
-      if (sim.vel > 1.2) window.odaSfx && window.odaSfx.tone(95, 0.08, 'sine', 0.06);
+      if (sim.vel > 1.2) this._seesawThump(-1);
       sim.vel = Math.min(0, sim.vel);
     }
     if (!w1 && !w0 && Math.abs(sim.lift) < 0.04 && Math.abs(sim.vel) < 0.06) {
@@ -497,6 +507,16 @@ export class Rides {
     m.userData.angle = ang;
     m.quaternion.copy(m.userData.restQuat)
       .multiply(_tiltQ.setFromAxisAngle(m.userData.tiltAxis, ang));
+  }
+
+  /** A plank end hit the ground hard: thump + a puff of dust where it landed. */
+  _seesawThump(end) {
+    const m = this.seesaw;
+    window.odaSfx && window.odaSfx.tone(95, 0.08, 'sine', 0.06);
+    _va.copy(this.seesawAxis).multiplyScalar(end * this.seesawHalf / m.scale.x);
+    m.localToWorld(_vb.copy(_va));
+    this.world.fx.spawn(_vb.x, 0.05, _vb.z,
+      { color: 0xcbb794, from: 0.2, to: 0.85, dur: 0.4, alpha: 0.45 });
   }
 
   /** Park a rider (player or NPC) on their end of the tilted plank. */
@@ -845,11 +865,12 @@ export class Rides {
     // every part measured against a garbage parent transform. That silently
     // mounted scooter riders on the handlebars.
     group.updateMatrixWorld(true);
+    let deckChild = null;
     for (const c of group.children) {
       pb.setFromObject(c);
       const area = (pb.max.x - pb.min.x) * (pb.max.z - pb.min.z);
       if (area > deckArea) {
-        deckArea = area; deckTop = pb.max.y;
+        deckArea = area; deckTop = pb.max.y; deckChild = c;
         // ...and WHERE it is, not just how high. A bike's saddle sits behind
         // the frame's origin and a wagon's floor sits ahead of its handle, so
         // mounting at the group origin put the rider next to the vehicle
@@ -936,6 +957,36 @@ export class Rides {
       }
     }
     const fwdYaw = Math.atan2(_vb.x, _vb.z);
+    /**
+     * saddle (bike/trike): the mount is the top band of the frame's REAR half.
+     * The frame's full top band mixes the saddle and the handlebar stem (they
+     * top out level, measured), so its centroid put the rider between them —
+     * Devon: "the character is nowhere near on the seat." _vb still holds the
+     * measured forward here; rear = along < 0.05 m.
+     */
+    if (def.saddle && deckChild) {
+      const mesh = deckChild.isMesh ? deckChild : deckChild.children.find((m) => m.isMesh);
+      if (mesh) {
+        mesh.updateWorldMatrix(true, false);
+        const posA = mesh.geometry.attributes.position;
+        let maxY = -Infinity;
+        for (let i = 0; i < posA.count; i++) {
+          _va.fromBufferAttribute(posA, i).applyMatrix4(mesh.matrixWorld);
+          const along = (_va.x - rootPos.x) * _vb.x + (_va.z - rootPos.z) * _vb.z;
+          if (along < 0.05 && _va.y > maxY) maxY = _va.y;
+        }
+        let sx = 0, sz = 0, n = 0;
+        for (let i = 0; i < posA.count; i++) {
+          _va.fromBufferAttribute(posA, i).applyMatrix4(mesh.matrixWorld);
+          const along = (_va.x - rootPos.x) * _vb.x + (_va.z - rootPos.z) * _vb.z;
+          if (along < 0.05 && _va.y > maxY - 0.08) { sx += _va.x; sz += _va.z; n++; }
+        }
+        if (n > 8) {
+          deckCentre.set(sx / n - rootPos.x, 0, sz / n - rootPos.z);
+          deckTop = maxY;
+        }
+      }
+    }
     // how far the MODEL's forward sits from the orientation baked into the parts
     const fwdOffset = fwdYaw - yaw;
     // Where a rider goes: feet on the deck for a stand-up, pelvis on it for a
@@ -1103,10 +1154,10 @@ export class Rides {
             this.state.presence?.broadcast({ emote: 'board_push' });
           }
           player.rig.setEmoteTime?.('board_push', ((a.pushPhase / (Math.PI * 2)) % 1) * 1.2);
-        } else if (a.clipNow !== 'ride_stand') {
-          a.clipNow = 'ride_stand';
-          player.playAction('ride_stand', null);
-          this.state.presence?.broadcast({ emote: 'ride_stand' });
+        } else if (a.clipNow !== 'board_stand') {
+          a.clipNow = 'board_stand';
+          player.playAction('board_stand', null);
+          this.state.presence?.broadcast({ emote: 'board_stand' });
         }
         // rolling down a slope leaves `grounded` false most frames (constant
         // micro-airtime), so the ollie gets COYOTE TIME off this stamp
@@ -1261,10 +1312,45 @@ export class Rides {
           bb.expandByObject(mesh);
         }
         this.world.scene.add(group);
+        const radius = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z) / 2;
+        /**
+         * WHERE you sit on a spinner: the outer SEAT ring, not the hub.
+         *
+         * The deck used to be the assembly's bbox top — which is the centre
+         * POLE on the 4-tyre roundabout and the hand-WHEEL on the little
+         * spinner, so the rider orbited the pole at hub height ("it's
+         * activating like a stripper pole… they're supposed to be on the
+         * TIRE"). Measured from the verts instead: everything clear of the
+         * hub (r > 0.2) gives the seat surface level (90th pct y), and the
+         * 70th percentile radius of that surface lands ON the tyres of the
+         * roundabout (≈0.66) and on the seat disc of the wheel-spinner
+         * (≈0.30).
+         */
+        let seatR = radius * 0.7, seatY = bb.max.y - rootPos.y;
+        {
+          group.updateMatrixWorld(true);   // SECOND pass — build-loop matrices are stale
+          const vv = new THREE.Vector3();
+          const pts = [];
+          group.traverse((o) => {
+            if (!o.isMesh) return;
+            const posA = o.geometry.attributes.position;
+            for (let i = 0; i < posA.count; i++) {
+              vv.fromBufferAttribute(posA, i).applyMatrix4(o.matrixWorld);
+              const r = Math.hypot(vv.x - rootPos.x, vv.z - rootPos.z);
+              if (r > 0.2) pts.push([r, vv.y - rootPos.y]);
+            }
+          });
+          if (pts.length > 20) {
+            const ys = pts.map((p) => p[1]).sort((q, w) => q - w);
+            seatY = ys[Math.floor(ys.length * 0.9)];
+            const ring = pts.filter((p) => p[1] > seatY - 0.2).map((p) => p[0]).sort((q, w) => q - w);
+            if (ring.length > 10) seatR = ring[Math.floor(ring.length * 0.7)];
+          }
+        }
         const item = {
           group, spin: 0, rate: 0, t: Math.random() * 6,
-          deck: bb.max.y - rootPos.y,
-          radius: Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z) / 2,
+          deck: seatY, seatR: Math.max(0.28, seatR),
+          radius,
         };
         const isSpin = family === 'spinner';
         (isSpin ? this.spinners : this.coinRides).push(item);
@@ -1306,14 +1392,14 @@ export class Rides {
     it.rate += (target - it.rate) * Math.min(1, dt * (pushing ? 0.9 : braking ? 2.4 : 0.5));
     it.spin += it.rate * dt;
     it.group.rotation.y = it.spin;
-    // ride a seat out on the rim, so you actually travel round
-    const r = Math.max(0.35, it.radius * 0.52);
+    // sit ON the measured seat ring (the tyres / the seat disc), facing the hub
+    const r = it.seatR;
     const g = this.world.collision.groundAt(it.group.position.x, it.group.position.z, it.group.position.y + 0.6);
     player.pos.set(
       it.group.position.x + Math.sin(it.spin) * r,
       g + it.deck + BUTT_BELOW_PELVIS - SEATED_PELVIS_Y,
       it.group.position.z + Math.cos(it.spin) * r);
-    player.yaw = player.targetYaw = it.spin + Math.PI;   // facing out
+    player.yaw = player.targetYaw = it.spin + Math.PI;   // facing the hub, hands to the bar/wheel
     player.speed = 0; player.vel.y = 0; player.grounded = true; player.tilt = 0;
     if (Math.abs(it.rate) > 1.4 && Math.random() < dt * 4 && window.odaSfx) {
       window.odaSfx.tone(150 + Math.abs(it.rate) * 20, 0.05, 'triangle', 0.02);

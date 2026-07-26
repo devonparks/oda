@@ -1,5 +1,58 @@
 # Sprint Log
 
+## 2026-07-26 (cont.) — playtest 7: sideways skating, tyre seats, saddles, and a crouch
+
+Devon's verdict on the last four deploys was "definitely better," then a
+precise list. Everything below measured before and after.
+
+**THE SKATER STANDS SIDEWAYS NOW.** The earlier session misread him: "standing
+straight ahead" meant the BOARD travels ahead — the RIDER stands across it.
+New clip `board_stand` (ride_stand stays forward-facing for the scooters) +
+`board_push` re-authored in the same frame: regular stance, front foot near
+the nose, back foot near the tail, chest across the board, head turned to look
+down the line. The baker grew LEG IK for it — "feet ON the board" is an exact
+contact, so the ankles are IK targets now, not aims. Measured on the live rig:
+feet along the board ±0.2 m, across ≈0, shoulders spread ALONG the deck.
+
+**ROUNDABOUT RIDERS SIT ON THE TYRES.** "It's activating like a stripper
+pole" — rider at radius·0.52 = 0.39 m, hugging the centre post, at the POLE's
+top (deck = bbox top). The seat ring is measured from the assembly's verts
+now: everything clear of the hub gives the surface level and its 70th-pct
+radius — the 4-tyre roundabout seats at r 0.72 on the tyre tops (0.60), the
+wheel-spinner on its disc at r 0.32. Riders face the hub, hands to the wheel.
+
+**BIKE RIDERS SIT ON THE SADDLE.** The frame's whole top band mixes saddle
+and handlebar STEM (they top out level — measured), so its centroid put the
+kid between them. The mount is the REAR-half top band now. Rider-to-saddle:
+0.000.
+
+**THE DOUBLED SWING CHAINS ARE GONE — by one centimetre.** The chains are
+single strips whose top verts sit at y 2.07; the carve box stopped at 2.06,
+so the all-verts rule never cut them and the originals stood beside the
+dynamic rebuilds. Box raised to 2.12 (the bar survives — every bar triangle
+runs past the box in X). Zero live chain triangles after. (A prior probe
+reported "zero triangles in the carve box" — it forgot matrixWorld, the
+oldest trap in the table.)
+
+**THE JEEP IS CLEAN — carve by CONNECTIVITY.** The rock and the grass rode
+along because box membership alone claims any scenery that happens to sit
+inside a part's renderer bound. Parts now SEED from triangles deep inside
+their shrunken boxes and FLOOD along shared vertex positions, bounded by
+their own box — debris is never vertex-welded to the vehicle, so it stays in
+the park. Verified: drives clean, nothing on the wheels, the pebbles sit on
+the pavement where they always were. (Also inherited by the floaties.)
+
+**THE PLAYGROUND TOP IS SOLID.** The roof masks erase the deck from the
+heightfield and the inpaint blends it with the ground outside — a real hole
+at (3.0, −3.2) and a mush ring. The decks and walls beneath each roof are
+derived from the shell now (window capped just BELOW the roof slab, so the
+rim doesn't become a shin wall). The hole grid reads solid deck after.
+
+**CROUCH is a button.** Hold X (or the new HUD button): short capsule
+(0.58), crawl clip, 0.42× speed — you duck under the little roof building
+instead of clipping through it. **Seesaw** gravity 3.1→5.2 with the push
+retuned (peak +1.0 in 0.76 s) plus a dust thump when an end slams down.
+
 ## 2026-07-26 (cont.) — clips 20 and 21: the skateboard pushes, the tyres crawl
 
 The Unity project was open, so the two asks that needed REAL animation went
