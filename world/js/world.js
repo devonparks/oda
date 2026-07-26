@@ -50,7 +50,7 @@ const VEHICLE_FAMILIES = [
   { id: 'bike', re: /^SM_Veh_Bike_/, style: 'bike', clip: 'bike_pedal', speed: 1.9, name: 'Bike', icon: '\u{1F6B2}', verb: 'Ride the bike!' },
   { id: 'trike', re: /^SM_Veh_Trike_/, style: 'bike', clip: 'bike_pedal', speed: 1.25, name: 'Trike', icon: '\u{1F6B2}', verb: 'Ride the trike!' },
   { id: 'scooter', re: /^SM_Veh_Scooter_/, style: 'stand', clip: 'ride_stand', speed: 1.6, name: 'Scooter', icon: '\u{1F6F4}', verb: 'Scoot!' },
-  { id: 'board', re: /^SM_Prop_Skateboard_/, style: 'stand', clip: 'ride_stand', speed: 2.05, name: 'Skateboard', icon: '\u{1F6F9}', verb: 'Skate!' },
+  { id: 'board', re: /^SM_Prop_Skateboard_/, style: 'stand', clip: 'ride_stand', speed: 1.7, name: 'Skateboard', icon: '\u{1F6F9}', verb: 'Skate!' },
   { id: 'wagon', re: /^SM_Prop_Red_Wagon_/, style: 'sit', clip: 'sit_kart', speed: 1.3, name: 'Wagon', icon: '\u{1F6D2}', verb: 'Ride the wagon!' },
   { id: 'pogo', re: /^SM_Veh_Pogo_Stick/, style: 'pogo', clip: 'pogo', speed: 0.85, name: 'Pogo Stick', icon: '\u{1F998}', verb: 'Boing!' },
 ];

@@ -57,6 +57,8 @@ const SEESAW_G = 3.1;        // how fast your end drops
 // reached +0.11 and felt like the plank was stuck.
 const SEESAW_PUSH = 3.4;
 const SEESAW_MAX = 0.34;     // rad at either extreme
+const GRIND_SPEED = 4.2;     // m/s along a rail
+const FLIP_T = 0.45;         // s for a full kickflip rotation
 
 /** Ride rules per vehicle family, mirrored from world.js VEHICLE_FAMILIES. */
 const VEHICLE_DEFS = {
@@ -64,7 +66,9 @@ const VEHICLE_DEFS = {
   bike: { style: 'bike', clip: 'bike_pedal', speed: 1.9, name: 'Bike', icon: '\u{1F6B2}', verb: 'Ride the bike!' },
   trike: { style: 'bike', clip: 'bike_pedal', speed: 1.25, name: 'Trike', icon: '\u{1F6B2}', verb: 'Ride the trike!' },
   scooter: { style: 'stand', clip: 'ride_stand', speed: 1.6, name: 'Scooter', icon: '\u{1F6F4}', verb: 'Scoot!' },
-  board: { style: 'stand', clip: 'ride_stand', speed: 2.05, name: 'Skateboard', icon: '\u{1F6F9}', verb: 'Skate!', spread: 0.9 },
+  // 2.05 was "too fast" (Devon) — and flat anyway. 1.7 with the kick-pulse in
+  // speedScale averages ~1.6 and actually reads like skating.
+  board: { style: 'stand', clip: 'ride_stand', speed: 1.7, name: 'Skateboard', icon: '\u{1F6F9}', verb: 'Skate!', spread: 0.9 },
   wagon: { style: 'sit', clip: 'sit_kart', speed: 1.3, name: 'Wagon', icon: '\u{1F6D2}', verb: 'Ride the wagon!' },
   pogo: { style: 'pogo', clip: 'pogo', speed: 0.85, name: 'Pogo Stick', icon: '\u{1F998}', verb: 'Boing!', mountY: 0.28 },
   /**
@@ -385,6 +389,13 @@ export class Rides {
       const sx = bb.max.x - bb.min.x, sz = bb.max.z - bb.min.z;
       this.seesawAxis = sx >= sz ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
       this.seesawHalf = Math.max(sx, sz) * 0.39;   // sit near the plank end
+      /**
+       * The plank's state lives on the SEESAW, not on this.active — a seesaw
+       * with one rider is half a seesaw. `lift` is the +1 end's height, -1..1;
+       * `riders` holds an entry per end (the player, an NPC kid today, a
+       * remote player when multiplayer lands).
+       */
+      this.seesawSim = { lift: 0, vel: 0, riders: { '-1': null, '1': null }, npc: null, npcTimer: 0 };
       this.zones.push({
         id: 'seesaw', ride: 'seesaw', icon: '⚖️', name: 'Seesaw',
         prompt: 'Ride the seesaw', pos: [this.seesaw.position.x, this.seesaw.position.z], radius: 1.5,
@@ -397,15 +408,18 @@ export class Rides {
       prompt: 'Bounce!', pos: [r.position.x, r.position.z], radius: 1.1,
     }));
 
-    // hula hoops: nothing in the kit, so two code-drawn rings on the lawn
+    // Hula hoops: nothing in the kit, so two code-drawn rings on the lawn.
+    // They LIE on the grass like dropped toys — standing upright with nothing
+    // holding them read as a glitch (Devon: "the hula hoops look weird
+    // standing straight up"). Destined for the shop as a carried item anyway.
     this.hoops = [];
     const hoopGeo = new THREE.TorusGeometry(0.42, 0.035, 8, 22);
     const rack = { x: -5.0, z: -1.2 };
     [0xf6c344, 0xe85fa2].forEach((color, i) => {
       const mesh = new THREE.Mesh(hoopGeo, new THREE.MeshStandardMaterial({ color, roughness: 0.7 }));
       const home = {
-        pos: new THREE.Vector3(rack.x + i * 0.55 - 0.27, 0.44, rack.z),
-        rot: new THREE.Euler(0.16 + i * 0.1, 0.5 * i, 0),
+        pos: new THREE.Vector3(rack.x + i * 0.62 - 0.31, 0.045 + i * 0.03, rack.z + i * 0.34),
+        rot: new THREE.Euler(Math.PI / 2 - 0.07 + i * 0.05, 0.6 * i, 0),
       };
       mesh.position.copy(home.pos);
       mesh.rotation.copy(home.rot);
@@ -419,61 +433,178 @@ export class Rides {
   }
 
   _beginSeesaw(player) {
-    const m = this.seesaw;
+    const m = this.seesaw, sim = this.seesawSim;
     _va.copy(this.seesawAxis).applyQuaternion(m.quaternion);
-    const end = Math.sign(_va.dot(_vb.copy(player.pos).sub(m.position))) || 1;
-    // up = where the rider's end is, -1 (on the ground) .. +1 (in the air)
-    this.active = { kind: 'seesaw', end, up: -1, vel: 0 };
+    let end = Math.sign(_va.dot(_vb.copy(player.pos).sub(m.position))) || 1;
+    if (sim.riders[end]) end = -end;         // that end is taken — sit opposite
+    if (sim.riders[end]) return null;        // both taken
+    sim.riders[end] = { kind: 'player' };
+    this.active = { kind: 'seesaw', end };
     player.playAction('sit_seesaw');
     this.state.presence?.broadcast({ emote: 'sit_seesaw' });
-    return 'Hold on! Move to hop off.';
+    return 'Push off the ground to launch! Space to hop off.';
   }
 
   /**
-   * A seesaw is a LEVER, not a sine wave.
+   * A seesaw is a LEVER — and it seats TWO.
    *
-   * It used to be `sin(t)` with an amplitude that grew while someone stood
-   * near it — the plank swung whether or not that made any sense, and getting
-   * on changed nothing about how it moved. Devon: "the seesaw physics needs a
-   * lot of work."
-   *
-   * So: with one rider, their end falls to the ground and STAYS there, exactly
-   * like the real thing. Push off with a movement key while you're down and you
-   * launch — the harder the launch, the longer you hang at the top before
-   * gravity brings you back. Everything is expressed as `up`, the rider's own
-   * end from -1 (grounded) to +1 (top), which keeps the sign conventions
-   * honest: gravity is always -, a push is always +.
+   * Devon: "it should always lean towards the person on the ground because
+   * that's the side that weighs the most" — and it has to work with two
+   * riders, because that's what multiplayer will do to it. So the plank runs a
+   * torque model on `lift` (the +1 end's height, -1..1): the heavier side
+   * sinks under SEESAW_G, balanced riders coast on momentum with a light
+   * bleed, and a push only works from the ground, like actually pushing off.
+   * With one rider that reduces exactly to the old behaviour: your end falls
+   * and stays down until you shove. With two, the pushes alternate and the
+   * plank actually seesaws. Runs every frame the plank is occupied or still
+   * settling, whether or not the LOCAL player is one of the riders.
    */
-  _updateSeesaw(dt, player, intent) {
-    const m = this.seesaw, a = this.active;
-    m.userData.ridden = true;                // world.js leaves the plank to us
-
-    a.vel -= SEESAW_G * dt;                  // your end always wants the ground
-    const grounded = a.up <= -0.985;
-    if (grounded) {
-      a.vel = Math.max(0, a.vel);            // it can't go through the floor
-      // shove off — only works from the bottom, like actually pushing off
-      if (Math.hypot(intent.move.x, intent.move.y) > 0.3) {
-        a.vel = SEESAW_PUSH;
-        window.odaSfx && window.odaSfx.tone(150, 0.07, 'square', 0.05);
-      }
+  _updateSeesawSim(dt) {
+    const m = this.seesaw, sim = this.seesawSim;
+    if (!m) return;
+    const w1 = sim.riders['1'] ? 1 : 0, w0 = sim.riders['-1'] ? 1 : 0;
+    if (!w1 && !w0 && Math.abs(sim.lift) < 0.01 && Math.abs(sim.vel) < 0.02) {
+      m.userData.ridden = false;             // hand the idle drift back to world.js
+      return;
     }
-    a.up += a.vel * dt;
-    if (a.up > 1) { a.up = 1; a.vel = Math.min(0, a.vel) - 0.4; }   // thump at the top
-    if (a.up < -1) { a.up = -1; a.vel = 0; }
-
-    const ang = a.up * a.end * SEESAW_MAX;
+    m.userData.ridden = true;
+    sim.vel -= SEESAW_G * (w1 - w0) * dt;    // the heavy side sinks
+    if (w1 && w0) sim.vel *= Math.exp(-0.35 * dt);   // two kids: bleed a little
+    if (!w1 && !w0) sim.vel -= Math.sign(sim.lift) * SEESAW_G * 0.6 * dt;  // empty: settle
+    sim.lift += sim.vel * dt;
+    if (sim.lift <= -1) {
+      sim.lift = -1;
+      if (sim.vel < -1.2) window.odaSfx && window.odaSfx.tone(95, 0.08, 'sine', 0.06);
+      sim.vel = Math.max(0, sim.vel);        // legs absorb the landing
+    }
+    if (sim.lift >= 1) {
+      sim.lift = 1;
+      if (sim.vel > 1.2) window.odaSfx && window.odaSfx.tone(95, 0.08, 'sine', 0.06);
+      sim.vel = Math.min(0, sim.vel);
+    }
+    if (!w1 && !w0 && Math.abs(sim.lift) < 0.04 && Math.abs(sim.vel) < 0.06) {
+      sim.lift = 0; sim.vel = 0;
+    }
+    const ang = sim.lift * SEESAW_MAX;
     m.userData.angle = ang;
     m.quaternion.copy(m.userData.restQuat)
       .multiply(_tiltQ.setFromAxisAngle(m.userData.tiltAxis, ang));
+  }
 
-    _va.copy(this.seesawAxis).multiplyScalar(a.end * this.seesawHalf / m.scale.x);
+  /** Park a rider (player or NPC) on their end of the tilted plank. */
+  _seatSeesawRider(end, avatar) {
+    const m = this.seesaw;
+    _va.copy(this.seesawAxis).multiplyScalar(end * this.seesawHalf / m.scale.x);
     m.localToWorld(_vb.copy(_va));
-    player.pos.set(_vb.x, _vb.y + 0.02, _vb.z);
-    player.yaw = player.targetYaw = Math.atan2(m.position.x - _vb.x, m.position.z - _vb.z);
-    player.tilt = ang * a.end;
-    player.speed = 0; player.vel.y = 0; player.grounded = true;
-    if (intent.jump) { m.userData.ridden = false; this._exitToGround(player, m.position); }
+    avatar.pos.set(_vb.x, _vb.y + 0.02, _vb.z);
+    avatar.yaw = avatar.targetYaw = Math.atan2(m.position.x - _vb.x, m.position.z - _vb.z);
+    avatar.tilt = (m.userData.angle || 0) * end;
+    avatar.speed = 0; avatar.vel.y = 0; avatar.grounded = true;
+  }
+
+  /** The local player's half of the seesaw: their seat, their pushes. */
+  _updateSeesaw(dt, player, intent) {
+    const sim = this.seesawSim, a = this.active;
+    const upE = sim.lift * a.end;            // MY end's height, -1..1
+    if (upE <= -0.985 && Math.hypot(intent.move.x, intent.move.y) > 0.3) {
+      sim.vel = a.end * SEESAW_PUSH;         // shove off — only from the ground
+      window.odaSfx && window.odaSfx.tone(150, 0.07, 'square', 0.05);
+    }
+    this._seatSeesawRider(a.end, player);
+    if (intent.jump) {
+      sim.riders[a.end] = null;
+      this._exitToGround(player, this.seesaw.position);
+    }
+  }
+
+  /**
+   * The other end of the seesaw is a SEAT, and an NPC kid takes it.
+   *
+   * A one-kid seesaw is physically honest but emotionally wrong — the whole
+   * toy is the other person. Until multiplayer, a nearby NPC is conscripted
+   * (same `controlled` contract freeze tag uses: the crowd leaves them alone
+   * and we drive their avatar), walks to the free end, hops on, and pushes
+   * back from the ground on a kid-sized delay. When the player hops off, the
+   * NPC does too and goes back to wandering.
+   */
+  _updateSeesawNpc(dt) {
+    const sim = this.seesawSim;
+    if (!sim) return;
+    const playerEnd = this.active?.kind === 'seesaw' ? this.active.end : 0;
+    const crowd = this.state.npcs;
+
+    // recruit after the player has settled in for a moment
+    if (playerEnd && !sim.npc && crowd) {
+      sim.npcTimer += dt;
+      if (sim.npcTimer > 1.6) {
+        let best = null, bd = 15;
+        for (const n of crowd.npcs) {
+          if (n.controlled) continue;
+          const d = n.avatar.pos.distanceTo(this.seesaw.position);
+          if (d < bd) { bd = d; best = n; }
+        }
+        if (best) {
+          best.controlled = 'seesaw';
+          sim.npc = { npc: best, end: -playerEnd, phase: 'walk', pushT: 0 };
+        }
+        sim.npcTimer = -4;   // if nobody was near, look again in a few seconds
+      }
+    }
+    const rec = sim.npc;
+    if (!rec) { if (!playerEnd) sim.npcTimer = 0; return; }
+    const av = rec.npc.avatar;
+
+    // player left → the NPC hops off and goes back to wandering
+    if (!playerEnd) {
+      sim.riders[rec.end] = null;
+      av.tilt = 0;
+      av.rig.stopEmote && av.rig.stopEmote();
+      av.pos.y = this.world.collision.groundAt(av.pos.x, av.pos.z, av.pos.y + 0.5);
+      rec.npc.controlled = false;
+      rec.npc.state = 'idle';
+      rec.npc.timer = 1 + Math.random() * 2;
+      sim.npc = null;
+      sim.npcTimer = 0;
+      return;
+    }
+
+    if (rec.phase === 'walk') {
+      _va.copy(this.seesawAxis).multiplyScalar(rec.end * this.seesawHalf / this.seesaw.scale.x);
+      this.seesaw.localToWorld(_vb.copy(_va));
+      const dx = _vb.x - av.pos.x, dz = _vb.z - av.pos.z;
+      const dist = Math.hypot(dx, dz);
+      if (dist < 0.45) {
+        rec.phase = 'ride';
+        sim.riders[rec.end] = { kind: 'npc' };
+        av.playAction('sit_seesaw');
+      } else {
+        const wantYaw = Math.atan2(dx / dist, dz / dist);
+        let dy = (wantYaw - av.yaw) % (Math.PI * 2);
+        if (dy > Math.PI) dy -= Math.PI * 2;
+        if (dy < -Math.PI) dy += Math.PI * 2;
+        av.yaw += dy * Math.min(1, 8 * dt);
+        av.speed += (1.45 - av.speed) * Math.min(1, 8 * dt);
+        const solved = this.world.collision.resolve(
+          av.pos.x + (dx / dist) * av.speed * dt,
+          av.pos.z + (dz / dist) * av.speed * dt, av.pos.y);
+        av.pos.x = solved.x; av.pos.z = solved.z;
+        av.pos.y = this.world.collision.groundAt(av.pos.x, av.pos.z, av.pos.y + 0.3);
+      }
+    } else {
+      this._seatSeesawRider(rec.end, av);
+      const upE = this.seesawSim.lift * rec.end;
+      if (upE <= -0.985) {
+        rec.pushT += dt;
+        if (rec.pushT > 0.4) {               // a beat on the ground, then push
+          rec.pushT = 0;
+          this.seesawSim.vel = rec.end * SEESAW_PUSH;
+          window.odaSfx && window.odaSfx.tone(140, 0.07, 'square', 0.04);
+        }
+      } else {
+        rec.pushT = 0.15;
+      }
+    }
+    av.update(dt, this.world.camera);
   }
 
   _beginRocker(player, zone) {
@@ -860,10 +991,23 @@ export class Rides {
 
   get driving() { return this.active?.kind === 'vehicle'; }
   /** stepPlayer asks how much faster this ride is than walking. */
-  get speedScale() { return this.active?.kind === 'vehicle' ? this.active.v.def.speed : 1; }
+  get speedScale() {
+    if (this.active?.kind !== 'vehicle') return 1;
+    const a = this.active;
+    // A skateboard's thrust comes in KICKS — surge, glide, surge — driven off
+    // the push cycle _updateVehicle advances. Constant speed read as a
+    // conveyor belt (and "too fast").
+    if (a.v.family === 'board' && !a.grind && !a.air) {
+      const k = Math.max(0, Math.sin(a.pushPhase || 0));
+      return a.v.def.speed * (0.82 + 0.34 * k * k);
+    }
+    return a.v.def.speed;
+  }
 
   _updateVehicle(dt, player, intent) {
     const a = this.active, v = a.v;
+    if (a.grind) return this._updateGrind(dt, player, intent);
+    const board = v.family === 'board';
     const ground = this.world.collision.groundAt(player.pos.x, player.pos.z, player.pos.y + 0.4);
     // A pogo stick HOPS. Everything else rides the ground.
     // Place the BODY so its seat lands under the rider, rather than dragging
@@ -877,9 +1021,38 @@ export class Rides {
       if (Math.sin(a.hop) < 0 && Math.sin(a.hop - dt * 7.4) >= 0 && window.odaSfx) {
         window.odaSfx.tone(300 + Math.random() * 60, 0.06, 'square', 0.03);
       }
+    } else if (board && a.air) {
+      // ── airborne trick: the board sticks to the feet and kickflips ──
+      a.trickT += dt;
+      v.group.position.set(player.pos.x - _va.x, player.pos.y - v.deck, player.pos.z - _va.z);
+      if (a.trickFlip) v.group.rotation.z = Math.min(1, a.trickT / FLIP_T) * Math.PI * 2;
+      if (player.grounded) {
+        // touched down: a rail underfoot becomes a grind, a full rotation pays
+        v.group.rotation.z = 0;
+        const clean = a.trickFlip && a.trickT >= FLIP_T * 0.9;
+        a.air = false;
+        const rail = this._railUnder(player.pos.x, player.pos.z, player.pos.y);
+        if (rail) this._beginGrind(rail, player);
+        else if (clean) {
+          window.odaSfx && window.odaSfx.play('powerup');
+          const now = performance.now();
+          if (!this._trickPayAt || now - this._trickPayAt > 10000) {
+            this._trickPayAt = now;
+            this.state.award?.(2);
+            this.state.toast?.('Kickflip! +2 \u{1F6F9}', 'gold');
+          } else {
+            this.state.toast?.('Kickflip! \u{1F6F9}');
+          }
+        }
+      }
     } else {
       v.group.position.set(player.pos.x - _va.x, ground, player.pos.z - _va.z);
       player.pos.y = this._mountY(v, ground);
+      // the skateboard's push cycle — speedScale surges on each kick
+      if (board && player.speed > 0.4) a.pushPhase = (a.pushPhase || 0) + dt * 5.2;
+      // rolling down a slope leaves `grounded` false most frames (constant
+      // micro-airtime), so the ollie gets COYOTE TIME off this stamp
+      if (board && player.grounded) a.lastGroundMs = performance.now();
     }
     // Steer the BODY so its own forward lines up with where the rider is
     // heading. Without the offset a skateboard travels sideways under a kid who
@@ -894,7 +1067,22 @@ export class Rides {
     if (player.speed > 0.5 && Math.random() < dt * 6 && window.odaSfx) {
       window.odaSfx.tone(70 + player.speed * 14 + Math.random() * 18, 0.05, 'square', 0.025);
     }
-    if (intent.dismount || intent.jump) {
+    if ((intent.dismount || intent.jump) && !a.air) {
+      // On a skateboard at speed, Space is an OLLIE, not an exit — Devon wants
+      // tricks. Slow down (or stop) and Space hops off like everywhere else.
+      if (board && player.speed >= 0.6) {
+        // grounded OR just was (riding a slope flickers `grounded` every
+        // frame; a strict check dumped the kid off half the time instead)
+        if (player.grounded || (a.lastGroundMs && performance.now() - a.lastGroundMs < 220)) {
+          a.air = true;
+          a.trickT = 0;
+          a.trickFlip = true;
+          player.vel.y = 4.9;
+          player.grounded = false;
+          window.odaSfx && window.odaSfx.play('whoosh');
+        }
+        return;   // moving fast: Space never means "bail off the board"
+      }
       player.rig.forceLegEmote = false;
       player.rig.stopEmote?.();
       this.state.presence?.broadcast({ emote: '_stop' });
@@ -904,6 +1092,79 @@ export class Rides {
       this._mountXZ(v, _vb);
       v.zone.pos = [_vb.x, _vb.z];      // the prompt sits on the seat, not the origin
       this.active = null;
+    }
+  }
+
+  /** The grind rails, read once off the collision export's own boxes. */
+  _railUnder(x, z, y) {
+    if (!this._rails) {
+      this._rails = this.world.collision.boxes
+        .filter((b) => /SkatePark_Rail_Box/.test(b.name))
+        .map((b) => {
+          const alongX = (b.maxX - b.minX) >= (b.maxZ - b.minZ);
+          return {
+            cx: (b.minX + b.maxX) / 2, cz: (b.minZ + b.maxZ) / 2, top: b.maxY,
+            ax: alongX ? 1 : 0, az: alongX ? 0 : 1,
+            half: (alongX ? b.maxX - b.minX : b.maxZ - b.minZ) / 2,
+            width: (alongX ? b.maxZ - b.minZ : b.maxX - b.minX) / 2,
+          };
+        });
+    }
+    for (const r of this._rails) {
+      const along = (x - r.cx) * r.ax + (z - r.cz) * r.az;
+      const across = (x - r.cx) * r.az - (z - r.cz) * r.ax;
+      if (Math.abs(along) > r.half + 0.1 || Math.abs(across) > r.width + 0.2) continue;
+      if (Math.abs(y - r.top) > 0.45) continue;
+      return r;
+    }
+    return null;
+  }
+
+  _beginGrind(rail, player) {
+    const a = this.active;
+    const dir = Math.sign(Math.sin(player.yaw) * rail.ax + Math.cos(player.yaw) * rail.az) || 1;
+    a.grind = {
+      rail, dir,
+      along: (player.pos.x - rail.cx) * rail.ax + (player.pos.z - rail.cz) * rail.az,
+    };
+    this.state.toast?.('Grind! \u{1F6F9}');
+    window.odaSfx && window.odaSfx.tone(2200, 0.1, 'square', 0.03);
+  }
+
+  /**
+   * Grinding: the board rides the rail's own line. Devon: the skateboard needs
+   * "collision with the grind rails" — the rails ARE solid (you can ollie onto
+   * them); this is what happens when you land there. Slide to the end and drop
+   * off, or Space pops off with a fresh flip.
+   */
+  _updateGrind(dt, player, intent) {
+    const a = this.active, v = a.v, g = a.grind, r = g.rail;
+    g.along += g.dir * GRIND_SPEED * dt;
+    const offEnd = Math.abs(g.along) > r.half + 0.15;
+    player.pos.x = r.cx + r.ax * g.along;
+    player.pos.z = r.cz + r.az * g.along;
+    player.pos.y = r.top + v.deck;             // board on the rail, feet on the board
+    player.yaw = player.targetYaw = Math.atan2(r.ax * g.dir, r.az * g.dir);
+    player.speed = GRIND_SPEED;
+    player.vel.y = 0; player.grounded = true; player.tilt = 0;
+    _va.copy(v.seat).applyAxisAngle(_up, v.group.rotation.y);
+    v.group.position.set(player.pos.x - _va.x, r.top, player.pos.z - _va.z);
+    let dy = ((player.yaw - v.fwdOffset) - v.group.rotation.y) % (Math.PI * 2);
+    if (dy > Math.PI) dy -= Math.PI * 2;
+    if (dy < -Math.PI) dy += Math.PI * 2;
+    v.group.rotation.y += dy * Math.min(1, 14 * dt);
+    // metal rasp while it slides
+    if (Math.random() < dt * 10 && window.odaSfx) {
+      window.odaSfx.tone(1800 + Math.random() * 500, 0.03, 'square', 0.018);
+    }
+    if (intent.dismount || intent.jump || offEnd) {
+      a.grind = null;
+      a.air = true;
+      a.trickT = offEnd ? FLIP_T : 0;          // rolling off the end doesn't re-flip
+      a.trickFlip = !offEnd;                   // popping off with Space does
+      player.vel.y = offEnd ? 1.6 : 3.8;
+      player.grounded = false;
+      if (!offEnd) window.odaSfx && window.odaSfx.play('whoosh');
     }
   }
 
@@ -961,17 +1222,29 @@ export class Rides {
   }
 
   _beginSpinner(player, item) {
-    this.active = { kind: 'spinner', item };
+    this.active = { kind: 'spinner', item, dir: 1 };
     player.rig.forceLegEmote = true;
     player.playAction('spin_ride', null);
     this.state.presence?.broadcast({ emote: 'spin_ride' });
-    return 'Hold W to push it round \u00b7 Space to hop off';
+    return 'A/D spin it either way \u00b7 S slows it \u00b7 Space to fly off';
   }
 
+  /**
+   * The spin has a DIRECTION now. Devon: "the way it works in real life is
+   * there's a little wheel in the middle, and you spin that wheel, and that
+   * makes the whole thing spin." So: steer left/right to throw it that way
+   * (D = toward your right as you sit facing outward), W keeps it going the
+   * way it already turns, S drags it down like grabbing the wheel.
+   */
   _updateSpinner(dt, player, intent) {
-    const it = this.active.item;
-    const pushing = Math.abs(intent.move.y) > 0.3 || Math.abs(intent.move.x) > 0.3;
-    it.rate += ((pushing ? 3.4 : 0) - it.rate) * Math.min(1, dt * (pushing ? 0.9 : 0.5));
+    const a = this.active, it = a.item;
+    // rider faces OUT, so their screen-right is spin-negative (measured from
+    // the seat parametrisation: pos runs (sin, cos)\u00b7r, right = (-cos, sin))
+    if (Math.abs(intent.move.x) > 0.3) a.dir = intent.move.x > 0 ? -1 : 1;
+    const braking = intent.move.y > 0.3;
+    const pushing = !braking && (Math.abs(intent.move.x) > 0.3 || intent.move.y < -0.3);
+    const target = pushing ? 3.4 * a.dir : 0;
+    it.rate += (target - it.rate) * Math.min(1, dt * (pushing ? 0.9 : braking ? 2.4 : 0.5));
     it.spin += it.rate * dt;
     it.group.rotation.y = it.spin;
     // ride a seat out on the rim, so you actually travel round
@@ -983,8 +1256,8 @@ export class Rides {
       it.group.position.z + Math.cos(it.spin) * r);
     player.yaw = player.targetYaw = it.spin + Math.PI;   // facing out
     player.speed = 0; player.vel.y = 0; player.grounded = true; player.tilt = 0;
-    if (it.rate > 1.4 && Math.random() < dt * 4 && window.odaSfx) {
-      window.odaSfx.tone(150 + it.rate * 20, 0.05, 'triangle', 0.02);
+    if (Math.abs(it.rate) > 1.4 && Math.random() < dt * 4 && window.odaSfx) {
+      window.odaSfx.tone(150 + Math.abs(it.rate) * 20, 0.05, 'triangle', 0.02);
     }
     if (intent.jump) {
       // fling off tangentially — the best bit of a roundabout
@@ -1147,6 +1420,12 @@ export class Rides {
         const c = this.world.collision.clampToBounds(player.pos.x, player.pos.z, 1.2);
         player.pos.x = c.x; player.pos.z = c.z;
       }
+    }
+    // the seesaw is a shared object now: its physics and its NPC playmate run
+    // whether or not the local player is on it
+    if (this.seesaw) {
+      this._updateSeesawSim(dt);
+      this._updateSeesawNpc(dt);
     }
     if (!this.active) return;
     switch (this.active.kind) {

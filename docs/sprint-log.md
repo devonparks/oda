@@ -1,5 +1,42 @@
 # Sprint Log
 
+## 2026-07-26 (cont.) — P1: seesaw seats two, the roundabout has a direction, skateboards do tricks
+
+**THE SEESAW IS A TWO-KID TOY NOW.** The plank's state moved off the rider and
+onto the seesaw itself: a torque model on `lift` (+1 end's height) — the heavy
+side sinks, balanced riders coast on momentum, a push only works from the
+ground. One rider reduces exactly to the old lever. And because a one-kid
+seesaw is emotionally wrong, a nearby NPC kid gets conscripted (the same
+`controlled` contract freeze tag uses): walks over, takes the free end, and
+pushes back on a kid-sized delay. Measured over 18 s of play: full travel both
+ways, 14 alternations, clean release when the player hops off. The two-seat
+rider model is exactly what multiplayer will plug into.
+
+**THE ROUNDABOUT SPINS THE WAY YOU THROW IT.** Devon: "there's a little wheel
+in the middle, and you spin that wheel." A/D throw it either way (D = your
+screen-right as you sit facing outward — measured from the seat parametrisation,
+not guessed), W keeps it going, S drags it down. Measured: A → +2.5 rad/s,
+D → −2.8, S brakes to ~0. The tangential Space-fling still works in both
+directions.
+
+**SKATEBOARDS: slower, kicks, ollies, kickflips, grinds.** 2.05× was "too
+fast" — it's 1.7× with thrust that comes in KICKS (speedScale surges on a push
+cycle), so it reads as skating, not a conveyor. Space at speed is an OLLIE
+(with coyote time — rolling downhill leaves `grounded` false most frames, and
+a strict check dumped the kid off half the time), the board sticks to the feet
+and kickflips; a clean rotation pays +2 coins (10 s cooldown so it can't be
+farmed). Land on a SkatePark_Rail_Box and you GRIND: locked to the rail's own
+line at 4.2 m/s, off the end or pop off with Space. Rails come from the
+collision export's boxes, nothing hand-placed. Space only exits a board when
+you've slowed down — never mid-run.
+
+**Hula hoops lie on the grass** like dropped toys instead of standing
+unsupported (still destined to be a shop item; the mechanics stay unlocked).
+
+Still open from the feel list: a real push-off CLIP for the board (needs a
+Unity bake session via AMGActionBaker — the 20th clip), and P2 (zip line,
+pond floaties, walk-up slides, tyre crawl).
+
 ## 2026-07-26 — P0: the Jeep drives, riders sit on saddles, the pond knows its own edge
 
 Working the backlog top-down. Everything below measured in real Chrome via the

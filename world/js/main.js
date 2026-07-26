@@ -315,6 +315,7 @@ async function enterWorld() {
 
   // rideable playthings: the swing set + all four slides
   state.toast = toast;              // rides.js toasts its own auto-triggers
+  state.award = (n) => awardCoins(n, true);   // skateboard tricks pay a little
   state.rides = new Rides(world, state);
 
   setProgress(1, 'Have fun!');
