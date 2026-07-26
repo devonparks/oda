@@ -76,7 +76,8 @@ statement, not "stairs are fixed".
 
 **SEAMS, REPORTED NOT HIDDEN.** The ground is a mosaic of flat tiles and a mesh
 collider built from zero-thickness geometry has joins. Measured on a 48-point
-grid: 41 land on the park, 4 slip through a seam. A wide static catch floor at
+grid: 41 land on the park, 7 slip through a seam, 0 fall out of the world. A
+wide static catch floor at
 y = −2.6 turns that from "fall out of the world forever" into "step down and
 walk back up" — the three.js park had the same thing at −1.25. It is NOT a fix,
 and the probe prints the seam count every run so it cannot quietly become one.
