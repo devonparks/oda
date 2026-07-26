@@ -1,5 +1,78 @@
 # Sprint Log
 
+## 2026-07-25 (overnight, cont.) — playtest 6: the crash, fishing, and alignment
+
+Devon's longest playtest yet. Fixed and deployed this pass; the rest is the
+backlog below, in his own words.
+
+**THE CRASH (mine).** "The picnic tables broke the game — I had to go back to
+the hub and load back in." `enterZone` checked `zone.seat` **before**
+`zone.ride`, and the table zones carried a `seat` property, so they routed into
+the BENCH sit — which reads `zone.x/z/yaw`. Those don't exist on a ride, so the
+player position went `NaN` and took the renderer with it. Rides are checked
+first now and the property is renamed `spot` so it can't recur.
+
+**FISHING (mine).** "It was working, but it's not working now. I can't catch
+the fish at all." An early press used to REEL IN — survivable when E was the
+only way to fish, fatal once a *click* uses the held rod, because every stray
+click during the wait cancelled the cast. Ignored now. Also: the rod is a
+carried ITEM, no bank zone and no auto-pose, per "I just want to be able to use
+the fishing rod wherever you want."
+
+**THE SLIDE GRABBING YOU.** The entry gate (1 m radius, 0.75 m height slack,
+0.3 facing dot) caught anyone lining up for the **zip line** on the same
+platform. Now 0.62 m / 0.45 m / 0.72 dot, requires real walking speed, plus a
+1.2 s cooldown.
+
+**ALIGNMENT — one root cause behind three complaints.** "The wheels are
+spinning on the wrong axis", "on a skateboard you're standing sideways", "the
+character isn't on a seat… it's like that for literally everything."
+
+- **Facing** was "+Z rotated by the root matrix" — an assumption. Measured error
+  against reality: **kart −195°, pogo −71°, wagon 49°, scooter 33°, bike 20°**.
+  A vehicle is longer along its travel axis, and the steering part says which
+  end is the front. Rider-to-body alignment now **1.000 on all seven families**.
+- **Wheels** orbited instead of spinning (mesh origin = the *vehicle's* origin)
+  about an assumed local X. Each wheel now has a pivot at its own centre and
+  spins about its **thinnest horizontal axis**.
+- **Seat**: mounting used the group origin. It's the widest part's centre now.
+  Measured rider-to-seat: kart 0.001, trike 0.024, board 0.039, wagon/pogo
+  exact. **Bike still 0.40 out, scooter 0.17** — better, not yet right.
+
+### Devon's remaining backlog, verbatim where it matters
+
+**Physics / feel**
+- **Seesaw**: "it should always lean towards the person on the ground because
+  that's the side that weighs the most" — and it must work with **two riders**
+  for multiplayer.
+- **Roundabout**: "the way it works in real life is there's a little wheel in
+  the middle, and you spin that wheel" — needs a directional control.
+- **Skateboard**: too fast; wants a push-off animation, **tricks**, and
+  collision with the **grind rails**. Tricks could pay XP.
+- **Pond edge**: where water ends and dirt begins is still off.
+
+**Missing interactables**
+- The **purple car by the skate park** (it's `Coin_Ride_Car` — currently rocks
+  in place; Devon expects to drive it: confirm which he wants).
+- **Zip line** (`Playground_Track_Ride_01`): grab it and ride across.
+- **Pond floaties** should be rideable like vehicles.
+- Confirm the **pogo stick** works (he couldn't find it — it's at 7.5, 26.6).
+- **Hula hoops** stand upright and look wrong; possibly better as a shop item.
+
+**Movement / camera**
+- "**Majority of the activities should just work from walking**" — no prompts.
+- The **slide should have collision so you can walk up it**.
+- **Tires**: a crawl state to climb, not one locked animation.
+- **Camera zoom levels** in third person — "when you go to the top of the
+  playground you can't even see the big green slide". Wants a settings option.
+- General playground mobility.
+
+**Bigger**
+- **Fishing economy**: sell fish, a shop.
+- **Background** — "it's just a plane floating in the middle of nowhere".
+- Expand **freeze tag**.
+- Then **multiplayer**.
+
 ## 2026-07-25 (overnight) — "full send it": everything in the park works now
 
 Devon: *"I want every vehicle to be driven… a skateboard, the bicycles,
