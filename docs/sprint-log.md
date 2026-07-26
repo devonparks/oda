@@ -1,5 +1,63 @@
 # Sprint Log
 
+## 2026-07-25 (overnight) — "full send it": everything in the park works now
+
+Devon: *"I want every vehicle to be driven… a skateboard, the bicycles,
+everything. And I want every single attraction to be interactable."* Two
+commits, both deployed. The park now has **67 interactable spots**.
+
+**Fourteen vehicles, one implementation.** The soapbox racer's trick — divert
+the layout parts out of the static batch, re-parent them into a rigid group —
+became a family table: **5 skateboards, 3 bikes, 2 scooters, a trike, a wagon,
+a pogo stick, the kart**. Parts arrive as a FLAT list (five boards' worth of
+decks and twenty wheels, all siblings), so they're clustered by proximity into
+instances. `stepPlayer` keeps running with a per-vehicle `speedScale`, so a
+skateboard (2.05×) really is quicker than a trike (1.25×), and every rider gets
+real collision and real ground. Hop off and it parks there.
+
+Two bugs found by measuring instead of eyeballing:
+- **Mount height came from the whole assembly's bounding box, whose top is the
+  HANDLEBARS** — scooter riders stood 1.63 m up, on the bars. It's the widest
+  *part's* top now: footboard 0.13, board 0.23, wagon floor 0.32, trike seat
+  0.50, bike saddle 0.66, kart body 0.91. The pogo overrides it (single part —
+  you ride the pegs).
+- **That measurement has to be a SECOND pass.** `setFromObject` reads
+  `matrixWorld`, and inside the build loop the group's own `matrixWorld` is
+  still stale, so every part measured against a garbage transform.
+
+**Both roundabouts spin.** Devon named them: the four-tyre one behind the
+fountain and the one next to the seesaw. Both were being animated as spring
+rockers. Now you sit on the rim, hold a direction to push it round, and Space
+flings you off tangentially. **The rocket** and the other two coin rides rock
+and bob. **The monkey bars** read their two ends off the prop's own top band,
+so you swing across hand over hand from either side.
+
+**The seesaw became a lever.** It was `sin(t)` with an amplitude that grew when
+someone stood near — the plank swung whether or not that made sense. Now one
+rider's end falls to the ground and stays there; push off with a movement key
+while you're down and you launch. Everything is expressed as `up` (−1 grounded
+→ +1 top) so the signs stay honest. Push tuned against the arc, not by feel:
+peak = v²/(2G), so 3.4 carries you from −1 to +0.89 (measured). 2.6 only
+reached +0.11 and felt stuck.
+
+**Picnic tables: four seats each, all five tables.** Derived from the benches —
+the benches are the widest thing below the top, so find that band, take its long
+axis, two seats a side facing in. No hand-placed coordinates and no layout
+rotation to read, because these tables live in the shell.
+
+**Six new clips** through the same baker: `ride_stand`, `bike_pedal` (legs
+turning a real circle, half a turn apart), `pogo`, `monkey` (hanging, legs
+swinging opposite the arms), `sit_table`, `spin_ride`. **19 clips, 118 KB.**
+
+Verified in real Chrome: all 21 rides start, play the right clip, and the body
+tracks the rider to the centimetre on every vehicle.
+
+### What's left
+
+Multiplayer — which is what Devon said comes after "everything here is
+interactive". The four-seat tables and independent bench seats were built with
+that in mind. Also unfinished: the kart driver position he mentioned in passing.
+
 ## 2026-07-25 (late night, cont.) — playtest 5: slides by walking, treehouse roof
 
 Two calls from Devon, both right, both cheap.
