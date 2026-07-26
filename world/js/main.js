@@ -254,6 +254,16 @@ async function enterWorld() {
   // agent (or Devon in devtools) inspect and teleport without a build step.
   window.__world = {
     state, world, THREE,
+    /** The engine's object layer — see world/js/editor.js. */
+    editor: {
+      mode: (on) => setEditMode(on),
+      pick: (x, y) => { editSelect(x, y); return editor.sel; },
+      remove: () => editDelete(),
+      undo: () => editUndo(),
+      selected: () => editor.sel,
+      objects: () => world.objects,
+      export: () => world.objects.exportEdits(),
+    },
     tp: (x, z) => { player.pos.set(x, 6, z); player.vel.y = 0; },
     combo: (n) => coinCombo(n),
     resetCombo: () => { comboCount = 0; comboExpire = 0; },
@@ -1126,6 +1136,100 @@ function runActivity(zone) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// EDIT MODE — the AMG World Engine's hands
+// ---------------------------------------------------------------------------
+/**
+ * Devon: "every single item is a prefab… you should be able to just click on
+ * the bicycles and then just remove them."
+ *
+ * Press ` (backtick) to go in and out. In edit mode a click picks whatever
+ * object is under the cursor — from the registry, so it works even for things
+ * merged into a 130k-triangle batch — outlines it, and names it. Delete removes
+ * it, Ctrl+Z puts it back, and removals survive a reload. `__world.editor.
+ * export()` prints the JSON to commit if a change should ship to everyone.
+ */
+const editor = { on: false, sel: null, box: null, panel: null, undo: [] };
+
+function editBox() {
+  if (!editor.box) {
+    editor.box = new THREE.Box3Helper(new THREE.Box3(), 0x1fe6a8);
+    editor.box.material.depthTest = false;
+    editor.box.renderOrder = 30;
+    state.world.scene.add(editor.box);
+  }
+  return editor.box;
+}
+
+function editPanel() {
+  if (!editor.panel) {
+    const el = document.createElement('div');
+    el.className = 'edit-panel';
+    el.style.cssText = 'position:fixed;left:12px;top:64px;z-index:60;max-width:340px;'
+      + 'background:rgba(10,16,34,.88);border:1px solid #1fe6a8;border-radius:12px;'
+      + 'padding:10px 12px;color:#eaf6ff;font:12px/1.5 system-ui;pointer-events:none';
+    document.body.appendChild(el);
+    editor.panel = el;
+  }
+  return editor.panel;
+}
+
+function setEditMode(on) {
+  editor.on = on;
+  const p = editPanel();
+  p.style.display = on ? 'block' : 'none';
+  if (editor.box) editor.box.visible = on && !!editor.sel;
+  if (!on) editor.sel = null;
+  const st = state.world.objects.stats();
+  p.innerHTML = on
+    ? `<b style="color:#1fe6a8">EDIT MODE</b> — ${st.objects} objects, ${st.prefabs} prefabs`
+      + `<br><span style="opacity:.7">click an object · Delete removes · Ctrl+Z undo · \` to exit</span>`
+    : '';
+  toast(on ? 'Edit mode: click any object' : 'Edit mode off');
+}
+
+function editSelect(sx, sy) {
+  const world = state.world;
+  const ndc = new THREE.Vector2((sx / window.innerWidth) * 2 - 1, -(sy / window.innerHeight) * 2 + 1);
+  const ray = new THREE.Raycaster();
+  ray.setFromCamera(ndc, world.camera);
+  const hit = world.objects.pick(ray.ray);
+  editor.sel = hit;
+  const p = editPanel();
+  const st = world.objects.stats();
+  if (!hit) {
+    if (editor.box) editor.box.visible = false;
+    p.innerHTML = `<b style="color:#1fe6a8">EDIT MODE</b> — nothing there`
+      + `<br><span style="opacity:.7">${st.objects} objects · \` to exit</span>`;
+    return;
+  }
+  const b = editBox();
+  b.box.set(new THREE.Vector3(...hit.min), new THREE.Vector3(...hit.max));
+  b.visible = true;
+  p.innerHTML = `<b style="color:#1fe6a8">${hit.name}</b>`
+    + `<br>prefab <span style="opacity:.8">${hit.prefab}</span>`
+    + `<br>layer ${hit.layer} · ${hit.kind}`
+    + `<br>at ${hit.pos.map((n) => n.toFixed(1)).join(', ')}`
+    + `<br><span style="opacity:.7">Delete to remove · Ctrl+Z undo</span>`;
+}
+
+function editDelete() {
+  const hit = editor.sel;
+  if (!hit) return;
+  state.world.objects.setHidden(hit, true);
+  editor.undo.push(hit);
+  editor.sel = null;
+  if (editor.box) editor.box.visible = false;
+  toast(`Removed ${hit.name}`);
+}
+
+function editUndo() {
+  const last = editor.undo.pop();
+  if (!last) return;
+  state.world.objects.setHidden(last, false);
+  toast(`Restored ${last.name}`);
+}
+
 function tapToMove(sx, sy) {
   const world = state.world;
   const ndc = new THREE.Vector2(
@@ -1503,6 +1607,9 @@ function bindHud() {
     else if (k === 'Escape') { hideModal('zoneModal'); hideModal('helpModal'); hideModal('bagModal'); $('emoteWheel').classList.add('hidden'); $('chatWheel').classList.add('hidden'); }
     else if (k === 'Tab') { e.preventDefault(); toggleBag(); }
     else if (k === 'KeyV') toggleView();
+    else if (k === 'Backquote') setEditMode(!editor.on);
+    else if (editor.on && (k === 'Delete' || k === 'Backspace')) { e.preventDefault(); editDelete(); }
+    else if (editor.on && k === 'KeyZ' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); editUndo(); }
     else if (/^Digit[1-8]$/.test(k)) {
       // 1-8 are the HOTBAR now (the shape every kid already knows). While the
       // emote wheel is open they still pick emote favourites, so the old muscle
@@ -1538,10 +1645,13 @@ function bindHud() {
     // to take control of the camera must not also fling their ball across the
     // park. Touch has no pointer lock and no cursor to aim — those players use
     // the hotbar slot tap instead.
-    if (!document.pointerLockElement) return;
     if (!$('bagModal').classList.contains('hidden')) return;
     if (!$('zoneModal').classList.contains('hidden')) return;
     if (!$('helpModal').classList.contains('hidden')) return;
+    // EDIT MODE takes the click, and takes it with a free cursor: picking
+    // needs to aim at a thing, which pointer lock makes impossible.
+    if (editor.on) { editSelect(e.clientX, e.clientY); return; }
+    if (!document.pointerLockElement) return;
     useHeld();
   });
   $('bagClose').onclick = () => hideModal('bagModal');

@@ -55,6 +55,9 @@ const HANG_DROP = 1.15;
 const SEESAW_G = 5.2;
 const SEESAW_PUSH = 4.6;
 const SEESAW_MAX = 0.34;     // rad at either extreme
+/** How far a rider sinks into a picnic bench's thin plank (the park bench,
+ *  which is a chunkier seat, uses the 6.5 cm default). */
+const TABLE_SINK = 0.015;
 
 /**
  * Group loose layout rows into individual objects by proximity.
@@ -645,7 +648,9 @@ export class Rides {
    * tangent to the surface (the old `BUTT_BELOW_PELVIS - SEATED_PELVIS_Y`
    * form) reads as hovering.
    */
-  _seatOriginY(seatY) { return seatY + 0.04 - SEATED_PELVIS_Y; }
+  _seatOriginY(seatY, sink = 0.065) {
+    return seatY + (BUTT_BELOW_PELVIS - sink) - SEATED_PELVIS_Y;
+  }
 
   /**
    * Which way a ride-on toy FACES, measured off its own shape.
@@ -1165,7 +1170,10 @@ export class Rides {
   _beginTableSeat(player, zone) {
     const t = zone.spot;
     this.active = { kind: 'tableseat', t };
-    player.pos.set(t.x, this._seatOriginY(t.y), t.z);
+    // A picnic bench is a THIN plank: the park bench's 6.5 cm sink reads as
+    // contact on a chunky seat but pushes a kid's backside clean through this
+    // one (Devon: "he doesn't actually sit on the seat"). 1.5 cm here.
+    player.pos.set(t.x, this._seatOriginY(t.y, TABLE_SINK), t.z);
     player.yaw = player.targetYaw = t.yaw;
     player.speed = 0; player.vel.y = 0; player.grounded = true; player.tilt = 0;
     player.playAction('sit_table');
@@ -1175,7 +1183,7 @@ export class Rides {
 
   _updateTableSeat(dt, player, intent) {
     const t = this.active.t;
-    player.pos.set(t.x, this._seatOriginY(t.y), t.z);
+    player.pos.set(t.x, this._seatOriginY(t.y, TABLE_SINK), t.z);
     player.yaw = player.targetYaw = t.yaw;
     player.speed = 0; player.vel.y = 0; player.grounded = true;
     if (Math.hypot(intent.move.x, intent.move.y) > 0.25 || intent.jump) {

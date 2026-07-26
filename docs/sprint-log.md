@@ -1,5 +1,49 @@
 # Sprint Log
 
+## 2026-07-26 (final) — finishing the park: the green pool, real trees, and the object layer
+
+Last pass on the three.js park before the engine decision (Devon is moving to
+Babylon + Havok — see docs/AMG_WORLD_ENGINE_BRIEF.md).
+
+**THE GREEN POOL WAS MINE.** "It looks like it has a green pool inside of it,
+you can't see the bottom of the skate park anymore." The backdrop's ground
+plane sat at y −0.6 — above the skate bowl's carved floor at −1.14 — so it
+filled the bowl. Two shapes failed before the right one: a ring clear of the
+park left a gap you saw sky through (a blue moat), so the answer is a plane
+BELOW everything walkable, at −1.25. The 1.25 m drop past the fence reads as
+the park sitting on a low rise.
+
+**THE TREES ARE REAL SYNTY MODELS NOW.** Devon: "you can tell that background
+is made by a Claude because of the tree models." They were code-drawn cones.
+Now the backdrop instances the park's OWN tree and bush prototypes — already
+loaded, same art, so the horizon belongs to the same world. One trap: matching
+`^SM_Env_Tree` also catches `SM_Env_Tree_Large_01_Treehouse`, which scattered
+little cabins across the skyline; the pattern matches whole trees only.
+
+**THE OBJECT LAYER — `world/js/editor.js`.** Devon: *"I want Unity running
+through three.js… every single item is a prefab, and you should be able to
+just click on the bicycles and then just remove them."* Every one of the 1103
+placements is now a live object carrying its prefab, transform, world AABB and
+— the load-bearing part — the exact slice of the merged vertex buffer that
+draws it. So hiding one bench inside a 130k-triangle batch is collapsing its
+own vertex range: O(1), no rebuild, reversible, and the draw-call budget never
+moves (36–52 calls).
+
+Backtick toggles edit mode: click any object to select and name it, Delete
+removes it, Ctrl+Z restores, removals persist per map in localStorage, and
+`__world.editor.export()` prints the JSON to commit. Verified by deleting all
+95 bikes/skateboards/scooters/jeep parts in one call and restoring them
+byte-identical.
+
+**Picnic table, third fix and the real one.** The seat had been placed at 82%
+of the bench band's outer extent (the lip), then at the band's MEAN — but that
+band also holds the table's central legs, which dragged the seat inward until
+the kid sat half on the tabletop. It is the outermost vertex minus half a
+plank width now. And the sink was wrong: 6.5 cm reads as contact on the park
+bench's chunky seat but pushes a kid clean through a thin picnic plank, so
+`_seatOriginY` takes a per-seat sink and the table uses 1.5 cm.
+
+
 ## 2026-07-26 (cont.) — Devon was right: it was an export problem
 
 *"I think this is an export problem, because if I open up the demo scene in

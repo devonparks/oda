@@ -17,6 +17,7 @@ import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js'
 import { CollisionWorld } from './collision.js';
 import { ZONES, ACTIVITIES, COIN_SPOTS, SPAWN } from './zones.js';
 import { DynamicProps, GroundFX } from './physics.js';
+import { WorldObjects } from './editor.js';
 
 /** Props that must stay separate objects because they move. */
 const ANIMATED = ['Swings', 'Seesaw', 'Rocker', 'Coin_Ride', 'Track_Ride', 'Kite'];
@@ -235,6 +236,17 @@ export class World {
     this._buildSky();
 
     this.collision = new CollisionWorld();
+    /**
+     * THE OBJECT REGISTRY — the AMG World Engine's core.
+     *
+     * Every placement in the map becomes a live object here: its prefab, its
+     * transform, its world bounds, and (for anything merged into a batch) the
+     * exact slice of the vertex buffer that draws it. That is what lets a
+     * single bicycle be clicked and deleted inside a mesh holding 130,000
+     * triangles, without giving up the merge that keeps this running on a
+     * school Chromebook.
+     */
+    this.objects = new WorldObjects('park');
     this.animatedProps = [];
     /** Parts rides.js reassembles into drivable rigid bodies. Filled by
      *  _placeProps (layout vehicles) AND _extractShellVehicles (the Jeep). */
@@ -293,8 +305,6 @@ export class World {
     sky.frustumCulled = false;
     this.scene.add(sky);
 
-    this._buildBackdrop();
-
     // A few soft clouds so the sky isn't a flat wall.
     const cloudTex = makeCloudTexture();
     const cloudMat = new THREE.SpriteMaterial({
@@ -312,66 +322,102 @@ export class World {
   }
 
   /**
-   * A WORLD AROUND THE PARK.
+   * A WORLD AROUND THE PARK — built from the park's own Synty models.
    *
-   * Devon: "it's just a plane floating in the middle of nowhere, there's
-   * nothing around there." The park is a 60 m square with a fence, and past
-   * the fence was sky. This builds the country it sits in: a wide ground
-   * plane under everything, a ring of low hills, and two belts of trees at
-   * different distances so the horizon has depth.
+   * Devon: "it's just a plane floating in the middle of nowhere." So: the
+   * countryside it sits in — rolling ground, low hills, and belts of real
+   * trees. Two rules learned the hard way:
    *
-   * All code-drawn from cones and spheres in ONE merged mesh per layer — no
-   * download, three draw calls, and it sits far enough out that the fog
-   * carries it. Deterministic (a seeded shuffle, not Math.random) so the
-   * skyline is the same every visit and doesn't shimmer between sessions.
+   *   1. It is a RING, not a plane. A ground plane under everything sat above
+   *      the skate bowl's carved floor and filled it in: "it looks like it has
+   *      a green pool inside of it, you can't see the bottom of the skate park
+   *      anymore." The ring starts outside the park's own bounds and never
+   *      covers anything you can walk on.
+   *   2. The trees are REAL. They were code-drawn cones, and Devon clocked it
+   *      instantly — "you can tell that background is made by Claude because of
+   *      the tree models." These are the park's own tree and bush prototypes,
+   *      already loaded, instanced around the perimeter: the same art, so the
+   *      horizon belongs to the same world.
+   *
+   * Deterministic (a seeded generator, never Math.random) so the skyline is
+   * identical every visit. Everything merges into a handful of meshes.
+   *
+   * @param {Map<string, THREE.Mesh>} protos  loaded prototypes, for the trees
    */
-  _buildBackdrop() {
+  _buildBackdrop(protos) {
     const rnd = (() => { let s = 20260726; return () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff; })();
-    const parts = { ground: [], hill: [], tree: [] };
+    const b = this.collision.bounds;
+    const cx = (b.minX + b.maxX) / 2, cz = (b.minZ + b.maxZ) / 2;
+    // clear of the park itself: half its diagonal, plus a margin for the fence
+    const inner = Math.hypot(b.maxX - b.minX, b.maxZ - b.minZ) / 2 + 6;
+    const parts = { ground: [], hill: [] };
+    const treeGeo = [];
 
-    // the land the park sits on, well below the fence line so it reads as
-    // "the field continues" rather than a second floor
+    /**
+     * The land: one wide plane, set BELOW everything you can walk on.
+     *
+     * Two failed shapes before this. A plane at y −0.6 sat above the skate
+     * bowl's carved floor (−1.14) and filled it in — "it looks like it has a
+     * green pool inside of it." A ring clear of the park left a gap between
+     * the park's edge and the ring's inner radius, and you saw sky through it:
+     * a blue moat. A plane under the lowest carved surface has neither
+     * problem, and the 1.25 m drop past the fence just reads as the park
+     * sitting on a low rise.
+     */
+    const GROUND_Y = -1.25;
     const ground = new THREE.PlaneGeometry(900, 900);
     ground.rotateX(-Math.PI / 2);
-    ground.translate(0, -0.6, 6);
+    ground.translate(cx, GROUND_Y, cz);
     parts.ground.push(ground);
 
-    // hills: squashed spheres in a broken ring, biggest at the back
+    // ── low hills, well beyond the tree line ──
     for (let i = 0; i < 26; i++) {
       const a = (i / 26) * Math.PI * 2 + rnd() * 0.22;
-      const d = 120 + rnd() * 150;
+      const d = inner + 55 + rnd() * 140;
       const r = 22 + rnd() * 40;
       const h = 8 + rnd() * 26;
       const g = new THREE.SphereGeometry(r, 7, 5);
       g.scale(1, h / r, 1);
-      g.translate(Math.cos(a) * d, -2 - rnd() * 3, Math.sin(a) * d + 6);
+      g.translate(cx + Math.cos(a) * d, GROUND_Y - 1 - rnd() * 3, cz + Math.sin(a) * d);
       parts.hill.push(g);
     }
 
-    // two tree belts: a near line just past the fence, and a far skyline
-    const treeAt = (x, z, s) => {
-      const trunk = new THREE.CylinderGeometry(0.5 * s, 0.7 * s, 4 * s, 5);
-      trunk.translate(0, 2 * s, 0);
-      const crown = new THREE.ConeGeometry(3.2 * s, 8 * s, 6);
-      crown.translate(0, 7.5 * s, 0);
-      const merged = BufferGeometryUtils.mergeGeometries([trunk, crown], false);
-      merged.translate(x, -0.6, z);
-      trunk.dispose(); crown.dispose();
-      return merged;
-    };
-    for (let i = 0; i < 120; i++) {
-      const a = (i / 120) * Math.PI * 2 + rnd() * 0.5;
-      const d = 62 + rnd() * 26;
-      parts.tree.push(treeAt(Math.cos(a) * d, Math.sin(a) * d + 6, 0.8 + rnd() * 0.7));
+    // ── REAL trees: the park's own prototypes, instanced around it ──
+    // WHOLE trees only. `SM_Env_Tree_Large_01` is the park's big tree — and
+    // its siblings in the export are `_Treehouse`, `_Bucket_Rope` and
+    // `_Tyre_Swing`, which a loose prefix match scattered across the horizon
+    // as little cabins hanging in the woods.
+    const TREE = /^SM_(Generic_Tree_\d+|Env_Tree_(01|Large_01))(#\d+)?$/;
+    const BUSH = /^SM_Env_Bush_01(#\d+)?$/;
+    const treeProtos = [], bushProtos = [];
+    if (protos) {
+      for (const [name, mesh] of protos) {
+        if (TREE.test(name)) treeProtos.push(mesh);
+        else if (BUSH.test(name)) bushProtos.push(mesh);
+      }
     }
-    for (let i = 0; i < 90; i++) {
-      const a = (i / 90) * Math.PI * 2 + rnd() * 0.6;
-      const d = 105 + rnd() * 60;
-      // ~9-14 m: real trees. At 1.6-3.0 these were 24 m spikes on the skyline.
-      parts.tree.push(treeAt(Math.cos(a) * d, Math.sin(a) * d + 6, 1.0 + rnd() * 0.6));
+    if (treeProtos.length) {
+      const dummy = new THREE.Object3D();
+      const belt = (pool, count, dMin, dSpan, sMin, sSpan) => {
+        if (!pool.length) return;
+        for (let i = 0; i < count; i++) {
+          const a = (i / count) * Math.PI * 2 + rnd() * 0.55;
+          const d = dMin + rnd() * dSpan;
+          const proto = pool[(rnd() * pool.length) | 0];
+          dummy.position.set(cx + Math.cos(a) * d, GROUND_Y, cz + Math.sin(a) * d);
+          dummy.rotation.set(0, rnd() * Math.PI * 2, 0);
+          const s = sMin + rnd() * sSpan;
+          dummy.scale.set(s, s, s);
+          dummy.updateMatrix();
+          treeGeo.push(proto.geometry.clone().applyMatrix4(dummy.matrix));
+        }
+      };
+      belt(bushProtos, 90, inner + 1, 10, 1.0, 0.8);   // scrub along the fence
+      belt(treeProtos, 70, inner + 3, 16, 0.9, 0.5);   // the line just past it
+      belt(treeProtos, 90, inner + 22, 60, 1.1, 0.9);  // the skyline behind
     }
 
-    const COLOURS = { ground: 0x6ba43f, hill: 0x5d8f4a, tree: 0x3e6b33 };
+    const COLOURS = { ground: 0x6ba43f, hill: 0x5d8f4a };
     this.backdrop = new THREE.Group();
     for (const key of Object.keys(parts)) {
       if (!parts[key].length) continue;
@@ -381,7 +427,16 @@ export class World {
       this.backdrop.add(mesh);
       parts[key].forEach((g) => g.dispose());
     }
+    if (treeGeo.length) {
+      // the trees keep the park's vertex colours — same material as the park
+      const geo = BufferGeometryUtils.mergeGeometries(treeGeo, false);
+      const mesh = new THREE.Mesh(geo, parkMaterial(null));
+      mesh.frustumCulled = false;
+      this.backdrop.add(mesh);
+      treeGeo.forEach((g) => g.dispose());
+    }
     this.scene.add(this.backdrop);
+    console.log(`[world] backdrop: ground at ${GROUND_Y}, tree line from ${inner.toFixed(0)}m, ${treeGeo.length} instances`);
   }
 
   /** Load the park. Reports 0..1 progress through onProgress. */
@@ -437,6 +492,10 @@ export class World {
     // from parts — so the heightfield, the water mask and the derived
     // structures all keep working against it, while anything that needs to
     // move is simply never merged in.
+    // the countryside — after the bounds exist, and it needs the prototypes
+    // for its trees
+    this._buildBackdrop(protos);
+
     const shellMesh = this._buildLayerMesh(protos, layout, 'terrain');
     this.shell = new THREE.Group();
     if (shellMesh) this.shell.add(shellMesh);
@@ -517,6 +576,11 @@ export class World {
     // ---- props: every Props placement, merged except what moves ----
     const propMesh = this._buildLayerMesh(protos, layout, 'clutter');
     if (propMesh) { this.scene.add(propMesh); this.propBatch = propMesh; }
+    // whatever was deleted in a previous session goes away again
+    const gone = this.objects.applyRemoved();
+    const st = this.objects.stats();
+    console.log(`[world] objects: ${st.objects} placements of ${st.prefabs} prefabs`
+      + (gone ? `, ${gone} removed by edits` : ''));
     onProgress(0.78, 'Setting out the toys…');
 
     this._buildCoins();
@@ -818,7 +882,9 @@ export class World {
    */
   _buildLayerMesh(protos, layout, layer) {
     const merge = [];
+    const merged = [];      // the registry rows for what lands in the batch
     const dummy = new THREE.Object3D();
+    const _bb = new THREE.Box3();
     this.seats = this.seats || [];        // sittable spots, from bench rows
     this.slideData = this.slideData || [];// slide top/exit points, for rides.js
     this.swingSeats = this.swingSeats || [];
@@ -831,6 +897,19 @@ export class World {
       dummy.quaternion.fromArray(it.q);
       dummy.scale.fromArray(it.s);
       dummy.updateMatrix();
+
+      /**
+       * EVERY placement becomes a live object in the registry — that is the
+       * engine. Its world AABB comes from the prototype's own bounds through
+       * this transform, which is what click-picking tests against.
+       */
+      if (!proto.geometry.boundingBox) proto.geometry.computeBoundingBox();
+      _bb.copy(proto.geometry.boundingBox).applyMatrix4(dummy.matrix);
+      const rec = this.objects.add({
+        name, prefab: layout.protos[it.m], layer,
+        pos: it.p.slice(), quat: it.q.slice(), scale: it.s.slice(),
+        min: _bb.min.toArray(), max: _bb.max.toArray(),
+      });
 
       /**
        * One stray Synty prop has no business in a kids' park: a toy gun
@@ -864,17 +943,20 @@ export class World {
         m.castShadow = this.quality.shadows;
         this.scene.add(m);
         this.swingSeats.push(m);
+        rec.kind = 'object'; rec.mesh = m;
         continue;
       }
 
       const fam = VEHICLE_FAMILIES.find((v) => v.re.test(name));
       if (fam) {
         this.vehicleParts.push({ family: fam.id, proto, matrix: dummy.matrix.clone(), mesh: name });
+        rec.kind = 'ride';
         continue;
       }
       const att = ATTRACTION_FAMILIES.find((v) => v.re.test(name));
       if (att) {
         this.attractionParts.push({ family: att.id, proto, matrix: dummy.matrix.clone(), mesh: name });
+        rec.kind = 'ride';
         continue;
       }
 
@@ -899,6 +981,7 @@ export class World {
           entry = { ...entry, p: [wx, this.water.y, wz] };
         }
         this.dynamics.add(proto, entry, { kind: dyn.kind });
+        rec.kind = 'dynamic';
         continue;
       }
       if (ANIMATED.some((k) => name.includes(k))) {
@@ -922,13 +1005,24 @@ export class World {
         }
         this.scene.add(m);
         this.animatedProps.push(m);
+        rec.kind = 'object'; rec.mesh = m;
       } else {
-        merge.push(proto.geometry.clone().applyMatrix4(dummy.matrix));
+        const g = proto.geometry.clone().applyMatrix4(dummy.matrix);
+        // remember where this placement's vertices land in the merged buffer,
+        // so it can be hidden later without rebuilding anything
+        rec.count = g.attributes.position.count;
+        merged.push(rec);
+        merge.push(g);
       }
     }
     if (!merge.length) return null;
     const geo = BufferGeometryUtils.mergeGeometries(merge, false);
     const mesh = new THREE.Mesh(geo, parkMaterial(null));
+    // mergeGeometries concatenates in order, so each row's slice starts where
+    // the previous one ended — that mapping is what makes one bench in a
+    // 130k-triangle batch individually removable.
+    let cursor = 0;
+    for (const rec of merged) { rec.mesh = mesh; rec.start = cursor; cursor += rec.count; }
     // the terrain shadowing itself is noise; the toys on it are not
     mesh.castShadow = layer === 'clutter' && this.quality.shadows;
     mesh.receiveShadow = this.quality.shadows;
@@ -1207,24 +1301,30 @@ export class World {
     const alongX = (sx1 - sx0) >= (sz1 - sz0);
     const half = (alongX ? sx1 - sx0 : sz1 - sz0) / 2;
     /**
-     * WHERE THE BENCH IS, not where the bench band ENDS.
+     * WHERE THE BENCH PLANK IS.
      *
-     * A picnic table's seat band is two separate strips, one either side, so
-     * its outer extent is the far edge of the far plank — and 0.82 of that
-     * landed kids on the outer lip or off it entirely. Measured properly: take
-     * the mean across-offset of the band's verts on each side, which is the
-     * centreline of that plank, and sit there.
+     * Two wrong answers came before this one. 82% of the band's outer extent
+     * put kids on the plank's outer lip. Then the MEAN across-offset of the
+     * band — but that band also contains the table's central legs and frame,
+     * which drag the average inward, so the kid sat half on the tabletop
+     * (Devon: "he doesn't actually sit on the seat").
+     *
+     * The plank is simply the OUTERMOST thing in the band, so: take the
+     * furthest vertex on each side and come back half a plank width. Nothing
+     * in the middle of the table can move that.
      */
-    let acrossNeg = 0, nNeg = 0, acrossPos = 0, nPos = 0;
+    const PLANK_HALF = 0.13;
+    let outNeg = 0, outPos = 0;
     for (let i = 0; i < pos.count; i++) {
       v.fromBufferAttribute(pos, i).applyMatrix4(m);
       if (v.x < x0 || v.x > x1 || v.z < z0 || v.z > z1) continue;
       if (v.y < yTop - 0.42 || v.y > yTop - 0.18) continue;
       const across = alongX ? v.z - cz : v.x - cx;
-      if (across < 0) { acrossNeg += across; nNeg++; } else { acrossPos += across; nPos++; }
+      if (across < outNeg) outNeg = across;
+      if (across > outPos) outPos = across;
     }
-    if (!nNeg || !nPos) return;
-    const sides = [acrossNeg / nNeg, acrossPos / nPos];
+    if (outNeg > -0.3 || outPos < 0.3) return;
+    const sides = [outNeg + PLANK_HALF, outPos - PLANK_HALF];
     for (const along of [-half * 0.42, half * 0.42]) {
       for (const across of sides) {
         const x = alongX ? cx + along : cx + across;
