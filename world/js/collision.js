@@ -94,6 +94,9 @@ const COLLISION_RULES = [
   [/_Top$|Rocker_Top|Canopy|Awning|Umbrella|Playground_Cover|Playground_Roof|Track_Ride|Kite/i, 'none'],
   [/Prop_Tent_/i, 'none'],                               // derived; see SHELL_STRUCTURES note
   [/Plush|Toy|Stick|Pogo|Bike|Trike|Pram|Jumping|Soapbox|Ball/i, 'none'], // kid clutter
+  // The purple Jeep: carved out of the shell and DRIVEN (rides.js). Its six
+  // export boxes (body/steering/wheels) would be phantom walls once it moves.
+  [/SM_Veh_4x4/i, 'none'],
   // Slides: the AABB wraps the whole diagonal chute, so as a solid it's an
   // invisible lid you land ON and a wall you bounce OFF. Riding is scripted
   // (rides.js) and the heightfield never captures props, so no box at all.

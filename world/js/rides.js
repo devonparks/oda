@@ -67,6 +67,13 @@ const VEHICLE_DEFS = {
   board: { style: 'stand', clip: 'ride_stand', speed: 2.05, name: 'Skateboard', icon: '\u{1F6F9}', verb: 'Skate!', spread: 0.9 },
   wagon: { style: 'sit', clip: 'sit_kart', speed: 1.3, name: 'Wagon', icon: '\u{1F6D2}', verb: 'Ride the wagon!' },
   pogo: { style: 'pogo', clip: 'pogo', speed: 0.85, name: 'Pogo Stick', icon: '\u{1F998}', verb: 'Boing!', mountY: 0.28 },
+  /**
+   * The purple Jeep — not a layout prop: world.js carves it out of the shell
+   * (_extractShellVehicles) and pushes its parts here. `axleFacing` because it
+   * parks diagonally (square AABB, so the long-axis test is a coin flip);
+   * `mountY` because its bounding-box top is the WINDSCREEN, not the seat.
+   */
+  jeep: { style: 'sit', clip: 'sit_kart', speed: 1.85, name: 'Jeep', icon: '\u{1F699}', verb: 'Drive it!', spread: 1.6, axleFacing: true, mountY: 0.4, seatAtOrigin: true },
 };
 
 /**
@@ -757,6 +764,26 @@ export class Rides {
       _va.setFromMatrixPosition(steer.matrix).sub(rootPos);
       if (_vb.dot(_va) < 0) _vb.negate();
     }
+    /**
+     * axleFacing (the Jeep): a diagonally parked body has a near-square AABB,
+     * so the long-axis test above is a coin flip there. Its wheels carry
+     * front/rear in their NAMES, which is exact: forward = front-axle midpoint
+     * minus rear-axle midpoint. The wheels' spin axles follow for free — the
+     * horizontal perpendicular of a measured forward beats the thinnest-axis
+     * guess, which is equally ambiguous on a diagonal wheel's square AABB.
+     */
+    let axlePerp = null;
+    if (def.axleFacing) {
+      const wfP = cluster.filter((q) => /_Wheel_f[lr]$/i.test(q.mesh));
+      const wrP = cluster.filter((q) => /_Wheel_r[lr]$/i.test(q.mesh));
+      if (wfP.length === 2 && wrP.length === 2) {
+        const midX = (l) => (l[0].matrix.elements[12] + l[1].matrix.elements[12]) / 2;
+        const midZ = (l) => (l[0].matrix.elements[14] + l[1].matrix.elements[14]) / 2;
+        _vb.set(midX(wfP) - midX(wrP), 0, midZ(wfP) - midZ(wrP)).normalize();
+        axlePerp = new THREE.Vector3(_vb.z, 0, -_vb.x);
+        for (const w of wheels) w.axle.copy(axlePerp);
+      }
+    }
     const fwdYaw = Math.atan2(_vb.x, _vb.z);
     // how far the MODEL's forward sits from the orientation baked into the parts
     const fwdOffset = fwdYaw - yaw;
@@ -765,8 +792,26 @@ export class Rides {
     // `mountY` overrides it for the pogo stick, which is a single part: its
     // widest slab is the whole pole, but you ride the PEGS near the bottom.
     const deck = def.mountY != null ? def.mountY : deckTop - rootPos.y;
+    /**
+     * The seat offset is stored in the vehicle's NORMALIZED local frame.
+     *
+     * It was stored as the raw world-space offset — but _mountXZ rotates the
+     * stored seat by group.rotation.y, and after _beginVehicle's normalization
+     * that starts at the baked yaw, so a world-frame offset got rotated TWICE.
+     * The miss is 2·|seat|·sin(yaw/2): measured rider-to-saddle bike 0.399,
+     * scooter 0.173/0.364, trike 0.024, kart 0.001 — the formula reproduces
+     * every one of those to the millimetre, which is why the kart sat perfectly
+     * (seat ≈ origin) while Devon watched bike riders float beside the saddle.
+     */
+    /**
+     * seatAtOrigin (the Jeep): its group origin IS the body's export-box
+     * centre (world.js puts it there), which beats the carved mesh's AABB
+     * centre — edge triangles claimed by the wheel boxes skew that 0.29 m
+     * sideways, and the kid rode the rim of the tub instead of the seat.
+     */
     const v = {
-      family, def, group, wheels, yaw, deck, fwdOffset, seat: deckCentre.clone(),
+      family, def, group, wheels, yaw, deck, fwdOffset,
+      seat: def.seatAtOrigin ? new THREE.Vector3() : deckCentre.applyAxisAngle(_up, -yaw).clone(),
       zone: {
         id: `veh_${family}_${this.vehicles.length}`, ride: 'vehicle',
         icon: def.icon, name: def.name, prompt: def.verb,

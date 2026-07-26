@@ -1,5 +1,56 @@
 # Sprint Log
 
+## 2026-07-26 — P0: the Jeep drives, riders sit on saddles, the pond knows its own edge
+
+Working the backlog top-down. Everything below measured in real Chrome via the
+new probe harness (`tools/world/probe_lib.mjs` + `probe_p0_verify.mjs` —
+committed, reusable) before deploying.
+
+**THE PURPLE JEEP DRIVES.** It was baked into the merged shell — in the
+collision export but not the props layout, which is why the vehicle pass never
+saw it. New `_extractShellVehicles` path: each shell triangle whose three
+verts sit inside one of the Jeep's six export boxes (steering and wheels claim
+first, body takes the rest, a union-box fallback catches straddlers) is pulled
+into a per-part geometry, degenerated in the shell, and handed to rides.js as
+ordinary vehicle parts. Two traps found by measuring:
+- A CENTROID-in-box test grabbed a slab of the skate park (a big triangle's
+  centroid can land inside a small box) and the Jeep drove off with it.
+  All-three-verts is the rule now.
+- **Facing came from the wheels' own names** — front-axle midpoint minus
+  rear-axle midpoint (`def.axleFacing`) — because the Jeep parks diagonally
+  (yaw 127°) and a diagonal body has a square AABB, so the long-axis test is a
+  coin flip. The wheels' spin axles are the perpendicular of that same
+  forward. Seat = the body export box centre (`def.seatAtOrigin`) — the carved
+  mesh's AABB centre sits 0.29 m off it and put the kid on the rim of the tub.
+
+**EVERY RIDER SITS ON THE SEAT NOW — one line.** The stored seat offset was
+captured in WORLD space at build, but `_mountXZ` rotates it by the group's yaw
+— which after normalization starts at the baked yaw, so it rotated twice. The
+error is `2·|seat|·sin(yaw/2)`, and it reproduced every number in Devon's
+report to the millimetre: bike 0.399 m (reported 0.40), scooters 0.173/0.364
+(0.17), trike 0.024, kart 0.001 — the kart sat perfectly only because its seat
+is at its origin. Fix: store the seat in the normalized local frame.
+Re-measured: **0.000 on all 15 vehicles.**
+
+**THE POND KNOWS WHERE ITS WATER IS.** The water disc (r 5.2 at the box
+centre) was a guess, and Devon kept catching it: "where water ends and dirt
+begins is still wrong." Measured from a top-down render: the real water is a
+KIDNEY-shaped blob centred a metre north of the box centre — its edge runs
+2.6 m out in one direction and 6.6 in another. No circle is honest, so there
+isn't one any more: a 256² **water mask** is baked at load from the shell's
+own colours (teal = water, the toy boat's blue counts too), enclosed dry
+holes (lily pads, the boat's white sail) are flood-filled, and `waterAt` is a
+texel lookup — wading now starts exactly at the drawn edge. The wading dish,
+duck seeding, duck drift targets and the fishing cast's splash-down all snap
+to the mask. Verified: hip-deep (-0.43) inside the drawn water, bone dry on
+the south shore that used to be falsely wet, all 14 ducks afloat.
+
+**POGO CONFIRMED WORKING** — mounts, hops, prompt shows, no NaN. It's at
+(7.5, 26.6): tucked against the low wall on the path between the skate park
+and the corner playground, a few steps east of the ground ramps. Devon
+couldn't find it because it's a 40 cm stick parked in a visually busy corner,
+not because it's broken.
+
 ## 2026-07-25 (overnight, cont.) — playtest 6: the crash, fishing, and alignment
 
 Devon's longest playtest yet. Fixed and deployed this pass; the rest is the

@@ -127,6 +127,12 @@ export class Fishing {
     const reach = d - landR;
     this._castFrom.set(player.pos.x, player.pos.y + 1.1, player.pos.z);
     this._castTo.set(player.pos.x + (dx / d) * reach, w.y, player.pos.z + (dz / d) * reach);
+    // The pond is a blob, not a circle — if the aimed splash-down is on dry
+    // shore per the water mask, slide it toward open water until it's wet.
+    for (let s = 0; s < 30 && this.world.waterAt(this._castTo.x, this._castTo.z) == null; s++) {
+      this._castTo.x += (w.x - this._castTo.x) * 0.15;
+      this._castTo.z += (w.z - this._castTo.z) * 0.15;
+    }
 
     // The real cast: rod back over the shoulder, whip, settle. (Was the
     // 'baseball' bat swing — a horizontal cut, nothing like a cast.)

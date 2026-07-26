@@ -183,6 +183,10 @@ export class World {
 
     this.collision = new CollisionWorld();
     this.animatedProps = [];
+    /** Parts rides.js reassembles into drivable rigid bodies. Filled by
+     *  _placeProps (layout vehicles) AND _extractShellVehicles (the Jeep). */
+    this.vehicleParts = [];
+    this.attractionParts = [];
     this.coins = null;
     this.coinState = [];
     this.zoneMarkers = [];
@@ -287,17 +291,29 @@ export class World {
       minZ: Math.min(...zs) - 3, maxZ: Math.max(...zs) + 3,
     };
 
+    // ---- the purple Jeep: baked into the shell, carved back out ----
+    // Must run before BOTH bakes below — they render the shell, and the Jeep
+    // has to be out of it by then (its roof was becoming terrain).
+    let shellMesh = null;
+    this.shell.traverse((o) => { if (o.isMesh && !shellMesh) shellMesh = o; });
+    if (shellMesh) {
+      shellMesh.updateWorldMatrix(true, false);
+      this._extractShellVehicles(shellMesh, collision);
+    }
+
     // ---- water ----
     // The pond box (HALF-extents 13.7!) is the AABB of the whole pond AREA:
-    // water + dirt shore + the rock ring (~8.4). The actual WATER disc is much
-    // smaller — anchored by the props floating on it (toy boat d=3.3, floaties
-    // d≤2.5) and the visible edge in playtests: r≈5.2. Deriving r from the box
-    // (0.58×e ≈ 8) painted "water" over the whole dirt path: wading slowdown
-    // and hip-deep sinking on dry land (Devon's report). Surface = box top.
+    // water + dirt shore + the rock ring (~8.4). The old answer was a
+    // hand-picked disc (r 5.2 at the box centre) — but the real water is a
+    // KIDNEY-SHAPED blob sitting north of the box centre: measured off a
+    // top-down render, its edge runs 2.6 m out in one direction and 6.6 in
+    // another, so any circle either drowns the south shore (Devon: "where
+    // water ends and dirt begins is still wrong") or beaches the north edge.
+    // So the water is a baked MASK now, same idea as the ground heightfield:
+    // one ortho render at load, classified by the water's own colour, exact
+    // to the drawn edge and immune to asset drift. Surface = box top.
     const pond = collision.find((b) => /Park_Pond_01/.test(b.n || ''));
-    this.water = pond
-      ? { x: pond.c[0], z: pond.c[2], r: 5.2, y: pond.c[1] + pond.e[1] }
-      : null;
+    this._bakeWaterMask(pond);
 
     // ---- ground heightfield (before physics: props settle against it) ----
     onProgress(0.62, 'Reading the ground…');
@@ -313,10 +329,7 @@ export class World {
     // Everything below them in the ranking is a tree, and trees are already
     // refined to trunks on purpose. Derived from the merged park shell, clipped
     // to each structure's own export box.
-    let shellMesh = null;
-    this.shell.traverse((o) => { if (o.isMesh && !shellMesh) shellMesh = o; });
     if (shellMesh) {
-      shellMesh.updateWorldMatrix(true, false);
       const pad = 0.15;
       /**
        * @param maxH cap the clip this far above the structure's own base.
@@ -511,17 +524,26 @@ export class World {
     }
 
     // ── pond dish: the capture sees the water SURFACE; carve a wading depth
-    //    so kids sink hip-deep (stepPlayer clamps standing depth to match) ──
+    //    so kids sink hip-deep (stepPlayer clamps standing depth to match).
+    //    Carved wherever the water MASK says water (+ a 0.3 m skirt so the
+    //    bank slopes in rather than cliffing at the first wet texel). ──
     if (this.water) {
-      const w = this.water, rr = w.r + 0.3, bed = w.y - 0.62;
-      const x0 = Math.max(0, Math.floor((w.x - rr - b.minX) / stepX));
-      const x1 = Math.min(W - 1, Math.ceil((w.x + rr - b.minX) / stepX));
-      const z0 = Math.max(0, Math.floor((w.z - rr - b.minZ) / stepZ));
-      const z1 = Math.min(H - 1, Math.ceil((w.z + rr - b.minZ) / stepZ));
+      const w = this.water, m = w.mask, bed = w.y - 0.62;
+      const minWX = m ? m.minX : w.x - w.r - 0.3;
+      const maxWX = m ? m.minX + (m.n - 1) * m.step : w.x + w.r + 0.3;
+      const minWZ = m ? m.minZ : w.z - w.r - 0.3;
+      const maxWZ = m ? m.minZ + (m.n - 1) * m.step : w.z + w.r + 0.3;
+      const x0 = Math.max(0, Math.floor((minWX - b.minX) / stepX));
+      const x1 = Math.min(W - 1, Math.ceil((maxWX - b.minX) / stepX));
+      const z0 = Math.max(0, Math.floor((minWZ - b.minZ) / stepZ));
+      const z1 = Math.min(H - 1, Math.ceil((maxWZ - b.minZ) / stepZ));
+      const wet = (x, z) => this.waterAt(x, z) != null
+        || this.waterAt(x + 0.3, z) != null || this.waterAt(x - 0.3, z) != null
+        || this.waterAt(x, z + 0.3) != null || this.waterAt(x, z - 0.3) != null;
       for (let r = z0; r <= z1; r++) {
         for (let c = x0; c <= x1; c++) {
           const px2 = b.minX + c * stepX, pz2 = b.minZ + r * stepZ;
-          if (Math.hypot(px2 - w.x, pz2 - w.z) <= rr) {
+          if (wet(px2, pz2)) {
             const i = r * W + c;
             if (data[i] > bed) data[i] = bed;
           }
@@ -536,6 +558,247 @@ export class World {
       'pond', this.collision.heightAt(21, 0).toFixed(2));
   }
 
+  /**
+   * Bake the pond's WATER MASK from a top-down colour render of the shell.
+   *
+   * The water is vertex-coloured teal in the merged shell — there is no water
+   * mesh to measure and no asset that knows the edge. So, like the ground
+   * heightfield: render the shell once from above (flat ambient light, so the
+   * readback is pure albedo), classify each texel by the water's colour
+   * signature (green ≈ blue, both well above red — grass has g >> b, dirt has
+   * r >= g), and store a bitmask. waterAt() then answers exactly where the
+   * drawn water is, so wading starts at the visible edge, not at a guessed
+   * circle. ~12 ms at load, can never drift from the real geometry.
+   *
+   * Lily pads, the toy boat and overhanging rocks punch dry specks into the
+   * open water, so a majority-close pass fills interior holes.
+   *
+   * @param {{c:number[], e:number[]}|undefined} pond  the raw pond export box
+   */
+  _bakeWaterMask(pond) {
+    this.water = null;
+    if (!pond) return;
+    const t0 = performance.now();
+    const y = pond.c[1] + pond.e[1];
+    const N = 256;
+    const half = Math.max(pond.e[0], pond.e[2]) + 1;
+    const step = (half * 2) / (N - 1);
+    const minX = pond.c[0] - half, minZ = pond.c[2] - half;
+
+    const cam = new THREE.OrthographicCamera(-half, half, half, -half, 0.5, 60);
+    cam.position.set(pond.c[0], 40, pond.c[2]);
+    cam.up.set(0, 0, -1);
+    cam.lookAt(pond.c[0], 0, pond.c[2]);
+    cam.updateMatrixWorld(true);
+    const rt = new THREE.WebGLRenderTarget(N, N);
+    const tmp = new THREE.Scene();
+    tmp.add(new THREE.AmbientLight(0xffffff, 1));
+    tmp.add(this.shell);                      // reparents out of this.scene
+    const prevTarget = this.renderer.getRenderTarget();
+    this.renderer.setRenderTarget(rt);
+    this.renderer.render(tmp, cam);
+    const px = new Uint8Array(N * N * 4);
+    this.renderer.readRenderTargetPixels(rt, 0, 0, N, N, px);
+    this.renderer.setRenderTarget(prevTarget);
+    this.scene.add(this.shell);               // put the park back
+    rt.dispose();
+
+    // decode + classify. readPixels row 0 = image bottom = world maxZ, so flip
+    // rows to make data[iz][ix] run minZ→maxZ (same convention as the
+    // heightfield). Measured water reads ~(5,17,17) through this pipeline.
+    const data = new Uint8Array(N * N);
+    for (let r = 0; r < N; r++) {
+      const src = r * N, dst = (N - 1 - r) * N;
+      for (let c = 0; c < N; c++) {
+        const j = (src + c) * 4;
+        const R = px[j], G = px[j + 1], B = px[j + 2];
+        // teal water reads ~(5,17,17); the toy boat FLOATING on it is a strong
+        // dark blue ~(9,3,37) that would otherwise punch a metre-wide dry hole
+        const teal = G >= 10 && G >= R * 2.2 && Math.abs(G - B) <= Math.max(3, G * 0.2);
+        const boat = B >= 20 && B > G * 2.5 && B > R * 2;
+        data[dst + c] = (teal || boat) ? 1 : 0;
+      }
+    }
+    // Enclosed-hole fill: flood the DRY region in from the border; any dry
+    // texel the flood can't reach is fully surrounded by water — lily pads,
+    // the boat's white sail, rock shadows — and becomes water. Rocks that
+    // bridge out from the shore stay dry, because they stay connected, which
+    // is also right: you stand on those, you don't wade through them.
+    {
+      const seen = new Uint8Array(N * N);
+      const stack = [];
+      for (let i = 0; i < N; i++) {
+        for (const j of [i, i * N, i * N + N - 1, (N - 1) * N + i]) {
+          if (!data[j] && !seen[j]) { seen[j] = 1; stack.push(j); }
+        }
+      }
+      while (stack.length) {
+        const i = stack.pop();
+        const r = (i / N) | 0, c = i % N;
+        if (r > 0 && !data[i - N] && !seen[i - N]) { seen[i - N] = 1; stack.push(i - N); }
+        if (r < N - 1 && !data[i + N] && !seen[i + N]) { seen[i + N] = 1; stack.push(i + N); }
+        if (c > 0 && !data[i - 1] && !seen[i - 1]) { seen[i - 1] = 1; stack.push(i - 1); }
+        if (c < N - 1 && !data[i + 1] && !seen[i + 1]) { seen[i + 1] = 1; stack.push(i + 1); }
+      }
+      for (let i = 0; i < N * N; i++) if (!data[i] && !seen[i]) data[i] = 1;
+    }
+
+    // fitted circle for the loose callers: centroid + equivalent-area radius
+    let n = 0, sx = 0, sz = 0;
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        if (!data[r * N + c]) continue;
+        n++;
+        sx += minX + c * step;
+        sz += minZ + r * step;
+      }
+    }
+    if (!n) {                                  // classifier found nothing —
+      this.water = { x: pond.c[0], z: pond.c[2], r: 5.2, y };   // old behaviour
+      return;
+    }
+    const cx = sx / n, cz = sz / n;
+    const rEq = Math.sqrt((n * step * step) / Math.PI);
+    this.water = { x: cx, z: cz, r: +rEq.toFixed(2), y, mask: { data, n: N, minX, minZ, step } };
+    console.log(`[world] water mask ${N}x${N} baked in ${(performance.now() - t0).toFixed(1)}ms — `
+      + `centre (${cx.toFixed(1)}, ${cz.toFixed(1)}), area ${(n * step * step).toFixed(0)} m2, r_eq ${rEq.toFixed(1)}`);
+  }
+
+  /**
+   * Vehicles BAKED INTO THE SHELL, carved back out and made drivable.
+   *
+   * The purple Jeep (SM_Veh_4x4, by the skate park) is in the collision
+   * export but NOT in the props layout — its geometry shipped inside the
+   * merged park shell, which is why the vehicle pass never saw it. Devon:
+   * "the purple car next to the skate park, you can't drive that one."
+   *
+   * Same recipe as the derive-from-shell structures, pointed the other way:
+   * assign each shell triangle to the most specific part box it sits in
+   * (steering wheel and wheels first, body last), pull those triangles out
+   * into per-part geometries, degenerate them in the shell so the park
+   * doesn't render a ghost, and hand rides.js the same {proto, matrix, mesh}
+   * entries a layout vehicle would produce.
+   *
+   * Facing can't come from the assembly's long axis here — a diagonally
+   * parked body has a near-square AABB, so that test is a coin flip. It
+   * comes from the wheels' own names instead: forward = front-axle midpoint
+   * minus rear-axle midpoint. rides.js applies the same rule (def.axleFacing).
+   */
+  _extractShellVehicles(shellMesh, collision) {
+    const boxes = collision.filter((b) => /^SM_Veh_4x4/.test(b.n || ''));
+    if (!boxes.length) return;
+    const body = boxes.find((b) => b.n === 'SM_Veh_4x4');
+    const wf = boxes.filter((b) => /_Wheel_f[lr]$/.test(b.n));
+    const wr = boxes.filter((b) => /_Wheel_r[lr]$/.test(b.n));
+    if (!body || wf.length !== 2 || wr.length !== 2) return;
+    const t0 = performance.now();
+    const mid = (arr, i) => (arr[0].c[i] + arr[1].c[i]) / 2;
+    const yaw = Math.atan2(mid(wf, 0) - mid(wr, 0), mid(wf, 2) - mid(wr, 2));
+    // the part origins sit at GROUND level under the body (a layout prop's
+    // origin does too — rides.js snaps group.position.y to the ground while
+    // driving, so a mid-air origin would sink the body by its own height)
+    const groundY = Math.min(...boxes.map((b) => b.c[1] - b.e[1]));
+
+    // smallest boxes claim a contested triangle first; the body takes the rest
+    const parts = boxes.filter((b) => b !== body)
+      .sort((a, b2) => (a.e[0] * a.e[1] * a.e[2]) - (b2.e[0] * b2.e[1] * b2.e[2]));
+    parts.push(body);
+    const PAD = 0.04;
+    const inBox = (p, bx, pad) =>
+      Math.abs(p.x - bx.c[0]) < bx.e[0] + pad
+      && Math.abs(p.y - bx.c[1]) < bx.e[1] + pad
+      && Math.abs(p.z - bx.c[2]) < bx.e[2] + pad;
+    // A triangle belongs to a part only if ALL THREE verts are inside its box —
+    // each box IS that part's renderer bound, so every real part triangle
+    // passes by construction. A centroid test grabbed a slab of the skate park
+    // (a big neighbouring triangle's centroid can land inside a small box) and
+    // the Jeep drove off with it. Triangles straddling two part boxes (tyre
+    // arch ↔ wheel) fall through to the UNION box and ride with the body.
+    const union = {
+      c: [0, 0, 0],
+      e: [0, 0, 0],
+    };
+    for (let i = 0; i < 3; i++) {
+      const lo = Math.min(...boxes.map((b) => b.c[i] - b.e[i]));
+      const hi = Math.max(...boxes.map((b) => b.c[i] + b.e[i]));
+      union.c[i] = (lo + hi) / 2;
+      union.e[i] = (hi - lo) / 2;
+    }
+
+    const geo = shellMesh.geometry;
+    const matrix = shellMesh.matrixWorld;
+    const pos = geo.attributes.position;
+    const col = geo.attributes.color;
+    const idx = geo.index;
+    const triCount = idx ? idx.count / 3 : pos.count / 3;
+    const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+    const q = new THREE.Vector3();
+    const taken = new Map();       // part box -> flat [x,y,z,r,g,b]*3 per tri
+    for (const bx of parts) taken.set(bx, []);
+    for (let t = 0; t < triCount; t++) {
+      const i0 = idx ? idx.getX(t * 3) : t * 3;
+      const i1 = idx ? idx.getX(t * 3 + 1) : t * 3 + 1;
+      const i2 = idx ? idx.getX(t * 3 + 2) : t * 3 + 2;
+      a.fromBufferAttribute(pos, i0).applyMatrix4(matrix);
+      b.fromBufferAttribute(pos, i1).applyMatrix4(matrix);
+      c.fromBufferAttribute(pos, i2).applyMatrix4(matrix);
+      let owner = null;
+      for (const bx of parts) {
+        if (inBox(a, bx, PAD) && inBox(b, bx, PAD) && inBox(c, bx, PAD)) { owner = bx; break; }
+      }
+      if (!owner && inBox(a, union, PAD) && inBox(b, union, PAD) && inBox(c, union, PAD)) {
+        owner = body;
+      }
+      if (!owner) continue;
+      const out = taken.get(owner);
+      for (const [v, i] of [[a, i0], [b, i1], [c, i2]]) {
+        out.push(v.x, v.y, v.z, col.getX(i), col.getY(i), col.getZ(i));
+      }
+      // degenerate the source triangle — the vehicle owns it now
+      if (idx) { idx.setX(t * 3 + 1, i0); idx.setX(t * 3 + 2, i0); }
+      else {
+        pos.setXYZ(t * 3 + 1, pos.getX(i0), pos.getY(i0), pos.getZ(i0));
+        pos.setXYZ(t * 3 + 2, pos.getX(i0), pos.getY(i0), pos.getZ(i0));
+      }
+    }
+    if (idx) idx.needsUpdate = true; else pos.needsUpdate = true;
+
+    // per-part geometry in the part's own local frame (origin + baked yaw),
+    // exactly what a layout prototype would carry
+    const unYaw = new THREE.Matrix4().makeRotationY(-yaw);
+    const quat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    let total = 0;
+    for (const bx of parts) {
+      const flat = taken.get(bx);
+      if (!flat.length) continue;
+      const origin = bx === body
+        ? new THREE.Vector3(bx.c[0], groundY, bx.c[2])
+        : new THREE.Vector3(bx.c[0], bx.c[1], bx.c[2]);
+      const count = flat.length / 6;
+      const p2 = new Float32Array(count * 3);
+      const c2 = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        q.set(flat[i * 6], flat[i * 6 + 1], flat[i * 6 + 2]).sub(origin).applyMatrix4(unYaw);
+        p2[i * 3] = q.x; p2[i * 3 + 1] = q.y; p2[i * 3 + 2] = q.z;
+        c2[i * 3] = flat[i * 6 + 3]; c2[i * 3 + 1] = flat[i * 6 + 4]; c2[i * 3 + 2] = flat[i * 6 + 5];
+      }
+      const g2 = new THREE.BufferGeometry();
+      g2.setAttribute('position', new THREE.BufferAttribute(p2, 3));
+      g2.setAttribute('color', new THREE.BufferAttribute(c2, 3));
+      g2.computeVertexNormals();
+      this.vehicleParts.push({
+        family: 'jeep',
+        proto: { geometry: g2, material: parkMaterial(null) },
+        matrix: new THREE.Matrix4().compose(origin, quat, new THREE.Vector3(1, 1, 1)),
+        mesh: bx.n,
+      });
+      total += count / 3;
+    }
+    console.log(`[world] jeep carved from shell: ${total} triangles across `
+      + `${this.vehicleParts.length} parts, yaw ${(yaw * 180 / Math.PI).toFixed(0)}deg, `
+      + `${(performance.now() - t0).toFixed(0)}ms`);
+  }
+
   _placeProps(protos, layout) {
     const merge = [];      // geometries for the static-prop batch
     const dummy = new THREE.Object3D();
@@ -548,10 +811,9 @@ export class World {
      * scooters, skateboards, the wagon, the pogo stick. Devon: "I want every
      * vehicle to be driven… I want everything to work and have a function."
      * Each entry is one layout row; rides.js clusters them into instances.
+     * (Initialised in the constructor — _extractShellVehicles may already have
+     * pushed the Jeep's parts by the time the layout is placed.)
      */
-    this.vehicleParts = [];
-    /** Props that spin or rock in place (roundabouts, coin rides). */
-    this.attractionParts = [];
     for (const p of layout) {
       const proto = protos.get(p.mesh);
       if (!proto) continue;
@@ -597,7 +859,15 @@ export class World {
           // beached half the flock on the dirt shore
           const r = 0.9 + (this.water.r - 1.4) * Math.sqrt(k / 14);
           const a = k * 2.39996 + 0.7;
-          entry = { ...p, p: [this.water.x + Math.cos(a) * r, this.water.y, this.water.z + Math.sin(a) * r] };
+          let wx = this.water.x + Math.cos(a) * r;
+          let wz = this.water.z + Math.sin(a) * r;
+          // the pond is a blob, not a circle: pull any duck that landed on the
+          // shore in toward open water until the mask says it floats
+          for (let s = 0; s < 40 && this.waterAt(wx, wz) == null; s++) {
+            wx += (this.water.x - wx) * 0.15;
+            wz += (this.water.z - wz) * 0.15;
+          }
+          entry = { ...p, p: [wx, this.water.y, wz] };
         }
         this.dynamics.add(proto, entry, { kind: dyn.kind });
         continue;
@@ -1260,10 +1530,22 @@ export class World {
     return got;
   }
 
-  /** Water surface height at (x, z), or null when not over water. */
+  /**
+   * Water surface height at (x, z), or null when not over water.
+   * With a baked mask this is exact to the drawn edge; the circle (x, z, r)
+   * stays available as the LOOSE shape for callers that only need "roughly
+   * where the pond is" (fishing range, duck drift targets, ambience).
+   */
   waterAt(x, z) {
     const w = this.water;
     if (!w) return null;
+    const m = w.mask;
+    if (m) {
+      const ix = Math.round((x - m.minX) / m.step);
+      const iz = Math.round((z - m.minZ) / m.step);
+      if (ix < 0 || iz < 0 || ix >= m.n || iz >= m.n) return null;
+      return m.data[iz * m.n + ix] ? w.y : null;
+    }
     const dx = x - w.x, dz = z - w.z;
     return dx * dx + dz * dz < w.r * w.r ? w.y : null;
   }

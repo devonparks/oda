@@ -135,10 +135,15 @@ export class DynamicProps {
         } else {
           it.driftT -= dt;
           if (it.driftT <= 0) {
-            // a new spot to mosey toward, kept well inside the water
+            // a new spot to mosey toward, kept well inside the water — and
+            // snapped into the mask, since the pond is a blob, not a circle
             const w = this.world.water;
             const a = Math.random() * Math.PI * 2, rr = Math.random() * (w.r * 0.72);
-            it.target = { x: w.x + Math.cos(a) * rr, z: w.z + Math.sin(a) * rr };
+            let tx = w.x + Math.cos(a) * rr, tz = w.z + Math.sin(a) * rr;
+            for (let s = 0; s < 30 && this.world.waterAt(tx, tz) == null; s++) {
+              tx += (w.x - tx) * 0.15; tz += (w.z - tz) * 0.15;
+            }
+            it.target = { x: tx, z: tz };
             it.crumbT = 0;
             it.driftT = 3 + Math.random() * 5;
           }
