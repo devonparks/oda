@@ -1,5 +1,102 @@
 # Sprint Log
 
+## 2026-07-26 (engine) — M2 + M3: a kid on Havok, and the object layer
+
+**THE KID WALKS.** Synty kid on a `PhysicsCharacterController`, the 22-bone
+v2local rig ported from `world/js/rig_v2.js`, all 7 locomotion clips plus the
+81-clip action library. Third/first person, run, jump. 59 fps with mesh
+collision under it.
+
+**COLLISION IS THE REAL GEOMETRY NOW.** 105 `PhysicsShapeMesh` colliders, one
+per prototype, carried by STATIC instanced bodies — 761 static instances, 44k
+collider triangles, and no per-instance geometry. This is the answer to the
+oldest complaint in the project: *one AABB per prop*. The three.js park needed
+`_deriveCollision`, a voxel audit, a GPU ground heightfield and a curated
+244-box exception file to approximate it. Here the collider IS the mesh. The
+kid walks down into the skate bowl and stands on its carved floor at −1.14
+without a single line of heightfield code.
+
+**FOUR BUGS, AND THREE OF THEM WERE IN THE TESTS.** Worth writing down because
+the ratio is the lesson.
+
+1. **The kid hung motionless in mid-air at exactly its spawn height.** Havok's
+   `integrate()` does NOT accelerate the character — its `gravity` argument is
+   for resolving contacts against dynamic bodies. Babylon's own sample adds
+   `gravity × dt` to the velocity in user code every airborne frame. Also
+   found alongside it: `calculateMovement`'s `forwardWorld` was being zeroed by
+   `scaleInPlace(input.f)` when standing still, and it silently returns false
+   when `forward × up` is degenerate.
+
+2. **The kid rendered solid black.** Synty's kid GLBs carry a COLOR_0 attribute
+   that is not meant to tint anything — these are the one TEXTURED asset family
+   here — and Babylon multiplies it in. `world/js/avatar.js` already says so in
+   a comment: *"Synty exports a COLOR_0 attribute that three.js renders black"*.
+   Same fix, Babylon spelling: `useVertexColors = false`. Note it is the exact
+   opposite of the park geometry, which is nothing BUT vertex colours.
+
+3. **`NO_COLLIDE = /Grass|…/` matched the lawn.** It was meant to skip grass
+   tufts; it also matched `SM_Env_Ground_Round_Grass_01` and
+   `SM_Env_Ground_Tile_Grass` — the actual FLOOR. The kid walked three metres
+   and sank to y = −1.11. Same over-matching that once scattered treehouses
+   across the skyline via `^SM_Env_Tree`. `GROUND` is now checked first and
+   always wins.
+
+4. **And the tests lied three separate times.** "W walks away from the camera"
+   asserted −Z when the camera placement makes it +Z, and failed a correct
+   engine. "Walking must not change height" failed the kid legitimately walking
+   down into the skate bowl — the screenshot showed them standing on a ramp,
+   exactly right. And the 48-point ground-coverage grid dropped the kid from
+   6 m, waited 260 ms, and reported 47/48 "holes" in a floor that was fine —
+   they were all still in mid-air. Then, once fixed, it reported 3 more that
+   were seam-fallers who had not yet reached the catch floor. Every one of
+   those was a passing engine and a failing assertion.
+
+**THE STAIRS.** `maxStepHeight` (new in Babylon 9.18, enforced independently of
+the capsule radius) is set to 0.45 m — the playground treads are ~22 cm and the
+path kerbs 12, while a bench seat at 45 is the next rung up and should stop you.
+**But stair climbing is NOT verified yet, and this check currently FAILS.** Say
+that plainly because it is the headline claim for mesh colliders. The first
+version of the test used coordinates nowhere near any steps and photographed a
+kid on open grass — a meaningless pass. Aimed properly at
+`SM_Prop_Playground_Stairs_01` (3.5, 0, 0.75), the kid walks from z = 3.5 to
+z = −3.0 at y ≈ 0 the whole way and gains 0.06 m: straight past or through it.
+
+What is known: the prototype IS on the terrain layer, DOES have a physics body,
+and that body has all 7 instances. So it is not a missing collider. The kid
+also drifts from x = 3.51 to x = 3.98 while crossing, and a staircase about a
+metre wide centred on x = 3.5 could simply be missed at the edge — so the
+approach vector is the first suspect, not the physics. Next session: put the
+Inspector on it (`/engine/?dev`, `~`) and look at the collider against the
+mesh, which is exactly the tool this move to Babylon was for.
+
+Everything else about collision does check out — the kid stands on ground,
+paths, ramps and the skate bowl's carved floor, at 41 of 48 grid points — so
+"mesh collision works, one specific prop is not confirmed" is the accurate
+statement, not "stairs are fixed".
+
+**SEAMS, REPORTED NOT HIDDEN.** The ground is a mosaic of flat tiles and a mesh
+collider built from zero-thickness geometry has joins. Measured on a 48-point
+grid: 41 land on the park, 4 slip through a seam. A wide static catch floor at
+y = −2.6 turns that from "fall out of the world forever" into "step down and
+walk back up" — the three.js park had the same thing at −1.25. It is NOT a fix,
+and the probe prints the seam count every run so it cannot quietly become one.
+
+**THE OBJECT LAYER IS NOW SHORT.** Compare `engine/js/objects.js` to
+`world/js/editor.js`. The three.js version had to record, for all 1103
+placements, the exact slice of a merged vertex buffer that drew it, because
+holding the draw-call budget meant merging and merging destroys identity;
+hiding one bench was collapsing its own vertex range. With thin instances,
+picking is native (`pickInfo.thinInstanceIndex`), hiding is writing one
+zero-scale matrix, and nothing is rebuilt. `O` toggles edit mode, click
+selects, Delete removes, Ctrl+Z restores, removals persist per map and
+`objects.exportEdits()` prints the JSON to commit. That is the engine move
+paying for itself in one file.
+
+Known gaps carried forward: no backdrop (the live park's code-drawn hills and
+tree belts), the ground seams above, and the prop database — M4, and the one
+Devon actually cares about — not started.
+
+
 ## 2026-07-26 (engine) — M1: the park boots on Babylon + Havok
 
 First milestone of `docs/AMG_WORLD_ENGINE_BRIEF.md`. New directory `engine/`;

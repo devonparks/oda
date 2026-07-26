@@ -17,6 +17,9 @@ import {
   UniversalCamera, HavokPlugin, DracoDecoder, ImageProcessingConfiguration, HAS_INSPECTOR,
 } from 'babylon';
 import { loadPark } from './park.js';
+import { buildCollision } from './collision.js';
+import { Character } from './character.js';
+import { WorldObjects } from './objects.js';
 
 const canvas = document.getElementById('stage');
 const bootEl = document.getElementById('boot');
@@ -138,6 +141,21 @@ async function main() {
   // ── the park ──────────────────────────────────────────────────────────
   const park = await loadPark(scene, progress);
 
+  progress(0.72, 'Building collision…');
+  const collision = buildCollision(scene, park);
+
+  const objects = new WorldObjects(scene, park);
+  const restored = objects.applyRemoved();
+  if (restored) console.log(`[objects] ${restored} saved removals applied`);
+
+  progress(0.8, 'Waking up a kid…');
+  const player = await new Character(scene, { spawn: new Vector3(2, 3, 20) }).load();
+  // The fly camera stays in the scene for the probes to borrow, but it must
+  // stop listening or its WASD fights the character's.
+  cam.detachControl();
+  player.attachCamera(canvas);
+  player.bindKeys();
+
   // Shadows: the key light only, and only over what a player sees close up.
   // 275 thin-instance meshes in one shadow map is affordable because each is
   // still one draw call.
@@ -147,11 +165,19 @@ async function main() {
   shadows.bias = 0.008;
   shadows.normalBias = 0.02;
   for (const m of park.protos.values()) m.receiveShadows = true;
+  // The kid casts; the park only receives. Putting 275 thin-instance meshes in
+  // the caster list would re-render the whole park into the shadow map every
+  // frame for scenery whose shadows are already in the vertex colours.
+  for (const m of player.model.getChildMeshes()) shadows.addShadowCaster(m);
 
   progress(0.95, 'Compiling shaders…');
   await scene.whenReadyAsync();
 
   // ── run ───────────────────────────────────────────────────────────────
+  // The character steps BEFORE the render, off the same clock Havok uses.
+  scene.onBeforeRenderObservable.add(() => {
+    player.update(engine.getDeltaTime() / 1000);
+  });
   engine.runRenderLoop(() => scene.render());
   window.addEventListener('resize', () => engine.resize());
 
@@ -177,19 +203,44 @@ async function main() {
     } else if (e.code === 'KeyF') {
       showStats = !showStats;
       statsEl.style.visibility = showStats ? '' : 'hidden';
+    } else if (e.code === 'KeyO') {                     // O toggles edit mode
+      objects.enabled = !objects.enabled;
+      document.exitPointerLock?.();
+      console.log('[objects] edit mode', objects.enabled ? 'ON — click an object, Delete removes it' : 'off');
+    } else if (objects.enabled && (e.code === 'Delete' || e.code === 'Backspace')) {
+      const gone = objects.remove();
+      if (gone) console.log('[objects] removed', gone.name);
+    } else if (objects.enabled && e.code === 'KeyZ' && (e.ctrlKey || e.metaKey)) {
+      const back = objects.undo();
+      if (back) console.log('[objects] restored', back.name);
     }
+  });
+
+  // Click to select, but only in edit mode — otherwise a click is "look around".
+  canvas.addEventListener('pointerdown', (e) => {
+    if (!objects.enabled) return;
+    const it = objects.select(objects.pick(e.clientX, e.clientY));
+    console.log(it ? `[objects] ${it.name}  (${it.proto}) at ${it.pos.map((n) => n.toFixed(1))}` : '[objects] nothing there');
   });
 
   // ── the probe surface ─────────────────────────────────────────────────
   window.__engine = {
-    engine, scene, camera: cam, park, havok: plugin, shadows,
+    engine, scene, camera: cam, park, havok: plugin, shadows, collision, player, objects,
     ready: true,
     hasInspector: HAS_INSPECTOR,
-    /** Move the fly camera somewhere and aim it — used by every probe. */
+    /**
+     * Move a free camera somewhere and aim it — used by every probe.
+     * Detaches the player camera, since the player owns its own each frame.
+     */
     look(from, at) {
+      scene.activeCamera = cam;
       cam.position.set(from[0], from[1], from[2]);
       cam.setTarget(new Vector3(at[0], at[1], at[2]));
     },
+    /** Give the camera back to the kid. */
+    follow() { scene.activeCamera = player.camera; },
+    /** Teleport the kid and let them settle. */
+    tp(x, z, y) { player.tp(x, z, y); },
     /** Grading knobs, so a probe can A/B them without a reload. */
     grade(o = {}) {
       const c = scene.imageProcessingConfiguration;
