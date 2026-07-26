@@ -46,7 +46,7 @@ const PUMP_AMP = 0.88;
 const COAST_AMP = 0.30;
 const SLIDE_TIME = 1.15;     // s top→exit
 /** How close to a chute's top counts as stepping onto it. */
-const SLIDE_MOUTH = 1.0;
+const SLIDE_MOUTH = 0.62;
 /** How far below a monkey bar a hanging kid's feet-origin sits. */
 const HANG_DROP = 1.15;
 const SEESAW_G = 3.1;        // how fast your end drops
@@ -305,14 +305,19 @@ export class Rides {
   /** Walked to the top of a chute, facing down it, actually moving? Then go. */
   _checkSlideEntry(player) {
     if (this.active || this.state.seated) return;
-    if (!player.grounded || player.speed < 0.35) return;
+    if (!player.grounded || player.speed < 0.9) return;      // properly walking
+    if (this._slideCool > 0) return;
     for (const d of this.world.slideData || []) {
       if (Math.hypot(player.pos.x - d.top.x, player.pos.z - d.top.z) > SLIDE_MOUTH) continue;
-      if (Math.abs(player.pos.y - d.top.y) > 0.75) continue;
-      // heading DOWN the chute, not wandering past its mouth
+      if (Math.abs(player.pos.y - d.top.y) > 0.45) continue;
+      // Heading DOWN the chute, and meaning it. The old gate (1.0 m, 0.75 m of
+      // height slack, a 0.3 dot) fired while Devon was lining up for the ZIP
+      // LINE further along the same platform: "when you try to stand up there
+      // where you're about to go on the zip line, it just automatically makes
+      // you go down the slide." Tighter on every axis now.
       const ex = d.exit.x - d.top.x, ez = d.exit.z - d.top.z;
       const el = Math.hypot(ex, ez) || 1;
-      if ((Math.sin(player.yaw) * ex + Math.cos(player.yaw) * ez) / el < 0.3) continue;
+      if ((Math.sin(player.yaw) * ex + Math.cos(player.yaw) * ez) / el < 0.72) continue;
       const line = this._beginSlide(player, { data: d });
       if (line) this.state.toast?.(line);
       return;
@@ -354,6 +359,7 @@ export class Rides {
       player.pos.y = g;
       this.world.fx.spawn(player.pos.x, g + 0.03, player.pos.z, { color: 0xcbb794, from: 0.2, to: 0.9, dur: 0.45, alpha: 0.4 });
       window.odaSfx && window.odaSfx.tone(170, 0.08, 'triangle', 0.07);
+      this._slideCool = 1.2;         // don't instantly re-grab at the bottom
       this.active = null;
     }
   }
@@ -942,13 +948,13 @@ export class Rides {
       this.zones.push({
         id: `table${this.zones.length}`, ride: 'tableseat',
         icon: '\u{1F37D}\uFE0F', name: 'Picnic Table', prompt: 'Sit down',
-        pos: [t.x, t.z], radius: 0.85, seat: t,
+        pos: [t.x, t.z], radius: 0.85, spot: t,
       });
     }
   }
 
   _beginTableSeat(player, zone) {
-    const t = zone.seat;
+    const t = zone.spot;
     this.active = { kind: 'tableseat', t };
     player.pos.set(t.x, t.y + BUTT_BELOW_PELVIS - SEATED_PELVIS_Y, t.z);
     player.yaw = player.targetYaw = t.yaw;
@@ -998,6 +1004,7 @@ export class Rides {
   }
 
   update(dt, player, intent) {
+    if (this._slideCool > 0) this._slideCool -= dt;
     this._checkSlideEntry(player);
     const t = this.world.clock.elapsedTime;
     // unoccupied swings sway in the breeze

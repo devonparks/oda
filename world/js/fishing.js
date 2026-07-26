@@ -167,12 +167,12 @@ export class Fishing {
       this._reel(false, c.rare);
       return true;
     }
-    if (this.state === 'wait') {             // impatient yank: scares the fish
-      this.hooks.toast && this.hooks.toast('Too soon — wait for the dive!');
-      this._reel();
-      return true;
-    }
-    return false;
+    // An early press used to REEL IN — "too soon, wait for the dive". That was
+    // survivable when E was the only way to fish. Now that a click uses the
+    // held rod, every stray click during the wait was cancelling the cast, and
+    // it read as the fishing being broken: Devon, "I can't catch the fish at
+    // all." An early press is now simply ignored.
+    return this.state === 'wait';
   }
 
   cancel() {

@@ -514,8 +514,12 @@ function loop() {
 
   waterAndDustFX(player, dt);
   state.butterflies?.update(dt, t, player.pos);
+  // `carry` false: the rod is an inventory item now, so it appears when you're
+  // HOLDING it, not because you wandered near water. Devon: "I don't want it to
+  // be when you walk up to the pond the fishing rod automatically comes out. I
+  // just want to be able to use the fishing rod wherever you want."
   state.fishing?.update(dt, player, Math.hypot(intent.move.x, intent.move.y) > 0.1,
-    state.activeZone?.id === 'fish');
+    state.inv?.heldDef()?.use === 'fish');
   updateHeldVisual(player);
 
   // coins
@@ -696,7 +700,7 @@ function updateZonePrompt() {
   const zone = (!state.rides?.busy && nearestZone(p.x, p.z, state.rides?.zones || []))
     || (!state.seated && nearestZone(p.x, p.z, state.world.seats || []))
     || nearestZone(p.x, p.z, ACTIVITIES) || nearestZone(p.x, p.z, ZONES)
-    || bankFishZone(p) || climbZone(p) || null;
+    || climbZone(p) || null;
   checkPickups();
   const el = $('zonePrompt');
   if (zone === state.activeZone) return;
@@ -748,12 +752,18 @@ function bankFishZone(p) {
 function enterZone() {
   const zone = state.activeZone;
   if (!zone) { useHeld(); return; }
-  if (zone.seat) return sitDown(zone);
+  // RIDES FIRST. A picnic-table zone used to carry a `seat` property, and this
+  // branch grabbed it before the ride branch could — routing it into the BENCH
+  // sit, which reads zone.x/zone.z/zone.yaw. Those are undefined on a ride, so
+  // the player's position became NaN and the whole renderer died. Devon: "the
+  // picnic tables broke the game… I had to go back to the hub and load back
+  // in." Ordering, plus the property is renamed below so it can't recur.
   if (zone.ride) {
     const line = state.rides?.begin(zone, state.player);
     if (line) toast(line);
     return;
   }
+  if (zone.seat) return sitDown(zone);
   if (zone.categories) return openZoneModal(zone);
   runActivity(zone);
 }
