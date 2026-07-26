@@ -705,12 +705,22 @@ export class Rides {
   }
 
   _beginClimb(player, spot) {
-    this.active = { kind: 'climb', t: 0, spot, base: player.pos.y, topping: false };
+    // A LOW obstacle (a ledge, a grind box) is a CLAMBER, not a ladder —
+    // and the TYRE WALL clambers at any height. Devon: the tyres need "a
+    // crawl state to climb them, rather than one locked animation."
+    if (this._tyres === undefined) {
+      this._tyres = this.world.collision.boxes.filter((b) => /Tyrewall/i.test(b.name)) || null;
+    }
+    const onTyres = this._tyres.some((b) =>
+      spot.x > b.minX - 0.6 && spot.x < b.maxX + 0.6
+      && spot.z > b.minZ - 0.6 && spot.z < b.maxZ + 0.6);
+    const low = onTyres || spot.y - player.pos.y <= 1.15;
+    this.active = { kind: 'climb', t: 0, spot, base: player.pos.y, topping: false, low };
     player.rig.forceLegEmote = true;      // the legs are climbing, not walking
-    player.playAction('climb', null);
-    this.state.presence?.broadcast({ emote: 'climb' });
+    player.playAction(low ? 'crawl' : 'climb', null);
+    this.state.presence?.broadcast({ emote: low ? 'crawl' : 'climb' });
     window.odaSfx && window.odaSfx.tone(240, 0.06, 'triangle', 0.04);
-    return 'Climbing! \u{1F9D7}';
+    return low ? 'Clamber over! \u{1F9CE}' : 'Climbing! \u{1F9D7}';
   }
 
   _updateClimb(dt, player, intent) {
@@ -721,11 +731,13 @@ export class Rides {
     player.yaw = player.targetYaw = Math.atan2(s.x - player.pos.x, s.z - player.pos.z) || player.yaw;
 
     if (!a.topping) {
-      player.pos.y += CLIMB_SPEED * dt;
+      player.pos.y += (a.low ? 1.5 : CLIMB_SPEED) * dt;
       // a rung-by-rung tick, so it reads as effort rather than an elevator
       const rung = Math.floor((player.pos.y - a.base) / 0.34);
       if (rung !== a._rung) { a._rung = rung; window.odaSfx && window.odaSfx.tone(190 + Math.random() * 40, 0.04, 'triangle', 0.025); }
       if (player.pos.y >= s.y - 0.12) {
+        // a clamber just crests — the heave is a ladder thing
+        if (a.low) { this._endClimb(player, true); return; }
         a.topping = true; a.t = 0;
         player.playAction('climb_top', null);
       }
@@ -1078,11 +1090,28 @@ export class Rides {
     } else {
       v.group.position.set(player.pos.x - _va.x, ground, player.pos.z - _va.z);
       player.pos.y = this._mountY(v, ground);
-      // the skateboard's push cycle — speedScale surges on each kick
-      if (board && player.speed > 0.4) a.pushPhase = (a.pushPhase || 0) + dt * 5.2;
-      // rolling down a slope leaves `grounded` false most frames (constant
-      // micro-airtime), so the ollie gets COYOTE TIME off this stamp
-      if (board && player.grounded) a.lastGroundMs = performance.now();
+      if (board) {
+        // The push cycle drives BOTH the speed surge (speedScale) and the
+        // baked `board_push` clip's playhead — one system, like the swing
+        // pump: the leg kicks exactly when the board surges. Standing still
+        // drops back to the ride stance.
+        if (player.speed > 0.4) {
+          a.pushPhase = (a.pushPhase || 0) + dt * 5.2;
+          if (a.clipNow !== 'board_push') {
+            a.clipNow = 'board_push';
+            player.playAction('board_push', null);
+            this.state.presence?.broadcast({ emote: 'board_push' });
+          }
+          player.rig.setEmoteTime?.('board_push', ((a.pushPhase / (Math.PI * 2)) % 1) * 1.2);
+        } else if (a.clipNow !== 'ride_stand') {
+          a.clipNow = 'ride_stand';
+          player.playAction('ride_stand', null);
+          this.state.presence?.broadcast({ emote: 'ride_stand' });
+        }
+        // rolling down a slope leaves `grounded` false most frames (constant
+        // micro-airtime), so the ollie gets COYOTE TIME off this stamp
+        if (player.grounded) a.lastGroundMs = performance.now();
+      }
     }
     // Steer the BODY so its own forward lines up with where the rider is
     // heading. Without the offset a skateboard travels sideways under a kid who

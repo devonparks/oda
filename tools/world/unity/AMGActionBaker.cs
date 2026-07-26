@@ -106,6 +106,8 @@ public static class AMGActionBaker
         new Spec("monkey",      40, true,  "Monkey bars"),   // hanging, hand over hand
         new Spec("sit_table",   60, true,  "At the table"),  // picnic bench, hands on the top
         new Spec("spin_ride",   50, true,  "Spinning"),      // roundabout, gripping the bar
+        new Spec("board_push",  24, true,  "Push off"),      // skateboard kick — rides.js drives the playhead off its push cycle
+        new Spec("crawl",       24, true,  "Crawling"),      // hands-and-knees clamber (tyres, low ledges)
     };
 
     // ── the pose a single frame resolves to ──────────────────────────────────
@@ -514,6 +516,86 @@ public static class AMGActionBaker
                     p.handR = new Vector3(0.165f, 0.880f, 0.300f);
                     p.poleL = new Vector3(-0.86f, -0.48f, -0.18f);
                     p.poleR = new Vector3(0.86f, -0.48f, -0.18f);
+                    break;
+                }
+
+            // Skateboard push-off: the stance leg stays welded to the deck while
+            // the right leg reaches down past it, drives back along the ground,
+            // lifts and recovers. rides.js drives u off its own push cycle, so
+            // the kick lands exactly when the speed surges — one system, like
+            // the swing. Timeline: reach 0-0.18, drive 0.18-0.5, lift 0.5-0.68,
+            // glide 0.68-1 (glide == frame 0, so the loop is seamless).
+            case "board_push":
+                {
+                    p = BuildRaw("ride_stand", 0f);
+                    Vector3 reach = new Vector3(0.16f, -0.78f, 0.60f);
+                    Vector3 back = new Vector3(0.14f, -0.82f, -0.55f);
+                    Vector3 lift = new Vector3(0.16f, -0.92f, 0.12f);
+                    Vector3 shinReach = new Vector3(0.04f, -0.92f, 0.38f);
+                    Vector3 shinBack = new Vector3(0.03f, -0.97f, -0.24f);
+                    Vector3 shinLift = new Vector3(0.05f, -0.72f, -0.69f);
+                    float dip;
+                    if (u < 0.18f)
+                    {
+                        float k = Ease(u / 0.18f);
+                        p.thighR = Vector3.Lerp(lift, reach, k).normalized;
+                        p.shinR = Vector3.Lerp(shinLift, shinReach, k).normalized;
+                        dip = k;
+                    }
+                    else if (u < 0.5f)
+                    {
+                        float k = Ease((u - 0.18f) / 0.32f);
+                        p.thighR = Vector3.Lerp(reach, back, k).normalized;
+                        p.shinR = Vector3.Lerp(shinReach, shinBack, k).normalized;
+                        dip = 1f;
+                    }
+                    else if (u < 0.68f)
+                    {
+                        float k = Ease((u - 0.5f) / 0.18f);
+                        p.thighR = Vector3.Lerp(back, lift, k).normalized;
+                        p.shinR = Vector3.Lerp(shinBack, shinLift, k).normalized;
+                        dip = 1f - k;
+                    }
+                    else
+                    {
+                        p.thighR = lift.normalized;
+                        p.shinR = shinLift.normalized;
+                        dip = 0f;
+                    }
+                    // the standing knee takes the dip (the push foot reaches the
+                    // GROUND, a deck-height below the stance foot); torso leans in
+                    p.hipY = -0.06f - 0.07f * dip;
+                    p.pelvis = new Vector3(0f, 1f, -0.06f + 0.10f * dip).normalized;
+                    p.spine1 = new Vector3(0f, 1f, 0.04f + 0.10f * dip).normalized;
+                    p.handL = new Vector3(-0.33f, 0.84f, 0.16f - 0.10f * dip);
+                    p.handR = new Vector3(0.33f, 0.80f, -0.06f + 0.10f * dip);
+                    p.footR = new Vector3(0.10f, -0.42f, 0.90f).normalized;
+                    break;
+                }
+
+            // Hands-and-knees crawl: trunk pitched forward until the near-straight
+            // arms reach the ground (shoulder height ≈ arm length), knees under
+            // the hips, opposite hand and knee advancing together. Used for the
+            // tyre mounds — Devon: "a crawl state to climb them, rather than one
+            // locked animation."
+            case "crawl":
+                {
+                    float cs = Mathf.Cos(Tau(u)), sn = Mathf.Sin(Tau(u));
+                    p.pelvis = new Vector3(0.03f * sn, 0.30f, 0.95f).normalized;
+                    p.spine1 = new Vector3(0f, 0.35f, 0.94f).normalized;
+                    p.spine2 = new Vector3(0f, 0.45f, 0.89f).normalized;
+                    p.neck = new Vector3(0f, 0.85f, 0.53f).normalized;      // eyes ahead
+                    p.handL = new Vector3(-0.145f, 0.05f + 0.05f * Mathf.Max(0f, sn), 0.34f + 0.10f * cs);
+                    p.handR = new Vector3(0.145f, 0.05f + 0.05f * Mathf.Max(0f, -sn), 0.34f - 0.10f * cs);
+                    p.poleL = new Vector3(-0.50f, -0.25f, -0.83f);
+                    p.poleR = new Vector3(0.50f, -0.25f, -0.83f);
+                    p.thighL = new Vector3(-0.09f, -0.90f, -0.30f - 0.22f * cs).normalized;
+                    p.thighR = new Vector3(0.09f, -0.90f, -0.30f + 0.22f * cs).normalized;
+                    p.shinL = new Vector3(-0.03f, -0.20f, -0.98f).normalized;
+                    p.shinR = new Vector3(0.03f, -0.20f, -0.98f).normalized;
+                    p.footL = new Vector3(0f, -0.40f, 0.92f);
+                    p.footR = new Vector3(0f, -0.40f, 0.92f);
+                    p.hipY = -0.250f + 0.015f * Mathf.Sin(Tau(u) * 2f);
                     break;
                 }
 

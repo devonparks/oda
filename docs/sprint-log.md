@@ -1,5 +1,28 @@
 # Sprint Log
 
+## 2026-07-26 (cont.) — clips 20 and 21: the skateboard pushes, the tyres crawl
+
+The Unity project was open, so the two asks that needed REAL animation went
+through the established baker (AMGActionBaker.cs → actions_bindref.json →
+bake_actions_v2.mjs verify) rather than being faked:
+
+**`board_push`** — the stance leg stays welded to the deck while the right leg
+reaches down past it, drives back along the ground, lifts and recovers; the
+standing knee dips because the pushing foot has to reach the GROUND, a
+deck-height below. rides.js drives the clip's playhead off the same push cycle
+that surges speedScale — one system, like the swing pump, so the kick lands
+exactly when the board accelerates. Standing still drops back to `ride_stand`.
+
+**`crawl`** — hands-and-knees: trunk pitched until the near-straight arms reach
+the ground, knees under the hips, opposite hand and knee advancing together.
+Plays on the TYRE WALL at any height (Devon: "a crawl state to climb them,
+rather than one locked animation") and on any low clamber (≤ 1.15 m — a grind
+box, a ledge), which also skips the ladder-style heave at the top.
+
+Both verified through the full FK gauntlet (loop seams 3.4°/3.6°, breath layer
+present, existing bins byte-identical) and rendered to pose sheets before
+wiring. 21 clips, 132 KB.
+
 ## 2026-07-26 (cont.) — P2: zip line, floaties on the pond, walking up the slides
 
 **THE ZIP LINE RUNS — both ways.** SM_Prop_Playground_Track_Ride_01 with its

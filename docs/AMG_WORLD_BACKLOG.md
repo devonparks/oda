@@ -123,44 +123,58 @@ not at a zone, **tap the held slot** (the only one a tablet has).
 
 ## 4. THE BACKLOG
 
-### P0 — known broken / missing
+> **2026-07-26 session: items 1–12 are DONE and deployed** (see sprint-log for
+> the details and the traps found). New systems that session added, for reuse:
+> - **Water MASK** (`_bakeWaterMask`): pond wading/ducks/casting follow the
+>   drawn water edge exactly. `waterAt` is a texel lookup.
+> - **Shell-carve vehicles** (`_extractShellVehicles` + `_carveShellTriangles`):
+>   the Jeep and both Pool_Floats are carved from the merged shell and driven.
+>   All-three-verts-in-box is the claim rule; a centroid test drags scenery.
+> - **Seat offsets are vehicle-local** — a world-frame seat gets double-rotated
+>   by the parked yaw (that WAS the bike/scooter offset, 2·|seat|·sin(yaw/2)).
+> - **Seesaw sim lives on the seesaw** (two seats; an NPC kid is conscripted to
+>   the free end — the `controlled` contract). Multiplayer plugs into
+>   `seesawSim.riders`.
+> - **21 baked clips** now (was 19): `board_push` (playhead driven off the
+>   skateboard push cycle) and `crawl` (tyre wall + low clambers).
+> - **Probe harness** `tools/world/probe_lib.mjs` (+ per-pass probes) — boots
+>   the real park in real Chrome. NOTE: `camYaw` is the BOOM direction; a
+>   synthetic W walks OPPOSITE to it.
 
-1. **The purple Jeep is not rideable.** It's `SM_Veh_4x4` at **(−7.4, 17.9)**
-   (+ `_SteeringW`, `_Wheel_fl/fr/rl/rr`). It is in `park_collision.json` but
-   **NOT in `park_props_layout.json`** — its geometry is baked into the shell,
-   which is why the vehicle pass missed it. Needs the *derive-from-shell* path
-   (like the treehouse) to extract a rigid body, then the normal vehicle rig.
-   Devon: *"the purple car next to the skate park, you can't drive that one."*
-2. **Bike/scooter rider offset.** Rider-to-seat is 0.40 m out on the bike, 0.17
-   on the scooter (kart 0.001, trike 0.024, board 0.039). The widest part is the
-   frame, not the saddle.
-3. **Pond edge.** Where water ends and dirt begins is still wrong.
-4. **Confirm the pogo stick works** — Devon couldn't find it. It's at (7.5, 26.6).
+### P0 — known broken / missing — ✅ ALL DONE 2026-07-26
 
-### P1 — physics and feel
+1. ~~The purple Jeep is not rideable~~ — **DONE**: carved from the shell,
+   drives (`axleFacing` — forward from the named front/rear wheel midpoints).
+2. ~~Bike/scooter rider offset~~ — **DONE**: seat stored in the normalized
+   local frame; measured 0.000 on all vehicles.
+3. ~~Pond edge~~ — **DONE**: baked water mask; wading starts at the drawn edge.
+4. ~~Confirm the pogo stick works~~ — **CONFIRMED working.** It's at
+   (7.5, 26.6): tucked against the low wall between the skate park and the
+   corner playground — hard to SEE (a 40 cm stick in a busy corner), not
+   broken. If Devon still can't find it, consider moving it into the open.
 
-5. **Seesaw.** *"It should always lean towards the person on the ground because
-   that's the side that weighs the most."* And it must work with **two riders**
-   — this is multiplayer-facing. Currently a single-rider lever in
-   `_updateSeesaw` (`up` from −1 to +1).
-6. **Roundabout direction.** *"The way it works in real life is there's a little
-   wheel in the middle, and you spin that wheel, and that makes the whole thing
-   spin."* Needs a directional control, not just "hold a key".
-7. **Skateboard.** Too fast. Wants a **push-off animation**, **tricks**, and
-   **collision with the grind rails**. Tricks could pay XP.
-8. **Hula hoops** stand upright and look wrong. Devon: *"I feel like that could
-   just be an item you purchase."* Confirmed — it becomes a shop item like the
-   vehicles, so fix the pose but don't build it as a fixed attraction.
+### P1 — physics and feel — ✅ ALL DONE 2026-07-26
 
-### P2 — new interactables
+5. ~~Seesaw~~ — **DONE**: leans to the grounded rider, seats two, NPC playmate
+   takes the free end and pushes back.
+6. ~~Roundabout direction~~ — **DONE**: A/D spin it either way, W keeps it
+   going, S brakes.
+7. ~~Skateboard~~ — **DONE**: 1.7× with kick-pulse thrust + baked `board_push`
+   clip synced to the surge; Space = ollie/kickflip (+2 coins, capped);
+   landing on a rail box grinds along it.
+8. ~~Hula hoops~~ — **DONE**: they lie on the grass. Still to become a shop
+   item when the shop lands.
 
-9. **Zip line** — `SM_Prop_Playground_Track_Ride_01` at (−0.5, 3.0, −1.8) with
-   `_Handle` at (−2.0, 3.0, −1.8). Grab it and ride across. Devon floated
-   "jump and press to grab" but said that may be too complicated — a simpler
-   grab is fine.
-10. **Pond floaties as vehicles** — get in, paddle around the pond, get out.
-11. **Slide should have collision so you can walk UP it.**
-12. **Tyres: a crawl state** to climb them, rather than one locked animation.
+### P2 — new interactables — ✅ ALL DONE 2026-07-26
+
+9. ~~Zip line~~ — **DONE**: boards from EITHER end (ledges under both), walk-in
+   grab, Space drops, idle handle trundles to a waiting kid.
+10. ~~Pond floaties~~ — **DONE**: carved from the shell, paddled on the water
+    mask, ripples and all.
+11. ~~Walk UP the slide~~ — **DONE**: standable ramp boxes along the ride path
+    (deriving the chute's real triangles makes a headroom-rule WALL — don't).
+12. ~~Tyre crawl~~ — **DONE**: `crawl` clip on the tyre wall (any height) and
+    on low clambers (≤1.15 m).
 
 ### P3 — movement, camera, UI
 

@@ -170,7 +170,8 @@ function encodeClip(clip) {
 const ORDER = ['sit', 'sit_swing', 'swing_pump', 'slide_ride', 'sit_kart',
   'sit_seesaw', 'sit_rocker', 'hula', 'fish_cast', 'fish_wait', 'fish_reel',
   'climb', 'climb_top',
-  'ride_stand', 'bike_pedal', 'pogo', 'monkey', 'sit_table', 'spin_ride'];
+  'ride_stand', 'bike_pedal', 'pogo', 'monkey', 'sit_table', 'spin_ride',
+  'board_push', 'crawl'];
 const ICONS = {
   sit: '\u{1FA91}', sit_swing: '\u{1F4BA}', swing_pump: '\u{1F4BA}', slide_ride: '\u{1F6DD}',
   sit_kart: '\u{1F3CE}️', sit_seesaw: '⚖️', sit_rocker: '\u{1F40E}',
@@ -178,6 +179,7 @@ const ICONS = {
   climb: '\u{1F9D7}', climb_top: '\u{1F9D7}',
   ride_stand: '\u{1F6F9}', bike_pedal: '\u{1F6B2}', pogo: '\u{1F998}',
   monkey: '\u{1F412}', sit_table: '\u{1F37D}\uFE0F', spin_ride: '\u{1F3A0}',
+  board_push: '\u{1F6F9}', crawl: '\u{1F9CE}',
 };
 
 const OUT_DIR = P('assets', 'characters', 'emotes');
@@ -426,6 +428,7 @@ if (process.argv[2] === 'poses') {
     ['climb', 0], ['climb', 14], ['climb_top', 10],
     ['ride_stand', 0], ['bike_pedal', 0], ['bike_pedal', 6], ['pogo', 4], ['pogo', 13],
     ['monkey', 0], ['monkey', 20], ['sit_table', 0], ['spin_ride', 0],
+    ['board_push', 0], ['board_push', 5], ['board_push', 9], ['crawl', 0], ['crawl', 6], ['crawl', 12],
   ];
   for (const [id, f] of wants) {
     if (!info[id]) continue;
