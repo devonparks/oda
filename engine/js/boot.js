@@ -24,6 +24,7 @@ import { Props } from './props.js';
 import { Library } from './library.js';
 import { buildBackdrop } from './backdrop.js';
 import { Npcs } from './npc.js';
+import { BlobShadows } from './blobshadow.js';
 
 const canvas = document.getElementById('stage');
 const bootEl = document.getElementById('boot');
@@ -235,10 +236,22 @@ async function main() {
 
   // ── run ───────────────────────────────────────────────────────────────
   // The character steps BEFORE the render, off the same clock Havok uses.
+  /**
+   * Contact shadows for everyone. See blobshadow.js for why these exist
+   * alongside the real shadow rig rather than instead of it.
+   */
+  const blobs = new BlobShadows(scene, () => {
+    const out = [player.model];
+    const n = window.__engine && window.__engine.npcs;
+    if (n) for (const k of n.kids) out.push(k.model);
+    return out;
+  });
+
   scene.onBeforeRenderObservable.add(() => {
     const dt = engine.getDeltaTime() / 1000;
     player.update(dt);
     if (window.__engine && window.__engine.npcs) window.__engine.npcs.update(Math.min(dt, 1 / 20));
+    blobs.update();
     // Keep the shadow box centred on the kid (see the note where it is set
     // up): the light sits back along its own direction, so the kid lands in
     // the middle of the ortho box and inside the depth range.
@@ -309,7 +322,7 @@ async function main() {
 
   // ── the probe surface ─────────────────────────────────────────────────
   window.__engine = {
-    engine, scene, camera: cam, park, havok: plugin, shadows, collision, player, objects, props, library, backdrop,
+    engine, scene, camera: cam, park, havok: plugin, shadows, collision, player, objects, props, library, backdrop, blobs,
     ready: true,
     hasInspector: HAS_INSPECTOR,
     /**

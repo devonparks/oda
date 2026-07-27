@@ -50,8 +50,53 @@ const runtime = ['havok.js', 'HavokPhysics.wasm', 'draco/draco_wasm_wrapper_gltf
 
 console.log('\nAMG World Engine — vendor payload\n');
 report('engine only (babylon.js)', core);
-report('+ havok wasm + draco', core, runtime);
+const vendorGz = report('+ havok wasm + draco', core, runtime);
 report('inspector (dev, lazy)', insp.filter((f) => !core.includes(f)));
-const onDisk = fs.readdirSync(path.join(vendor, 'chunks')).length;
-console.log(`\nchunks on disk ${onDisk}, of which ${core.filter((f) => f.startsWith('chunks/')).length} are on the student path.`);
-console.log('draco_decoder_gltf.js (501 KB) is the no-WASM fallback and is not counted — it is fetched only if WebAssembly is unavailable.\n');
+
+// `chunks/` only exists for a split build; the current bundle is one file.
+const chunkDir = path.join(vendor, 'chunks');
+if (fs.existsSync(chunkDir)) {
+  const onDisk = fs.readdirSync(chunkDir).length;
+  console.log(`\nchunks on disk ${onDisk}, of which ${core.filter((f) => f.startsWith('chunks/')).length} are on the student path.`);
+}
+console.log('draco_decoder_gltf.js (501 KB) is the no-WASM fallback and is not counted — it is fetched only if WebAssembly is unavailable.');
+
+/**
+ * THE ASSETS, which is where the weight actually is now.
+ *
+ * The vendor bundle stopped being the interesting number once the engine
+ * grew a park, a rig, a clip library and other kids. GLBs are already
+ * compressed, so gzip barely touches them — raw size is what a Chromebook
+ * pays. Reported in the three groups that matter: what every visitor MUST
+ * fetch to walk around, what arrives afterwards for the NPCs, and what is
+ * only fetched on demand.
+ */
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const NPC_COSTUMES = ['kid_footballer', 'kid_princess', 'kid_tracksuit', 'kid_dino'];
+const group = (label, files, note = '') => {
+  let raw = 0, n = 0;
+  for (const f of files) {
+    const abs = path.join(root, f);
+    if (!fs.existsSync(abs)) continue;
+    raw += fs.statSync(abs).size; n++;
+  }
+  console.log(`${label.padEnd(34)} ${String(n).padStart(4)} files  ${(raw / 1048576).toFixed(2).padStart(6)} MB raw${note ? '   ' + note : ''}`);
+  return raw;
+};
+
+console.log('\nAMG World Engine — asset payload\n');
+const boot = group('world (park + collision + rig)', [
+  'world/assets/park_protos.glb', 'world/assets/park_layout.json',
+  'world/assets/locomotion_v2.json', 'world/assets/locomotion_v2.bin',
+  'assets/characters/emotes/manifest.json', 'assets/characters/emotes/actions.bin',
+  'assets/characters/v2/kid_hoodie.glb', 'engine/assets/prop_db.json',
+]);
+const npcs = group('+ the other kids (after ready)', NPC_COSTUMES.map((c) => `assets/characters/v2/${c}.glb`));
+const thumbs = fs.existsSync(path.join(root, 'engine/assets/thumbs'))
+  ? group('prop library thumbnails (on P)',
+    fs.readdirSync(path.join(root, 'engine/assets/thumbs')).map((f) => `engine/assets/thumbs/${f}`))
+  : 0;
+
+console.log(`\nfirst playable  ≈ ${((vendorGz + boot) / 1048576).toFixed(2)} MB  (vendor gzipped + world assets raw)`);
+console.log(`fully populated ≈ ${((vendorGz + boot + npcs) / 1048576).toFixed(2)} MB  (+ four NPC costumes; ?npc=0 skips them)`);
+console.log(`library thumbs    ${(thumbs / 1048576).toFixed(2)} MB, lazy — only the cards you scroll to.\n`);

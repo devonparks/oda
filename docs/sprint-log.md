@@ -1,5 +1,42 @@
 # Sprint Log
 
+## 2026-07-27 (engine) — M5d: contact shadows, and the payload measured
+
+**EVERY CHARACTER IS GROUNDED NOW.** `engine/js/blobshadow.js` puts a soft
+dark ellipse under the player and every NPC — one mesh, one thin instance
+each, one downward ray per character per frame, and a 64 px radial gradient
+generated at runtime so it costs nothing to download.
+
+This is deliberately NOT a retreat from real shadows, and the file says so.
+Two genuine bugs were found and fixed on the way (see M5a) and the kid now
+sits in the shadow map at a valid depth; the unresolved step is that the
+park's thin-instanced ground does not receive, while a plain mesh in the
+same scene does. What actually grounds a character is knowing where they
+stand, and a blob delivers that with no shadow map, no bias, no frustum and
+no dependence on how the receiver is drawn. Kid-facing games have shipped
+exactly this for twenty years.
+
+**THE PAYLOAD, MEASURED** — `tools/engine/check_payload.mjs` was broken (it
+walked a `chunks/` directory that no longer exists) and only ever counted
+the vendor bundle, which stopped being the interesting number several
+milestones ago. Fixed, and extended to the assets:
+
+| | |
+|---|---|
+| first playable | **3.50 MB** — vendor gzipped + park, rig, clips, prop db |
+| fully populated | **5.04 MB** — plus four NPC costumes (`?npc=0` skips them) |
+| library thumbnails | 1.53 MB, lazy — only the cards you scroll to |
+
+Worth Devon's eye: that is up from the ~1.2 MB the README still claims, and
+the four costume GLBs are 1.54 MB of it. They load after the world is
+interactive, so it is time-to-second-thing rather than time-to-play, but on
+school wifi it is a real number and it belongs in a decision, not a
+footnote.
+
+Live site verified end to end after deploy: 60 fps, 250 backdrop trees,
+four NPCs (two sitting, two walking), nine driveable props, 32/32 bespoke
+clips, zero console errors.
+
 ## 2026-07-26 (engine) — M5c: there are other kids in the park
 
 **THE PARK HAS PEOPLE IN IT.** Four kids in different costumes walk the
