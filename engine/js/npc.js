@@ -90,6 +90,12 @@ export class Npcs {
   static async load(scene, park, props, count = 4) {
     const n = new Npcs(scene, park, props);
     const base = new URL('../../assets/characters/v2/', import.meta.url).href;
+    /**
+     * Costumes are REUSED past the fourth kid rather than downloading more:
+     * a fifth GLB is another ~350 KB, and by then the point (a group of
+     * different kids) is already made. Babylon reloads a cached URL from
+     * memory, so the extra kids cost frame time, not bandwidth.
+     */
     for (let i = 0; i < count; i++) {
       const costume = COSTUMES[i % COSTUMES.length];
       try {

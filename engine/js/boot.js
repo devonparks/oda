@@ -372,7 +372,10 @@ async function main() {
    * a Chromebook's download, so they are fetched once `ready` is already
    * true: the park is walkable while they arrive, and `?npc=0` skips them.
    */
-  const npcCount = /[?&]npc=0\b/.test(location.search) ? 0 : 4;
+  // `?npc=N` sets how many; `?npc=0` skips them. Useful for measuring how
+  // the frame budget scales before pointing this at a Chromebook.
+  const npcArg = /[?&]npc=(\d+)/.exec(location.search);
+  const npcCount = npcArg ? Math.min(12, +npcArg[1]) : 4;
   if (npcCount) {
     Npcs.load(scene, park, props, npcCount)
       .then((n) => {

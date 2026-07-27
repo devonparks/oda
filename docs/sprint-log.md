@@ -1,5 +1,25 @@
 # Sprint Log
 
+## 2026-07-27 (engine) — M6c: headroom, measured
+
+`?npc=N` now sets the crowd size (0–12), and the frame budget was measured
+rather than assumed:
+
+| kids | active meshes | fps |
+|---|---|---|
+| 0 | 93 | 60 |
+| 4 | 117 | 60 |
+| 8 | 141 | 60 |
+| 12 | 165 | 60 |
+
+Sixty flat all the way up, and that is **SwiftShader** — the probes run
+software rendering, which is far slower than any real GPU, so a Chromebook
+has room. Each kid costs six active meshes and one rig update; costumes are
+reused past the fourth so extra kids cost frame time, not bandwidth.
+
+All three bundles boot clean with **zero console warnings and zero errors**:
+the student build, `?npc=0`, and the `?dev` build with the Inspector.
+
 ## 2026-07-27 (engine) — M6b: the tour, emotes, and the last honest numbers
 
 **A TOUR YOU CAN LOOK AT.** `node tools/engine/probe_tour.mjs` plays the
