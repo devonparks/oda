@@ -20,6 +20,7 @@ import { loadPark } from './park.js';
 import { buildCollision } from './collision.js';
 import { Character } from './character.js';
 import { WorldObjects } from './objects.js';
+import { Props } from './props.js';
 
 const canvas = document.getElementById('stage');
 const bootEl = document.getElementById('boot');
@@ -156,6 +157,16 @@ async function main() {
   player.attachCamera(canvas);
   player.bindKeys();
 
+  // The prop database: every mountable prop's seat, clip, pins and motion,
+  // measured into engine/assets/prop_db.json. E mounts, Space hops off.
+  const props = await Props.load(scene, park, player);
+  const promptEl = document.getElementById('prompt');
+  setInterval(() => {
+    const text = props.hudText();
+    promptEl.classList.toggle('hidden', !text);
+    if (text) promptEl.textContent = text;
+  }, 180);
+
   // Shadows: the key light only, and only over what a player sees close up.
   // 275 thin-instance meshes in one shadow map is affordable because each is
   // still one draw call.
@@ -203,6 +214,11 @@ async function main() {
     } else if (e.code === 'KeyF') {
       showStats = !showStats;
       statsEl.style.visibility = showStats ? '' : 'hidden';
+    } else if (e.code === 'KeyE' || (e.code === 'KeyX' && props.active)) {
+      // E mounts the nearest prop / hops off; X always hops off (the seesaw
+      // uses Space for pushing, so it needs a dedicated exit)
+      if (props.active) props.dismount();
+      else props.mount();
     } else if (e.code === 'KeyO') {                     // O toggles edit mode
       objects.enabled = !objects.enabled;
       document.exitPointerLock?.();
@@ -225,7 +241,7 @@ async function main() {
 
   // ── the probe surface ─────────────────────────────────────────────────
   window.__engine = {
-    engine, scene, camera: cam, park, havok: plugin, shadows, collision, player, objects,
+    engine, scene, camera: cam, park, havok: plugin, shadows, collision, player, objects, props,
     ready: true,
     hasInspector: HAS_INSPECTOR,
     /**

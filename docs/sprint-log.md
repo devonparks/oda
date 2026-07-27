@@ -1,5 +1,69 @@
 # Sprint Log
 
+## 2026-07-26 (engine) — M4a: the prop database
+
+**32 MOUNTABLE PROTOTYPES, ALL GREEN IN THE GALLERY.** The milestone Devon
+actually cares about — *"the character isn't sitting on the seat"* — is now a
+database, not a vibe. `engine/assets/prop_db.json` holds, per prototype and in
+the prop's OWN local space: the seat (position + facing), the clip, hand/foot
+IK pins, and the motion (type, pivot, axis — all measured). Four new pieces:
+
+- `tools/engine/seed_prop_db.mjs` MEASURES the seats off the real geometry in
+  real Chrome: the three.js park's saddle-dip scan ported to prototype-local
+  space, plus level-banding for bench planks (with a lateral split, because a
+  picnic table's two benches share one height), top/bottom centroids for
+  slides, and part anchors — pedals and steering wheels are their own
+  prototypes, so their placements hand over exact IK targets for free.
+  Entries marked `"authored": true` are never overwritten by a reseed.
+- `engine/js/props.js` is the mount runtime: E mounts the nearest spot, the
+  rider is placed by the clips.js contract (bind pelvis rotates with the kid,
+  hip drop stays world-vertical, butt − not joint − lands on the surface),
+  the prop's own clip plays, and a CCD solver pins hands/feet. Motion is one
+  world-space rigid delta per frame written into the moving parts' thin
+  instance matrices — the object layer's own mechanism — so swings pendulum
+  (ω = √(g/L) from the measured chain length), springers rock in time with
+  the clip playhead, the seesaw runs the ported lever sim, slides carry you
+  down the chute and hop you off, the zip handle translates along its track.
+- `tools/engine/probe_props.mjs` is the acceptance: mounts every prototype,
+  MEASURES butt-to-seat and pin-to-bone distances, screenshots each one, and
+  writes a contact sheet (`_shots/props/index.html`). All 32 pass.
+- **The clip gap is a number now:** 22/32 bespoke, 10 placeholders, each
+  recorded in the data as `clipStatus: "placeholder"` + `wantClip` naming the
+  bespoke clip to bake (sit_dragon, sit_rocket, sit_tyre_swing, …).
+
+**WHAT WENT WRONG, because that is the useful part:**
+
+1. **Every seated kid floated exactly 0.261 m — a UNITS bug.** The Synty kid
+   is a centimetre rig (`SM_Chr_Kid_*` node scale 0.01); writing the hip drop
+   in metres onto the Hips node moved the world pelvis by millimetres. The
+   legs folded (rotations are unit-free) so the pose LOOKED seated while the
+   pelvis never came down. world/js/rig_v2.js line 447 already divided by the
+   parent's world scale — the Babylon port dropped that. Fixed by pushing
+   world-up through the parent's inverted world matrix (un-rotates AND
+   un-scales in one step).
+2. **The kid gripped the swing with crossed arms.** `hands[0]` was assumed to
+   be the LEFT hand, but whether prop-local −X is the rider's left depends on
+   the seat yaw. The runtime now assigns each pin to the nearer limb.
+3. **Both feet chased garbage on the bike** while the hands sat perfect: the
+   spot's frame matrix was computed into a shared scratch (`_m`) and the hand
+   solver reused that scratch internally, so the FEET targets were transformed
+   by leftover rotation junk. The frame matrix now has its own matrix.
+4. **The analytic two-bone IK lost to CCD.** Rest-offset-and-bend-plane
+   reasoning kept being invalidated by the clip-posed skeleton (25–70 cm
+   steady-state error). CCD on the actual world matrices converges to
+   millimetres in 3 iterations and cannot drift from the truth.
+5. **The seeder's first run measured the bench as 43 m long** —
+   `getBoundingInfo()` covers every thin instance in world space
+   (`thinInstanceRefreshBoundingInfo`), not the local geometry. Bounds now
+   come from the vertex data.
+6. Authored where measurement could not see: the trike (saddle scan found
+   nothing; pedals ride the front wheel, so the leg stretch is real and the
+   entry carries `pinTolerance: 0.22`), and the pogo (the measured "level"
+   at 0.589 was the T-handle — the kid stood ON the handles).
+
+Verified: full gallery green, probe_boot green, probe_objects green,
+probe_character unchanged (stairs still RED — next), 60 fps held.
+
 ## 2026-07-26 (engine) — M2 + M3: a kid on Havok, and the object layer
 
 **THE KID WALKS.** Synty kid on a `PhysicsCharacterController`, the 22-bone

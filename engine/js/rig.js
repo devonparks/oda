@@ -24,7 +24,7 @@
  * overwritten every frame. We write the TransformNodes, exactly as the three.js
  * version wrote Object3D.quaternion — same targets, same numbers.
  */
-import { Quaternion, Vector3 } from 'babylon';
+import { Quaternion, Vector3, Matrix } from 'babylon';
 import { sampleBone, sampleHip, LEG_START } from './clips.js';
 
 /** Gait blend thresholds, m/s — matched to the shipped feel. */
@@ -40,6 +40,8 @@ const _q = new Quaternion();
 const _acc = new Quaternion();
 const _e = new Quaternion();
 const _tmp = new Quaternion();
+const _hm = new Matrix();
+const _hv = new Vector3();
 
 export class Rig {
   /**
@@ -233,10 +235,6 @@ export class Rig {
     }
 
     // ── 5. hips vertical offset ────────────────────────────────────────
-    // Applied along the model's own up. The three.js version un-rotated the
-    // parent to keep it world-vertical; here the kid's root IS the thing that
-    // tilts (on a swing), and the prop database owns that tilt, so the offset
-    // stays in model space and the mount maths stays in one place.
     let hip = 0;
     for (const id of active) {
       const c = loco.clips[id];
@@ -247,9 +245,33 @@ export class Rig {
       const hw = this.actionW * this.legW;
       hip = hip * (1 - hw) + ah * hw;
     }
-    if (this.hips) {
+    /** The hip offset actually applied this frame, METRES, world-vertical —
+     *  the prop mount reads this to land the butt on the seat. */
+    this.hipApplied = hip;
+
+    /**
+     * THE HIP DROP IS IN METRES; THE NODE IS NOT. The Synty kid is a
+     * centimetre rig — `SM_Chr_Kid_*` carries scale 0.01 — so a metre
+     * written raw onto the Hips node moves the world pelvis a CENTIMETRE.
+     * The first port of this block did exactly that, and every seated kid
+     * hovered 0.261 m above every seat while the rig swore (in node units)
+     * the offset was applied: the gallery numbers said hip −0.261 and the
+     * screenshot said "perched", and the screenshot was right.
+     *
+     * world/js/rig_v2.js line 447 already knew: it un-rotates the parent
+     * AND divides by the parent's world scale. Transforming world-up
+     * through the parent's INVERTED world matrix as a normal does both in
+     * one step — and keeps the drop world-vertical, which is the baked
+     * contract (see SEATED_HIP_OFFSET in clips.js: a tilted rider rotates
+     * the bind offset but not the hip drop).
+     */
+    if (this.hips && this.hips.parent) {
+      const parent = this.hips.parent;
+      parent.computeWorldMatrix(true);
+      parent.getWorldMatrix().invertToRef(_hm);
+      Vector3.TransformNormalToRef(Vector3.UpReadOnly, _hm, _hv);
       this.hips.position.copyFrom(this.hipsRest);
-      this.hips.position.y += hip;
+      this.hips.position.addInPlace(_hv.scaleInPlace(hip));
     }
   }
 }

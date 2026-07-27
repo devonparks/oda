@@ -170,6 +170,18 @@ export class Character {
   update(dt) {
     if (!this.cc) return;
     dt = Math.min(dt, 1 / 20);                 // a long frame must not teleport
+
+    /**
+     * MOUNTED: the prop database owns the kid. The capsule would fight every
+     * moving seat (a swing sweeps through it twice a second), so the whole
+     * controller step is bypassed and js/props.js places the model straight
+     * from the seat frame — position, tilt, clip and pins in one place.
+     */
+    if (this.mounted) {
+      this.mounted.update(dt, this.input);
+      this._updateCamera(dt);
+      return;
+    }
     const gravity = this.scene.getPhysicsEngine().gravity;
 
     const support = this.cc.checkSupport(dt, DOWN);
