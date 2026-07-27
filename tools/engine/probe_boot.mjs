@@ -40,11 +40,14 @@ const state = await peek(page, () => {
     meshes: e.scene.meshes.length,
     fps: e.engine.getFps(),
     hasInspector: e.hasInspector,
-    // thin instances really are instanced, not 1103 separate meshes.
-    // RENDERED ones only: collision.js adds hidden `*_phys` meshes carrying
-    // the unit-scale instance matrices for Havok (scaled placements need
-    // their own bodies), and those must not count as park placements.
-    thinTotal: e.scene.meshes.reduce((n, m) => n + (m.isVisible ? (m.thinInstanceCount || 0) : 0), 0),
+    /**
+     * Thin instances really are instanced, not 1103 separate meshes.
+     * Counted over the PARK'S PROTOTYPES only, because two other systems
+     * legitimately carry thin instances of their own and neither is a park
+     * placement: collision.js builds hidden `*_phys` meshes for the physics
+     * instances, and backdrop.js instances the tree belts and hills.
+     */
+    thinTotal: [...e.park.protos.values()].reduce((n, m) => n + (m.thinInstanceCount || 0), 0),
     // spot-check a known landmark against the layout file's own numbers
     fountain: (e.find('Fountain_01')[0] || null) && e.find('Fountain_01')[0].pos,
   };

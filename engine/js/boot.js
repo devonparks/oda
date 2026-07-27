@@ -22,6 +22,7 @@ import { Character } from './character.js';
 import { WorldObjects } from './objects.js';
 import { Props } from './props.js';
 import { Library } from './library.js';
+import { buildBackdrop } from './backdrop.js';
 
 const canvas = document.getElementById('stage');
 const bootEl = document.getElementById('boot');
@@ -143,7 +144,10 @@ async function main() {
   // ── the park ──────────────────────────────────────────────────────────
   const park = await loadPark(scene, progress);
 
-  progress(0.72, 'Building collision…');
+  progress(0.7, 'Building the countryside…');
+  const backdrop = buildBackdrop(scene, park);
+
+  progress(0.75, 'Building collision…');
   const collision = buildCollision(scene, park);
 
   const objects = new WorldObjects(scene, park);
@@ -169,14 +173,45 @@ async function main() {
     if (text) promptEl.textContent = text;
   }, 180);
 
-  // Shadows: the key light only, and only over what a player sees close up.
-  // 275 thin-instance meshes in one shadow map is affordable because each is
-  // still one draw call.
+  /**
+   * SHADOWS, and the frustum is HAND-DRIVEN because the automatic one does
+   * not work in a right-handed scene.
+   *
+   * The symptom was "the kid casts nothing, anywhere". Everything looked
+   * wired: the generator existed, the kid's four meshes were in the render
+   * list, the receiving material carried SHADOW1/SHADOWPCF1/SHADOWS. The
+   * shadow map read back empty. Projecting the kid through the generator's
+   * own transform matrix gave the answer in one number:
+   *
+   *     clip = (-0.03, 0.21, -0.63)      ← x,y centred; DEPTH NEGATIVE
+   *
+   * With `autoUpdateExtends` on, Babylon derives the light's depth range
+   * from the ACTIVE CAMERA's near/far when `shadowMinZ`/`shadowMaxZ` are
+   * unset, and in a right-handed scene that lands the caster at negative
+   * depth — clipped out of the map entirely, so nothing is ever drawn into
+   * it. Measured against three alternatives, an explicit ortho box with an
+   * explicit depth range is the only one that puts the kid inside [0,1].
+   *
+   * Driving it by hand is better anyway: the box follows the player, so all
+   * 1024² texels are spent on the few metres around them instead of on the
+   * whole park.
+   */
   const shadows = new ShadowGenerator(1024, sun);
   shadows.usePercentageCloserFiltering = true;
   shadows.filteringQuality = ShadowGenerator.QUALITY_MEDIUM;
-  shadows.bias = 0.008;
-  shadows.normalBias = 0.02;
+  // Small biases: the frustum below is ~20 m deep, not the camera's 400, so
+  // the old 0.008 was metres of offset and pushed the shadow off the world.
+  shadows.bias = 0.0008;
+  shadows.normalBias = 0.01;
+
+  const SHADOW_R = 9;              // half-width of the lit box, metres
+  const SHADOW_BACK = 55;          // how far back along the sun the light sits
+  const sunDir = sun.direction.normalizeToNew();
+  sun.autoUpdateExtends = false;
+  sun.orthoLeft = -SHADOW_R; sun.orthoRight = SHADOW_R;
+  sun.orthoBottom = -SHADOW_R; sun.orthoTop = SHADOW_R;
+  sun.shadowMinZ = 1;
+  sun.shadowMaxZ = SHADOW_BACK + 40;
   for (const m of park.protos.values()) m.receiveShadows = true;
   // The kid casts; the park only receives. Putting 275 thin-instance meshes in
   // the caster list would re-render the whole park into the shadow map every
@@ -186,10 +221,30 @@ async function main() {
   progress(0.95, 'Compiling shaders…');
   await scene.whenReadyAsync();
 
+  /**
+   * FREEZE THE PARK MATERIALS NOW, not at load — see the long note in
+   * park.js. The shadow-sampling code is a compile-time define, so a
+   * material frozen before the ShadowGenerator existed could never receive
+   * a shadow. Freezing here, after the shadow rig is built and every shader
+   * is compiled, keeps the per-frame win (275 meshes share this material)
+   * without costing the shadows.
+   */
+  park.material.freeze();
+  park.waterMaterial.freeze();
+
   // ── run ───────────────────────────────────────────────────────────────
   // The character steps BEFORE the render, off the same clock Havok uses.
   scene.onBeforeRenderObservable.add(() => {
     player.update(engine.getDeltaTime() / 1000);
+    // Keep the shadow box centred on the kid (see the note where it is set
+    // up): the light sits back along its own direction, so the kid lands in
+    // the middle of the ortho box and inside the depth range.
+    const p = player.model.position;
+    sun.position.set(
+      p.x - sunDir.x * SHADOW_BACK,
+      p.y - sunDir.y * SHADOW_BACK,
+      p.z - sunDir.z * SHADOW_BACK,
+    );
   });
   engine.runRenderLoop(() => scene.render());
   window.addEventListener('resize', () => engine.resize());
@@ -251,7 +306,7 @@ async function main() {
 
   // ── the probe surface ─────────────────────────────────────────────────
   window.__engine = {
-    engine, scene, camera: cam, park, havok: plugin, shadows, collision, player, objects, props, library,
+    engine, scene, camera: cam, park, havok: plugin, shadows, collision, player, objects, props, library, backdrop,
     ready: true,
     hasInspector: HAS_INSPECTOR,
     /**

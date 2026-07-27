@@ -118,14 +118,22 @@ export async function loadPark(scene, onProgress = () => {}) {
   // ── materials ───────────────────────────────────────────────────────────
   // The art is untextured: one flat material, and the Synty atlas colours ride
   // in on the vertex colour attribute. StandardMaterial is both cheaper than
-  // the PBR one the glTF loader builds and closer to the Synty look. Freezing
-  // it matters — 275 meshes share it, so it is bound 275 times a frame.
+  // the PBR one the glTF loader builds and closer to the Synty look.
+  //
+  // FREEZING IS DEFERRED TO boot.js, ON PURPOSE. Freezing is worth real
+  // performance here — 275 meshes share this material, so it is bound 275
+  // times a frame — but a frozen StandardMaterial never recompiles its
+  // shader, and the shadow-sampling code is added by a DEFINE at compile
+  // time. Freezing here, before boot.js builds the ShadowGenerator, baked a
+  // park that could not receive shadows at all: measured, the park material
+  // carried zero SHADOW defines while a fresh material in the same scene got
+  // SHADOW1 / SHADOWPCF1 / SHADOWS. The kid cast nothing onto the world for
+  // two milestones because of the ORDER of these two lines.
   const lit = new StandardMaterial('amg_park', scene);
   lit.diffuseColor = new Color3(1, 1, 1);
   lit.specularColor = new Color3(0.05, 0.05, 0.05);
   lit.specularPower = 64;
   lit.backFaceCulling = false;             // the export is doubleSided
-  lit.freeze();
 
   const water = new StandardMaterial('amg_water', scene);
   water.diffuseColor = new Color3(0.29, 0.56, 0.68);
@@ -133,7 +141,6 @@ export async function loadPark(scene, onProgress = () => {}) {
   water.specularPower = 96;
   water.alpha = 0.86;
   water.backFaceCulling = false;
-  water.freeze();
 
   // ── group the placements by prototype ───────────────────────────────────
   const groups = new Map();                      // proto name -> item rows

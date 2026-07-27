@@ -1,5 +1,77 @@
 # Sprint Log
 
+## 2026-07-26 (engine) — M5a: the park is no longer floating in nowhere
+
+**THE COUNTRYSIDE IS IN.** `engine/js/backdrop.js` ports the three.js park's
+`_buildBackdrop` answer to Devon's *"it's just a plane floating in the middle
+of nowhere"*: land at y −1.25 (below the skate bowl's carved floor, so it
+cannot fill the bowl in), 26 low hills, and 250 tree/bush instances in three
+belts — the park's OWN tree prototypes, because code-drawn cones got clocked
+instantly last time. Plus linear fog 85–340 m so the hills read as distance
+rather than as spikes on a blue wall.
+
+**The engine paid for itself again.** The three.js version had to MERGE ~250
+tree clones to hold its draw-call budget; here each belt is thin-instanced
+against the park prototype's own geometry — 14 draw calls, zero extra vertex
+memory, and the probe asserts every belt mesh *shares* the prototype's
+geometry rather than copying it.
+
+**TWO BUGS, BOTH INVISIBLE TO NUMBERS.**
+
+1. **The countryside rendered cream-white** while every check passed —
+   geometry, counts, physics, fog all green and the horizon looked like a
+   beach. Two wrong turns: it is not fog (subdividing the 900 m plane so fog
+   interpolates per-vertex was needed too, but did not fix the colour), and
+   it is not the value. Measured: the grass tile's vertex colour is
+   (0.361, 0.447, 0.216), the backdrop material's diffuse was the *identical*
+   triple, and the lawn rendered rgb(109,129,70) while the countryside
+   saturated at rgb(255,255,180). The cause is WHERE the colour sits in
+   Babylon's shader: `clamp(lighting × diffuseColor) × vertexColor`. This
+   park's light rig is deliberately bright (hemi 1.5 + a 2.2 sun), so a
+   colour in `diffuseColor` is multiplied *before* the clamp and clips to
+   white, while the same colour in the VERTEX buffer is applied after and
+   survives. That is why all the Synty art is vertex-coloured. The land and
+   hills now carry a COLOR_0 attribute taken from the grass tile itself and
+   wear the park's own material: measured distance between lawn and
+   countryside is now **2/255**, and the probe checks it every run.
+2. **The ground plane fogged as one flat sheet** — `CreateGround` builds four
+   corners, and Babylon interpolates fog distance per vertex, so a 900 m
+   plane took its fog from vertices 450 m away. 48 subdivisions.
+
+**SHADOWS: two real fixes, one honest gap.** The kid cast nothing anywhere.
+Found and fixed:
+
+- **The park material was frozen before the ShadowGenerator existed.** A
+  frozen StandardMaterial never recompiles, and shadow sampling is a
+  compile-time define — so the park's shader had *zero* SHADOW defines while
+  a fresh material in the same scene got SHADOW1/SHADOWPCF1/SHADOWS. The
+  freeze now happens in boot.js after the shadow rig is built.
+- **The auto shadow frustum is wrong in a right-handed scene.** Projecting
+  the kid through the generator's own matrix gave clip z = **−0.63** —
+  laterally centred but at negative depth, i.e. clipped out of the map
+  entirely, which is why the shadow map read back empty. With an explicit
+  ortho box and depth range (and the box now following the player, so all
+  1024² texels are spent where they show) the kid lands at z = +0.14. Bias
+  came down from 0.008 to 0.0008 to match a 95 m frustum instead of the
+  camera's 400 m.
+
+**Still open, stated plainly: the park's thin-instanced geometry does not
+receive the shadow.** A/B with the caster toggled is pixel-identical on
+grass, while a plain non-instanced plane in the same scene shows the shadow.
+So casting and receiving both work — thin-instance receiving is the blocker.
+Not chased further because the brief ranks shadows last; a blob shadow under
+the kid is the cheap alternative if this proves to be a Babylon limitation.
+
+**Four measurement artifacts in one investigation, worth writing down.** A
+test plane placed at the kid's feet-origin (−0.02) was buried under the grass
+(+0.06), so an entire bias/filter sweep measured untouched lawn. A sample
+point for "where the shadow lands" fell beyond a test plane's edge and read
+grass as a 165-level "shadow". Twice more, patches were compared on surfaces
+already clipped at 255, where a shadow cannot show up in the numbers at all.
+Every one of them produced confident, wrong readings. The A/B screenshot with
+the caster toggled is the only measurement in this milestone that could not
+lie, and it is the one that settled it.
+
 ## 2026-07-26 (engine) — M4e: the clip gap is CLOSED — 32/32 bespoke, 0 placeholders
 
 **"A unique animation for every single prop" is now literally true at the
