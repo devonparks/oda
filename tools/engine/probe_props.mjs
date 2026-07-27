@@ -206,6 +206,31 @@ const placeholder = rows.filter((r) => r.clipStatus === 'placeholder');
 console.log(`\nclips: ${bespoke}/${rows.length} bespoke, ${placeholder.length} placeholders:`);
 for (const p of placeholder) console.log(`   ${p.proto}: has ${p.clip}, wants ${p.wantClip || '?'}`);
 
+/**
+ * HOW MUCH SHARING IS LEFT, as a number rather than a claim.
+ *
+ * Devon asked for "a unique animation for every single prop, no shared
+ * clips". Where it honestly stands: every prop KIND has its own bespoke
+ * clip, and prototypes that share one are the same kind of thing — two
+ * skateboards, three bikes, four slides. Two DIFFERENT kinds sharing a clip
+ * would be the real gap, so that is what gets flagged.
+ */
+{
+  const byClip = new Map();
+  for (const r of rows) {
+    if (!byClip.has(r.clip)) byClip.set(r.clip, []);
+    byClip.get(r.clip).push(r);
+  }
+  const shared = [...byClip.entries()].filter(([, rs]) => rs.length > 1);
+  const crossKind = shared.filter(([, rs]) => new Set(rs.map((r) => r.kind)).size > 1);
+  console.log(`\nclip reuse: ${byClip.size} distinct clips across ${rows.length} prototypes`);
+  for (const [clip, rs] of shared) {
+    console.log(`   ${clip.padEnd(15)} ← ${rs.length} prototypes (${[...new Set(rs.map((r) => r.kind))].join('/')})`);
+  }
+  check('no two DIFFERENT kinds share a clip', crossKind.length === 0,
+    crossKind.map(([c, rs]) => `${c}: ${[...new Set(rs.map((r) => r.kind))].join('+')}`).join(', ') || 'every share is within one kind');
+}
+
 // ── contact sheet ───────────────────────────────────────────────────────────
 const cells = rows.map((r) => `
   <figure class="${r.gapOK && !r.pinsBad ? 'ok' : 'bad'}">
