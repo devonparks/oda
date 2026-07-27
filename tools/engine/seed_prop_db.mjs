@@ -69,16 +69,13 @@ const RULES = [
     motion: { type: 'spin' },
   },
   {
-    re: /^SM_Prop_Coin_Ride_Car$/, kind: 'coinride', clip: 'sit_kart', status: 'placeholder',
-    want: 'sit_coin_car', motion: { type: 'rock', axis: 'x', amp: 0.14, hz: 0.55 },
+    re: /^SM_Prop_Coin_Ride_Car$/, kind: 'coinride', clip: 'sit_coin_car', status: 'bespoke', motion: { type: 'rock', axis: 'x', amp: 0.14, hz: 0.55 },
   },
   {
-    re: /^SM_Prop_Coin_Ride_Dragon$/, kind: 'coinride', clip: 'sit_rocker', status: 'placeholder',
-    want: 'sit_dragon', motion: { type: 'rock', axis: 'x', amp: 0.14, hz: 0.5 },
+    re: /^SM_Prop_Coin_Ride_Dragon$/, kind: 'coinride', clip: 'sit_dragon', status: 'bespoke', motion: { type: 'rock', axis: 'x', amp: 0.14, hz: 0.5 },
   },
   {
-    re: /^SM_Prop_Coin_Ride_Rocket$/, kind: 'coinride', clip: 'sit_rocker', status: 'placeholder',
-    want: 'sit_rocket', motion: { type: 'rock', axis: 'x', amp: 0.12, hz: 0.6 },
+    re: /^SM_Prop_Coin_Ride_Rocket$/, kind: 'coinride', clip: 'sit_rocket', status: 'bespoke', motion: { type: 'rock', axis: 'x', amp: 0.12, hz: 0.6 },
   },
   {
     re: /^SM_Prop_(Playground_)?Rocker_(\d+_)?Top(_\d+)?$/, kind: 'rocker', clip: 'sit_rocker', status: 'bespoke',
@@ -93,8 +90,7 @@ const RULES = [
     motion: { type: 'swing' },   // pivot + pendulum length measured below
   },
   {
-    re: /^SM_Env_Tree_Large_01_Tyre_Swing$/, kind: 'swing', clip: 'sit_swing', status: 'placeholder',
-    want: 'sit_tyre_swing', motion: { type: 'swing' },
+    re: /^SM_Env_Tree_Large_01_Tyre_Swing$/, kind: 'swing', clip: 'sit_tyre_swing', status: 'bespoke', motion: { type: 'swing' },
   },
   {
     re: /^SM_Prop_Playground_Slide_0\d$/, kind: 'slide', clip: 'slide_ride', status: 'bespoke',
@@ -105,19 +101,18 @@ const RULES = [
     mode: 'hang', motion: { type: 'traverse' },
   },
   {
-    re: /^SM_Prop_Playground_Track_Ride_01$/, kind: 'zip', clip: 'monkey', status: 'placeholder',
-    want: 'zip_hang', mode: 'hang', motion: { type: 'zip' },
+    re: /^SM_Prop_Playground_Track_Ride_01$/, kind: 'zip', clip: 'zip_hang', status: 'bespoke', mode: 'hang', motion: { type: 'zip' },
   },
   { re: /^SM_Veh_4x4$/, kind: 'kart', clip: 'sit_kart', status: 'bespoke' },
   { re: /^SM_Veh_Soapbox_Racer_03$/, kind: 'kart', clip: 'sit_kart', status: 'bespoke' },
   { re: /^SM_Veh_Bike_0\d$/, kind: 'bike', clip: 'bike_pedal', status: 'bespoke' },
-  { re: /^SM_Veh_Trike_01$/, kind: 'bike', clip: 'bike_pedal', status: 'placeholder', want: 'sit_trike' },
+  { re: /^SM_Veh_Trike_01$/, kind: 'bike', clip: 'sit_trike', status: 'bespoke' },
   { re: /^SM_Veh_Scooter_0\d$/, kind: 'scooter', clip: 'scoot_stand', status: 'bespoke', mode: 'stand' },
   { re: /^SM_Veh_Pogo_Stick_01$/, kind: 'pogo', clip: 'pogo', status: 'bespoke', mode: 'stand' },
   { re: /^SM_Prop_Skateboard_0\d$/, kind: 'board', clip: 'board_stand', status: 'bespoke', mode: 'stand' },
-  { re: /^SM_Prop_Sled_01$/, kind: 'sit_on', clip: 'sit_kart', status: 'placeholder', want: 'sit_sled' },
-  { re: /^SM_Prop_Red_Wagon_01$/, kind: 'sit_on', clip: 'sit', status: 'placeholder', want: 'sit_wagon' },
-  { re: /^SM_Prop_Pool_Float_0\d$/, kind: 'sit_on', clip: 'sit', status: 'placeholder', want: 'sit_float' },
+  { re: /^SM_Prop_Sled_01$/, kind: 'sit_on', clip: 'sit_sled', status: 'bespoke' },
+  { re: /^SM_Prop_Red_Wagon_01$/, kind: 'sit_on', clip: 'sit_wagon', status: 'bespoke' },
+  { re: /^SM_Prop_Pool_Float_0\d$/, kind: 'sit_on', clip: 'sit_float', status: 'bespoke' },
 ];
 
 /** Sibling parts cluster onto this main prototype (strip the part suffix). */

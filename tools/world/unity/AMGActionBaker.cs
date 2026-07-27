@@ -110,6 +110,20 @@ public static class AMGActionBaker
         new Spec("crawl",       24, true,  "Crawling"),      // hands-and-knees clamber (tyres, low ledges)
         new Spec("board_stand", 36, true,  "Board stance"),  // SIDEWAYS skate stance — ride_stand stays forward-facing for scooters
         new Spec("scoot_stand", 36, true,  "Scooting"),      // forward stance, hands ON the scooter bars (low and close)
+
+        // ── the engine prop database's bespoke set ───────────────────────────
+        // One clip per prop KIND that was riding a near-neighbour placeholder
+        // (engine/assets/prop_db.json tracks the gap as clipStatus). Every
+        // seated one inherits the -0.261 pelvis contract via Seated().
+        new Spec("sit_dragon",    44, true,  "Dragon ride"),   // straddling the coin dragon, hands on its neck
+        new Spec("sit_coin_car",  44, true,  "Car ride"),      // in the coin car cockpit, hands on the wheel
+        new Spec("sit_rocket",    44, true,  "Rocket ride"),   // knees-up cockpit sit, gripping the rim, leaning back
+        new Spec("sit_tyre_swing",48, true,  "Tyre swing"),    // in the hanging tyre, hands up on the rope
+        new Spec("sit_trike",     24, true,  "Trike pedal"),   // upright toddler-trike ride, pedalling the FRONT wheel
+        new Spec("sit_sled",      50, true,  "Sled sit"),      // legs out front, gripping the rim beside the hips
+        new Spec("sit_wagon",     50, true,  "Wagon sit"),     // knees up in the little tray, hands on the rim
+        new Spec("sit_float",     60, true,  "Float lounge"),  // reclined in the pool ring, arms draped over it
+        new Spec("zip_hang",      40, true,  "Zip hang"),      // both hands together on the trolley handle, legs tucked
     };
 
     // ── the pose a single frame resolves to ──────────────────────────────────
@@ -200,7 +214,14 @@ public static class AMGActionBaker
             case "slide_ride": return 0.35f;
             case "fish_wait": return 0.65f;
             case "fish_reel": return 0.30f;
-            default: return 0f;    // swing_pump, hula, fish_cast move plenty
+            case "sit_dragon": return 0.45f;
+            case "sit_coin_car": return 0.55f;
+            case "sit_rocket": return 0.45f;
+            case "sit_tyre_swing": return 0.70f;
+            case "sit_sled": return 0.80f;
+            case "sit_wagon": return 0.80f;
+            case "sit_float": return 1.00f;
+            default: return 0f;    // swing_pump, hula, fish_cast, sit_trike, zip_hang move plenty
         }
     }
 
@@ -220,7 +241,11 @@ public static class AMGActionBaker
     {
         return id == "sit" || id == "sit_swing" || id == "swing_pump" || id == "slide_ride"
             || id == "sit_kart" || id == "sit_seesaw" || id == "sit_rocker"
-            || id == "bike_pedal" || id == "sit_table" || id == "spin_ride";
+            || id == "bike_pedal" || id == "sit_table" || id == "spin_ride"
+            || id == "sit_dragon" || id == "sit_coin_car" || id == "sit_rocket"
+            || id == "sit_tyre_swing" || id == "sit_trike" || id == "sit_sled"
+            || id == "sit_wagon" || id == "sit_float";
+        // zip_hang is a HANG — the engine places the feet-origin directly
     }
 
     /** @param u normalised playhead in [0,1) for loops, [0,1] for one-shots. */
@@ -761,6 +786,173 @@ public static class AMGActionBaker
                     Vector3 r = new Vector3(0.170f, 0.945f, 0.240f);
                     p = FishStance(p, r, -0.05f + 0.05f * s);
                     p.handL = new Vector3(0.020f + 0.062f * Mathf.Cos(Tau(u)), 0.868f + 0.062f * Mathf.Sin(Tau(u)), 0.238f + 0.02f * s);
+                    break;
+                }
+
+            // ── the prop database's bespoke rides ────────────────────────────
+
+            // Straddling the coin dragon: the rocker straddle with both hands
+            // stacked forward on the dragon's neck, torso leaning gently into
+            // the ride's rock (the prop's own motion supplies the big movement).
+            case "sit_dragon":
+                p = BuildRaw("sit_rocker", u);
+                p.pelvis = new Vector3(0f, 0.990f, -0.141f).normalized;
+                p.spine1 = new Vector3(0f, 0.992f, 0.126f).normalized;   // chest toward the neck
+                p.handL = new Vector3(-0.115f, 0.885f, 0.265f);
+                p.handR = new Vector3(0.115f, 0.885f, 0.265f);
+                p.poleL = new Vector3(-0.86f, -0.44f, -0.16f);
+                p.poleR = new Vector3(0.86f, -0.44f, -0.16f);
+                p.neck = new Vector3(0f, 0.965f, 0.262f).normalized;     // eyes over the head
+                p.hipY = 0.014f * Mathf.Sin(Tau(u) * 2f);
+                break;
+
+            // The coin car cockpit: kart legs into the footwell, hands ON the
+            // little steering wheel, sawing it a few degrees back and forth.
+            case "sit_coin_car":
+                p = BuildRaw("sit_kart", u);
+                p.handL = new Vector3(-0.150f, 0.880f + 0.012f * s, 0.290f);
+                p.handR = new Vector3(0.150f, 0.880f - 0.012f * s, 0.290f);
+                p.poleL = new Vector3(-0.84f, -0.50f, -0.16f);
+                p.poleR = new Vector3(0.84f, -0.50f, -0.16f);
+                p.neck = new Vector3(0f, 0.968f, 0.251f).normalized;     // watching the "road"
+                break;
+
+            // The rocket cockpit is CRAMPED: knees up near the rim, torso laid
+            // back against the seat, narrow grips at the cockpit edge.
+            case "sit_rocket":
+                p = BuildRaw("sit", u);
+                p.pelvis = new Vector3(0f, 0.930f, -0.368f).normalized;  // laid back
+                p.spine1 = new Vector3(0f, 0.975f, -0.222f).normalized;
+                p.neck = new Vector3(0f, 0.945f, 0.327f).normalized;     // looking up and out
+                p.thighL = new Vector3(-0.100f, 0.100f, 0.990f).normalized;   // knees UP
+                p.thighR = new Vector3(0.100f, 0.100f, 0.990f).normalized;
+                p.shinL = new Vector3(-0.020f, -0.970f, -0.240f).normalized;
+                p.shinR = new Vector3(0.020f, -0.970f, -0.240f).normalized;
+                p.footL = new Vector3(0f, -0.500f, 0.866f);
+                p.footR = new Vector3(0f, -0.500f, 0.866f);
+                p.handL = new Vector3(-0.125f, 0.900f, 0.240f);
+                p.handR = new Vector3(0.125f, 0.900f, 0.240f);
+                p.poleL = new Vector3(-0.86f, -0.46f, -0.20f);
+                p.poleR = new Vector3(0.86f, -0.46f, -0.20f);
+                break;
+
+            // Sitting IN the hanging tyre: legs together and dangling, both
+            // hands up the single centre rope (staggered, one above the other),
+            // the whole body swaying gently with the hang.
+            case "sit_tyre_swing":
+                p = BuildRaw("sit", u);
+                p.pelvis = new Vector3(0.040f * s, 0.965f, -0.259f).normalized;
+                p.thighL = new Vector3(-0.055f, -0.350f, 0.935f).normalized;
+                p.thighR = new Vector3(0.055f, -0.350f, 0.935f).normalized;
+                p.shinL = new Vector3(0f, -0.930f, -0.360f).normalized;
+                p.shinR = new Vector3(0f, -0.930f, -0.360f).normalized;
+                p.footL = new Vector3(0f, -0.350f, 0.937f);
+                p.footR = new Vector3(0f, -0.350f, 0.937f);
+                p.handL = new Vector3(-0.055f, 1.190f, 0.030f);          // lower grip
+                p.handR = new Vector3(0.055f, 1.215f, 0.055f);           // upper grip
+                p.poleL = new Vector3(-0.85f, -0.40f, -0.30f);
+                p.poleR = new Vector3(0.85f, -0.40f, -0.30f);
+                p.hipY += 0.008f * s;
+                break;
+
+            // A toddler trike: bolt upright, pedalling the FRONT wheel — the
+            // circle sits forward and high compared to a bike's.
+            case "sit_trike":
+                {
+                    float a1 = Tau(u), a2 = Tau(u) + Mathf.PI;
+                    p.pelvis = new Vector3(0f, 0.995f, -0.100f).normalized;
+                    p.spine1 = new Vector3(0f, 0.995f, 0.100f).normalized;
+                    p.neck = new Vector3(0f, 0.975f, 0.222f).normalized;
+                    p.thighL = new Vector3(-0.100f, -0.080f + 0.280f * Mathf.Sin(a1), 0.950f).normalized;
+                    p.thighR = new Vector3(0.100f, -0.080f + 0.280f * Mathf.Sin(a2), 0.950f).normalized;
+                    p.shinL = new Vector3(-0.030f, -0.780f, 0.300f + 0.380f * Mathf.Cos(a1)).normalized;
+                    p.shinR = new Vector3(0.030f, -0.780f, 0.300f + 0.380f * Mathf.Cos(a2)).normalized;
+                    p.footL = new Vector3(0f, -0.380f, 0.925f);
+                    p.footR = new Vector3(0f, -0.380f, 0.925f);
+                    p.handL = new Vector3(-0.145f, 0.820f, 0.300f);
+                    p.handR = new Vector3(0.145f, 0.820f, 0.300f);
+                    p.poleL = new Vector3(-0.87f, -0.45f, -0.18f);
+                    p.poleR = new Vector3(0.87f, -0.45f, -0.18f);
+                    break;
+                }
+
+            // Sled: legs stretched out along the deck, leaning back a touch,
+            // hands gripping the rim right beside the hips.
+            case "sit_sled":
+                p = BuildRaw("sit", u);
+                p.pelvis = new Vector3(0f, 0.940f, -0.341f).normalized;
+                p.spine1 = new Vector3(0f, 0.975f, -0.222f).normalized;
+                p.thighL = new Vector3(-0.090f, -0.150f, 0.985f).normalized;
+                p.thighR = new Vector3(0.090f, -0.150f, 0.985f).normalized;
+                p.shinL = new Vector3(-0.020f, -0.500f, 0.866f).normalized;
+                p.shinR = new Vector3(0.020f, -0.500f, 0.866f).normalized;
+                p.footL = new Vector3(0f, -0.350f, 0.937f);
+                p.footR = new Vector3(0f, -0.350f, 0.937f);
+                p.handL = new Vector3(-0.155f, 0.575f, 0.045f);
+                p.handR = new Vector3(0.155f, 0.575f, 0.045f);
+                p.poleL = new Vector3(-0.72f, -0.50f, -0.48f);
+                p.poleR = new Vector3(0.72f, -0.50f, -0.48f);
+                break;
+
+            // The little red wagon: the tray is tiny, so the knees fold HIGH
+            // (feet close to the butt) and the hands hold the rim at the sides.
+            case "sit_wagon":
+                p = BuildRaw("sit", u);
+                p.spine1 = new Vector3(0f, 0.990f, 0.141f).normalized;   // slightly hunched in
+                p.thighL = new Vector3(-0.110f, 0.350f, 0.930f).normalized;   // knees up
+                p.thighR = new Vector3(0.110f, 0.350f, 0.930f).normalized;
+                p.shinL = new Vector3(-0.020f, -0.995f, -0.100f).normalized;
+                p.shinR = new Vector3(0.020f, -0.995f, -0.100f).normalized;
+                p.footL = new Vector3(0f, -0.550f, 0.835f);
+                p.footR = new Vector3(0f, -0.550f, 0.835f);
+                p.handL = new Vector3(-0.175f, 0.600f, 0.010f);
+                p.handR = new Vector3(0.175f, 0.600f, 0.010f);
+                p.poleL = new Vector3(-0.70f, -0.48f, -0.53f);
+                p.poleR = new Vector3(0.70f, -0.48f, -0.53f);
+                break;
+
+            // Pool float: fully reclined into the ring, legs floating up in
+            // front, arms DRAPED out over the ring's sides. Maximum holiday.
+            case "sit_float":
+                p = BuildRaw("sit", u);
+                p.pelvis = new Vector3(0f, 0.870f, -0.493f).normalized;  // way back
+                p.spine1 = new Vector3(0f, 0.940f, -0.341f).normalized;
+                p.spine2 = new Vector3(0f, 0.990f, -0.141f).normalized;
+                p.neck = new Vector3(0f, 0.995f, 0.100f).normalized;
+                p.thighL = new Vector3(-0.090f, 0.050f + 0.030f * s, 0.995f).normalized;
+                p.thighR = new Vector3(0.090f, 0.050f + 0.030f * Mathf.Sin(Tau(u) + 0.9f), 0.995f).normalized;
+                p.shinL = new Vector3(-0.020f, -0.550f, 0.834f).normalized;
+                p.shinR = new Vector3(0.020f, -0.550f, 0.834f).normalized;
+                p.footL = new Vector3(0f, -0.300f, 0.954f);
+                p.footR = new Vector3(0f, -0.300f, 0.954f);
+                p.handL = new Vector3(-0.295f, 0.620f, 0.020f);
+                p.handR = new Vector3(0.295f, 0.620f, 0.020f);
+                p.poleL = new Vector3(-0.90f, -0.30f, -0.32f);
+                p.poleR = new Vector3(0.90f, -0.30f, -0.32f);
+                break;
+
+            // Hanging from the zip trolley: both hands TOGETHER on the handle
+            // overhead (out-of-reach IK resolves to straight arms, which is the
+            // hang), knees tucked, the body swinging softly under the traverse.
+            case "zip_hang":
+                {
+                    float m = Mathf.Sin(Tau(u));
+                    p.pelvis = new Vector3(0.05f * m, 1f, -0.08f).normalized;
+                    p.spine1 = new Vector3(0.04f * m, 1f, -0.02f).normalized;
+                    p.neck = new Vector3(0f, 0.950f, 0.312f).normalized;      // looking ahead
+                    p.handL = new Vector3(-0.055f, 1.320f, 0.100f);
+                    p.handR = new Vector3(0.055f, 1.320f, 0.100f);
+                    p.poleL = new Vector3(-0.60f, -0.75f, -0.28f);
+                    p.poleR = new Vector3(0.60f, -0.75f, -0.28f);
+                    // knees tucked and swinging a beat behind the body
+                    float k = Mathf.Sin(Tau(u) - 0.7f);
+                    p.thighL = new Vector3(-0.070f, -0.700f + 0.10f * k, 0.707f).normalized;
+                    p.thighR = new Vector3(0.070f, -0.700f + 0.10f * k, 0.707f).normalized;
+                    p.shinL = new Vector3(-0.020f, -0.820f, -0.570f).normalized;
+                    p.shinR = new Vector3(0.020f, -0.820f, -0.570f).normalized;
+                    p.footL = new Vector3(0f, -0.620f, 0.780f);
+                    p.footR = new Vector3(0f, -0.620f, 0.780f);
+                    p.hipY = -0.02f + 0.015f * m;
                     break;
                 }
         }

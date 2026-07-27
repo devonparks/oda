@@ -171,7 +171,11 @@ const ORDER = ['sit', 'sit_swing', 'swing_pump', 'slide_ride', 'sit_kart',
   'sit_seesaw', 'sit_rocker', 'hula', 'fish_cast', 'fish_wait', 'fish_reel',
   'climb', 'climb_top',
   'ride_stand', 'bike_pedal', 'pogo', 'monkey', 'sit_table', 'spin_ride',
-  'board_push', 'crawl', 'board_stand', 'scoot_stand'];
+  'board_push', 'crawl', 'board_stand', 'scoot_stand',
+  // the engine prop database's bespoke set — appended LAST so every existing
+  // clip's bin offset is unchanged
+  'sit_dragon', 'sit_coin_car', 'sit_rocket', 'sit_tyre_swing', 'sit_trike',
+  'sit_sled', 'sit_wagon', 'sit_float', 'zip_hang'];
 const ICONS = {
   sit: '\u{1FA91}', sit_swing: '\u{1F4BA}', swing_pump: '\u{1F4BA}', slide_ride: '\u{1F6DD}',
   sit_kart: '\u{1F3CE}️', sit_seesaw: '⚖️', sit_rocker: '\u{1F40E}',
@@ -180,6 +184,9 @@ const ICONS = {
   ride_stand: '\u{1F6F9}', bike_pedal: '\u{1F6B2}', pogo: '\u{1F998}',
   monkey: '\u{1F412}', sit_table: '\u{1F37D}\uFE0F', spin_ride: '\u{1F3A0}',
   board_push: '\u{1F6F9}', crawl: '\u{1F9CE}', board_stand: '\u{1F6F9}', scoot_stand: '\u{1F6F4}',
+  sit_dragon: '\u{1F409}', sit_coin_car: '\u{1F697}', sit_rocket: '\u{1F680}',
+  sit_tyre_swing: '\u{1F6DE}', sit_trike: '\u{1F6B2}', sit_sled: '\u{1F6F7}',
+  sit_wagon: '\u{1F6D2}', sit_float: '\u{1F3D6}\uFE0F', zip_hang: '\u{1FA9D}',
 };
 
 const OUT_DIR = P('assets', 'characters', 'emotes');

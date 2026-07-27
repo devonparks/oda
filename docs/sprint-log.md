@@ -1,5 +1,29 @@
 # Sprint Log
 
+## 2026-07-26 (engine) — M4e: the clip gap is CLOSED — 32/32 bespoke, 0 placeholders
+
+**"A unique animation for every single prop" is now literally true at the
+kind level.** Nine new clips authored in AMGActionBaker.cs on the real
+Polygon Kid rig, baked through Unity (over MCP — no hands touched the
+editor) and retargeted onto the v2 bins by the existing pipeline:
+
+  sit_dragon · sit_coin_car · sit_rocket · sit_tyre_swing · sit_trike ·
+  sit_sled · sit_wagon · sit_float · zip_hang
+
+Every seated one carries the −0.261 pelvis contract (verify: max deviation
+0.018 m); loops are seamless (< 8° first↔last); appended LAST in the bin so
+every existing clip's offset is unchanged, and the bake's own guard proves
+the six emote bins stayed byte-identical. The three.js park boots clean on
+the shared manifest (7 categories, 32 action clips, no errors) — its rides
+keep their ids untouched.
+
+The gallery now reads **clips: 32/32 bespoke, 0 placeholders** and the
+pictures hold up: the kid leans into the dragon's neck with both hands on
+it (pins 2 mm), lounges in the unicorn pool float with arms draped over the
+ring, threads through the hanging tyre, and hangs two-handed from the zip
+trolley with knees tucked. prop_db.json and the seeder RULES both carry the
+new assignments, so a reseed cannot regress them to placeholders.
+
 ## 2026-07-26 (engine) — M4d: the prop library
 
 **EVERY PROTOTYPE IS BROWSABLE, WITH THUMBNAILS.** P opens the library: all
