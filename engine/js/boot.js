@@ -218,9 +218,11 @@ async function main() {
       statsEl.style.visibility = showStats ? '' : 'hidden';
     } else if (e.code === 'KeyE' || (e.code === 'KeyX' && props.active)) {
       // E mounts the nearest prop / hops off; X always hops off (the seesaw
-      // uses Space for pushing, so it needs a dedicated exit)
+      // uses Space for pushing, so it needs a dedicated exit).
+      // mount() fetches the clip bin on first use — a lost fetch must stay a
+      // console line, not become "The engine stopped" via unhandledrejection.
       if (props.active) props.dismount();
-      else props.mount();
+      else props.mount().catch((err) => console.warn('[props] mount failed:', err));
     } else if (e.code === 'KeyP') {                     // P browses the prop library
       const open = library.toggle();
       if (!open) scene.activeCamera = player.camera;
@@ -295,4 +297,19 @@ async function main() {
 }
 
 main().catch(fatal);
-addEventListener('unhandledrejection', (e) => fatal(e.reason));
+/**
+ * Unhandled rejections are fatal ONLY until the engine is up. During boot a
+ * rejection means the world genuinely cannot start; after that, killing a
+ * running park over a stray async error (a lost fetch for an emote bin, a
+ * transient asset hiccup mid-deploy) replaces a playable world with "The
+ * engine stopped" — which a student then reports as a crash. Log it, keep
+ * running.
+ */
+addEventListener('unhandledrejection', (e) => {
+  if (window.__engine && window.__engine.ready) {
+    console.error('[engine] unhandled rejection (non-fatal):', e.reason);
+    e.preventDefault();
+  } else {
+    fatal(e.reason);
+  }
+});
