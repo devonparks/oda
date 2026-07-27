@@ -1,5 +1,18 @@
 # Sprint Log
 
+## 2026-07-27 (engine) — M6d: the kids stop walking into the fountain
+
+Measured before fixing, which is the only reason it was worth fixing: 2.8%
+of walking samples had something solid within half a metre ahead, and all of
+it was the fountain and the gazebo — the two big things the paths run
+around. Straight-line hops between path tiles keep the kids on the paths but
+do not stop them clipping a corner.
+
+They look ahead now — one ray every 0.25 s, not one per frame — and pick
+somewhere else when something is in the way. **2.8% → 0.7%**, with no loss
+of wandering (51 m walked across four kids in 18 s). Cheaper and more honest
+than a navmesh for a park this size.
+
 ## 2026-07-27 (engine) — M6c: headroom, measured
 
 `?npc=N` now sets the crowd size (0–12), and the frame budget was measured
