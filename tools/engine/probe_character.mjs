@@ -203,8 +203,25 @@ for (const [x, z] of grid) {
   // takes ~1.07 s on its own. At 1 s three of them were still in mid-air and
   // got counted as "never landed" — a probe-timing artefact, twice over now.
   await settle(page, 1600);
-  const s = await pos();
-  if (!s.grounded) lost.push({ at: [x, z], y: s.p[1] });
+  let s = await pos();
+  /**
+   * A kid dropped onto the shade sail perches there UNSUPPORTED — the sail
+   * is steeper than the walkable slope, so `grounded` stays false while the
+   * kid demonstrably rests on solid geometry. (It used to read grounded
+   * because the sail had NO collider at all — it is a scaled placement —
+   * and the kid fell straight through it to the lawn.) Stable height above
+   * the catch floor counts as standing on something; that is what the check
+   * is actually about.
+   */
+  if (!s.grounded) {
+    for (let t = 0; t < 5 && !s.grounded && !s.resting; t++) {
+      const yPrev = s.p[1];
+      await settle(page, 600);
+      s = await pos();
+      if (Math.abs(s.p[1] - yPrev) < 0.03 && s.p[1] > floorY + 1.2) s.resting = true;
+    }
+  }
+  if (!s.grounded && !s.resting) lost.push({ at: [x, z], y: s.p[1] });
   else if (s.p[1] < floorY + 1.2) seams.push({ at: [x, z], y: s.p[1] });
 }
 console.log(`ground coverage: ${grid.length - lost.length - seams.length}/${grid.length} landed on the park, `

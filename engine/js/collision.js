@@ -23,8 +23,9 @@
  * what each one is.
  */
 import {
-  PhysicsShapeMesh, PhysicsBody, PhysicsMotionType,
-  PhysicsAggregate, PhysicsShapeType, MeshBuilder,
+  PhysicsShapeMesh, PhysicsShapeConvexHull, PhysicsBody, PhysicsMotionType,
+  PhysicsAggregate, PhysicsShapeType, MeshBuilder, Mesh, VertexData,
+  TransformNode, Vector3, Quaternion, Matrix,
 } from 'babylon';
 
 /**
@@ -59,6 +60,20 @@ const ALWAYS = /Stair|Step|Ramp|Slide|Deck|Platform|Bridge|Tunnel|Treehouse|Tree
 const MIN_SIZE = 0.35;
 
 /**
+ * STAIRCASES COLLIDE AS THEIR CONVEX HULL — which for a staircase is exactly
+ * the enclosing wedge ramp. The exact tread-and-riser mesh collider is
+ * correct geometry and the capsule still wedged DEAD at tread corners on
+ * ~half of all climbs (identical position for seconds, a different tread
+ * each run) — a genuine solver equilibrium, reproduced with maxStepHeight
+ * 0.30 and 0.45, with and without a downward weld bias, and with an unstick
+ * hop. This is why every engine ships ramp colliders under stairs, and the
+ * three.js park's heightfield was effectively one too. The visual treads
+ * stay; a kid mid-flight floats above/below a tread edge by half a riser at
+ * worst.
+ */
+const RAMPIFY = /Stairs/i;
+
+/**
  * Build static collision for the park.
  *
  * @param {Scene} scene
@@ -71,6 +86,7 @@ export function buildCollision(scene, park) {
   let shapes = 0;
   let instances = 0;
   let triangles = 0;
+  _shapeCache.clear();               // shapes belong to the scene being built
 
   // Which prototypes actually have placements, and how many.
   const counts = new Map();
@@ -93,38 +109,94 @@ export function buildCollision(scene, park) {
      * why park.js bakes the prototype's node transform into the geometry — a
      * shape built from un-baked vertices would collide with the park lying on
      * its side while the visuals stood upright. The two are the same array.
+     *
+     * (An intermediate version thickened flat ground tiles into solid hull
+     * "slabs" to close what looked like seams between tiles. Do not bring
+     * that back: the convex hull of anything DISHED — the sunken sand pits
+     * measure 22 cm of dish — is that dish with an invisible flat LID on
+     * top, and kids landing in the pit punched through the lid and wedged
+     * INSIDE the hull, freezing the walk to the stairs one run in three.
+     * The "seams" the slabs were invented for were really the scale bug
+     * below; with that fixed, plus the terminal fall velocity in
+     * character.js, the bare tile meshes pass a 48/48 drop grid and ten
+     * straight stair runs.)
+     *
+     * SCALED PLACEMENTS GET THEIR OWN BODIES — this was the REAL cause of
+     * "7 of 48 grid points fall through the ground", which two sessions
+     * called "seams between coplanar tiles". It never was: physics raycasts
+     * showed NO collider at all under every failing point, and each of those
+     * points sat on a placement with a NON-UNIFORM SCALE (the skate bowl is
+     * squashed to y×0.72, the round grass patches are stretched to taste,
+     * one grass tile in ten is resized). A Havok shape cannot be scaled per
+     * instance, so the instanced static body simply has nothing there.
+     *
+     * So physics no longer rides the render buffer directly: unit-scale
+     * placements share one instanced body on a hidden physics-only mesh, and
+     * every scaled placement gets its own static body whose shape has the
+     * scale BAKED INTO the points (shapes cached per prototype + scale).
      */
-    const shape = new PhysicsShapeMesh(mesh, scene);
-    const body = new PhysicsBody(mesh, PhysicsMotionType.STATIC, false, scene);
-    body.shape = shape;
-    // The mesh carries thin instances, so this is ONE body with N instances;
-    // Havok reads the same matrix buffer the renderer uses.
-    body.updateBodyInstances();
+    const rows = park.items.filter((it) => it.proto === proto);
+    const unit = [];
+    const scaled = [];
+    for (const r of rows) {
+      const [sx, sy, sz] = r.scale;
+      (Math.abs(sx - 1) < 1e-3 && Math.abs(sy - 1) < 1e-3 && Math.abs(sz - 1) < 1e-3
+        ? unit : scaled).push(r);
+    }
 
-    bodies.push(body);
-    shapes++;
+    if (unit.length) {
+      // a bare mesh sharing the prototype's geometry, carrying ONLY the
+      // unit-scale matrices — invisible, unpickable, physics-only.
+      // (Composed here from the layout rows: the object layer's cached
+      // matrices do not exist yet when collision builds.)
+      const phys = new Mesh(proto + '_phys', scene);
+      mesh.geometry.applyToMesh(phys);
+      phys.isVisible = false;
+      phys.isPickable = false;
+      const buf = new Float32Array(unit.length * 16);
+      for (let i = 0; i < unit.length; i++) {
+        const r = unit[i];
+        Matrix.ComposeToRef(
+          _one, _q.set(r.quat[0], r.quat[1], r.quat[2], r.quat[3]),
+          _p.set(r.pos[0], r.pos[1], r.pos[2]), _m);
+        _m.copyToArray(buf, i * 16);
+      }
+      phys.thinInstanceSetBuffer('matrix', buf, 16, true);
+      const body = new PhysicsBody(phys, PhysicsMotionType.STATIC, false, scene);
+      body.shape = RAMPIFY.test(proto)
+        ? convexShape(mesh, scene, [1, 1, 1])
+        : new PhysicsShapeMesh(mesh, scene);
+      body.updateBodyInstances();
+      bodies.push(body);
+      shapes++;
+    }
+
+    for (const r of scaled) {
+      const node = new TransformNode(r.name + '_phys', scene);
+      node.position.set(r.pos[0], r.pos[1], r.pos[2]);
+      node.rotationQuaternion = new Quaternion(r.quat[0], r.quat[1], r.quat[2], r.quat[3]);
+      node.computeWorldMatrix(true);
+      const body = new PhysicsBody(node, PhysicsMotionType.STATIC, false, scene);
+      body.shape = RAMPIFY.test(proto)
+        ? convexShape(mesh, scene, r.scale)
+        : scaledMeshShape(mesh, scene, r.scale);
+      bodies.push(body);
+      shapes++;
+    }
+
     instances += n;
     triangles += mesh.getTotalIndices() / 3;
   }
 
   /**
-   * THE CATCH FLOOR.
+   * THE CATCH FLOOR — kept as a last line of defence, not as a fix.
    *
-   * The park's ground is a mosaic of flat tiles — 129 grass, 29 path, 51 path
-   * edging and so on — and a mesh collider built from zero-thickness geometry
-   * has seams. Measured on a 48-point grid, a kid dropped from 3 m landed on
-   * the park at 41 points and fell through at 7, all of them within a metre of
-   * a tile that definitely has a collider. A capsule arriving at ~7.7 m/s can
-   * pass between coplanar tiles at their join.
-   *
-   * A wide static floor a metre below grade catches those, which is what the
-   * three.js park did too (its backdrop plane sat at −1.25, below the skate
-   * bowl's carved floor at −1.14). It turns "fall out of the world forever"
-   * into "step down and walk back up".
-   *
-   * It is NOT a fix for the seams and must not be allowed to hide them:
-   * probe_character.mjs reports how many grid points land on the park versus
-   * on this floor, so the seam count stays a visible number.
+   * It caught the "7 of 48 points fall through the ground" problem for two
+   * sessions while that problem was misdiagnosed as seams between coplanar
+   * tiles. The real cause was scaled placements having no collider at all
+   * (see the scaled-placement block above). With that fixed the floor should
+   * catch nothing, and probe_character.mjs still reports how many grid
+   * points land on it every run, so a regression shows up as a number.
    */
   const FLOOR_Y = -2.6;
   const floor = MeshBuilder.CreateGround('_catch_floor', { width: 140, height: 140 }, scene);
@@ -134,9 +206,80 @@ export function buildCollision(scene, park) {
   new PhysicsAggregate(floor, PhysicsShapeType.BOX, { mass: 0 }, scene);
   bodies.push(floor.physicsBody);
 
-  console.log(`[collision] ${shapes} mesh shapes, ${instances} static instances, `
+  console.log(`[collision] ${shapes} shape groups, ${instances} static instances, `
     + `${(triangles / 1000).toFixed(0)}k collider triangles, ${skipped.length} prototypes skipped, `
     + `catch floor at y=${FLOOR_Y}`);
 
   return { bodies, shapes, instances, skipped, triangles, floorY: FLOOR_Y };
+}
+
+// scratch for composing instance matrices at build time
+const _one = new Vector3(1, 1, 1);
+const _p = new Vector3();
+const _q = new Quaternion();
+const _m = new Matrix();
+
+/** Shapes are cached per prototype + scale so ten same-sized round grass
+ *  patches share one hull. */
+const _shapeCache = new Map();
+const cacheKey = (mesh, kind, s) =>
+  `${kind}:${mesh.name}:${s[0].toFixed(4)},${s[1].toFixed(4)},${s[2].toFixed(4)}`;
+
+/** The prototype's mesh shape with a placement's scale baked into a copy of
+ *  its geometry — Havok cannot scale a shape per instance, which is why
+ *  scaled placements come through here at all. */
+function scaledMeshShape(mesh, scene, scale) {
+  const key = cacheKey(mesh, 'mesh', scale);
+  let shape = _shapeCache.get(key);
+  if (shape) return shape;
+  const src = mesh.getVerticesData('position');
+  const pts = new Float32Array(src.length);
+  for (let i = 0; i < src.length; i += 3) {
+    pts[i] = src[i] * scale[0];
+    pts[i + 1] = src[i + 1] * scale[1];
+    pts[i + 2] = src[i + 2] * scale[2];
+  }
+  const tmp = new Mesh('_scaled_tmp', scene);
+  const vd = new VertexData();
+  vd.positions = pts;
+  vd.indices = mesh.getIndices().slice();
+  vd.applyToMesh(tmp);
+  shape = new PhysicsShapeMesh(tmp, scene);
+  tmp.dispose();
+  _shapeCache.set(key, shape);
+  return shape;
+}
+
+/**
+ * The convex hull of the (scaled) prototype — the ramp under a staircase.
+ * (Rooting the hull 40 cm below grade was tried and made the sand-pit
+ * approach WORSE — it turned the ramp's leading edge into a 34 cm wall
+ * rising from the sunken pit floor. Measured: un-rooted 10/10 climbs,
+ * rooted 2/12.)
+ */
+function convexShape(mesh, scene, scale) {
+  const key = cacheKey(mesh, 'hull', scale);
+  let shape = _shapeCache.get(key);
+  if (shape) return shape;
+  const src = mesh.getVerticesData('position');
+  const pts = new Float32Array(src.length);
+  for (let i = 0; i < src.length; i += 3) {
+    pts[i] = src[i] * scale[0];
+    pts[i + 1] = src[i + 1] * scale[1];
+    pts[i + 2] = src[i + 2] * scale[2];
+  }
+  shape = hullFromPoints(pts, scene);
+  _shapeCache.set(key, shape);
+  return shape;
+}
+
+function hullFromPoints(pts, scene) {
+  const tmp = new Mesh('_hull_tmp', scene);
+  const vd = new VertexData();
+  vd.positions = pts;
+  vd.indices = [];                       // a hull is built from the point cloud
+  vd.applyToMesh(tmp);
+  const shape = new PhysicsShapeConvexHull(tmp, scene);
+  tmp.dispose();
+  return shape;
 }

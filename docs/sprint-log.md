@@ -1,5 +1,54 @@
 # Sprint Log
 
+## 2026-07-26 (engine) — M4b + M4c: the stairs and the "seams", both misdiagnosed
+
+**EVERY PROBE IS GREEN.** boot, character (48/48 drop grid, 0 on the catch
+floor, stairs climbed 20/20), objects, and the full 32-prop gallery. Both of
+the reds the M4 brief carried forward turned out to be different problems
+than their names said, which is the story worth writing down.
+
+**THE STAIRS (M4b).** PhysicsViewer showed mesh colliders hugging every
+tread — the collider was never missing. Two real causes, one after another:
+
+1. **The test walked the wrong line** (the fifth wrong assertion this project
+   has caught). The stair prototype is a corner-pivoted unit cube climbing
+   along LOCAL +X; the placement at (3.5, 0, 0.75) carries yaw 180° and
+   climbs toward world −X. The old test walked −Z along its FLANK — the
+   recorded x-drift was the capsule sliding along the stringer.
+2. Aimed correctly, climbing was still flaky — the capsule wedged DEAD at
+   tread corners, a genuine solver equilibrium (same position for seconds,
+   a different tread each run; reproduced at maxStepHeight 0.30 and 0.45).
+   **Stairs now collide as their convex hull** — which for a staircase is
+   exactly the enclosing ramp — like every shipped game does. 20/20 climbs.
+
+**THE "SEAMS" (M4c) were never seams.** Physics raycasts showed NO collider
+at all under every failing grid point, and each sat on a placement with a
+NON-UNIFORM SCALE: the skate bowl is squashed to y×0.72, the round grass
+patches are stretched to taste, the shade sails too. A Havok shape cannot be
+scaled per instance, so the instanced static bodies simply had NOTHING
+there — for two sessions the catch floor caught kids falling through
+perfectly-well-named prototypes. Physics no longer rides the render buffer:
+unit-scale placements share one instanced body on a hidden `_phys` mesh, and
+every scaled placement gets its own static body with the scale BAKED into a
+cached shape. Plus a terminal fall velocity (−7 m/s): a capsule outrunning
+its own radius per frame tunnels through thin geometry (the bowl swallowed
+3 m drops while walking in worked).
+
+**FALSE TRAILS, so nobody walks them again:** thickening flat tiles into
+solid hull "slabs" put an invisible flat LID over the DISHED sand pits
+(22 cm of dish reads as "flat tile" to a height check) — kids punched
+through the lid and wedged inside the hull; rooting the stair ramps below
+grade turned their leading edge into a 34 cm wall; an unstick hop made
+everything worse in every variant. All three are reverted. The lesson from
+the numbers: 10/10 clean → every added "fix" degraded it → 20/20 clean.
+The catch floor stays as a last line of defence and the probe still prints
+how many points land on it (0 today).
+
+Also fixed on the way: the probe's ground grid now treats a kid perched
+stably on the (now genuinely solid) shade sail as landed — it used to read
+"grounded" only because the sail had no collider and the kid fell through
+it to the lawn.
+
 ## 2026-07-26 (engine) — M4a: the prop database
 
 **32 MOUNTABLE PROTOTYPES, ALL GREEN IN THE GALLERY.** The milestone Devon

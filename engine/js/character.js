@@ -235,14 +235,24 @@ export class Character {
       if (this.input.jump) {
         v.y = JUMP;
         this._grounded = false;
-      } else {
+      } else if (v.y <= 0.01) {
         // A little downward bias keeps the capsule welded to slopes and stairs
-        // instead of skipping off the nose of each tread.
-        v.y = Math.min(v.y, 0) - 0.2;
+        // instead of skipping off the nose of each tread — but ONLY when the
+        // solver is not pushing UP. The first version clamped v.y to ≤0
+        // unconditionally, which erased the step-up velocity Havok itself
+        // requested at each riser: stair climbing worked only on the frames
+        // where the step happened to resolve positionally, i.e. flakily
+        // (measured 0.08–1.1 m gained on identical runs).
+        v.y -= 0.2;
       }
     } else {
-      // Keep the ballistic vertical component and accelerate it.
-      v.y = cur.y + gravity.y * dt;
+      // Keep the ballistic vertical component and accelerate it — up to a
+      // terminal velocity. At 60 fps, 7 m/s is ~12 cm per frame against a
+      // capsule of radius 26 cm; past that a long fall starts outrunning the
+      // contact solver and the kid can tunnel straight through thin
+      // geometry — the skate bowl's surface swallowed drop-tested kids at
+      // 8.9 m/s while walking into it worked fine.
+      v.y = Math.max(cur.y + gravity.y * dt, -7);
     }
     this.input.jump = false;
 
