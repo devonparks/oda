@@ -116,24 +116,37 @@ check('running is faster than walking', ran / 1.0 > moved / 1.2, `${ran.toFixed(
  * Devon on the three.js park: *"you can't climb up the stairs, and that's the
  * whole point of it."*
  *
- * `SM_Prop_Playground_Stairs_01` sits at (3.5, 0, 0.8) and rises to the deck
- * at y≈1. Stand a few metres in front on +Z and walk at it. The first version
- * of this test used coordinates that were nowhere near any steps and the
- * screenshot showed a kid on open grass — a passing number would have been
- * meaningless.
+ * THE SECOND VERSION OF THIS TEST WAS ALSO WRONG — the fourth wrong assertion
+ * this project has caught, so write down what the geometry actually is:
+ * `SM_Prop_Playground_Stairs_01` is a CORNER-pivoted unit cube (local
+ * 0..1 on every axis) whose flight climbs along LOCAL +X. The placement at
+ * (3.5, 0, 0.75) carries yaw 180°, so it occupies x 2.5..3.5, z −0.25..0.75
+ * and climbs toward world −X onto the deck at y≈1. The old test walked −Z
+ * down the line x=3.5 — exactly along the staircase's eastern FLANK — grazed
+ * the stringer (the recorded x-drift 3.51→3.98 was the capsule sliding along
+ * that wall) and strolled past on flat ground. PhysicsViewer showed the
+ * collider hugging every tread (tools/engine/probe_stairs2.mjs).
+ *
+ * The real approach: stand EAST of the flight's foot and walk WEST up it.
  */
-await peek(page, () => window.__engine.tp(3.5, 5.0, 2));
+await peek(page, () => window.__engine.tp(4.6, 0.25, 1.2));
 await settle(page, 1400);
 const footOfStairs = await pos();
-// forward = (-sin(camYaw), 0, -cos(camYaw)); camYaw 0 gives -Z, toward the steps
-await peek(page, () => { window.__engine.player.camYaw = 0; });
-await walk(page, ['KeyW'], 2600);
+// forward = (-sin(camYaw), 0, -cos(camYaw)); camYaw = PI/2 gives -X, up the flight
+// 3.8 s: the capsule climbs treads at ~0.25 m/s of height, and the test
+// should top out onto the deck (y≈1), not scrape past its own threshold
+await peek(page, () => { window.__engine.player.camYaw = Math.PI / 2; });
+await walk(page, ['KeyW'], 3800);
 const topOfStairs = await pos();
 const climbed = topOfStairs.p[1] - footOfStairs.p[1];
 console.log('stairs:', JSON.stringify(footOfStairs.p), '->', JSON.stringify(topOfStairs.p), `climbed ${climbed.toFixed(2)} m`);
 check('the kid CLIMBS the playground stairs', climbed > 0.5,
   `gained ${climbed.toFixed(2)} m, ended at y=${topOfStairs.p[1]}`);
-await shoot(page, 'char_03_stairs', { hideHud: true });
+await shoot(page, 'char_03_stairs', {
+  from: [topOfStairs.p[0] + 2.4, topOfStairs.p[1] + 1.6, topOfStairs.p[2] + 2.4],
+  at: [topOfStairs.p[0], topOfStairs.p[1] + 0.6, topOfStairs.p[2]],
+  hideHud: true,
+});
 
 // ── an action clip ───────────────────────────────────────────────────────
 const acted = await peek(page, async () => {
