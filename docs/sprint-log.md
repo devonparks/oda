@@ -1,5 +1,52 @@
 # Sprint Log
 
+## 2026-07-26 (engine) — M5b: the wheeled props actually go somewhere
+
+**YOU CAN DRIVE THE KART NOW.** Nine driveable props — both karts, the
+soapbox, three bikes, the trike, two scooters, two skateboards — take a
+throttle and steering and carry their rider across the park. `motion.drive`
+is just another motion type, so it reuses everything M4 built: the prop's
+world delta is written into the same thin-instance matrices that rock a
+spring rider, and because the rider sits in the prop's frame, steering
+carries them for free (measured: rider displacement matches prop
+displacement to within 1 cm on all nine).
+
+Details worth keeping: the ground is followed by a downward ray each frame
+rather than by giving vehicles a physics body — a body would fight the
+character controller for the rider, the exact two-systems mismatch mounting
+exists to avoid. Bikes and the trike pedal off WHEEL ROTATION, so a parked
+bike no longer pedals the air. A driven prop STAYS PARKED where you leave it
+(`spot.parkedW`), and hopping off puts you beside where it actually is
+rather than teleporting you back to where you got on.
+
+**FOUR BUGS, and three of them were only visible because the probe drove
+every prop rather than one:**
+
+1. **Nothing was driveable at all.** The seeder only copied a rule's motion
+   in its `default` branch, and all four wheeled kinds have explicit cases
+   for their seats — so they shipped with no motion and the probe found
+   zero driveable prototypes.
+2. **A scooter flew 42 m into the sky** (seat y 8.91 → 51.23 in two
+   seconds). Starting a ground ray inside geometry makes Havok report a hit
+   at distance zero — i.e. ABOVE the vehicle — and chasing that every frame
+   walks it upward forever. Hits above the vehicle are now rejected.
+3. **A skateboard in the skate bowl never moved a centimetre.** The forward
+   obstacle ray cannot tell a ramp from a wall by HEIGHT, because a
+   horizontal ray's hit is always at its own height. The discriminator is
+   the surface NORMAL: steep face = wall, flat = ramp.
+4. **The kart was blocked by its own driver.** Raising that ray to 0.62 m
+   made it hit `CCTransformNode` — the rider's character-controller capsule
+   — so which props could move depended on where each seat sat. Probed per
+   height: 0.35 m flies under the capsule, 0.62 m does not.
+
+Also a gameplay fix that only shows up when you play it: steering used to
+scale with speed alone, so a kart nosed into a fence had zero speed, zero
+steering, and no way out. Holding the throttle now always turns the wheel.
+
+One more stale assertion retired: the library probe demanded "≥8 placeholder
+badges", which was a description of the world before M4e closed the clip gap
+— it now checks the badge count against the database instead of a constant.
+
 ## 2026-07-26 (engine) — M5a: the park is no longer floating in nowhere
 
 **THE COUNTRYSIDE IS IN.** `engine/js/backdrop.js` ports the three.js park's

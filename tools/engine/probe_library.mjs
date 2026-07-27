@@ -35,6 +35,10 @@ const state = await peek(page, async () => {
     cards: cards.length,
     mounts: el.querySelectorAll('.lib-clip').length,
     placeholders: el.querySelectorAll('.lib-clip.placeholder').length,
+    // what the DATABASE says, so the UI is checked against truth rather
+    // than against a number that was true on the day this was written
+    dbPlaceholders: Object.values(window.__engine.props.db)
+      .filter((e) => e && e.clipStatus === 'placeholder').length,
     imgsLoaded: imgs.filter((i) => i.complete && i.naturalWidth > 10).length,
     imgsChecked: imgs.length,
   };
@@ -43,7 +47,15 @@ console.log('\nlibrary:', JSON.stringify(state));
 check('library opens on toggle', state.open);
 check('every db prototype has a card', state.cards === 275, `${state.cards}`);
 check('mountable props show their clip badge', state.mounts >= 30, `${state.mounts}`);
-check('placeholder clips are visibly flagged', state.placeholders >= 8, `${state.placeholders}`);
+/**
+ * The badge count must MATCH the database, not clear some fixed bar. This
+ * check originally demanded ≥8 placeholders and started failing the moment
+ * the clip gap was closed — a passing engine failed by an assertion that had
+ * quietly become a description of the past.
+ */
+check('placeholder badges match the database exactly',
+  state.placeholders === state.dbPlaceholders,
+  `${state.placeholders} shown, ${state.dbPlaceholders} in the db`);
 check('thumbnails actually load', state.imgsLoaded === state.imgsChecked,
   `${state.imgsLoaded}/${state.imgsChecked}`);
 await shoot(page, 'library_01_open', { hideHud: false });

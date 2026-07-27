@@ -103,13 +103,19 @@ const RULES = [
   {
     re: /^SM_Prop_Playground_Track_Ride_01$/, kind: 'zip', clip: 'zip_hang', status: 'bespoke', mode: 'hang', motion: { type: 'zip' },
   },
-  { re: /^SM_Veh_4x4$/, kind: 'kart', clip: 'sit_kart', status: 'bespoke' },
-  { re: /^SM_Veh_Soapbox_Racer_03$/, kind: 'kart', clip: 'sit_kart', status: 'bespoke' },
-  { re: /^SM_Veh_Bike_0\d$/, kind: 'bike', clip: 'bike_pedal', status: 'bespoke' },
-  { re: /^SM_Veh_Trike_01$/, kind: 'bike', clip: 'sit_trike', status: 'bespoke' },
-  { re: /^SM_Veh_Scooter_0\d$/, kind: 'scooter', clip: 'scoot_stand', status: 'bespoke', mode: 'stand' },
+  /**
+   * WHEELED THINGS DRIVE. `motion.drive` gives the mount runtime a throttle,
+   * a steering rate and a top speed; the prop and its rider are carried by
+   * the same world delta every other motion type uses, so the kart moves
+   * through the same thin-instance write that rocks a spring rider.
+   */
+  { re: /^SM_Veh_4x4$/, kind: 'kart', clip: 'sit_kart', status: 'bespoke', motion: { type: 'drive', maxSpeed: 4.6, accel: 3.6, turn: 1.7 } },
+  { re: /^SM_Veh_Soapbox_Racer_03$/, kind: 'kart', clip: 'sit_kart', status: 'bespoke', motion: { type: 'drive', maxSpeed: 4.2, accel: 3.2, turn: 1.7 } },
+  { re: /^SM_Veh_Bike_0\d$/, kind: 'bike', clip: 'bike_pedal', status: 'bespoke', motion: { type: 'drive', maxSpeed: 4.2, accel: 3.0, turn: 1.9, pedal: true } },
+  { re: /^SM_Veh_Trike_01$/, kind: 'bike', clip: 'sit_trike', status: 'bespoke', motion: { type: 'drive', maxSpeed: 3.0, accel: 2.6, turn: 2.1, pedal: true } },
+  { re: /^SM_Veh_Scooter_0\d$/, kind: 'scooter', clip: 'scoot_stand', status: 'bespoke', mode: 'stand', motion: { type: 'drive', maxSpeed: 3.8, accel: 3.0, turn: 2.0 } },
   { re: /^SM_Veh_Pogo_Stick_01$/, kind: 'pogo', clip: 'pogo', status: 'bespoke', mode: 'stand' },
-  { re: /^SM_Prop_Skateboard_0\d$/, kind: 'board', clip: 'board_stand', status: 'bespoke', mode: 'stand' },
+  { re: /^SM_Prop_Skateboard_0\d$/, kind: 'board', clip: 'board_stand', status: 'bespoke', mode: 'stand', motion: { type: 'drive', maxSpeed: 4.4, accel: 2.6, turn: 2.2 } },
   { re: /^SM_Prop_Sled_01$/, kind: 'sit_on', clip: 'sit_sled', status: 'bespoke' },
   { re: /^SM_Prop_Red_Wagon_01$/, kind: 'sit_on', clip: 'sit_wagon', status: 'bespoke' },
   { re: /^SM_Prop_Pool_Float_0\d$/, kind: 'sit_on', clip: 'sit_float', status: 'bespoke' },
@@ -553,6 +559,14 @@ for (const [proto, m] of Object.entries(measured)) {
     seat = { pos: [m.centre[0], m.maxY, m.centre[2]], yaw: 0 };
     seatStatus = 'unmeasured';
   }
+  /**
+   * Carry the rule's motion across for kinds whose case above did not build
+   * one of its own. Only the `default` branch used to do this, so the four
+   * WHEELED kinds — which have explicit cases for their seats — silently
+   * shipped with no motion at all and nothing could be driven.
+   */
+  if (rule.motion && !entry.motion) entry.motion = { ...rule.motion };
+
   entry.mode = rule.mode || 'sit';
   entry.seat = { pos: seat.pos.map(r3), yaw: r3(seat.yaw) };
   if (seatStatus !== 'measured') entry.seatStatus = seatStatus;

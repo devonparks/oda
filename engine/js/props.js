@@ -98,6 +98,7 @@ export class Props {
         id: spots.length, item: it, entry,
         pos: it.pos, parts: [],
         moving: [it],                      // instances W applies to (self by default)
+        parkedW: null,                     // where a driven prop was left
       };
       if (entry.parts && entry.parts.length) {
         for (const p of partRows) {
@@ -163,12 +164,16 @@ export class Props {
     return seats;
   }
 
-  /** World matrix of a spot right now (placement × motion delta W). */
+  /**
+   * World matrix of a spot right now: its placement, times whatever delta
+   * applies — the live motion while it is ridden, or the pose it was PARKED
+   * in once the rider hops off. Leaving the kart where you left it is the
+   * whole point of driving it somewhere.
+   */
   _spotMatrix(spot, out) {
     out.copyFrom(spot.item.matrix);
-    if (this.active && this.active.spot === spot && !this.active.W.isIdentity()) {
-      out.multiplyToRef(this.active.W, out);
-    }
+    const d = (this.active && this.active.spot === spot) ? this.active.W : spot.parkedW;
+    if (d && !d.isIdentity()) out.multiplyToRef(d, out);
     return out;
   }
 
@@ -224,17 +229,35 @@ export class Props {
   dismount() {
     const a = this.active;
     if (!a) return false;
-    // put the moving parts back exactly where the layout says they live
+
+    /**
+     * A DRIVEN PROP STAYS WHERE YOU LEFT IT. Its final delta is kept as the
+     * spot's parked pose and written into the instances, so the kart you
+     * rode across the park is over there now — not snapped back to the
+     * layout. Everything else (a swing, a seesaw) returns to rest, because
+     * a swing that keeps its tilt forever just looks broken.
+     */
+    const driven = a.spot.entry.motion && a.spot.entry.motion.type === 'drive';
+    if (driven) a.spot.parkedW = a.W.clone();
+    const rest = driven ? a.spot.parkedW : null;
     for (const it of a.spot.moving) {
-      it.mesh.thinInstanceSetMatrixAt(it.index, it.matrix, true);
+      if (rest) it.matrix.multiplyToRef(rest, _w);
+      it.mesh.thinInstanceSetMatrixAt(it.index, rest ? _w : it.matrix, true);
     }
+
+    // step off BESIDE where the prop actually is now, not where it started
+    const M = this._spotMatrix(a.spot, _spotM);
+    Vector3.TransformCoordinatesFromFloatsToRef(
+      a.seat.pos[0], a.seat.pos[1], a.seat.pos[2], M, _v);
+    const side = a.seat.yaw + Math.PI / 2;
+    const ox = _v.x + Math.sin(side) * 0.85;
+    const oz = _v.z + Math.cos(side) * 0.85;
+
     this.active = null;
     this.player.mounted = null;
     this.player.rig.stop();
     this._ikRelease();
-    // step off beside the prop, back where the kid came from
-    const r = a.returnTo;
-    this.player.tp(r.x, r.z, Math.max(r.y + 0.4, 0.6));
+    this.player.tp(ox, oz, Math.max(_v.y + 0.6, 0.8));
     console.log('[props] dismounted', a.spot.item.proto);
     return true;
   }
@@ -307,6 +330,13 @@ export class Props {
         const cyc = ((a.sim.phase / (Math.PI * 2)) % 1 + 1) % 1;
         rig.setActionTime(e.clip, cyc * info.dur);
       }
+    } else if (e.motion && e.motion.pedal && rig.playing === e.clip) {
+      // legs turn with the WHEELS, so a parked bike does not pedal the air
+      const info = rig.actions.info(e.clip);
+      if (info) {
+        const cyc = ((a.sim.roll / 1.6) % 1 + 1) % 1;
+        rig.setActionTime(e.clip, cyc * info.dur);
+      }
     }
 
     // ── 4. pin hands and feet ─────────────────────────────────────────
@@ -327,6 +357,7 @@ export class Props {
       const e = this.active.spot.entry;
       if (e.kind === 'seesaw') return 'SPACE push · X hop off';
       if (e.kind === 'swing') return 'W pump · SPACE hop off';
+      if (e.motion && e.motion.type === 'drive') return 'W/S drive · A/D steer · SPACE hop off';
       return 'SPACE hop off';
     }
     const near = this.nearest();
@@ -403,6 +434,73 @@ export class Props {
         if (sim.s >= 1) { this.dismount(); return; }
         break;
       }
+      /**
+       * DRIVING. The prop gets a world pose of its own — position, heading,
+       * speed — and W is simply "what turns the placement into that pose":
+       * spin about the prop's own origin by the heading change, then
+       * translate by how far it has travelled. Everything else falls out of
+       * machinery that already exists: the rider sits in the prop's frame,
+       * so it steers with the kart for free, and the wheels/handlebars are
+       * sibling instances in `moving`, so the whole vehicle goes as one.
+       *
+       * The ground is followed by a downward physics ray each frame rather
+       * than by giving the vehicle a body: a Havok body would have to fight
+       * the character controller for the rider, which is exactly the
+       * two-systems mismatch mounting exists to avoid. A short ray FORWARD
+       * stops the kart at fences and walls — crude next to real vehicle
+       * physics, but it is honest about what it is and it keeps kids inside
+       * the park.
+       */
+      case 'drive': {
+        if (!sim.driving) {
+          const m0 = a.spot.item.matrix.m;
+          const q = a.spot.item.quat;
+          sim.x0 = m0[12]; sim.y0 = m0[13]; sim.z0 = m0[14];
+          sim.yaw0 = Math.atan2(2 * (q[3] * q[1] + q[0] * q[2]), 1 - 2 * (q[1] * q[1] + q[0] * q[0]));
+          sim.x = sim.x0; sim.y = sim.y0; sim.z = sim.z0;
+          sim.yaw = sim.yaw0; sim.speed = 0; sim.roll = 0;
+          sim.driving = true;
+        }
+        const top = mo.maxSpeed || 4;
+        sim.speed += (input.f || 0) * (mo.accel || 3) * dt;
+        sim.speed *= Math.exp(-1.5 * dt);                    // rolling friction
+        sim.speed = Math.max(-top * 0.4, Math.min(top, sim.speed));
+        if (Math.abs(sim.speed) < 0.02) sim.speed = 0;
+
+        /**
+         * Steering bites with speed and reverses in reverse — but a rider
+         * holding the throttle can always turn, even at a standstill. That
+         * is not physics, it is the difference between "nosed into the
+         * fence, shuffle round and drive off" and "nosed into the fence,
+         * stuck forever": with speed-only steering a blocked kart has zero
+         * speed, so zero steering, so no way out.
+         */
+        const rolling = Math.min(1, Math.abs(sim.speed) / 1.2) * Math.sign(sim.speed || 1);
+        const bite = Math.abs(rolling) > 0.35 ? rolling : (input.f ? 0.35 : rolling);
+        sim.yaw -= (input.r || 0) * (mo.turn || 1.8) * dt * bite;
+
+        const fx = Math.sin(sim.yaw), fz = Math.cos(sim.yaw);
+        const step = sim.speed * dt;
+        const nx = sim.x + fx * step, nz = sim.z + fz * step;
+        if (step !== 0 && this._blocked(sim.x, sim.y, sim.z, fx, fz, step)) {
+          sim.speed = 0;
+        } else {
+          sim.x = nx; sim.z = nz;
+        }
+        const gy = this._groundAt(sim.x, sim.z, sim.y);
+        if (gy != null) sim.y += (gy - sim.y) * Math.min(1, dt * 12);
+
+        // pedal cadence rides the wheels, so a bike only pedals when moving
+        sim.roll += sim.speed * dt;
+
+        // W = spin about the prop's own origin, then travel
+        Matrix.TranslationToRef(-sim.x0, -sim.y0, -sim.z0, a.W);
+        Matrix.RotationAxisToRef(Vector3.UpReadOnly, sim.yaw - sim.yaw0, _w);
+        a.W.multiplyToRef(_w, a.W);
+        Matrix.TranslationToRef(sim.x, sim.y, sim.z, _w);
+        a.W.multiplyToRef(_w, a.W);
+        break;
+      }
       case 'traverse': case 'zip': {
         // move along the bar/track axis with A/D (or W to keep going)
         const dir = (input.r || input.f || 0);
@@ -432,6 +530,63 @@ export class Props {
         it.mesh.thinInstanceSetMatrixAt(it.index, _w, true);
       }
     }
+  }
+
+  /**
+   * Ground height under a point, by physics ray. Returns null over a hole,
+   * which leaves the vehicle at its last height rather than dropping it
+   * through the world.
+   */
+  _groundAt(x, z, y) {
+    const pe = this.scene.getPhysicsEngine();
+    if (!pe) return null;
+    const top = y + 1.2;
+    _v.set(x, top, z);
+    _v2.set(x, y - 2.5, z);
+    const hit = pe.raycast(_v, _v2);
+    if (!hit || !hit.hasHit) return null;
+    const gy = hit.hitPointWorld.y;
+    /**
+     * REJECT A HIT AT THE RAY'S OWN START. Starting a ray inside geometry
+     * makes Havok report a hit at distance zero — i.e. at `top`, which is
+     * ABOVE the vehicle. Chasing that every frame walked a scooter 42 m
+     * into the sky (measured: seat y 8.91 → 51.23 in two seconds). Ground
+     * can rise under a kart, but not by more than a kerb per step.
+     */
+    if (gy > y + 0.75) return null;
+    return gy;
+  }
+
+  /**
+   * Is something solid right in front of the vehicle — a fence, a wall — as
+   * opposed to ground that simply rises?
+   *
+   * TWO THINGS THIS HAD TO LEARN, both by measurement:
+   *
+   *   1. **A horizontal ray cannot tell a ramp from a wall by HEIGHT**, because
+   *      its hit is always at the ray's own height. Judging by height called
+   *      the skate bowl's rising floor a wall and a skateboard parked on it
+   *      never moved a centimetre. The discriminator is the surface NORMAL:
+   *      a wall's points sideways, a ramp's points mostly up.
+   *   2. **The ray must fly UNDER the rider.** At 0.62 m it hit
+   *      `CCTransformNode` — the character controller capsule of the very
+   *      kid doing the driving — so the kart was blocked by its own driver,
+   *      and which props it struck depended on where each seat sits. Probed
+   *      per height: 0.35 m is clear of the capsule, 0.62 m is not.
+   */
+  _blocked(x, y, z, fx, fz, step) {
+    const pe = this.scene.getPhysicsEngine();
+    if (!pe) return false;
+    const reach = Math.abs(step) + 0.45;
+    const s = Math.sign(step);
+    const h = y + 0.35;                    // below the rider's capsule
+    _v.set(x, h, z);
+    _v2.set(x + fx * reach * s, h, z + fz * reach * s);
+    const hit = pe.raycast(_v, _v2);
+    if (!hit || !hit.hasHit) return false;
+    const n = hit.hitNormalWorld;
+    if (!n) return true;                   // no normal to judge by: play it safe
+    return Math.abs(n.y) < 0.6;            // steep face = wall, flat = ramp
   }
 
   /** W = rotate `angle` about the prop's pivot/axis, in world space. */
