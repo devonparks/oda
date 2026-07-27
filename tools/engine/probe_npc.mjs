@@ -38,7 +38,8 @@ check('nobody spawned under the world', first.every((k) => k.pos[1] > -1.5),
   first.map((k) => k.pos[1]).join(', '));
 
 // ── watch them for a while ────────────────────────────────────────────────
-const seen = { walk: 0, sit: 0, idle: 0 };
+const seen = { walk: 0, sit: 0, idle: 0, emote: 0 };
+const emotesSeen = new Set();
 const moved = first.map(() => 0);
 let prev = first;
 for (let t = 0; t < 24; t++) {
@@ -46,6 +47,7 @@ for (let t = 0; t < 24; t++) {
   const now = await peek(page, () => window.__engine.npcs.stats());
   now.forEach((k, i) => {
     seen[k.state] = (seen[k.state] || 0) + 1;
+    if (k.emote) emotesSeen.add(k.emote);
     moved[i] += Math.hypot(k.pos[0] - prev[i].pos[0], k.pos[2] - prev[i].pos[2]);
   });
   prev = now;
@@ -56,6 +58,8 @@ console.log('distance walked per kid:', moved.map((m) => m.toFixed(1) + ' m').jo
 check('the kids actually walk', moved.every((m) => m > 2),
   moved.map((m) => m.toFixed(1)).join(', '));
 check('at least one kid sat on a prop during the watch', seen.sit > 0, `${seen.sit} sit-seconds`);
+check('the kids emote while standing about', emotesSeen.size > 0,
+  emotesSeen.size ? [...emotesSeen].join(', ') : 'nobody emoted in 24 s');
 check('nobody drifted below the world', prev.every((k) => k.pos[1] > -1.5),
   prev.map((k) => k.pos[1]).join(', '));
 

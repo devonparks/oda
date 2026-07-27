@@ -1,5 +1,37 @@
 # Sprint Log
 
+## 2026-07-27 (engine) — M6b: the tour, emotes, and the last honest numbers
+
+**A TOUR YOU CAN LOOK AT.** `node tools/engine/probe_tour.mjs` plays the
+park end to end — the countryside, the other kids, the swings, driving the
+jeep, the bowl on a skateboard, the coin dragon, the picnic table, the
+monkey bars, up the stairs, wading in the pond, the prop library — and
+writes a captioned contact sheet to `tools/engine/_shots/tour/index.html`.
+Every other probe proves one system; this one answers the question no
+assertion can, which is whether the world is any good. It is also the
+broadest regression in the repo: twelve scenes, twelve subsystems, and a
+scene that throws takes only its own caption down.
+
+**THE KIDS DO THINGS NOW.** Idle NPCs play one of fourteen curated emotes —
+clap, nod, dab, think, thumbs up — out of the 81-clip library the player's
+wheel already ships, so it costs nothing extra. A park where everyone
+stands perfectly still between walks reads as a screensaver.
+
+**CLIP REUSE IS A NUMBER.** 22 distinct clips across 32 mountable
+prototypes, and `probe_props` now asserts that **no two different KINDS
+share a clip**. Every remaining share is within one kind — two karts, three
+bikes, four slides — which is the honest state of Devon's "a unique
+animation for every single prop": per-kind, not per-prototype, and guarded
+against sliding back.
+
+**WATER WAS ALREADY RIGHT.** Checked rather than assumed: the pond bed is
+real geometry, so walking in leaves the kid chest-deep among the floats
+with no swim code at all. Nothing to do, which is worth writing down
+because it nearly became a task.
+
+Nine probes green: boot, character, objects, backdrop, library, props,
+drive, npc, tour.
+
 ## 2026-07-27 (engine) — M6a: kids on the swings
 
 **THE MOTION DELTA NOW BELONGS TO THE PROP, NOT TO THE MOUNT.** It used to

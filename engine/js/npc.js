@@ -50,6 +50,17 @@ import { seatRider } from './props.js';
  */
 const COSTUMES = ['kid_footballer', 'kid_princess', 'kid_tracksuit', 'kid_dino'];
 
+/**
+ * Things a kid does while standing about. The engine already ships 81
+ * emote clips for the player's wheel and they cost nothing extra to use —
+ * a park where everyone stands perfectly still between walks reads as a
+ * screensaver. Curated to what looks right on a playground rather than
+ * taking the whole library.
+ */
+const EMOTES = ['wave', 'cheer', 'clap', 'thumbsup', 'dab', 'twist', 'spin',
+  'stretch', 'think', 'shrug', 'nod', 'fistpump', 'dustshoulder', 'lookaround'];
+const EMOTE_CHANCE = 0.45;       // of any given idle pause
+
 const WALK_SPEED = 1.35;         // m/s — the locomotion clip's honest pace
 const TURN_RATE = 6;             // rad/s
 const ARRIVE = 0.45;             // m
@@ -209,6 +220,19 @@ export class Npcs {
     kid.rig.play(s.spot.entry.clip, { loop: true });
   }
 
+  /** Play one emote through once, then go back to deciding. */
+  _emote(kid) {
+    const id = EMOTES[(Math.random() * EMOTES.length) | 0];
+    const info = kid.rig.actions.info(id);
+    if (!info) { this._pickTarget(kid); return; }
+    kid.state = 'emote';
+    kid.emote = id;
+    // loop:false — most emotes are one-shots, and the rig would otherwise
+    // loop anything whose manifest `hold` is false
+    kid.rig.play(id, { loop: false });
+    kid.timer = (info.dur || 2) + 0.2;
+  }
+
   _standUp(kid) {
     if (kid.seat) {
       kid.seat.taken = false;
@@ -229,7 +253,20 @@ export class Npcs {
         case 'idle': {
           kid.timer -= dt;
           kid.speed += (0 - kid.speed) * Math.min(1, dt * 6);
-          if (kid.timer <= 0) this._pickTarget(kid);
+          if (kid.timer <= 0) {
+            if (Math.random() < EMOTE_CHANCE) this._emote(kid);
+            else this._pickTarget(kid);
+          }
+          break;
+        }
+        case 'emote': {
+          kid.timer -= dt;
+          kid.speed += (0 - kid.speed) * Math.min(1, dt * 8);
+          if (kid.timer <= 0) {
+            kid.rig.stop();
+            kid.state = 'idle';
+            kid.timer = 0.3 + Math.random() * 0.8;
+          }
           break;
         }
         case 'walk': {
@@ -300,6 +337,7 @@ export class Npcs {
       pos: [+k.model.position.x.toFixed(2), +k.model.position.y.toFixed(2), +k.model.position.z.toFixed(2)],
       seat: k.seat ? k.seat.spot.item.proto : null,
       moving: k.seat ? !!k.seat.moving : false,
+      emote: k.state === 'emote' ? k.emote : null,
       rigOk: k.rig.ok,
     }));
   }
