@@ -23,6 +23,7 @@ import { WorldObjects } from './objects.js';
 import { Props } from './props.js';
 import { Library } from './library.js';
 import { buildBackdrop } from './backdrop.js';
+import { Npcs } from './npc.js';
 
 const canvas = document.getElementById('stage');
 const bootEl = document.getElementById('boot');
@@ -235,7 +236,9 @@ async function main() {
   // ── run ───────────────────────────────────────────────────────────────
   // The character steps BEFORE the render, off the same clock Havok uses.
   scene.onBeforeRenderObservable.add(() => {
-    player.update(engine.getDeltaTime() / 1000);
+    const dt = engine.getDeltaTime() / 1000;
+    player.update(dt);
+    if (window.__engine && window.__engine.npcs) window.__engine.npcs.update(Math.min(dt, 1 / 20));
     // Keep the shadow box centred on the kid (see the note where it is set
     // up): the light sits back along its own direction, so the kid lands in
     // the middle of the ortho box and inside the depth range.
@@ -349,6 +352,22 @@ async function main() {
   };
   console.log('[engine] ready —', park.stats.placements, 'objects,',
     park.stats.drawCalls, 'prototypes, right-handed:', scene.useRightHandedSystem);
+
+  /**
+   * THE OTHER KIDS COME AFTER THE WORLD IS PLAYABLE. Each costume is its
+   * own ~350 KB GLB, which is the single biggest thing this engine adds to
+   * a Chromebook's download, so they are fetched once `ready` is already
+   * true: the park is walkable while they arrive, and `?npc=0` skips them.
+   */
+  const npcCount = /[?&]npc=0\b/.test(location.search) ? 0 : 4;
+  if (npcCount) {
+    Npcs.load(scene, park, props, npcCount)
+      .then((n) => {
+        window.__engine.npcs = n;
+        for (const k of n.kids) for (const m of k.model.getChildMeshes()) shadows.addShadowCaster(m);
+      })
+      .catch((e) => console.warn('[npc] load failed:', e.message));
+  }
 }
 
 main().catch(fatal);

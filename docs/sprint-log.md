@@ -1,5 +1,49 @@
 # Sprint Log
 
+## 2026-07-26 (engine) — M5c: there are other kids in the park
+
+**THE PARK HAS PEOPLE IN IT.** Four kids in different costumes walk the
+paths, sit on the benches and picnic tables, and get up and wander off
+again. 60 fps with all four.
+
+**The point is not the wandering, it is WHERE THEY SIT.** An NPC picks a
+seat out of the same `prop_db.json` the player mounts from and is placed by
+the same `seatRider()` contract — which this milestone extracted out of
+`props.js` so there is exactly one copy of the pelvis/butt maths for
+everyone. That is the prop database proving it generalises past the one kid
+it was built for: no NPC-specific seat data exists, and none was needed.
+
+Deliberately not done, and stated so nobody thinks it was missed:
+
+- **No physics bodies.** They are life, not obstacles; each follows the
+  ground on one downward ray. A capsule apiece would fight the player's
+  controller for nothing.
+- **No moving props.** A swing or a kart carries a world delta owned by
+  whoever rides it, and `Props` tracks exactly one active rider. NPCs take
+  stationary seats only. Putting them on swings means giving each spot its
+  own delta — worth doing, not worth faking.
+- **No pathfinding.** The waypoints ARE the park's path tiles, so short hops
+  between them keep the kids on the paths without a navmesh.
+
+Seat occupancy is shared both ways: a bench with a kid on it refuses the
+player's mount, and vice versa.
+
+**Two things worth knowing for next time.** Two of the sixteen costumes —
+`kid_explorer` and `kid_wizard` — cannot be loaded at all: they use
+instanced sub-meshes and the vendored bundle lacks
+`@babylonjs/core/Meshes/instancedMesh.js`. It is a one-line fix in
+`vendor_entry.js`, but rebuilding re-emits the 12.5 MB `babylon.dev.js`
+blob into git history, which `engine/README.md` says to do only on a Babylon
+version change — so it waits for the next real rebuild rather than costing
+12.5 MB for two costumes. And the NPCs load AFTER the world is interactive,
+because each costume is its own ~350 KB GLB and that is the biggest thing
+this engine adds to a Chromebook's download; `?npc=0` turns them off.
+
+Probe hygiene: NPCs are OFF by default in `probe_lib.boot()` and opted into
+only by `probe_npc`. Otherwise a kid sitting on a bench would make
+`probe_props` — which mounts all 32 props — fail at random, and a
+non-deterministic probe is worse than no probe.
+
 ## 2026-07-26 (engine) — M5b: the wheeled props actually go somewhere
 
 **YOU CAN DRIVE THE KART NOW.** Nine driveable props — both karts, the

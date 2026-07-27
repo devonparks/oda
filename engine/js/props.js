@@ -55,6 +55,46 @@ const _v = new Vector3();
 const _v2 = new Vector3();
 const _q = new Quaternion();
 
+/**
+ * PUT A RIDER'S BODY ON A SEAT POINT — the clips.js contract, in one place
+ * so the player and the NPCs cannot drift apart. Both terms live in their
+ * own frame:
+ *
+ *   pelvis = origin + R·(0, BIND_PELVIS_Y, 0) + (0, hip, 0)
+ *   butt   = pelvis − R·(0, BUTT_BELOW_PELVIS, 0)
+ *
+ * The bind offset ROTATES with the kid; the hip drop stays WORLD-vertical,
+ * because that is how rig.js applies it (step 5). `hipApplied` is read live
+ * rather than assumed, so the butt tracks the seat even while the pose is
+ * still blending in — placing against the finished pose is what made kids
+ * sink through seats for a beat on every mount in the old park.
+ *
+ * The model's rotation must already be set; only its position is written.
+ *
+ * @param {TransformNode} model  the rider's root
+ * @param {Rig} rig
+ * @param {Vector3} seatWorld    the seat point, in world space
+ * @param {'sit'|'stand'|'hang'} mode
+ */
+export function seatRider(model, rig, seatWorld, mode) {
+  if (mode !== 'sit') {
+    // 'stand' and 'hang': the model origin (the feet) goes on the point
+    model.position.copyFrom(seatWorld);
+    return;
+  }
+  const lift = BIND_PELVIS_Y - BUTT_BELOW_PELVIS;      // rotates with the kid
+  const hip = rig.hipApplied || 0;                     // world-vertical
+  model.rotationQuaternion.toRotationMatrix(_seatM);
+  Vector3.TransformNormalToRef(Vector3.UpReadOnly, _seatM, _seatUp);
+  model.position.set(
+    seatWorld.x - _seatUp.x * lift,
+    seatWorld.y - _seatUp.y * lift - hip,
+    seatWorld.z - _seatUp.z * lift,
+  );
+}
+const _seatM = new Matrix();
+const _seatUp = new Vector3();
+
 export class Props {
   /**
    * @param {Scene} scene
@@ -201,6 +241,8 @@ export class Props {
   /** Mount a spot (nearest seat to the player). Returns false if it refused. */
   async mount(spot = this.nearest()) {
     if (!spot || this.active) return false;
+    if (spot.taken) return false;          // an NPC is already sitting there
+    spot.taken = true;
     const seats = this._seatsOf(spot);
     const p = this.player.position;
     let seat = seats[0], bd = Infinity;
@@ -253,6 +295,7 @@ export class Props {
     const ox = _v.x + Math.sin(side) * 0.85;
     const oz = _v.z + Math.cos(side) * 0.85;
 
+    a.spot.taken = false;
     this.active = null;
     this.player.mounted = null;
     this.player.rig.stop();
@@ -296,30 +339,8 @@ export class Props {
     Quaternion.FromEulerAnglesToRef(0, a.seat.yaw, 0, this.player.model.rotationQuaternion);
     _q.multiplyToRef(this.player.model.rotationQuaternion, this.player.model.rotationQuaternion);
 
-    /**
-     * Butt on the seat — the clips.js contract, both terms in their own
-     * frames:
-     *
-     *   pelvis = origin + R·(0, BIND_PELVIS_Y, 0) + (0, hip, 0)
-     *   butt   = pelvis − R·(0, BUTT_BELOW_PELVIS, 0)
-     *
-     * The bind offset ROTATES with the kid; the hip drop is WORLD-vertical
-     * (the rig applies it along world up — see rig.js step 5). `hipApplied`
-     * is read live, so the butt tracks the seat even while the pose is
-     * still blending in.
-     */
     const rig = this.player.rig;
-    if (e.mode === 'sit') {
-      const lift = BIND_PELVIS_Y - BUTT_BELOW_PELVIS;      // rotates with the kid
-      const hip = rig.hipApplied || 0;                     // world-vertical
-      this.player.model.rotationQuaternion.toRotationMatrix(_w);
-      Vector3.TransformNormalToRef(Vector3.UpReadOnly, _w, _v2);
-      this.player.model.position.set(
-        _v.x - _v2.x * lift, _v.y - _v2.y * lift - hip, _v.z - _v2.z * lift);
-    } else {
-      // 'stand' and 'hang': the model origin (the feet) goes on the seat point
-      this.player.model.position.set(_v.x, _v.y, _v.z);
-    }
+    seatRider(this.player.model, rig, _v, e.mode);
 
     // ── 3. animation: drive the clip from the prop where the prop leads ──
     rig.update(dt, { speed: 0, grounded: true, vy: 0 });

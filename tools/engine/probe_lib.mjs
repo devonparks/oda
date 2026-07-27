@@ -34,7 +34,7 @@ export const SHOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)
  * Boot the engine and wait until `window.__engine.ready`.
  * @param {{headless?:boolean, dev?:boolean, width?:number, height?:number, log?:boolean}} opts
  */
-export async function boot({ headless = true, dev = false, width = 1280, height = 800, log = true } = {}) {
+export async function boot({ headless = true, dev = false, npc = false, width = 1280, height = 800, log = true } = {}) {
   const browser = await puppeteer.launch({
     channel: 'chrome',
     headless,
@@ -50,7 +50,16 @@ export async function boot({ headless = true, dev = false, width = 1280, height 
   });
   page.on('pageerror', (e) => { errors.push(e.message); console.log('  [pageerror]', e.message); });
 
-  await page.goto(URL_ENGINE + (dev ? '?dev' : ''), { waitUntil: 'domcontentloaded' });
+  /**
+   * NPCs are OFF unless a probe asks for them. They wander and sit on real
+   * prop-database seats, which is the point of them — and which would make
+   * every other probe non-deterministic: `probe_props` mounts all 32 props,
+   * and a bench with a kid already on it correctly refuses.
+   */
+  const qs = [];
+  if (dev) qs.push('dev');
+  if (!npc) qs.push('npc=0');
+  await page.goto(URL_ENGINE + (qs.length ? '?' + qs.join('&') : ''), { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.__engine && window.__engine.ready, { timeout: 120000 })
     .catch(async () => {
       // Boot failed — surface the real reason rather than a bare timeout.
