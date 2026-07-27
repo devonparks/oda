@@ -1,5 +1,28 @@
 # Sprint Log
 
+## 2026-07-26 (engine) — M4d: the prop library
+
+**EVERY PROTOTYPE IS BROWSABLE, WITH THUMBNAILS.** P opens the library: all
+275 prototypes as cards — thumbnail, name, kind, placement count, and for
+the 32 mounts the clip badge with the honesty field visible (green =
+bespoke, amber * = placeholder). Search filters live; clicking a card flies
+the camera to a real placement; typing in the search box does not drive the
+kid (verified — the event-leak trap that cost the three.js park probe runs).
+
+- `tools/engine/gen_thumbs.mjs` photographs each prototype alone on a stage
+  60 m under the park (geometry clone, no thin instances, framed to its own
+  bounds) — 275 × 400 px PNGs, 2.3 MB, committed in engine/assets/thumbs/.
+- `engine/js/library.js` + `tools/engine/probe_library.mjs` as acceptance —
+  all checks green, including "thumbnails actually load".
+- CSS lesson for the ledger: CSS Grid resolved 275 auto rows to 4 px each
+  and clipped every card to a stripe — the numeric checks passed while the
+  screenshot showed venetian blinds. Flex-wrap. The picture was right.
+
+Next for the prop database: the 10 placeholder clips (each names its
+`wantClip` in the data). The Unity editor with the AMG Engine project — the
+one holding all 816 Synty clips and AMGActionBaker.cs — is confirmed
+reachable over MCP from this machine, so a bake session can close the gap.
+
 ## 2026-07-26 (engine) — M4b + M4c: the stairs and the "seams", both misdiagnosed
 
 **EVERY PROBE IS GREEN.** boot, character (48/48 drop grid, 0 on the catch

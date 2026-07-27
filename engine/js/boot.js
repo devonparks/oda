@@ -21,6 +21,7 @@ import { buildCollision } from './collision.js';
 import { Character } from './character.js';
 import { WorldObjects } from './objects.js';
 import { Props } from './props.js';
+import { Library } from './library.js';
 
 const canvas = document.getElementById('stage');
 const bootEl = document.getElementById('boot');
@@ -160,6 +161,7 @@ async function main() {
   // The prop database: every mountable prop's seat, clip, pins and motion,
   // measured into engine/assets/prop_db.json. E mounts, Space hops off.
   const props = await Props.load(scene, park, player);
+  const library = new Library(scene, park, player, props.db);
   const promptEl = document.getElementById('prompt');
   setInterval(() => {
     const text = props.hudText();
@@ -219,6 +221,12 @@ async function main() {
       // uses Space for pushing, so it needs a dedicated exit)
       if (props.active) props.dismount();
       else props.mount();
+    } else if (e.code === 'KeyP') {                     // P browses the prop library
+      const open = library.toggle();
+      if (!open) scene.activeCamera = player.camera;
+    } else if (e.code === 'Escape' && library.open) {
+      library.toggle();
+      scene.activeCamera = player.camera;
     } else if (e.code === 'KeyO') {                     // O toggles edit mode
       objects.enabled = !objects.enabled;
       document.exitPointerLock?.();
@@ -241,7 +249,7 @@ async function main() {
 
   // ── the probe surface ─────────────────────────────────────────────────
   window.__engine = {
-    engine, scene, camera: cam, park, havok: plugin, shadows, collision, player, objects, props,
+    engine, scene, camera: cam, park, havok: plugin, shadows, collision, player, objects, props, library,
     ready: true,
     hasInspector: HAS_INSPECTOR,
     /**
