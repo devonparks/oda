@@ -24,13 +24,24 @@ auto-deploys to amghub.org. The three.js park stays live and untouched at
 | **M3** | object layer — native picking, delete, undo, persist, export |
 | **M4** | **the prop database** — 32 mounts, 32 bespoke clips, seeding tool, gallery probe, library browser |
 | **M5** | countryside + fog, rides that drive, NPC kids, blob shadows |
+| **M6a/b** | motion delta moved onto the spot → **NPCs ride swings**; NPC emotes; the tour |
 
 Read first: `engine/README.md` (rewritten, current), then `docs/sprint-log.md`
-(top five entries), then this.
+(top entries), then this.
 
-**Eight probes, all green.** `probe_boot`, `probe_character`, `probe_props`,
+**Nine probes, all green.** `probe_boot`, `probe_character`, `probe_props`,
 `probe_drive`, `probe_npc`, `probe_backdrop`, `probe_library`,
-`probe_objects`. Run them before and after anything.
+`probe_objects`, `probe_tour`. Run them before and after anything.
+
+**Start by looking at the park, not the code:**
+
+```bash
+python -m http.server 3457
+node tools/engine/probe_tour.mjs     # → _shots/tour/index.html
+```
+
+Twelve captioned scenes of the whole experience. If something is broken or
+ugly, it is usually visible there before it is visible in an assertion.
 
 ---
 
@@ -60,19 +71,17 @@ fix" with a clear conscience.
 **Do not** re-litigate the two fixed bugs — they are documented in the
 2026-07-26 M5a sprint-log entry with the measured numbers.
 
-### 2. NPCs cannot use moving props
+### 2. ~~NPCs cannot use moving props~~ — DONE (M6a)
 
-`npc.js` deliberately restricts the other kids to stationary seats (benches,
-picnic tables, the wagon). A swing, seesaw, rocker or kart carries a world
-delta `W` that belongs to whoever is riding it, and `Props` tracks exactly
-one active rider — so putting an NPC on a swing today would desync the
-prop and its rider.
+The motion delta now lives on the SPOT, not on the player's single mount,
+and three shared calls serve every rider: `animate(spot, dt, input)`,
+`placeRider(...)`, `syncClipPhase(...)`. NPCs ride swings and spring
+riders; measured at 0.81 rad of arc with the rider's height tracking it.
 
-The fix is a real but contained refactor: move `active.W` from "the one
-mount" onto the SPOT, so each spot owns its own delta and any number of
-riders can be mid-motion at once. `_spotMatrix` already reads a per-spot
-`parkedW`, so the shape is half there. A park with kids actually swinging is
-a large visible win.
+**Still excluded, and why:** driving, slides, the zip and the monkey bars'
+traverse (their motion is a rider's INPUT or a one-shot), and the seesaw (a
+lever is a two-ended negotiation — one rider makes it a see, not a saw).
+Those are the next candidates if more NPC variety is wanted.
 
 ### 3. Two costumes cannot load
 
@@ -96,16 +105,22 @@ kid GLBs.
 
 ### 5. Smaller things
 
-- **Water is decorative.** The pond and fountain have a material but no
-  wade/swim rules; the three.js park had them (`world/js/` has the logic).
-- **No audio.** The park has none. `tools/gen_sfx.py` in Drop4 is the
-  house pattern for original synth SFX (Epidemic cannot ship distributed).
+- **No audio, and it is the biggest remaining "alive" gap.** Deliberately
+  not attempted overnight: shipping sound nobody has listened to is how a
+  park gets an annoying loop. `tools/gen_sfx.py` in Drop4 is the house
+  pattern for original synth SFX (Epidemic cannot ship distributed).
+  Footsteps, a swing creak, water, and light ambience would carry a lot.
 - **The prop library is read-only.** It flies the camera to a prop; it could
-  spawn or place one, which is the natural bridge to a real editor.
-- **One clip per prop KIND, not per prototype.** Both pool floats share
-  `sit_float`, both swing seats share `sit_swing`. Devon's line was "a unique
-  animation for every single prop" — kind-level is where it honestly stands,
-  and the data (`clipStatus`) would carry a per-prototype split if wanted.
+  spawn or place one, which is the natural bridge to a real editor and the
+  complement to the object layer's delete.
+- **One clip per prop KIND, not per prototype** — now a measured number:
+  22 distinct clips across 32 prototypes, every share within one kind (two
+  karts, three bikes, four slides), and `probe_props` fails if two different
+  kinds ever share one. Per-prototype variants are possible with the M4e
+  recipe if Devon wants them; per-kind is where it honestly stands.
+- **~~Water is decorative~~** — checked, and it is not: the pond bed is real
+  geometry, so walking in leaves a kid chest-deep among the floats with no
+  swim code. Nothing to do.
 
 ---
 
