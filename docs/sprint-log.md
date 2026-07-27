@@ -1,5 +1,39 @@
 # Sprint Log
 
+## 2026-07-27 (engine) — M6a: kids on the swings
+
+**THE MOTION DELTA NOW BELONGS TO THE PROP, NOT TO THE MOUNT.** It used to
+live on `props.active` — the one thing the player was riding — which quietly
+made *"one prop can be moving at a time"* a law of the world. An NPC put on
+a swing under that rule would have had no delta at all and would have sat in
+mid-air beside a moving seat.
+
+Each spot now owns its `W`, `sim` and motion envelope, and three shared
+calls do the work for whoever is riding: `animate(spot, dt, input)` steps
+the prop, `placeRider(...)` puts a body in the prop's frame by the same
+`seatRider()` contract, and `syncClipPhase(...)` ties the pose to the
+prop's own phase. The player and the NPCs run the identical path — the
+player just supplies real key input where an NPC supplies its intent.
+
+**Kids swing now.** Measured, not eyeballed: 0.81 rad of arc with the
+rider's height tracking it through 0.19 m. `probe_npc` forces a kid onto a
+swing rather than waiting for one to choose it, because "eventually one of
+them picks a swing" is not a test, and it asserts both halves — the prop
+must move AND the rider must be carried by it. Benches, tables, swings and
+spring riders are open to NPCs; driving, slides, the zip, the monkey bars
+and the seesaw are not, because their motion is either a rider's input or a
+one-shot, and the seesaw is a two-ended negotiation of its own.
+
+**One bug, and the shape of it is the lesson.** The seesaw case still read
+`a.seat.end` after `a` ceased to exist inside the motion step — a
+ReferenceError thrown every frame, which killed the whole before-render
+callback. The probe did not report it as "seesaw broken": it reported a
+cascade of 34 m and 43 m "drifts" on the eight props measured AFTER the
+seesaw, all with `actionWeight 0`. Every one of those was a healthy prop
+whose measurement happened while the engine's update loop was dead. Which
+end a rider sits on belongs to the rider, so it is stamped onto the spot at
+mount time now.
+
 ## 2026-07-27 (engine) — M5d: contact shadows, and the payload measured
 
 **EVERY CHARACTER IS GROUNDED NOW.** `engine/js/blobshadow.js` puts a soft

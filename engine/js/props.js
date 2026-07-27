@@ -212,9 +212,102 @@ export class Props {
    */
   _spotMatrix(spot, out) {
     out.copyFrom(spot.item.matrix);
-    const d = (this.active && this.active.spot === spot) ? this.active.W : spot.parkedW;
+    const d = spot.W || spot.parkedW;
     if (d && !d.isIdentity()) out.multiplyToRef(d, out);
     return out;
+  }
+
+  /**
+   * Give a spot its own motion state.
+   *
+   * THE DELTA BELONGS TO THE PROP, NOT TO THE MOUNT. It used to live on
+   * `this.active` — the one thing the player was riding — which quietly
+   * made "one prop can be moving at a time" a law of the world. The moment
+   * a second rider existed (the NPCs), a kid on a swing would have had no
+   * delta at all and would have sat in mid-air beside a still seat. Per
+   * spot, any number of props animate at once and each rider reads the
+   * frame of the prop they are actually on.
+   */
+  _ensureMotion(spot) {
+    if (!spot.W) {
+      spot.W = Matrix.Identity();
+      spot.env = 0;
+      spot.sim = { angle: 0, vel: 0, phase: Math.random() * Math.PI * 2, amp: COAST_AMP, s: 0, dir: 1, roll: 0 };
+    }
+    return spot;
+  }
+
+  /**
+   * Place a rider's body in a spot's frame and pose them: the shared body of
+   * what the player's mount and an NPC's seat both do.
+   *
+   * @returns {Matrix} the spot's world matrix this frame
+   */
+  placeRider(spot, seat, model, rig, mode, dt, out = _spotM) {
+    const M = this._spotMatrix(spot, out);
+    Vector3.TransformCoordinatesFromFloatsToRef(seat.pos[0], seat.pos[1], seat.pos[2], M, _v);
+    Quaternion.FromRotationMatrixToRef(M.getRotationMatrix(), _q);
+    Quaternion.FromEulerAnglesToRef(0, seat.yaw, 0, model.rotationQuaternion);
+    _q.multiplyToRef(model.rotationQuaternion, model.rotationQuaternion);
+    rig.update(dt, { speed: 0, grounded: true, vy: 0 });
+    seatRider(model, rig, _v, mode);
+    return M;
+  }
+
+  /**
+   * Drive a rider's clip playhead off the PROP's motion, so the pose moves
+   * in time with the thing it is on — the difference between pumping a
+   * swing and flailing near one.
+   */
+  syncClipPhase(spot, rig) {
+    const e = spot.entry;
+    if (!e.motion || rig.playing !== e.clip) return;
+    const info = rig.actions.info(e.clip);
+    if (!info) return;
+    const sim = spot.sim;
+    if (!sim) return;
+    if (e.motion.type === 'rock' || e.motion.type === 'swing') {
+      const cyc = ((sim.phase / (Math.PI * 2)) % 1 + 1) % 1;
+      rig.setActionTime(e.clip, cyc * info.dur);
+    } else if (e.motion.pedal) {
+      const cyc = ((sim.roll / 1.6) % 1 + 1) % 1;
+      rig.setActionTime(e.clip, cyc * info.dur);
+    }
+  }
+
+  /**
+   * Step a prop's own motion. Public because NPCs ride props too and hand
+   * in their own synthetic input.
+   */
+  animate(spot, dt, input) {
+    this._ensureMotion(spot);
+    this._motion(spot, dt, input);
+  }
+
+  /**
+   * Some motions move the SEAT rather than the prop: a slide carries you
+   * down the chute, the monkey bars carry you along the bar. Those patch
+   * the rider's seat, not the prop's delta — so the motion has to reach
+   * whoever is riding. Only the player takes those props (NPCs are limited
+   * to rocking and swinging), so this is the player's mount.
+   */
+  _retarget(spot, patch) {
+    const a = this.active;
+    if (a && a.spot === spot) a.seat = { ...a.seat, ...patch };
+  }
+
+  /** Let a spot go: return it to rest (or leave a driven prop parked). */
+  release(spot) {
+    const driven = spot.entry.motion && spot.entry.motion.type === 'drive';
+    if (driven && spot.W) spot.parkedW = spot.W.clone();
+    const rest = driven ? spot.parkedW : null;
+    for (const it of spot.moving) {
+      if (rest) it.matrix.multiplyToRef(rest, _w);
+      it.mesh.thinInstanceSetMatrixAt(it.index, rest ? _w : it.matrix, true);
+    }
+    spot.W = null;
+    spot.sim = null;
+    spot.taken = false;
   }
 
   // ── mounting ──────────────────────────────────────────────────────────────
@@ -252,14 +345,10 @@ export class Props {
       if (d < bd) { bd = d; seat = s; }
     }
 
-    this.active = {
-      spot, seat,
-      W: Matrix.Identity(),
-      t: 0,
-      env: 0,                       // motion envelope, eases 0→1
-      sim: { angle: 0, vel: 0, phase: 0, amp: COAST_AMP, s: 0, dir: 1 },
-      returnTo: { x: p.x, y: p.y, z: p.z },
-    };
+    this._ensureMotion(spot);
+    spot.sim.phase = 0;             // the player's ride starts at rest
+    spot.riderEnd = seat.end || 1;  // which end of a seesaw they took
+    this.active = { spot, seat, t: 0, returnTo: { x: p.x, y: p.y, z: p.z } };
     this.player.mounted = this;
     const ok = await this.player.rig.play(spot.entry.clip, { loop: true });
     if (!ok) console.warn('[props] clip missing:', spot.entry.clip);
@@ -272,21 +361,6 @@ export class Props {
     const a = this.active;
     if (!a) return false;
 
-    /**
-     * A DRIVEN PROP STAYS WHERE YOU LEFT IT. Its final delta is kept as the
-     * spot's parked pose and written into the instances, so the kart you
-     * rode across the park is over there now — not snapped back to the
-     * layout. Everything else (a swing, a seesaw) returns to rest, because
-     * a swing that keeps its tilt forever just looks broken.
-     */
-    const driven = a.spot.entry.motion && a.spot.entry.motion.type === 'drive';
-    if (driven) a.spot.parkedW = a.W.clone();
-    const rest = driven ? a.spot.parkedW : null;
-    for (const it of a.spot.moving) {
-      if (rest) it.matrix.multiplyToRef(rest, _w);
-      it.mesh.thinInstanceSetMatrixAt(it.index, rest ? _w : it.matrix, true);
-    }
-
     // step off BESIDE where the prop actually is now, not where it started
     const M = this._spotMatrix(a.spot, _spotM);
     Vector3.TransformCoordinatesFromFloatsToRef(
@@ -295,7 +369,13 @@ export class Props {
     const ox = _v.x + Math.sin(side) * 0.85;
     const oz = _v.z + Math.cos(side) * 0.85;
 
-    a.spot.taken = false;
+    /**
+     * A DRIVEN PROP STAYS WHERE YOU LEFT IT — `release()` keeps its final
+     * delta as the spot's parked pose, so the kart you rode across the park
+     * is over there now. Everything else returns to rest, because a swing
+     * that keeps its tilt forever just looks broken.
+     */
+    this.release(a.spot);
     this.active = null;
     this.player.mounted = null;
     this.player.rig.stop();
@@ -326,39 +406,15 @@ export class Props {
     const wantOff = input.jump && !(e.kind === 'seesaw');
     if (wantOff) { input.jump = false; this.dismount(); return; }
 
-    // ── 1. the motion sim → world delta W ─────────────────────────────
-    this._motion(a, dt, input);
+    // ── 1. the prop's own motion → its world delta W ──────────────────
+    this.animate(a.spot, dt, input);
 
-    // ── 2. seat → world, rider on it ──────────────────────────────────
-    const M = this._spotMatrix(a.spot, _spotM);
-    Vector3.TransformCoordinatesFromFloatsToRef(
-      a.seat.pos[0], a.seat.pos[1], a.seat.pos[2], M, _v);
-
-    // rider orientation: seat yaw composed with the prop's (tilting) frame
-    Quaternion.FromRotationMatrixToRef(M.getRotationMatrix(), _q);
-    Quaternion.FromEulerAnglesToRef(0, a.seat.yaw, 0, this.player.model.rotationQuaternion);
-    _q.multiplyToRef(this.player.model.rotationQuaternion, this.player.model.rotationQuaternion);
-
+    // ── 2. seat → world, rider on it, posed ───────────────────────────
     const rig = this.player.rig;
-    seatRider(this.player.model, rig, _v, e.mode);
+    const M = this.placeRider(a.spot, a.seat, this.player.model, rig, e.mode, dt);
 
-    // ── 3. animation: drive the clip from the prop where the prop leads ──
-    rig.update(dt, { speed: 0, grounded: true, vy: 0 });
-    if (e.motion && (e.motion.type === 'rock' || e.motion.type === 'swing') && rig.playing === e.clip) {
-      // the pose only reads as riding if it moves IN TIME with the prop
-      const info = rig.actions.info(e.clip);
-      if (info) {
-        const cyc = ((a.sim.phase / (Math.PI * 2)) % 1 + 1) % 1;
-        rig.setActionTime(e.clip, cyc * info.dur);
-      }
-    } else if (e.motion && e.motion.pedal && rig.playing === e.clip) {
-      // legs turn with the WHEELS, so a parked bike does not pedal the air
-      const info = rig.actions.info(e.clip);
-      if (info) {
-        const cyc = ((a.sim.roll / 1.6) % 1 + 1) % 1;
-        rig.setActionTime(e.clip, cyc * info.dur);
-      }
-    }
+    // ── 3. the clip moves IN TIME with the prop ───────────────────────
+    this.syncClipPhase(a.spot, rig);
 
     // ── 4. pin hands and feet ─────────────────────────────────────────
     this._ikApply(a, M);
@@ -393,19 +449,19 @@ export class Props {
    * pivot along the measured axis — both from the database, both in the
    * prop's local space, transformed by the placement like everything else.
    */
-  _motion(a, dt, input) {
-    const e = a.spot.entry;
+  _motion(spot, dt, input) {
+    const e = spot.entry;
     const mo = e.motion;
-    a.W.copyFrom(Matrix.IdentityReadOnly);
+    spot.W.copyFrom(Matrix.IdentityReadOnly);
     if (!mo) return;
-    a.env = Math.min(1, a.env + dt / 0.6);
-    const sim = a.sim;
+    spot.env = Math.min(1, spot.env + dt / 0.6);
+    const sim = spot.sim;
 
     switch (mo.type) {
       case 'rock': {
         sim.phase += dt * Math.PI * 2 * (mo.hz || 0.6);
-        sim.angle = (mo.amp || 0.2) * Math.sin(sim.phase) * a.env;
-        this._rotW(a, mo, sim.angle);
+        sim.angle = (mo.amp || 0.2) * Math.sin(sim.phase) * spot.env;
+        this._rotW(spot, mo, sim.angle);
         break;
       }
       case 'swing': {
@@ -414,14 +470,23 @@ export class Props {
         sim.phase += dt * w;
         const want = input.f > 0 ? PUMP_AMP : COAST_AMP;  // hold W to pump
         sim.amp += (want - sim.amp) * Math.min(1, dt * 0.8);
-        sim.angle = sim.amp * Math.sin(sim.phase) * a.env * 0.5;
-        this._rotW(a, mo, sim.angle);
+        sim.angle = sim.amp * Math.sin(sim.phase) * spot.env * 0.5;
+        this._rotW(spot, mo, sim.angle);
         break;
       }
       case 'seesaw': {
         // sim.angle is the +1 end's lift, −1..1; the ridden end sinks and a
         // push only works from the ground — you shove off, like the real thing
-        const end = a.seat.end || 1;
+        /**
+         * WHICH END the rider is on belongs to the RIDER, not the plank —
+         * so it is stamped onto the spot at mount time. (This line kept
+         * reading the old single-mount object after the motion state moved
+         * onto the spot: it threw a ReferenceError every frame on the
+         * seesaw, which killed the whole before-render callback and made
+         * every prop measured after it look broken. The probe caught it as
+         * a cascade of 34 m "drifts".)
+         */
+        const end = spot.riderEnd || 1;
         sim.vel -= SEESAW_G * end * dt;
         if (input.jump) {
           input.jump = false;
@@ -430,28 +495,27 @@ export class Props {
         sim.angle += sim.vel * dt;
         if (sim.angle < -1) { sim.angle = -1; sim.vel = Math.max(0, sim.vel); }
         if (sim.angle > 1) { sim.angle = 1; sim.vel = Math.min(0, sim.vel); }
-        this._rotW(a, mo, sim.angle * (mo.max || 0.34));
+        this._rotW(spot, mo, sim.angle * (mo.max || 0.34));
         break;
       }
       case 'spin': {
         const push = input.f > 0 ? 1.4 : 0;               // hold W to spin up
         sim.vel = Math.max(0, Math.min(2.4, sim.vel + (push - 0.25) * dt));
         sim.phase += sim.vel * dt;
-        this._rotW(a, mo, sim.phase);
+        this._rotW(spot, mo, sim.phase);
         break;
       }
       case 'slide': {
         // ride the chute top→exit once, then hop off at the bottom
         sim.s = Math.min(1, sim.s + dt / (mo.time || 1.15));
         const k = sim.s * sim.s * (3 - 2 * sim.s);        // smoothstep: gains speed
-        a.seat = {
-          ...a.seat,
+        this._retarget(spot, {
           pos: [
             e.seat.pos[0] + (mo.to[0] - e.seat.pos[0]) * k,
             e.seat.pos[1] + (mo.to[1] - e.seat.pos[1]) * k,
             e.seat.pos[2] + (mo.to[2] - e.seat.pos[2]) * k,
           ],
-        };
+        });
         if (sim.s >= 1) { this.dismount(); return; }
         break;
       }
@@ -474,8 +538,8 @@ export class Props {
        */
       case 'drive': {
         if (!sim.driving) {
-          const m0 = a.spot.item.matrix.m;
-          const q = a.spot.item.quat;
+          const m0 = spot.item.matrix.m;
+          const q = spot.item.quat;
           sim.x0 = m0[12]; sim.y0 = m0[13]; sim.z0 = m0[14];
           sim.yaw0 = Math.atan2(2 * (q[3] * q[1] + q[0] * q[2]), 1 - 2 * (q[1] * q[1] + q[0] * q[0]));
           sim.x = sim.x0; sim.y = sim.y0; sim.z = sim.z0;
@@ -515,11 +579,11 @@ export class Props {
         sim.roll += sim.speed * dt;
 
         // W = spin about the prop's own origin, then travel
-        Matrix.TranslationToRef(-sim.x0, -sim.y0, -sim.z0, a.W);
+        Matrix.TranslationToRef(-sim.x0, -sim.y0, -sim.z0, spot.W);
         Matrix.RotationAxisToRef(Vector3.UpReadOnly, sim.yaw - sim.yaw0, _w);
-        a.W.multiplyToRef(_w, a.W);
+        spot.W.multiplyToRef(_w, spot.W);
         Matrix.TranslationToRef(sim.x, sim.y, sim.z, _w);
-        a.W.multiplyToRef(_w, a.W);
+        spot.W.multiplyToRef(_w, spot.W);
         break;
       }
       case 'traverse': case 'zip': {
@@ -530,14 +594,13 @@ export class Props {
         const off = sim.s * mo.half;
         if (mo.type === 'zip') {
           // the handle travels too — W is a pure translation
-          Matrix.TranslationToRef(ax[0] * off, 0, ax[2] * off, a.W);
+          Matrix.TranslationToRef(ax[0] * off, 0, ax[2] * off, spot.W);
         }
-        a.seat = {
-          ...a.seat,
+        this._retarget(spot, {
           pos: mo.type === 'zip' ? e.seat.pos : [
             e.seat.pos[0] + ax[0] * off, e.seat.pos[1], e.seat.pos[2] + ax[2] * off,
           ],
-        };
+        });
         break;
       }
       default: break;
@@ -545,9 +608,9 @@ export class Props {
 
     // write the delta into every moving instance (renderer AND the static
     // collider read this same buffer — the object layer's own mechanism)
-    if (a.spot.moving.length && !a.W.isIdentity()) {
-      for (const it of a.spot.moving) {
-        it.matrix.multiplyToRef(a.W, _w);
+    if (spot.moving.length && !spot.W.isIdentity()) {
+      for (const it of spot.moving) {
+        it.matrix.multiplyToRef(spot.W, _w);
         it.mesh.thinInstanceSetMatrixAt(it.index, _w, true);
       }
     }
@@ -611,16 +674,16 @@ export class Props {
   }
 
   /** W = rotate `angle` about the prop's pivot/axis, in world space. */
-  _rotW(a, mo, angle) {
-    const M = a.spot.item.matrix;
+  _rotW(spot, mo, angle) {
+    const M = spot.item.matrix;
     Vector3.TransformCoordinatesFromFloatsToRef(mo.pivot[0], mo.pivot[1], mo.pivot[2], M, _v);
     Vector3.TransformNormalFromFloatsToRef(mo.axisV[0], mo.axisV[1], mo.axisV[2], M, _v2);
     _v2.normalize();
-    Matrix.TranslationToRef(-_v.x, -_v.y, -_v.z, a.W);
+    Matrix.TranslationToRef(-_v.x, -_v.y, -_v.z, spot.W);
     Matrix.RotationAxisToRef(_v2, angle, _w);
-    a.W.multiplyToRef(_w, a.W);
+    spot.W.multiplyToRef(_w, spot.W);
     Matrix.TranslationToRef(_v.x, _v.y, _v.z, _w);
-    a.W.multiplyToRef(_w, a.W);
+    spot.W.multiplyToRef(_w, spot.W);
   }
 
   // ── IK pins ───────────────────────────────────────────────────────────────

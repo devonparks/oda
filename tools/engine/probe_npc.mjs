@@ -81,6 +81,54 @@ const clash = await peek(page, async () => {
 if (clash.skipped) console.log('[ note ] nobody was seated at the moment of the clash test');
 else check('the player cannot sit on an occupied seat', clash.mounted === false, clash.proto);
 
+/**
+ * A KID ON A SWING, which is what the per-spot motion refactor bought.
+ * Forced rather than waited for, because "eventually one of them picks a
+ * swing" is not a test. The prop must actually swing, and the rider must be
+ * carried BY it — a rider whose height does not track the arc is sitting in
+ * mid-air next to a moving seat, which is exactly the failure this replaces.
+ */
+{
+  const forced = await peek(page, async () => {
+    const n = window.__engine.npcs;
+    const swing = n.seats.find((s) => s.moving && s.spot.entry.motion.type === 'swing');
+    if (!swing) return null;
+    const kid = n.kids[0];
+    if (kid.seat) n._standUp(kid);
+    kid.model.position.set(swing.world[0], swing.world[1], swing.world[2]);
+    kid.spot = swing;
+    swing.taken = true;
+    n._sitDown(kid);
+    await new Promise((r) => setTimeout(r, 2000));
+    const track = [];
+    for (let i = 0; i < 10; i++) {
+      await new Promise((r) => setTimeout(r, 200));
+      track.push([+swing.spot.sim.angle.toFixed(3), +kid.model.position.y.toFixed(3)]);
+    }
+    return { proto: swing.spot.item.proto, track };
+  });
+  if (!forced) {
+    console.log('[ note ] no swing seat offered to NPCs');
+  } else {
+    const angles = forced.track.map((t) => t[0]);
+    const ys = forced.track.map((t) => t[1]);
+    const swingRange = Math.max(...angles) - Math.min(...angles);
+    const riderRange = Math.max(...ys) - Math.min(...ys);
+    console.log(`\nswing ${forced.proto}: angle range ${swingRange.toFixed(2)} rad, rider Y range ${riderRange.toFixed(2)} m`);
+    check('an NPC can ride a MOVING prop', swingRange > 0.2, `${swingRange.toFixed(2)} rad of arc`);
+    check('…and the swing carries them (height tracks the arc)', riderRange > 0.05,
+      `rider moved ${riderRange.toFixed(2)} m vertically`);
+    await peek(page, () => {
+      const k = window.__engine.npcs.kids.find((x) => x.seat && x.seat.moving);
+      if (!k) return;
+      const p = k.model.position;
+      window.__engine.look([p.x + 2.8, p.y + 1.6, p.z + 2.8], [p.x, p.y + 0.6, p.z]);
+    });
+    await settle(page, 350);
+    await shoot(page, 'npc_swinging', { hideHud: true });
+  }
+}
+
 // ── the pictures ──────────────────────────────────────────────────────────
 const centre = await peek(page, () => window.__engine.backdrop.centre);
 await shoot(page, 'npc_park', { from: [centre[0] + 16, 12, centre[1] + 26], at: [centre[0], 0, centre[1] + 6] });

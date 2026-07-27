@@ -30,7 +30,7 @@
  * They are therefore loaded AFTER the world is interactive, and `?npc=0`
  * turns them off entirely.
  */
-import { Vector3, Quaternion, SceneLoader } from 'babylon';
+import { Vector3, Quaternion, Matrix, SceneLoader } from 'babylon';
 import { Rig } from './rig.js';
 import { seatRider } from './props.js';
 
@@ -58,6 +58,9 @@ const PAUSE_MIN = 0.6, PAUSE_MAX = 3.0;
 
 const _v = new Vector3();
 const _v2 = new Vector3();
+/** Each rider needs its OWN frame matrix — sharing Props's scratch would let
+ *  one kid's prop overwrite another's mid-frame. */
+const _mat = new Matrix();
 
 export class Npcs {
   constructor(scene, park, props) {
@@ -119,19 +122,29 @@ export class Npcs {
   }
 
   /**
-   * Every seat an NPC may use: stationary sit-props out of the prop
-   * database, with their seat points already in world space.
+   * Every seat an NPC may use, with its point already in world space.
+   *
+   * Benches and tables sit still. Swings and spring riders MOVE, and that is
+   * now allowed because the motion delta lives on the spot rather than on
+   * the player's single mount — each prop animates itself and each rider
+   * reads the frame of the prop they are on. What is still excluded is
+   * anything whose motion belongs to a rider's INPUT or runs once and ends:
+   * driving, slides, the zip and the monkey bars' traverse, and the seesaw
+   * (a lever needs two ends negotiated, which is its own feature).
    */
   _buildSeats() {
     const out = [];
     for (const spot of this.props.spots) {
       const e = spot.entry;
-      if (e.motion) continue;                       // stationary props only
-      if (!['bench', 'table', 'sit_on'].includes(e.kind)) continue;
+      const kind = e.kind;
+      const motion = e.motion ? e.motion.type : null;
+      const sittable = ['bench', 'table', 'sit_on'].includes(kind)
+        || motion === 'swing' || motion === 'rock';
+      if (!sittable) continue;
       for (const seat of this.props._seatsOf(spot)) {
         Vector3.TransformCoordinatesFromFloatsToRef(
           seat.pos[0], seat.pos[1], seat.pos[2], spot.item.matrix, _v);
-        out.push({ spot, seat, world: [_v.x, _v.y, _v.z], taken: false });
+        out.push({ spot, seat, world: [_v.x, _v.y, _v.z], taken: false, moving: !!motion });
       }
     }
     return out;
@@ -191,12 +204,20 @@ export class Npcs {
     kid.seat = s;
     kid.speed = 0;
     s.spot.taken = true;              // the player cannot mount it either
+    // a kid who chose a swing came to swing on it
+    kid.pumping = s.moving ? 1 : 0;
     kid.rig.play(s.spot.entry.clip, { loop: true });
   }
 
   _standUp(kid) {
-    if (kid.seat) { kid.seat.taken = false; kid.seat.spot.taken = false; kid.seat = null; }
+    if (kid.seat) {
+      kid.seat.taken = false;
+      // hand the prop back so it eases to rest instead of holding its tilt
+      this.props.release(kid.seat.spot);
+      kid.seat = null;
+    }
     kid.spot = null;
+    kid.pumping = 0;
     kid.rig.stop();
     kid.state = 'idle';
     kid.timer = PAUSE_MIN + Math.random() * (PAUSE_MAX - PAUSE_MIN);
@@ -243,14 +264,28 @@ export class Npcs {
       // orientation + pose
       if (kid.state === 'sit' && kid.seat) {
         const s = kid.seat;
-        Quaternion.FromEulerAnglesToRef(0, s.seat.yaw, 0, kid.model.rotationQuaternion);
-        // the prop's own frame, then the seat's facing within it
-        const M = s.spot.item.matrix;
-        Quaternion.FromRotationMatrixToRef(M.getRotationMatrix(), _q0);
-        _q0.multiplyToRef(kid.model.rotationQuaternion, kid.model.rotationQuaternion);
-        kid.rig.update(dt, { speed: 0, grounded: true, vy: 0 });
-        _v.set(s.world[0], s.world[1], s.world[2]);
-        seatRider(kid.model, kid.rig, _v, s.spot.entry.mode);
+        if (s.moving) {
+          /**
+           * A MOVING PROP DRIVES ITSELF AND ITS RIDER. Both go through the
+           * same calls the player's mount uses — `animate` steps the prop's
+           * own delta, `placeRider` puts the kid in the prop's frame, and
+           * `syncClipPhase` ties the pose to the swing's phase so the kid
+           * pumps in time rather than flailing near it. `input.f = 1` is
+           * this kid deciding to pump.
+           */
+          this.props.animate(s.spot, dt, { f: kid.pumping, r: 0, jump: false });
+          this.props.placeRider(s.spot, s.seat, kid.model, kid.rig, s.spot.entry.mode, dt, _mat);
+          this.props.syncClipPhase(s.spot, kid.rig);
+        } else {
+          Quaternion.FromEulerAnglesToRef(0, s.seat.yaw, 0, kid.model.rotationQuaternion);
+          // the prop's own frame, then the seat's facing within it
+          const M = s.spot.item.matrix;
+          Quaternion.FromRotationMatrixToRef(M.getRotationMatrix(), _q0);
+          _q0.multiplyToRef(kid.model.rotationQuaternion, kid.model.rotationQuaternion);
+          kid.rig.update(dt, { speed: 0, grounded: true, vy: 0 });
+          _v.set(s.world[0], s.world[1], s.world[2]);
+          seatRider(kid.model, kid.rig, _v, s.spot.entry.mode);
+        }
       } else {
         Quaternion.FromEulerAnglesToRef(0, kid.heading, 0, kid.model.rotationQuaternion);
         kid.rig.update(dt, { speed: kid.speed, grounded: true, vy: 0 });
@@ -264,6 +299,7 @@ export class Npcs {
       costume: k.costume, state: k.state,
       pos: [+k.model.position.x.toFixed(2), +k.model.position.y.toFixed(2), +k.model.position.z.toFixed(2)],
       seat: k.seat ? k.seat.spot.item.proto : null,
+      moving: k.seat ? !!k.seat.moving : false,
       rigOk: k.rig.ok,
     }));
   }

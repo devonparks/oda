@@ -69,8 +69,10 @@ const state = () => peek(page, () => {
   return {
     seat: seat.map((v) => +v.toFixed(2)),
     rider: [+p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2)],
-    speed: +(a.sim.speed || 0).toFixed(2),
-    yaw: +(a.sim.yaw || 0).toFixed(3),
+    // the motion sim lives on the SPOT now (each prop animates itself, so
+    // more than one rider can be mid-motion) — not on the single mount
+    speed: +((a.spot.sim && a.spot.sim.speed) || 0).toFixed(2),
+    yaw: +((a.spot.sim && a.spot.sim.yaw) || 0).toFixed(3),
   };
 });
 
