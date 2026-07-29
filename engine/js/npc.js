@@ -59,7 +59,12 @@ const COSTUMES = ['kid_footballer', 'kid_princess', 'kid_tracksuit', 'kid_dino']
  */
 const EMOTES = ['wave', 'cheer', 'clap', 'thumbsup', 'dab', 'twist', 'spin',
   'stretch', 'think', 'shrug', 'nod', 'fistpump', 'dustshoulder', 'lookaround'];
-const EMOTE_CHANCE = 0.45;       // of any given idle pause
+/**
+ * 0.25, not 0.45. At 0.45 a kid chains emote → idle → emote and barely
+ * covers ground — traced one spending 16 of 30 samples dancing, which reads
+ * as a park full of people having a moment rather than kids playing.
+ */
+const EMOTE_CHANCE = 0.25;
 
 const WALK_SPEED = 1.35;         // m/s — the locomotion clip's honest pace
 const TURN_RATE = 6;             // rad/s

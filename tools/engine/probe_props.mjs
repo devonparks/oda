@@ -143,9 +143,56 @@ for (const s of spots) {
     if (entry.hands) pair('hand', 'Hand_L', 'Hand_R', entry.hands);
     if (entry.feet) pair('foot', 'Ankle_L', 'Ankle_R', entry.feet);
 
+    /**
+     * IS THE POSE POSSIBLE? Distance-to-target says nothing about it: the
+     * jeep's hands were 25 mm from their grips with the left elbow bent
+     * BACKWARDS through the joint. So measure the interior angle of every
+     * limb — 0° is dead straight, 180° folded flat — and report the worst.
+     */
+    const joint = (up, mid, end) => {
+      const A = boneW(up), B = boneW(mid), C = boneW(end);
+      if (!A || !B || !C) return null;
+      const ux = B.x - A.x, uy = B.y - A.y, uz = B.z - A.z;
+      const vx = C.x - B.x, vy = C.y - B.y, vz = C.z - B.z;
+      const ul = Math.hypot(ux, uy, uz), vl = Math.hypot(vx, vy, vz);
+      if (!ul || !vl) return null;
+      const d = (ux * vx + uy * vy + uz * vz) / (ul * vl);
+      return Math.acos(Math.max(-1, Math.min(1, d))) * 180 / Math.PI;
+    };
+    const joints = {
+      elbow_L: joint('Shoulder_L', 'Elbow_L', 'Hand_L'),
+      elbow_R: joint('Shoulder_R', 'Elbow_R', 'Hand_R'),
+      knee_L: joint('UpperLeg_L', 'LowerLeg_L', 'Ankle_L'),
+      knee_R: joint('UpperLeg_R', 'LowerLeg_R', 'Ankle_R'),
+    };
+
+    /**
+     * DOES THE RIDER FACE WHERE THE THING GOES? For a driveable prop the
+     * answer was NO for the 4x4 — 180° out, because the drive code assumed
+     * forward was the prop's local +Z. Nothing measured it, so nine green
+     * probes shipped a kid driving backwards.
+     */
+    let faceErr = null;
+    if (spot.entry.motion && spot.entry.motion.type === 'drive') {
+      const sim = spot.sim;
+      if (sim) {
+        // the rider's world facing, from the model's own quaternion
+        const q = e.player.model.rotationQuaternion;
+        const fx = 2 * (q.x * q.z + q.w * q.y);
+        const fz = 1 - 2 * (q.x * q.x + q.y * q.y);
+        const riderYaw = Math.atan2(fx, fz);
+        let d = riderYaw - sim.yaw;
+        while (d > Math.PI) d -= Math.PI * 2;
+        while (d < -Math.PI) d += Math.PI * 2;
+        faceErr = +(Math.abs(d) * 180 / Math.PI).toFixed(1);
+      }
+    }
+
     return {
       ok: true,
       playing: rig.playing,
+      joints,
+      faceErr,
       actionW: +rig.actionW.toFixed(3),
       hipDelta: +(rig.hipApplied || 0).toFixed(3),
       grounded: e.player._grounded,
@@ -186,6 +233,22 @@ for (const s of spots) {
     if (r.pins && r.pins.length) {
       check(`${s.proto} pins reach`, pinsBad.length === 0,
         r.pins.map((p2) => `${p2.what}:${p2.d}`).join(' '));
+    }
+    /**
+     * ONLY the folded-through case fails. A limb measuring 2° is DEAD
+     * STRAIGHT, which is a perfectly good pose — arms up on a slide, a leg
+     * hanging off a bench — and an unsigned interior angle cannot tell it
+     * from a hyper-extended one anyway. Inversion is prevented structurally
+     * in the solver instead (it throws away any step that drives the signed
+     * bend negative), so what is left to catch here is a limb folded
+     * through itself.
+     */
+    const badJoints = Object.entries(r.joints || {})
+      .filter(([, v]) => v != null && v > 165);
+    check(`${s.proto} limbs are anatomically possible`, badJoints.length === 0,
+      Object.entries(r.joints || {}).map(([k, v]) => `${k}:${v == null ? '-' : v.toFixed(0)}°`).join(' '));
+    if (r.faceErr != null) {
+      check(`${s.proto} rider faces the way it drives`, r.faceErr < 30, `${r.faceErr}° off`);
     }
     rows.push({ ...s, ...r, shot, gapOK, pinsBad: pinsBad.length });
   } else if (r.dismounted) {

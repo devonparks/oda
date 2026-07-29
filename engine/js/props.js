@@ -54,6 +54,7 @@ const _spotM = new Matrix();
 const _v = new Vector3();
 const _v2 = new Vector3();
 const _q = new Quaternion();
+const _prevQ = new Quaternion();      // undo buffer for a joint that flipped
 
 /**
  * PUT A RIDER'S BODY ON A SEAT POINT — the clips.js contract, in one place
@@ -541,8 +542,27 @@ export class Props {
           const m0 = spot.item.matrix.m;
           const q = spot.item.quat;
           sim.x0 = m0[12]; sim.y0 = m0[13]; sim.z0 = m0[14];
-          sim.yaw0 = Math.atan2(2 * (q[3] * q[1] + q[0] * q[2]), 1 - 2 * (q[1] * q[1] + q[0] * q[0]));
+          /**
+           * A VEHICLE DRIVES WHERE ITS DRIVER FACES.
+           *
+           * This used to take the heading straight off the placement
+           * quaternion — i.e. it assumed every vehicle's forward is its own
+           * local +Z. It is not. The 4x4's steering wheel sits at local
+           * z = −0.086, BEHIND the seat at +0.031, so its front is local
+           * −Z: the kid drove out the back of the jeep, 180° wrong, facing
+           * sideways to travel. Measured: seat faces −179°, the old drive
+           * heading was +127° in world terms.
+           *
+           * The seat yaw is the one number that already knows which way is
+           * forward, because the seeder measured it TOWARD the steering
+           * wheel. So forward is the placement's yaw plus the seat's yaw —
+           * the direction the driver is looking — and every wheeled prop
+           * gets it right without a per-prop fudge.
+           */
+          const placementYaw = Math.atan2(
+            2 * (q[3] * q[1] + q[0] * q[2]), 1 - 2 * (q[1] * q[1] + q[0] * q[0]));
           sim.x = sim.x0; sim.y = sim.y0; sim.z = sim.z0;
+          sim.yaw0 = placementYaw + (e.seat.yaw || 0);
           sim.yaw = sim.yaw0; sim.speed = 0; sim.roll = 0;
           sim.driving = true;
         }
@@ -775,9 +795,39 @@ export class Props {
    * matrix (which also unscales — this rig is a centimetre rig, see rig.js).
    */
   _solve(limb, targetW) {
+    /**
+     * THE HINGE, and it is why an elbow could bend backwards.
+     *
+     * Plain CCD lets every joint rotate about any axis, so it happily
+     * converges with the forearm folded through the elbow — the hand lands
+     * exactly on the steering wheel (measured: 25 mm) while the arm is
+     * anatomically impossible, which is what Devon spotted in the jeep and
+     * what "distance to target" can never catch.
+     *
+     * An elbow and a knee are ONE degree of freedom. The plane they bend in
+     * is already established by the clip an animator authored, so before
+     * touching anything we read that plane off the current pose and force
+     * the lower joint to rotate only about its normal. The shoulder/hip
+     * stays free (it really is a ball joint), and the bend angle is clamped
+     * to a human range so a reach can never hyper-extend or fold flat.
+     */
+    limb.u.computeWorldMatrix(true);
+    limb.l.computeWorldMatrix(true);
+    limb.t.computeWorldMatrix(true);
+    const upper = limb.l.getAbsolutePosition().subtract(limb.u.getAbsolutePosition());
+    const lower = limb.t.getAbsolutePosition().subtract(limb.l.getAbsolutePosition());
+    let hinge = Vector3.Cross(upper, lower);
+    if (hinge.lengthSquared() < 1e-7) {
+      // dead-straight limb has no plane of its own: borrow the body's
+      hinge = Vector3.Cross(upper, Vector3.UpReadOnly);
+      if (hinge.lengthSquared() < 1e-7) hinge = Vector3.Cross(upper, Vector3.RightReadOnly);
+    }
+    hinge.normalize();
+
     const chain = [limb.l, limb.u];                 // child first converges faster here
     for (let it = 0; it < 3; it++) {
       for (const node of chain) {
+        const isHinge = node === limb.l;
         limb.t.computeWorldMatrix(true);
         node.computeWorldMatrix(true);
         const E = limb.t.getAbsolutePosition();
@@ -787,23 +837,100 @@ export class Props {
         if (_v.lengthSquared() < 1e-8 || _v2.lengthSquared() < 1e-8) continue;
         _v.normalize(); _v2.normalize();
         const dot = Math.max(-1, Math.min(1, Vector3.Dot(_v, _v2)));
-        const ang = Math.acos(dot);
+        let ang = Math.acos(dot);
         if (ang < 2e-3) continue;
-        const axisW = Vector3.Cross(_v, _v2);
+        let axisW = Vector3.Cross(_v, _v2);
         if (axisW.lengthSquared() < 1e-9) continue;
         axisW.normalize();
+        /**
+         * The axis is NOT forced onto the hinge. Projecting it there was the
+         * first attempt and it cost real reach: the pogo's grips went from
+         * 8 cm to 27 cm out, leaving the kid's hands clasped at his chest
+         * while the bar sat at his hip. The flip guard below is what
+         * actually prevents the inverted elbow, and it does so whatever
+         * axis the step used — so the joint keeps the freedom it needs to
+         * reach, and only the illegal RESULT is rejected.
+         */
         // world axis → this node's parent-local axis (un-rotate AND un-scale)
         node.parent.computeWorldMatrix(true);
         node.parent.getWorldMatrix().invertToRef(_w);
         Vector3.TransformNormalToRef(axisW, _w, _v);
         if (_v.lengthSquared() < 1e-9) continue;
         _v.normalize();
+        if (isHinge) _prevQ.copyFrom(node.rotationQuaternion);
         Matrix.RotationAxisToRef(_v, Math.min(ang, 0.6), _m);
         node.rotationQuaternion.toRotationMatrix(_w);
         _w.multiplyToRef(_m, _w);                    // R then Δ (row-vector order)
         Quaternion.FromRotationMatrixToRef(_w, node.rotationQuaternion);
+
+        /**
+         * NEVER LET THE JOINT FLIP THROUGH FLAT. An inverted elbow is
+         * reached by straightening past dead flat and out the other side,
+         * and an unsigned angle cannot see the difference — a straight arm
+         * and a hyper-extended one both measure near zero. So measure the
+         * SIGNED bend against the clip's own hinge: it starts positive by
+         * construction, and if a step drives it negative, that step flipped
+         * the joint and is thrown away. Straight stays legal (arms up on a
+         * slide are straight); through-the-joint does not.
+         */
+        /**
+         * The threshold is not zero. A limb that must reach a low grip has
+         * to straighten essentially flat, and rejecting every step that
+         * touched zero stalled the pogo's arms 23 cm short with the bar at
+         * the kid's hip. `sin(3°)` lets a limb go straight and a whisker
+         * past, and still rejects a genuine fold through the joint.
+         */
+        if (isHinge && this._bendSign(limb, hinge) < -0.05) {
+          node.rotationQuaternion.copyFrom(_prevQ);
+        }
       }
     }
+    this._clampFold(limb);
+  }
+
+  /**
+   * Signed bend in the hinge's frame, normalised so it reads as sin(bend):
+   * positive is the direction the clip authored, negative is through the
+   * joint. Normalising matters — the raw cross product scales with bone
+   * length, so a fixed threshold on it would mean different angles for an
+   * arm and a leg.
+   */
+  _bendSign(limb, hinge) {
+    limb.u.computeWorldMatrix(true);
+    limb.l.computeWorldMatrix(true);
+    limb.t.computeWorldMatrix(true);
+    const a = limb.l.getAbsolutePosition().subtract(limb.u.getAbsolutePosition()).normalize();
+    const b = limb.t.getAbsolutePosition().subtract(limb.l.getAbsolutePosition()).normalize();
+    return Vector3.Dot(Vector3.Cross(a, b), hinge);
+  }
+
+  /**
+   * A limb may be straight, but it may not fold through itself: cap the
+   * interior angle at 155°. No MINIMUM is imposed — forcing a few degrees of
+   * bend on every limb fights poses the animator authored straight, which is
+   * most of the raised-arm clips.
+   */
+  _clampFold(limb) {
+    limb.u.computeWorldMatrix(true);
+    limb.l.computeWorldMatrix(true);
+    limb.t.computeWorldMatrix(true);
+    const a = limb.l.getAbsolutePosition().subtract(limb.u.getAbsolutePosition()).normalize();
+    const b = limb.t.getAbsolutePosition().subtract(limb.l.getAbsolutePosition()).normalize();
+    const interior = Math.acos(Math.max(-1, Math.min(1, Vector3.Dot(a, b))));   // 0 = straight
+    const HI = 2.71;                                // 155°
+    if (interior <= HI) return;
+    const axis = Vector3.Cross(a, b);
+    if (axis.lengthSquared() < 1e-7) return;
+    axis.normalize();
+    limb.l.parent.computeWorldMatrix(true);
+    limb.l.parent.getWorldMatrix().invertToRef(_w);
+    Vector3.TransformNormalToRef(axis, _w, _v);
+    if (_v.lengthSquared() < 1e-9) return;
+    _v.normalize();
+    Matrix.RotationAxisToRef(_v, HI - interior, _m);
+    limb.l.rotationQuaternion.toRotationMatrix(_w);
+    _w.multiplyToRef(_m, _w);
+    Quaternion.FromRotationMatrixToRef(_w, limb.l.rotationQuaternion);
   }
 }
 
