@@ -55,6 +55,10 @@ const _v = new Vector3();
 const _v2 = new Vector3();
 const _q = new Quaternion();
 const _prevQ = new Quaternion();      // undo buffer for a joint that flipped
+// Separate scratch for the seesaw sign probe: it calls _rotW, which uses the
+// shared ones, so measuring with those would read back its own leftovers.
+const _probeM = new Matrix();
+const _probeV = new Vector3();
 
 /**
  * PUT A RIDER'S BODY ON A SEAT POINT — the clips.js contract, in one place
@@ -268,7 +272,13 @@ export class Props {
     if (!info) return;
     const sim = spot.sim;
     if (!sim) return;
-    if (e.motion.type === 'rock' || e.motion.type === 'swing') {
+    if (e.motion.type === 'rock') {
+      // a spring has no phase to read, so the pose follows the ANGLE — the
+      // rider leans with the rock instead of to a clock of its own
+      const lim = e.motion.amp || 0.2;
+      const cyc = Math.min(1, Math.max(0, 0.5 + 0.5 * (sim.angle / lim)));
+      rig.setActionTime(e.clip, cyc * info.dur);
+    } else if (e.motion.type === 'swing') {
       const cyc = ((sim.phase / (Math.PI * 2)) % 1 + 1) % 1;
       rig.setActionTime(e.clip, cyc * info.dur);
     } else if (e.motion.pedal) {
@@ -300,7 +310,19 @@ export class Props {
 
   /** Let a spot go: return it to rest (or leave a driven prop parked). */
   release(spot) {
-    const driven = spot.entry.motion && spot.entry.motion.type === 'drive';
+    const type = spot.entry.motion && spot.entry.motion.type;
+    /**
+     * A SEESAW KEEPS ITS TILT. Half of what Devon asked for is *"if you get
+     * on the side that's already down, you should stay down"* — which only
+     * means anything if the plank remembers which side IS down after the
+     * last rider left. So a seesaw parks like a driven prop does, and its
+     * lift is restored on the next mount instead of snapping level.
+     */
+    if (type === 'seesaw' && spot.sim) {
+      spot.restLift = spot.sim.angle;
+      spot.restSgn = spot.sim.sgn;
+    }
+    const driven = type === 'drive' || type === 'seesaw';
     if (driven && spot.W) spot.parkedW = spot.W.clone();
     const rest = driven ? spot.parkedW : null;
     for (const it of spot.moving) {
@@ -350,6 +372,8 @@ export class Props {
     this._ensureMotion(spot);
     spot.sim.phase = 0;             // the player's ride starts at rest
     spot.riderEnd = seat.end || 1;  // which end of a seesaw they took
+    // pick the plank up where the last rider left it, not level
+    if (spot.restLift != null) { spot.sim.angle = spot.restLift; spot.sim.sgn = spot.restSgn; }
     this.active = { spot, seat, t: 0, returnTo: { x: p.x, y: p.y, z: p.z } };
     this.player.mounted = this;
     const ok = await this.player.rig.play(spot.entry.clip, { loop: true });
@@ -440,7 +464,7 @@ export class Props {
       return 'SPACE hop off';
     }
     const near = this.nearest();
-    return near ? `E — ride the ${labelOf(near)}` : null;
+    return near ? `E — ${verbOf(near)} the ${labelOf(near)}` : null;
   }
 
   // ── motion sims ───────────────────────────────────────────────────────────
@@ -460,10 +484,30 @@ export class Props {
     const sim = spot.sim;
 
     switch (mo.type) {
+      /**
+       * A SPRING RIDER IS A SPRING, not a metronome. This used to be a fixed
+       * sine at a constant amplitude — it rocked identically forever whether
+       * you did anything or not, which is what Devon meant by *"the spring
+       * rider needs physics work"*. Now it is the real thing: a restoring
+       * force toward centre, damping that brings it to rest, and a push (hold
+       * W/S) that adds energy in whichever direction you are already
+       * travelling. So it starts with a nudge, dies down if you sit still,
+       * and builds if you pump it — and it cannot exceed the amplitude the
+       * database says the prop's own geometry allows.
+       */
       case 'rock': {
-        sim.phase += dt * Math.PI * 2 * (mo.hz || 0.6);
-        sim.angle = (mo.amp || 0.2) * Math.sin(sim.phase) * spot.env;
-        this._rotW(spot, mo, sim.angle);
+        const lim = mo.amp || 0.2;
+        const k = mo.k || 30;                          // stiffness
+        const damp = mo.damp || 0.9;
+        if (!sim.kicked) { sim.vel = 0.55; sim.kicked = true; }   // a nudge on mount
+        const push = input.f || input.r || 0;
+        if (push) sim.vel += Math.sign(sim.vel || push) * (mo.push || 2.4) * dt;
+        sim.vel += -k * sim.angle * dt;                 // pulled back to centre
+        sim.vel *= Math.exp(-damp * dt);                // and it settles
+        sim.angle += sim.vel * dt;
+        if (sim.angle > lim) { sim.angle = lim; sim.vel = Math.min(0, sim.vel) * 0.6; }
+        if (sim.angle < -lim) { sim.angle = -lim; sim.vel = Math.max(0, sim.vel) * 0.6; }
+        this._rotW(spot, mo, sim.angle * spot.env);
         break;
       }
       case 'swing': {
@@ -477,27 +521,39 @@ export class Props {
         break;
       }
       case 'seesaw': {
-        // sim.angle is the +1 end's lift, −1..1; the ridden end sinks and a
-        // push only works from the ground — you shove off, like the real thing
         /**
-         * WHICH END the rider is on belongs to the RIDER, not the plank —
-         * so it is stamped onto the spot at mount time. (This line kept
-         * reading the old single-mount object after the motion state moved
-         * onto the spot: it threw a ReferenceError every frame on the
-         * seesaw, which killed the whole before-render callback and made
-         * every prop measured after it look broken. The probe caught it as
-         * a cascade of 34 m "drifts".)
+         * A LONE RIDER ENDS UP DOWN. Devon, describing what was wrong:
+         * *"if you get on the side that's already down, you should stay down.
+         * If you get on the side that's already up, you should go down from
+         * being up, because you put your own weight on it. That's just how
+         * physics works."* It did the opposite — whichever end you mounted,
+         * you rose. Measured: mount end +1 and the rider went 0.105 → 0.672;
+         * mount end −1 and they went 0.514 → 0.672. Both up.
+         *
+         * The SIM was right; the RENDERING was backwards. `sim.angle` is the
+         * +1 end's lift in −1..+1 and the ridden end's weight drives it the
+         * correct way — but whether a positive rotation about the plank's
+         * measured axis raises or lowers that end depends on the axis
+         * direction, the placement's rotation and the scene's handedness,
+         * three things no hard-coded sign can be trusted to predict. So it is
+         * MEASURED once against the real geometry: rotate a test amount, see
+         * which way the +1 seat actually moved, keep that sign.
+         *
+         * `riderEnd` is stamped on the spot at mount because which end a
+         * rider took belongs to the rider, not the plank.
          */
+        if (!sim.sgn) sim.sgn = this._seesawSign(spot, mo);
         const end = spot.riderEnd || 1;
         sim.vel -= SEESAW_G * end * dt;
         if (input.jump) {
           input.jump = false;
+          // a push only works from the ground — you shove off, like the real thing
           if (end * sim.angle < -0.6) sim.vel = SEESAW_PUSH * end;
         }
         sim.angle += sim.vel * dt;
         if (sim.angle < -1) { sim.angle = -1; sim.vel = Math.max(0, sim.vel); }
         if (sim.angle > 1) { sim.angle = 1; sim.vel = Math.min(0, sim.vel); }
-        this._rotW(spot, mo, sim.angle * (mo.max || 0.34));
+        this._rotW(spot, mo, sim.angle * (mo.max || 0.34) * sim.sgn);
         break;
       }
       case 'spin': {
@@ -692,6 +748,29 @@ export class Props {
     const n = hit.hitNormalWorld;
     if (!n) return true;                   // no normal to judge by: play it safe
     return Math.abs(n.y) < 0.6;            // steep face = wall, flat = ramp
+  }
+
+  /**
+   * Which rotation sign RAISES the seesaw's +1 end, measured on the real
+   * geometry rather than assumed.
+   *
+   * Builds the delta for a small test rotation, transforms the +1 seat point
+   * through it, and compares the world height against no rotation. Uses its
+   * own scratch matrix and vector because `_rotW` clobbers the shared ones.
+   */
+  _seesawSign(spot, mo) {
+    const seats = this._seatsOf(spot);
+    const plus = seats.find((s) => s.end === 1) || seats[0];
+    const heightAt = (theta) => {
+      this._rotW(spot, mo, theta);
+      const M = this._spotMatrix(spot, _probeM);
+      Vector3.TransformCoordinatesFromFloatsToRef(plus.pos[0], plus.pos[1], plus.pos[2], M, _probeV);
+      return _probeV.y;
+    };
+    const flat = heightAt(0);
+    const turned = heightAt(0.25);
+    this._rotW(spot, mo, 0);                 // leave the plank as we found it
+    return turned > flat ? 1 : -1;
   }
 
   /** W = rotate `angle` about the prop's pivot/axis, in world space. */
@@ -935,14 +1014,47 @@ export class Props {
   }
 }
 
-/** A human name for the prompt line. */
+/**
+ * What the thing actually IS, for the prompt line.
+ *
+ * By PROTOTYPE first, then by kind. The kind name alone was misleading:
+ * the purple 4x4 announced itself as "ride the kart", which is not what
+ * anybody looking at a jeep would press E for — and if a player does not
+ * believe the prompt is about the thing in front of them, they never learn
+ * the control at all.
+ */
+const PROP_NAMES = [
+  [/^SM_Veh_4x4$/, 'jeep'],
+  [/^SM_Veh_Soapbox_Racer_03$/, 'go-kart'],
+  [/^SM_Veh_Trike_01$/, 'trike'],
+  [/^SM_Veh_Bike_0\d$/, 'bike'],
+  [/^SM_Veh_Scooter_0\d$/, 'scooter'],
+  [/^SM_Prop_Skateboard_0\d$/, 'skateboard'],
+  [/^SM_Prop_Coin_Ride_Dragon$/, 'dragon'],
+  [/^SM_Prop_Coin_Ride_Car$/, 'coin car'],
+  [/^SM_Prop_Coin_Ride_Rocket$/, 'rocket'],
+  [/^SM_Prop_Rocker_Top_01$/, 'roundabout'],
+  [/^SM_Env_Tree_Large_01_Tyre_Swing$/, 'tyre swing'],
+  [/^SM_Prop_Playground_Track_Ride_01$/, 'zip line'],
+  [/^SM_Prop_Red_Wagon_01$/, 'wagon'],
+  [/^SM_Prop_Pool_Float_0\d$/, 'pool float'],
+  [/^SM_Prop_Sled_01$/, 'sled'],
+];
+const KIND_NAMES = {
+  bench: 'bench', table: 'picnic table', coinride: 'coin ride', rocker: 'spring rider',
+  seesaw: 'seesaw', swing: 'swing', slide: 'slide', monkey: 'monkey bars', zip: 'zip line',
+  kart: 'kart', bike: 'bike', scooter: 'scooter', pogo: 'pogo stick', board: 'skateboard',
+  sit_on: 'seat', spinner: 'roundabout',
+};
 function labelOf(spot) {
-  const k = spot.entry.kind;
-  const names = {
-    bench: 'bench', table: 'picnic table', coinride: 'coin ride', rocker: 'spring rider',
-    seesaw: 'seesaw', swing: 'swing', slide: 'slide', monkey: 'monkey bars', zip: 'track ride',
-    kart: 'kart', bike: 'bike', scooter: 'scooter', pogo: 'pogo stick', board: 'skateboard',
-    sit_on: 'seat', spinner: 'spinner',
-  };
-  return names[k] || spot.item.proto;
+  for (const [re, name] of PROP_NAMES) if (re.test(spot.item.proto)) return name;
+  return KIND_NAMES[spot.entry.kind] || spot.item.proto;
+}
+
+/** "drive" a thing with wheels, "sit on" a bench, "ride" everything else. */
+function verbOf(spot) {
+  const e = spot.entry;
+  if (e.motion && e.motion.type === 'drive') return 'drive';
+  if (e.kind === 'bench' || e.kind === 'table') return 'sit on';
+  return 'ride';
 }
