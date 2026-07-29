@@ -275,7 +275,11 @@ async function main() {
     statsEl.textContent =
       `${engine.getFps().toFixed(0)} fps · ${scene.getActiveMeshes().length} active · `
       + `${park.stats.drawCalls} protos · ${park.stats.placements} objects · `
-      + `${(park.stats.triangles / 1000).toFixed(0)}k tris`;
+      + `${(park.stats.triangles / 1000).toFixed(0)}k tris`
+      // WHICH BUILD AM I LOOKING AT: a stale cached copy is otherwise
+      // indistinguishable from a broken new one, which cost a whole
+      // round trip of "did you push it?"
+      + (window.__AMG_BUILD ? ` · build ${window.__AMG_BUILD}` : '');
   }, 250);
 
   // ── keys ──────────────────────────────────────────────────────────────

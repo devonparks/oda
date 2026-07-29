@@ -117,7 +117,8 @@ export class Props {
   }
 
   static async load(scene, park, player) {
-    const db = await (await fetch(new URL('../assets/prop_db.json', import.meta.url))).json();
+    const v = window.__AMG_BUILD ? ('?v=' + window.__AMG_BUILD) : '';
+    const db = await (await fetch(new URL('../assets/prop_db.json', import.meta.url).href + v)).json();
     return new Props(scene, park, player, db);
   }
 

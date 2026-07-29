@@ -18,22 +18,69 @@
   `babylon` and never knows which one it got.
 
   This has to be a classic inline script rather than a static import map
-  because the choice depends on the URL. It runs synchronously, before the
-  module script below is fetched, which is the condition an import map has to
-  meet. Verified in real Chrome by tools/engine/probe_boot.mjs — if a browser
-  ever refuses a dynamically inserted map, the fallback is two static maps in
-  two HTML files.
+  because the choice depends on the URL, and because the map now also carries
+  a per-build version on every module (see the BUILD STAMP note below). It
+  runs synchronously and imports the entry point itself, so the map is always
+  in place before the first module loads. Verified in real Chrome by
+  tools/engine/probe_boot.mjs — if a browser ever refuses a dynamically
+  inserted map, the fallback is two static maps in two HTML files.
 -->
 <script>
+/**
+ * BUILD STAMP — bump this on every engine change that gets deployed.
+ *
+ * GitHub Pages serves everything with a hard-coded `Cache-Control:
+ * max-age=600` that cannot be configured from the repo, and this engine has
+ * no build step, so nothing rewrites module URLs for us. The result, before
+ * this existed: a deploy landed on the server and the browser kept serving
+ * the old files for up to ten minutes — Devon hard-refreshed nothing, saw a
+ * car that would not drive, and reasonably concluded the fix had not
+ * shipped. It had; his browser just had not heard.
+ *
+ * The nastier failure this prevents is a MIX. Every module is versioned from
+ * this one constant, so a stale index.html gets a wholly stale set and a
+ * fresh one gets a wholly fresh set. You can never end up with a new
+ * boot.js talking to a cached props.js, which would break in ways no
+ * screenshot could explain.
+ *
+ * It is still not instant: an old index.html can be served for up to ten
+ * minutes. Ctrl+Shift+R forces it, and the stamp is printed to the console
+ * and shown in the stats readout (F) so which build you are looking at is
+ * never a guess.
+ */
+var AMG_BUILD = '2026-07-29a';
+
 (function () {
   var dev = /[?&]dev\b/.test(location.search);
+  var v = '?v=' + AMG_BUILD;
+
+  // Every engine module, mapped to a versioned URL. Import-map keys resolve
+  // against the document base, and a relative specifier inside a module
+  // resolves to the same URL — so `import './props.js'` from boot.js is
+  // matched here and gets the query.
+  var MODULES = ['backdrop', 'blobshadow', 'boot', 'character', 'clips', 'collision',
+    'devtools', 'library', 'npc', 'objects', 'park', 'props', 'rig'];
+  var imports = { babylon: (dev ? './vendor/babylon.dev.js' : './vendor/babylon.js') + v };
+  for (var i = 0; i < MODULES.length; i++) {
+    imports['./js/' + MODULES[i] + '.js'] = './js/' + MODULES[i] + '.js' + v;
+  }
+
   var map = document.createElement('script');
   map.type = 'importmap';
-  map.textContent = JSON.stringify({
-    imports: { babylon: dev ? './vendor/babylon.dev.js' : './vendor/babylon.js' },
-  });
+  map.textContent = JSON.stringify({ imports: imports });
   document.head.appendChild(map);
+
   window.__AMG_DEV = dev;
+  window.__AMG_BUILD = AMG_BUILD;          // data fetches append this too
+  console.log('[engine] build ' + AMG_BUILD + (dev ? ' (dev)' : ''));
+
+  // The map must exist before ANY module loads, so the entry point is
+  // imported here rather than by a <script type="module"> tag.
+  import('./js/boot.js' + v).catch(function (err) {
+    console.error('[engine] boot failed to load', err);
+    var f = document.getElementById('fatal'), m = document.getElementById('fatalMsg');
+    if (f && m) { m.textContent = String(err && err.stack || err); f.classList.remove('hidden'); }
+  });
 })();
 </script>
 </head>
@@ -68,6 +115,7 @@
 
 <div id="fatal" class="fatal hidden"><div class="fatal-card"><h2>The engine stopped</h2><pre id="fatalMsg"></pre></div></div>
 
-<script type="module" src="js/boot.js"></script>
+<!-- boot.js is imported by the versioned loader in <head>, not from a tag:
+     the import map has to be in place before the first module loads. -->
 </body>
 </html>

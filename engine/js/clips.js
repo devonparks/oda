@@ -42,7 +42,11 @@ export const SEATED_PELVIS_Y = BIND_PELVIS_Y + SEATED_HIP_OFFSET;
 /** Pelvis joint to the bottom of the butt: how far above a seat the joint sits. */
 export const BUTT_BELOW_PELVIS = 0.105;
 
-const base = (p) => new URL(p, import.meta.url).href;
+/** Asset URLs carry the build stamp: a cached prop database or clip bin
+ *  paired with fresh code is the same staleness problem as a cached
+ *  module, and just as invisible. `__AMG_BUILD` is set by index.html. */
+const V = (typeof window !== 'undefined' && window.__AMG_BUILD) ? ('?v=' + window.__AMG_BUILD) : '';
+const base = (p) => new URL(p, import.meta.url).href + V;
 
 /** The locomotion bake: idle / walk / run / sprint / jump / fall / land. */
 export async function loadLocomotion() {
