@@ -87,6 +87,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .puzzle-tile.sliding{transition:none;z-index:2}
 @keyframes tileSnapPulse{0%{transform:scale(1)}45%{transform:scale(1.12)}100%{transform:scale(1)}}
 .puzzle-tile.snap-pulse{animation:tileSnapPulse .15s ease-out}
+@keyframes hintFlash{0%,100%{box-shadow:0 0 0 3px rgba(255,209,102,.9),0 2px 8px rgba(0,0,0,.3)}50%{box-shadow:0 0 0 7px rgba(255,209,102,.35),0 2px 8px rgba(0,0,0,.3)}}
+.puzzle-tile.hint-flash{animation:hintFlash .5s ease-in-out 4}
 
 /* Tile themes */
 .theme-wood .puzzle-tile.filled{background:linear-gradient(135deg,#5c3d2e 0%,#8b6914 100%);border-color:rgba(139,105,20,.4);color:#fde68a;box-shadow:0 2px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.1)}
@@ -191,8 +193,9 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   <div class="puzzle-wrap">
     <div class="puzzle-board" id="puzzleBoard"></div>
   </div>
-  <div style="display:flex;gap:10px;justify-content:center;margin-top:8px">
-    <button class="btn btn-outline btn-small" onclick="shuffleBoard()">&#128260; Shuffle</button>
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:8px;flex-wrap:wrap">
+    <button class="btn btn-outline btn-small" id="shuffleBtn" onclick="confirmShuffle(this)">&#128260; Shuffle</button>
+    <button class="btn btn-outline btn-small" id="hintBtn" onclick="useHint()">&#128161; Hint (3 left)</button>
     <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&#8592; Quit</button>
   </div>
 </div>
@@ -460,6 +463,11 @@ var startTime=0;
 var timerInterval=null;
 var gameActive=false;
 var solved=false;
+var currentPar=0;
+var shuffleArmed=false;
+var shuffleArmTimer=null;
+var hintsUsed=0;
+var HINT_CAP=3;
 
 function stopGame(){
   gameActive=false;
@@ -523,22 +531,46 @@ function isSolved(arr,size){
   return arr[arr.length-1]===0;
 }
 
+function parFor(size){
+  return (size*size-1)*3;
+}
+
+function updateMovesHud(){
+  document.getElementById('hudMoves').textContent=moveCount+' / Par '+currentPar;
+}
+
+function updateHintBtn(){
+  var btn=document.getElementById('hintBtn');
+  if(!btn)return;
+  var left=HINT_CAP-hintsUsed;
+  btn.innerHTML='&#128161; Hint ('+left+' left)';
+  btn.disabled=left<=0;
+  btn.style.opacity=left<=0?'.5':'';
+}
+
 /* ===================== */
 /* START GAME            */
 /* ===================== */
 function startGame(){
   var d=DIFFICULTIES[difficulty];
   gridSize=d.size;
+  currentPar=parFor(gridSize);
   board=generateBoard(gridSize);
   emptyPos=board.indexOf(0);
   moveCount=0;
   solved=false;
   gameActive=true;
+  hintsUsed=0;
+  shuffleArmed=false;
+  if(shuffleArmTimer){clearTimeout(shuffleArmTimer);shuffleArmTimer=null}
 
   showScreen('gameScreen');
   applyCosmeticStyles();
 
-  document.getElementById('hudMoves').textContent='0';
+  var shuffleBtnEl=document.getElementById('shuffleBtn');
+  if(shuffleBtnEl)shuffleBtnEl.innerHTML='&#128260; Shuffle';
+  updateHintBtn();
+  updateMovesHud();
   document.getElementById('hudTime').textContent='0:00';
   document.getElementById('hudSize').textContent=gridSize+'x'+gridSize;
 
@@ -567,7 +599,9 @@ function shuffleBoard(){
   emptyPos=board.indexOf(0);
   moveCount=0;
   solved=false;
-  document.getElementById('hudMoves').textContent='0';
+  hintsUsed=0;
+  updateHintBtn();
+  updateMovesHud();
   startTime=Date.now();
 
   var tileSize;
@@ -577,6 +611,42 @@ function shuffleBoard(){
 
   renderBoard(tileSize);
   sfxSlide();
+}
+
+function confirmShuffle(btn){
+  if(!gameActive)return;
+  if(shuffleArmed){
+    clearTimeout(shuffleArmTimer);
+    shuffleArmed=false;
+    btn.innerHTML='&#128260; Shuffle';
+    shuffleBoard();
+    return;
+  }
+  shuffleArmed=true;
+  btn.textContent='Really shuffle?';
+  shuffleArmTimer=setTimeout(function(){
+    shuffleArmed=false;
+    btn.innerHTML='&#128260; Shuffle';
+  },3000);
+}
+
+function useHint(){
+  if(!gameActive||solved)return;
+  if(hintsUsed>=HINT_CAP)return;
+  var idx=-1;
+  for(var i=0;i<board.length;i++){
+    if(board[i]!==0&&board[i]!==i+1){idx=i;break}
+  }
+  if(idx===-1)return;
+  hintsUsed++;
+  updateHintBtn();
+  var targetIdx=board[idx]-1;
+  var boardEl=document.getElementById('puzzleBoard');
+  var cell=boardEl.children[targetIdx];
+  if(cell){
+    cell.classList.add('hint-flash');
+    setTimeout(function(){cell.classList.remove('hint-flash')},2000);
+  }
 }
 
 /* ===================== */
@@ -638,7 +708,7 @@ function handleTileClick(idx){
   var oldEmpty=emptyPos;
   emptyPos=idx;
   moveCount++;
-  document.getElementById('hudMoves').textContent=moveCount;
+  updateMovesHud();
 
   // Animate
   animateSlide(idx,oldEmpty);
