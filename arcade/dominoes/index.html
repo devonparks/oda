@@ -87,6 +87,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .board-wrap canvas{display:block;width:100%;cursor:grab;touch-action:none}
 .board-wrap canvas:active{cursor:grabbing}
 .board-empty-msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,.45);font-size:15px;font-weight:600;pointer-events:none;text-align:center}
+.score-popup{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;z-index:8;pointer-events:none;color:var(--gold);text-shadow:0 2px 10px rgba(0,0,0,.5);animation:scorePop .9s ease forwards;white-space:nowrap}
+@keyframes scorePop{0%{transform:translate(-50%,-50%) scale(0);opacity:0}20%{transform:translate(-50%,-50%) scale(1.15);opacity:1}100%{transform:translate(-50%,-50%) scale(1) translateY(-30px);opacity:0}}
 
 /* HAND */
 .hand-area{width:100%;max-width:1000px;margin:0 auto;padding:0 16px;position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:5}
@@ -558,6 +560,7 @@ let leftEnd=-1,rightEnd=-1;
 let myTurn=true,gameOver=false,selectedTile=null;
 let myScore=0,oppScore=0,coinsAwarded=false;
 let roomCode=null,unsub=null;
+let lastPlacedId=null,lastPlacedTime=0; // tracks the tile just played, for a brief highlight ring
 
 /* =========================================================== */
 /* BOARD MODEL — SIMPLIFIED                                    */
@@ -824,6 +827,35 @@ function drawBoard(){
   boardEntries.forEach(entry => {
     drawTileOnCanvas(ctx, entry.x, entry.y, entry.leftVal, entry.rightVal, entry.isDouble);
   });
+
+  // Highlight ring on the tile just played
+  drawLastPlacedGlow(ctx);
+}
+
+/* =========================================================== */
+/* LAST-PLACED HIGHLIGHT (brief ring, ~400ms)                  */
+/* =========================================================== */
+function drawLastPlacedGlow(ctx){
+  if(!lastPlacedId) return;
+  const elapsed = Date.now() - lastPlacedTime;
+  if(elapsed > 400){ lastPlacedId = null; return; }
+  const entry = boardEntries.find(e => e.tile.id === lastPlacedId);
+  if(entry){
+    const fade = 1 - elapsed / 400;
+    const fullW = (entry.isDouble ? 2 * TW : 4 * TW) + 10;
+    const fullH = (entry.isDouble ? 4 * TW : 2 * TW) + 10;
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.strokeStyle = '#06d6a0';
+    ctx.shadowColor = '#06d6a0';
+    ctx.shadowBlur = 16;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(entry.x - fullW / 2, entry.y - fullH / 2, fullW, fullH, 8);
+    ctx.stroke();
+    ctx.restore();
+  }
+  requestAnimationFrame(() => drawBoard());
 }
 
 /* =========================================================== */
@@ -1472,6 +1504,8 @@ function placeTile(side){
     rightEnd = entry.rightVal;
   }
 
+  lastPlacedId = selectedTile.id; lastPlacedTime = Date.now();
+
   myHand = myHand.filter(t => t.id !== selectedTile.id);
   selectedTile = null;
   sfxPlace();
@@ -1608,6 +1642,8 @@ function aiTurn(){
     rightEnd = entry.rightVal;
   }
 
+  lastPlacedId = chosen.id; lastPlacedTime = Date.now();
+
   oppHand = oppHand.filter(t => t.id !== chosen.id);
   sfxPlace();
 
@@ -1620,6 +1656,16 @@ function aiTurn(){
 
   myTurn = true;
   renderGame(); updateTurnUI();
+}
+
+function showScorePopup(points){
+  const wrap = document.getElementById('boardWrap');
+  if(!wrap) return;
+  const el = document.createElement('div');
+  el.className = 'score-popup';
+  el.textContent = '+' + points;
+  wrap.appendChild(el);
+  setTimeout(() => { if(el.parentNode) el.parentNode.removeChild(el); }, 900);
 }
 
 /* =========================================================== */
@@ -1648,6 +1694,8 @@ function endRound(winner){
       title = 'Draw!'; sub = 'Blocked game \u2014 tied pip count'; points = 0; recordResult = 'draw';
     }
   }
+
+  if(points > 0) showScorePopup(points);
 
   var coins = Math.floor(points / 2);
   if(recordResult === 'win') coins += 10;
