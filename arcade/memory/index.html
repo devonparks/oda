@@ -354,6 +354,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <h3>Flashcards</h3>
       <p>Import from your flashcard decks</p>
     </div>
+    <div class="card-ui mode-card" onclick="startSpeedMode()">
+      <span class="mode-icon">&#x26a1;</span>
+      <h3>Speed Round</h3>
+      <p>Beat the clock &mdash; no preview!</p>
+    </div>
     <div class="card-ui mode-card" onclick="showRecords()">
       <span class="mode-icon">&#x1f4ca;</span>
       <h3>Records</h3>
@@ -700,6 +705,9 @@ var soundEnabled = true;
 var audioCtx = null;
 var gameActive = false;
 var previousRecord = null; // for new-record detection
+var memPreviewPlayedOnce = false; // session flag: cuts preview time on repeat plays
+var speedTimerInterval = null;
+var speedTimeLeft = 0;
 
 // Emoji pools - diverse set of animals, food, objects, nature
 var EMOJI_POOL = [
@@ -717,6 +725,9 @@ var DIFFICULTY = {
   medium: { cols: 4, rows: 4, pairs: 8,  coins: 8,  previewMs: 4000 },
   hard:   { cols: 6, rows: 4, pairs: 12, coins: 12, previewMs: 5000 }
 };
+
+// Speed Round: same grids/coins as DIFFICULTY above, no preview, countdown timer instead
+var SPEED_TIME = { easy: 60, medium: 90, hard: 120 };
 
 // =========================================================
 //  BACK BUTTON DETECTION
@@ -885,6 +896,8 @@ function selectDifficulty(diff) {
   currentDifficulty = diff;
   if (gameMode === 'classic') {
     startGame();
+  } else if (gameMode === 'speed') {
+    startSpeedGame();
   }
 }
 
@@ -1007,6 +1020,76 @@ function startImportGame(diff) {
 }
 
 // =========================================================
+//  SPEED ROUND MODE (same grids as Classic, no preview, countdown timer)
+// =========================================================
+function startSpeedMode() {
+  gameMode = 'speed';
+  importedDeck = null;
+  importedCards = [];
+  showScreen('diffScreen');
+  document.getElementById('diffSubtitle').textContent = 'Select your challenge level ' + String.fromCharCode(8212) + ' beat the clock!';
+}
+
+function startSpeedGame() {
+  // Reset state (mirrors startGame, but skips the preview phase entirely)
+  matchedPairs = 0;
+  moves = 0;
+  flippedCards = [];
+  lockBoard = false;
+  elapsedSeconds = 0;
+  if (timerInterval) clearInterval(timerInterval);
+  if (speedTimerInterval) clearInterval(speedTimerInterval);
+
+  var config = DIFFICULTY[currentDifficulty];
+  totalPairs = config.pairs;
+
+  cards = generateEmojiCards(config.pairs);
+  shuffleArray(cards);
+
+  renderCardGrid(config);
+  showScreen('gameScreen');
+
+  document.getElementById('pairsDisplay').textContent = '0/' + totalPairs;
+  document.getElementById('movesDisplay').textContent = '0';
+
+  speedTimeLeft = SPEED_TIME[currentDifficulty] || 60;
+  document.getElementById('timerDisplay').textContent = formatTime(speedTimeLeft);
+
+  startTime = Date.now();
+  speedTimerInterval = setInterval(updateSpeedTimer, 1000);
+}
+
+function updateSpeedTimer() {
+  speedTimeLeft--;
+  if (speedTimeLeft <= 0) {
+    speedTimeLeft = 0;
+    document.getElementById('timerDisplay').textContent = '0:00';
+    clearInterval(speedTimerInterval);
+    speedTimeUp();
+    return;
+  }
+  document.getElementById('timerDisplay').textContent = formatTime(speedTimeLeft);
+}
+
+// Timer hit 0 before all pairs were found -- no coins (only a completed timed clear pays out)
+function speedTimeUp() {
+  lockBoard = true;
+  gameActive = false;
+  playNoMatchSound();
+
+  showScreen('resultScreen');
+
+  var starEls = document.querySelectorAll('#starsDisplay .star');
+  for (var i = 0; i < starEls.length; i++) starEls[i].classList.remove('earned');
+
+  document.getElementById('resTime').innerHTML = '0:00';
+  document.getElementById('resMoves').innerHTML = '' + moves;
+  document.getElementById('resPairs').textContent = matchedPairs + '/' + totalPairs;
+  document.getElementById('coinsDisplay').innerHTML = '&#x1fa99; +0';
+  document.getElementById('resultSub').textContent = 'Speed Round ' + String.fromCharCode(183) + ' Time' + String.fromCharCode(8217) + 's Up!';
+}
+
+// =========================================================
 //  GAME SETUP
 // =========================================================
 function startGame() {
@@ -1048,15 +1131,19 @@ function startPreviewPhase(config) {
   var allCards = document.querySelectorAll('.mem-card');
   var previewTime = config.previewMs || 3000;
 
+  // Repeat plays this session get a shorter preview (session flag, not per-difficulty)
+  if (memPreviewPlayedOnce) previewTime = Math.round(previewTime * 0.65);
+  memPreviewPlayedOnce = true;
+
   // Show "Memorize!" overlay
   var overlay = document.createElement('div');
   overlay.className = 'game-overlay';
   overlay.id = 'previewOverlay';
-  overlay.innerHTML = '<h3>Memorize!</h3><div class="memo-text">Study the cards...</div>';
+  overlay.innerHTML = '<h3>Memorize!</h3><div class="memo-text">Study the cards... (tap to skip)</div>';
   document.body.appendChild(overlay);
 
   // Flip all cards face up
-  setTimeout(function() {
+  var flipTimeout = setTimeout(function() {
     for (var i = 0; i < allCards.length; i++) {
       allCards[i].classList.add('preview');
     }
@@ -1083,8 +1170,15 @@ function startPreviewPhase(config) {
     }
   }, 1000);
 
-  // After preview time, hide cards and start game
-  setTimeout(function() {
+  var previewDone = false;
+  function finishPreview() {
+    if (previewDone) return;
+    previewDone = true;
+    clearTimeout(flipTimeout);
+    clearInterval(countInterval);
+    clearTimeout(endTimeout);
+    overlay.removeEventListener('click', finishPreview);
+
     // Remove overlay
     overlay.style.transition = 'opacity .3s ease';
     overlay.style.opacity = '0';
@@ -1101,7 +1195,13 @@ function startPreviewPhase(config) {
     // Start timer
     startTime = Date.now();
     timerInterval = setInterval(updateTimer, 1000);
-  }, previewTime + 600);
+  }
+
+  // After preview time, hide cards and start game
+  var endTimeout = setTimeout(finishPreview, previewTime + 600);
+
+  // Tap/click during preview skips straight to play
+  overlay.addEventListener('click', finishPreview);
 }
 
 function generateEmojiCards(numPairs) {
@@ -1247,7 +1347,7 @@ function checkMatch() {
       second.el.classList.remove('flipped', 'no-match-flash');
       flippedCards = [];
       lockBoard = false;
-    }, 1100);
+    }, 800);
   }
 }
 
@@ -1256,6 +1356,7 @@ function checkMatch() {
 // =========================================================
 function quitGame() {
   if (timerInterval) clearInterval(timerInterval);
+  if (speedTimerInterval) clearInterval(speedTimerInterval);
   lockBoard = true;
   gameActive = false;
   // Remove any preview overlay
@@ -1284,12 +1385,20 @@ function formatTime(seconds) {
 // =========================================================
 function endGame() {
   if (timerInterval) clearInterval(timerInterval);
-  elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+  if (speedTimerInterval) clearInterval(speedTimerInterval);
   gameActive = false;
 
   // Calculate stars
   var config = DIFFICULTY[currentDifficulty];
-  var stars = calculateStars(moves, totalPairs);
+  var stars;
+  if (gameMode === 'speed') {
+    // Timed clear pays the same as a 3-star clear
+    stars = 3;
+    elapsedSeconds = (SPEED_TIME[currentDifficulty] || 60) - speedTimeLeft;
+  } else {
+    elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+    stars = calculateStars(moves, totalPairs);
+  }
 
   // Calculate coins
   var coins = config.coins;
@@ -1349,7 +1458,7 @@ function endGame() {
   document.getElementById('coinsDisplay').innerHTML = '&#x1fa99; +' + coins;
 
   var diffLabel = currentDifficulty.charAt(0).toUpperCase() + currentDifficulty.slice(1);
-  var modeLabel = gameMode === 'import' ? 'Flashcard' : 'Classic';
+  var modeLabel = gameMode === 'import' ? 'Flashcard' : (gameMode === 'speed' ? 'Speed Round' : 'Classic');
   document.getElementById('resultSub').textContent = modeLabel + ' Mode \u00b7 ' + diffLabel + ' Difficulty';
 
   // Save records and award coins
@@ -1377,7 +1486,11 @@ function calculateStars(moveCount, pairCount) {
 }
 
 function playAgain() {
-  startGame();
+  if (gameMode === 'speed') {
+    startSpeedGame();
+  } else {
+    startGame();
+  }
 }
 
 // =========================================================
