@@ -106,6 +106,33 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .diff-card.hard:hover{box-shadow:0 0 20px rgba(239,71,111,.2)}
 
 /* ======================== */
+/* LADDER CLIMB SCREEN      */
+/* ======================== */
+#ladderScreen{padding-top:80px;padding-bottom:40px}
+.ladder-container{max-width:440px;width:90%;margin:0 auto}
+.ladder-rungs{display:flex;flex-direction:column;gap:14px;margin-top:20px;position:relative;padding-left:14px}
+.ladder-rungs::before{content:'';position:absolute;left:0;top:24px;bottom:24px;width:4px;border-radius:2px;background:linear-gradient(to top,var(--accent),var(--gold))}
+.ladder-rung{display:flex;align-items:center;gap:14px;padding:16px 18px}
+.ladder-rung .lr-num{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Fredoka',sans-serif;font-weight:700;font-size:14px;color:var(--text2)}
+.ladder-rung .lr-avatar{font-size:30px;flex-shrink:0}
+.ladder-rung .lr-info{flex:1;min-width:0;text-align:left}
+.ladder-rung .lr-info h3{font-size:16px;margin-bottom:2px}
+.ladder-rung .lr-info p{font-size:12px;color:var(--text2);line-height:1.35}
+.ladder-rung .lr-star{font-size:22px;flex-shrink:0}
+.ladder-rung .lr-lock{font-size:18px;flex-shrink:0;opacity:.7}
+.ladder-rung .lr-play{flex-shrink:0;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:1px;background:var(--accent);color:var(--bg)}
+.ladder-rung.beaten{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.ladder-rung.beaten:hover{transform:none;box-shadow:none;border-color:var(--accent)}
+.ladder-rung.beaten .lr-num{background:rgba(6,214,160,.15);border-color:var(--accent);color:var(--accent)}
+.ladder-rung.current{cursor:pointer;border-color:var(--gold);animation:rungGlow 1.6s ease-in-out infinite alternate}
+.ladder-rung.current .lr-num{background:rgba(255,209,102,.15);border-color:var(--gold);color:var(--gold)}
+.ladder-rung.locked{opacity:.45;filter:grayscale(.5)}
+.ladder-rung.locked:hover{transform:none;box-shadow:none;border-color:var(--border)}
+@keyframes rungGlow{from{box-shadow:0 0 10px rgba(255,209,102,.12)}to{box-shadow:0 0 26px rgba(255,209,102,.35)}}
+.ladder-champion{background:linear-gradient(135deg,rgba(255,209,102,.15),rgba(6,214,160,.1));border:2px solid var(--gold);border-radius:20px;padding:18px 22px;text-align:center;font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700;color:var(--gold);margin-top:16px;text-shadow:0 0 20px rgba(255,209,102,.3)}
+.ladder-champion span{display:block;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:var(--text2);margin-top:4px;text-shadow:none}
+
+/* ======================== */
 /* QUICK MATCH SCREEN       */
 /* ======================== */
 #quickMatchScreen{padding-top:80px}
@@ -383,6 +410,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <h3>VS Computer</h3>
       <p>Test your skills against AI opponents</p>
     </div>
+    <div class="card mode-card" onclick="C4.showLadderScreen()">
+      <span class="mode-icon">&#129692;</span>
+      <h3>Ladder Climb</h3>
+      <p>Climb past 10 rivals to become champion</p>
+    </div>
     <div class="card mode-card" onclick="C4.showScreen('quickMatchScreen')">
       <span class="mode-icon">&#9889;</span>
       <h3>Quick Match</h3>
@@ -438,6 +470,23 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       </div>
     </div>
     <button class="btn btn-outline btn-small" onclick="C4.showScreen('homeScreen')" style="margin-top:8px;align-self:center">&larr; Back</button>
+  </div>
+</div>
+
+<!-- ======================== -->
+<!-- LADDER CLIMB SCREEN      -->
+<!-- ======================== -->
+<div class="screen" id="ladderScreen">
+  <div class="ladder-container">
+    <div style="text-align:center;margin-bottom:4px">
+      <h2 style="font-size:28px">&#129692; Ladder Climb</h2>
+      <p style="color:var(--text2);font-size:14px;margin-top:4px" id="ladderProgressLine">Rung 1 of 10</p>
+    </div>
+    <div id="ladderChampionBanner"></div>
+    <div class="ladder-rungs" id="ladderRungs"></div>
+    <div style="text-align:center;margin:20px 0">
+      <button class="btn btn-outline btn-small" onclick="C4.showScreen('homeScreen')">&larr; Back</button>
+    </div>
   </div>
 </div>
 
@@ -1087,6 +1136,7 @@ async function loadRecords(){
 /* ===================== */
 function startAiGame(diff){
   aiMode=true;spectateMode=false;
+  ladderMode=false;resetLadderAvatar();
   aiDifficulty=diff;
   aiBoard=emptyBoard();
   aiTurn=1;aiWinner=null;aiThinking=false;
@@ -1116,7 +1166,7 @@ function aiDropLocal(col){
     const frame=document.getElementById('boardFrame');
     frame.classList.add('shake');
     setTimeout(()=>frame.classList.remove('shake'),500);
-    setTimeout(()=>showResult({winner:aiWinner===1?1:2,isAi:true}),800);
+    setTimeout(()=>showResult({winner:aiWinner===1?1:2,isAi:true,board:aiBoard}),800);
     return;
   }
   if(aiBoard.every(c=>c.every(v=>v!==0))){
@@ -1133,7 +1183,7 @@ function aiDropLocal(col){
     aiThinking=true;
     updateTurnUI(aiTurn);
     setTimeout(()=>{
-      const aiCol=getAiMove(aiBoard,aiDifficulty);
+      const aiCol=ladderMode?getLadderAiMove(aiBoard,ladderRungActive):getAiMove(aiBoard,aiDifficulty);
       aiThinking=false;
       aiDropLocal(aiCol);
     },350+Math.random()*300);
@@ -1227,6 +1277,154 @@ function evaluateBoard(board,player){
   }
   for(let r=0;r<ROWS;r++){if(board[3][r]===player)score+=6}
   return score;
+}
+
+/* ===================== */
+/* LADDER CLIMB          */
+/* ===================== */
+const LADDER_OPPONENTS=[
+  {name:'Rusty the Rookie',emoji:'\u{1F423}',taunt:'I just learned which way the pieces fall!'},
+  {name:'Penny Pigtails',emoji:'\u{1F380}',taunt:'I pick my columns by favorite color.'},
+  {name:'Marco the Mixup',emoji:'\u{1F939}',taunt:'Sometimes I block you... sometimes I forget.'},
+  {name:'Gears McGee',emoji:'\u{1F916}',taunt:'Beep boop. Now calculating TWO moves ahead.'},
+  {name:'Tommy',emoji:'\u{1F3AF}',taunt:'Odd columns, even columns — I count everything.'},
+  {name:'Coach Willow',emoji:'\u{1F989}',taunt:"Patience, kid. I've seen every trick in the book."},
+  {name:'Sal',emoji:'\u{1F0CF}',taunt:'Everything you build, I flip upside down.'},
+  {name:'Vexa the Viper',emoji:'\u{1F40D}',taunt:'I strike three moves before you see it coming.'},
+  {name:'Grandmaster Gigi',emoji:'\u{1F451}',taunt:'Champions have crumbled on this rung.'},
+  {name:'The Broker',emoji:'\u{1F574}\u{FE0F}',taunt:'Meet me at the top. Ask for the office by 755 Broadway.'}
+];
+const LADDER_COINS=[10,12,16,20,25,30,35,40,45,60];
+const LADDER_KEY='c4_ladder_'+(studentId.startsWith('anon_')?'anon':studentId);
+let ladderMode=false,ladderRungActive=1;
+let ladderState=(function(){
+  try{
+    const s=JSON.parse(localStorage.getItem(LADDER_KEY)||'');
+    if(s&&typeof s.rung==='number')return{rung:Math.min(Math.max(Math.floor(s.rung),1),LADDER_OPPONENTS.length+1),cleared:(s.cleared&&typeof s.cleared==='object')?s.cleared:{}};
+  }catch(e){}
+  return{rung:1,cleared:{}};
+})();
+
+function getLadderAiMove(board,rung){
+  const valid=[];
+  for(let c=0;c<COLS;c++){if(board[c][0]===0)valid.push(c)}
+  if(valid.length===0)return 0;
+  if(rung<=2){
+    // Mostly random with occasional win/block awareness
+    if(Math.random()<(rung===1?0.85:0.6))return valid[Math.floor(Math.random()*valid.length)];
+    return bestMoveMinmax(board,2,1);
+  }
+  if(rung>=10){
+    // Prefer-center opening, then full-depth search
+    const pieces=board.reduce((n,c)=>n+c.filter(v=>v!==0).length,0);
+    if(pieces<2&&board[3][0]===0)return 3;
+    return bestMoveMinmax(board,2,7);
+  }
+  // Rungs 3-7 step depth 2,3,4,5,6; rungs 8-9 depth 7
+  return bestMoveMinmax(board,2,rung<=7?rung-1:7);
+}
+
+function saveLadderState(clearedRung){
+  try{localStorage.setItem(LADDER_KEY,JSON.stringify(ladderState))}catch(e){}
+  syncLadderToRecord(clearedRung);
+}
+
+async function syncLadderToRecord(clearedRung){
+  if(studentId.startsWith('anon_'))return;
+  try{
+    await ensureRecord(studentId,studentName,classCode);
+    const update={ladderRung:ladderState.rung};
+    if(clearedRung)update['ladderCleared.'+clearedRung]=true;
+    await updateDoc(doc(db,'connect4Records',studentId),update);
+  }catch(e){console.warn('Ladder sync failed:',e)}
+}
+
+async function hydrateLadderFromRecord(){
+  if(studentId.startsWith('anon_'))return;
+  try{
+    const rec=await getRecord(studentId);
+    if(!rec)return;
+    let changed=false;
+    if(typeof rec.ladderRung==='number'&&rec.ladderRung>ladderState.rung){
+      ladderState.rung=Math.min(Math.floor(rec.ladderRung),LADDER_OPPONENTS.length+1);changed=true;
+    }
+    if(rec.ladderCleared&&typeof rec.ladderCleared==='object'){
+      for(const k in rec.ladderCleared){if(rec.ladderCleared[k]&&!ladderState.cleared[k]){ladderState.cleared[k]=true;changed=true}}
+    }
+    if(changed){
+      try{localStorage.setItem(LADDER_KEY,JSON.stringify(ladderState))}catch(e){}
+      if(document.getElementById('ladderScreen').classList.contains('active'))renderLadder();
+    }
+  }catch(e){}
+}
+
+function showLadderScreen(){
+  showScreen('ladderScreen');
+  renderLadder();
+  hydrateLadderFromRecord();
+}
+
+function renderLadder(){
+  const wrap=document.getElementById('ladderRungs');
+  const line=document.getElementById('ladderProgressLine');
+  const banner=document.getElementById('ladderChampionBanner');
+  const total=LADDER_OPPONENTS.length;
+  const champion=ladderState.rung>total;
+  line.textContent=champion?'All '+total+' rungs conquered!':'Rung '+ladderState.rung+' of '+total;
+  banner.innerHTML=champion?'<div class="ladder-champion">\u{1F3C6} Ladder Champion \u{1F3C6}<span>You beat every rival on the ladder!</span></div>':'';
+  let html='';
+  for(let r=total;r>=1;r--){
+    const opp=LADDER_OPPONENTS[r-1];
+    const beaten=r<ladderState.rung;
+    const current=!champion&&r===ladderState.rung;
+    const cls=beaten?'beaten':(current?'current':'locked');
+    const status=beaten?'<span class="lr-star">⭐</span>':(current?'<span class="lr-play">PLAY</span>':'<span class="lr-lock">\u{1F512}</span>');
+    html+='<div class="card ladder-rung '+cls+'"'+(current?' onclick="C4.startLadderGame('+r+')"':'')+'>'
+      +'<span class="lr-num">'+r+'</span>'
+      +'<span class="lr-avatar">'+opp.emoji+'</span>'
+      +'<div class="lr-info"><h3>'+opp.name+'</h3><p>&ldquo;'+opp.taunt+'&rdquo;</p></div>'
+      +status+'</div>';
+  }
+  wrap.innerHTML=html;
+  const cur=wrap.querySelector('.ladder-rung.current');
+  if(cur&&cur.scrollIntoView)setTimeout(()=>{cur.scrollIntoView({block:'center',behavior:'smooth'})},80);
+}
+
+function startLadderGame(rung){
+  if(rung!==ladderState.rung||rung<1||rung>LADDER_OPPONENTS.length)return;
+  const opp=LADDER_OPPONENTS[rung-1];
+  startAiGame(rung>=8?'hard':'medium');
+  ladderMode=true;ladderRungActive=rung;
+  if(rung<8)aiDifficulty='ladder';
+  document.getElementById('p2Name').textContent=opp.name;
+  document.getElementById('p2Record').textContent='Rung '+rung+' of '+LADDER_OPPONENTS.length;
+  const av=document.querySelector('#panelP2 .pp-avatar');
+  if(av){if(!av.dataset.ladderAv)av.dataset.ladderAv=av.textContent||'Y';av.textContent=opp.emoji}
+  showLadderIntro(opp,rung);
+}
+
+function resetLadderAvatar(){
+  const av=document.querySelector('#panelP2 .pp-avatar');
+  if(av&&av.dataset.ladderAv){av.textContent=av.dataset.ladderAv;delete av.dataset.ladderAv}
+}
+
+function showLadderIntro(opp,rung){
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid var(--accent);border-radius:16px;padding:12px 22px;z-index:9999;display:flex;align-items:center;gap:12px;animation:achSlide .4s ease;box-shadow:0 8px 32px rgba(6,214,160,.25);max-width:90vw';
+  el.innerHTML='<span style="font-size:30px">'+opp.emoji+'</span><div style="text-align:left"><div style="color:var(--accent);font-weight:700;font-size:12px;font-family:Fredoka,sans-serif;text-transform:uppercase;letter-spacing:1px">Rung '+rung+' — '+opp.name+'</div><div style="color:#f0f4ff;font-size:14px;font-weight:600;font-family:Outfit,sans-serif">“'+opp.taunt+'”</div></div>';
+  document.body.appendChild(el);
+  setTimeout(()=>{el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(()=>el.remove(),400)},2600);
+}
+
+function backToLadder(){
+  ladderMode=false;resetLadderAvatar();
+  showLadderScreen();
+}
+
+function retryLadderRung(){
+  const r=ladderRungActive;
+  ladderMode=false;
+  startLadderGame(r);
 }
 
 /* ===================== */
@@ -1437,6 +1635,7 @@ async function cancelGame(){
 }
 
 function listenToGame(){
+  resetLadderAvatar();
   const ref=doc(db,'connect4games',roomCode);
   unsub=onSnapshot(ref,async snap=>{
     if(!snap.exists()){
@@ -1567,6 +1766,31 @@ function showResult(data){
     titleEl.style.color='var(--text2)';
     subEl.textContent='Neither player connected four — draws don\'t count!';
     coins=5;recordResult='draw';
+    if(aiMode&&ladderMode)subEl.textContent='No four this time — the rung is still yours to claim. Run it back!';
+  }else if(aiMode&&ladderMode){
+    const opp=LADDER_OPPONENTS[ladderRungActive-1]||LADDER_OPPONENTS[0];
+    if(data.winner===1){
+      const firstClear=!ladderState.cleared[ladderRungActive];
+      const isFinal=ladderRungActive>=LADDER_OPPONENTS.length;
+      titleEl.textContent=isFinal?'Ladder Champion!':'Rung '+ladderRungActive+' Cleared!';
+      titleEl.style.color=isFinal?'var(--gold)':'var(--accent)';
+      subEl.textContent=isFinal?'You conquered all '+LADDER_OPPONENTS.length+' rungs of the ladder!':'You knocked '+opp.name+' off the ladder!';
+      coins=firstClear?LADDER_COINS[ladderRungActive-1]:10;
+      recordResult='win';
+      if(firstClear){
+        ladderState.cleared[ladderRungActive]=true;
+        ladderState.rung=Math.max(ladderState.rung,ladderRungActive+1);
+        saveLadderState(ladderRungActive);
+      }
+      AudioEngine.play(isFinal?'advance':'win');
+      if(typeof odaCelebrate==='function')odaCelebrate(isFinal?'fireworks':(myCosmetics['Win Animation']?.value?.type||myCosmetics.winEffect?.type||'confetti'));
+    }else{
+      titleEl.textContent=opp.name+' Wins!';
+      titleEl.style.color='var(--accent3)';
+      subEl.textContent='“'+opp.taunt+'” — Shake it off and climb again!';
+      coins=3;recordResult='loss';
+      AudioEngine.play('lose');
+    }
   }else if(aiMode){
     if(data.winner===1){
       titleEl.textContent='You Win!';
@@ -1683,6 +1907,14 @@ function showResult(data){
   let actionsHTML='';
   if(currentTourneyCode){
     actionsHTML='<button class="btn btn-accent" onclick="C4.backToTourney()">Back to Bracket</button>';
+  }else if(aiMode&&ladderMode){
+    if(data.winner===1){
+      actionsHTML=ladderState.rung>LADDER_OPPONENTS.length
+        ?'<button class="btn btn-gold" onclick="C4.backToLadder()">\u{1F3C6} View Ladder</button>'
+        :'<button class="btn btn-accent" onclick="C4.backToLadder()">Next Rung \u{2192}</button>';
+    }else{
+      actionsHTML='<button class="btn btn-accent" onclick="C4.retryLadderRung()">\u{1F504} Try Again</button><button class="btn btn-outline" onclick="C4.backToLadder()">Ladder</button>';
+    }
   }else if(aiMode){
     actionsHTML='<button class="btn btn-accent" onclick="C4.playAgain()">Play Again</button>';
   }else if(format>1){
@@ -1710,6 +1942,7 @@ async function awardCoins(coins){
 
 function playAgain(){
   if(unsub)unsub();
+  ladderMode=false;resetLadderAvatar();
   roomCode=null;myPlayer=0;coinsAwarded=false;lastBoard=null;opponentRecord=null;spectateMode=false;
   seriesFormat=1;seriesScore=[0,0];seriesGame=1;seriesWinner=null;
   document.getElementById('seriesBar').style.display='none';
@@ -1720,6 +1953,7 @@ function goHome(){
   if(unsub)unsub();
   if(unsubTourney)unsubTourney();
   if(resultTimeout){clearTimeout(resultTimeout);resultTimeout=null}
+  ladderMode=false;resetLadderAvatar();
   roomCode=null;myPlayer=0;coinsAwarded=false;lastBoard=null;opponentRecord=null;spectateMode=false;
   currentTourneyCode=null;currentTourneyData=null;
   seriesFormat=1;seriesScore=[0,0];seriesGame=1;seriesWinner=null;
@@ -2421,6 +2655,7 @@ async function loadAssignedMatches(){
 /* ===================== */
 window.C4={
   showScreen,startAiGame,createGame,joinGame,cancelGame,playAgain,goHome,
+  showLadderScreen,startLadderGame,backToLadder,retryLadderRung,getLadderAiMove,
   pickFormat,nextSeriesGame,replayDraw,rematchGame,
   showTourneyJoin,joinTourney,leaveTourney,backToTourney,studentCreateTourney,
   showTeacherDashboard,teacherTab,teacherCreateTourney,teacherStartTourney,teacherViewTourney,
@@ -2431,7 +2666,8 @@ odaHelp.init({
   title:'Four in a Row', emoji:'\u{1F534}', subtitle:'Drop, connect, conquer!',
   sections:[
     {title:'Rules', icon:'\u{1F4D6}', items:['Drop colored discs into a 7-column grid','Discs fall to the lowest available position','Connect 4 of your discs in a row (horizontal, vertical, or diagonal) to win','Block your opponent from getting 4 in a row!']},
-    {title:'Difficulty', icon:'\u26A1', items:['Easy \u2014 Random moves','Medium \u2014 Thinks a few moves ahead','Hard \u2014 Deep minimax search, very tough to beat']}
+    {title:'Difficulty', icon:'\u26A1', items:['Easy \u2014 Random moves','Medium \u2014 Thinks a few moves ahead','Hard \u2014 Deep minimax search, very tough to beat']},
+    {title:'Ladder Climb', icon:'\u{1FA9C}', items:['Climb 10 rungs of rivals, weakest to strongest','Beat the glowing rung to unlock the next one','First-time clears pay bigger coins the higher you go','Reach the top to become Ladder Champion!']}
   ],
   controls:[{key:'Click',action:'Drop disc in column'},{key:'Hover',action:'Preview drop position'}],
   tip:'<strong>Control the center column!</strong> The middle column gives you the most winning opportunities. Build threats in multiple directions at once.'
