@@ -110,6 +110,9 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .strike-popup{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%) scale(0);font-family:'Fredoka',sans-serif;font-size:56px;font-weight:700;color:var(--gold);text-shadow:0 0 30px rgba(255,209,102,.6),0 4px 12px rgba(0,0,0,.5);z-index:8;pointer-events:none;animation:strikePop .8s ease forwards}
 @keyframes strikePop{0%{transform:translate(-50%,-50%) scale(0);opacity:0}30%{transform:translate(-50%,-50%) scale(1.3);opacity:1}50%{transform:translate(-50%,-50%) scale(1)}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
 
+/* FIRE MODE POPUP (2+ consecutive strikes) — offset from strike-popup so they don't stack */
+.fire-popup{position:absolute;top:22%;left:50%;transform:translate(-50%,-50%) scale(0);font-family:'Fredoka',sans-serif;font-size:34px;font-weight:700;color:#ff7a1a;text-shadow:0 0 20px rgba(255,122,26,.7),0 4px 12px rgba(0,0,0,.5);z-index:8;pointer-events:none;animation:strikePop .8s ease forwards;white-space:nowrap}
+
 /* Screen shake */
 @keyframes screenShake{0%,100%{transform:translateX(0)}10%{transform:translateX(-6px)}30%{transform:translateX(6px)}50%{transform:translateX(-4px)}70%{transform:translateX(4px)}90%{transform:translateX(-2px)}}
 .shake{animation:screenShake .4s ease}
@@ -340,7 +343,7 @@ loadMyCosmetics();
 /* ===================== */
 let frames=[],curFrame=0,curBall=0,totalScore=0,gameStrikes=0,gameSpares=0;
 
-function initFrames(){frames=[];for(let i=0;i<10;i++)frames.push({balls:[],score:null,display:[]});curFrame=0;curBall=0;totalScore=0;gameStrikes=0;gameSpares=0;gameGutters=0;strikeStreak=0}
+function initFrames(){frames=[];for(let i=0;i<10;i++)frames.push({balls:[],score:null,display:[]});curFrame=0;curBall=0;totalScore=0;gameStrikes=0;gameSpares=0;gameGutters=0;strikeStreak=0;if(onFire)setOnFire(false)}
 function recordBall(pinsDown){
   const f=frames[curFrame];f.balls.push(pinsDown);
   if(curFrame<9){
@@ -386,12 +389,16 @@ function renderScoreboard(){
 function applyBall(pins){
   var before=gameStrikes;
   var result=recordBall(pins);
-  if(gameStrikes===before)strikeStreak=0;
+  if(gameStrikes===before){strikeStreak=0;if(onFire)setOnFire(false)}
   return result;
 }
 
 function onStrike(){
   strikeStreak++;
+  if(strikeStreak>=2&&!onFire){
+    setOnFire(true);
+    showFirePopup('\u{1F525} ON FIRE!');
+  }
   odaAchievements.unlock('firstStrike');
   odaAchievements.check('turkey', strikeStreak>=3);
   const wrapEl=document.getElementById('canvasWrap');
@@ -400,10 +407,12 @@ function onStrike(){
 }
 function onSpare(){
   strikeStreak=0;
+  if(onFire)setOnFire(false);
   odaAchievements.unlock('firstSpare');
 }
 
 function showStrikePopup(text){const el=document.createElement('div');el.className='strike-popup';el.textContent=text;document.getElementById('canvasWrap').appendChild(el);setTimeout(()=>el.remove(),1000)}
+function showFirePopup(text){const el=document.createElement('div');el.className='fire-popup';el.textContent=text;document.getElementById('canvasWrap').appendChild(el);setTimeout(()=>el.remove(),1000)}
 
 /* ===================== */
 /* LOCAL STATS           */
@@ -411,6 +420,7 @@ function showStrikePopup(text){const el=document.createElement('div');el.classNa
 let localBest=parseInt(localStorage.getItem('bowl_best'))||0;
 let localGames=parseInt(localStorage.getItem('bowl_games'))||0;
 let gameGutters=0, strikeStreak=0;
+let onFire=false, fireTrail=[], fireTrailIdx=0;
 let localStrikes=parseInt(localStorage.getItem('bowl_strikes'))||0;
 let localSpares=parseInt(localStorage.getItem('bowl_spares'))||0;
 function loadLocalStats(){
@@ -821,6 +831,7 @@ function initEngine(){
 
   /* ---------- BALL ---------- */
   createBall(ballMat);
+  initFireTrail();
 
   /* ---------- PINS ---------- */
   createPins();
@@ -886,6 +897,52 @@ function createBall(physicsMaterial){
   ballBody.ccdSpeedThreshold=1;
   ballBody.ccdIterations=10;
   world.addBody(ballBody);
+}
+
+/* ===================== */
+/* FIRE MODE (2+ consecutive strikes) — visual only, no coin changes */
+/* ===================== */
+function initFireTrail(){
+  const geo=new THREE.SphereGeometry(0.035,6,5);
+  for(let i=0;i<10;i++){
+    const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0xff7a1a,transparent:true,opacity:0,depthWrite:false}));
+    m.visible=false;
+    scene.add(m);
+    fireTrail.push({mesh:m,life:0});
+  }
+}
+function setOnFire(on){
+  onFire=on;
+  if(ballMesh){
+    ballMesh.traverse(c=>{
+      if(c.isMesh&&c.userData.isBallSurface){
+        c.material.emissive=new THREE.Color(on?0xff5500:0x000000);
+        c.material.emissiveIntensity=on?0.8:0;
+        c.material.needsUpdate=true;
+      }
+    });
+  }
+}
+function updateFireTrail(dt){
+  for(let i=0;i<fireTrail.length;i++){
+    const f=fireTrail[i];
+    if(f.life<=0)continue;
+    f.life-=dt;
+    const k=Math.max(f.life,0)/0.35;
+    f.mesh.material.opacity=0.55*k;
+    f.mesh.scale.setScalar(0.4+0.6*k);
+    f.mesh.position.y+=dt*0.6;
+    if(f.life<=0)f.mesh.visible=false;
+  }
+  if(onFire&&gameState==='rolling'&&ballMesh){
+    const f2=fireTrail[fireTrailIdx];
+    fireTrailIdx=(fireTrailIdx+1)%fireTrail.length;
+    if(f2){
+      f2.mesh.position.copy(ballMesh.position);
+      f2.mesh.visible=true;
+      f2.life=0.35;
+    }
+  }
 }
 
 /* =============================== */
@@ -1118,10 +1175,10 @@ function checkGameState(){
     }
     if(ballBody.position.z>18||ballBody.velocity.length()<0.3){
       gameState='settling';
-      settleTimer=180;
+      settleTimer=95;
     }
     if(Math.abs(ballBody.position.x)>0.55&&ballBody.position.z<15){
-      if(!ballBody._guttered){ballBody._guttered=true;gameGutters++;strikeStreak=0;sfxGutter()}
+      if(!ballBody._guttered){ballBody._guttered=true;gameGutters++;strikeStreak=0;if(onFire)setOnFire(false);sfxGutter()}
     }
   }
   if(gameState==='settling'){
@@ -1165,12 +1222,12 @@ function processResults(){
   if(result==='done'||curFrame>=10){
     endGame();
   }else if(result==='strike'||result==='next'||result==='tenth-reset'){
-    setTimeout(()=>{createPins();enterAimState()},1800);
+    setTimeout(()=>{createPins();enterAimState()},1100);
   }else if(result==='second'){
     setTimeout(()=>{
       ballBody._guttered=false;
       enterAimState();
-    },1200);
+    },750);
   }
 }
 
@@ -1305,6 +1362,7 @@ function animate(){
     });
   }
 
+  updateFireTrail(1/60);
   checkGameState();
   updateCamera();
   renderer.render(scene,camera);
