@@ -120,6 +120,17 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .diff-card.hard{border-color:var(--accent3)}
 .diff-card.hard:hover{box-shadow:0 0 20px rgba(239,71,111,.2)}
 
+.speed-section{margin:20px auto 0;max-width:380px;width:100%}
+.speed-toggle-card{cursor:pointer;display:flex;align-items:center;gap:14px;padding:16px 20px;text-align:left}
+.speed-toggle-card .diff-icon{font-size:28px;flex-shrink:0}
+.speed-toggle-card h3{font-size:15px;margin-bottom:2px}
+.speed-toggle-card p{font-size:12px;color:var(--text2)}
+.speed-toggle-switch{margin-left:auto;width:44px;height:24px;border-radius:12px;background:var(--border);position:relative;flex-shrink:0;transition:background .2s}
+.speed-toggle-switch::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s}
+.speed-toggle-card.active{border-color:var(--accent);box-shadow:0 0 20px rgba(6,214,160,.15)}
+.speed-toggle-card.active .speed-toggle-switch{background:var(--accent)}
+.speed-toggle-card.active .speed-toggle-switch::after{transform:translateX(20px)}
+
 /* ======================== */
 /* GAME SCREEN              */
 /* ======================== */
@@ -423,7 +434,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 <div class="screen active" id="homeScreen">
   <div class="home-header">
     <h1><span class="hang-icon">&#128128;</span> Hangman</h1>
-    <p>Guess the word before time runs out!</p>
+    <p>Guess the word before you run out of guesses &mdash; or race the clock in Speed Round!</p>
   </div>
   <div class="mode-grid">
     <div class="card mode-card" onclick="HM.showCategories()">
@@ -498,9 +509,20 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
           <span class="diff-icon">&#128128;</span>
           <div>
             <h3>Hard</h3>
-            <p>5 guesses, long words, no hints</p>
+            <p>5 guesses, long words, hint costs 2 guesses</p>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div class="speed-section">
+      <div class="card speed-toggle-card" id="speedToggleCard" onclick="HM.toggleSpeedRound()">
+        <span class="diff-icon">&#9201;&#65039;</span>
+        <div>
+          <h3>Speed Round &#9201;&#65039;</h3>
+          <p>60s countdown &middot; +50% coins on a timed solve</p>
+        </div>
+        <div class="speed-toggle-switch"></div>
       </div>
     </div>
 
@@ -532,6 +554,9 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <div class="hud-right">
         <div class="hud-stat">
           <span>&#128293;</span> <span class="hud-val" id="gameStreak">0</span>
+        </div>
+        <div class="hud-stat" id="speedTimerStat" style="display:none">
+          <span>&#9201;&#65039;</span> <span class="hud-val" id="speedTimerVal">60</span>
         </div>
         <button class="hint-btn" id="hintBtn" onclick="HM.useHint()">
           <span>&#128161;</span> Hint
@@ -936,9 +961,9 @@ const ALL_CATEGORIES = Object.keys(WORD_BANK);
 
 /* Difficulty settings */
 const DIFFICULTY = {
-  easy:   { maxWrong: 8, hintAllowed: true, minLen: 3, maxLen: 6, coins: 5, label: 'Easy' },
-  medium: { maxWrong: 6, hintAllowed: true, minLen: 5, maxLen: 8, coins: 8, label: 'Medium' },
-  hard:   { maxWrong: 5, hintAllowed: false, minLen: 7, maxLen: 20, coins: 12, label: 'Hard' }
+  easy:   { maxWrong: 8, hintAllowed: true, hintCost: 1, minLen: 3, maxLen: 6, coins: 5, label: 'Easy' },
+  medium: { maxWrong: 6, hintAllowed: true, hintCost: 1, minLen: 5, maxLen: 8, coins: 8, label: 'Medium' },
+  hard:   { maxWrong: 5, hintAllowed: true, hintCost: 2, minLen: 7, maxLen: 20, coins: 12, label: 'Hard' }
 };
 
 /* Body part order */
@@ -957,11 +982,18 @@ let difficulty = 'medium';
 let selectedCategory = 'Random';
 let hintUsed = false;
 let hintAllowed = true;
+let hintCost = 1;
 let gameActive = false;
 let currentStreak = 0;
 let gameStartTime = 0;
 let importedWords = [];
 let coinsAwarded = false;
+
+/* Speed Round state */
+let speedRoundEnabled = false; // player's toggle choice on the category screen
+let speedRoundActive = false;  // whether the current game in progress is timed
+let speedTimeLeft = 60;
+let speedTimerId = null;
 
 /* Multiplayer state */
 let mpMode = false;
@@ -1114,6 +1146,7 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const el = document.getElementById(id);
   if (el) el.classList.add('active');
+  if (id === 'homeScreen') stopSpeedTimer();
 }
 
 /* ===================== */
@@ -1178,6 +1211,9 @@ function showCategories() {
     document.getElementById('catSubtitle').textContent = 'Select a category, then pick difficulty';
   }
 
+  const speedCard = document.getElementById('speedToggleCard');
+  if (speedCard) speedCard.classList.toggle('active', speedRoundEnabled);
+
   showScreen('categoryScreen');
 }
 
@@ -1185,6 +1221,44 @@ function selectCategory(cat) {
   selectedCategory = cat;
   document.querySelectorAll('.cat-card').forEach(c => c.classList.remove('selected'));
   event.currentTarget.classList.add('selected');
+}
+
+/* ===================== */
+/* SPEED ROUND            */
+/* ===================== */
+function toggleSpeedRound() {
+  speedRoundEnabled = !speedRoundEnabled;
+  const card = document.getElementById('speedToggleCard');
+  if (card) card.classList.toggle('active', speedRoundEnabled);
+}
+
+function startSpeedTimer() {
+  speedTimeLeft = 60;
+  const stat = document.getElementById('speedTimerStat');
+  const val = document.getElementById('speedTimerVal');
+  if (stat) stat.style.display = '';
+  if (val) val.textContent = speedTimeLeft;
+  if (stat) stat.classList.remove('danger');
+  if (speedTimerId) clearInterval(speedTimerId);
+  speedTimerId = setInterval(() => {
+    speedTimeLeft--;
+    if (val) val.textContent = Math.max(speedTimeLeft, 0);
+    if (stat) stat.classList.toggle('danger', speedTimeLeft <= 10);
+    if (speedTimeLeft <= 0) {
+      stopSpeedTimer();
+      if (gameActive) {
+        gameActive = false;
+        showDeadFace();
+        setTimeout(() => endGame(false), 800);
+      }
+    }
+  }, 1000);
+}
+
+function stopSpeedTimer() {
+  if (speedTimerId) { clearInterval(speedTimerId); speedTimerId = null; }
+  const stat = document.getElementById('speedTimerStat');
+  if (stat) stat.style.display = 'none';
 }
 
 /* ===================== */
@@ -1217,12 +1291,14 @@ function startGame(diff) {
   const settings = DIFFICULTY[diff];
   maxWrong = settings.maxWrong;
   hintAllowed = settings.hintAllowed;
+  hintCost = settings.hintCost || 1;
   hintUsed = false;
   wrongCount = 0;
   guessedLetters = new Set();
   gameActive = true;
   coinsAwarded = false;
   mpMode = false;
+  speedRoundActive = speedRoundEnabled;
   currentWord = pickWord(diff).toUpperCase();
   gameStartTime = Date.now();
 
@@ -1231,6 +1307,7 @@ function startGame(diff) {
 
   setupGameUI();
   showScreen('gameScreen');
+  if (speedRoundActive) startSpeedTimer();
 }
 
 /* ===================== */
@@ -1247,6 +1324,11 @@ function setupGameUI() {
   const hintBtn = document.getElementById('hintBtn');
   hintBtn.style.display = (hintAllowed && !mpMode) ? '' : 'none';
   hintBtn.disabled = false;
+  hintBtn.innerHTML = '<span>&#128161;</span> Hint' + (hintCost > 1 ? ' (-' + hintCost + ')' : '');
+
+  // Speed Round timer
+  const speedStat = document.getElementById('speedTimerStat');
+  if (speedStat) speedStat.style.display = (speedRoundActive && !mpMode) ? '' : 'none';
 
   // Reset hangman figure
   BODY_PARTS.forEach(id => {
@@ -1464,9 +1546,11 @@ function useHint() {
   const hintLetter = unrevealed[Math.floor(Math.random() * unrevealed.length)];
   guessedLetters.add(hintLetter);
 
-  // Costs 1 guess
-  wrongCount++;
-  showBodyPart(wrongCount);
+  // Costs guesses (steeper penalty on hard mode)
+  for (let i = 0; i < hintCost && wrongCount < maxWrong; i++) {
+    wrongCount++;
+    showBodyPart(wrongCount);
+  }
   const left = maxWrong - wrongCount;
   document.getElementById('guessesLeft').textContent = left;
   document.getElementById('guessesLeftStat').classList.toggle('danger', left <= 2);
@@ -1509,6 +1593,11 @@ function useHint() {
   if (checkWin()) {
     gameActive = false;
     setTimeout(() => endGame(true), 500);
+  } else if (wrongCount >= maxWrong) {
+    // Hint penalty used up the remaining guesses
+    gameActive = false;
+    showDeadFace();
+    setTimeout(() => endGame(false), 800);
   }
 
   if (typeof odaToast === 'function') odaToast('Hint revealed: ' + hintLetter, 'info');
@@ -1519,6 +1608,7 @@ function useHint() {
 /* ===================== */
 async function endGame(won) {
   gameActive = false;
+  stopSpeedTimer();
 
   if (won) {
     playSound('win');
@@ -1565,7 +1655,7 @@ async function endGame(won) {
   // Coins
   const coinsEl = document.getElementById('coinsDisplay');
   if (won && studentId && !coinsAwarded) {
-    const coins = mpMode ? 10 : DIFFICULTY[difficulty].coins;
+    const coins = mpMode ? 10 : Math.round(DIFFICULTY[difficulty].coins * (speedRoundActive ? 1.5 : 1));
     document.getElementById('coinsAmount').textContent = coins;
     coinsEl.style.display = '';
     awardCoins(coins);
@@ -2393,10 +2483,9 @@ function playAgain() {
   if (mpMode && roomCode) {
     // Return to quick match
     showQuickMatch();
-  } else if (importedWords.length > 0) {
-    startGame(difficulty);
   } else {
-    showCategories();
+    // Restart solo game directly with the same category/difficulty
+    startGame(difficulty);
   }
 }
 
@@ -2827,6 +2916,7 @@ window.HM = {
   showScreen,
   showCategories,
   selectCategory,
+  toggleSpeedRound,
   startGame,
   guessLetter,
   useHint,
@@ -2855,7 +2945,7 @@ window.HM = {
 })();
 
 odaHelp.init({
-  title:'Hangman', emoji:'\u{1F3AD}', subtitle:'Guess the word before time runs out!',
+  title:'Hangman', emoji:'\u{1F3AD}', subtitle:'Guess the word before you run out of guesses — or race the clock in Speed Round!',
   sections:[
     {title:'Rules', icon:'\u{1F4D6}', items:['Guess one letter at a time to reveal the hidden word','Each wrong guess adds a body part to the hangman','You lose if the full hangman is drawn (6 wrong guesses)','Categories include science, geography, animals, and more']},
     {title:'Scoring', icon:'\u{1F3AF}', items:['Fewer wrong guesses = more points','Solve faster for bonus points','Streak bonuses for consecutive wins']}
