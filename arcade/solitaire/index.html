@@ -116,6 +116,12 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;user
 .pile-zone.stock-zone:hover{border-color:rgba(255,255,255,.2)}
 .pile-zone.stock-zone .recycle-icon{font-size:calc(var(--cw,100px) * .3);color:rgba(255,255,255,.25)}
 
+/* Hint pulse */
+.card.hint-pulse{animation:hintCardPulse .6s ease-in-out 3}
+@keyframes hintCardPulse{0%,100%{box-shadow:0 1px 3px rgba(0,0,0,.25);transform:scale(1)}50%{box-shadow:0 0 18px 6px rgba(255,209,102,.85);transform:scale(1.05)}}
+.pile-zone.hint-pulse{animation:hintZonePulse .6s ease-in-out 3}
+@keyframes hintZonePulse{0%,100%{border-color:var(--gold);box-shadow:0 0 8px rgba(255,209,102,.3)}50%{border-color:var(--gold);box-shadow:0 0 22px rgba(255,209,102,.7)}}
+
 /* Cascade win animation */
 .card.cascading{transition:none;animation:cascade 2s ease-in forwards;pointer-events:none}
 @keyframes cascade{0%{opacity:1}80%{opacity:1}100%{opacity:0;transform:translateY(120vh) rotate(720deg)}}
@@ -150,6 +156,7 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;user
   <div class="stat">Score: <span class="val" id="scoreVal">0</span></div>
   <div class="top-btns">
     <button class="top-btn" onclick="undoMove()" title="Undo (Right-click)">Undo</button>
+    <button class="top-btn" onclick="showHint()" title="Highlight a legal move">Hint</button>
     <button class="top-btn" onclick="showNewGameModal()">New Game</button>
     <button class="top-btn" onclick="showStatsModal()">Stats</button>
     <button class="top-btn" onclick="showSolShopModal()">Shop</button>
@@ -541,6 +548,9 @@ var recycleLimit = Infinity;
 var recycleCount = 0;
 var coinsAwarded = false;
 var autoCompleting = false;
+var cascadeActive = false;
+var skipCascade = null;
+var winModalTimer = null;
 
 // Layout vars (computed on resize)
 var CW = 100, CH = 140, GAP = 12, STACK_OFFSET = 25, FACEDOWN_OFFSET = 8;
@@ -663,7 +673,8 @@ function renderAll(animate) {
   // Tableau zones (cols 0-6)
   var tby = tableauY();
   for (var ti = 0; ti < 7; ti++) {
-    createPileZone(pileX(ti), tby, '', '');
+    var tz = createPileZone(pileX(ti), tby, '', '');
+    tz.dataset.tableau = ti;
   }
 
   // Render stock cards (pointer-events:none so clicks reach stockZone)
@@ -1050,6 +1061,69 @@ function tryAutoMove(card, sourcePile, sourceIdx) {
   return false;
 }
 
+// ===== HINT =====
+function findHintMove() {
+  // Prefer foundation moves: waste top card first, then each tableau's top card
+  if (waste.length > 0) {
+    var wc = waste[waste.length - 1];
+    var wfi = findFoundationForCard(wc);
+    if (wfi >= 0) return { source: wc, target: 'foundation', targetIdx: wfi };
+  }
+  for (var ci = 0; ci < 7; ci++) {
+    var col = tableau[ci];
+    if (col.length === 0) continue;
+    var top = col[col.length - 1];
+    if (!top.faceUp) continue;
+    var fi = findFoundationForCard(top);
+    if (fi >= 0) return { source: top, target: 'foundation', targetIdx: fi };
+  }
+
+  // Then tableau flips: moving the face-up run off a column that still hides a face-down card
+  for (var ci = 0; ci < 7; ci++) {
+    var col = tableau[ci];
+    if (col.length < 2) continue;
+    var firstUp = -1;
+    for (var ri = 0; ri < col.length; ri++) { if (col[ri].faceUp) { firstUp = ri; break; } }
+    if (firstUp <= 0) continue; // no hidden card beneath the movable run
+    var moveCard = col[firstUp];
+    for (var ti = 0; ti < 7; ti++) {
+      if (ti === ci) continue;
+      if (canMoveToTableau(moveCard, ti)) {
+        return { source: moveCard, target: 'tableau', targetIdx: ti };
+      }
+    }
+  }
+
+  return null;
+}
+
+function hintTargetEl(hint) {
+  if (hint.target === 'foundation') {
+    return document.querySelector('.pile-zone[data-foundation="' + hint.targetIdx + '"]');
+  }
+  var col = tableau[hint.targetIdx];
+  if (col.length > 0) return col[col.length - 1].el;
+  return document.querySelector('.pile-zone[data-tableau="' + hint.targetIdx + '"]');
+}
+
+function showHint() {
+  if (!gameActive || autoCompleting) return;
+  var hint = findHintMove();
+  if (!hint) {
+    playSound('invalid');
+    odaToast('No moves to hint — try drawing from the stock!', 'warning');
+    return;
+  }
+  var sourceEl = hint.source.el;
+  var targetEl = hintTargetEl(hint);
+  playSound('flip');
+  [sourceEl, targetEl].forEach(function(el) {
+    if (!el) return;
+    el.classList.add('hint-pulse');
+    setTimeout(function() { el.classList.remove('hint-pulse'); }, 1800);
+  });
+}
+
 // ===== AUTO-COMPLETE =====
 function checkAutoComplete() {
   if (autoCompleting) return;
@@ -1139,7 +1213,8 @@ function onWin() {
   var solWinEffect=(typeof odaShop!=='undefined')?odaShop.getEquipped('solitaire','winEffect'):null;
   if(typeof odaCelebrate==='function')odaCelebrate((solWinEffect&&solWinEffect.type)||'confetti');else if(typeof odaConfetti==='function')odaConfetti();
 
-  // Cascade animation
+  // Cascade animation (tap the table to skip straight to the win modal)
+  cascadeActive = true;
   setTimeout(cascadeCards, 500);
 
   // Calculate coins
@@ -1177,14 +1252,19 @@ function onWin() {
   saveSolAchievements();
   checkSolAchievements();
 
-  // Show win modal after delay
-  setTimeout(function() {
+  // Show win modal after delay (tap the table during the cascade to skip)
+  function showWinModalNow() {
+    cascadeActive = false;
+    skipCascade = null;
+    if (winModalTimer) { clearTimeout(winModalTimer); winModalTimer = null; }
     document.getElementById('winTime').textContent = formatTime(elapsed);
     document.getElementById('winMoves').textContent = moves;
     document.getElementById('winScore').textContent = score;
     document.getElementById('winCoins').textContent = '+' + totalCoins + ' Coins';
     document.getElementById('winModal').classList.add('active');
-  }, 2000);
+  }
+  skipCascade = showWinModalNow;
+  winModalTimer = setTimeout(showWinModalNow, 1000);
 }
 
 function cascadeCards() {
@@ -1308,7 +1388,7 @@ function startDrag(cx, cy, card, colIdx, cardIdx) {
   elements.forEach(function(el) { el.classList.add('dragging'); });
 
   // Highlight valid drop zones
-  highlightValidDrops(card);
+  highlightValidDrops(card, colIdx);
 
   dragState = {
     card: card,
@@ -1325,7 +1405,7 @@ function startDrag(cx, cy, card, colIdx, cardIdx) {
   };
 }
 
-function highlightValidDrops(card) {
+function highlightValidDrops(card, sourceCol) {
   // Highlight valid foundation zones
   var zones = document.querySelectorAll('.pile-zone');
   zones.forEach(function(z) {
@@ -1334,11 +1414,14 @@ function highlightValidDrops(card) {
       if (canMoveToFoundation(card, fi)) {
         z.classList.add('highlight');
       }
+    } else if (z.dataset.tableau !== undefined) {
+      var ci = parseInt(z.dataset.tableau);
+      if (ci === sourceCol) return;
+      if (canMoveToTableau(card, ci)) {
+        z.classList.add('highlight');
+      }
     }
   });
-
-  // Highlight valid tableau columns (via zones)
-  // We'll use proximity during drop
 }
 
 function clearHighlights() {
@@ -1465,6 +1548,14 @@ document.addEventListener('touchend', function(e) {
 document.addEventListener('contextmenu', function(e) {
   e.preventDefault();
   undoMove();
+});
+
+// Tap the table during the win cascade to skip straight to the win modal
+document.getElementById('gameArea').addEventListener('click', function() {
+  if (cascadeActive && skipCascade) skipCascade();
+});
+document.getElementById('gameArea').addEventListener('touchend', function(e) {
+  if (cascadeActive && skipCascade) { e.preventDefault(); skipCascade(); }
 });
 
 // ===== TIMER & COUNTERS =====
