@@ -513,6 +513,7 @@ html[data-typ-trail="rainbow"] .race-lane.me .lane-car{filter:drop-shadow(0 0 4p
     <p class="result-sub" id="resultSub"></p>
     <div id="newRecordArea"></div>
     <div class="coins-display" id="resultCoins"></div>
+    <div id="bestTodayArea"></div>
     <div class="result-stats" id="resultStats"></div>
     <div id="raceResults"></div>
     <div class="result-actions" id="resultActions"></div>
@@ -729,6 +730,7 @@ let personalBestWPM = 0;
 let importedWords = null;
 let importedSpellingLists = [];
 let coinsAwarded = false;
+let resultChainTimer = null;
 
 // Multiplayer state
 let roomCode = null;
@@ -1178,7 +1180,7 @@ async function startGame() {
   document.getElementById('liveChars').textContent = '0';
   document.getElementById('progressFill').style.width = '0%';
 
-  await showCountdown();
+  await showCountdown(true); // Practice: skip 3-2-1, jump straight to GO
 
   gameActive = true;
   gameStartTime = Date.now();
@@ -1299,6 +1301,18 @@ function updateProgressBar() {
   if (el) el.style.width = pct + '%';
 }
 
+// Best-today WPM ticker (localStorage, resets at local midnight)
+function updateBestToday(wpm) {
+  const todayKey = new Date().toDateString();
+  let rec = null;
+  try { rec = JSON.parse(localStorage.getItem('odaTypingBestToday') || 'null'); } catch(e) {}
+  if (!rec || rec.date !== todayKey) rec = { date: todayKey, wpm: 0 };
+  const isNew = wpm > rec.wpm;
+  if (isNew) rec.wpm = wpm;
+  try { localStorage.setItem('odaTypingBestToday', JSON.stringify(rec)); } catch(e) {}
+  return { wpm: rec.wpm, isNew: isNew };
+}
+
 async function endGame() {
   gameActive = false;
   if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
@@ -1334,6 +1348,10 @@ async function endGame() {
     '<div class="stat-box"><div class="stat-val" style="color:var(--gold)">' + wordsCompleted + '</div><div class="stat-label">Words</div></div>' +
     '<div class="stat-box"><div class="stat-val">' + charIndex + '</div><div class="stat-label">Chars</div></div>';
 
+  const bestToday = updateBestToday(finalWPM);
+  document.getElementById('bestTodayArea').innerHTML =
+    '<div style="font-size:13px;color:var(--text2);font-weight:600;margin:2px 0 4px">Best today: <span style="color:var(--gold);font-weight:800">' + bestToday.wpm + ' WPM</span>' + (bestToday.isNew ? ' &#10024;' : '') + '</div>';
+
   document.getElementById('raceResults').innerHTML = '';
 
   if (isNewRecord) {
@@ -1346,8 +1364,16 @@ async function endGame() {
   }
 
   document.getElementById('resultActions').innerHTML =
-    '<button class="btn btn-accent" onclick="TR.showSetup(\'practice\')">Play Again</button>' +
+    '<button class="btn btn-accent" id="goAgainBtn" onclick="TR.startGame()">Go Again <span style="opacity:.7;font-weight:600">(Enter)</span></button>' +
     '<button class="btn btn-outline" onclick="TR.showScreen(\'homeScreen\')">Home</button>';
+
+  // Chain runs: after a 2s beat, focus "Go Again" so Enter instantly starts a fresh sprint
+  clearTimeout(resultChainTimer);
+  resultChainTimer = setTimeout(function() {
+    const btn = document.getElementById('goAgainBtn');
+    const resScreen = document.getElementById('resultScreen');
+    if (btn && resScreen && resScreen.classList.contains('active')) btn.focus();
+  }, 2000);
 
   // Save to Firestore
   if (!coinsAwarded && !studentId.startsWith('anon_')) {
@@ -1472,12 +1498,12 @@ async function showRecords() {
 // ============================================
 // Countdown
 // ============================================
-function showCountdown() {
+function showCountdown(skipTicks) {
   return new Promise(function(resolve) {
     const overlay = document.getElementById('countdownOverlay');
     const numEl = document.getElementById('countdownNum');
     overlay.style.display = 'flex';
-    let count = 3;
+    let count = skipTicks ? 0 : 3;
 
     function tick() {
       if (count > 0) {
@@ -1513,6 +1539,16 @@ function quitGame() {
   const input = document.getElementById('gameInput');
   input.removeEventListener('input', handleSoloInput);
   showScreen('homeScreen');
+}
+
+// Tab-to-restart mid-run (Practice only): clean up the in-progress run same as
+// quitGame(), then start fresh instead of navigating home.
+function restartGame() {
+  gameActive = false;
+  if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
+  const input = document.getElementById('gameInput');
+  input.removeEventListener('input', handleSoloInput);
+  startGame();
 }
 
 // ============================================
@@ -1885,6 +1921,7 @@ function endRaceComplete(data) {
   if (myData.wpm > personalBestWPM) personalBestWPM = myData.wpm;
 
   showScreen('resultScreen');
+  document.getElementById('bestTodayArea').innerHTML = '';
   const placeText = myRank === 1 ? '1st Place!' : myRank === 2 ? '2nd Place!' : myRank === 3 ? '3rd Place!' : myRank + 'th Place';
   document.getElementById('resultTitle').textContent = myRank === 1 ? 'You Won!' : placeText;
   document.getElementById('resultSub').textContent = 'Multiplayer Race \u00B7 ' + Object.keys(players).length + ' players';
@@ -2075,6 +2112,13 @@ document.addEventListener('keydown', function(e) {
   if (!gameActive) return;
   const screen = document.querySelector('.screen.active');
   if (!screen) return;
+
+  // Tab mid-run = instant restart with fresh text (Practice only; Multiplayer stays in sync)
+  if (e.key === 'Tab' && gameMode === 'practice' && screen.id === 'gameScreen') {
+    e.preventDefault();
+    restartGame();
+    return;
+  }
 
   if (screen.id === 'gameScreen') {
     document.getElementById('gameInput').focus();
