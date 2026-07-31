@@ -199,6 +199,30 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 #quickMatchScreen{padding-top:80px;justify-content:flex-start;gap:16px;text-align:center}
 #waitingScreen{padding-top:80px;justify-content:flex-start;gap:16px;text-align:center}
 .error-text{color:var(--accent3);font-size:13px;font-weight:600;margin-top:8px;min-height:20px}
+
+/* SHOOTOUT LADDER */
+#ladderScreen{padding-top:80px;padding-bottom:40px}
+.ladder-container{max-width:440px;width:90%;margin:0 auto}
+.ladder-rungs{display:flex;flex-direction:column;gap:14px;margin-top:20px;position:relative;padding-left:14px}
+.ladder-rungs::before{content:'';position:absolute;left:0;top:24px;bottom:24px;width:4px;border-radius:2px;background:linear-gradient(to top,#f97316,var(--gold))}
+.ladder-rung{display:flex;align-items:center;gap:14px;padding:16px 18px;background:var(--surface);border:2px solid var(--border);border-radius:20px;transition:all .18s}
+.ladder-rung .lr-num{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Fredoka',sans-serif;font-weight:700;font-size:14px;color:var(--text2)}
+.ladder-rung .lr-avatar{font-size:30px;flex-shrink:0}
+.ladder-rung .lr-info{flex:1;min-width:0;text-align:left}
+.ladder-rung .lr-info h3{font-size:16px;margin-bottom:2px}
+.ladder-rung .lr-info p{font-size:12px;color:var(--text2);line-height:1.35}
+.ladder-rung .lr-star{font-size:22px;flex-shrink:0}
+.ladder-rung .lr-lock{font-size:18px;flex-shrink:0;opacity:.7}
+.ladder-rung .lr-play{flex-shrink:0;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:1px;background:#f97316;color:#fff}
+.ladder-rung.beaten{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.ladder-rung.beaten .lr-num{background:rgba(6,214,160,.15);border-color:var(--accent);color:var(--accent)}
+.ladder-rung.current{cursor:pointer;border-color:var(--gold);animation:rungGlow 1.6s ease-in-out infinite alternate}
+.ladder-rung.current:hover{transform:translateY(-2px)}
+.ladder-rung.current .lr-num{background:rgba(255,209,102,.15);border-color:var(--gold);color:var(--gold)}
+.ladder-rung.locked{opacity:.45;filter:grayscale(.5)}
+@keyframes rungGlow{from{box-shadow:0 0 6px rgba(255,209,102,.15)}to{box-shadow:0 0 22px rgba(255,209,102,.4)}}
+.ladder-champion{background:linear-gradient(135deg,rgba(255,209,102,.15),rgba(6,214,160,.1));border:2px solid var(--gold);border-radius:20px;padding:18px 22px;text-align:center;font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700;color:var(--gold);margin-top:16px;text-shadow:0 0 20px rgba(255,209,102,.3)}
+.ladder-champion span{display:block;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:var(--text2);margin-top:4px;text-shadow:none}
 </style>
 </head>
 <body>
@@ -217,6 +241,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <span class="mode-icon">&#129302;</span>
       <h3>VS Computer</h3>
       <p>Head-to-head against the AI</p>
+    </div>
+    <div class="card mode-card" onclick="showLadderScreen()">
+      <span class="mode-icon">&#129692;</span>
+      <h3>Shootout Ladder</h3>
+      <p>Climb 10 rival shooters to the top</p>
     </div>
     <div class="card mode-card" onclick="showScreen('quickMatchScreen')">
       <span class="mode-icon">&#9889;</span>
@@ -290,6 +319,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <div class="go-coins" id="goCoins">+0 coins</div>
       <div class="go-btns">
         <button class="btn btn-accent btn-small" onclick="startGame()" style="background:#f97316">Play Again</button>
+        <button class="btn btn-outline btn-small" id="goLadderBtn" style="display:none" onclick="backToLadder()">&#129692; Ladder</button>
         <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">Home</button>
       </div>
     </div>
@@ -317,6 +347,19 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   <div style="width:100%;max-width:480px">
     <h2 style="text-align:center;margin-bottom:16px">&#128717;&#65039; Shop</h2>
     <div id="shopContainer"></div>
+    <div style="text-align:center;margin-top:20px"><button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&#8592; Back</button></div>
+  </div>
+</div>
+
+<!-- SHOOTOUT LADDER SCREEN -->
+<div class="screen" id="ladderScreen">
+  <div class="ladder-container">
+    <div style="text-align:center">
+      <h2 style="font-size:28px">&#129692; Shootout Ladder</h2>
+      <p style="color:var(--text2);font-size:14px;margin-top:4px" id="ladderProgressLine">Rung 1 of 10</p>
+    </div>
+    <div id="ladderChampionBanner"></div>
+    <div class="ladder-rungs" id="ladderRungs"></div>
     <div style="text-align:center;margin-top:20px"><button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&#8592; Back</button></div>
   </div>
 </div>
@@ -565,7 +608,11 @@ var BASKETBALL_SHOP = [
   { id: 'ball_neon', name: 'Neon Green', emoji: '\u{1F7E2}', cost: 200, slot: 'Ball Skin', value: { color: '#39ff14' } },
   { id: 'ball_ice', name: 'Ice Blue', emoji: '\u{1F9CA}', cost: 250, slot: 'Ball Skin', value: { color: '#22d3ee' } },
   { id: 'ball_galaxy', name: 'Galaxy Purple', emoji: '\u{1FA90}', cost: 400, slot: 'Ball Skin', value: { color: '#7c3aed' } },
-  { id: 'ball_fire', name: 'Fire Red', emoji: '\u{1F525}', cost: 350, slot: 'Ball Skin', value: { color: '#ef4444' } }
+  { id: 'ball_fire', name: 'Fire Red', emoji: '\u{1F525}', cost: 350, slot: 'Ball Skin', value: { color: '#ef4444' } },
+  { id: 'court_playground', name: 'The Playground', emoji: '\u{1F3DE}\u{FE0F}', cost: 0, slot: 'Court', value: { mapId: 'playground' } },
+  { id: 'court_sunset', name: 'Sunset Court', emoji: '\u{1F305}', cost: 400, slot: 'Court', value: { mapId: 'sunset' } },
+  { id: 'court_indoor', name: 'Indoor Gym', emoji: '\u{1F3DF}\u{FE0F}', cost: 500, slot: 'Court', value: { mapId: 'indoor' } },
+  { id: 'court_night', name: 'Night Game', emoji: '\u{1F319}', cost: 650, slot: 'Court', value: { mapId: 'night' } }
 ];
 
 var cosmeticBallColor = '#f97316';
@@ -578,18 +625,79 @@ function loadMyCosmetics() {
     if (bs && bs.value && bs.value.color) {
       cosmeticBallColor = bs.value.color;
     }
+    var ct = stored['Court'];
+    var mapId = (ct && ct.value && ct.value.mapId && BASKETBALL_MAPS[ct.value.mapId]) ? ct.value.mapId : 'playground';
+    if (mapId !== activeCourtId) {
+      activeCourtId = mapId;
+      applyEquippedCourt(); /* no-op until the 3D scene exists */
+    }
   } catch(e) {}
   /* Apply to 3D ball immediately if it exists */
   if (ball && ball.material) {
     ball.material.color.set(cosmeticBallColor);
   }
 }
-loadMyCosmetics();
+
+/* ── COURTS — shop-unlockable lighting/color variants of the alley court ──
+   Each map only adjusts scene parameters (sky, fog, light color/intensity,
+   floor + fence tint, net style); the geometry is shared. 'playground'
+   matches the original scene exactly. */
+var BASKETBALL_MAPS = {
+  playground: {
+    sky: '#87CEEB', fog: { color: '#9ab8d0', near: 30, far: 60 },
+    ambient: { color: '#d0c8bb', intensity: 0.45 },
+    sun: { color: '#fff4e0', intensity: 1.6 },
+    hemi: { sky: '#87CEEB', ground: '#666050', intensity: 0.35 },
+    lamp: { color: '#ffcc66', intensity: 1.2 },
+    fill: { color: '#aabbcc', intensity: 0.4 },
+    floor: '#555555', fenceColor: '#888888', netStyle: 'chain'
+  },
+  sunset: { /* golden hour — warm low sun, pink haze */
+    sky: '#ff9e63', fog: { color: '#e08a5a', near: 28, far: 58 },
+    ambient: { color: '#ffd9b0', intensity: 0.5 },
+    sun: { color: '#ff8c42', intensity: 1.5 },
+    hemi: { sky: '#ffb27d', ground: '#5a4038', intensity: 0.4 },
+    lamp: { color: '#ffcc66', intensity: 1.3 },
+    fill: { color: '#d98a99', intensity: 0.45 },
+    floor: '#5d4a48', fenceColor: '#996655', netStyle: 'chain'
+  },
+  indoor: { /* indoor gym — bright even white light, hardwood floor, white net */
+    sky: '#26222b', fog: { color: '#26222b', near: 45, far: 90 },
+    ambient: { color: '#f2efe9', intensity: 0.6 },
+    sun: { color: '#ffffff', intensity: 1.7 },
+    hemi: { sky: '#e8e8f5', ground: '#4a4038', intensity: 0.35 },
+    lamp: { color: '#fff2cc', intensity: 0.9 },
+    fill: { color: '#e8e8ff', intensity: 0.55 },
+    floor: '#a8712f', fenceColor: '#3c3c48', netStyle: 'white'
+  },
+  night: { /* night game — moonlight + the street lamp takes over */
+    sky: '#0b1226', fog: { color: '#0d1730', near: 24, far: 55 },
+    ambient: { color: '#3a4470', intensity: 0.55 },
+    sun: { color: '#8fa8ff', intensity: 0.6 },
+    hemi: { sky: '#26315e', ground: '#0d0d18', intensity: 0.3 },
+    lamp: { color: '#ffbb44', intensity: 2.4 },
+    fill: { color: '#4a5db0', intensity: 0.5 },
+    floor: '#3a3f4a', fenceColor: '#5a6580', netStyle: 'chain'
+  }
+};
+var activeCourtId = 'playground';
 
 function getActiveMapSettings() {
-  /* Default: playground (maps removed from shop) */
-  return { floor: '#999999', sky: '#87CEEB', light: '#ffffff', ambient: '#c8e0ff', netStyle: 'chain', fenceColor: '#888888' };
+  return BASKETBALL_MAPS[activeCourtId] || BASKETBALL_MAPS.playground;
 }
+
+/* Rebuild the live scene with the equipped court (equip mid-session or at boot) */
+function applyEquippedCourt() {
+  if (!threeInited || !scene) return;
+  rebuildCourtEnvironment();
+  var mapS = getActiveMapSettings();
+  if (hoop.net && hoop.net.material) {
+    var isChain = mapS.netStyle === 'chain';
+    hoop.net.material.color.set(isChain ? 0x777777 : 0xffffff);
+    hoop.net.material.opacity = isChain ? 0.5 : 0.4;
+  }
+}
+loadMyCosmetics();
 
 function showShopScreen() {
   showScreen('shopScreen');
@@ -836,6 +944,183 @@ function showQuickMatchResult(myScore, opScore, opName) {
   }
 }
 
+/* ── SHOOTOUT LADDER ─────────────────────────────────────────
+   10 named rivals, each a 60s shootout — outscore them to climb.
+   Rivals shoot on a timer with escalating accuracy built on the same
+   roll shape as doCPUShot (AI_ACCURACY machinery), and score with the
+   same streak/on-fire rules the player gets. Curve sim-verified:
+   rung 1 beatable by a first-timer (~70-80%), rung 10 needs
+   near-perfect green-zone timing on the HARD meter. */
+var LADDER_OPPONENTS = [
+  { name: 'Pee-Wee Pete', short: 'PETE', emoji: '\u{1F423}', taunt: 'I still shoot granny-style. Sometimes it even goes in!' },
+  { name: 'Backyard Benny', short: 'BENNY', emoji: '\u{1FA74}', taunt: 'I practice on a milk crate nailed to a fence.' },
+  { name: 'Dizzy Daisy', short: 'DAISY', emoji: '\u{1F33C}', taunt: 'I spin before every shot. For style points.' },
+  { name: 'Coach Cutback', short: 'COACH', emoji: '\u{1F4CB}', taunt: 'Fundamentals, kid. I never skip a drill.' },
+  { name: 'Swish Sanchez', short: 'SANCHEZ', emoji: '\u{1F3AF}', taunt: "Corner three? That's my mailbox — I live there." },
+  { name: 'Sky-Hook Sarah', short: 'SARAH', emoji: '\u{1F680}', taunt: 'My arc is so high it needs air traffic control.' },
+  { name: 'The Metronome', short: 'TEMPO', emoji: '\u{1F3BC}', taunt: 'Tick. Tock. Every release on the exact same beat.' },
+  { name: 'Buckets Malone', short: 'MALONE', emoji: '\u{1F3A9}', taunt: 'They named the scoreboard after me. Twice.' },
+  { name: 'Glass Cleaner Gigi', short: 'GIGI', emoji: '\u{1F451}', taunt: "Bank's open 24/7, and I own the glass." },
+  { name: 'The Landlord', short: 'LANDLORD', emoji: '\u{1F574}\u{FE0F}', taunt: 'Every court in this city pays rent to somebody. Ask around on Broadway.' }
+];
+/* Rival green-zone chance per rung — interpolated through the existing
+   AI_ACCURACY anchors (easy 0.40 @ rung 1, medium 0.60 @ rung 4,
+   hard 0.80 @ rung 8) and extended to 0.90 for the top. */
+var LADDER_ACCURACY = [0.40, 0.47, 0.54, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90];
+/* Player meter difficulty per rung (index into DIFF_SETTINGS) */
+var LADDER_METER = [0, 0, 0, 0, 1, 1, 1, 1, 2, 2];
+/* Rival shot cadence per rung (ms between shots) */
+var LADDER_AI_MS = [3600, 3550, 3500, 3450, 3400, 3350, 3300, 3200, 3100, 3000];
+/* First-clear bonus coins — from the game's own scale (a hard VS win pays
+   ~score/3 + 15 = ~35 coins), capped at ~2x that on the final rung.
+   Repeat ladder wins pay the standard +15 win bonus. */
+var LADDER_COINS = [15, 18, 21, 24, 28, 32, 36, 42, 50, 70];
+
+var LADDER_KEY = 'bball_ladder_' + ((studentId && !studentId.startsWith('anon_')) ? studentId : 'anon');
+var ladderRungActive = 1;
+var ladderAiTimer = null, ladderAiStreak = 0, ladderAiOnFire = false;
+var ladderState = (function() {
+  try {
+    var s = JSON.parse(localStorage.getItem(LADDER_KEY) || '');
+    if (s && typeof s.rung === 'number') {
+      return { rung: Math.min(Math.max(Math.floor(s.rung), 1), LADDER_OPPONENTS.length + 1),
+               cleared: (s.cleared && typeof s.cleared === 'object') ? s.cleared : {} };
+    }
+  } catch(e) {}
+  return { rung: 1, cleared: {} };
+})();
+
+function saveLadderState(clearedRung) {
+  try { localStorage.setItem(LADDER_KEY, JSON.stringify(ladderState)); } catch(e) {}
+  syncLadderToRecord(clearedRung);
+}
+
+async function syncLadderToRecord(clearedRung) {
+  if (!studentId || studentId.startsWith('anon_')) return;
+  try {
+    var fb = await window.getFirebaseDB();
+    var upd = { ladderRung: ladderState.rung };
+    if (clearedRung) { upd.ladderCleared = {}; upd.ladderCleared[clearedRung] = true; }
+    await fb.fsMod.setDoc(fb.fsMod.doc(fb.db, 'basketballRecords', studentId), upd, { merge: true });
+  } catch(e) {}
+}
+
+async function hydrateLadderFromRecord() {
+  if (!studentId || studentId.startsWith('anon_')) return;
+  try {
+    var fb = await window.getFirebaseDB();
+    var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'basketballRecords', studentId));
+    if (!snap.exists()) return;
+    var rec = snap.data();
+    var changed = false;
+    if (typeof rec.ladderRung === 'number' && rec.ladderRung > ladderState.rung) {
+      ladderState.rung = Math.min(Math.floor(rec.ladderRung), LADDER_OPPONENTS.length + 1);
+      changed = true;
+    }
+    if (rec.ladderCleared && typeof rec.ladderCleared === 'object') {
+      for (var k in rec.ladderCleared) {
+        if (rec.ladderCleared[k] && !ladderState.cleared[k]) { ladderState.cleared[k] = true; changed = true; }
+      }
+    }
+    if (changed) {
+      try { localStorage.setItem(LADDER_KEY, JSON.stringify(ladderState)); } catch(e) {}
+      if (document.getElementById('ladderScreen').classList.contains('active')) renderLadder();
+    }
+  } catch(e) {}
+}
+
+function showLadderScreen() {
+  showScreen('ladderScreen');
+  renderLadder();
+  hydrateLadderFromRecord();
+}
+
+function renderLadder() {
+  var wrap = document.getElementById('ladderRungs');
+  var line = document.getElementById('ladderProgressLine');
+  var banner = document.getElementById('ladderChampionBanner');
+  var total = LADDER_OPPONENTS.length;
+  var champion = ladderState.rung > total;
+  line.textContent = champion ? 'All ' + total + ' rungs conquered!' : 'Rung ' + ladderState.rung + ' of ' + total;
+  banner.innerHTML = champion ? '<div class="ladder-champion">\u{1F3C6} Shootout Champion \u{1F3C6}<span>You outscored every rival on the ladder!</span></div>' : '';
+  var html = '';
+  for (var r = total; r >= 1; r--) {
+    var opp = LADDER_OPPONENTS[r - 1];
+    var beaten = r < ladderState.rung;
+    var current = !champion && r === ladderState.rung;
+    var cls = beaten ? 'beaten' : (current ? 'current' : 'locked');
+    var status = beaten ? '<span class="lr-star">⭐</span>' : (current ? '<span class="lr-play">PLAY</span>' : '<span class="lr-lock">\u{1F512}</span>');
+    html += '<div class="ladder-rung ' + cls + '"' + (current ? ' onclick="startLadderGame(' + r + ')"' : '') + '>'
+      + '<span class="lr-num">' + r + '</span>'
+      + '<span class="lr-avatar">' + opp.emoji + '</span>'
+      + '<div class="lr-info"><h3>' + opp.name + '</h3><p>&ldquo;' + opp.taunt + '&rdquo;</p></div>'
+      + status + '</div>';
+  }
+  wrap.innerHTML = html;
+  var cur = wrap.querySelector('.ladder-rung.current');
+  if (cur && cur.scrollIntoView) setTimeout(function() { cur.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 80);
+}
+
+function startLadderGame(rung) {
+  if (rung !== ladderState.rung || rung < 1 || rung > LADDER_OPPONENTS.length) return;
+  ladderRungActive = rung;
+  gameMode = 'ladder';
+  difficulty = LADDER_METER[rung - 1]; /* meter gets tighter up the ladder */
+  showLadderIntro(LADDER_OPPONENTS[rung - 1], rung);
+}
+
+function showLadderIntro(opp, rung) {
+  var existing = document.getElementById('diffPickerOverlay');
+  if (existing) existing.remove();
+  var overlay = document.createElement('div');
+  overlay.id = 'diffPickerOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:16px;animation:fadeUp .25s ease';
+  overlay.innerHTML = '<span style="font-size:64px">' + opp.emoji + '</span>'
+    + '<h2 style="font-size:26px;color:#f97316;font-family:Fredoka,sans-serif">Rung ' + rung + ': ' + opp.name + '</h2>'
+    + '<p style="color:var(--text2);font-size:14px;max-width:320px;text-align:center">&ldquo;' + opp.taunt + '&rdquo;</p>'
+    + '<p style="color:var(--text2);font-size:13px">60 seconds. Most points wins.</p>'
+    + '<button class="btn btn-small" style="background:#f97316;color:#fff;font-weight:700" onclick="ladderIntroStart()">Start Shootout</button>'
+    + '<button class="btn btn-outline btn-small" onclick="closeDiffPicker()">Back</button>';
+  document.body.appendChild(overlay);
+}
+
+function ladderIntroStart() {
+  closeDiffPicker();
+  startGame();
+}
+
+function backToLadder() {
+  stopGame();
+  document.getElementById('gameOver').classList.remove('active');
+  showLadderScreen();
+}
+
+/* One rival shot — same roll shape as doCPUShot, same streak/on-fire
+   scoring rules as handleShotResult (no gold balls for rivals). */
+function ladderAiShot() {
+  if (!gameActive || gameMode !== 'ladder') return;
+  var acc = LADDER_ACCURACY[ladderRungActive - 1] || 0.5;
+  var roll = Math.random();
+  var base = 0;
+  if (roll < acc) { base = 3; ladderAiStreak++; }
+  else if (roll < acc + 0.15) { base = 4; ladderAiStreak++; }
+  else { ladderAiStreak = 0; }
+  var bonus = 0;
+  if (base > 0) {
+    if (ladderAiStreak >= 5) bonus = 3;
+    else if (ladderAiStreak >= 3) bonus = 2;
+    else if (ladderAiStreak >= 2) bonus = 1;
+  }
+  var total = base + bonus;
+  if (ladderAiOnFire && total > 0) total *= 2;
+  if (base > 0 && ladderAiStreak >= 3 && !ladderAiOnFire) ladderAiOnFire = true;
+  else if (base === 0 && ladderAiOnFire) ladderAiOnFire = false;
+  if (total > 0) {
+    cpuScore += total;
+    document.getElementById('hudOpScore').textContent = cpuScore;
+  }
+}
+
 /* ── HELP ────────────────────────────────────────────────── */
 if (typeof odaHelp !== 'undefined') odaHelp.init({
   title: '3PT Showdown', emoji: '\u{1F3C0}', subtitle: 'Time your release, drain threes!',
@@ -863,7 +1148,20 @@ if (typeof odaHelp !== 'undefined') odaHelp.init({
       '3-Point Contest: 25 shots, 5 positions, 60s timer',
       'Timed Mode: 45 seconds, unlimited shots',
       'VS Computer: 10 shots each, beat the CPU',
+      'Shootout Ladder: 60s shootouts vs 10 rivals — outscore them to climb',
       'Quick Match: Play a friend online with room codes'
+    ]},
+    { title: 'Shootout Ladder', icon: '\u{1FA9C}', items: [
+      'Climb 10 rungs of rival shooters, weakest to strongest',
+      'Each rung is a 60-second shootout — most points wins',
+      'Rivals shoot faster and greener the higher you climb (your meter gets tighter too)',
+      'First-time clears pay bigger coins the higher you go',
+      'Beat all 10 to become Shootout Champion!'
+    ]},
+    { title: 'Courts', icon: '\u{1F3DE}\u{FE0F}', items: [
+      'Unlock new courts in the Shop with your coins',
+      'Sunset Court, Indoor Gym and Night Game each change the whole vibe',
+      'Equip a court and the arena changes instantly'
     ]}
   ],
   controls: [{ key: 'Click / Space', action: 'Hold to charge, release to shoot' }],
@@ -884,6 +1182,7 @@ var dirLight, lampLight; /* refs for auto quality fallback below */
 var qualityChecked = false;
 var qualityFrameCount = 0;
 var qualityStartTime = 0;
+var qualityReduced = false; /* remembered so court rebuilds keep the reduced settings */
 
 /* game state */
 var gameActive = false, shotInFlight = false, holdingShot = false;
@@ -942,6 +1241,7 @@ function stopGame() {
   if (meterAnimId) { cancelAnimationFrame(meterAnimId); meterAnimId = null; }
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
   if (shotClockInterval) { clearInterval(shotClockInterval); shotClockInterval = null; }
+  if (ladderAiTimer) { clearInterval(ladderAiTimer); ladderAiTimer = null; }
   meterRunning = false;
   holdingShot = false;
 }
@@ -1145,15 +1445,18 @@ function buildCourtEnvironment(THREE) {
   function addObj(obj) { obj.userData.courtObj = true; scene.add(obj); return obj; }
 
   /* ── SKY ── */
-  scene.background = new THREE.Color(0x87CEEB);
-  scene.fog = new THREE.Fog(0x9ab8d0, 30, 60);
+  scene.background = new THREE.Color(mapS.sky || '#87CEEB');
+  var fogS = mapS.fog || { color: '#9ab8d0', near: 30, far: 60 };
+  scene.fog = new THREE.Fog(new THREE.Color(fogS.color), fogS.near, fogS.far);
 
   /* ── LIGHTING ── */
   /* Sun coming through the gap between buildings */
-  var ambient = new THREE.AmbientLight(0xd0c8bb, 0.45);
+  var ambS = mapS.ambient || { color: '#d0c8bb', intensity: 0.45 };
+  var ambient = new THREE.AmbientLight(new THREE.Color(ambS.color), ambS.intensity);
   addObj(ambient);
 
-  dirLight = new THREE.DirectionalLight(0xfff4e0, 1.6);
+  var sunS = mapS.sun || { color: '#fff4e0', intensity: 1.6 };
+  dirLight = new THREE.DirectionalLight(new THREE.Color(sunS.color), sunS.intensity);
   dirLight.position.set(2, 18, 4);
   dirLight.castShadow = true;
   dirLight.shadow.mapSize.width = 2048;
@@ -1167,11 +1470,13 @@ function buildCourtEnvironment(THREE) {
   dirLight.shadow.bias = -0.001;
   addObj(dirLight);
 
-  var hemiLight = new THREE.HemisphereLight(0x87CEEB, 0x666050, 0.35);
+  var hemiS = mapS.hemi || { sky: '#87CEEB', ground: '#666050', intensity: 0.35 };
+  var hemiLight = new THREE.HemisphereLight(new THREE.Color(hemiS.sky), new THREE.Color(hemiS.ground), hemiS.intensity);
   addObj(hemiLight);
 
   /* Street lamp warm light (near Z, behind shooter) */
-  lampLight = new THREE.PointLight(0xffcc66, 1.2, 18, 2);
+  var lampS = mapS.lamp || { color: '#ffcc66', intensity: 1.2 };
+  lampLight = new THREE.PointLight(new THREE.Color(lampS.color), lampS.intensity, 18, 2);
   lampLight.position.set(8, 6.5, 8);
   lampLight.castShadow = true;
   lampLight.shadow.mapSize.width = 512;
@@ -1179,13 +1484,21 @@ function buildCourtEnvironment(THREE) {
   addObj(lampLight);
 
   /* Fill light from the far end so court isn't too dark */
-  var fillLight = new THREE.PointLight(0xaabbcc, 0.4, 25, 2);
+  var fillS = mapS.fill || { color: '#aabbcc', intensity: 0.4 };
+  var fillLight = new THREE.PointLight(new THREE.Color(fillS.color), fillS.intensity, 25, 2);
   fillLight.position.set(-3, 8, HOOP_POS.z - 4);
   addObj(fillLight);
 
+  /* Keep the Chromebook quality fallback's choice across court rebuilds */
+  if (qualityReduced) {
+    dirLight.shadow.mapSize.width = 512;
+    dirLight.shadow.mapSize.height = 512;
+    lampLight.castShadow = false;
+  }
+
   /* ── FLOOR — Asphalt court ── */
   var floorGeo = new THREE.PlaneGeometry(30, 24);
-  var floorMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.95, metalness: 0.0 });
+  var floorMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(mapS.floor || '#555555'), roughness: 0.95, metalness: 0.0 });
   court = new THREE.Mesh(floorGeo, floorMat);
   court.rotation.x = -Math.PI / 2;
   court.receiveShadow = true;
@@ -2469,11 +2782,34 @@ function startGame() {
         endGame();
       }
     }, 1000);
+  } else if (gameMode === 'ladder') {
+    var lOppStart = LADDER_OPPONENTS[ladderRungActive - 1] || LADDER_OPPONENTS[0];
+    maxShots = 9999;
+    timerLeft = 60;
+    setupGoldBalls(50, 5);
+    ladderAiStreak = 0; ladderAiOnFire = false;
+    document.getElementById('hudModeLabel').textContent = 'SHOOTOUT LADDER';
+    document.getElementById('hudTimer').style.display = '';
+    document.getElementById('hudTimer').textContent = '60';
+    document.getElementById('hudOpLabel').textContent = lOppStart.short || 'RIVAL';
+    document.getElementById('hudOpLabel').style.display = '';
+    document.getElementById('hudOpScore').style.display = '';
+    document.getElementById('hudOpScore').textContent = '0';
+    timerInterval = setInterval(function() {
+      timerLeft--;
+      document.getElementById('hudTimer').textContent = timerLeft;
+      if (timerLeft <= 0) {
+        clearInterval(timerInterval); timerInterval = null;
+        endGame();
+      }
+    }, 1000);
+    ladderAiTimer = setInterval(ladderAiShot, LADDER_AI_MS[ladderRungActive - 1] || 3400);
   } else if (gameMode === 'vs') {
     maxShots = 10;
     setupGoldBalls(10, 2);
     document.getElementById('hudModeLabel').textContent = 'VS COMPUTER';
     document.getElementById('hudTimer').style.display = 'none';
+    document.getElementById('hudOpLabel').textContent = 'CPU';
     document.getElementById('hudOpLabel').style.display = '';
     document.getElementById('hudOpScore').style.display = '';
     document.getElementById('hudOpScore').textContent = '0';
@@ -2519,6 +2855,9 @@ function updateHUD() {
     document.getElementById('hudShots').textContent = 'Shots: ' + (shotNum - 1);
   } else if (gameMode === 'vs') {
     document.getElementById('hudShots').textContent = (cpuTurn ? 'CPU' : 'YOU') + ' - Shot ' + (cpuTurn ? cpuShotNum : shotNum) + '/' + maxShots;
+    document.getElementById('hudOpScore').textContent = cpuScore;
+  } else if (gameMode === 'ladder') {
+    document.getElementById('hudShots').textContent = 'Shots: ' + (shotNum - 1);
     document.getElementById('hudOpScore').textContent = cpuScore;
   } else {
     document.getElementById('hudShots').textContent = 'Shot ' + shotNum + '/' + maxShots;
@@ -2622,6 +2961,8 @@ function endGame() {
   gameActive = false;
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
   if (shotClockInterval) { clearInterval(shotClockInterval); shotClockInterval = null; }
+  if (ladderAiTimer) { clearInterval(ladderAiTimer); ladderAiTimer = null; }
+  var ladderBonus = 0;
   sfxBuzzer();
   removeBBBonusFromBackboard();
 
@@ -2645,6 +2986,29 @@ function endGame() {
     }
     document.getElementById('goSub').textContent = 'You: ' + score + ' | CPU: ' + cpuScore;
     document.getElementById('goSub').style.color = '';
+  } else if (gameMode === 'ladder') {
+    var lOppEnd = LADDER_OPPONENTS[ladderRungActive - 1] || LADDER_OPPONENTS[0];
+    if (score > cpuScore) {
+      var isFinalRung = ladderRungActive >= LADDER_OPPONENTS.length;
+      document.getElementById('goTitle').textContent = isFinalRung ? 'Shootout Champion!' : 'Rung ' + ladderRungActive + ' Cleared!';
+      document.getElementById('goTitle').style.color = '#06d6a0';
+      if (window.odaWinEffect) odaWinEffect();
+      var firstClear = !ladderState.cleared[ladderRungActive];
+      ladderBonus = firstClear ? (LADDER_COINS[ladderRungActive - 1] || 15) : 15;
+      if (firstClear) {
+        ladderState.cleared[ladderRungActive] = true;
+        ladderState.rung = Math.max(ladderState.rung, ladderRungActive + 1);
+        saveLadderState(ladderRungActive);
+      }
+    } else if (score < cpuScore) {
+      document.getElementById('goTitle').textContent = lOppEnd.name + ' Wins';
+      document.getElementById('goTitle').style.color = '#ef4444';
+    } else {
+      document.getElementById('goTitle').textContent = 'Tie — Rung Holds';
+      document.getElementById('goTitle').style.color = 'var(--gold)';
+    }
+    document.getElementById('goSub').textContent = 'You: ' + score + ' | ' + lOppEnd.name + ': ' + cpuScore;
+    document.getElementById('goSub').style.color = '';
   } else if (gameMode === 'quick') {
     document.getElementById('goTitle').textContent = 'Waiting for Opponent...';
     document.getElementById('goTitle').style.color = '#f97316';
@@ -2656,6 +3020,8 @@ function endGame() {
     document.getElementById('goSub').textContent = '';
     document.getElementById('goSub').style.color = '';
   }
+
+  document.getElementById('goLadderBtn').style.display = gameMode === 'ladder' ? '' : 'none';
 
   document.getElementById('goScore').textContent = score;
   document.getElementById('goSwishes').textContent = swishCount;
@@ -2674,7 +3040,7 @@ function endGame() {
   document.getElementById('goBest').textContent = 'Best: ' + s.best;
   document.getElementById('goNew').style.display = newBest ? '' : 'none';
 
-  var coins = Math.floor(score / 3) + (newBest ? 10 : 0) + (gameMode === 'vs' && score > cpuScore ? 15 : 0);
+  var coins = Math.floor(score / 3) + (newBest ? 10 : 0) + (gameMode === 'vs' && score > cpuScore ? 15 : 0) + ladderBonus;
   if (coins < 1) coins = 1;
   document.getElementById('goCoins').textContent = '+' + coins + ' coins';
   awardCoins(coins);
@@ -2714,6 +3080,7 @@ function animate(now) {
       qualityChecked = true;
       var avgFps = qualityFrameCount / (qualityElapsed / 1000);
       if (avgFps < 40) {
+        qualityReduced = true;
         renderer.shadowMap.type = THREE.BasicShadowMap;
         if (dirLight) {
           dirLight.shadow.mapSize.width = 512;
@@ -2842,6 +3209,10 @@ window.cancelQuickMatch = cancelQuickMatch;
 window.toggleSound = toggleSound;
 window.selectModeAndPlay = selectModeAndPlay;
 window.loadRecordsScreen = loadRecordsScreen;
+window.showLadderScreen = showLadderScreen;
+window.startLadderGame = startLadderGame;
+window.ladderIntroStart = ladderIntroStart;
+window.backToLadder = backToLadder;
 
 /* debug/verification hook (same convention as world's __world) */
 window.__bball = {
@@ -2850,6 +3221,8 @@ window.__bball = {
   get handBone() { return !!kidHandBone; },
   get onFire() { return onFire; },
   get state() { return { gameActive: gameActive, shotInFlight: shotInFlight, score: score, streak: streak, pos: currentPosIdx }; },
+  get ladder() { return { rung: ladderState.rung, cleared: ladderState.cleared, active: ladderRungActive, aiScore: cpuScore, mode: gameMode }; },
+  get court() { return activeCourtId; },
   shoot: function (result) { shotResult = result; launchBall(result); },
   resolve: function (result) { handleShotResult(result); },
   fire: setOnFire,
