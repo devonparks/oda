@@ -104,6 +104,10 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 @keyframes toggleFlash{0%{opacity:0}30%{opacity:.4}100%{opacity:0}}
 .toggle-flash{position:absolute;inset:0;border-radius:8px;background:rgba(255,255,255,.5);pointer-events:none;animation:toggleFlash .3s ease forwards}
 
+/* Hint highlight */
+@keyframes hintPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,209,102,.9),0 0 24px rgba(255,209,102,.6)}50%{box-shadow:0 0 0 6px rgba(255,209,102,0),0 0 36px rgba(255,209,102,.9)}}
+.hint-cell{animation:hintPulse .6s ease-in-out 4;outline:3px solid var(--gold);outline-offset:-3px;z-index:2}
+
 /* Grid themes */
 .theme-neon .light-cell{border-radius:4px;border-width:1px}
 .theme-neon .light-cell.on{box-shadow:0 0 24px rgba(6,214,160,.7),0 0 48px rgba(6,214,160,.3),inset 0 0 16px rgba(255,255,255,.2)}
@@ -145,7 +149,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .win-coins{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:8px 18px;font-size:16px;font-weight:700;color:var(--gold);font-family:'Fredoka',sans-serif;margin-bottom:16px}
 .win-new{color:var(--accent);font-size:14px;font-weight:700;margin-bottom:8px;animation:pulse 1s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.05)}}
-.win-btns{display:flex;gap:10px;justify-content:center}
+.win-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 
 /* Confetti */
 @keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
@@ -221,8 +225,9 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   <div class="grid-wrapper">
     <div class="grid-container" id="gridContainer"></div>
   </div>
-  <div style="display:flex;gap:10px;justify-content:center;margin-top:20px">
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap">
     <button class="btn btn-outline btn-small" onclick="resetPuzzle()">&#128260; Reset</button>
+    <button class="btn btn-outline btn-small" id="hintBtn" onclick="useHint()">&#128161; Hint (<span id="hintCount">3</span>)</button>
     <button class="btn btn-outline btn-small" onclick="startGame()">&#127922; New Puzzle</button>
   </div>
 </div>
@@ -303,6 +308,7 @@ function sfxToggle(){playTone(440,0.06,'sine',0.08);setTimeout(function(){playTo
 function sfxOff(){playTone(330,0.08,'triangle',0.07)}
 function sfxWin(){playTone(523,0.1,'sine',0.12);setTimeout(function(){playTone(659,0.1,'sine',0.1)},80);setTimeout(function(){playTone(784,0.15,'sine',0.12)},160);setTimeout(function(){playTone(1047,0.2,'sine',0.14)},260)}
 function sfxNewBest(){playTone(784,0.1,'sine',0.12);setTimeout(function(){playTone(988,0.1,'sine',0.1)},80);setTimeout(function(){playTone(1175,0.2,'sine',0.12)},160)}
+function sfxHint(){playTone(660,0.08,'triangle',0.08);setTimeout(function(){playTone(880,0.08,'triangle',0.06)},60)}
 function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;';localStorage.setItem('odaSoundEnabled',soundOn)}
 if(!soundOn)document.getElementById('soundBtn').innerHTML='&#128263;';
 
@@ -478,6 +484,12 @@ var timerInterval=null;
 var initialGrid=[];
 var gameActive=false;
 
+/* HINT */
+var MAX_HINTS=3;
+var hintsUsed=0;
+var lastGenToggles=[]; /* cells pressed during generation (a valid solution path) */
+var solutionGrid=[]; /* remaining correct presses = lastGenToggles XOR player's press-parity */
+
 function stopTimer(){
   if(timerInterval){clearInterval(timerInterval);timerInterval=null}
 }
@@ -485,12 +497,16 @@ function stopTimer(){
 function startTimer(){
   stopTimer();
   gameStartTime=Date.now();
+  var td0=document.getElementById('timeDisplay');
+  if(td0)td0.style.color=''; /* reset color for the fresh puzzle */
   timerInterval=setInterval(function(){
     if(!gameActive)return;
     var elapsed=Math.floor((Date.now()-gameStartTime)/1000);
     var mins=Math.floor(elapsed/60);
     var secs=elapsed%60;
-    document.getElementById('timeDisplay').textContent=mins+':'+(secs<10?'0':'')+secs;
+    var td=document.getElementById('timeDisplay');
+    td.textContent=mins+':'+(secs<10?'0':'')+secs;
+    td.style.color=elapsed>120?'#ef4444':(elapsed>60?'var(--gold)':'');
   },200);
 }
 
@@ -500,9 +516,11 @@ function startTimer(){
 /* Generate a guaranteed solvable puzzle by starting from all-off and toggling random cells */
 function generatePuzzle(size,numToggles){
   var g=[];
+  var toggleGrid=[]; /* HINT: tracks which cells were pressed to build this puzzle */
   for(var r=0;r<size;r++){
     g[r]=[];
-    for(var c=0;c<size;c++)g[r][c]=0;
+    toggleGrid[r]=[];
+    for(var c=0;c<size;c++){g[r][c]=0;toggleGrid[r][c]=0}
   }
   /* Toggle random cells to create a solvable puzzle */
   var toggled={};
@@ -514,6 +532,7 @@ function generatePuzzle(size,numToggles){
     if(toggled[key])continue;
     toggled[key]=true;
     applyToggle(g,rr,cc,size);
+    toggleGrid[rr][cc]^=1;
     count++;
   }
   /* Ensure at least one light is on */
@@ -522,7 +541,11 @@ function generatePuzzle(size,numToggles){
   if(!hasOn){
     var cr=Math.floor(size/2);
     applyToggle(g,cr,cr,size);
+    toggleGrid[cr][cr]^=1;
   }
+  /* HINT: replaying these exact presses (in any order) always solves the puzzle, */
+  /* since applyToggle is its own inverse and XOR is commutative/associative. */
+  lastGenToggles=toggleGrid;
   return g;
 }
 
@@ -606,6 +629,7 @@ function handleCellClick(e){
 
   /* Toggle cell + neighbors */
   applyToggle(grid,r,c,gridSize);
+  if(solutionGrid[r])solutionGrid[r][c]^=1; /* HINT: this press is now accounted for */
   moves++;
 
   /* Sound */
@@ -659,6 +683,9 @@ function startGame(){
 
   grid=generatePuzzle(gridSize,d.toggles);
   initialGrid=grid.map(function(row){return row.slice()});
+  solutionGrid=lastGenToggles.map(function(row){return row.slice()}); /* HINT: fresh puzzle = fresh hint targets */
+  hintsUsed=0;
+  updateHintButton();
 
   renderGrid();
   startTimer();
@@ -667,10 +694,48 @@ function startGame(){
 function resetPuzzle(){
   if(!gameActive&&!grid.length)return;
   grid=initialGrid.map(function(row){return row.slice()});
+  solutionGrid=lastGenToggles.map(function(row){return row.slice()}); /* HINT: moves undone, so is press-parity */
   moves=0;
   gameActive=true;
   updateCellVisuals();
   startTimer();
+}
+
+/* ===================== */
+/* HINT                  */
+/* ===================== */
+function updateHintButton(){
+  var btn=document.getElementById('hintBtn');
+  var cnt=document.getElementById('hintCount');
+  var left=MAX_HINTS-hintsUsed;
+  if(cnt)cnt.textContent=left;
+  if(btn){
+    btn.disabled=left<=0;
+    btn.style.opacity=left<=0?'.4':'';
+    btn.style.cursor=left<=0?'not-allowed':'';
+  }
+}
+
+function useHint(){
+  if(!gameActive)return;
+  if(hintsUsed>=MAX_HINTS)return;
+  var candidates=[];
+  for(var r=0;r<gridSize;r++){
+    for(var c=0;c<gridSize;c++){
+      if(solutionGrid[r]&&solutionGrid[r][c])candidates.push([r,c]);
+    }
+  }
+  if(candidates.length===0)return; /* already solved */
+  var pick=candidates[Math.floor(Math.random()*candidates.length)];
+  hintsUsed++;
+  updateHintButton();
+  sfxHint();
+  var idx=pick[0]*gridSize+pick[1];
+  var hcell=document.querySelectorAll('.light-cell')[idx];
+  if(hcell){
+    hcell.classList.add('hint-cell');
+    setTimeout(function(){hcell.classList.remove('hint-cell')},2500);
+  }
 }
 
 /* ===================== */
@@ -721,6 +786,9 @@ function showWin(){
   html+='<div class="win-coins">+'+coins+' coins</div>';
   html+='<div class="win-btns">';
   html+='<button class="btn btn-accent btn-small" onclick="closeWin();startGame()">Play Again</button>';
+  if(difficulty==='medium'){
+    html+='<button class="btn btn-outline btn-small" onclick="closeWin();difficulty=\'hard\';startGame()">Try Hard next?</button>';
+  }
   html+='<button class="btn btn-outline btn-small" onclick="closeWin();showScreen(\'homeScreen\')">Home</button>';
   html+='</div></div>';
 
