@@ -134,6 +134,10 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 @keyframes mineExplode{0%{transform:scale(0);opacity:0}40%{transform:scale(1.4)}100%{transform:scale(1);opacity:1}}
 .mine-anim{animation:mineExplode .35s ease}
 
+/* Screen shake on mine hit */
+@keyframes gridShake{0%,100%{transform:translateX(0)}10%{transform:translateX(-6px)}30%{transform:translateX(6px)}50%{transform:translateX(-4px)}70%{transform:translateX(4px)}90%{transform:translateX(-2px)}}
+.grid-wrap.shake{animation:gridShake .4s ease}
+
 /* Game over overlay */
 .game-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:50;display:flex;align-items:center;justify-content:center;animation:fadeUp .3s ease}
 .game-overlay-card{background:var(--surface);border:2px solid var(--border);border-radius:24px;padding:32px;text-align:center;max-width:400px;width:90%;animation:fadeUp .4s ease}
@@ -852,7 +856,9 @@ function winGame(){
   if(difficulty==='medium')coins=12;
   if(difficulty==='hard')coins=25;
   if(isNewBest)coins+=5;
-  if(isNewBest&&window.odaWinEffect)odaWinEffect();
+  if(isNewBest){if(window.odaWinEffect)odaWinEffect()}
+  else if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti');
+  else if(typeof odaConfetti==='function')odaConfetti();
   if(difficulty==='easy'&&time<60)coins+=5;
   localCoins+=coins;localStorage.setItem('mine_coins',localCoins);
 
@@ -872,6 +878,11 @@ function gameOver(hitR,hitC){
   sfxBoom();
 
   document.getElementById('hudFace').textContent='\uD83D\uDE35';
+
+  // Screen shake on mine hit
+  var gridWrapEl=document.getElementById('gridWrap');
+  gridWrapEl.classList.add('shake');
+  setTimeout(function(){gridWrapEl.classList.remove('shake')},400);
 
   // Mark hit cell
   var grid=document.getElementById('grid');
