@@ -85,6 +85,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .puzzle-tile.empty{background:rgba(255,255,255,.02);border:1.5px dashed rgba(255,255,255,.06)}
 .puzzle-tile.correct{background:linear-gradient(135deg,#064e3b 0%,#065f46 100%);border-color:rgba(6,214,160,.3);color:#6ee7b7}
 .puzzle-tile.sliding{transition:none;z-index:2}
+@keyframes tileSnapPulse{0%{transform:scale(1)}45%{transform:scale(1.12)}100%{transform:scale(1)}}
+.puzzle-tile.snap-pulse{animation:tileSnapPulse .15s ease-out}
 
 /* Tile themes */
 .theme-wood .puzzle-tile.filled{background:linear-gradient(135deg,#5c3d2e 0%,#8b6914 100%);border-color:rgba(139,105,20,.4);color:#fde68a;box-shadow:0 2px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.1)}
@@ -679,6 +681,7 @@ function animateSlide(fromIdx,toIdx){
       tile.dataset.value='0';
     } else {
       tile.classList.add('filled');
+      if(i===toIdx)tile.classList.add('snap-pulse');
       tile.textContent=board[i];
       tile.dataset.value=board[i];
       if(board[i]===i+1){
@@ -744,8 +747,9 @@ function showWin(){
 
   if(isNewBestMoves||isNewBestTime)sfxNewBest();
 
-  // Confetti
-  spawnConfetti();
+  // Celebration
+  var slideWinEffect=(typeof odaShop!=='undefined')?odaShop.getEquipped('slidingpuzzle','winEffect'):null;
+  if(typeof odaCelebrate==='function')odaCelebrate((slideWinEffect&&slideWinEffect.type)||'confetti');else spawnConfetti();
 
   // Win overlay
   var overlay=document.createElement('div');
