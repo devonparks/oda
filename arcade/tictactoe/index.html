@@ -766,8 +766,8 @@ function handleAiCellClick(r,c){
   localBoard[r][c]='X';
   sfxPlace();
   const win=checkWinner(localBoard);
-  if(win){localWinner=win;renderBoard();showGameResult();return}
-  if(isFull(localBoard)){localWinner='draw';renderBoard();showGameResult();return}
+  if(win){localWinner=win;renderBoard();resultTimeout=setTimeout(()=>showGameResult(),800);return}
+  if(isFull(localBoard)){localWinner='draw';renderBoard();resultTimeout=setTimeout(()=>showGameResult(),800);return}
   localTurn='O';
   aiThinking=true;
   renderBoard();updateTurnUI();
@@ -776,11 +776,11 @@ function handleAiCellClick(r,c){
     localBoard[move[0]][move[1]]='O';
     sfxPlace();
     const win2=checkWinner(localBoard);
-    if(win2){localWinner=win2;aiThinking=false;renderBoard();showGameResult();return}
-    if(isFull(localBoard)){localWinner='draw';aiThinking=false;renderBoard();showGameResult();return}
+    if(win2){localWinner=win2;aiThinking=false;renderBoard();resultTimeout=setTimeout(()=>showGameResult(),800);return}
+    if(isFull(localBoard)){localWinner='draw';aiThinking=false;renderBoard();resultTimeout=setTimeout(()=>showGameResult(),800);return}
     localTurn='X';aiThinking=false;
     renderBoard();updateTurnUI();
-  },350+Math.random()*250);
+  },aiDifficulty==='hard'?350+Math.random()*250:200+Math.random()*150);
 }
 
 // ===== AI LOGIC =====
@@ -976,7 +976,7 @@ function startLadderGame(rung){
 function showLadderIntro(opp,rung){
   const el=document.createElement('div');
   el.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid var(--accent);border-radius:16px;padding:12px 22px;z-index:9999;display:flex;align-items:center;gap:12px;animation:achSlide .4s ease;box-shadow:0 8px 32px rgba(6,214,160,.25);max-width:90vw';
-  const drawLine=rung>=LADDER_DRAW_RUNG?'<div style="color:var(--gold);font-size:12px;font-weight:700;font-family:Outfit,sans-serif;margin-top:2px">Plays perfectly — hold them to a draw to clear the rung!</div>':'';
+  const drawLine=rung>=LADDER_DRAW_RUNG?'<div style="color:var(--gold);font-size:12px;font-weight:700;font-family:Outfit,sans-serif;margin-top:2px">Plays perfectly — hold them to a draw to clear the rung!</div><div style="color:var(--gold);font-size:11px;font-weight:500;font-family:Outfit,sans-serif;margin-top:2px">Grab the center and don\'t blink — a draw clears it!</div>':'';
   el.innerHTML='<span style="font-size:30px">'+opp.emoji+'</span><div style="text-align:left"><div style="color:var(--accent);font-weight:700;font-size:12px;font-family:Fredoka,sans-serif;text-transform:uppercase;letter-spacing:1px">Rung '+rung+' — '+opp.name+'</div><div style="color:#f0f4ff;font-size:14px;font-weight:600;font-family:Outfit,sans-serif">“'+opp.taunt+'”</div>'+drawLine+'</div>';
   document.body.appendChild(el);
   setTimeout(()=>{el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(()=>el.remove(),400)},2600);
