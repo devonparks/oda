@@ -171,6 +171,9 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 /* ======================== */
 #gameScreen{padding-top:60px;padding-bottom:40px}
 .game-container{display:flex;flex-direction:column;align-items:center;gap:16px;width:95%;max-width:900px}
+/* Sunk-ship screen shake */
+@keyframes bsShake{0%,100%{transform:translateX(0)}10%{transform:translateX(-6px)}30%{transform:translateX(6px)}50%{transform:translateX(-4px)}70%{transform:translateX(4px)}90%{transform:translateX(-2px)}}
+.game-container.shake{animation:bsShake .4s ease}
 .turn-bar{text-align:center;width:100%}
 .turn-bar h2{font-size:20px;margin-bottom:2px}
 .turn-bar .turn-indicator{font-size:14px;font-weight:700;padding:6px 16px;border-radius:20px;display:inline-block}
@@ -210,6 +213,9 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 /* Sunk ship overlay */
 .game-grid .cell.sunk{background:#7f1d1d}
 .game-grid .cell.sunk::before{content:'X';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);font-weight:900;font-size:calc(var(--cell-size,36px)*.5)}
+/* Sunk-ship moment flash */
+@keyframes bsSunkFlash{0%{background:#ff1744}100%{background:#7f1d1d}}
+.game-grid .cell.sunk.sunk-flash{animation:bsSunkFlash .6s ease}
 
 /* Ship status panel */
 .ship-status{display:flex;flex-direction:column;gap:6px;width:100%;max-width:400px}
@@ -504,7 +510,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 <!-- GAME SCREEN              -->
 <!-- ======================== -->
 <div class="screen" id="gameScreen">
-  <div class="game-container">
+  <div class="game-container" id="gameContainer">
     <div class="turn-bar">
       <div class="turn-indicator" id="turnIndicator">Your Turn</div>
     </div>
@@ -696,6 +702,9 @@ let soundEnabled=true;
 // AI hunt state
 let aiHuntMode=false, aiHitStack=[], aiTriedCells=new Set();
 let aiFirstHit=null, aiDirection=null, aiLastHit=null;
+
+// Sunk-ship fx dedupe (per game, reset in ready())
+let sunkFlashedMine=new Set(), sunkFlashedEnemy=new Set();
 
 // ── Session helpers ────────────────────────────────────
 function sid(){ return localStorage.getItem('studentId')||'guest'; }
@@ -1014,6 +1023,7 @@ function renderMyGrid(){
   buildLabels('myColLabels','myRowLabels');
   const grid=document.getElementById('myGrid');
   grid.innerHTML='';
+  const newlySunk=[];
   for(let r=0;r<10;r++){
     for(let c=0;c<10;c++){
       const cell=document.createElement('div');
@@ -1023,7 +1033,14 @@ function renderMyGrid(){
       if(atk===HIT_MARK){
         cell.classList.add('hit');
         // Check if part of sunk ship
-        if(isShipSunk(myShips,r,c,enemyAttacks)) cell.classList.add('sunk');
+        if(isShipSunk(myShips,r,c,enemyAttacks)){
+          cell.classList.add('sunk');
+          const sunkShip=myShips.find(s=>s.cells.some(([sr,sc])=>sr===r&&sc===c));
+          if(sunkShip&&!sunkFlashedMine.has(sunkShip.name)){
+            cell.classList.add('sunk-flash');
+            if(newlySunk.indexOf(sunkShip.name)===-1) newlySunk.push(sunkShip.name);
+          }
+        }
       } else if(atk===MISS_MARK){
         cell.classList.add('miss');
       } else if(isShip){
@@ -1034,12 +1051,17 @@ function renderMyGrid(){
       grid.appendChild(cell);
     }
   }
+  if(newlySunk.length){
+    newlySunk.forEach(n=>sunkFlashedMine.add(n));
+    triggerSunkShake();
+  }
 }
 
 function renderAttackGrid(){
   buildLabels('atkColLabels','atkRowLabels');
   const grid=document.getElementById('attackGrid');
   grid.innerHTML='';
+  const newlySunk=[];
   for(let r=0;r<10;r++){
     for(let c=0;c<10;c++){
       const cell=document.createElement('div');
@@ -1052,6 +1074,13 @@ function renderAttackGrid(){
           // Check sunk from enemyShips data
           if(isShipSunk(enemyShips,r,c,myAttacks)) cell.classList.add('sunk');
         }
+        if(cell.classList.contains('sunk')){
+          const sunkShip=enemyShips.find(s=>s.cells.some(([sr,sc])=>sr===r&&sc===c));
+          if(sunkShip&&!sunkFlashedEnemy.has(sunkShip.name)){
+            cell.classList.add('sunk-flash');
+            if(newlySunk.indexOf(sunkShip.name)===-1) newlySunk.push(sunkShip.name);
+          }
+        }
       } else if(atk===MISS_MARK){
         cell.classList.add('miss');
       } else {
@@ -1063,6 +1092,17 @@ function renderAttackGrid(){
       grid.appendChild(cell);
     }
   }
+  if(newlySunk.length){
+    newlySunk.forEach(n=>sunkFlashedEnemy.add(n));
+    triggerSunkShake();
+  }
+}
+
+function triggerSunkShake(){
+  const gc=document.getElementById('gameContainer');
+  if(!gc)return;
+  gc.classList.add('shake');
+  setTimeout(()=>gc.classList.remove('shake'),400);
 }
 
 function isShipSunk(ships,r,c,attacks){
@@ -1349,6 +1389,8 @@ function ready(){
   }));
   myAttacks=emptyGrid();
   enemyAttacks=emptyGrid();
+  sunkFlashedMine=new Set();
+  sunkFlashedEnemy=new Set();
 
   if(gameMode==='ai'){
     // Generate AI board
