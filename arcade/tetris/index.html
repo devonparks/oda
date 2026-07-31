@@ -110,6 +110,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .board-wrap{position:relative;background:var(--surface);border:2px solid var(--border);border-radius:12px;overflow:hidden}
 .board-wrap canvas{display:block}
 
+/* Line clear popup */
+.line-clear-popup{position:absolute;left:50%;transform:translateX(-50%);font-family:'Fredoka',sans-serif;font-size:20px;font-weight:800;color:var(--gold);pointer-events:none;z-index:12;text-shadow:0 2px 6px rgba(0,0,0,.6);animation:lcPopFloat .9s ease-out forwards}
+.line-clear-popup.tetris{font-size:34px;color:var(--accent3)}
+@keyframes lcPopFloat{0%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}100%{opacity:0;transform:translateX(-50%) translateY(-50px) scale(1.25)}}
+
 /* Side panels */
 .side-panel{display:flex;flex-direction:column;gap:12px;min-width:100px}
 .panel-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
@@ -153,7 +158,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .death-overlay.show-bg .do-coins{opacity:1}
 .death-overlay .do-record{font-size:13px;color:var(--gold);font-weight:700;opacity:0;transition:opacity .3s ease .55s;animation:pulse 1.5s ease-in-out infinite}
 .death-overlay.show-bg .do-record{opacity:1}
-.death-overlay .do-btns{display:flex;flex-direction:column;gap:10px;align-items:center;margin-top:6px;opacity:0;transition:opacity .3s ease .7s}
+.death-overlay .do-btns{display:flex;flex-direction:column;gap:10px;align-items:center;margin-top:6px;opacity:0;transition:opacity .3s ease .2s}
 .death-overlay.show-bg .do-btns{opacity:1}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
 
@@ -335,6 +340,8 @@ var animFrame=null;
 var lastTime=0;
 var DAS_DELAY=170,DAS_RATE=50;
 var dasDir=0,dasTimer=0,dasActive=false;
+var SOFT_DROP_RATE=50;
+var softDropHeld=false,softDropTimer=0;
 
 /* Storage keys */
 var STORE_KEY='oda-tetris';
@@ -594,8 +601,10 @@ function clearLines(){
 
   /* Scoring: 100/300/500/800 * level */
   var pts=[0,100,300,500,800];
-  score+=pts[cleared.length]*level;
+  var gained=pts[cleared.length]*level;
+  score+=gained;
   lines+=cleared.length;
+  showLineClearPopup(cleared,gained,cleared.length);
 
   odaAchievements.unlock('firstLine');
   odaAchievements.check('double', cleared.length===2);
@@ -622,6 +631,19 @@ function clearLines(){
   if(currentMode==='sprint'&&lines>=sprintTarget){
     gameOverHandler();
   }
+}
+
+/* Floating score popup near the cleared rows */
+function showLineClearPopup(rows,gained,count){
+  var wrap=document.getElementById('boardWrap');
+  if(!wrap)return;
+  var minRow=Math.min.apply(null,rows);
+  var popup=document.createElement('div');
+  popup.className='line-clear-popup'+(count>=4?' tetris':'');
+  popup.textContent=(count>=4?'TETRIS! ':'')+'+'+gained;
+  popup.style.top=(minRow*CELL)+'px';
+  wrap.appendChild(popup);
+  setTimeout(function(){popup.remove()},900);
 }
 
 /* Spawn next piece */
@@ -815,6 +837,15 @@ function gameLoop(ts){
     }
   }
 
+  /* Soft drop repeat */
+  if(softDropHeld){
+    softDropTimer+=dt;
+    if(softDropTimer>=SOFT_DROP_RATE){
+      softDropTimer=0;
+      softDrop();
+    }
+  }
+
   /* Gravity */
   dropTimer+=dt;
   if(dropTimer>=dropInterval){
@@ -854,6 +885,7 @@ function startGame(mode){
   holdPieceData=null;canHold=true;
   bag=[];lastTime=0;
   dasDir=0;dasTimer=0;dasActive=false;
+  softDropHeld=false;softDropTimer=0;
   gameStartTime=Date.now();
 
   /* Size canvas */
@@ -974,7 +1006,9 @@ document.addEventListener('keydown',function(ev){
       if(!keys.right){keys.right=true;moveRight();dasDir=1;dasTimer=0;dasActive=false}
       break;
     case 'ArrowDown':
-      ev.preventDefault();softDrop();break;
+      ev.preventDefault();
+      if(!softDropHeld){softDropHeld=true;softDropTimer=0;softDrop()}
+      break;
     case 'ArrowUp':case 'x':case 'X':
       ev.preventDefault();rotate();break;
     case ' ':
@@ -989,6 +1023,7 @@ document.addEventListener('keyup',function(ev){
   switch(ev.key){
     case 'ArrowLeft':keys.left=false;if(dasDir===-1){dasDir=0;dasTimer=0;dasActive=false}break;
     case 'ArrowRight':keys.right=false;if(dasDir===1){dasDir=0;dasTimer=0;dasActive=false}break;
+    case 'ArrowDown':softDropHeld=false;softDropTimer=0;break;
   }
 });
 
