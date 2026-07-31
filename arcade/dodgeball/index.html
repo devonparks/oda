@@ -119,6 +119,10 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 /* HIT FLASH */
 .hit-flash{position:absolute;inset:0;background:rgba(239,71,111,.35);pointer-events:none;z-index:6;animation:hitFlash .35s ease-out forwards}
 @keyframes hitFlash{0%{opacity:1}100%{opacity:0}}
+
+/* SCREEN SHAKE */
+.shake{animation:screenShake .4s ease}
+@keyframes screenShake{0%,100%{transform:translateX(0)}10%{transform:translateX(-6px)}30%{transform:translateX(6px)}50%{transform:translateX(-4px)}70%{transform:translateX(4px)}90%{transform:translateX(-2px)}}
 </style>
 </head>
 <body>
@@ -683,8 +687,12 @@ function takeDamage(obstacle){
   // Hit flash
   var flash=document.createElement('div');
   flash.className='hit-flash';
-  document.getElementById('canvasWrap').appendChild(flash);
+  var cw=document.getElementById('canvasWrap');
+  cw.appendChild(flash);
   setTimeout(function(){flash.remove()},400);
+  // Screen shake
+  cw.classList.remove('shake');void cw.offsetWidth;cw.classList.add('shake');
+  setTimeout(function(){cw.classList.remove('shake')},400);
 
   if(lives<=0){
     die();
