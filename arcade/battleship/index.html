@@ -496,7 +496,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     </div>
     <div class="ship-dock" id="shipDock"></div>
     <div class="setup-actions">
-      <button class="btn btn-blue btn-small" onclick="BS.randomizeShips()">&#127922; Randomize</button>
+      <button class="btn btn-blue btn-small" onclick="BS.randomizeShips()">&#127922; Shuffle</button>
       <button class="btn btn-outline btn-small" onclick="BS.clearShips()">Clear</button>
       <button class="btn btn-accent" id="readyBtn" onclick="BS.ready()" disabled>Ready!</button>
     </div>
@@ -794,6 +794,7 @@ function sndLose(){
   [400,350,300,250].forEach((f,i)=>setTimeout(()=>playTone(f,.25,'sawtooth',.1),i*200));
 }
 function sndClick(){ playTone(700,.04,'sine',.06); }
+function sndAiTick(){ playTone(500,.03,'sine',.03); }
 
 // Sound toggle
 document.getElementById('soundToggle').addEventListener('click',()=>{
@@ -981,7 +982,7 @@ function updateReadyBtn(){
   document.getElementById('readyBtn').disabled=placedShips.length!==5;
 }
 
-function randomizeShips(){
+function autoPlaceShips(){
   setupBoard=emptyGrid();
   placedShips=[];
   selectedShipIndex=-1;
@@ -1000,6 +1001,10 @@ function randomizeShips(){
       tries++;
     }
   });
+}
+
+function randomizeShips(){
+  autoPlaceShips();
   sndPlace();
   renderSetupGrid();
   renderShipDock();
@@ -1201,6 +1206,7 @@ function doAttack(r,c){
 
   // AI turn
   if(gameMode==='ai'&&!gameOver){
+    sndAiTick();
     setTimeout(()=>aiTurn(),800+Math.random()*600);
   }
 }
@@ -1354,16 +1360,14 @@ function aiHuntTarget(){
 // GAME SETUP
 // ============================================
 function initSetup(){
-  setupBoard=emptyGrid();
-  placedShips=[];
-  selectedShipIndex=-1;
+  autoPlaceShips();
   orientation='h';
   document.getElementById('orientationLabel').textContent='Horizontal';
   document.getElementById('setupWaiting').style.display='none';
-  document.getElementById('readyBtn').disabled=true;
   document.getElementById('readyBtn').style.display='';
   renderSetupGrid();
   renderShipDock();
+  updateReadyBtn();
   showScreen('setupScreen');
 }
 
@@ -1893,7 +1897,8 @@ function playAgain(){
   if(unsub){unsub();unsub=null;}
   sndClick();
   if(gameMode==='ai'){
-    showScreen('aiPickerScreen');
+    startAI(aiDifficulty);
+    ready();
   } else {
     showScreen('multiplayerScreen');
   }
