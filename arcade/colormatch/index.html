@@ -130,7 +130,14 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 /* Streak indicator */
 .streak-display{font-family:'Fredoka',sans-serif;font-size:14px;color:var(--text2);font-weight:600;min-height:24px;text-align:center}
 .streak-display.hot{color:#f97316;animation:streakPulse .6s ease infinite}
+.streak-display.blazing{color:#f97316;animation:streakPulse .5s ease infinite;text-shadow:0 0 8px rgba(249,115,22,.5)}
+.streak-display.inferno{color:#ef4444;animation:streakPulse .4s ease infinite;text-shadow:0 0 14px rgba(239,68,68,.7)}
+.streak-display.legendary{color:var(--gold);animation:streakPulse .3s ease infinite;text-shadow:0 0 20px rgba(255,209,102,.85)}
 @keyframes streakPulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* Streak popup */
+.streak-popup{position:absolute;top:6%;left:50%;transform:translate(-50%,-50%) scale(0);font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;color:#f97316;z-index:10;pointer-events:none;text-shadow:0 0 20px rgba(249,115,22,.6);animation:streakPop 1.2s ease forwards;white-space:nowrap}
+@keyframes streakPop{0%{transform:translate(-50%,-50%) scale(0);opacity:0}15%{transform:translate(-50%,-50%) scale(1.2);opacity:1}30%{transform:translate(-50%,-50%) scale(1)}100%{transform:translate(-50%,-50%) scale(1) translateY(-20px);opacity:0}}
 
 /* RESULTS CARD - Glass morphism */
 .results-overlay{position:fixed;inset:0;background:rgba(10,14,26,.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:60;animation:fadeIn .3s ease}
@@ -709,7 +716,7 @@ function handleAnswer(colorName,btn){
     if(streak>=3){
       document.getElementById('hudCombo').textContent=streak+'x Streak!';
       document.getElementById('hudCombo').style.color='#f97316';
-      if(streak%5===0)sfxStreak();
+      if(streak%5===0){sfxStreak();showStreakPopup('STREAK x'+streak+'!')}
     }
 
     updateStreakDisplay();
@@ -761,9 +768,27 @@ function showScorePopup(text,color){
   setTimeout(function(){popup.remove()},700);
 }
 
+function showStreakPopup(text){
+  var container=document.getElementById('wordContainer');
+  var popup=document.createElement('div');
+  popup.className='streak-popup';
+  popup.textContent=text;
+  container.appendChild(popup);
+  setTimeout(function(){popup.remove()},1300);
+}
+
 function updateStreakDisplay(){
   var el=document.getElementById('streakDisplay');
-  if(streak>=5){
+  if(streak>=20){
+    el.textContent='Streak: '+streak+' !!!';
+    el.className='streak-display legendary';
+  }else if(streak>=15){
+    el.textContent='Streak: '+streak+' !!!';
+    el.className='streak-display inferno';
+  }else if(streak>=10){
+    el.textContent='Streak: '+streak+' !!!';
+    el.className='streak-display blazing';
+  }else if(streak>=5){
     el.textContent='Streak: '+streak+' !!!';
     el.className='streak-display hot';
   }else if(streak>=3){
