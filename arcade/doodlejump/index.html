@@ -121,6 +121,24 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
 @keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
 @keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+
+/* ===== DAILY TRIO ===== */
+.trio-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:16px 20px 8px;max-width:700px;width:90%;margin:0 auto}
+.trio-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.trio-title{font-family:'Fredoka',sans-serif;font-size:16px;font-weight:600}
+.trio-count{font-size:12px;font-weight:800;color:var(--accent);background:rgba(6,214,160,.1);border:1px solid rgba(6,214,160,.25);border-radius:12px;padding:3px 10px}
+.trio-count.all{color:var(--gold);background:rgba(255,209,102,.12);border-color:rgba(255,209,102,.35)}
+.trio-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--border)}
+.trio-row .tr-icon{font-size:20px;flex-shrink:0;width:26px;text-align:center}
+.trio-row .tr-text{flex:1;font-size:13px;font-weight:600;line-height:1.3;text-align:left}
+.trio-row .tr-prog{font-size:13px;font-weight:800;color:var(--text2);font-family:'Fredoka',sans-serif;flex-shrink:0}
+.trio-row.done .tr-text{color:var(--text2);opacity:.75}
+.trio-row.done .tr-prog{color:var(--gold);font-size:16px}
+.trio-toast{border-color:var(--accent);box-shadow:0 0 30px rgba(6,214,160,.2)}
+.trio-toast.gold{border-color:var(--gold);box-shadow:0 0 30px rgba(255,209,102,.25)}
+.trio-toast .tt-head{color:var(--accent);font-weight:700;font-size:13px;font-family:'Fredoka',sans-serif}
+.trio-toast .tt-head.gold{color:var(--gold)}
+.trio-toast .tt-body{color:var(--text);font-size:14px;font-weight:600;font-family:'Outfit',sans-serif}
 </style>
 </head>
 <body>
@@ -150,6 +168,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <h3>Shop</h3>
       <p>Skins, themes &amp; effects</p>
     </div>
+  </div>
+  <!-- DAILY TRIO -->
+  <div class="trio-card" id="trioCard">
+    <div class="trio-head"><span class="trio-title">&#11088; Today's Trio</span><span class="trio-count" id="trioCount">0/3</span></div>
+    <div id="trioRows"></div>
   </div>
   <div class="quick-stats" id="quickStats"></div>
 </div>
@@ -234,7 +257,7 @@ function showScreen(id){
     if(animId){cancelAnimationFrame(animId);animId=null;}
     gameState='idle';
   }
-  if(id==='homeScreen')loadLocalStats();
+  if(id==='homeScreen'){loadLocalStats();renderTrioCard()}
 }
 
 /* ===================== */
@@ -259,6 +282,7 @@ function sfxBounce(){playTone(400,0.08,'sine',0.1);setTimeout(function(){playTon
 function sfxSpring(){playTone(500,0.1,'sine',0.12);setTimeout(function(){playTone(900,0.12,'sine',0.1)},40);setTimeout(function(){playTone(1200,0.08,'sine',0.08)},80)}
 function sfxBreak(){playTone(200,0.15,'sawtooth',0.1,80)}
 function sfxFall(){playTone(300,0.5,'sawtooth',0.1,50)}
+function sfxCoin(){playTone(700,0.08,'sine',0.12);setTimeout(function(){playTone(1000,0.06,'sine',0.1)},50)}
 function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').innerHTML=soundOn?'&#128264;':'&#128263;';localStorage.setItem('odaSoundEnabled',soundOn)}
 if(!soundOn)document.getElementById('soundBtn').innerHTML='&#128263;';
 
@@ -377,6 +401,123 @@ function loadLocalStats(){
 loadLocalStats();
 
 /* ===================== */
+/* DAILY TRIO            */
+/* ===================== */
+/* Canonical Daily Trio implementation — docs/AMG_DAILY_TRIO_SPEC.md.
+   Seed = YYYY-MM-DD + gameId -> mulberry32 -> 3 DIFFERENT templates + params.
+   Reward calibration: a decent doodlejump run (~height 300) pays floor(300/10)=30 coins,
+   so each mission pays 30; all-3 bonus = +50% of 3*30 = 45. Coins route through the
+   existing awardCoins (anon players: awardCoins already no-ops). */
+var TRIO_GAME_ID='doodlejump';
+var TRIO_KEY='odaTrio_'+TRIO_GAME_ID;
+var TRIO_REWARD=30,TRIO_BONUS=45;
+
+/* update(progress, sessionStats, runsBeforeThisRun) -> new progress.
+   sessionStats = {score, difficulty, coinsCollected} from the run that just ended. */
+var TRIO_TEMPLATES=[
+  {id:'height_run',icon:'\u{1F680}',target:function(r){return 200+r(400)},text:function(t){return 'Bounce to height '+t+' in one run'},update:function(p,s){return Math.max(p,s.score)}},
+  {id:'height_day',icon:'☁️',target:function(r){return 800+r(800)},text:function(t){return 'Reach a total height of '+t+' today (any runs count!)'},update:function(p,s){return p+s.score}},
+  {id:'chill_run',icon:'\u{1F422}',target:function(r){return 150+r(150)},text:function(t){return 'Score '+t+' in Easy Mode'},update:function(p,s){return s.difficulty==='easy'?Math.max(p,s.score):p}},
+  {id:'runs_day',icon:'\u{1F3AE}',target:function(r){return 3+r(3)},text:function(t){return 'Play '+t+' runs today'},update:function(p,s){return p+1}},
+  {id:'hard_run',icon:'\u{1F525}',target:function(r){return 150+r(200)},text:function(t){return 'Score '+t+' on Medium or Hard'},update:function(p,s){return s.difficulty!=='easy'?Math.max(p,s.score):p}},
+  {id:'hard_runs',icon:'⚡',target:function(r){return 2+r(2)},text:function(t){return 'Finish '+t+' runs on Hard today'},update:function(p,s){return s.difficulty==='hard'?p+1:p}},
+  {id:'coins_run',icon:'\u{1FA99}',target:function(r){return 3+r(4)},text:function(t){return 'Collect '+t+' coins in one run'},update:function(p,s){return Math.max(p,s.coinsCollected||0)}},
+  {id:'coins_day',icon:'\u{1F4B0}',target:function(r){return 10+r(10)},text:function(t){return 'Collect '+t+' coins today (any runs!)'},update:function(p,s){return p+(s.coinsCollected||0)}}
+];
+function trioTemplateById(id){for(var i=0;i<TRIO_TEMPLATES.length;i++)if(TRIO_TEMPLATES[i].id===id)return TRIO_TEMPLATES[i];return null}
+
+function trioToday(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function trioHash(str){var h=1779033703^str.length;for(var i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}return h>>>0}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+function genTrio(dateStr){
+  var rng=mulberry32(trioHash(dateStr+TRIO_GAME_ID));
+  var r=function(n){return Math.floor(rng()*(n+1))}; /* r(n) = 0..n inclusive */
+  var idx=TRIO_TEMPLATES.map(function(_,i){return i});
+  for(var i=idx.length-1;i>0;i--){var j=Math.floor(rng()*(i+1));var tmp=idx[i];idx[i]=idx[j];idx[j]=tmp}
+  var ids=[],targets=[];
+  idx.slice(0,3).forEach(function(ti){var tpl=TRIO_TEMPLATES[ti];ids.push(tpl.id);targets.push(tpl.target(r,localBest))});
+  return {date:dateStr,ids:ids,targets:targets,progress:[0,0,0],done:[false,false,false],paid:[false,false,false],trioBonusPaid:false,runsToday:0};
+}
+
+function loadTrioState(){
+  var st=null;
+  try{st=JSON.parse(localStorage.getItem(TRIO_KEY)||'null')}catch(e){}
+  if(!st||st.date!==trioToday()||!st.ids||st.ids.length!==3){st=genTrio(trioToday());saveTrioState(st)}
+  return st;
+}
+function saveTrioState(st){try{localStorage.setItem(TRIO_KEY,JSON.stringify(st))}catch(e){}}
+
+/* Called ONCE per run from the die() path with that run's stats. */
+function recordTrioProgress(sessionStats){
+  var st=loadTrioState();
+  var runsBefore=st.runsToday||0;
+  var completedNow=[];
+  for(var i=0;i<3;i++){
+    var tpl=trioTemplateById(st.ids[i]);
+    if(!tpl||st.done[i])continue;
+    st.progress[i]=tpl.update(st.progress[i]||0,sessionStats,runsBefore);
+    if(st.progress[i]>=st.targets[i]){st.done[i]=true;if(!st.paid[i]){st.paid[i]=true;completedNow.push(i)}}
+  }
+  st.runsToday=runsBefore+1;
+  var allDone=st.done[0]&&st.done[1]&&st.done[2];
+  var bonusNow=allDone&&!st.trioBonusPaid;
+  if(bonusNow)st.trioBonusPaid=true;
+  saveTrioState(st); /* paid flags persist BEFORE coins fire -> idempotent */
+  completedNow.forEach(function(mi,k){
+    var t=trioTemplateById(st.ids[mi]);
+    awardCoins(TRIO_REWARD);
+    showTrioToast(t.icon,'Mission Complete!',esc(t.text(st.targets[mi]))+' • +'+TRIO_REWARD+' coins',false,800+k*700);
+  });
+  if(bonusNow){
+    awardCoins(TRIO_BONUS);
+    showTrioToast('⭐','Daily Trio ⭐','All 3 done! +'+TRIO_BONUS+' bonus coins',true,800+completedNow.length*700);
+    setTimeout(function(){if(window.odaCelebrate)try{odaCelebrate('stars')}catch(e){}},800+completedNow.length*700);
+    trioSaveCompletion();
+  }
+  renderTrioCard();
+}
+
+/* Optional additive counter on the game's records doc (existing write pattern). */
+async function trioSaveCompletion(){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'doodlejumpRecords',studentId),{trioCompletions:fb.fsMod.increment(1)});
+  }catch(e){}
+}
+
+/* Small toast, house .ach-popup pattern — fires on the game-over screen, never mid-play. */
+function showTrioToast(icon,head,body,gold,delay){
+  setTimeout(function(){
+    var el=document.createElement('div');
+    el.className='ach-popup trio-toast'+(gold?' gold':'');
+    el.innerHTML='<span style="font-size:32px">'+icon+'</span><div><div class="tt-head'+(gold?' gold':'')+'">'+head+'</div><div class="tt-body">'+body+'</div></div>';
+    document.body.appendChild(el);
+    setTimeout(function(){el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(function(){el.remove()},400)},3500);
+  },delay||0);
+}
+
+function renderTrioCard(){
+  var card=document.getElementById('trioCard');
+  if(!card)return;
+  var st=loadTrioState();
+  var rows='',doneCount=0;
+  for(var i=0;i<3;i++){
+    var tpl=trioTemplateById(st.ids[i]);
+    if(!tpl)continue;
+    var done=st.done[i];if(done)doneCount++;
+    var prog=Math.min(st.progress[i]||0,st.targets[i]);
+    rows+='<div class="trio-row'+(done?' done':'')+'"><span class="tr-icon">'+tpl.icon+'</span><span class="tr-text">'+esc(tpl.text(st.targets[i]))+'</span><span class="tr-prog">'+(done?'✓':prog+'/'+st.targets[i])+'</span></div>';
+  }
+  document.getElementById('trioRows').innerHTML=rows;
+  var cnt=document.getElementById('trioCount');
+  cnt.textContent=doneCount+'/3';
+  cnt.classList.toggle('all',doneCount===3);
+}
+renderTrioCard();
+
+/* ===================== */
 /* GAME ENGINE           */
 /* ===================== */
 var canvas,ctx,W,H,dpr;
@@ -392,7 +533,23 @@ var DIFFICULTIES={
 
 var PLAYER_W=40,PLAYER_H=40,PLAT_W=85,PLAT_H=16;
 var GRAVITY,BOUNCE_VEL,SPRING_VEL;
-var frameCount=0,coinsAwarded=false;
+var frameCount=0,coinsAwarded=false,coinsCollectedThisRun=0;
+var COIN_CHANCE=0.15,COIN_SCORE_BONUS=5;
+
+/* Danger ramp: as score climbs, breakChance/moveChance/gapMax interpolate from the
+   current difficulty's tuned base toward hard tier's tuned values (never past them —
+   hard's own gravity/gap lockstep stays the ceiling for every difficulty). */
+var RAMP_SCORE=1000;
+function rampedParams(){
+  var d=DIFFICULTIES[difficulty];
+  var hardD=DIFFICULTIES.hard;
+  var t=Math.min(1,score/RAMP_SCORE);
+  return{
+    breakChance:d.breakChance+(hardD.breakChance-d.breakChance)*t,
+    moveChance:d.moveChance+(hardD.moveChance-d.moveChance)*t,
+    gapMax:d.gapMax+(hardD.gapMax-d.gapMax)*t
+  };
+}
 
 function applyDifficulty(){
   var d=DIFFICULTIES[difficulty];
@@ -451,19 +608,21 @@ function initCanvas(){
 
 function generatePlatform(y,forceNormal){
   var d=DIFFICULTIES[difficulty];
+  var rp=rampedParams();
   var type='normal';
   if(!forceNormal){
     var r=Math.random();
-    if(r<d.breakChance)type='break';
-    else if(r<d.breakChance+d.moveChance)type='moving';
-    else if(r<d.breakChance+d.moveChance+d.springChance)type='spring';
+    if(r<rp.breakChance)type='break';
+    else if(r<rp.breakChance+rp.moveChance)type='moving';
+    else if(r<rp.breakChance+rp.moveChance+d.springChance)type='spring';
   }
   var px=Math.random()*(W-PLAT_W);
   return{
     x:px,y:y,w:PLAT_W,h:PLAT_H,type:type,
     moveDir:Math.random()>0.5?1:-1,moveSpeed:1+Math.random()*1.5,
     broken:false,breakAnim:0,
-    springAnim:0
+    springAnim:0,
+    hasCoin:Math.random()<COIN_CHANCE,coinTaken:false
   };
 }
 
@@ -471,7 +630,7 @@ function generateInitialPlatforms(){
   platforms=[];
   var d=DIFFICULTIES[difficulty];
   // Floor platform the player starts on
-  platforms.push({x:W/2-PLAT_W/2,y:H-60,w:PLAT_W,h:PLAT_H,type:'normal',moveDir:0,moveSpeed:0,broken:false,breakAnim:0,springAnim:0});
+  platforms.push({x:W/2-PLAT_W/2,y:H-60,w:PLAT_W,h:PLAT_H,type:'normal',moveDir:0,moveSpeed:0,broken:false,breakAnim:0,springAnim:0,hasCoin:false,coinTaken:false});
   var gap=H/(d.platformCount+1);
   for(var i=1;i<=d.platformCount;i++){
     var py=H-60-i*gap+Math.random()*20-10;
@@ -492,7 +651,7 @@ function startGame(){
 }
 function _finishStart(){
   player={x:W/2-PLAYER_W/2,y:H-60-PLAYER_H,vy:0,dir:0,jumpFrame:0};
-  cameraY=0;score=0;maxHeight=0;frameCount=0;coinsAwarded=false;
+  cameraY=0;score=0;maxHeight=0;frameCount=0;coinsAwarded=false;coinsCollectedThisRun=0;
   mouseX=null;touchActive=false;
   generateInitialPlatforms();
   gameState='waiting';
@@ -576,7 +735,7 @@ function update(){
       for(var k=0;k<platforms.length;k++){
         if(platforms[k].y<highest)highest=platforms[k].y;
       }
-      var gap=d.gapMax;
+      var gap=rampedParams().gapMax;
       var newY=highest-40-Math.random()*gap;
       platforms.push(generatePlatform(newY,false));
     }
@@ -612,6 +771,20 @@ function update(){
     }
   }
 
+  /* --- Coin pickups (float above ~15% of platforms) --- */
+  for(var coi=0;coi<platforms.length;coi++){
+    var cop=platforms[coi];
+    if(!cop.hasCoin||cop.coinTaken||cop.broken)continue;
+    var coinX=cop.x+cop.w/2,coinY=cop.y-14;
+    if(player.x+PLAYER_W>coinX-9&&player.x<coinX+9&&player.y+PLAYER_H>coinY-9&&player.y<coinY+9){
+      cop.coinTaken=true;
+      coinsCollectedThisRun++;
+      score+=COIN_SCORE_BONUS;
+      document.getElementById('hudScore').textContent=score;
+      sfxCoin();
+    }
+  }
+
   /* --- Game over if player falls below screen --- */
   if(player.y>H+60){
     die();
@@ -632,9 +805,9 @@ function die(){
   document.getElementById('goBest').textContent='Best: '+localBest;
   document.getElementById('goNew').style.display=isNew?'block':'none';
   document.getElementById('goCoins').textContent='+'+coins+' coins';
-  setTimeout(function(){document.getElementById('gameOverOverlay').classList.add('active')},400);
+  document.getElementById('gameOverOverlay').classList.add('active');
 
-  if(!coinsAwarded){coinsAwarded=true;awardCoins(coins);saveRecord(isNew);checkAchievements({highScore:score,gamesPlayed:localGames})}
+  if(!coinsAwarded){coinsAwarded=true;awardCoins(coins);saveRecord(isNew);checkAchievements({highScore:score,gamesPlayed:localGames});recordTrioProgress({score:score,difficulty:difficulty,coinsCollected:coinsCollectedThisRun})}
 }
 
 function drawPlatform(p){
@@ -712,6 +885,19 @@ function drawPlatform(p){
     // Spring top cap
     ctx.fillStyle=platSpring;
     ctx.beginPath();ctx.roundRect(sx-8,sy-springH-8,16,6,3);ctx.fill();
+    ctx.restore();
+  }
+
+  // Coin pickup (canvas-drawn, not emoji)
+  if(p.hasCoin&&!p.coinTaken){
+    var coinX=p.x+p.w/2,coinY=p.y-14;
+    ctx.save();
+    ctx.fillStyle='#ffd166';
+    ctx.beginPath();ctx.arc(coinX,coinY,8,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#f5a623';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle='#f5a623';
+    ctx.font='bold 10px Outfit,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('$',coinX,coinY+1);
     ctx.restore();
   }
 }
