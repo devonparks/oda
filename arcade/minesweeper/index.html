@@ -431,6 +431,7 @@ var localBestMedium=parseInt(localStorage.getItem('mine_best_medium'))||0;
 var localBestHard=parseInt(localStorage.getItem('mine_best_hard'))||0;
 var localCoins=parseInt(localStorage.getItem('mine_coins'))||0;
 var localFlags=parseInt(localStorage.getItem('mine_flags'))||0;
+var localStreak=parseInt(localStorage.getItem('mine_streak'))||0;
 
 function loadLocalStats(){
   var qs=document.getElementById('quickStats');
@@ -785,7 +786,7 @@ function cascadeReveal(r,c){
 
     neighbor.revealed=true;
     revealedCount++;
-    delay+=8;
+    delay+=4;
 
     (function(row,col,d){
       setTimeout(function(){
@@ -844,6 +845,8 @@ function winGame(){
 
   localWins++;localStorage.setItem('mine_wins',localWins);
   localGames++;localStorage.setItem('mine_games',localGames);
+  localStreak++;localStorage.setItem('mine_streak',localStreak);
+  var streakBonus=Math.min((localStreak-1)*2,10);
 
   if(window[bestKey]===0||time<window[bestKey]){
     window[bestKey]=time;
@@ -860,6 +863,7 @@ function winGame(){
   else if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti');
   else if(typeof odaConfetti==='function')odaConfetti();
   if(difficulty==='easy'&&time<60)coins+=5;
+  if(streakBonus>0)coins+=streakBonus;
   localCoins+=coins;localStorage.setItem('mine_coins',localCoins);
 
   awardCoins(coins);
@@ -868,7 +872,7 @@ function winGame(){
 
   // Show overlay
   setTimeout(function(){
-    showOverlay(true,time,coins,isNewBest);
+    showOverlay(true,time,coins,isNewBest,localStreak,streakBonus);
   },300);
 }
 
@@ -925,13 +929,29 @@ function gameOver(hitR,hitC){
   if(grid.children[hitIdx])grid.children[hitIdx].classList.add('mine-hit');
 
   localGames++;localStorage.setItem('mine_games',localGames);
+  localStreak=0;localStorage.setItem('mine_streak',localStreak);
 
   setTimeout(function(){
     showOverlay(false,timer,0,false);
   },delay+200);
 }
 
-function showOverlay(won,time,coins,isNewBest){
+var OVERLAY_DIFF_TIERS=[
+  {k:'easy',label:'Easy',bg:'#06d6a0',fg:'#111'},
+  {k:'medium',label:'Medium',bg:'#f97316',fg:'#fff'},
+  {k:'hard',label:'Hard',bg:'#ef4444',fg:'#fff'}
+];
+function diffSwitcherHTML(){
+  var h='';
+  OVERLAY_DIFF_TIERS.forEach(function(t){
+    var active=t.k===difficulty;
+    var style=active?('background:'+t.bg+';color:'+t.fg+';border:2px solid '+t.bg+';font-weight:800'):'background:none;color:var(--text2);border:2px solid var(--border)';
+    h+='<button class="btn btn-small" style="'+style+';min-width:70px;padding:8px 14px" onclick="pickDiffAndStart(\''+t.k+'\')">'+t.label+'</button>';
+  });
+  return h;
+}
+
+function showOverlay(won,time,coins,isNewBest,streakCount,streakBonus){
   var ov=document.querySelector('.game-overlay');
   if(ov)ov.remove();
 
@@ -945,6 +965,7 @@ function showOverlay(won,time,coins,isNewBest){
     html+='<div class="ov-stat"><div class="sv">'+localWins+'</div><div class="sl">Total Wins</div></div>';
     html+='</div>';
     html+='<div class="ov-coins">+'+coins+' coins</div>';
+    if(streakBonus>0)html+='<div style="color:var(--gold);font-size:12px;font-weight:700;margin:-6px 0 8px">\uD83D\uDD25 '+streakCount+' win streak &mdash; +'+streakBonus+' bonus</div>';
   } else {
     html+='<h2 style="color:#ef4444">\uD83D\uDCA5 Game Over</h2>';
     html+='<div class="ov-sub">You hit a mine after '+formatTime(time)+'</div>';
@@ -956,7 +977,10 @@ function showOverlay(won,time,coins,isNewBest){
   html+='<div class="ov-btns">';
   html+='<button class="btn btn-accent btn-small" onclick="startGame()">Play Again</button>';
   html+='<button class="btn btn-outline btn-small" onclick="showScreen(\'homeScreen\')">Home</button>';
-  html+='</div></div></div>';
+  html+='</div>';
+  html+='<div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:14px;margin-bottom:6px">Switch Difficulty</div>';
+  html+='<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'+diffSwitcherHTML()+'</div>';
+  html+='</div></div>';
 
   document.body.insertAdjacentHTML('beforeend',html);
 }
