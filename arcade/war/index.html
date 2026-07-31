@@ -131,9 +131,14 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .vs-badge{font-family:'Fredoka',sans-serif;font-size:24px;font-weight:700;color:var(--text2);display:flex;align-items:center;justify-content:center;width:50px;height:50px;border-radius:50%;background:var(--surface);border:2px solid var(--border)}
 
 /* Winning card glow */
-.card.winner{transform:translateY(-8px);box-shadow:0 0 30px rgba(6,214,160,.5),0 8px 32px rgba(0,0,0,.4);z-index:5}
+.card.winner{transform:translateY(-8px);box-shadow:0 0 30px rgba(6,214,160,.5),0 8px 32px rgba(0,0,0,.4);z-index:5;animation:winnerFlash .3s ease}
 .card.winner .card-front{box-shadow:0 0 20px rgba(6,214,160,.3)}
 .card.loser{opacity:.7;transform:scale(.95)}
+@keyframes winnerFlash{0%{box-shadow:0 0 0 rgba(6,214,160,0)}50%{box-shadow:0 0 40px rgba(6,214,160,.9)}100%{box-shadow:0 0 30px rgba(6,214,160,.5)}}
+
+/* Table shake on WAR */
+.game-arena.shake{animation:warShake .4s ease}
+@keyframes warShake{0%,100%{transform:translateX(0)}10%{transform:translateX(-6px)}30%{transform:translateX(6px)}50%{transform:translateX(-4px)}70%{transform:translateX(4px)}90%{transform:translateX(-2px)}}
 
 /* War cards */
 .war-cards{display:flex;gap:4px;margin-bottom:4px}
@@ -732,6 +737,9 @@ function resolveRound(pCard,cCard,pot){
     sfxWar();
     document.getElementById('battleStatus').innerHTML='&#9876;&#65039; WAR! &#9876;&#65039;';
     document.getElementById('battleStatus').className='battle-status war-text';
+    var arenaEl=document.getElementById('gameArena');
+    arenaEl.classList.add('shake');
+    setTimeout(function(){arenaEl.classList.remove('shake')},400);
 
     setTimeout(function(){
       doWar(pot);
