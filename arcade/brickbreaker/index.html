@@ -124,6 +124,24 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
 @keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
 @keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+
+/* ===== DAILY TRIO ===== */
+.trio-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:16px 20px 8px;max-width:700px;width:90%;margin:0 auto}
+.trio-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.trio-title{font-family:'Fredoka',sans-serif;font-size:16px;font-weight:600}
+.trio-count{font-size:12px;font-weight:800;color:var(--accent);background:rgba(6,214,160,.1);border:1px solid rgba(6,214,160,.25);border-radius:12px;padding:3px 10px}
+.trio-count.all{color:var(--gold);background:rgba(255,209,102,.12);border-color:rgba(255,209,102,.35)}
+.trio-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--border)}
+.trio-row .tr-icon{font-size:20px;flex-shrink:0;width:26px;text-align:center}
+.trio-row .tr-text{flex:1;font-size:13px;font-weight:600;line-height:1.3;text-align:left}
+.trio-row .tr-prog{font-size:13px;font-weight:800;color:var(--text2);font-family:'Fredoka',sans-serif;flex-shrink:0}
+.trio-row.done .tr-text{color:var(--text2);opacity:.75}
+.trio-row.done .tr-prog{color:var(--gold);font-size:16px}
+.trio-toast{border-color:var(--accent);box-shadow:0 0 30px rgba(6,214,160,.2)}
+.trio-toast.gold{border-color:var(--gold);box-shadow:0 0 30px rgba(255,209,102,.25)}
+.trio-toast .tt-head{color:var(--accent);font-weight:700;font-size:13px;font-family:'Fredoka',sans-serif}
+.trio-toast .tt-head.gold{color:var(--gold)}
+.trio-toast .tt-body{color:var(--text);font-size:14px;font-weight:600;font-family:'Outfit',sans-serif}
 </style>
 </head>
 <body>
@@ -153,6 +171,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <h3>Shop</h3>
       <p>Skins, themes &amp; effects</p>
     </div>
+  </div>
+  <!-- DAILY TRIO -->
+  <div class="trio-card" id="trioCard">
+    <div class="trio-head"><span class="trio-title">&#11088; Today's Trio</span><span class="trio-count" id="trioCount">0/3</span></div>
+    <div id="trioRows"></div>
   </div>
   <div class="quick-stats" id="quickStats"></div>
 </div>
@@ -239,7 +262,7 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
   document.getElementById(id).classList.add('active');
   document.body.classList.toggle('in-game',id==='gameScreen');
-  if(id==='homeScreen')loadLocalStats();
+  if(id==='homeScreen'){loadLocalStats();renderTrioCard()}
 }
 
 function stopGame(){
@@ -405,6 +428,123 @@ function loadLocalStats(){
 loadLocalStats();
 
 /* ===================== */
+/* DAILY TRIO            */
+/* ===================== */
+/* Canonical Daily Trio implementation — docs/AMG_DAILY_TRIO_SPEC.md.
+   Seed = YYYY-MM-DD + gameId -> mulberry32 -> 3 DIFFERENT templates + params.
+   Reward calibration: a decent brick breaker run (clearing into level 2-3,
+   score ~800) pays floor(800/100)=8 coins, so each mission pays 8; all-3
+   bonus = +50% of 3x8 = 12. Coins route through the existing awardCoins
+   (anon players: awardCoins already no-ops). */
+var TRIO_GAME_ID='brickbreaker';
+var TRIO_KEY='odaTrio_'+TRIO_GAME_ID;
+var TRIO_REWARD=8,TRIO_BONUS=12;
+
+/* update(progress, sessionStats, runsBeforeThisRun) -> new progress.
+   sessionStats = {score, level, maxCombo, livesLost} from the run that just ended. */
+var TRIO_TEMPLATES=[
+  {id:'score_run',icon:'\u{1F9F1}',target:function(r){return 300+r(400)},text:function(t){return 'Score '+t+' points in one run'},update:function(p,s){return Math.max(p,s.score)}},
+  {id:'score_day',icon:'\u{1F4C8}',target:function(r){return 800+r(800)},text:function(t){return 'Score '+t+' points today (any runs count!)'},update:function(p,s){return p+s.score}},
+  {id:'level_run',icon:'\u{1F680}',target:function(r){return 2+r(3)},text:function(t){return 'Reach Level '+t+' in one run'},update:function(p,s){return Math.max(p,s.level)}},
+  {id:'combo_run',icon:'⚡',target:function(r){return 5+r(7)},text:function(t){return 'Get a '+t+'x combo in one run'},update:function(p,s){return Math.max(p,s.maxCombo)}},
+  {id:'runs_day',icon:'\u{1F3AE}',target:function(r){return 3+r(3)},text:function(t){return 'Play '+t+' runs today'},update:function(p,s){return p+1}},
+  {id:'flawless_run',icon:'\u{1F48E}',target:function(r){return 1},text:function(t){return 'Clear a level without losing a life'},update:function(p,s){return(s.livesLost===0&&s.level>=2)?1:p}},
+  {id:'first_run',icon:'\u{1F305}',target:function(r){return 100},text:function(t){return 'Score '+t+'+ on your first run of the day'},update:function(p,s,runsBefore){return runsBefore===0?Math.max(p,s.score):p}}
+];
+function trioTemplateById(id){for(var i=0;i<TRIO_TEMPLATES.length;i++)if(TRIO_TEMPLATES[i].id===id)return TRIO_TEMPLATES[i];return null}
+
+function trioToday(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function trioHash(str){var h=1779033703^str.length;for(var i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}return h>>>0}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+function genTrio(dateStr){
+  var rng=mulberry32(trioHash(dateStr+TRIO_GAME_ID));
+  var r=function(n){return Math.floor(rng()*(n+1))}; /* r(n) = 0..n inclusive */
+  var idx=TRIO_TEMPLATES.map(function(_,i){return i});
+  for(var i=idx.length-1;i>0;i--){var j=Math.floor(rng()*(i+1));var tmp=idx[i];idx[i]=idx[j];idx[j]=tmp}
+  var ids=[],targets=[];
+  idx.slice(0,3).forEach(function(ti){var tpl=TRIO_TEMPLATES[ti];ids.push(tpl.id);targets.push(tpl.target(r,localBest))});
+  return {date:dateStr,ids:ids,targets:targets,progress:[0,0,0],done:[false,false,false],paid:[false,false,false],trioBonusPaid:false,runsToday:0};
+}
+
+function loadTrioState(){
+  var st=null;
+  try{st=JSON.parse(localStorage.getItem(TRIO_KEY)||'null')}catch(e){}
+  if(!st||st.date!==trioToday()||!st.ids||st.ids.length!==3){st=genTrio(trioToday());saveTrioState(st)}
+  return st;
+}
+function saveTrioState(st){try{localStorage.setItem(TRIO_KEY,JSON.stringify(st))}catch(e){}}
+
+/* Called ONCE per run from the endGame() path with that run's stats. */
+function recordTrioProgress(sessionStats){
+  var st=loadTrioState();
+  var runsBefore=st.runsToday||0;
+  var completedNow=[];
+  for(var i=0;i<3;i++){
+    var tpl=trioTemplateById(st.ids[i]);
+    if(!tpl||st.done[i])continue;
+    st.progress[i]=tpl.update(st.progress[i]||0,sessionStats,runsBefore);
+    if(st.progress[i]>=st.targets[i]){st.done[i]=true;if(!st.paid[i]){st.paid[i]=true;completedNow.push(i)}}
+  }
+  st.runsToday=runsBefore+1;
+  var allDone=st.done[0]&&st.done[1]&&st.done[2];
+  var bonusNow=allDone&&!st.trioBonusPaid;
+  if(bonusNow)st.trioBonusPaid=true;
+  saveTrioState(st); /* paid flags persist BEFORE coins fire -> idempotent */
+  completedNow.forEach(function(mi,k){
+    var t=trioTemplateById(st.ids[mi]);
+    awardCoins(TRIO_REWARD);
+    showTrioToast(t.icon,'Mission Complete!',esc(t.text(st.targets[mi]))+' • +'+TRIO_REWARD+' coins',false,800+k*700);
+  });
+  if(bonusNow){
+    awardCoins(TRIO_BONUS);
+    showTrioToast('⭐','Daily Trio ⭐','All 3 done! +'+TRIO_BONUS+' bonus coins',true,800+completedNow.length*700);
+    setTimeout(function(){if(window.odaCelebrate)try{odaCelebrate('stars')}catch(e){}},800+completedNow.length*700);
+    trioSaveCompletion();
+  }
+  renderTrioCard();
+}
+
+/* Optional additive counter on the game's records doc (existing write pattern). */
+async function trioSaveCompletion(){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'brickbreakerRecords',studentId),{trioCompletions:fb.fsMod.increment(1)});
+  }catch(e){}
+}
+
+/* Small toast, house .ach-popup pattern — fires on the game-over screen, never mid-play. */
+function showTrioToast(icon,head,body,gold,delay){
+  setTimeout(function(){
+    var el=document.createElement('div');
+    el.className='ach-popup trio-toast'+(gold?' gold':'');
+    el.innerHTML='<span style="font-size:32px">'+icon+'</span><div><div class="tt-head'+(gold?' gold':'')+'">'+head+'</div><div class="tt-body">'+body+'</div></div>';
+    document.body.appendChild(el);
+    setTimeout(function(){el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(function(){el.remove()},400)},3500);
+  },delay||0);
+}
+
+function renderTrioCard(){
+  var card=document.getElementById('trioCard');
+  if(!card)return;
+  var st=loadTrioState();
+  var rows='',doneCount=0;
+  for(var i=0;i<3;i++){
+    var tpl=trioTemplateById(st.ids[i]);
+    if(!tpl)continue;
+    var done=st.done[i];if(done)doneCount++;
+    var prog=Math.min(st.progress[i]||0,st.targets[i]);
+    rows+='<div class="trio-row'+(done?' done':'')+'"><span class="tr-icon">'+tpl.icon+'</span><span class="tr-text">'+esc(tpl.text(st.targets[i]))+'</span><span class="tr-prog">'+(done?'✓':prog+'/'+st.targets[i])+'</span></div>';
+  }
+  document.getElementById('trioRows').innerHTML=rows;
+  var cnt=document.getElementById('trioCount');
+  cnt.textContent=doneCount+'/3';
+  cnt.classList.toggle('all',doneCount===3);
+}
+renderTrioCard();
+
+/* ===================== */
 /* GAME ENGINE           */
 /* ===================== */
 var canvas,ctx,W,H,dpr;
@@ -568,7 +708,7 @@ function update(){
   if(mouseX!==null){
     var targetX=mouseX-paddle.w/2;
     targetX=Math.max(0,Math.min(W-paddle.w,targetX));
-    paddle.x+=(targetX-paddle.x)*0.3;
+    paddle.x+=(targetX-paddle.x)*0.42;
   }
   if(keysDown['ArrowLeft']||keysDown['KeyA']){
     paddle.x=Math.max(0,paddle.x-8);
@@ -654,7 +794,7 @@ function update(){
         else{b.vy=-b.vy}
 
         /* Power-up drop (15% chance) */
-        if(Math.random()<0.15){
+        if(Math.random()<0.20){
           var pu=POWERUP_TYPES[Math.floor(Math.random()*POWERUP_TYPES.length)];
           powerups.push({
             x:br.x+br.w/2,
@@ -962,7 +1102,7 @@ function endGame(){
   document.getElementById('goNew').style.display=isNew?'block':'none';
   document.getElementById('goCoins').textContent='+'+coins+' coins';
 
-  setTimeout(function(){document.getElementById('gameOverOverlay').classList.add('active')},600);
+  setTimeout(function(){document.getElementById('gameOverOverlay').classList.add('active')},400);
 
   if(!coinsAwarded){
     coinsAwarded=true;
@@ -976,6 +1116,7 @@ function endGame(){
       perfectClears:localPerfectClears,
       gamesPlayed:localGames
     });
+    recordTrioProgress({score:score,level:level,maxCombo:maxCombo,livesLost:livesLostThisGame});
   }
 }
 
@@ -1113,7 +1254,7 @@ odaHelp.init({
   title:'Brick Breaker',emoji:'\u{1F9F1}',subtitle:'Smash bricks, earn points!',
   sections:[
     {title:'Rules',icon:'\u{1F4D6}',items:['Move your paddle to bounce the ball','Break all bricks to advance to the next level','Each level adds more rows and slightly faster ball','You have 3 lives \u2014 lose a life when the ball falls','Catch power-ups dropped from broken bricks!']},
-    {title:'Power-Ups',icon:'\u26A1',items:['Green (W): Wide Paddle for 10 seconds','Blue (M): Splits into 3 balls','Red (\u2665): Extra life','15% chance to drop from any brick']},
+    {title:'Power-Ups',icon:'\u26A1',items:['Green (W): Wide Paddle for 10 seconds','Blue (M): Splits into 3 balls','Red (\u2665): Extra life','20% chance to drop from any brick']},
     {title:'Scoring',icon:'\u{1F3AF}',items:['Red bricks (top): 50 pts','Orange bricks: 40 pts','Yellow bricks: 30 pts','Green bricks: 20 pts','Blue bricks (bottom): 10 pts','Combo multiplier for consecutive hits without paddle bounce','Coins = score / 100 (bonus 5 for new best)']}
   ],
   controls:[{key:'Mouse',action:'Move paddle'},{key:'Touch',action:'Move paddle (mobile)'},{key:'\u2190/\u2192',action:'Move paddle'},{key:'Click/Space',action:'Launch ball'}],
