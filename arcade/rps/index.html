@@ -186,6 +186,32 @@ h1,h2,h3{font-family:'Fredoka',sans-serif}
 .pl-name{font-weight:600;font-size:14px}
 .pl-status{font-size:12px;color:var(--accent);font-weight:700}
 
+/* ===== TELLS LADDER ===== */
+#ladderScreen{padding-top:80px;padding-bottom:40px}
+.ladder-container{max-width:440px;width:90%;margin:0 auto}
+.ladder-rungs{display:flex;flex-direction:column;gap:14px;margin-top:20px;position:relative;padding-left:14px}
+.ladder-rungs::before{content:'';position:absolute;left:0;top:24px;bottom:24px;width:4px;border-radius:2px;background:linear-gradient(to top,var(--accent),var(--gold))}
+.ladder-rung{display:flex;align-items:center;gap:14px;padding:16px 18px}
+.ladder-rung .lr-num{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Fredoka',sans-serif;font-weight:700;font-size:14px;color:var(--text2)}
+.ladder-rung .lr-avatar{font-size:30px;flex-shrink:0}
+.ladder-rung .lr-info{flex:1;min-width:0;text-align:left}
+.ladder-rung .lr-info h3{font-size:16px;margin-bottom:2px}
+.ladder-rung .lr-info p{font-size:12px;color:var(--text2);line-height:1.35}
+.ladder-rung .lr-star{font-size:22px;flex-shrink:0}
+.ladder-rung .lr-lock{font-size:18px;flex-shrink:0;opacity:.7}
+.ladder-rung .lr-play{flex-shrink:0;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:1px;background:var(--accent);color:var(--bg)}
+.ladder-rung.beaten{border-color:var(--accent);background:rgba(6,214,160,.06)}
+.ladder-rung.beaten:hover{transform:none;box-shadow:none;border-color:var(--accent)}
+.ladder-rung.beaten .lr-num{background:rgba(6,214,160,.15);border-color:var(--accent);color:var(--accent)}
+.ladder-rung.current{cursor:pointer;border-color:var(--gold);animation:rungGlow 1.6s ease-in-out infinite alternate}
+.ladder-rung.current .lr-num{background:rgba(255,209,102,.15);border-color:var(--gold);color:var(--gold)}
+.ladder-rung.locked{opacity:.45;filter:grayscale(.5)}
+.ladder-rung.locked:hover{transform:none;box-shadow:none;border-color:var(--border)}
+@keyframes rungGlow{from{box-shadow:0 0 10px rgba(255,209,102,.12)}to{box-shadow:0 0 26px rgba(255,209,102,.35)}}
+@keyframes ladderSlide{from{opacity:0;transform:translateX(-50%) translateY(-30px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.ladder-champion{background:linear-gradient(135deg,rgba(255,209,102,.15),rgba(6,214,160,.1));border:2px solid var(--gold);border-radius:20px;padding:18px 22px;text-align:center;font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700;color:var(--gold);margin-top:16px;text-shadow:0 0 20px rgba(255,209,102,.3)}
+.ladder-champion span{display:block;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:var(--text2);margin-top:4px;text-shadow:none}
+
 /* Confetti canvas */
 #confettiCanvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:300}
 
@@ -238,6 +264,11 @@ h1,h2,h3{font-family:'Fredoka',sans-serif}
       <span class="mode-icon">&#x1F916;</span>
       <h3>VS Computer</h3>
       <p>Play against the AI</p>
+    </div>
+    <div class="card mode-card" onclick="showLadderScreen()">
+      <span class="mode-icon">&#129692;</span>
+      <h3>Tells Ladder</h3>
+      <p>10 rivals, each with a tell to crack</p>
     </div>
     <div class="card mode-card" onclick="showMultiplayer()">
       <span class="mode-icon">&#9889;</span>
@@ -369,10 +400,11 @@ h1,h2,h3{font-family:'Fredoka',sans-serif}
     <div class="final-score" id="finalScore"><span class="fs-win">3</span> - <span class="fs-lose">1</span></div>
     <div class="result-sub" id="resultSub"></div>
     <div class="coins-display" id="coinsDisplay"></div>
-    <div class="result-buttons">
+    <div class="result-buttons" id="resultButtons">
       <button class="btn btn-accent" id="rematchBtn" onclick="rematchGame()">&#x1F504; Rematch</button>
       <button class="btn btn-outline" onclick="playAgain()">Home</button>
     </div>
+    <div class="result-buttons" id="ladderResultButtons" style="display:none"></div>
   </div>
 </div>
 
@@ -436,6 +468,22 @@ h1,h2,h3{font-family:'Fredoka',sans-serif}
     <p style="color:var(--text2);font-size:14px;margin-bottom:16px;text-align:center">Customize your hands, arena &amp; effects</p>
     <div id="rpsShopContainer"></div>
     <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&larr; Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TELLS LADDER SCREEN ===== -->
+<div class="screen" id="ladderScreen">
+  <div class="ladder-container">
+    <div style="text-align:center;margin-bottom:4px">
+      <h2 style="font-size:28px">&#129692; Tells Ladder</h2>
+      <p style="color:var(--text2);font-size:14px;margin-top:4px">Every rival has a tell. Spot it, beat it, climb.</p>
+      <p style="color:var(--text2);font-size:13px;margin-top:2px" id="ladderProgressLine">Rung 1 of 10</p>
+    </div>
+    <div id="ladderChampionBanner"></div>
+    <div class="ladder-rungs" id="ladderRungs"></div>
+    <div style="text-align:center;margin:20px 0">
       <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&larr; Back</button>
     </div>
   </div>
@@ -722,6 +770,7 @@ function setupGameUI(oppName){
 
 // ===== AI GAME =====
 window.startAiGame=function(diff){
+  exitLadderMode();
   gameMode='ai';
   aiDifficulty=diff;
   playerHistory=[];
@@ -810,10 +859,18 @@ window.makeChoice=function(choice){
 };
 
 async function processAiRound(choice){
+  // Ladder AI must read "your last throw" = the PREVIOUS round, so pick
+  // before the current throw lands in playerHistory.
+  const ladderChoice=ladderMode?getLadderAiMove(ladderRungActive):null;
   playerHistory.push(choice);
   enableChoices(false);
   highlightChoice(choice);
-  const oppChoice=getAiChoice(aiDifficulty);
+  const oppChoice=ladderChoice||getAiChoice(aiDifficulty);
+  if(ladderMode){
+    ladderAiHistory.push(oppChoice);
+    const lr=determineWinner(choice,oppChoice);
+    ladderAiLastResult=lr==='win'?'lose':lr==='lose'?'win':'draw';
+  }
 
   // Set shake animation
   document.getElementById('arenaLeft').innerHTML='\u270A';
@@ -900,9 +957,13 @@ function revealChoices(myC,oppC){
       banner.className='round-banner draw';
     }
 
-    history.push({round:currentRound,myChoice:myC,oppChoice:oppC,result});
-    currentRound++;
-    renderRoundHistory();
+    if(ladderMode&&result==='draw'){
+      // Tells Ladder: draws replay the round - no advance, no history slot
+    }else{
+      history.push({round:currentRound,myChoice:myC,oppChoice:oppC,result});
+      currentRound++;
+      renderRoundHistory();
+    }
 
     // Check match over
     const winsNeeded=Math.ceil(bestOf/2);
@@ -910,7 +971,7 @@ function revealChoices(myC,oppC){
       matchOver=true;
       setTimeout(()=>showMatchResult(),1500);
     }else{
-      document.getElementById('statusText').textContent='Next round - choose your move!';
+      document.getElementById('statusText').textContent=(ladderMode&&result==='draw')?'Draw - replay the round!':'Next round - choose your move!';
       setTimeout(()=>{
         myChoice=null;
         enableChoices(true);
@@ -996,7 +1057,42 @@ function showMatchResult(){
   scoreEl.innerHTML='<span class="fs-win">'+myScore+'</span> - <span class="fs-lose">'+oppScore+'</span>';
 
   let coins=0;
-  if(gameMode==='ai'){
+  // Tells Ladder swaps in its own action buttons; every other mode keeps the defaults
+  const isLadderResult=gameMode==='ai'&&ladderMode;
+  const defBtnsEl=document.getElementById('resultButtons');
+  const ladBtnsEl=document.getElementById('ladderResultButtons');
+  if(defBtnsEl&&ladBtnsEl){
+    defBtnsEl.style.display=isLadderResult?'none':'';
+    ladBtnsEl.style.display=isLadderResult?'flex':'none';
+  }
+  if(isLadderResult){
+    const opp=LADDER_OPPONENTS[ladderRungActive-1]||LADDER_OPPONENTS[0];
+    if(iWon){
+      const firstClear=!ladderState.cleared[ladderRungActive];
+      const isFinal=ladderRungActive>=LADDER_OPPONENTS.length;
+      titleEl.textContent=isFinal?'Ladder Champion!':'Rung '+ladderRungActive+' Cleared!';
+      titleEl.style.color='var(--accent)';
+      subEl.textContent=isFinal?'You read every tell on the ladder!':'You cracked '+opp.name+'’s tell!';
+      coins=firstClear?LADDER_COINS[ladderRungActive-1]:5;
+      sfxMatchWin();
+      if(typeof odaCelebrate==='function')odaCelebrate(myCosmetics.winEffect?.type||'confetti');
+      if(!coinsAwarded){
+        ladderState.cleared[ladderRungActive]=true;
+        ladderState.rung=Math.max(ladderState.rung,ladderRungActive+1);
+        saveLadderState(ladderRungActive);
+      }
+      ladBtnsEl.innerHTML=ladderState.rung>LADDER_OPPONENTS.length
+        ?'<button class="btn btn-gold" onclick="backToLadder()">\u{1F3C6} View Ladder</button><button class="btn btn-outline" onclick="playAgain()">Home</button>'
+        :'<button class="btn btn-accent" onclick="backToLadder()">Next Rung →</button><button class="btn btn-outline" onclick="playAgain()">Home</button>';
+    }else{
+      titleEl.textContent=opp.name+' Wins!';
+      titleEl.style.color='var(--accent3)';
+      coins=2;
+      subEl.textContent='“'+opp.taunt+'” — there’s a clue in there...';
+      sfxMatchLose();
+      ladBtnsEl.innerHTML='<button class="btn btn-accent" onclick="retryLadderRung()">\u{1F504} Run It Back</button><button class="btn btn-outline" onclick="backToLadder()">Ladder</button>';
+    }
+  }else if(gameMode==='ai'){
     if(iWon){
       titleEl.textContent='You Win!';
       titleEl.style.color='var(--accent)';
@@ -1066,6 +1162,7 @@ function showMatchResult(){
 }
 
 window.playAgain=function(){
+  exitLadderMode();
   if(unsub){unsub();unsub=null}
   roomCode=null;myPlayer=0;
   showScreen('homeScreen');
@@ -1073,6 +1170,7 @@ window.playAgain=function(){
 
 window.rematchGame=async function(){
   if(gameMode==='ai'){
+    if(ladderMode){window.retryLadderRung();return}
     // AI rematch: reset state, keep same difficulty and bestOf
     initGameState();
     playerHistory=[];
@@ -1164,6 +1262,189 @@ async function updateRecord(won,draw){
   }catch(e){console.warn('Record update failed:',e)}
 }
 
+// ===== TELLS LADDER =====
+// 10 rivals, each with a LEARNABLE pattern (a "tell"). Best-of-5 per rung,
+// draws replay the round. Rides the existing AI-match flow via ladderMode.
+const LADDER_OPPONENTS=[
+  {name:'Rocky',emoji:'\u{1FAA8}',taunt:'Rocky never changes. Ever.'},
+  {name:'Tick-Tock Tina',emoji:'⏰',taunt:'Tick, tock. Back and forth. Tick, tock.'},
+  {name:'Counter Carl',emoji:'\u{1F94A}',taunt:'Whatever you just threw, I’ve already beaten it.'},
+  {name:'Stubborn Stan',emoji:'\u{1F402}',taunt:'If it works, why change? If it fails... fine, I’ll change.'},
+  {name:'Cyclone Cy',emoji:'\u{1F300}',taunt:'One, two, three. One, two, three. Round and round I go.'},
+  {name:'Mimic Mia',emoji:'\u{1FA9E}',taunt:'Great move! I think I’ll borrow it.'},
+  {name:'Sweet Pea',emoji:'\u{1F338}',taunt:'Aw, you tried so hard. Here, let me help you out.'},
+  {name:'Professor Count',emoji:'\u{1F9EE}',taunt:'I’ve been counting your favorite move since round one.'},
+  {name:'Twinface',emoji:'\u{1F3AD}',taunt:'One of me copies you. One of me punishes you. We take turns.'},
+  {name:'The Broker',emoji:'\u{1F574}\u{FE0F}',taunt:'I’ve already priced in your next throw. Meet me at 755 Broadway.'}
+];
+// Calibrated from existing payouts: hard AI win = 15, so top rung first-clear = 30 (~2x hard win cap)
+const LADDER_COINS=[6,8,10,12,14,16,18,20,24,30];
+const LADDER_KEY='rps_ladder_'+(studentId.startsWith('anon_')?'anon':studentId);
+let ladderMode=false,ladderRungActive=1,ladderPrevBestOf=null;
+let ladderAiHistory=[],ladderAiLastResult=null;
+let ladderState=(function(){
+  try{
+    const s=JSON.parse(localStorage.getItem(LADDER_KEY)||'');
+    if(s&&typeof s.rung==='number')return{rung:Math.min(Math.max(Math.floor(s.rung),1),LADDER_OPPONENTS.length+1),cleared:(s.cleared&&typeof s.cleared==='object')?s.cleared:{}};
+  }catch(e){}
+  return{rung:1,cleared:{}};
+})();
+
+function ladderBeats(move){return WINS_OVER[WINS_OVER[move]]} // the throw that beats `move`
+function ladderRandom(){return ['rock','paper','scissors'][Math.floor(Math.random()*3)]}
+function ladderMostUsed(hist){
+  const counts={rock:0,paper:0,scissors:0};
+  hist.forEach(m=>counts[m]++);
+  let best='rock',bc=-1;
+  for(const m of ['rock','paper','scissors']){if(counts[m]>bc){bc=counts[m];best=m}}
+  return best;
+}
+
+// Called BEFORE the current throw is pushed to playerHistory, so
+// "your last throw" always means the previous round.
+function getLadderAiMove(rung){
+  const pLast=playerHistory.length?playerHistory[playerHistory.length-1]:null;
+  const aLast=ladderAiHistory.length?ladderAiHistory[ladderAiHistory.length-1]:null;
+  const n=ladderAiHistory.length;
+  switch(rung){
+    case 1:return 'rock';                                   // always rock
+    case 2:return n%2===0?'rock':'paper';                   // alternates rock / paper
+    case 3:return pLast?ladderBeats(pLast):ladderRandom();  // beats YOUR last throw
+    case 4:                                                 // repeats its winner, switches after losing
+      if(!aLast)return ladderRandom();
+      if(ladderAiLastResult==='lose')return pLast?ladderBeats(pLast):ladderRandom();
+      return aLast;
+    case 5:return ['rock','paper','scissors'][n%3];         // cycles R-P-S
+    case 6:return pLast||ladderRandom();                    // mirrors your previous throw
+    case 7:return pLast?WINS_OVER[pLast]:ladderRandom();    // "too nice" - plays what LOSES to your last
+    case 8:return playerHistory.length?ladderBeats(ladderMostUsed(playerHistory)):ladderRandom(); // counters your most-used
+    case 9:                                                 // mixes two patterns: punish, then copy
+      if(!pLast)return ladderRandom();
+      return n%2===0?ladderBeats(pLast):pLast;
+    default:                                                // The Broker: frequency counter + 20% noise
+      if(playerHistory.length<2||Math.random()<0.2)return ladderRandom();
+      return ladderBeats(ladderMostUsed(playerHistory));
+  }
+}
+window.getLadderAiMove=getLadderAiMove;
+
+function exitLadderMode(){
+  if(!ladderMode)return;
+  ladderMode=false;
+  if(ladderPrevBestOf)bestOf=ladderPrevBestOf;
+  ladderPrevBestOf=null;
+}
+
+function saveLadderState(clearedRung){
+  try{localStorage.setItem(LADDER_KEY,JSON.stringify(ladderState))}catch(e){}
+  syncLadderToRecord(clearedRung);
+}
+
+async function syncLadderToRecord(clearedRung){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    const ref=doc(db,'rpsRecords',studentId);
+    const snap=await getDoc(ref);
+    if(snap.exists()){
+      const upd={ladderRung:ladderState.rung};
+      if(clearedRung)upd['ladderCleared.'+clearedRung]=true;
+      await updateDoc(ref,upd);
+    }else{
+      const cleared={};if(clearedRung)cleared[clearedRung]=true;
+      await setDoc(ref,{
+        studentId,studentName,classCode,
+        wins:0,losses:0,draws:0,gamesPlayed:0,winStreak:0,bestStreak:0,
+        ladderRung:ladderState.rung,ladderCleared:cleared
+      });
+    }
+  }catch(e){console.warn('Ladder sync failed:',e)}
+}
+
+async function hydrateLadderFromRecord(){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    const snap=await getDoc(doc(db,'rpsRecords',studentId));
+    if(!snap.exists())return;
+    const rec=snap.data();
+    let changed=false;
+    if(typeof rec.ladderRung==='number'&&rec.ladderRung>ladderState.rung){
+      ladderState.rung=Math.min(Math.floor(rec.ladderRung),LADDER_OPPONENTS.length+1);changed=true;
+    }
+    if(rec.ladderCleared&&typeof rec.ladderCleared==='object'){
+      for(const k in rec.ladderCleared){if(rec.ladderCleared[k]&&!ladderState.cleared[k]){ladderState.cleared[k]=true;changed=true}}
+    }
+    if(changed){
+      try{localStorage.setItem(LADDER_KEY,JSON.stringify(ladderState))}catch(e){}
+      if(document.getElementById('ladderScreen').classList.contains('active'))renderLadder();
+    }
+  }catch(e){}
+}
+
+window.showLadderScreen=function(){
+  showScreen('ladderScreen');
+  renderLadder();
+  hydrateLadderFromRecord();
+};
+
+function renderLadder(){
+  const wrap=document.getElementById('ladderRungs');
+  const line=document.getElementById('ladderProgressLine');
+  const banner=document.getElementById('ladderChampionBanner');
+  const total=LADDER_OPPONENTS.length;
+  const champion=ladderState.rung>total;
+  line.textContent=champion?'All '+total+' tells cracked!':'Rung '+ladderState.rung+' of '+total;
+  banner.innerHTML=champion?'<div class="ladder-champion">\u{1F3C6} Ladder Champion \u{1F3C6}<span>You read every rival’s tell!</span></div>':'';
+  let html='';
+  for(let r=total;r>=1;r--){
+    const opp=LADDER_OPPONENTS[r-1];
+    const beaten=r<ladderState.rung;
+    const current=!champion&&r===ladderState.rung;
+    const cls=beaten?'beaten':(current?'current':'locked');
+    const status=beaten?'<span class="lr-star">⭐</span>':(current?'<span class="lr-play">PLAY</span>':'<span class="lr-lock">\u{1F512}</span>');
+    html+='<div class="card ladder-rung '+cls+'"'+(current?' onclick="startLadderGame('+r+')"':'')+'>'
+      +'<span class="lr-num">'+r+'</span>'
+      +'<span class="lr-avatar">'+opp.emoji+'</span>'
+      +'<div class="lr-info"><h3>'+opp.name+'</h3><p>&ldquo;'+opp.taunt+'&rdquo;</p></div>'
+      +status+'</div>';
+  }
+  wrap.innerHTML=html;
+  const cur=wrap.querySelector('.ladder-rung.current');
+  if(cur&&cur.scrollIntoView)setTimeout(()=>{cur.scrollIntoView({block:'center',behavior:'smooth'})},80);
+}
+
+window.startLadderGame=function(rung){
+  if(rung!==ladderState.rung||rung<1||rung>LADDER_OPPONENTS.length)return;
+  const opp=LADDER_OPPONENTS[rung-1];
+  exitLadderMode(); // restore any stale ladder state so we capture the player's real best-of
+  ladderPrevBestOf=bestOf;
+  bestOf=5; // every rung is best-of-5: first to 3 round wins, draws replay
+  window.startAiGame('medium');
+  ladderMode=true;ladderRungActive=rung;
+  ladderAiHistory=[];ladderAiLastResult=null;
+  document.getElementById('p2Name').textContent=opp.name;
+  document.getElementById('arenaRightLabel').textContent=opp.name;
+  showLadderIntro(opp,rung);
+};
+
+function showLadderIntro(opp,rung){
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid var(--accent);border-radius:16px;padding:12px 22px;z-index:9999;display:flex;align-items:center;gap:12px;animation:ladderSlide .4s ease;box-shadow:0 8px 32px rgba(6,214,160,.25);max-width:90vw';
+  el.innerHTML='<span style="font-size:30px">'+opp.emoji+'</span><div style="text-align:left"><div style="color:var(--accent);font-weight:700;font-size:12px;font-family:Fredoka,sans-serif;text-transform:uppercase;letter-spacing:1px">Rung '+rung+' — '+opp.name+'</div><div style="color:#f0f4ff;font-size:14px;font-weight:600;font-family:Outfit,sans-serif">“'+opp.taunt+'”</div></div>';
+  document.body.appendChild(el);
+  setTimeout(()=>{el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(()=>el.remove(),400)},2600);
+}
+
+window.backToLadder=function(){
+  exitLadderMode();
+  window.showLadderScreen();
+};
+
+window.retryLadderRung=function(){
+  const r=ladderRungActive;
+  exitLadderMode();
+  window.startLadderGame(r);
+};
+
 // ===== QUICK STATS =====
 async function loadQuickStats(){
   if(!studentId||studentId.startsWith('anon_'))return;
@@ -1174,7 +1455,8 @@ async function loadQuickStats(){
       document.getElementById('quickStats').innerHTML=`
         <div class="stat-pill"><span>Wins:</span><span class="stat-num">${d.wins||0}</span></div>
         <div class="stat-pill"><span>W/L:</span><span class="stat-num">${d.losses?((d.wins||0)/d.losses).toFixed(1):(d.wins||0).toFixed(1)}</span></div>
-        <div class="stat-pill"><span>Streak:</span><span class="stat-num">${d.winStreak||0}</span></div>`;
+        <div class="stat-pill"><span>Streak:</span><span class="stat-num">${d.winStreak||0}</span></div>
+        <div class="stat-pill"><span>Ladder:</span><span class="stat-num">Rung ${Math.min(ladderState.rung,LADDER_OPPONENTS.length)}/${LADDER_OPPONENTS.length}</span></div>`;
     }
   }catch(e){}
 }
@@ -1245,6 +1527,7 @@ window.showRecords=async function(){
 // ===== MULTIPLAYER =====
 window.createRoom=async function(){
   try{
+    exitLadderMode();
     gameMode='mp';
     initGameState();
     roomCode=genCode();
@@ -1288,6 +1571,7 @@ window.joinRoom=async function(){
     if(data.status!=='waiting'){showError('lobbyError','Game already in progress');return}
     if(data.player1===studentId){showError('lobbyError','You can\'t join your own game');return}
 
+    exitLadderMode();
     gameMode='mp';
     initGameState();
     roomCode=code;
@@ -1316,6 +1600,13 @@ window.leaveGame=function(){
     gameMode=null;
     tourneyMatchKey=null;tourneyP1=null;tourneyP2=null;
     showScreen('tournamentBracketScreen');
+    return;
+  }
+  if(ladderMode){
+    // Bail out of a ladder rung back to the ladder - no progress lost.
+    exitLadderMode();
+    gameMode=null;
+    window.showLadderScreen();
     return;
   }
   if(unsub){unsub();unsub=null}
@@ -2054,7 +2345,8 @@ odaHelp.init({
   title:'Rock Paper Scissors', emoji:'\u270A', subtitle:'Choose your weapon!',
   sections:[
     {title:'Rules', icon:'\u{1F4D6}', items:['Rock beats Scissors','Scissors beats Paper','Paper beats Rock','Win the majority of rounds to win the match']},
-    {title:'Modes', icon:'\u26A1', items:['VS Computer \u2014 Play against AI with 3 difficulty levels','Quick Match \u2014 Challenge a friend with a room code','Tournament \u2014 Bracket-style competition']}
+    {title:'Modes', icon:'\u26A1', items:['VS Computer \u2014 Play against AI with 3 difficulty levels','Tells Ladder \u2014 Outsmart 10 rivals with readable patterns','Quick Match \u2014 Challenge a friend with a room code','Tournament \u2014 Bracket-style competition']},
+    {title:'Tells Ladder', icon:'\u{1FA9C}', items:['Climb 10 rungs \u2014 every rival has a learnable pattern (a \u201Ctell\u201D)','Best of 5: win 3 rounds to clear a rung \u2014 draws replay the round','Their taunt is a clue. Watch a few throws and crack the code','First-time clears pay bigger coins the higher you climb!']}
   ],
   controls:[{key:'Click',action:'Choose your move'}],
   tip:'<strong>On Hard mode, the AI reads your patterns!</strong> Mix up your choices randomly to avoid being predictable.'
