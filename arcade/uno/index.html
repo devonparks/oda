@@ -214,6 +214,28 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   100%{opacity:0;transform:translate(-50%,-50%) scale(1.5) rotate(0deg)}
 }
 
+/* THE UNO CALL — interactive call/catch windows (solo AI modes) */
+.uno-call-overlay{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:210;display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none}
+.uno-call-btn{pointer-events:auto;border:none;cursor:pointer;font-family:'Fredoka',sans-serif;font-weight:900;font-size:clamp(32px,9vw,56px);line-height:1;padding:20px 48px;border-radius:70px;color:#fff;background:linear-gradient(135deg,var(--accent3,#ef476f),#c81e5b);box-shadow:0 0 36px rgba(239,71,111,.55),0 8px 24px rgba(0,0,0,.5);text-shadow:0 2px 6px rgba(0,0,0,.35);animation:unoCallPulse .45s ease-in-out infinite alternate}
+.uno-call-btn:active{transform:scale(.93)}
+.uno-call-btn.catch{font-size:clamp(24px,6vw,40px);padding:16px 40px;background:linear-gradient(135deg,var(--accent,#06d6a0),#0a9d78);box-shadow:0 0 36px rgba(6,214,160,.55),0 8px 24px rgba(0,0,0,.5)}
+@keyframes unoCallPulse{from{transform:scale(1)}to{transform:scale(1.06)}}
+.uno-call-timer{width:200px;max-width:60vw;height:8px;border-radius:4px;background:rgba(255,255,255,.18);overflow:hidden;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.uno-call-timer-fill{height:100%;width:100%;border-radius:4px;background:#fff;transform-origin:left center;animation:unoTimerShrink linear forwards}
+@keyframes unoTimerShrink{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+.uno-call-label{font-size:13px;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.6);pointer-events:none}
+
+/* Draw-confirm panel (play the drawn card or keep it) */
+.draw-confirm{position:fixed;left:50%;bottom:180px;transform:translateX(-50%);z-index:210;background:var(--surface,#12172b);border:2px solid var(--accent,#06d6a0);border-radius:16px;padding:14px 18px;display:flex;flex-direction:column;align-items:center;gap:10px;box-shadow:0 12px 40px rgba(0,0,0,.55);animation:fadeUp .2s ease}
+.draw-confirm .dc-title{font-size:14px;font-weight:700}
+.draw-confirm .dc-row{display:flex;align-items:center;gap:14px}
+.draw-confirm .dc-btns{display:flex;flex-direction:column;gap:8px}
+.draw-confirm .uno-card{margin-left:0;cursor:default}
+.draw-confirm .uno-card:hover{transform:none}
+.draw-confirm .dc-note{font-size:11px;color:var(--text2,#8b93b0)}
+.drawn-highlight{outline:3px solid var(--gold,#ffd166);outline-offset:-1px;box-shadow:0 0 16px rgba(255,209,102,.7)}
+@media (max-width:600px){.draw-confirm{bottom:150px;padding:10px 14px}}
+
 /* Action flash */
 .action-flash{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:clamp(36px,10vw,72px);font-weight:900;font-family:'Fredoka',sans-serif;z-index:200;pointer-events:none;animation:actionFlash .6s ease-out forwards;text-shadow:0 0 20px rgba(0,0,0,.5)}
 @keyframes actionFlash{
@@ -722,6 +744,8 @@ let roomCode=null,unsub=null,myPlayer=0;
 let unsubTourney=null,currentTourneyCode=null,currentTourneyData=null;
 let lastAIMode=null,lastPlayerCount=2;
 let cardsPlayedCount=0;
+let unoCallState=null;    // THE UNO CALL: {type:'player'|'catch', aiIndex?, timer, el} — solo AI modes only
+let drawConfirmState=null; // Draw-confirm: {index, card, timer, el} — solo AI modes only
 
 /* ===================== */
 /* COSMETICS             */
@@ -854,6 +878,9 @@ const AudioEngine=(function(){
 /* SCREEN SYSTEM         */
 /* ===================== */
 function showScreen(id){
+  // THE UNO CALL: any screen change dismisses pending call/confirm windows (no penalty, no auto-play)
+  if(typeof clearUnoCallWindow==='function')clearUnoCallWindow();
+  if(typeof clearDrawConfirm==='function')clearDrawConfirm();
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const el=document.getElementById(id);
   if(el)el.classList.add('active');
@@ -1218,6 +1245,8 @@ function render4PlayerGame(container,topCard,playableIndices,isMyTurn){
 /* ===================== */
 function playCard(index){
   if(gameOver||currentTurn!==myPlayerIndex)return;
+  // Clicking a card while the draw-confirm is open IS the choice — cancel the pending auto-play
+  if(drawConfirmState)clearDrawConfirm();
   const card=hands[myPlayerIndex][index];
   if(!canPlay(card,topDiscard(),currentColor))return;
 
@@ -1261,10 +1290,22 @@ function executePlay(playerIndex,cardIndex,chosenColor){
     currentColor=card.color;
   }
 
-  // Check UNO
+  // Check UNO — THE UNO CALL: interactive in solo AI modes, auto elsewhere
   if(hands[playerIndex].length===1){
-    showUnoFlash();
-    if(playerIndex===myPlayerIndex){unoAchStats.unosCalled=(unoAchStats.unosCalled||0)+1;saveUnoAchievements();}
+    if(isSoloMode()&&playerIndex===myPlayerIndex){
+      // Player at 1 card: must TAP the UNO! button within the window or get caught (+2)
+      openUnoCallWindow();
+    }else if(isSoloMode()){
+      // AI at 1 card: forgets to protect itself 25% of the time — player gets a CATCH! window
+      if(Math.random()<0.25){
+        openCatchWindow(playerIndex);
+      }else{
+        showUnoFlash();
+      }
+    }else{
+      showUnoFlash();
+      if(playerIndex===myPlayerIndex){unoAchStats.unosCalled=(unoAchStats.unosCalled||0)+1;saveUnoAchievements();}
+    }
   }
 
   // Check win
@@ -1335,17 +1376,9 @@ function drawCardAction(){
     // Can play immediately if it matches
     if(canPlay(drawnCard,topDiscard(),currentColor)){
       renderGame();
-      // Auto-play drawn card after brief delay
+      // THE UNO CALL: confirm step — Play it? / Keep (auto-PLAYS after 3s to keep games moving)
       const newIndex=hands[myPlayerIndex].length-1;
-      setTimeout(()=>{
-        if(drawnCard.type==='wild'){
-          pendingWildCard={index:newIndex,card:drawnCard};
-          document.getElementById('colorPickerOverlay').style.display='flex';
-          AudioEngine.play('wild');
-        }else{
-          executePlay(myPlayerIndex,newIndex);
-        }
-      },400);
+      openDrawConfirm(newIndex,drawnCard);
       return;
     }
   }
@@ -1355,6 +1388,129 @@ function drawCardAction(){
   renderGame();
 
   if(!gameOver&&currentTurn!==myPlayerIndex&&(gameMode==='ai2'||gameMode==='ai4')){
+    setTimeout(()=>aiTurn(),800);
+  }
+}
+
+/* ===================== */
+/* THE UNO CALL          */
+/* (solo AI modes only)  */
+/* ===================== */
+function isSoloMode(){return gameMode==='ai2'||gameMode==='ai4';}
+
+function clearUnoCallWindow(){
+  if(!unoCallState)return;
+  clearTimeout(unoCallState.timer);
+  if(unoCallState.el)unoCallState.el.remove();
+  unoCallState=null;
+}
+
+// Player just played down to 1 card: big tappable UNO! button with a shrinking timer bar
+function openUnoCallWindow(){
+  clearUnoCallWindow();
+  const wrap=document.createElement('div');
+  wrap.className='uno-call-overlay';
+  wrap.innerHTML=`<button class="uno-call-btn" onclick="UNO.tapUnoCall()">UNO!</button>
+    <div class="uno-call-timer"><div class="uno-call-timer-fill" style="animation-duration:2500ms"></div></div>
+    <div class="uno-call-label">Tap it before you're caught!</div>`;
+  document.body.appendChild(wrap);
+  const timer=setTimeout(()=>{missedUnoCall()},2500);
+  unoCallState={type:'player',timer,el:wrap};
+}
+
+function tapUnoCall(){
+  if(!unoCallState||unoCallState.type!=='player')return;
+  clearUnoCallWindow();
+  showUnoFlash(); // existing flash + cosmetic-aware sting
+  unoAchStats.unosCalled=(unoAchStats.unosCalled||0)+1;saveUnoAchievements();
+}
+
+function missedUnoCall(){
+  if(!unoCallState||unoCallState.type!=='player')return;
+  clearUnoCallWindow();
+  if(gameOver||!isSoloMode())return;
+  drawCards(myPlayerIndex,2); // standard UNO penalty for failing to call
+  AudioEngine.play('lose');
+  showActionFlash('Caught! +2','#ef476f');
+  if(typeof odaToast==='function')odaToast('Caught! +2 cards','error');
+  renderGame();
+}
+
+// AI at 1 card forgot to call — player gets a short CATCH! window to punish it
+function openCatchWindow(aiIndex){
+  if(unoCallState){showUnoFlash();return;} // never stack over the player's own window
+  const wrap=document.createElement('div');
+  wrap.className='uno-call-overlay';
+  wrap.innerHTML=`<button class="uno-call-btn catch" onclick="UNO.tapCatch()">CATCH!</button>
+    <div class="uno-call-timer"><div class="uno-call-timer-fill" style="animation-duration:1500ms"></div></div>
+    <div class="uno-call-label">${esc(getPlayerName(aiIndex))} forgot to call UNO!</div>`;
+  document.body.appendChild(wrap);
+  const timer=setTimeout(()=>{if(unoCallState&&unoCallState.type==='catch')clearUnoCallWindow();},1500);
+  unoCallState={type:'catch',aiIndex,timer,el:wrap};
+}
+
+function tapCatch(){
+  if(!unoCallState||unoCallState.type!=='catch')return;
+  const aiIndex=unoCallState.aiIndex;
+  clearUnoCallWindow();
+  if(gameOver||!isSoloMode())return;
+  drawCards(aiIndex,2);
+  AudioEngine.play('win');
+  showActionFlash('Gotcha! +2','#06d6a0');
+  if(typeof odaToast==='function')odaToast('You caught '+getPlayerName(aiIndex)+'! They draw 2','success');
+  renderGame();
+}
+
+/* Draw-confirm: drawn playable card — Play it? / Keep (defaults to PLAY after 3s) */
+function clearDrawConfirm(){
+  if(!drawConfirmState)return;
+  clearTimeout(drawConfirmState.timer);
+  if(drawConfirmState.el)drawConfirmState.el.remove();
+  document.querySelectorAll('.player-hand .drawn-highlight').forEach(el=>el.classList.remove('drawn-highlight'));
+  drawConfirmState=null;
+}
+
+function openDrawConfirm(index,card){
+  clearDrawConfirm();
+  const handCards=document.querySelectorAll('.player-hand .uno-card');
+  if(handCards[index])handCards[index].classList.add('drawn-highlight');
+  const panel=document.createElement('div');
+  panel.className='draw-confirm';
+  panel.innerHTML=`<div class="dc-title">You drew a playable card!</div>
+    <div class="dc-row">${renderCard(card)}
+      <div class="dc-btns">
+        <button class="btn btn-accent btn-small" onclick="UNO.confirmDrawPlay()">Play it</button>
+        <button class="btn btn-outline btn-small" onclick="UNO.confirmDrawKeep()">Keep</button>
+      </div>
+    </div>
+    <div class="uno-call-timer"><div class="uno-call-timer-fill" style="animation-duration:3000ms"></div></div>
+    <div class="dc-note">Auto-plays in 3s</div>`;
+  document.body.appendChild(panel);
+  const timer=setTimeout(()=>{confirmDrawPlay()},3000);
+  drawConfirmState={index,card,timer,el:panel};
+}
+
+function confirmDrawPlay(){
+  if(!drawConfirmState)return;
+  const{index,card}=drawConfirmState;
+  clearDrawConfirm();
+  if(gameOver||currentTurn!==myPlayerIndex)return;
+  if(card.type==='wild'){
+    pendingWildCard={index,card};
+    document.getElementById('colorPickerOverlay').style.display='flex';
+    AudioEngine.play('wild');
+  }else{
+    executePlay(myPlayerIndex,index);
+  }
+}
+
+function confirmDrawKeep(){
+  if(!drawConfirmState)return;
+  clearDrawConfirm();
+  if(gameOver||currentTurn!==myPlayerIndex)return;
+  nextTurn();
+  renderGame();
+  if(!gameOver&&currentTurn!==myPlayerIndex&&isSoloMode()){
     setTimeout(()=>aiTurn(),800);
   }
 }
@@ -3238,6 +3394,10 @@ window.UNO={
   playCard:handlePlayCard,
   drawCard:handleDrawCard,
   pickColor:handlePickColor,
+  tapUnoCall,
+  tapCatch,
+  confirmDrawPlay,
+  confirmDrawKeep,
   createRoom,
   joinRoom,
   cancelRoom,
@@ -3257,7 +3417,8 @@ odaHelp.init({
   title:'Color Cards', emoji:'\u{1F0CF}', subtitle:'Match colors and numbers, race to empty your hand!',
   sections:[
     {title:'Rules', icon:'\u{1F4D6}', items:['Match the top card by color or number','Play special cards: Skip, Reverse, Draw Two','Wild cards can be played on anything and let you choose the color','Wild Draw Four makes the next player draw 4 cards','First player to empty their hand wins!']},
-    {title:'Special Cards', icon:'\u2728', items:['Skip \u2014 Next player loses their turn','Reverse \u2014 Changes direction of play','Draw Two \u2014 Next player draws 2 cards','Wild \u2014 Choose any color','Wild Draw Four \u2014 Choose color + next player draws 4']}
+    {title:'Special Cards', icon:'\u2728', items:['Skip \u2014 Next player loses their turn','Reverse \u2014 Changes direction of play','Draw Two \u2014 Next player draws 2 cards','Wild \u2014 Choose any color','Wild Draw Four \u2014 Choose color + next player draws 4']},
+    {title:'The UNO Call (vs Bots)', icon:'\u{1F4E2}', items:['Down to 1 card? TAP the big UNO! button before the timer runs out \u2014 miss it and you\'re caught: draw 2!','When a bot forgets to call UNO, a CATCH! button appears \u2014 tap it fast to make them draw 2','Drew a playable card? Choose Play it or Keep \u2014 it auto-plays after 3 seconds']}
   ],
   controls:[{key:'Click',action:'Play a card'},{key:'Draw',action:'Draw from deck'}],
   tip:'<strong>Save your Wild cards!</strong> Don\'t play them early. Use them strategically when you\'re stuck or close to winning.'
