@@ -104,6 +104,9 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .diff-card.medium:hover{box-shadow:0 0 20px rgba(255,209,102,.2)}
 .diff-card.hard{border-color:var(--accent3)}
 .diff-card.hard:hover{box-shadow:0 0 20px rgba(239,71,111,.2)}
+.diff-card.selected{box-shadow:0 0 20px rgba(6,214,160,.35)}
+.diff-card.medium.selected{box-shadow:0 0 20px rgba(255,209,102,.35)}
+.diff-card.hard.selected{box-shadow:0 0 20px rgba(239,71,111,.35)}
 
 /* ======================== */
 /* LADDER CLIMB SCREEN      */
@@ -172,6 +175,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .player-panel.active-turn{border-color:var(--accent);box-shadow:0 0 30px rgba(6,214,160,.15)}
 .player-panel .turn-badge{margin-top:10px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;background:rgba(6,214,160,.15);color:var(--accent);display:none}
 .player-panel.active-turn .turn-badge{display:inline-block;animation:pulse 1.5s ease-in-out infinite}
+.player-panel .turn-badge.thinking{background:rgba(255,209,102,.15);color:var(--gold);animation:pulse .7s ease-in-out infinite}
 
 /* Board */
 .board-area{flex:0 0 auto;position:relative}
@@ -405,7 +409,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <p>Drop, connect, conquer.</p>
   </div>
   <div class="mode-grid" id="modeGrid">
-    <div class="card mode-card" onclick="C4.showScreen('aiScreen')">
+    <div class="card mode-card" onclick="C4.showScreen('aiScreen');C4.highlightLastDifficulty()">
       <span class="mode-icon">&#129302;</span>
       <h3>VS Computer</h3>
       <p>Test your skills against AI opponents</p>
@@ -448,21 +452,21 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <p style="color:var(--text2);font-size:14px;margin-top:4px">How smart should the AI be?</p>
   </div>
   <div class="diff-grid">
-    <div class="card diff-card easy" onclick="C4.startAiGame('easy')">
+    <div class="card diff-card easy" onclick="C4.pickAiDifficulty('easy')">
       <span class="diff-icon">&#128578;</span>
       <div>
         <h3>Easy</h3>
         <p>Random moves, great for learning the ropes</p>
       </div>
     </div>
-    <div class="card diff-card medium" onclick="C4.startAiGame('medium')">
+    <div class="card diff-card medium" onclick="C4.pickAiDifficulty('medium')">
       <span class="diff-icon">&#129488;</span>
       <div>
         <h3>Medium</h3>
         <p>Thinks a few moves ahead, a fair challenge</p>
       </div>
     </div>
-    <div class="card diff-card hard" onclick="C4.startAiGame('hard')">
+    <div class="card diff-card hard" onclick="C4.pickAiDifficulty('hard')">
       <span class="diff-icon">&#128520;</span>
       <div>
         <h3>Hard</h3>
@@ -1046,7 +1050,8 @@ async function loadQuickStats(){
       document.getElementById('quickStats').innerHTML=`
         <div class="stat-pill"><span>Wins:</span><span class="stat-num">${d.wins||0}</span></div>
         <div class="stat-pill"><span>W/L:</span><span class="stat-num">${d.losses?((d.wins||0)/d.losses).toFixed(1):(d.wins||0).toFixed(1)}</span></div>
-        <div class="stat-pill"><span>Streak:</span><span class="stat-num">${d.winStreak||0}</span></div>`;
+        <div class="stat-pill"><span>Streak:</span><span class="stat-num">${d.winStreak||0}</span></div>
+        <div class="stat-pill"><span>Ladder:</span><span class="stat-num">Rung ${Math.min(ladderState.rung,LADDER_OPPONENTS.length)}/${LADDER_OPPONENTS.length}</span></div>`;
     }
   }catch(e){}
 }
@@ -1134,6 +1139,18 @@ async function loadRecords(){
 /* ===================== */
 /* AI GAME               */
 /* ===================== */
+const AI_DIFF_KEY='c4_lastDiff';
+function pickAiDifficulty(diff){
+  try{localStorage.setItem(AI_DIFF_KEY,diff)}catch(e){}
+  startAiGame(diff);
+}
+function highlightLastDifficulty(){
+  let last='';
+  try{last=localStorage.getItem(AI_DIFF_KEY)||''}catch(e){}
+  document.querySelectorAll('.diff-card').forEach(el=>{
+    el.classList.toggle('selected',!!last&&el.classList.contains(last));
+  });
+}
 function startAiGame(diff){
   aiMode=true;spectateMode=false;
   ladderMode=false;resetLadderAvatar();
@@ -1182,9 +1199,12 @@ function aiDropLocal(col){
   if(aiTurn===2&&aiWinner===null){
     aiThinking=true;
     updateTurnUI(aiTurn);
+    const aiBadge=document.querySelector('#panelP2 .turn-badge');
+    if(aiBadge){aiBadge.classList.add('thinking');aiBadge.textContent='Thinking...'}
     setTimeout(()=>{
       const aiCol=ladderMode?getLadderAiMove(aiBoard,ladderRungActive):getAiMove(aiBoard,aiDifficulty);
       aiThinking=false;
+      if(aiBadge){aiBadge.classList.remove('thinking');aiBadge.textContent='Your Turn'}
       aiDropLocal(aiCol);
     },350+Math.random()*300);
   }
@@ -2654,7 +2674,7 @@ async function loadAssignedMatches(){
 /* EXPOSE PUBLIC API     */
 /* ===================== */
 window.C4={
-  showScreen,startAiGame,createGame,joinGame,cancelGame,playAgain,goHome,
+  showScreen,startAiGame,pickAiDifficulty,highlightLastDifficulty,createGame,joinGame,cancelGame,playAgain,goHome,
   showLadderScreen,startLadderGame,backToLadder,retryLadderRung,getLadderAiMove,
   pickFormat,nextSeriesGame,replayDraw,rematchGame,
   showTourneyJoin,joinTourney,leaveTourney,backToTourney,studentCreateTourney,
