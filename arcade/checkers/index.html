@@ -180,6 +180,13 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .leaderboard-table tr td:last-child{border-radius:0 10px 10px 0}
 .leaderboard-table tr:hover td{background:var(--surface2)}
 .rank-1{color:var(--gold)}.rank-2{color:#c0c0c0}.rank-3{color:#cd7f32}
+.ck-ach-card{margin-bottom:24px}
+.ck-ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:8px}
+.ck-ach{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:4px;text-align:center}
+.ck-ach.locked{opacity:.32;filter:grayscale(1)}
+.ck-ach.unlocked{border-color:var(--gold);box-shadow:0 0 14px rgba(255,209,102,.18)}
+.ck-ach-icon{font-size:26px}
+.ck-ach-name{font-size:9px;line-height:1.15;color:var(--text2);font-weight:600}
 
 /* TOURNAMENT */
 #tourneyLobbyScreen,#tourneyBracketScreen{padding-top:60px;padding-bottom:40px}
@@ -412,6 +419,10 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
         <div class="stat-box"><div class="stat-val" style="color:var(--accent2)">-</div><div class="stat-label">Best</div></div>
       </div>
     </div>
+    <div class="card-static ck-ach-card" id="ckAchCard">
+      <h3 style="margin-bottom:12px;font-size:16px">Achievements <span id="ckAchProgress" style="color:var(--text2);font-weight:500;font-size:13px"></span></h3>
+      <div class="ck-ach-grid" id="ckAchGrid"></div>
+    </div>
     <h3 class="section-title">Class Leaderboard</h3>
     <div id="leaderboardWrap"><p style="color:var(--text2);font-size:14px;text-align:center;padding:20px">Loading...</p></div>
     <div style="text-align:center;margin-top:20px"><button class="btn btn-outline btn-small" onclick="CK.showScreen('homeScreen')">&larr; Back</button></div>
@@ -528,6 +539,7 @@ let selectedFormat=1;
 let seriesFormat=1,seriesScore=[0,0],seriesGame=1,seriesWinner=null;
 let currentTourneyCode=null,currentTourneyData=null,opponentRecord=null;
 let selectedPiece=null,validMoves=[],moveCount=0,movesWithoutCapture=0;
+let myKingsThisGame=0,myPiecesLostThisGame=0,myPieceCountPrev=null;
 
 /* ===== COSMETICS ===== */
 let myCosmetics={};
@@ -714,11 +726,12 @@ async function ensureRecord(sid,sn,cc){const r=doc(db,'checkersRecords',sid);con
 async function updateRecordAfterGame(result){
   if(studentId.startsWith('anon_'))return;
   try{await ensureRecord(studentId,studentName,classCode);const r=doc(db,'checkersRecords',studentId);
-  if(result==='win'){const s=await getDoc(r);const d=s.data();const ns=(d.winStreak||0)+1;await updateDoc(r,{wins:increment(1),gamesPlayed:increment(1),winStreak:ns,bestStreak:Math.max(ns,d.bestStreak||0),lastPlayed:new Date().toISOString()})}
-  else if(result==='loss'){await updateDoc(r,{losses:increment(1),gamesPlayed:increment(1),winStreak:0,lastPlayed:new Date().toISOString()})}
-  else{await updateDoc(r,{draws:increment(1),gamesPlayed:increment(1),lastPlayed:new Date().toISOString()})}}catch(e){}
+  if(result==='win'){const s=await getDoc(r);const d=s.data();const ns=(d.winStreak||0)+1;await updateDoc(r,{wins:increment(1),gamesPlayed:increment(1),winStreak:ns,bestStreak:Math.max(ns,d.bestStreak||0),lastPlayed:new Date().toISOString()});return{wins:(d.wins||0)+1,gamesPlayed:(d.gamesPlayed||0)+1,winStreak:ns}}
+  else if(result==='loss'){const s=await getDoc(r);const d=s.data();await updateDoc(r,{losses:increment(1),gamesPlayed:increment(1),winStreak:0,lastPlayed:new Date().toISOString()});return{gamesPlayed:(d.gamesPlayed||0)+1}}
+  else{const s=await getDoc(r);const d=s.data();await updateDoc(r,{draws:increment(1),gamesPlayed:increment(1),lastPlayed:new Date().toISOString()});return{gamesPlayed:(d.gamesPlayed||0)+1}}}catch(e){}
 }
 async function loadRecords(){
+  renderCKAchGrid('ckAchGrid');
   if(!studentId.startsWith('anon_')){const rec=await getRecord(studentId);if(rec){document.getElementById('myRecordStats').innerHTML=`<div class="stat-box"><div class="stat-val" style="color:var(--accent)">${rec.wins||0}</div><div class="stat-label">Wins</div></div><div class="stat-box"><div class="stat-val" style="color:var(--accent3)">${rec.losses||0}</div><div class="stat-label">Losses</div></div><div class="stat-box"><div class="stat-val" style="color:var(--text2)">${rec.draws||0}</div><div class="stat-label">Draws</div></div><div class="stat-box"><div class="stat-val" style="color:var(--gold)">${rec.winStreak||0}</div><div class="stat-label">Streak</div></div><div class="stat-box"><div class="stat-val" style="color:var(--accent2)">${rec.bestStreak||0}</div><div class="stat-label">Best</div></div>`}}
   try{let q;if(classCode)q=query(collection(db,'checkersRecords'),where('classCode','==',classCode),orderBy('wins','desc'),limit(30));else q=query(collection(db,'checkersRecords'),orderBy('wins','desc'),limit(30));
   const snap=await getDocs(q);if(snap.empty){document.getElementById('leaderboardWrap').innerHTML='<p style="color:var(--text2);font-size:14px;text-align:center;padding:20px">No records yet!</p>';return}
@@ -789,6 +802,7 @@ function startAiGame(diff){
   aiMode=true;spectateMode=false;aiDifficulty=diff;
   aiBoard=initBoard();aiTurn=1;aiThinking=false;
   myPlayer=1;coinsAwarded=false;moveCount=0;movesWithoutCapture=0;
+  myKingsThisGame=0;myPiecesLostThisGame=0;
   selectedPiece=null;validMoves=[];  document.getElementById('p1Name').textContent=studentName||'You';
   document.getElementById('p2Name').textContent='AI ('+diff.charAt(0).toUpperCase()+diff.slice(1)+')';
   document.getElementById('p1Record').textContent='';document.getElementById('p2Record').textContent='';
@@ -808,9 +822,9 @@ function executeAiPlayerMove(move){
   const origPiece=aiBoard[selectedPiece[0]][selectedPiece[1]];
   aiBoard=applyMove(aiBoard,{fromRow:selectedPiece[0],fromCol:selectedPiece[1],...move});
   selectedPiece=null;validMoves=[];
-  if(hadCapture){SFX.play('capture');movesWithoutCapture=0}else{SFX.play('move');movesWithoutCapture++}
+  if(hadCapture){SFX.play('capture');movesWithoutCapture=0;checkCKAchievements({doubleJump:move.captures.length>=2,tripleJump:move.captures.length>=3})}else{SFX.play('move');movesWithoutCapture++}
   const landPiece=aiBoard[move.toRow][move.toCol];
-  if(isKing(landPiece)&&!isKing(origPiece))SFX.play('king');
+  if(isKing(landPiece)&&!isKing(origPiece)){SFX.play('king');myKingsThisGame++;checkCKAchievements({kings:myKingsThisGame})}
   moveCount++;
   if(movesWithoutCapture>=40){setTimeout(()=>showResult({winner:0,isAi:true,isDraw:true}),400);renderBoard(aiBoard,1,false);updateTurnUI(1);return}
   if(isGameOver(aiBoard,2)){setTimeout(()=>showResult({winner:1,isAi:true}),400);renderBoard(aiBoard,1,false);updateTurnUI(1);return}
@@ -831,7 +845,7 @@ function doAiMove(){
   const hadCapture=move.captures.length>0;
   const origAiPiece=aiBoard[move.fromRow][move.fromCol];
   aiBoard=applyMove(aiBoard,move);
-  if(hadCapture){SFX.play('capture');movesWithoutCapture=0}else{SFX.play('move');movesWithoutCapture++}
+  if(hadCapture){SFX.play('capture');movesWithoutCapture=0;myPiecesLostThisGame+=move.captures.length}else{SFX.play('move');movesWithoutCapture++}
   if(isKing(aiBoard[move.toRow][move.toCol])&&!isKing(origAiPiece))SFX.play('king');
   moveCount++;aiThinking=false;
   if(movesWithoutCapture>=40){aiTurn=1;renderBoard(aiBoard,aiTurn,false);setTimeout(()=>showResult({winner:0,isAi:true,isDraw:true}),400);return}
@@ -894,9 +908,9 @@ async function executeMultiplayerMove(move){
   const origPiece=board[fullMove.fromRow][fullMove.fromCol];
   board=applyMove(board,fullMove);
   const hadCapture=move.captures.length>0;
-  if(hadCapture)SFX.play('capture');else SFX.play('move');
+  if(hadCapture){SFX.play('capture');checkCKAchievements({doubleJump:move.captures.length>=2,tripleJump:move.captures.length>=3})}else SFX.play('move');
   const landPiece=board[fullMove.toRow][fullMove.toCol];
-  if(isKing(landPiece)&&!isKing(origPiece))SFX.play('king');
+  if(isKing(landPiece)&&!isKing(origPiece)){SFX.play('king');myKingsThisGame++;checkCKAchievements({kings:myKingsThisGame})}
   selectedPiece=null;validMoves=[];
   const opp=myPlayer===1?2:1;
   const update={board:JSON.stringify(board),turn:opp};
@@ -912,6 +926,7 @@ async function executeMultiplayerMove(move){
 
 async function createGame(){
   try{aiMode=false;spectateMode=false;coinsAwarded=false;moveCount=0;movesWithoutCapture=0;
+  myKingsThisGame=0;myPiecesLostThisGame=0;myPieceCountPrev=null;
   selectedPiece=null;validMoves=[];  roomCode=genCode();let ref=doc(db,'checkersGames',roomCode);let snap=await getDoc(ref);
   let retries=0;while(snap.exists()&&retries<10){roomCode=genCode();ref=doc(db,'checkersGames',roomCode);snap=await getDoc(ref);retries++}
   await setDoc(ref,{board:JSON.stringify(initBoard()),turn:1,player1:studentId,player1Name:studentName,player2:null,player2Name:null,status:'waiting',winner:null,classCode:classCode||null,seriesFormat:selectedFormat,seriesScore:[0,0],seriesGame:1,seriesWinner:null});
@@ -922,6 +937,7 @@ async function createGame(){
 
 async function joinGame(){
   aiMode=false;spectateMode=false;coinsAwarded=false;moveCount=0;movesWithoutCapture=0;
+  myKingsThisGame=0;myPiecesLostThisGame=0;myPieceCountPrev=null;
   selectedPiece=null;validMoves=[];  const code=document.getElementById('codeInput').value.trim();
   if(code.length!==4){showError('Enter a 4-digit code');return}
   try{const ref=doc(db,'checkersGames',code);const snap=await getDoc(ref);
@@ -948,6 +964,7 @@ function listenToGame(){
       coinsAwarded=false;selectedPiece=null;validMoves=[];      showScreen('gameScreen');applyBoardTheme();updateSeriesBar(data);
       const isMyTurn=spectateMode?false:data.turn===myPlayer;
       renderBoard(board,data.turn,isMyTurn);updateTurnUI(data.turn);
+      if(!spectateMode&&myPlayer){const myCount=countPieces(board,myPlayer);if(myPieceCountPrev!==null&&myCount<myPieceCountPrev)myPiecesLostThisGame+=(myPieceCountPrev-myCount);myPieceCountPrev=myCount}
     }
     if(data.status==='finished'){
       selectedPiece=null;validMoves=[];renderBoard(board,data.turn,false);
@@ -1002,7 +1019,13 @@ var CK_ACHIEVEMENTS = [
   { id:'ck_win50', name:'Win 50', desc:'Win 50 games', icon:'\u{1F948}', check: function(s){ return s.wins >= 50; } },
   { id:'ck_flawless', name:'Flawless Victory', desc:'Win without losing a piece', icon:'\u{2728}', check: function(s){ return s.flawless; } },
   { id:'ck_tourney', name:'Tournament Victor', desc:'Win a tournament', icon:'\u{1F3C6}', check: function(s){ return s.tourneyWin; } },
-  { id:'ck_legend', name:'Checkers Legend', desc:'Win 200 games', icon:'\u{1F947}', check: function(s){ return s.wins >= 200; } }
+  { id:'ck_legend', name:'Checkers Legend', desc:'Win 200 games', icon:'\u{1F947}', check: function(s){ return s.wins >= 200; } },
+  { id:'ck_first_win', name:'First Win', desc:'Win your first game', icon:'\u{1F389}', check: function(s){ return s.wins >= 1; } },
+  { id:'ck_win25', name:'Win 25', desc:'Win 25 games', icon:'\u{1F396}️', check: function(s){ return s.wins >= 25; } },
+  { id:'ck_kings3', name:'Triple Crown', desc:'Get 3 kings in one game', icon:'♚', check: function(s){ return s.kings >= 3; } },
+  { id:'ck_beat_hard', name:'Giant Slayer', desc:'Beat the Hard AI', icon:'\u{1F916}', check: function(s){ return s.hardWin; } },
+  { id:'ck_streak3', name:'On Fire', desc:'Win 3 games in a row', icon:'\u{1F525}', check: function(s){ return s.winStreak >= 3; } },
+  { id:'ck_games50', name:'Dedicated Player', desc:'Play 50 games', icon:'⏳', check: function(s){ return s.gamesPlayed >= 50; } }
 ];
 
 var ckAchState = {};
@@ -1046,6 +1069,20 @@ function showCKAchToast(a) {
   setTimeout(function() { el.style.transition = 'opacity .4s'; el.style.opacity = '0'; setTimeout(function() { el.remove(); }, 400); }, 3000);
 }
 
+function renderCKAchGrid(containerId) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = CK_ACHIEVEMENTS.map(function(a) {
+    var un = !!ckAchState[a.id];
+    return '<div class="ck-ach ' + (un ? 'unlocked' : 'locked') + '"><span class="ck-ach-icon">' + a.icon + '</span><span class="ck-ach-name">' + esc(a.name) + '</span></div>';
+  }).join('');
+  var prog = document.getElementById('ckAchProgress');
+  if (prog) {
+    var n = CK_ACHIEVEMENTS.filter(function(a) { return ckAchState[a.id]; }).length;
+    prog.textContent = '(' + n + '/' + CK_ACHIEVEMENTS.length + ')';
+  }
+}
+
 function showResult(data){
   showScreen('resultScreen');
   const titleEl=document.getElementById('resultTitle'),subEl=document.getElementById('resultSub');
@@ -1074,8 +1111,12 @@ function showResult(data){
     }
   }
   coinsEl.innerHTML=`<svg width="22" height="22" viewBox="0 0 24 24" fill="var(--gold)"><circle cx="12" cy="12" r="10" stroke="var(--gold)" stroke-width="2" fill="rgba(255,209,102,.2)"/><text x="12" y="16" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--gold)">$</text></svg> +${coins} Coins`;
-  if(!coinsAwarded){coinsAwarded=true;awardCoins(coins);updateRecordAfterGame(recordResult);
-    if(recordResult==='win'){ checkCKAchievements({ wins: 1 }); }
+  if(!coinsAwarded){coinsAwarded=true;awardCoins(coins);updateRecordAfterGame(recordResult).then(function(rd){
+      if(!rd)return;
+      var achExtra={gamesPlayed:rd.gamesPlayed};
+      if(recordResult==='win'){achExtra.wins=rd.wins;achExtra.winStreak=rd.winStreak;achExtra.kings=myKingsThisGame;achExtra.flawless=myPiecesLostThisGame===0;achExtra.hardWin=!!(data.isAi&&aiDifficulty==='hard')}
+      checkCKAchievements(achExtra);
+    });
   }
   seriesArea.innerHTML='';
   if(format>1&&!data.isAi){
