@@ -95,6 +95,9 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .score-add{position:absolute;top:-8px;right:-8px;font-size:14px;font-weight:800;color:var(--accent);animation:scoreFloat .9s ease forwards;pointer-events:none;z-index:5}
 @keyframes scoreFloat{0%{opacity:1;transform:translateY(0) scale(1)}60%{opacity:1;transform:translateY(-16px) scale(1.1)}100%{opacity:0;transform:translateY(-28px) scale(.8)}}
 
+.combo-popup{position:absolute;top:8%;left:50%;transform:translate(-50%,-50%) scale(0);font-family:'Fredoka',sans-serif;font-size:26px;font-weight:800;color:var(--gold);z-index:8;pointer-events:none;text-shadow:0 0 20px rgba(255,209,102,.6);animation:comboPop 1.2s ease forwards;white-space:nowrap}
+@keyframes comboPop{0%{transform:translate(-50%,-50%) scale(0);opacity:0}15%{transform:translate(-50%,-50%) scale(1.2);opacity:1}30%{transform:translate(-50%,-50%) scale(1)}100%{transform:translate(-50%,-50%) scale(1) translateY(-20px);opacity:0}}
+
 .game-controls{display:flex;gap:8px;margin-bottom:12px;justify-content:center}
 .ctrl-btn{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 16px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s}
 .ctrl-btn:hover{border-color:var(--accent);color:var(--text)}
@@ -113,12 +116,14 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 /* Tiles */
 .tile{position:absolute;width:var(--cell-size);height:var(--cell-size);border-radius:var(--2048-tile-radius, 12px);display:flex;align-items:center;justify-content:center;font-family:'Fredoka',sans-serif;font-weight:700;transition:top .15s ease,left .15s ease,box-shadow .15s ease;z-index:2;will-change:transform,top,left;outline:2px solid var(--2048-tile-accent, transparent);outline-offset:-2px}
 .tile.merged{animation:tileMerge .25s ease;z-index:3}
+.tile.merge-glow{animation:tileMerge .25s ease,mergeFlash .25s ease;z-index:3}
 .tile.new{animation:tileNew .2s ease}
 /* Tile Theme accent: adds a themed ring on every tile, plus a colored glow on high-value tiles */
 .tile-128,.tile-256,.tile-512,.tile-1024,.tile-2048,.tile-4096,.tile-8192,.tile-super{filter:drop-shadow(0 0 8px var(--2048-tile-accent, transparent))}
 
 @keyframes tileNew{0%{transform:scale(0);opacity:0}50%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
 @keyframes tileMerge{0%{transform:scale(1)}35%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes mergeFlash{0%,100%{filter:brightness(1)}50%{filter:brightness(1.6) saturate(1.3)}}
 
 /* Tile Colors */
 .tile-2{background:#2a3450;color:var(--text);font-size:36px}
@@ -886,6 +891,7 @@ function move(dir){
     score+=mergeScore;
     document.getElementById('scoreDisplay').textContent=fmtNum(score);
     showScorePopup(mergeScore);
+    if(mergeTiles.length>=2)showComboPopup(mergeTiles.length);
 
     if(score>bestScore){
       bestScore=score;
@@ -900,8 +906,9 @@ function move(dir){
       if(consumed.el)consumed.el.remove();
       updateTileAppearance(target);
       if(target.el){
-        target.el.classList.add('merged');
-        setTimeout(()=>{if(target.el)target.el.classList.remove('merged')},250);
+        const mergeClass=target.val>=128?'merge-glow':'merged';
+        target.el.classList.add(mergeClass);
+        setTimeout(()=>{if(target.el)target.el.classList.remove(mergeClass)},250);
       }
       playMerge(target.val);
     });
@@ -968,6 +975,15 @@ function showScorePopup(pts){
   el.textContent='+'+fmtNum(pts);
   box.appendChild(el);
   setTimeout(()=>el.remove(),900);
+}
+
+function showComboPopup(count){
+  const wrap=document.getElementById('gridWrapper');
+  const el=document.createElement('div');
+  el.className='combo-popup';
+  el.textContent='COMBO x'+count+'!';
+  wrap.appendChild(el);
+  setTimeout(()=>el.remove(),1300);
 }
 
 // ===========================
