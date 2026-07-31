@@ -1,5 +1,31 @@
 # Sprint Log
 
+## 2026-07-30 (arcade) — Overnight quality train, Wave A: hero games + hard bugs
+
+Devon asked for every hub game at its best possible quality. First a fresh
+10-agent behavior-based audit of all 50 games against `AMG_GAME_STANDARD.md`
+(ranked backlog: `AMG_HUB_UPGRADE_BACKLOG_JUL30.md`), then wave-by-wave
+surgical upgrades, one commit per game, browser-verified before each commit.
+
+Wave A shipped (7 commits):
+- **Flappy** — crash shake, score pop, and Chill Mode promoted to its own
+  home card (the easy mode that earned 22 plays/kid was buried in a picker).
+- **Typing Race** — was the ONLY game with no sound toggle; now has one, plus
+  home quick-stats pills.
+- **Trivia** — sound toggle finally persists to `odaSoundEnabled`.
+- **Tic Tac Toe** — retired the dead `tictactoeRecords` collection.
+  Achievement unlocks had NEVER persisted (updateDoc on a never-created doc,
+  silently swallowed). Bonus find: `js/student.js` was summing the dead
+  collection, so TTT always undercounted the hub-wide games-played stat.
+- **Block Drop (tetris)** — records were localStorage-only despite the July
+  "P0 done" claim; now writes `tetrisRecords` + class leaderboard.
+  **DEVON ACTION: `npx firebase deploy --only firestore:rules`** (new
+  tetrisRecords block committed; leaderboard hides itself until deployed).
+- **RPS** — win-streak popups (the streak var existed, dead, never wired).
+- **Ping Pong** — paddle-hit flash, rally milestone popups, point-loss shake.
+- **Basketball** — audit suspected broken character-cosmetic wiring;
+  verify-agent traced it end-to-end and it's CORRECT, zero edits made.
+
 ## 2026-07-27 (engine) — M6d: the kids stop walking into the fountain
 
 Measured before fixing, which is the only reason it was worth fixing: 2.8%
