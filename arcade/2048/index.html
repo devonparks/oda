@@ -258,10 +258,20 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <p>Slide, merge, and reach the legendary tile!</p>
   </div>
   <div class="mode-grid" id="modeGrid">
-    <div class="card mode-card" onclick="startGame()">
+    <div class="card mode-card" id="modeClassic" onclick="selectMode('classic');startGame()">
       <span class="mode-icon">&#9654;&#65039;</span>
       <h3>Play</h3>
       <p>Slide &amp; merge tiles!</p>
+    </div>
+    <div class="card mode-card" id="modeEasy" onclick="selectMode('easy');startGame()">
+      <span class="mode-icon">&#128994;</span>
+      <h3>Easy 3&times;3</h3>
+      <p>Smaller grid, faster games</p>
+    </div>
+    <div class="card mode-card" id="modeChallenge" onclick="selectMode('challenge');startGame()">
+      <span class="mode-icon">&#128293;</span>
+      <h3>Challenge 5&times;5</h3>
+      <p>Bigger grid, tougher climb</p>
     </div>
     <div class="card mode-card" onclick="showRecords()">
       <span class="mode-icon">&#128202;</span>
@@ -568,6 +578,8 @@ let highestTile=0;
 let coinsAwarded=false;
 let undoState=null;
 let undoAvailable=false;
+let undoUsesLeft=3;
+const UNDO_LIMIT=3;
 let moveInProgress=false;
 let tileIdCounter=0;
 
@@ -715,12 +727,13 @@ function startGame(){
   moveInProgress=false;
   undoState=null;
   undoAvailable=false;
+  undoUsesLeft=UNDO_LIMIT;
   tileIdCounter=0;
 
   document.getElementById('scoreDisplay').textContent='0';
   document.getElementById('gameOverOverlay').classList.remove('active');
   document.getElementById('winOverlay').classList.remove('active');
-  document.getElementById('undoBtn').disabled=true;
+  updateUndoBtn();
 
   loadLocalData();
   buildGrid();
@@ -764,17 +777,23 @@ function addRandomTile(){
 // ===========================
 // UNDO SYSTEM
 // ===========================
+function updateUndoBtn(){
+  const btn=document.getElementById('undoBtn');
+  btn.innerHTML='&#8630; Undo ('+undoUsesLeft+')';
+  btn.disabled=!undoAvailable||undoUsesLeft<=0;
+}
+
 function saveUndo(){
   undoState={
     grid:grid.map(row=>row.map(cell=>cell?{row:cell.row,col:cell.col,val:cell.val}:null)),
     score,totalMerges,highestTile
   };
   undoAvailable=true;
-  document.getElementById('undoBtn').disabled=false;
+  updateUndoBtn();
 }
 
 function undoMove(){
-  if(!undoAvailable||!undoState||!gameActive)return;
+  if(!undoAvailable||!undoState||!gameActive||undoUsesLeft<=0)return;
   playUndoSound();
 
   score=undoState.score;
@@ -799,7 +818,8 @@ function undoMove(){
   document.getElementById('scoreDisplay').textContent=fmtNum(score);
   undoAvailable=false;
   undoState=null;
-  document.getElementById('undoBtn').disabled=true;
+  undoUsesLeft--;
+  updateUndoBtn();
 }
 window.undoMove=undoMove;
 
@@ -880,6 +900,7 @@ function move(dir){
 
   if(!moved){
     undoAvailable=false;
+    updateUndoBtn();
     moveInProgress=false;
     return;
   }
@@ -1123,6 +1144,7 @@ async function awardCoins(coins){
 // RECORDS (Firestore)
 // ===========================
 async function updateRecord(){
+  if(gameMode!=='classic')return; // leaderboard/records track classic 4x4 only
   if(!studentId||studentId.startsWith('anon_'))return;
   const recRef=doc(db,'2048Records',studentId);
   try{
