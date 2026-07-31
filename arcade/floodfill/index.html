@@ -105,6 +105,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 @keyframes cellPop{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(1)}}
 .cell.wave{animation:waveRipple .35s ease}
 @keyframes waveRipple{0%{transform:scale(.85);opacity:.7}50%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+.grid.grid-pulse{animation:gridPulse .2s ease}
+@keyframes gridPulse{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
 
 /* Grid style: rounded */
 .grid.style-rounded .cell{border-radius:6px}
@@ -597,6 +599,12 @@ function renderColorButtons(){
   el.innerHTML=html;
 }
 
+function pulseGrid(){
+  var el=document.getElementById('gameGrid');
+  el.classList.add('grid-pulse');
+  setTimeout(function(){el.classList.remove('grid-pulse')},200);
+}
+
 function pickColor(colorIdx){
   if(gameOver)return;
   var currentColor=grid[0][0];
@@ -625,6 +633,8 @@ function pickColor(colorIdx){
   var totalCells=rows*cols;
   var newFlooded=getFloodedSet();
   var filledCount=newFlooded.size;
+
+  if(filledCount>flooded.size)pulseGrid();
 
   if(filledCount===totalCells){
     // WIN
@@ -765,7 +775,10 @@ function finishGame(won){
   localCoins+=coins;localStorage.setItem('floodfill_coins',localCoins);
 
   if(isNewBest)sfxNewBest();
-  if(won)spawnConfetti();
+  if(won&&!isNewBest){
+    var ffWinEffect=(typeof odaShop!=='undefined')?odaShop.getEquipped('floodfill','winEffect'):null;
+    if(typeof odaCelebrate==='function')odaCelebrate((ffWinEffect&&ffWinEffect.type)||'confetti');else if(typeof odaConfetti==='function')odaConfetti();else spawnConfetti();
+  }
 
   // Build results
   var container=document.querySelector('.game-container');
