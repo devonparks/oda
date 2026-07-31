@@ -168,6 +168,17 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 /* Speed indicator */
 .speed-indicator{font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:1px}
 
+/* Hi-Lo Prediction */
+.predict-box{display:flex;flex-direction:column;align-items:center;gap:6px;margin:4px 0 8px}
+.predict-label{font-size:11px;color:var(--text2);font-weight:600}
+.predict-btns{display:flex;gap:8px}
+.predict-btn{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 14px;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;font-family:'Outfit',sans-serif;transition:all .15s}
+.predict-btn:hover{border-color:var(--accent);color:var(--text)}
+.predict-btn.picked{border-color:var(--accent);background:rgba(6,214,160,.15);color:var(--accent)}
+.predict-streak{font-size:11px;color:#f97316;font-weight:700}
+.predict-celebrate{position:absolute;top:26%;left:50%;transform:translate(-50%,-50%) scale(0);font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;color:#f97316;z-index:30;pointer-events:none;text-shadow:0 0 20px rgba(249,115,22,.6);animation:predictPop 1.3s ease forwards;white-space:nowrap;text-align:center}
+@keyframes predictPop{0%{transform:translate(-50%,-50%) scale(0);opacity:0}15%{transform:translate(-50%,-50%) scale(1.2);opacity:1}30%{transform:translate(-50%,-50%) scale(1)}100%{transform:translate(-50%,-50%) scale(1) translateY(-20px);opacity:0}}
+
 /* Results card */
 .results-card{background:rgba(255,255,255,.06);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:32px;max-width:420px;width:90%;text-align:center;animation:fadeUp .4s ease;margin:auto}
 .results-card h2{font-size:28px;color:var(--accent);margin-bottom:4px}
@@ -225,10 +236,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <p>Classic card battle — highest card wins!</p>
   </div>
   <div class="mode-grid" id="modeGrid">
-    <div class="card mode-card" onclick="showDiffPicker()">
+    <div class="card mode-card" onclick="startGame()">
       <span class="mode-icon">&#9654;&#65039;</span>
       <h3>Play</h3>
       <p>Flip cards, battle the CPU</p>
+      <p style="font-size:11px;margin-top:6px"><a href="#" onclick="event.stopPropagation();event.preventDefault();showDiffPicker()" style="color:var(--text2);text-decoration:underline">Speed (<span id="speedPickLabel">Normal</span>)</a></p>
     </div>
     <div class="card mode-card" onclick="showRecords()">
       <span class="mode-icon">&#128202;</span>
@@ -286,6 +298,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     </div>
 
     <div class="battle-status" id="battleStatus">Click your deck or press Space to flip!</div>
+    <div class="predict-box" id="predictBox" style="display:none"></div>
     <button class="flip-btn" id="flipBtn" onclick="flipCards()">&#9654; Flip Cards</button>
   </div>
 </div>
@@ -514,8 +527,14 @@ loadLocalStats();
 /* ===================== */
 /* SPEED MODE            */
 /* ===================== */
-var speedMode='normal';
+var speedMode=localStorage.getItem('war_speed')||'normal';
 var SPEEDS={normal:{delay:0,label:'Normal',auto:false},fast:{delay:1500,label:'Fast',auto:true},turbo:{delay:500,label:'Turbo',auto:true}};
+
+function updateSpeedPickLabel(){
+  var el=document.getElementById('speedPickLabel');
+  if(el)el.textContent=SPEEDS[speedMode].label;
+}
+updateSpeedPickLabel();
 
 window.setSpeed=function(mode,btn){
   speedMode=mode;
@@ -542,6 +561,8 @@ window.showDiffPicker=showDiffPicker;
 
 function pickSpeedAndStart(mode){
   speedMode=mode;
+  try{localStorage.setItem('war_speed',mode);}catch(e){}
+  updateSpeedPickLabel();
   closeDiffPicker();
   startGame();
 }
@@ -566,6 +587,13 @@ var wasLow=false; // Track if player was ever at 10 or fewer cards
 var animating=false;
 var autoTimer=null;
 var coinsAwarded=false;
+
+// Hi-Lo prediction (free bonus mini-game, never wagers real cards/coins)
+var lastPlayerCard=null;
+var pendingPrediction=null;
+var predictScore=0;
+var predictStreak=0;
+var predictBonusAwarded=false;
 
 function stopGame(){
   gameActive=false;
@@ -634,6 +662,14 @@ function startGame(){
   coinsAwarded=false;
   if(autoTimer){clearInterval(autoTimer);autoTimer=null}
 
+  // Reset hi-lo prediction state
+  lastPlayerCard=null;
+  pendingPrediction=null;
+  predictScore=0;
+  predictStreak=0;
+  predictBonusAwarded=false;
+  hidePredictBox();
+
   // Clear flip zones
   document.getElementById('playerFlip').innerHTML='';
   document.getElementById('cpuFlip').innerHTML='';
@@ -658,6 +694,72 @@ function startGame(){
 }
 
 /* ===================== */
+/* HI-LO PREDICTION      */
+/* ===================== */
+function sfxPredictHit(){playTone(880,0.08,'sine',0.1);setTimeout(function(){playTone(1108,0.08,'sine',0.08)},60)}
+function sfxPredictStreak(){playTone(659,0.1,'sine',0.12);setTimeout(function(){playTone(880,0.1,'sine',0.12)},90);setTimeout(function(){playTone(1108,0.15,'sine',0.12)},180)}
+
+function renderPredictBox(){
+  var box=document.getElementById('predictBox');
+  if(!box)return;
+  pendingPrediction=null;
+  if(!lastPlayerCard||!gameActive){box.innerHTML='';box.style.display='none';return}
+  box.style.display='flex';
+  box.innerHTML='<div class="predict-label">Next card vs '+lastPlayerCard.rank+lastPlayerCard.suit+'?</div>'
+    +'<div class="predict-btns">'
+    +'<button class="predict-btn" onclick="setPrediction(\'higher\',this)">&#8593; Higher</button>'
+    +'<button class="predict-btn" onclick="setPrediction(\'lower\',this)">&#8595; Lower</button>'
+    +'<button class="predict-btn" onclick="setPrediction(\'war\',this)">War?</button>'
+    +'</div>'
+    +(predictStreak>0?'<div class="predict-streak">&#128293; '+predictStreak+' streak</div>':'');
+}
+
+function setPrediction(guess,btn){
+  pendingPrediction=guess;
+  var box=document.getElementById('predictBox');
+  if(box)box.querySelectorAll('.predict-btn').forEach(function(b){b.classList.remove('picked')});
+  if(btn)btn.classList.add('picked');
+}
+
+function hidePredictBox(){
+  var box=document.getElementById('predictBox');
+  if(box){box.style.display='none';box.innerHTML=''}
+}
+
+function resolvePrediction(pCard){
+  if(lastPlayerCard&&pendingPrediction){
+    var correct=false;
+    if(pendingPrediction==='higher')correct=pCard.value>lastPlayerCard.value;
+    else if(pendingPrediction==='lower')correct=pCard.value<lastPlayerCard.value;
+    else if(pendingPrediction==='war')correct=pCard.value===lastPlayerCard.value;
+    if(correct){
+      predictScore+=2;
+      predictStreak++;
+      sfxPredictHit();
+      if(predictStreak>=5&&!predictBonusAwarded){
+        predictBonusAwarded=true;
+        localCoins+=5;localStorage.setItem('war_coins',localCoins);
+        awardCoins(5);
+        sfxPredictStreak();
+        showPredictCelebration();
+      }
+    }else{
+      predictStreak=0;
+    }
+  }
+  pendingPrediction=null;
+}
+
+function showPredictCelebration(){
+  var el=document.createElement('div');
+  el.className='predict-celebrate';
+  el.innerHTML='&#127881; 5 in a row!<br>+5 bonus coins';
+  var arena=document.getElementById('gameArena');
+  if(arena)arena.appendChild(el);
+  setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},1300);
+}
+
+/* ===================== */
 /* FLIP CARDS            */
 /* ===================== */
 function flipCards(){
@@ -673,10 +775,14 @@ function flipCards(){
   // Disable flip btn during animation
   var flipBtn=document.getElementById('flipBtn');
   if(flipBtn)flipBtn.disabled=true;
+  hidePredictBox();
 
   // Draw cards
   var pCard=playerDeck.shift();
   var cCard=cpuDeck.shift();
+
+  resolvePrediction(pCard);
+  lastPlayerCard=pCard;
 
   sfxFlip();
 
@@ -701,8 +807,8 @@ function flipCards(){
 
     setTimeout(function(){
       resolveRound(pCard,cCard,[pCard,cCard]);
-    },400);
-  },300);
+    },200);
+  },150);
 }
 
 /* ===================== */
@@ -718,7 +824,7 @@ function resolveRound(pCard,cCard,pot){
 
     setTimeout(function(){
       collectCards(pot,'player');
-    },600);
+    },300);
 
   }else if(cCard.value>pCard.value){
     // CPU wins
@@ -729,7 +835,7 @@ function resolveRound(pCard,cCard,pot){
 
     setTimeout(function(){
       collectCards(pot,'cpu');
-    },600);
+    },300);
 
   }else{
     // WAR!
@@ -791,7 +897,8 @@ function collectCards(pot,winner){
 
     animating=false;
     if(document.getElementById('flipBtn'))document.getElementById('flipBtn').disabled=false;
-  },500);
+    renderPredictBox();
+  },250);
 }
 
 /* ===================== */
@@ -838,9 +945,9 @@ function doWar(pot){
     (function(idx){
       setTimeout(function(){
         sfxSlam();
-      },idx*200);
+      },idx*100);
     })(i);
-    slamDelay=(i+1)*200;
+    slamDelay=(i+1)*100;
   }
 
   setTimeout(function(){
@@ -902,6 +1009,7 @@ function finishGame(){
   // Hide battle UI
   document.getElementById('flipBtn').style.display='none';
   document.getElementById('battleStatus').textContent='';
+  hidePredictBox();
 
   var titleClass=won?'':draw?'draw':'loss';
   var titleText=won?'Victory!':draw?'Draw!':'Defeat';
@@ -913,6 +1021,7 @@ function finishGame(){
   html+='<div class="results-stat">';
   html+='<div><div class="rs-val">'+currentRound+'</div><div class="rs-label">Rounds</div></div>';
   html+='<div><div class="rs-val">'+warCount+'</div><div class="rs-label">Wars</div></div>';
+  html+='<div><div class="rs-val">'+predictScore+'</div><div class="rs-label">Predicts</div></div>';
   html+='</div>';
   html+='<div class="results-coins">+'+coins+' coins</div>';
   html+='<div class="results-btns">';
