@@ -48,8 +48,11 @@ power pieces, celebration).
 
 ## The Drop4 "good parts" worth porting to hub games (as they fit)
 - **Progression, not one-off matches** — a single-player *ladder/career*: escalating
-  opponents/levels with a visible map + rewards. (Connect 4's vs-AI is currently
-  one-and-done; a ladder is the biggest single upgrade for solo play.)
+  opponents/levels with a visible map + rewards. **SHIPPED 2026-07-30 as "Ladder Climb"**
+  in connect4 (canonical implementation — grep LADDER there), tictactoe (draw-clear
+  variant: perfect play draws, so rungs 9-10 clear on a draw), and checkers. Port the
+  connect4 pattern to new games; 10 opponents, first-clear coins capped ~2x a hard-AI
+  win, localStorage + records-collection persistence.
 - **Boss encounters** with a signature scripted twist (a reason to keep climbing).
 - **Power-ups / special pieces** unlocked by progress (Bomb / Rainbow / Heavy in Drop4).
 - **Celebration kit** — star burst on clear, combo/streak popups, per-event FX.
@@ -137,5 +140,12 @@ ladder/career + render win effects.
 3. Add the juice layer (feel/sound/celebration + win-effect render).
 4. Verify in-browser (menu → play → win → coins → shop) + mobile width.
 5. Commit per game (green), push (auto-deploys to amghub.org).
+
+**2026-07-30 overnight pass:** the P1 and P2 queues above are DONE — see
+`AMG_HUB_UPGRADE_BACKLOG_JUL30.md` for the full 50-game audit, per-game results, and
+corrections to this doc's claims (notably: tetris's "P0 done" entry above was wrong about
+records — they were localStorage-only until 2026-07-30; and several audit "gaps" turned
+out to be false alarms, reinforcing the check-the-BEHAVIOR lesson — 10 of the night's
+findings were features that already existed).
 
 _Standard authored 2026-07-21 alongside the Vivid Arcade visual overhaul._

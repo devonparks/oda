@@ -24,8 +24,9 @@ browser before commit, one commit per game, push in small batches (deploys amghu
 - [ ] **solitaire** (2/3/4/4): no class leaderboard at all; achievements localStorage-only
   (never sync to Firestore); `odaHelp.init` unguarded. KEEP direct-to-table entry (kids'
   muscle memory) — add leaderboard + sync without forcing a home menu.
-- [ ] **minesweeper** (5/5/3/1): `myCosmetics` is DEAD CODE — loaded, never rendered. Wire
-  flag/board-theme cosmetic + add win particles + light shake.
+- [x] **minesweeper** — SHIPPED: board shake on mine hit + every-win celebration. The
+  "dead code" claim was WRONG (Cell Theme/Flag Style/Number Colors all fully wired; flag
+  pop existed too) — the cosmetics score of 1 in the audit table is bogus.
 - [x] **pixelplaza**: empty directory, NOT referenced by any registry — no player impact.
   Flag to Devon: delete folder or build the game someday.
 
@@ -96,12 +97,32 @@ browser before commit, one commit per game, push in small batches (deploys amghu
 
 ## Wave D — solo ladder (the big Drop4 port, pattern-first)
 
-- [ ] Build ONE clean ladder module for **connect4** (the exemplar): escalating AI
-  opponents with personality names, visible progression strip, coin rewards per rung,
-  saved to connect4Records. Additive wrapper around existing match logic.
-- [ ] If night allows: configure same pattern into tictactoe, checkers.
+- [x] **connect4 LADDER CLIMB** — SHIPPED 4ef3e31: 10 rungs (Rusty the Rookie → The
+  Broker), escalating AI reusing bestMoveMinmax (depths 2-7 + center-opening at 10),
+  first-clear coins 10..60, localStorage + connect4Records sync, champion state, intro
+  banners. Verified: headless sim 100+ games all rungs + live DOM win/loss/champion
+  playthroughs. ALSO fixed pre-existing bug: AI wins never granted achievements
+  (showResult got no board; getWinCells threw silently).
+  NOTE for Devon: rungs 4-5 (depths 3-4) have a minimax parity quirk vs one deterministic
+  strategy — vs varied kid play the curve holds; bump to depths 4,5 if strict
+  monotonicity wanted.
+- [x] **tictactoe LADDER** — SHIPPED 29c31d8: Scribbles → Professor Everbrush,
+  smart-move probability curve (sim: 200 games/rung, monotonic 55%→1.5%), rungs 9-10
+  clear on a DRAW (sim-proved necessary — perfect play never beats rung 10). Also fixed
+  a live setDoc race that clobbered ladder fields on new record docs.
+  NOTE for Devon: a rung 9/10 draw-clear still counts as a draw in records (resets win
+  streak) — flag if clears should preserve streaks.
+- [x] **checkers LADDER** — SHIPPED b2e7fcb: Jumpy Jax → The Broker (deliberate connect4
+  crossover), depth capped at existing Hard, flows through the fixed achievements
+  pipeline.
 - Deferred to future sessions: battleship/uno/dominoes ladders, basketball career
   (needs a sim pass like Drop4 careerTuning per audit).
+
+## Deploy note (learned 2026-07-30)
+
+GitHub Pages serves **main**. Pushing drop4-hub-conversion alone does NOT deploy —
+main is kept as an exact fast-forward mirror: `git push origin drop4-hub-conversion:main`
+is the deploy step (it was 0-diverged tonight, pure fast-forward, same as prior sessions).
 
 ## Hands off — already at/near exemplar (do not touch tonight)
 

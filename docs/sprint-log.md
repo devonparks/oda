@@ -1,5 +1,29 @@
 # Sprint Log
 
+## 2026-07-30 (arcade) — Overnight quality train, Waves E-F: LADDER CLIMB ships
+
+The Drop4 progression port the standard doc has wanted since July 21: a
+10-rung solo ladder with escalating AI personalities, first-clear coin
+rewards, persistence, and a champion state — shipped in THREE games in one
+night. Connect 4 is the canonical build (headless-sim verified across 100+
+games, live DOM playthroughs of win/loss/champion). Tic Tac Toe got the
+flagship variant with a sim-proved draw-clear rule at rungs 9-10 (perfect
+play draws — 1000-game sim shows rung 10 is unbeatable, so holding it to a
+draw clears it). Checkers rounds out the set. Tommy, Sal, The Broker, and
+Professor Everbrush are on the rungs; The Broker mentions 755 Broadway.
+
+The builds also surfaced and fixed two real pre-existing bugs: Connect 4 AI
+wins NEVER granted achievements (showResult got no board; getWinCells threw
+silently on every VS-Computer win), and TTT's updateRecord setDoc clobbered
+sibling fields on brand-new record docs.
+
+Deploy lesson, now in the backlog doc: GitHub Pages serves MAIN — the
+fast-forward `drop4-hub-conversion:main` push is the actual deploy step.
+Tonight's 35 commits went live at b2e7fcb.
+
+Devon actions remaining: `npx firebase deploy --only firestore:rules`
+(tetrisRecords block), plus a feel-pass on the ladders when he wakes up.
+
 ## 2026-07-30 (arcade) — Overnight quality train, Waves B-D: 22 more games
 
 Wave B (12 flat games): every solve/win now celebrates with the player's
