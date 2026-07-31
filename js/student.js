@@ -914,7 +914,7 @@ var ACH_PRIORITY = {
 // Game record collections to check for gamesPlayed
 var GAME_RECORD_COLLECTIONS = [
   'snakeRecords','chessRecords','connect4Records','checkersRecords','battleshipRecords',
-  'tictactoeRecords','rpsRecords','unoRecords','dominoesRecords','penaltykickRecords',
+  'tttRecords','rpsRecords','unoRecords','dominoesRecords','penaltykickRecords',
   'pingpongRecords','flappyRecords','fruitninjaRecords','brickbreakerRecords',
   'whackamoleRecords','aimtrainerRecords','coinminerRecords','2048Records',
   'solitaireRecords','blockblastRecords','suikaRecords','simonsaysRecords',

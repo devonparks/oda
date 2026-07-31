@@ -576,7 +576,7 @@ async function loadTTTAchievements() {
   if (!sid || sid.startsWith('anon_')) return;
   try {
     var fb = await getFirebaseDB();
-    var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'tictactoeRecords', sid));
+    var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'tttRecords', sid));
     if (snap.exists()) tttAchState = snap.data().achievements || {};
   } catch(e) {}
 }
@@ -586,7 +586,7 @@ async function checkTTTAchievements(extraState) {
   var sid = localStorage.getItem('studentId');
   if (!sid || sid.startsWith('anon_')) return;
   var fb = await getFirebaseDB();
-  var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'tictactoeRecords', sid));
+  var snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, 'tttRecords', sid));
   var data = snap.exists() ? snap.data() : {};
   var state = Object.assign({}, data, extraState || {});
   var newUnlocks = [];
@@ -599,7 +599,7 @@ async function checkTTTAchievements(extraState) {
   if (newUnlocks.length > 0) {
     var update = {};
     newUnlocks.forEach(function(a) { update['achievements.' + a.id] = tttAchState[a.id]; });
-    try { await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'tictactoeRecords', sid), update); } catch(e) {}
+    try { await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db, 'tttRecords', sid), update); } catch(e) {}
     newUnlocks.forEach(function(a, i) {
       setTimeout(function() { showTTTAchToast(a); }, 600 + i * 1200);
     });
