@@ -17,6 +17,10 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .back-btn{position:fixed;top:16px;left:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 18px;color:var(--text2);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;z-index:100;text-decoration:none;transition:all .2s;backdrop-filter:blur(8px)}
 .back-btn:hover{border-color:var(--accent);color:var(--text)}
 
+/* Sound Toggle */
+.sound-btn{position:fixed;top:16px;right:16px;background:rgba(17,24,39,.85);border:1px solid var(--border);border-radius:12px;padding:8px 12px;color:var(--text2);font-size:18px;cursor:pointer;z-index:100;transition:all .2s;backdrop-filter:blur(8px)}
+.sound-btn:hover{border-color:var(--accent)}
+
 /* Scrollbar */
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:var(--bg)}
@@ -85,6 +89,10 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .mode-card .mode-icon{font-size:40px;margin-bottom:12px;display:block}
 .mode-card h3{font-size:18px;margin-bottom:6px}
 .mode-card p{font-size:13px;color:var(--text2);line-height:1.4}
+
+.quick-stats{display:flex;gap:12px;justify-content:center;margin-top:28px;flex-wrap:wrap}
+.quick-stats .stat-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:8px 16px;font-size:13px;font-weight:600}
+.quick-stats .stat-pill .stat-num{color:var(--accent);font-weight:800}
 
 .import-row{text-align:center;margin-top:24px}
 
@@ -300,6 +308,7 @@ html[data-typ-trail="rainbow"] .race-lane.me .lane-car{filter:drop-shadow(0 0 4p
 <body>
 
 <a class="back-btn" id="backBtn" href="../../student.html#arcade" onclick="if(!document.getElementById('homeScreen').classList.contains('active')){event.preventDefault();TR.showScreen('homeScreen')}">&#8592; Back</a>
+<button class="sound-btn" id="soundBtn" onclick="TR.toggleSound()">&#128264;</button>
 
 <!-- ======================== -->
 <!-- HOME SCREEN              -->
@@ -335,6 +344,7 @@ html[data-typ-trail="rainbow"] .race-lane.me .lane-car{filter:drop-shadow(0 0 4p
       <p>Keyboards, cars &amp; trail effects</p>
     </div>
   </div>
+  <div class="quick-stats" id="quickStats"></div>
   <div class="import-row">
     <button class="btn btn-outline btn-small" onclick="TR.openImportModal()">&#128218; Import Words</button>
   </div>
@@ -788,6 +798,15 @@ function applyNameColor(el, color){
 // ============================================
 // Audio Engine (Web Audio API)
 // ============================================
+let soundOn = localStorage.getItem('odaSoundEnabled') !== 'false';
+function toggleSound() {
+  soundOn = !soundOn;
+  const btn = document.getElementById('soundBtn');
+  if (btn) btn.innerHTML = soundOn ? '&#128264;' : '&#128263;';
+  localStorage.setItem('odaSoundEnabled', soundOn);
+}
+if (!soundOn) { const soundBtnInit = document.getElementById('soundBtn'); if (soundBtnInit) soundBtnInit.innerHTML = '&#128263;'; }
+
 const SFX = {
   ctx: null,
   init() {
@@ -795,6 +814,7 @@ const SFX = {
     try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
   },
   play(type) {
+    if (!soundOn) return;
     if (!this.ctx) this.init();
     if (!this.ctx) return;
     try {
@@ -1015,12 +1035,20 @@ function showScreen(id) {
   const el = document.getElementById(id);
   if (el) el.classList.add('active');
 
-  if (id === 'homeScreen') loadPersonalBest();
+  if (id === 'homeScreen') { loadPersonalBest(); loadQuickStats(); }
 }
 
 // ============================================
 // Home Screen
 // ============================================
+function loadQuickStats() {
+  const qs = document.getElementById('quickStats');
+  if (!qs) return;
+  qs.innerHTML = '<div class="stat-pill"><span>Best WPM:</span> <span class="stat-num">' + (typingAchStats.bestWPM || 0) + '</span></div>'
+    + '<div class="stat-pill"><span>Games:</span> <span class="stat-num">' + (typingAchStats.racesCompleted || 0) + '</span></div>'
+    + '<div class="stat-pill"><span>Words typed:</span> <span class="stat-num">' + (typingAchStats.totalWords || 0) + '</span></div>';
+}
+
 async function loadPersonalBest() {
   try {
     await initFB();
@@ -2069,6 +2097,7 @@ document.addEventListener('keydown', function(e) {
 // Init
 // ============================================
 loadPersonalBest();
+loadQuickStats();
 
 // ============================================
 // Public API
@@ -2095,7 +2124,8 @@ window.TR = {
   selectLobbyTime,
   rematchGame,
   goHomeFromResult,
-  showTypingShop
+  showTypingShop,
+  toggleSound
 };
 
 })();
