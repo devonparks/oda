@@ -112,6 +112,27 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   100%{transform:translateY(0)}
 }
 
+/* Letter Animation cosmetics (equipped via shop, fires on reveal) */
+.tile.tile-anim-bounce{animation:letterBounce .4s ease}
+@keyframes letterBounce{
+  0%{transform:translateY(0)}
+  40%{transform:translateY(-10px)}
+  70%{transform:translateY(2px)}
+  100%{transform:translateY(0)}
+}
+.tile.tile-anim-wave{animation:letterWave .4s ease}
+@keyframes letterWave{
+  0%{transform:translateY(0) rotate(0)}
+  50%{transform:translateY(-6px) rotate(-4deg)}
+  100%{transform:translateY(0) rotate(0)}
+}
+.tile.tile-anim-explode{animation:letterExplode .35s ease}
+@keyframes letterExplode{
+  0%{transform:scale(1)}
+  40%{transform:scale(1.25)}
+  100%{transform:scale(1)}
+}
+
 /* Shake */
 .board-row.shake{animation:rowShake .5s ease}
 @keyframes rowShake{
@@ -945,8 +966,11 @@ async function submitGuess(){
   // Validate: check local list first, then dictionary API as fallback
   if(!VALID_SET[guess] && !apiValidCache[guess]){
     submitting = true;
+    var apiCtrl = new AbortController();
+    var apiTimeout = setTimeout(function(){ apiCtrl.abort(); }, 2500);
     try{
-      var resp = await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/' + guess.toLowerCase());
+      var resp = await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/' + guess.toLowerCase(), { signal: apiCtrl.signal });
+      clearTimeout(apiTimeout);
       if(resp.ok){
         apiValidCache[guess] = true;
         VALID_SET[guess] = 1;
@@ -958,7 +982,8 @@ async function submitGuess(){
         return;
       }
     }catch(e){
-      // Network error — be lenient
+      // Network error or timeout — be lenient
+      clearTimeout(apiTimeout);
       apiValidCache[guess] = true;
     }
     submitting = false;
@@ -1048,6 +1073,7 @@ function evaluateGuess(guess, target){
 /* ===================== */
 function revealRow(row, guess, result, callback){
   var delay = 0;
+  var letterAnim = wordleLetterAnimType;
   for(var c=0;c<5;c++){
     (function(col, res){
       setTimeout(function(){
@@ -1062,9 +1088,15 @@ function revealRow(row, guess, result, callback){
           if(res==='correct') playSound('correct');
           else if(res==='present') playSound('present');
           else playSound('absent');
+          // Equipped Letter Animation cosmetic — fires once the flip settles
+          if(letterAnim){
+            setTimeout(function(){
+              tile.classList.add('tile-anim-' + letterAnim);
+            }, 250);
+          }
         }, 250);
       }, delay);
-      delay += 300;
+      delay += 220;
     })(c, result[c]);
   }
 
@@ -1206,6 +1238,15 @@ function endGame(won){
     document.getElementById('resultWord').className = 'result-word lose';
   }
   document.getElementById('resultWord').textContent = targetWord;
+
+  // Daily loss shouldn't be a dead end — surface Endless as the keep-playing option
+  var playAgainBtn = document.getElementById('playAgainBtn');
+  if(gameMode === 'daily' && !won){
+    playAgainBtn.style.display = '';
+    playAgainBtn.innerHTML = '&#9654;&#65039; Play Endless';
+  } else {
+    playAgainBtn.innerHTML = '&#128260; Play Again';
+  }
 
   // Stats
   var pct = stats.gamesPlayed>0 ? Math.round((stats.gamesWon/stats.gamesPlayed)*100) : 0;
@@ -1470,6 +1511,7 @@ refreshHomeStats();
 /* ===================== */
 /* SHOP                  */
 /* ===================== */
+var wordleLetterAnimType = null;
 function applyCosmeticStyles() {
   if (typeof odaShop === 'undefined') return;
   var tile = odaShop.getEquipped('wordle', 'Tile Theme');
@@ -1493,6 +1535,8 @@ function applyCosmeticStyles() {
     root.style.removeProperty('--wordle-kb-border');
     root.style.removeProperty('--wordle-kb-text');
   }
+  var anim = odaShop.getEquipped('wordle', 'Letter Animation');
+  wordleLetterAnimType = (anim && anim.value && anim.value.type) || null;
 }
 
 if (typeof odaShop !== 'undefined') { applyCosmeticStyles(); }
