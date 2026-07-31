@@ -173,6 +173,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <p>Fill every row, column &amp; box with 1-9</p>
   </div>
   <div class="mode-grid" id="modeGrid">
+    <div class="card mode-card" id="resumeCard" style="display:none" onclick="resumeGame()">
+      <span class="mode-icon">&#9202;</span>
+      <h3>Resume Puzzle</h3>
+      <p id="resumeCardDesc">Continue where you left off</p>
+    </div>
     <div class="card mode-card" onclick="showDiffPicker()">
       <span class="mode-icon">&#9654;&#65039;</span>
       <h3>Play</h3>
@@ -262,7 +267,7 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
   document.getElementById(id).classList.add('active');
   document.body.classList.toggle('in-game',id==='gameScreen');
-  if(id==='homeScreen'){stopGame();loadLocalStats()}
+  if(id==='homeScreen'){stopGame();loadLocalStats();if(typeof updateResumeBtn==='function')updateResumeBtn()}
 }
 
 /* ===================== */
@@ -477,6 +482,72 @@ function closeDiffPicker(){
 window.closeDiffPicker=closeDiffPicker;
 
 /* ===================== */
+/* SAVE / RESUME         */
+/* ===================== */
+var SAVE_KEY='sudoku_save';
+
+function saveGameState(){
+  if(!gameActive)return;
+  try{
+    var pm=pencilMarks.map(function(row){return row.map(function(s){return Array.from(s)})});
+    localStorage.setItem(SAVE_KEY,JSON.stringify({board:board,puzzle:puzzle,solution:solution,pencilMarks:pm,mistakes:mistakes,elapsedSeconds:elapsedSeconds,difficulty:difficulty}));
+  }catch(e){}
+}
+
+function getSavedGame(){
+  try{
+    var s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');
+    if(s&&s.board&&s.puzzle&&s.solution&&DIFFICULTIES[s.difficulty])return s;
+  }catch(e){}
+  return null;
+}
+
+function clearSavedGame(){
+  try{localStorage.removeItem(SAVE_KEY)}catch(e){}
+  updateResumeBtn();
+}
+
+function updateResumeBtn(){
+  var card=document.getElementById('resumeCard');
+  if(!card)return;
+  var save=getSavedGame();
+  card.style.display=save?'':'none';
+  if(save)document.getElementById('resumeCardDesc').textContent=DIFFICULTIES[save.difficulty].label+' · '+formatTime(save.elapsedSeconds||0)+' · '+(save.mistakes||0)+'/3 mistakes';
+}
+
+function resumeGame(){
+  var save=getSavedGame();
+  if(!save){showDiffPicker();return}
+  difficulty=save.difficulty;
+  showScreen('gameScreen');
+  applyCosmeticStyles();
+  document.getElementById('diffLabel').textContent=DIFFICULTIES[difficulty].label;
+
+  solution=save.solution;
+  puzzle=save.puzzle;
+  board=save.board;
+  pencilMarks=[];
+  for(var i=0;i<9;i++){pencilMarks[i]=[];for(var j=0;j<9;j++)pencilMarks[i][j]=new Set((save.pencilMarks&&save.pencilMarks[i]&&save.pencilMarks[i][j])||[]);}
+
+  selectedRow=-1;selectedCol=-1;
+  mistakes=save.mistakes||0;
+  pencilMode=false;
+  moveHistory=[];
+  coinsAwarded=false;
+  elapsedSeconds=save.elapsedSeconds||0;
+
+  document.getElementById('pencilBtn').classList.remove('active-tool');
+  document.getElementById('mistakeDisplay').textContent=mistakes;
+  document.getElementById('mistakeDisplay').classList.toggle('mistakes-danger',mistakes>=2);
+
+  buildGrid();
+  buildNumpad();
+  startTimer();
+}
+window.resumeGame=resumeGame;
+updateResumeBtn();
+
+/* ===================== */
 /* SUDOKU GENERATOR      */
 /* ===================== */
 function generateSolvedBoard(){
@@ -523,6 +594,44 @@ function shuffleArray(arr){
   return a;
 }
 
+function isValidPlacement(board,row,col,num){
+  for(var i=0;i<9;i++){if(board[row][i]===num)return false;}
+  for(var i=0;i<9;i++){if(board[i][col]===num)return false;}
+  var br=Math.floor(row/3)*3,bc=Math.floor(col/3)*3;
+  for(var i=br;i<br+3;i++)for(var j=bc;j<bc+3;j++){if(board[i][j]===num)return false;}
+  return true;
+}
+
+// Count solutions up to `limit` (early-exit) — used to guarantee puzzles have exactly one solution
+function countSolutions(board,limit){
+  var count=0;
+  function search(){
+    if(count>=limit)return;
+    // Pick the empty cell with the fewest candidates (fast early-exit)
+    var bestR=-1,bestC=-1,bestNums=null;
+    for(var r=0;r<9;r++){
+      for(var c=0;c<9;c++){
+        if(board[r][c]===0){
+          var nums=[];
+          for(var n=1;n<=9;n++){if(isValidPlacement(board,r,c,n))nums.push(n);}
+          if(nums.length===0)return; // dead end
+          if(bestNums===null||nums.length<bestNums.length){bestR=r;bestC=c;bestNums=nums;}
+          if(bestNums.length===1){r=9;break;}
+        }
+      }
+    }
+    if(bestNums===null){count++;return;} // no empties = one full solution
+    for(var i=0;i<bestNums.length;i++){
+      board[bestR][bestC]=bestNums[i];
+      search();
+      board[bestR][bestC]=0;
+      if(count>=limit)return;
+    }
+  }
+  search();
+  return count;
+}
+
 function generatePuzzle(givenCount){
   var solution=generateSolvedBoard();
   var puzzle=solution.map(function(row){return row.slice()});
@@ -537,8 +646,13 @@ function generatePuzzle(givenCount){
   for(var i=0;i<positions.length&&removed<cellsToRemove;i++){
     var r=positions[i][0],c=positions[i][1];
     if(puzzle[r][c]!==0){
+      var backup=puzzle[r][c];
       puzzle[r][c]=0;
-      removed++;
+      if(countSolutions(puzzle,2)===1){
+        removed++;
+      }else{
+        puzzle[r][c]=backup; // removal breaks uniqueness — keep this given
+      }
     }
   }
 
@@ -598,6 +712,7 @@ function startGame(){
   buildGrid();
   buildNumpad();
   startTimer();
+  saveGameState(); // save slot always holds the current puzzle
 }
 
 function startTimer(){
@@ -760,6 +875,7 @@ function placeNumber(num){
     }
     moveHistory.push({type:'pencil',row:r,col:c,prev:prev,next:new Set(pencilMarks[r][c])});
     sfxPencil();
+    saveGameState();
     updateGridDisplay();
     return;
   }
@@ -807,6 +923,7 @@ function placeNumber(num){
     setTimeout(function(){if(cellEl)cellEl.classList.remove('just-placed')},250);
   }
 
+  saveGameState();
   updateGridDisplay();
 
   // Check win
@@ -847,6 +964,7 @@ function eraseCell(){
   pencilMarks[r][c]=new Set();
   moveHistory.push({type:'erase',row:r,col:c,prevVal:prevVal,prevPencil:prevPencil});
   sfxErase();
+  saveGameState();
   updateGridDisplay();
 }
 
@@ -871,6 +989,7 @@ function undoMove(){
   }
 
   sfxErase();
+  saveGameState();
   updateGridDisplay();
 }
 
@@ -910,6 +1029,7 @@ function isBoardComplete(){
 /* ===================== */
 function showWin(){
   sfxWin();
+  clearSavedGame();
   var time=elapsedSeconds;
   var isNewBest=localBest===0||time<localBest;
 
@@ -974,6 +1094,19 @@ function showWin(){
 }
 
 function showGameOver(){
+  clearSavedGame();
+
+  // Consolation coins scale with progress (% of cells correctly filled), capped below the win payout
+  var totalToFill=0,correctFilled=0;
+  for(var r=0;r<9;r++)for(var c=0;c<9;c++){
+    if(puzzle[r][c]===0){
+      totalToFill++;
+      if(board[r][c]!==0&&board[r][c]===solution[r][c])correctFilled++;
+    }
+  }
+  var winBase=difficulty==='easy'?8:(difficulty==='medium'?15:22);
+  var coins=Math.min(winBase-1,Math.max(2,Math.round(winBase*correctFilled/(totalToFill||1))));
+
   var overlay=document.createElement('div');
   overlay.className='results-overlay';
   overlay.id='resultsOverlay';
@@ -985,7 +1118,7 @@ function showGameOver(){
     +'<div class="rs"><div class="rv" style="color:#ef4444">'+maxMistakes+'/'+maxMistakes+'</div><div class="rl">Mistakes</div></div>'
     +'<div class="rs"><div class="rv">'+DIFFICULTIES[difficulty].label+'</div><div class="rl">Difficulty</div></div>'
     +'</div>'
-    +'<div class="results-coins">+2 coins</div>'
+    +'<div class="results-coins">+'+coins+' coins</div>'
     +'<div class="results-btns">'
     +'<button class="btn btn-accent btn-small" onclick="closeResults();startGame()">Try Again</button>'
     +'<button class="btn btn-outline btn-small" onclick="closeResults();showScreen(\'homeScreen\')">Home</button>'
@@ -995,7 +1128,7 @@ function showGameOver(){
   localGames++;localStorage.setItem('sudoku_games',localGames);
   if(!coinsAwarded){
     coinsAwarded=true;
-    awardCoins(2);
+    awardCoins(coins);
     saveRecord(false,0);
     checkAchievements({gamesPlayed:localGames});
   }
