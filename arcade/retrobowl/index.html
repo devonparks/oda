@@ -484,6 +484,10 @@ function drawInfoBar(){
     ctx.textAlign='center';ctx.fillStyle='#06d6a0';
     ctx.fillText('PRESS SPACE TO SNAP',W/2,FIELD_BOT+INFO_H/2);
   }
+  if(PHASE==='AIOFFENSE'){
+    ctx.textAlign='center';ctx.fillStyle='#ef476f';
+    ctx.fillText('DEFENSE — WATCH THE DRIVE',W/2,FIELD_BOT+INFO_H/2);
+  }
 }
 
 // ─── PLAY PANEL ──────────────────────────────────────────────────────────────
@@ -725,9 +729,9 @@ function touchdown(){PHASE='IDLE';myPoints+=7;myTDs++;odaSfx.play('levelup');
   odaAchievements.check('longBomb',gained>=40);
   odaAchievements.check('hatTrick',myTDs>=3);
   if(window.odaPlayEquippedWinEffect&&myTDs===1)window.odaPlayEquippedWinEffect(myIdentity||'stars');
-totalYards+=carrier?(carrier.fieldYards-fieldPos):0;showMsg('TOUCHDOWN!',2000);clockRunning=false;setTimeout(function(){fieldPos=25;down=1;toGo=10;firstDownLine=35;startAIOffense();},2200);}
-function sack(){PHASE='IDLE';sacksTaken++;odaSfx.play('hit');showMsg('SACKED!',1200);clockRunning=false;var ly=Math.floor(Math.random()*7)+3;fieldPos=Math.max(1,fieldPos-ly);setTimeout(function(){nextDown(fieldPos);},1400);}
-function incompletion(msg){PHASE='IDLE';odaSfx.play('error');ball=null;clockRunning=false;showMsg(msg||'INCOMPLETE!',1200);setTimeout(function(){nextDown(fieldPos);},1400);}
+totalYards+=carrier?(carrier.fieldYards-fieldPos):0;showMsg('TOUCHDOWN!',2000);clockRunning=false;setTimeout(function(){fieldPos=25;down=1;toGo=10;firstDownLine=35;startAIOffense();},1600);}
+function sack(){PHASE='IDLE';sacksTaken++;odaSfx.play('hit');showMsg('SACKED!',1200);clockRunning=false;var ly=Math.floor(Math.random()*7)+3;fieldPos=Math.max(1,fieldPos-ly);setTimeout(function(){nextDown(fieldPos);},1000);}
+function incompletion(msg){PHASE='IDLE';odaSfx.play('error');ball=null;clockRunning=false;showMsg(msg||'INCOMPLETE!',1200);setTimeout(function(){nextDown(fieldPos);},1000);}
 function tackle(yg){PHASE='IDLE';odaSfx.play('hit');
   var g=Math.round(yg-fieldPos);if(g>longestPlay)longestPlay=g;
   odaAchievements.check('bigGain',g>=25);
@@ -929,8 +933,9 @@ async function showRecords(){
   }catch(e){lb.innerHTML='<p style="text-align:center;color:var(--text2)">Could not load leaderboard</p>'}
 }
 
-function showShopScreen(){showScreen('shopScreen');var colors=[{name:'Teal',val:'#06d6a0'},{name:'Blue',val:'#118ab2'},{name:'Purple',val:'#7b2d8b'},{name:'Red',val:'#ef476f'},{name:'Orange',val:'#f77f00'},{name:'Gold',val:'#ffd166'},{name:'White',val:'#eee'},{name:'Black',val:'#222'}];var html='<h3 style="margin-bottom:12px">Team Color</h3><div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">';colors.forEach(function(c){html+='<button style="width:44px;height:44px;background:'+c.val+';border-radius:50%;border:3px solid '+(myJersey===c.val?'#fff':'transparent')+';cursor:pointer" title="'+c.name+'" onclick="setColor(\''+c.val+'\')" ></button>';});html+='</div>';document.getElementById('shopContent').innerHTML=html;}
-function setColor(v){myJersey=v;myHelmet=v;try{localStorage.setItem('gridiron_colors',JSON.stringify({jersey:v,helmet:v}));}catch(e){}showShopScreen();}
+function showShopScreen(){showScreen('shopScreen');var colors=[{name:'Teal',val:'#06d6a0'},{name:'Blue',val:'#118ab2'},{name:'Purple',val:'#7b2d8b'},{name:'Red',val:'#ef476f'},{name:'Orange',val:'#f77f00'},{name:'Gold',val:'#ffd166'},{name:'White',val:'#eee'},{name:'Black',val:'#222'}];var html='<h3 style="margin-bottom:12px">Jersey Color</h3><div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">';colors.forEach(function(c){html+='<button style="width:44px;height:44px;background:'+c.val+';border-radius:50%;border:3px solid '+(myJersey===c.val?'#fff':'transparent')+';cursor:pointer" title="'+c.name+'" onclick="setJerseyColor(\''+c.val+'\')" ></button>';});html+='</div><h3 style="margin:20px 0 12px">Helmet Color</h3><div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">';colors.forEach(function(c){html+='<button style="width:44px;height:44px;background:'+c.val+';border-radius:50%;border:3px solid '+(myHelmet===c.val?'#fff':'transparent')+';cursor:pointer" title="'+c.name+'" onclick="setHelmetColor(\''+c.val+'\')" ></button>';});html+='</div>';document.getElementById('shopContent').innerHTML=html;}
+function setJerseyColor(v){myJersey=v;try{localStorage.setItem('gridiron_colors',JSON.stringify({jersey:myJersey,helmet:myHelmet}));}catch(e){}showShopScreen();}
+function setHelmetColor(v){myHelmet=v;try{localStorage.setItem('gridiron_colors',JSON.stringify({jersey:myJersey,helmet:myHelmet}));}catch(e){}showShopScreen();}
 window.addEventListener('load',function(){var el=document.getElementById('quickStats');el.innerHTML='<div class="stat-pill">Best: <span class="stat-num" id="bestScore">'+(localBest||'--')+'</span> pts</div>';});
 
 // ─── HELP ──────────────────────────────────────────────────────────────────
