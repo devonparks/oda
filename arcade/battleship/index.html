@@ -217,6 +217,38 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 @keyframes bsSunkFlash{0%{background:#ff1744}100%{background:#7f1d1d}}
 .game-grid .cell.sunk.sunk-flash{animation:bsSunkFlash .6s ease}
 
+/* ── Power-ups (solo AI mode only) ── */
+.powerup-bar{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:10px}
+.pu-chips{display:flex;gap:8px}
+.pu-chip{font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;padding:6px 14px;border-radius:20px;border:2px dashed var(--border);background:transparent;color:var(--text2);min-width:104px;min-height:32px;text-align:center}
+.pu-chip.pu-empty{opacity:.4}
+.pu-chip.ready{border-style:solid;cursor:pointer;transition:transform .15s ease}
+.pu-chip.ready:hover:not(.disabled){transform:translateY(-2px) scale(1.05)}
+.pu-chip.pu-radar.ready{background:var(--accent2-dim,rgba(63,160,255,.16));border-color:var(--accent2);color:var(--accent2);animation:puGlowBlue 1.8s ease-in-out infinite}
+.pu-chip.pu-double.ready{background:rgba(255,209,102,.15);border-color:var(--gold);color:var(--gold);animation:puGlowGold 1.8s ease-in-out infinite}
+.pu-chip.ready.disabled{opacity:.45;cursor:default;animation:none}
+.pu-chip.ready.aiming{outline:2px solid var(--accent);box-shadow:0 0 16px rgba(6,214,160,.5)}
+.pu-chip.pop{animation:puPop .5s ease}
+@keyframes puPop{0%{transform:scale(0);opacity:0}60%{transform:scale(1.25)}100%{transform:scale(1);opacity:1}}
+@keyframes puGlowBlue{0%,100%{box-shadow:0 0 5px rgba(63,160,255,.35)}50%{box-shadow:0 0 16px rgba(63,160,255,.75)}}
+@keyframes puGlowGold{0%,100%{box-shadow:0 0 5px rgba(255,209,102,.35)}50%{box-shadow:0 0 16px rgba(255,209,102,.75)}}
+.pu-progress{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);font-weight:700}
+.pu-pip{width:9px;height:9px;border-radius:50%;background:var(--surface2);display:inline-block}
+.pu-pip.filled{background:var(--accent);box-shadow:0 0 6px rgba(6,214,160,.6)}
+.pu-next{margin-left:3px}
+.pu-armed{font-size:11px;font-weight:800;color:var(--gold);animation:pulse 1.2s ease-in-out infinite}
+/* Radar reveal marks (unattacked cells only) */
+.game-grid .cell.water.radar-ship{background:rgba(255,92,138,.2)}
+.game-grid .cell.water.radar-ship::before{content:'';position:absolute;inset:20%;border:2px solid var(--bs-hit-color,#ef4444);border-radius:50%;box-shadow:0 0 8px rgba(255,92,138,.6);animation:radarPing 1.6s ease-in-out infinite}
+.game-grid .cell.water.radar-miss{background:rgba(63,160,255,.12)}
+.game-grid .cell.water.radar-miss::before{content:'';position:absolute;inset:36%;background:rgba(148,197,255,.5);border-radius:50%}
+@keyframes radarPing{0%,100%{transform:scale(1);opacity:.65}50%{transform:scale(1.18);opacity:1}}
+/* Radar aim mode */
+.attack-grid.radar-aim .cell{cursor:cell}
+.game-grid .cell.radar-preview{box-shadow:inset 0 0 0 3px rgba(6,214,160,.85)}
+.game-grid .cell.radar-scan{animation:radarScan .8s ease}
+@keyframes radarScan{0%{box-shadow:inset 0 0 0 4px rgba(6,214,160,.9)}100%{box-shadow:inset 0 0 0 0 rgba(6,214,160,0)}}
+
 /* Ship status panel */
 .ship-status{display:flex;flex-direction:column;gap:6px;width:100%;max-width:400px}
 .ship-status-item{display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--border);font-size:13px;font-weight:600}
@@ -533,6 +565,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
             <div class="row-labels game-row-labels" id="atkRowLabels"></div>
             <div class="game-grid attack-grid" id="attackGrid"></div>
           </div>
+          <div class="powerup-bar" id="powerupBar" style="display:none"></div>
         </div>
       </div>
     </div>
@@ -706,6 +739,15 @@ let aiFirstHit=null, aiDirection=null, aiLastHit=null;
 // Sunk-ship fx dedupe (per game, reset in ready())
 let sunkFlashedMine=new Set(), sunkFlashedEnemy=new Set();
 
+// Power-ups (solo AI mode ONLY — in-memory, reset per game, zero Firestore writes)
+let puCharges=[];            // banked charges: 'radar' | 'double' (max 2)
+let puHitProgress=0;         // hits toward next charge (3 = ready to bank)
+let puNextType='radar';      // alternates radar → double → radar...
+let puDoubleActive=false;    // next shot keeps the turn for one extra shot
+let puAiming=false;          // radar aim mode (click grid to scan 2x2)
+let puJustBanked=false;      // one-shot pop animation flag
+let puRadarShip=new Set(), puRadarEmpty=new Set(); // revealed cells (r*10+c)
+
 // ── Session helpers ────────────────────────────────────
 function sid(){ return localStorage.getItem('studentId')||'guest'; }
 function sname(){ return localStorage.getItem('studentName')||'Guest'; }
@@ -795,6 +837,21 @@ function sndLose(){
 }
 function sndClick(){ playTone(700,.04,'sine',.06); }
 function sndAiTick(){ playTone(500,.03,'sine',.03); }
+function sndCharge(){ // power-up charge banked: rising sparkle
+  playTone(500,.08,'sine',.08);
+  setTimeout(()=>playTone(750,.08,'sine',.09),70);
+  setTimeout(()=>playTone(1000,.14,'sine',.1),140);
+}
+function sndRadar(){ // sonar ping + echo
+  playTone(1150,.25,'sine',.11);
+  setTimeout(()=>playTone(1150,.16,'sine',.05),300);
+  setTimeout(()=>playTone(1450,.12,'sine',.06),560);
+}
+function sndDouble(){ // double shot armed: punchy ramp
+  playTone(300,.08,'square',.1);
+  setTimeout(()=>playTone(450,.08,'square',.11),80);
+  setTimeout(()=>playTone(600,.14,'square',.12),160);
+}
 
 // Sound toggle
 document.getElementById('soundToggle').addEventListener('click',()=>{
@@ -1066,6 +1123,10 @@ function renderAttackGrid(){
   buildLabels('atkColLabels','atkRowLabels');
   const grid=document.getElementById('attackGrid');
   grid.innerHTML='';
+  // Power-up radar aim mode (AI mode only) — property assignment, no listener buildup
+  const aiming=gameMode==='ai'&&puAiming&&!gameOver;
+  grid.classList.toggle('radar-aim',aiming);
+  grid.onmouseleave=aiming?()=>{grid.querySelectorAll('.radar-preview').forEach(el=>el.classList.remove('radar-preview'));}:null;
   const newlySunk=[];
   for(let r=0;r<10;r++){
     for(let c=0;c<10;c++){
@@ -1090,9 +1151,17 @@ function renderAttackGrid(){
         cell.classList.add('miss');
       } else {
         cell.classList.add('water');
+        if(gameMode==='ai'){ // power-up radar reveal marks
+          if(puRadarShip.has(r*10+c)) cell.classList.add('radar-ship');
+          else if(puRadarEmpty.has(r*10+c)) cell.classList.add('radar-miss');
+        }
         if(!gameOver&&isMyTurn){
           cell.addEventListener('click',()=>onAttackClick(r,c));
         }
+      }
+      if(aiming){ // radar aim: any cell can anchor the 2x2 scan
+        cell.addEventListener('click',()=>puRadarAt(r,c));
+        cell.addEventListener('mouseenter',()=>puPreview(r,c));
       }
       grid.appendChild(cell);
     }
@@ -1141,8 +1210,16 @@ function updateTurnIndicator(){
     return;
   }
   if(isMyTurn){
-    el.textContent='Your Turn — Fire!';
-    el.className='turn-indicator your-turn';
+    if(gameMode==='ai'&&puAiming){
+      el.textContent='Radar armed — click Enemy Waters to scan';
+      el.className='turn-indicator thinking';
+    } else if(gameMode==='ai'&&puDoubleActive){
+      el.textContent='Double Shot — Fire twice!';
+      el.className='turn-indicator your-turn';
+    } else {
+      el.textContent='Your Turn — Fire!';
+      el.className='turn-indicator your-turn';
+    }
   } else {
     if(gameMode==='ai'){
       el.textContent='AI is thinking...';
@@ -1160,12 +1237,147 @@ function refreshGameUI(){
   renderShipStatus(myShips,enemyAttacks,'myShipStatus');
   renderShipStatus(enemyShips,myAttacks,'enemyShipStatus');
   updateTurnIndicator();
+  renderPowerups();
+}
+
+// ============================================
+// POWER-UPS (solo AI mode only)
+// Every 3 hits banks a charge (max 2), alternating
+// Radar Ping <-> Double Shot. AI never gets them.
+// Pure in-memory state — zero Firestore writes.
+// ============================================
+function puReset(){
+  puCharges=[];puHitProgress=0;puNextType='radar';
+  puDoubleActive=false;puAiming=false;puJustBanked=false;
+  puRadarShip=new Set();puRadarEmpty=new Set();
+}
+
+function puOnHit(){ // called on each of YOUR hits (AI mode only)
+  if(gameMode!=='ai')return;
+  puHitProgress=Math.min(puHitProgress+1,3); // held at 3 while slots are full — no wasted hits
+  puTryBank();
+}
+
+function puTryBank(){
+  if(gameMode!=='ai')return;
+  if(puHitProgress>=3&&puCharges.length<2){
+    puHitProgress-=3;
+    const type=puNextType;
+    puCharges.push(type);
+    puNextType=puNextType==='radar'?'double':'radar';
+    puJustBanked=true;
+    setTimeout(()=>sndCharge(),200);
+    if(typeof odaToast==='function') odaToast(`Power-up ready: ${type==='radar'?'\u{1F4E1} Radar Ping':'\u{26A1} Double Shot'}!`,'success');
+  }
+}
+
+function puUseCharge(i){
+  if(gameMode!=='ai'||gameOver||!isMyTurn)return;
+  const type=puCharges[i];
+  if(!type)return;
+  if(type==='radar'){
+    if(puAiming){ puCancelAim(); return; } // second tap cancels
+    puAiming=true;
+    sndClick();
+    if(typeof odaToast==='function') odaToast('Radar armed — click Enemy Waters to scan a 2×2 area','info');
+    renderPowerups();
+    renderAttackGrid();
+    updateTurnIndicator();
+  } else { // double shot
+    if(puDoubleActive)return; // already armed
+    if(puAiming) puCancelAim();
+    puCharges.splice(i,1);
+    puDoubleActive=true;
+    sndDouble();
+    if(typeof odaToast==='function') odaToast('\u{26A1} Double Shot armed — fire twice this turn!','success');
+    puTryBank(); // freed slot may bank held progress
+    renderPowerups();
+    updateTurnIndicator();
+  }
+}
+
+function puCancelAim(){
+  puAiming=false;
+  sndClick();
+  renderPowerups();
+  renderAttackGrid();
+  updateTurnIndicator();
+}
+
+function puPreview(r,c){ // hover: highlight the clamped 2x2 scan area
+  const grid=document.getElementById('attackGrid');
+  if(!grid)return;
+  grid.querySelectorAll('.radar-preview').forEach(el=>el.classList.remove('radar-preview'));
+  if(!puAiming)return;
+  const r0=Math.min(r,8),c0=Math.min(c,8);
+  [[r0,c0],[r0,c0+1],[r0+1,c0],[r0+1,c0+1]].forEach(([rr,cc])=>{
+    const cell=grid.children[rr*10+cc];
+    if(cell)cell.classList.add('radar-preview');
+  });
+}
+
+function puRadarAt(r,c){ // consume radar charge, reveal 2x2 — no shot consumed
+  if(gameMode!=='ai'||!puAiming||gameOver)return;
+  const idx=puCharges.indexOf('radar');
+  if(idx===-1){ puCancelAim(); return; }
+  puCharges.splice(idx,1);
+  puAiming=false;
+  const r0=Math.min(r,8),c0=Math.min(c,8);
+  let signals=0;
+  for(let rr=r0;rr<=r0+1;rr++)for(let cc=c0;cc<=c0+1;cc++){
+    if(enemyBoard[rr][cc]===SHIP){ puRadarShip.add(rr*10+cc); signals++; }
+    else puRadarEmpty.add(rr*10+cc);
+  }
+  sndRadar();
+  if(typeof odaToast==='function') odaToast(signals>0?`\u{1F4E1} Radar ping: ${signals} ship signal${signals>1?'s':''} detected!`:'\u{1F4E1} Radar ping: all clear — empty water',signals>0?'success':'info');
+  puTryBank(); // freed slot may bank held progress
+  renderPowerups();
+  renderAttackGrid();
+  updateTurnIndicator();
+  // scan flash on the swept cells (after re-render)
+  const grid=document.getElementById('attackGrid');
+  if(grid){
+    [[r0,c0],[r0,c0+1],[r0+1,c0],[r0+1,c0+1]].forEach(([rr,cc])=>{
+      const cell=grid.children[rr*10+cc];
+      if(cell)cell.classList.add('radar-scan');
+    });
+  }
+}
+
+function renderPowerups(){
+  const bar=document.getElementById('powerupBar');
+  if(!bar)return;
+  if(gameMode!=='ai'){ bar.style.display='none'; return; }
+  bar.style.display='';
+  const canUse=isMyTurn&&!gameOver;
+  let chips='';
+  for(let i=0;i<2;i++){
+    const t=puCharges[i];
+    if(t){
+      const cls=['pu-chip','ready',t==='radar'?'pu-radar':'pu-double'];
+      if(!canUse)cls.push('disabled');
+      if(t==='radar'&&puAiming)cls.push('aiming');
+      if(puJustBanked&&i===puCharges.length-1)cls.push('pop');
+      const label=t==='radar'?'\u{1F4E1} Radar':'\u{26A1} Double Shot';
+      const tip=t==='radar'?'Reveal a 2×2 area':'Fire 2 shots this turn';
+      chips+=`<button class="${cls.join(' ')}" data-pu="${i}" title="${tip}">${label}</button>`;
+    } else {
+      chips+='<div class="pu-chip pu-empty"></div>';
+    }
+  }
+  const pips=[0,1,2].map(i=>`<span class="pu-pip${i<puHitProgress?' filled':''}"></span>`).join('');
+  const nextLabel=(puCharges.length>=2&&puHitProgress>=3)?'Charge held — use one!':`Next: ${puNextType==='radar'?'\u{1F4E1} Radar':'\u{26A1} Double Shot'}`;
+  const armed=puDoubleActive?'<div class="pu-armed">\u{26A1} Double Shot armed!</div>':'';
+  bar.innerHTML=`<div class="pu-chips">${chips}</div><div class="pu-progress" title="Every 3 hits charges a power-up">${pips}<span class="pu-next">${nextLabel}</span></div>${armed}`;
+  bar.querySelectorAll('[data-pu]').forEach(btn=>btn.addEventListener('click',()=>puUseCharge(parseInt(btn.dataset.pu,10))));
+  puJustBanked=false;
 }
 
 // ============================================
 // GAME LOGIC - ATTACK
 // ============================================
 function onAttackClick(r,c){
+  if(gameMode==='ai'&&puAiming)return; // radar aim mode: puRadarAt handles the click
   if(!isMyTurn||gameOver)return;
   if(myAttacks[r][c]!==0)return;
 
@@ -1183,6 +1395,7 @@ function doAttack(r,c){
 
   if(isHit){
     sndHit();
+    puOnHit(); // power-up charge progress (AI mode only, guarded inside)
     // Check if sunk
     const sunkShip=enemyShips.find(s=>s.cells.some(([sr,sc])=>sr===r&&sc===c)&&s.cells.every(([sr,sc])=>myAttacks[sr][sc]===HIT_MARK));
     if(sunkShip&&!sunkShip.sunk){
@@ -1199,6 +1412,14 @@ function doAttack(r,c){
     }
   } else {
     sndMiss();
+  }
+
+  // Power-up: Double Shot — keep the turn for one extra shot before the AI replies
+  if(gameMode==='ai'&&puDoubleActive&&!gameOver){
+    puDoubleActive=false;
+    refreshGameUI();
+    if(typeof odaToast==='function') odaToast('\u{26A1} Double Shot: fire again!','success');
+    return;
   }
 
   isMyTurn=false;
@@ -1395,6 +1616,7 @@ function ready(){
   enemyAttacks=emptyGrid();
   sunkFlashedMine=new Set();
   sunkFlashedEnemy=new Set();
+  puReset(); // power-up charges reset per game (dormant outside AI mode)
 
   if(gameMode==='ai'){
     // Generate AI board
@@ -1925,6 +2147,7 @@ document.addEventListener('keydown',e=>{
     }
   }
   if(e.key==='Escape'){
+    if(gameMode==='ai'&&puAiming){ puCancelAim(); return; } // cancel radar aim, don't exit game
     const active=document.querySelector('.screen.active');
     if(active&&active.id!=='homeScreen'){
       goHome();
@@ -2463,7 +2686,8 @@ odaHelp.init({
   title:'Sea Strike', emoji:'\u{1F6A2}', subtitle:'Seek and destroy the enemy fleet!',
   sections:[
     {title:'Rules', icon:'\u{1F4D6}', items:['Place your ships on the grid during setup phase','Take turns firing at the opponent\'s grid','Hit all squares of a ship to sink it','Sink all enemy ships to win!']},
-    {title:'Ships', icon:'\u2693', items:['Carrier \u2014 5 squares','Battleship \u2014 4 squares','Cruiser \u2014 3 squares','Submarine \u2014 3 squares','Destroyer \u2014 2 squares']}
+    {title:'Ships', icon:'\u2693', items:['Carrier \u2014 5 squares','Battleship \u2014 4 squares','Cruiser \u2014 3 squares','Submarine \u2014 3 squares','Destroyer \u2014 2 squares']},
+    {title:'Power-Ups (vs AI)', icon:'\u26a1', items:['Every 3 hits banks a power-up charge (max 2 banked)','\u{1F4E1} Radar Ping \u2014 scan a 2\u00d72 area of Enemy Waters, no shot used','\u26a1 Double Shot \u2014 fire 2 shots before the AI replies','Charges alternate Radar \u2192 Double Shot and reset each game']}
   ],
   controls:[{key:'Click',action:'Fire at square'},{key:'Drag',action:'Place ships'},{key:'R',action:'Rotate ship'}],
   tip:'<strong>Hunt in a checkerboard pattern!</strong> Since the smallest ship is 2 squares, you can skip every other square to find ships faster.'
