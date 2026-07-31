@@ -290,7 +290,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
   <div class="game-top">
     <div class="game-title">Dominoes</div>
     <div class="player-info">
-      <div class="pi-box" id="piYou"><div class="pi-label">You</div><div class="pi-val" id="piYouScore">0</div><div class="pi-tiles" id="piYouTiles">7 tiles</div></div>
+      <div class="pi-box" id="piYou"><div class="pi-label">You</div><div class="pi-val" id="piYouScore">0</div><div class="pi-tiles" id="piYouTiles">7 tiles</div><div class="pi-tiles" id="piYouPips" style="color:var(--gold)">21 pips</div></div>
       <div class="pi-box" id="piOpp"><div class="pi-label" id="piOppName">AI</div><div class="pi-val" id="piOppScore">0</div><div class="pi-tiles" id="piOppTiles">7 tiles</div></div>
     </div>
   </div>
@@ -825,6 +825,23 @@ function drawBoard(){
 
   // Draw tiles
   boardEntries.forEach(entry => {
+    if(entry.tile.id === lastPlacedId){
+      // Pop-in bounce on the just-placed tile — same overshoot-then-settle
+      // curve as connect4's dropBounce keyframe, adapted to a canvas scale.
+      const elapsed = Date.now() - lastPlacedTime;
+      if(elapsed < 400){
+        const t = elapsed / 400;
+        const c1 = 1.70158, c3 = c1 + 1;
+        const scale = 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+        ctx.save();
+        ctx.translate(entry.x, entry.y);
+        ctx.scale(scale, scale);
+        ctx.translate(-entry.x, -entry.y);
+        drawTileOnCanvas(ctx, entry.x, entry.y, entry.leftVal, entry.rightVal, entry.isDouble);
+        ctx.restore();
+        return;
+      }
+    }
     drawTileOnCanvas(ctx, entry.x, entry.y, entry.leftVal, entry.rightVal, entry.isDouble);
   });
 
@@ -1443,6 +1460,7 @@ function renderGame(){
   document.getElementById('piOppScore').textContent = oppScore;
   document.getElementById('piYouTiles').textContent = myHand.length + ' tiles';
   document.getElementById('piOppTiles').textContent = oppHand.length + ' tiles';
+  document.getElementById('piYouPips').textContent = myHand.reduce((s, t) => s + pipCount(t), 0) + ' pips';
   document.getElementById('boneyardCount').textContent = 'Boneyard: ' + boneyard.length;
 }
 
@@ -1519,7 +1537,7 @@ function placeTile(side){
   panToSide(side);
   updateTurnUI();
 
-  if(aiMode) setTimeout(() => aiTurn(), 1500 + Math.random() * 500);
+  if(aiMode) setTimeout(() => aiTurn(), 500 + Math.random() * 300);
 }
 window.placeTile = placeTile;
 window.panBoard = panBoard;
@@ -1538,7 +1556,7 @@ function passTurn(){
   if(!myTurn || gameOver) return;
   myTurn = false;
   renderGame(); updateTurnUI();
-  if(aiMode) setTimeout(() => aiTurn(), 600 + Math.random() * 400);
+  if(aiMode) setTimeout(() => aiTurn(), 500 + Math.random() * 300);
 }
 window.passTurn = passTurn;
 
