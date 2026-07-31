@@ -82,6 +82,14 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .hud-next-label{font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:1px;font-weight:700}
 .hud-next-fruit{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;border:2px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);backdrop-filter:blur(4px)}
 
+/* BIG MERGE SHAKE */
+#canvasWrap.shake{animation:suikaShake .4s ease}
+@keyframes suikaShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+
+/* CHAIN COMBO POPUP */
+.chain-popup{position:absolute;top:30%;left:50%;transform:translate(-50%,-50%) scale(0);font-family:'Fredoka',sans-serif;font-size:26px;font-weight:700;color:#f97316;z-index:8;pointer-events:none;text-shadow:0 0 20px rgba(249,115,22,.6);animation:chainPop .9s ease forwards;white-space:nowrap}
+@keyframes chainPop{0%{transform:translate(-50%,-50%) scale(0);opacity:0}15%{transform:translate(-50%,-50%) scale(1.2);opacity:1}30%{transform:translate(-50%,-50%) scale(1)}100%{transform:translate(-50%,-50%) scale(1) translateY(-20px);opacity:0}}
+
 /* GAME OVER OVERLAY */
 .go-overlay{position:absolute;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:10;gap:12px;padding:24px;animation:fadeUp .3s ease}
 .go-overlay.active{display:flex}
@@ -399,6 +407,7 @@ var dropCooldown=0;
 var canvasOffX=0,canvasOffY=0;
 var dangerTimer=0;
 var DANGER_TIME=90; // frames above line before game over (~1.5s at 60fps)
+var lastMergeTime=0,chainCount=0; // chain-combo tracking (additive, no gameplay effect)
 
 // Physics constants
 var GRAVITY=0.3;
@@ -459,6 +468,7 @@ function startGame(){
   fruits=[];particles=[];score=0;
   coinsAwarded=false;madeWatermelon=false;totalMerges=0;
   dangerTimer=0;dropCooldown=0;
+  lastMergeTime=0;chainCount=0;
   nextType=randomSpawnType();
   spawnCurrentFruit();
   gameState='playing';
@@ -596,6 +606,13 @@ function mergeFruits(i,j){
   totalMerges++;
   document.getElementById('hudScore').textContent=score;
   sfxMerge(newType);
+  // Chain-combo popup (2+ merges within ~1s window) — additive only, no score/coin effect
+  var mergeNow=Date.now();
+  chainCount=(mergeNow-lastMergeTime<1000)?chainCount+1:1;
+  lastMergeTime=mergeNow;
+  if(chainCount>=2)showChainPopup(chainCount);
+  // Subtle screen shake on big merges (top 3 fruit tiers only)
+  if(newType>=FRUIT_TYPES.length-3)triggerShake();
   // Particles
   var col=fruitColors[a.type]||'#fff';
   for(var p=0;p<8;p++){
@@ -623,6 +640,20 @@ function mergeFruits(i,j){
       fruits.push(nf);
     }
   },50);
+}
+
+function triggerShake(){
+  var cw=document.getElementById('canvasWrap');
+  cw.classList.add('shake');
+  setTimeout(function(){cw.classList.remove('shake')},400);
+}
+
+function showChainPopup(n){
+  var el=document.createElement('div');
+  el.className='chain-popup';
+  el.textContent='CHAIN x'+n+'!';
+  document.getElementById('canvasWrap').appendChild(el);
+  setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},1000);
 }
 
 /* ===================== */
