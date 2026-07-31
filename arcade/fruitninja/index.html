@@ -421,8 +421,8 @@ function initCanvas(){
 var gameDifficulty='easy';
 var diffSettings={
   easy:{spawnInterval:260,minSpawn:180,bombChance:0.03,launchMult:1,gravityMult:0.65,maxFruits:1,missLimit:5,sizeMult:1.4},
-  medium:{spawnInterval:200,minSpawn:140,bombChance:0.05,launchMult:1,gravityMult:0.75,maxFruits:1,missLimit:4,sizeMult:1.2},
-  hard:{spawnInterval:150,minSpawn:100,bombChance:0.10,launchMult:1.05,gravityMult:1,maxFruits:2,missLimit:3,sizeMult:1}
+  medium:{spawnInterval:200,minSpawn:140,bombChance:0.05,launchMult:1,gravityMult:0.75,maxFruits:2,missLimit:4,sizeMult:1.2},
+  hard:{spawnInterval:150,minSpawn:100,bombChance:0.10,launchMult:1.05,gravityMult:1,maxFruits:4,missLimit:3,sizeMult:1}
 };
 
 var fruitDiff='easy';
@@ -550,14 +550,19 @@ function update(){
   spawnInterval=Math.max(ds.minSpawn,rampedInterval);
 
   // Spawn fruits — one at a time on easy, multiples only on harder modes late game
+  // maxFruits caps how many can be in the air at once (per-difficulty, diffSettings)
   spawnTimer++;
   if(spawnTimer>=spawnInterval){
     spawnTimer=0;
-    var count=1;
-    if(gameDifficulty!=='easy'&&frameCount>2000)count=Math.random()<0.25?2:1;
-    if(gameDifficulty==='hard'&&frameCount>4000)count=Math.random()<0.15?3:count;
-    for(var c=0;c<count;c++){
-      setTimeout(function(){if(gameState==='playing')spawnFruit()},c*150);
+    var room=ds.maxFruits-fruits.length;
+    if(room>0){
+      var count=1;
+      if(gameDifficulty!=='easy'&&frameCount>2000)count=Math.random()<0.25?2:1;
+      if(gameDifficulty==='hard'&&frameCount>4000)count=Math.random()<0.15?ds.maxFruits:count;
+      count=Math.min(count,room);
+      for(var c=0;c<count;c++){
+        setTimeout(function(){if(gameState==='playing')spawnFruit()},c*150);
+      }
     }
   }
 
@@ -672,7 +677,7 @@ function checkSlice(x,y){
 function endSwipe(){
   if(swipeSliceCount>=3){
     // Combo bonus
-    var bonus=swipeSliceCount+2;
+    var bonus=swipeSliceCount*2;
     score+=bonus;
     comboCount++;
     if(swipeSliceCount>bestCombo)bestCombo=swipeSliceCount;
@@ -973,12 +978,12 @@ async function saveRecord(isNew){
     var snap=await fb.fsMod.getDoc(ref);
     if(snap.exists()){
       var upd={gamesPlayed:fb.fsMod.increment(1),totalSliced:fb.fsMod.increment(totalSliced),lastPlayed:new Date().toISOString()};
-      if(isNew)upd.highScore=score;
+      if(isNew){upd.highScore=score;upd.difficulty=gameDifficulty}
       if(bestCombo>0)upd.bestCombo=bestCombo;
       if(bestNoBomb>0)upd.bestNoBomb=bestNoBomb;
       await fb.fsMod.updateDoc(ref,upd);
     }else{
-      await fb.fsMod.setDoc(ref,{studentId:studentId,studentName:studentName||'',classCode:classCode,highScore:score,gamesPlayed:1,totalSliced:totalSliced,bestCombo:bestCombo,bestNoBomb:bestNoBomb,lastPlayed:new Date().toISOString()});
+      await fb.fsMod.setDoc(ref,{studentId:studentId,studentName:studentName||'',classCode:classCode,highScore:score,difficulty:gameDifficulty,gamesPlayed:1,totalSliced:totalSliced,bestCombo:bestCombo,bestNoBomb:bestNoBomb,lastPlayed:new Date().toISOString()});
     }
   }catch(e){console.warn('Save failed:',e)}
 }
@@ -1009,10 +1014,13 @@ async function showRecords(){
     var snap=await fb.fsMod.getDocs(q);
     if(snap.empty){lb.innerHTML='<div class="lb-empty">No scores yet. Be the first!</div>';return}
     var h='',rank=0;
+    var diffColors={easy:'#06d6a0',medium:'#f97316',hard:'#ef4444'};
     snap.forEach(function(d){
       rank++;var data=d.data();var isMe=data.studentId===studentId;
       var rc=rank<=3?'r'+rank:'';
-      h+='<div class="lb-row'+(isMe?' me':'')+'"><div class="lb-rank '+rc+'">'+rank+'</div><div class="lb-name">'+esc(data.studentName||'Player')+'</div><div class="lb-score">'+data.highScore+'</div></div>';
+      var dc=diffColors[data.difficulty];
+      var badge=dc?'<span title="'+data.difficulty+'" style="font-size:9px;font-weight:800;color:'+dc+';border:1px solid '+dc+';border-radius:4px;padding:1px 4px;margin-right:6px;text-transform:uppercase;flex-shrink:0">'+data.difficulty.charAt(0)+'</span>':'';
+      h+='<div class="lb-row'+(isMe?' me':'')+'"><div class="lb-rank '+rc+'">'+rank+'</div><div class="lb-name">'+badge+esc(data.studentName||'Player')+'</div><div class="lb-score">'+data.highScore+'</div></div>';
     });
     lb.innerHTML=h;
   }catch(e){lb.innerHTML='<div class="lb-empty">Could not load leaderboard</div>'}
