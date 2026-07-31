@@ -79,6 +79,21 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .how-to p{font-size:13px;color:var(--text2);line-height:1.6}
 
 /* ======================== */
+/* LEADERBOARD              */
+/* ======================== */
+.lb-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center}
+.lb-list{display:flex;flex-direction:column;gap:6px;width:100%;max-width:420px;margin:0 auto}
+.lb-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px}
+.lb-row.me{border-color:var(--accent2);background:rgba(17,138,178,.06)}
+.lb-rank{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text2);flex-shrink:0}
+.lb-rank.r1{background:rgba(255,209,102,.2);color:var(--gold)}
+.lb-rank.r2{background:rgba(192,192,192,.15);color:#c0c0c0}
+.lb-rank.r3{background:rgba(205,127,50,.15);color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{font-size:14px;font-weight:800;color:var(--gold);font-family:'Fredoka',sans-serif}
+.lb-empty{text-align:center;color:var(--text2);font-size:14px;padding:24px;font-weight:600}
+
+/* ======================== */
 /* GAME SCREEN              */
 /* ======================== */
 #gameScreen{padding-top:8px;min-height:auto;justify-content:flex-start}
@@ -288,7 +303,9 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 <div class="screen" id="achScreen">
   <div class="home-header"><h1>&#127942; Achievements</h1></div>
   <p id="achProgress" style="text-align:center;color:var(--text2);margin-bottom:14px"></p>
-  <div id="achGrid" style="max-width:620px;margin:0 auto;width:92%"></div>
+  <div id="achGrid" style="max-width:620px;margin:0 auto;width:92%;margin-bottom:24px"></div>
+  <div class="lb-title" id="lbTitle">Class Leaderboard</div>
+  <div class="lb-list" id="leaderboard"><div class="lb-empty">Loading...</div></div>
   <div style="text-align:center;margin-top:20px"><button class="btn" onclick="showScreen('homeScreen')">Back</button></div>
 </div>
 
@@ -401,8 +418,31 @@ function showAchievements(){
   odaAchievements.renderGrid('achGrid');
   var pr=odaAchievements.progress();
   document.getElementById('achProgress').textContent=pr.unlocked+' of '+pr.total+' unlocked';
+  loadLeaderboard();
 }
 window.showAchievements=showAchievements;
+
+/* Class leaderboard (top 20 by highScore) */
+async function loadLeaderboard(){
+  var lb=document.getElementById('leaderboard');lb.innerHTML='<div class="lb-empty">Loading...</div>';
+  lb.style.display='';document.getElementById('lbTitle').style.display='';
+  var sid=localStorage.getItem('studentId');
+  var cc=localStorage.getItem('classCode')||'';
+  if(!cc){lb.innerHTML='<div class="lb-empty">Join a class to see the leaderboard</div>';return}
+  try{
+    var fb=await window.getFirebaseDB();
+    var q=fb.fsMod.query(fb.fsMod.collection(fb.db,'tetrisRecords'),fb.fsMod.where('classCode','==',cc),fb.fsMod.orderBy('highScore','desc'),fb.fsMod.limit(20));
+    var snap=await fb.fsMod.getDocs(q);
+    if(snap.empty){lb.innerHTML='<div class="lb-empty">No scores yet. Be the first!</div>';return}
+    var h='',rank=0;
+    snap.forEach(function(d){
+      rank++;var data=d.data();var isMe=data.studentId===sid;
+      var rc=rank<=3?'r'+rank:'';
+      h+='<div class="lb-row'+(isMe?' me':'')+'"><div class="lb-rank '+rc+'">'+rank+'</div><div class="lb-name">'+esc(data.studentName||'Player')+'</div><div class="lb-score">'+data.highScore+'</div></div>';
+    });
+    lb.innerHTML=h;
+  }catch(e){lb.style.display='none';document.getElementById('lbTitle').style.display='none'}
+}
 
 function showShopScreen(){
   showScreen('shopScreen');
@@ -415,6 +455,26 @@ async function awardCoins(n){
   var sid=localStorage.getItem('studentId');
   if(!sid||sid.indexOf('anon_')===0||!n||n<=0)return;
   try{var fb=await window.getFirebaseDB();await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'students',sid),{coins:fb.fsMod.increment(n)});}catch(e){}
+}
+
+/* Class record write (additive alongside local loadStats/saveStats) */
+async function saveRecord(isNew){
+  var sid=localStorage.getItem('studentId');
+  if(!sid||sid.indexOf('anon_')===0)return;
+  var sName=localStorage.getItem('studentName')||'';
+  var cc=localStorage.getItem('classCode')||'';
+  try{
+    var fb=await window.getFirebaseDB();
+    var ref=fb.fsMod.doc(fb.db,'tetrisRecords',sid);
+    var snap=await fb.fsMod.getDoc(ref);
+    if(snap.exists()){
+      var upd={gamesPlayed:fb.fsMod.increment(1),totalLines:fb.fsMod.increment(lines),lastPlayed:new Date().toISOString()};
+      if(isNew)upd.highScore=score;
+      await fb.fsMod.updateDoc(ref,upd);
+    }else{
+      await fb.fsMod.setDoc(ref,{studentId:sid,studentName:sName,classCode:cc,highScore:score,totalLines:lines,gamesPlayed:1,lastPlayed:new Date().toISOString()});
+    }
+  }catch(e){}
 }
 
 /* Player identity cosmetics (for the equipped WIN EFFECT on a new record) */
@@ -853,6 +913,7 @@ function gameOverHandler(){
   stats.games=(stats.games||0)+1;
   stats.totalLines=(stats.totalLines||0)+lines;
   saveStats(stats);
+  saveRecord(isRecord);
 
   /* Coins: 1 per 500 points */
   var coins=Math.floor(score/500);

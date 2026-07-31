@@ -675,6 +675,13 @@ service cloud.firestore {
       allow delete: if request.auth != null;
     }
 
+    match /tetrisRecords/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.studentId is string && isReasonableSize();
+      allow update: if request.resource.data.studentId is string && isReasonableSize();
+      allow delete: if request.auth != null;
+    }
+
     match /fruitninjaRecords/{docId} {
       allow read: if true;
       allow create: if request.resource.data.studentId is string && isReasonableSize();
