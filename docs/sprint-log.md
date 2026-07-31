@@ -1,5 +1,50 @@
 # Sprint Log
 
+## 2026-07-30/31 (arcade) — AAA PHASE: "more fun than Cool Math Games"
+
+Devon raised the bar from "meets the standard" to "AAA, more fun than Cool
+Math Games" with unlimited runway. Six more waves, ~55 commits, every wave
+deployed live:
+
+**Fun audit** (49 games, playtest-critic lens): funScores, time-to-fun,
+frictions with exact setTimeout values, and the ONE missing mechanic per
+game. Found dead code (2048's unreachable 3x3/5x5 modes, basketball's
+disabled court system), broken promises (hangman's nonexistent timer, wordle
+selling an animation that never rendered), and a CONFIRMED sudoku generator
+bug (multi-solution puzzles marking legal answers wrong ~95% of the time).
+
+**G1 bugs**: sudoku uniqueness (sim: 30/30 now unique) + save/resume; wordle
+fetch timeout + the dead cosmetic wired; RPS tournaments became real
+(pass-and-play); trivia 8-9 -> 30 questions/category; 2048 modes reconnected;
+TTT win-line cosmetics finally visible in AI mode.
+
+**DAILY TRIO** — the "one more go" engine — deterministic date-seeded
+3-mission dailies, now in 18 score-attack games (canonical: flappy;
+spec: AMG_DAILY_TRIO_SPEC.md). Same trio for every kid each day.
+
+**Friction sweep** (G2b/G2c): dead-time cut across the whole arcade —
+bowling's 9s/frame waits nearly halved, war rounds resolve in <1s, typing
+went MonkeyType (no countdown, Enter chains runs), battleship auto-places
+ships (30s setup tax gone), memory preview tap-to-skip + SPEED ROUND mode,
+solitaire + lightsout + slidingpuzzle got hint systems, penalty kick got
+SUDDEN DEATH, war got its first-ever decision (free Hi-Lo predictions).
+
+**G3 marquee depth**: LADDERS in chess (with a time-budgeted AI search fixing
+measured 0.7-1.4s Hard-mode stalls), dominoes, RPS (learnable opponent
+TELLS — Rocky always throws rock), basketball (shootout rungs, 4000-trial
+sim per rung) + the disabled COURTS reconnected as shop unlocks; UNO got the
+real tap-UNO!-or-get-caught moment; battleship got Radar Ping / Double Shot
+power-ups. Ladder Climb now lives in SEVEN games; every rung-10 boss quietly
+knows about 755 Broadway.
+
+Verification posture all night: every agent report re-verified (10 audit
+false alarms caught by verify-first), every changed game console-checked,
+sims for anything tunable, per-game commits, fast-forward deploys.
+
+Devon actions pending: firestore rules deploy (tetrisRecords), device
+feel-pass, and the balance-call list at the bottom of
+AMG_HUB_UPGRADE_BACKLOG_JUL30.md.
+
 ## 2026-07-30 (arcade) — Overnight quality train, Waves E-F: LADDER CLIMB ships
 
 The Drop4 progression port the standard doc has wanted since July 21: a

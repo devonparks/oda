@@ -136,3 +136,38 @@ connect4 (except ladder), hangman (except noted), drop4, chess/checkers (except 
   when tetris fix ships.
 - tests/run-all.js needs serviceAccountKey.json (not run tonight; browser-verified
   instead).
+
+## AAA phase (Jul 30-31 night) — Devon's balance calls & follow-ups
+
+Everything below SHIPPED and works; these are the judgment calls agents flagged
+for your taste/balance pass, consolidated from ~45 build reports:
+
+1. **Trio rewards** — every game's TRIO_REWARD/TRIO_BONUS is calibrated from its
+   real payout code but anchored to an ESTIMATED "decent run". All are single
+   constants at the top of each game's DAILY TRIO block. Eyeball after a few days
+   of real play.
+2. **Racers terrain** — new asymptotic curve keeps escalating forever but is
+   gentler mid-game than the old x/3000 ramp (0.5 vs 1.0 at 3000m). Feel-check.
+3. **Chess Hard** — time-budgeted search fixes Chromebook freezes, but branchy
+   positions can still hit ~1.7-1.9s on fast desktops. Real fix = Web Worker
+   (follow-up). Also: ladder rungs 9-10 don't credit the Beat Hard AI badge.
+4. **Fruit Slash** — maxFruits now real: Easy calmer, Hard bursts to 4. Feel-check.
+5. **Basketball ladder** — rung 1 sims at 79-93% beginner win (target ~70%);
+   ladder scores share the highScore leaderboard pool with timed/contest.
+6. **War Hi-Lo** — predicts your own next card vs your last (self-contained
+   higher/lower). Free/upside-only by design (no wagering on the kid platform).
+7. **Math Sprint** — streak multiplier means "score" can exceed literal problems
+   solved; results label still says Problems Solved.
+8. **Coin Miner** — 10,000:1 AMG conversion documented in convertCoins()
+   (~line 1044); single-constant change if you want smaller increments.
+9. **TTT ladder** — a rung 9/10 draw-clear counts as a draw (resets win streak).
+10. **Memory Speed Round** — shares records fields (bestTime etc.) with Classic.
+11. **RPS** — Quick Match keeps the full 3-2-1 every round (its round tracking
+    differs); ladder matches feed the normal W/L records.
+12. **Battleship** — Ready is instantly enabled in multiplayer setup too (ships
+    pre-placed); radar toast counts already-hit cells in its 2x2 sweep.
+13. **Drop4 Legendary gate** — "Not Yet" also sets the seen-flag (gate shows once).
+14. **Test data** — dev-browser account test_local_dev2 accrued coins/records
+    from live verification runs; rpsTournaments/3223 is an orphan test doc.
+15. **STILL PENDING from last night**: npx firebase deploy --only firestore:rules
+    (tetrisRecords block) — tetris leaderboard hides itself until then.
