@@ -204,6 +204,8 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .report-big{font-size:48px;font-weight:900;font-family:'Fredoka',sans-serif;margin-bottom:4px}
 .report-big.profit{color:var(--accent)}
 .report-big.loss{color:var(--accent3)}
+@keyframes profitPop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}
+.report-big.profit-pop{animation:profitPop .5s cubic-bezier(.34,1.56,.64,1)}
 .report-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0}
 .report-stat{padding:14px;border-radius:14px;background:var(--surface);border:1px solid var(--border);text-align:center}
 .report-stat .rs-val{font-size:22px;font-weight:800;font-family:'Fredoka',sans-serif;display:block}
@@ -1855,13 +1857,15 @@ function endDay() {
 
   // ODA coins: $100 in-game = 10 coins
   G.odaCoinsPending = Math.floor(G.dayRevenue / 10);
+  awardODACoins(G.odaCoinsPending);
 
   // Update best net worth
   const netWorth = G.money + G.savings;
+  const isNewRecord = netWorth > G.bestNetWorth;
   if (netWorth > G.bestNetWorth) G.bestNetWorth = netWorth;
 
   sfx('register');
-  showReport(profit);
+  showReport(profit, isNewRecord);
 }
 
 // ============================================
@@ -1905,12 +1909,23 @@ function clearWeatherEffects() {
 // ============================================
 // REPORT SCREEN
 // ============================================
-function showReport(profit) {
+function showReport(profit, isNewRecord) {
   document.getElementById('reportDay').textContent = 'END OF DAY ' + G.day;
   const profitEl = document.getElementById('reportProfit');
   profitEl.textContent = (profit >= 0 ? '+' : '') + '$' + profit.toFixed(2);
   profitEl.className = 'report-big ' + (profit >= 0 ? 'profit' : 'loss');
   document.getElementById('reportProfitLabel').textContent = profit >= 0 ? 'Net Profit' : 'Net Loss';
+
+  // Day-end polish beat: pop the profit number + a light sound.
+  // A new record net worth gets the full celebration instead.
+  profitEl.classList.remove('profit-pop');
+  void profitEl.offsetWidth;
+  profitEl.classList.add('profit-pop');
+  if (isNewRecord) {
+    if (typeof odaCelebrate === 'function') odaCelebrate();
+  } else if (profit >= 0) {
+    setTimeout(() => sfx('happy'), 300);
+  }
 
   document.getElementById('reportRevenue').textContent = '$' + G.dayRevenue.toFixed(2);
   document.getElementById('reportCosts').textContent = '$' + G.dayCosts.toFixed(2);
@@ -1959,8 +1974,7 @@ function nextDay() {
     G.savings += saveAmt;
   }
 
-  // Award ODA coins
-  awardODACoins(G.odaCoinsPending);
+  // ODA coins already awarded when the day ended
   G.odaCoinsPending = 0;
 
   // Save to Firestore
