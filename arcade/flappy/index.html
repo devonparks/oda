@@ -83,6 +83,14 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .tap-hint .th-text{font-family:'Fredoka',sans-serif;font-size:20px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.5)}
 @keyframes pulse{0%,100%{opacity:1;transform:translate(-50%,-50%) scale(1)}50%{opacity:.6;transform:translate(-50%,-50%) scale(1.05)}}
 
+/* CRASH SHAKE */
+@keyframes screenShake{0%,100%{transform:translateX(0)}10%{transform:translateX(-6px)}30%{transform:translateX(6px)}50%{transform:translateX(-4px)}70%{transform:translateX(4px)}90%{transform:translateX(-2px)}}
+#canvasWrap.shake{animation:screenShake .3s ease}
+
+/* SCORE POP */
+@keyframes scorePop{0%{transform:scale(1)}40%{transform:scale(1.3);text-shadow:0 3px 10px rgba(0,0,0,.6),0 0 30px rgba(0,0,0,.4),0 0 22px var(--accent)}100%{transform:scale(1)}}
+.hud-score.pop{animation:scorePop .3s ease}
+
 /* GAME OVER OVERLAY */
 .go-overlay{position:absolute;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:10;gap:12px;padding:24px;animation:fadeUp .3s ease}
 .go-overlay.active{display:flex}
@@ -139,6 +147,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <span class="mode-icon">&#9654;&#65039;</span>
       <h3>Play</h3>
       <p>Flap through the pipes!</p>
+    </div>
+    <div class="card mode-card" onclick="pickDiffAndStart('easy')">
+      <span class="mode-icon">&#128034;</span>
+      <h3>Chill Mode &#127754;</h3>
+      <p>Relaxed pace, wide gaps</p>
     </div>
     <div class="card mode-card" onclick="showRecords()">
       <span class="mode-icon">&#128202;</span>
@@ -588,7 +601,9 @@ function update(){
     // Score
     if(!pipes[i].scored&&pipes[i].x+PIPE_WIDTH<bird.x){
       pipes[i].scored=true;score++;
-      document.getElementById('hudScore').textContent=score;
+      var hudEl=document.getElementById('hudScore');
+      hudEl.textContent=score;
+      hudEl.classList.add('pop');setTimeout(function(){hudEl.classList.remove('pop')},300);
       sfxScore();
     }
     // Remove off-screen
@@ -613,6 +628,8 @@ function update(){
 
 function die(){
   gameState='dead';sfxHit();setTimeout(sfxDie,200);
+  var wrapEl=document.getElementById('canvasWrap');
+  wrapEl.classList.add('shake');setTimeout(function(){wrapEl.classList.remove('shake')},300);
   var isNew=score>localBest;
   if(isNew){localBest=score;localStorage.setItem('flappy_best',localBest);/* Render the win effect the player bought in the AMG shop. */if(window.odaWinEffect)odaWinEffect();}
   localGames++;localTotal+=score;
