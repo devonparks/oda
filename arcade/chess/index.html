@@ -197,6 +197,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 
 /* Mobile turn indicator */
 .mobile-turn{display:none;text-align:center;padding:12px;font-weight:700;font-size:15px;position:fixed;top:0;left:0;right:0;z-index:50;background:rgba(10,14,26,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+.mobile-turn.ai-thinking{animation:pulse 1.5s ease-in-out infinite}
 
 /* Promotion modal */
 .promo-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;animation:fadeUp .2s ease}
@@ -1805,7 +1806,10 @@ function updatePanels(){
   bottomMatEl.textContent = bottomAdv>0 ? '+'+Math.round(bottomAdv/100) : '';
 
   // Mobile turn
-  document.getElementById('mobileTurn').textContent = gameOver ? 'Game Over' : (turn===WHITE?"White's turn":"Black's turn");
+  const mobileTurnEl = document.getElementById('mobileTurn');
+  const aiThinking = gameMode==='ai' && !gameOver && turn!==playerColor;
+  mobileTurnEl.textContent = gameOver ? 'Game Over' : (aiThinking ? 'AI is thinking...' : (turn===WHITE?"White's turn":"Black's turn"));
+  mobileTurnEl.classList.toggle('ai-thinking', aiThinking);
 }
 
 function updateMoveList(){
