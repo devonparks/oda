@@ -65,6 +65,18 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .tap-hint .th-text{font-family:'Fredoka',sans-serif;font-size:20px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.5)}
 @keyframes pulse{0%,100%{opacity:1;transform:translate(-50%,-50%) scale(1)}50%{opacity:.6;transform:translate(-50%,-50%) scale(1.05)}}
 
+/* PADDLE HIT FLASH */
+.paddle-hit-flash{position:absolute;border-radius:6px;background:rgba(255,255,255,.55);pointer-events:none;z-index:6;animation:paddleHitPop .25s ease-out forwards;box-shadow:0 0 20px rgba(255,255,255,.6)}
+@keyframes paddleHitPop{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.35)}}
+
+/* RALLY STREAK POPUP */
+.rally-popup{position:absolute;top:26%;left:50%;transform:translate(-50%,-50%) scale(0);font-family:'Fredoka',sans-serif;font-size:28px;font-weight:700;color:var(--accent);z-index:8;pointer-events:none;text-shadow:0 0 20px rgba(6,214,160,.6);animation:rallyPop 1.2s ease forwards;white-space:nowrap}
+@keyframes rallyPop{0%{transform:translate(-50%,-50%) scale(0);opacity:0}15%{transform:translate(-50%,-50%) scale(1.2);opacity:1}30%{transform:translate(-50%,-50%) scale(1)}100%{transform:translate(-50%,-50%) scale(1) translateY(-20px);opacity:0}}
+
+/* POINT-LOSS SCREEN SHAKE */
+#canvasWrap.shake{animation:screenShake .4s ease}
+@keyframes screenShake{0%,100%{transform:translateX(0)}10%{transform:translateX(-6px)}30%{transform:translateX(6px)}50%{transform:translateX(-4px)}70%{transform:translateX(4px)}90%{transform:translateX(-2px)}}
+
 /* GAME OVER OVERLAY */
 .go-overlay{position:absolute;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:10;gap:12px;padding:24px;animation:fadeUp .3s ease}
 .go-overlay.active{display:flex}
@@ -628,6 +640,25 @@ function startGame(){
   gameLoop();
 }
 
+function showPaddleHitFlash(){
+  var el=document.createElement('div');
+  el.className='paddle-hit-flash';
+  el.style.left=player.x+'px';
+  el.style.top=player.y+'px';
+  el.style.width=player.w+'px';
+  el.style.height=player.h+'px';
+  document.getElementById('canvasWrap').appendChild(el);
+  setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},250);
+}
+
+function showRallyPopup(text){
+  var el=document.createElement('div');
+  el.className='rally-popup';
+  el.textContent=text;
+  document.getElementById('canvasWrap').appendChild(el);
+  setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},1300);
+}
+
 function update(){
   if(gameState!=='playing')return;
 
@@ -699,6 +730,8 @@ function update(){
     rallyCount++;
     if(rallyCount>maxRallyThisGame)maxRallyThisGame=rallyCount;
     sfxPaddle();
+    showPaddleHitFlash();
+    if(rallyCount>=8&&rallyCount%4===0)showRallyPopup('RALLY x'+rallyCount+'!');
   }
 
   // AI paddle collision
@@ -712,6 +745,7 @@ function update(){
     rallyCount++;
     if(rallyCount>maxRallyThisGame)maxRallyThisGame=rallyCount;
     sfxPaddle();
+    if(rallyCount>=8&&rallyCount%4===0)showRallyPopup('RALLY x'+rallyCount+'!');
   }
 
   // Score: ball passed left edge
@@ -719,6 +753,8 @@ function update(){
     aiScore++;
     document.getElementById('hudAI').textContent=aiScore;
     sfxLose();
+    document.getElementById('canvasWrap').classList.add('shake');
+    setTimeout(function(){document.getElementById('canvasWrap').classList.remove('shake')},400);
     if(aiScore>=WIN_SCORE){endGame();return}
     ballSpeedBase=5.0+Math.min(playerScore+aiScore,8)*0.25;
     resetBall(1);
