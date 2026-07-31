@@ -198,6 +198,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 /* QUICK MATCH */
 #quickMatchScreen{padding-top:80px;justify-content:flex-start;gap:16px;text-align:center}
 #waitingScreen{padding-top:80px;justify-content:flex-start;gap:16px;text-align:center}
+.error-text{color:var(--accent3);font-size:13px;font-weight:600;margin-top:8px;min-height:20px}
 </style>
 </head>
 <body>
@@ -329,6 +330,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <div style="color:var(--text2);font-size:13px">- or -</div>
     <input type="text" id="joinCodeInput" placeholder="Enter room code" maxlength="6" style="width:100%;padding:12px 16px;border-radius:12px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;text-align:center;text-transform:uppercase;letter-spacing:4px">
     <button class="btn btn-outline btn-small" style="width:100%" onclick="joinQuickMatch()">Join Room</button>
+    <div class="error-text" id="lobbyError"></div>
     <button class="btn btn-outline btn-small" onclick="showScreen('homeScreen')">&#8592; Back</button>
   </div>
 </div>
@@ -712,6 +714,11 @@ function generateRoomCode() {
   return code;
 }
 
+function showLobbyError(msg) {
+  var el = document.getElementById('lobbyError');
+  if (el) { el.textContent = msg; setTimeout(function() { el.textContent = ''; }, 3000); }
+}
+
 async function createQuickMatch() {
   try {
     var fb = await window.getFirebaseDB();
@@ -735,20 +742,20 @@ async function createQuickMatch() {
         startQuickMatchGame();
       }
     });
-  } catch(e) { alert('Could not create room. Try again.'); }
+  } catch(e) { showLobbyError('Could not create room. Try again.'); }
 }
 
 async function joinQuickMatch() {
   var code = document.getElementById('joinCodeInput').value.toUpperCase().trim();
-  if (code.length < 4) { alert('Enter a valid room code.'); return; }
+  if (code.length < 4) { showLobbyError('Enter a valid room code.'); return; }
   try {
     var fb = await window.getFirebaseDB();
     qmRoomCode = code;
     qmDocRef = fb.fsMod.doc(fb.db, 'basketballGames', code);
     var snap = await fb.fsMod.getDoc(qmDocRef);
-    if (!snap.exists()) { alert('Room not found.'); return; }
+    if (!snap.exists()) { showLobbyError('Room not found.'); return; }
     var d = snap.data();
-    if (d.status !== 'waiting') { alert('Room is no longer available.'); return; }
+    if (d.status !== 'waiting') { showLobbyError('Room is no longer available.'); return; }
     await fb.fsMod.updateDoc(qmDocRef, {
       guest: studentId, guestName: studentName || 'Player 2',
       status: 'playing'
@@ -756,7 +763,7 @@ async function joinQuickMatch() {
     qmIsHost = false;
     difficulty = d.difficulty || 0;
     startQuickMatchGame();
-  } catch(e) { alert('Could not join room. Try again.'); }
+  } catch(e) { showLobbyError('Could not join room. Try again.'); }
 }
 
 function startQuickMatchGame() {
@@ -871,6 +878,12 @@ var streakParticles = [];
 var courtObjects = []; /* track objects to remove on rebuild */
 var playerChar = null; /* player character group */
 var bbBonusSprite = null; /* +5 text on backboard */
+var dirLight, lampLight; /* refs for auto quality fallback below */
+
+/* auto quality fallback (Chromebook safety net) — samples fps once per session */
+var qualityChecked = false;
+var qualityFrameCount = 0;
+var qualityStartTime = 0;
 
 /* game state */
 var gameActive = false, shotInFlight = false, holdingShot = false;
@@ -1140,7 +1153,7 @@ function buildCourtEnvironment(THREE) {
   var ambient = new THREE.AmbientLight(0xd0c8bb, 0.45);
   addObj(ambient);
 
-  var dirLight = new THREE.DirectionalLight(0xfff4e0, 1.6);
+  dirLight = new THREE.DirectionalLight(0xfff4e0, 1.6);
   dirLight.position.set(2, 18, 4);
   dirLight.castShadow = true;
   dirLight.shadow.mapSize.width = 2048;
@@ -1158,7 +1171,7 @@ function buildCourtEnvironment(THREE) {
   addObj(hemiLight);
 
   /* Street lamp warm light (near Z, behind shooter) */
-  var lampLight = new THREE.PointLight(0xffcc66, 1.2, 18, 2);
+  lampLight = new THREE.PointLight(0xffcc66, 1.2, 18, 2);
   lampLight.position.set(8, 6.5, 8);
   lampLight.castShadow = true;
   lampLight.shadow.mapSize.width = 512;
@@ -2492,6 +2505,9 @@ function startGame() {
   updateHUD();
   positionBall(currentPosIdx);
 
+  /* Fresh 3s sampling window if the last game ended before we finished checking */
+  if (!qualityChecked) { qualityStartTime = 0; qualityFrameCount = 0; }
+
   animate();
 }
 
@@ -2686,6 +2702,29 @@ function animate(now) {
   if (!now) now = performance.now();
   var dt = Math.min((now - (lastAnimTime || now)) / 1000, 0.05);
   lastAnimTime = now;
+
+  /* Auto quality fallback (Chromebook safety net) — sample fps over the
+     first ~3s of play; if it can't keep up, drop shadow quality once and
+     never revert this session. */
+  if (!qualityChecked) {
+    if (!qualityStartTime) qualityStartTime = now;
+    qualityFrameCount++;
+    var qualityElapsed = now - qualityStartTime;
+    if (qualityElapsed >= 3000) {
+      qualityChecked = true;
+      var avgFps = qualityFrameCount / (qualityElapsed / 1000);
+      if (avgFps < 40) {
+        renderer.shadowMap.type = THREE.BasicShadowMap;
+        if (dirLight) {
+          dirLight.shadow.mapSize.width = 512;
+          dirLight.shadow.mapSize.height = 512;
+          if (dirLight.shadow.map) { dirLight.shadow.map.dispose(); dirLight.shadow.map = null; }
+        }
+        if (lampLight) lampLight.castShadow = false;
+        console.log('[quality] low fps detected (' + avgFps.toFixed(1) + ') - reduced shadow quality for this session');
+      }
+    }
+  }
 
   /* Net recovery */
   if (netSquishTime > 0) {
