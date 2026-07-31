@@ -888,7 +888,7 @@ function generateTerrain(length) {
   x = 300;
   while (x < length) {
     var segLen = 30 + Math.random() * 60;
-    var difficulty = Math.min(x / 3000, 1);
+    var difficulty = 1 - 1 / (1 + x / 3000); // asymptotic: keeps escalating gently on long runs, never hard-caps
     // Much more dramatic hills — steep ups and downs for airtime
     var heightChange = (Math.random() - 0.42) * (50 + difficulty * 120);
     // Occasionally create a big ramp (steep up then steep down)
@@ -1410,6 +1410,31 @@ function renderHillClimb() {
   }
   ctx.globalAlpha = 1;
 
+  // === TILT WARNING ARC (airtime only, reddens near the crash threshold) ===
+  if (!car.grounded) {
+    var CRASH_ANGLE = Math.PI * 0.6;
+    var rawAngle = ((car.angle % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+    var tiltRatio = Math.min(1, Math.abs(rawAngle) / CRASH_ANGLE);
+    var arcR = 46;
+    var upA = -Math.PI / 2;
+    ctx.save();
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    // faint track showing the full safe range
+    ctx.strokeStyle = 'rgba(240,244,255,0.25)';
+    ctx.beginPath();
+    ctx.arc(car.x, car.y, arcR, upA - CRASH_ANGLE, upA + CRASH_ANGLE);
+    ctx.stroke();
+    // colored indicator from vertical to current tilt, green -> red as it nears the threshold
+    ctx.strokeStyle = 'hsl(' + Math.round(120 - tiltRatio * 120) + ',85%,55%)';
+    ctx.globalAlpha = 0.6 + tiltRatio * 0.4;
+    ctx.beginPath();
+    if (rawAngle >= 0) ctx.arc(car.x, car.y, arcR, upA, upA + rawAngle);
+    else ctx.arc(car.x, car.y, arcR, upA + rawAngle, upA);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   // === CAR ===
   drawCar(ctx, car.x, car.y, 60, 28, car.angle, {
     paint: gameState.paint,
@@ -1640,13 +1665,18 @@ function loadOpponents() {
   AI_OPPONENTS.forEach(function(opp) {
     var isBoss = opp.diff === 'boss';
     var nextBoss = null;
+    var lockedMilestone = null;
     for (var b = 0; b < BOSS_MILESTONES.length; b++) {
-      if (gameState.bossesBeaten.indexOf(BOSS_MILESTONES[b]) < 0 && totalWins >= BOSS_MILESTONES[b]) {
-        nextBoss = BOSS_MILESTONES[b];
-        break;
+      if (gameState.bossesBeaten.indexOf(BOSS_MILESTONES[b]) < 0) {
+        if (lockedMilestone === null) lockedMilestone = BOSS_MILESTONES[b];
+        if (totalWins >= BOSS_MILESTONES[b]) {
+          nextBoss = BOSS_MILESTONES[b];
+          break;
+        }
       }
     }
     var locked = isBoss && !nextBoss;
+    var winsToGo = (locked && lockedMilestone !== null) ? Math.max(0, lockedMilestone - totalWins) : 0;
     var diffClass = 'diff-' + opp.diff;
 
     html += '<div class="opponent-card' + (isBoss ? ' boss' : '') + (locked ? ' locked' : '') + '" ' +
@@ -1655,6 +1685,7 @@ function loadOpponents() {
       '<div class="opp-info"><div class="opp-name">' + opp.name + '</div>' +
       '<div class="opp-desc">' + opp.desc + '</div>' +
       '<span class="opp-diff ' + diffClass + '">' + opp.diff.toUpperCase() + '</span>' +
+      (locked && lockedMilestone !== null ? '<div style="font-size:12px;color:var(--gold);font-weight:700;margin-top:4px">' + winsToGo + ' win' + (winsToGo === 1 ? '' : 's') + ' to go</div>' : '') +
       '</div></div>';
   });
 
