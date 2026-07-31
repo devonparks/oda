@@ -175,6 +175,9 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .customer .c-body{font-size:48px;line-height:1;transition:transform .1s}
 .customer .c-body:active{transform:scale(.9)}
 .customer .c-type{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.customer.customer-business .c-type{color:var(--accent3);font-weight:800}
+.customer .c-urgent{position:absolute;top:30px;right:-6px;font-size:15px;pointer-events:none;animation:urgentTick .5s steps(2) infinite;filter:drop-shadow(0 0 3px rgba(239,71,111,.6))}
+@keyframes urgentTick{0%,100%{transform:rotate(-10deg)}50%{transform:rotate(10deg)}}
 .customer.leaving{opacity:0;transform:translateX(-40px);transition:all .5s}
 .customer.served .c-body{animation:serveBounce .4s ease}
 @keyframes serveBounce{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
@@ -396,6 +399,9 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     </div>
     <div class="plan-section">
       <h3>&#128722; Buy Supplies</h3>
+      <div style="text-align:center;margin-bottom:10px">
+        <button class="btn btn-outline btn-small" onclick="buyRecommended()">&#127919; Buy Recommended</button>
+      </div>
       <div class="buy-grid">
         <div class="buy-item">
           <span class="b-icon">&#127819;</span><span class="b-name">Lemons</span>
@@ -445,6 +451,7 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
     <div class="cups-possible">You can make <span id="cupsPossible">0</span> cups today</div>
     <div style="display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap">
       <button class="btn btn-outline btn-small" onclick="showScreen('shopScreen')">&#128722; Shop</button>
+      <button class="btn btn-gold btn-small" id="sameAsYesterdayBtn" onclick="sameAsYesterday()" style="display:none">&#128257; Same as Yesterday</button>
       <button class="btn btn-accent" onclick="goToRecipe()">Mix Recipe &rarr;</button>
     </div>
   </div>
@@ -1220,6 +1227,9 @@ function setupPlanScreen() {
 
   updateCartTotal();
   updateCupsPossible();
+
+  const sayBtn = document.getElementById('sameAsYesterdayBtn');
+  if (sayBtn) sayBtn.style.display = (G.day > 1 && G.lastCart) ? '' : 'none';
 }
 
 function buySupply(type, delta) {
@@ -1272,6 +1282,49 @@ function updateCupsPossible() {
   document.getElementById('cupsPossible').textContent = possible;
 }
 
+// Clamp a wanted cart down to what current supply capacity and money allow.
+// Shared by Buy Recommended and Same as Yesterday so both respect the same rules as manual buying.
+function clampCartToBudget(wantCart) {
+  const cart = { lemons: wantCart.lemons || 0, sugar: wantCart.sugar || 0, cups: wantCart.cups || 0, ice: wantCart.ice || 0 };
+
+  // Clamp to remaining storage capacity (same rule as buySupply)
+  ['lemons', 'sugar', 'cups', 'ice'].forEach(type => {
+    const packSize = type === 'cups' ? 10 : 1;
+    const max = G['max' + type.charAt(0).toUpperCase() + type.slice(1)] || 999;
+    const roomUnits = Math.max(0, Math.floor((max - G[type]) / packSize));
+    cart[type] = Math.min(cart[type], roomUnits);
+  });
+
+  // Clamp to what's affordable, trimming buffer supplies (ice, cups) before core ones (sugar, lemons)
+  const order = ['ice', 'cups', 'sugar', 'lemons'];
+  let guard = 0;
+  while (getCartTotal(cart) > G.money && guard < 200) {
+    let reducedAny = false;
+    for (let i = 0; i < order.length && getCartTotal(cart) > G.money; i++) {
+      if (cart[order[i]] > 0) { cart[order[i]]--; reducedAny = true; }
+    }
+    if (!reducedAny) break;
+    guard++;
+  }
+  return cart;
+}
+
+// Fills the cart with a balanced day-1 starter mix (~24 cups worth of lemons/sugar,
+// with a little buffer on cups/ice), clamped to what today's money and storage allow.
+function buyRecommended() {
+  const target = { lemons: 3, sugar: 2, cups: 3, ice: 2 };
+  buyCart = clampCartToBudget(target);
+
+  document.getElementById('buyLemons').textContent = buyCart.lemons;
+  document.getElementById('buySugar').textContent = buyCart.sugar;
+  document.getElementById('buyCups').textContent = buyCart.cups;
+  document.getElementById('buyIce').textContent = buyCart.ice;
+
+  sfx('click');
+  updateCartTotal();
+  updateCupsPossible();
+}
+
 function goToRecipe() {
   // Process purchases
   const cost = getCartTotal(buyCart);
@@ -1295,6 +1348,33 @@ function goToRecipe() {
   document.getElementById('sliderIce').value = G.recipeIce;
   updateRecipe();
   showScreen('recipeScreen');
+}
+
+// Day 2+: resubmit yesterday's cart, recipe and price, then jump straight to Open Stand.
+function sameAsYesterday() {
+  if (!G.lastCart) return;
+  sfx('click');
+
+  // Prices/stock may differ from yesterday, so clamp to what's affordable/fits today
+  const cart = clampCartToBudget(G.lastCart);
+  const cost = getCartTotal(cart);
+  G.money -= cost;
+  G.dayCosts += cost;
+  G.lemons += cart.lemons;
+  G.sugar += cart.sugar;
+  G.cups += cart.cups * 10;
+  G.ice += cart.ice;
+  if (cost > 0) sfx('register');
+
+  G.recipeLemons = G.lastRecipe.lemons;
+  G.recipeSugar = G.lastRecipe.sugar;
+  G.recipeIce = G.lastRecipe.ice;
+  G.price = G.lastPrice;
+
+  // startServing() re-snapshots buyCart into G.lastCart, so leave it as the cart we actually bought
+  buyCart = cart;
+  updateHUD();
+  startServing();
 }
 
 // ============================================
@@ -1420,6 +1500,11 @@ function startServing() {
     alert('You have no supplies! Go back and buy some.');
     return;
   }
+
+  // Remember today's plan so "Same as Yesterday" can resubmit it tomorrow
+  G.lastCart = { ...buyCart };
+  G.lastRecipe = { lemons: G.recipeLemons, sugar: G.recipeSugar, ice: G.recipeIce };
+  G.lastPrice = G.price;
 
   serving = true;
   dayTimeLeft = dayDuration;
@@ -1577,7 +1662,8 @@ function spawnCustomer() {
 function renderCustomer(c) {
   const lane = document.getElementById('customerLane');
   const el = document.createElement('div');
-  el.className = 'customer';
+  const isBusiness = c.type.id === 'business';
+  el.className = 'customer' + (isBusiness ? ' customer-business' : '');
   el.id = 'cust-' + c.id;
   el.style.left = c.x + 'px';
   el.onclick = () => serveCustomer(c.id);
@@ -1587,6 +1673,7 @@ function renderCustomer(c) {
 
   el.innerHTML = `
     <div class="c-bubble" id="bubble-${c.id}"></div>
+    ${isBusiness ? '<div class="c-urgent" title="In a hurry!">&#9200;</div>' : ''}
     <div class="c-patience"><div class="cp-fill" id="patience-${c.id}" style="width:100%;background:${pColor}"></div></div>
     <div class="c-body">${c.type.emoji}</div>
     <div class="c-type">${c.type.label}</div>
@@ -2719,7 +2806,9 @@ loadLemAchievements();
 window.startGame = startGame;
 window.continueGame = continueGame;
 window.buySupply = buySupply;
+window.buyRecommended = buyRecommended;
 window.goToRecipe = goToRecipe;
+window.sameAsYesterday = sameAsYesterday;
 window.updateRecipe = updateRecipe;
 window.goToPrice = goToPrice;
 window.updatePrice = updatePrice;
