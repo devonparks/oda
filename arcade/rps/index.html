@@ -129,6 +129,10 @@ h1,h2,h3{font-family:'Fredoka',sans-serif}
 .round-banner.draw{color:var(--gold)}
 @keyframes bannerSlide{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
 
+/* Win-streak popup */
+.streak-popup{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-family:'Fredoka',sans-serif;font-size:20px;font-weight:800;color:var(--gold);background:rgba(17,24,39,.85);border:2px solid var(--gold);border-radius:20px;padding:6px 18px;white-space:nowrap;pointer-events:none;z-index:5;text-shadow:0 2px 6px rgba(0,0,0,.4);animation:streakPop 1.2s ease forwards}
+@keyframes streakPop{0%{transform:translateX(-50%) scale(.4);opacity:0}20%{transform:translateX(-50%) scale(1.15);opacity:1}30%{transform:translateX(-50%) scale(1);opacity:1}75%{transform:translateX(-50%) scale(1);opacity:1}100%{transform:translateX(-50%) translateY(-20px) scale(.9);opacity:0}}
+
 /* Round history */
 .round-history{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:8px 0}
 .rh-dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;transition:all .3s}
@@ -687,7 +691,7 @@ window.showTournamentLobby=function(){showScreen('tournamentLobbyScreen')};
 
 // ===== GAME INITIALIZATION =====
 function initGameState(){
-  myScore=0;oppScore=0;currentRound=1;history=[];myChoice=null;matchOver=false;coinsAwarded=false;
+  myScore=0;oppScore=0;currentRound=1;history=[];myChoice=null;matchOver=false;coinsAwarded=false;rpsCurrentStreak=0;
 }
 
 function setupGameUI(oppName){
@@ -866,6 +870,7 @@ function revealChoices(myC,oppC){
       rightEl.classList.add('draw-result');
       sfxDraw();
     }
+    trackWinStreak(result);
 
     document.getElementById('p1Score').textContent=myScore;
     document.getElementById('p2Score').textContent=oppScore;
@@ -925,6 +930,25 @@ function highlightChoice(choice){
     b.classList.remove('selected');
     if(b.classList.contains(choice))b.classList.add('selected');
   });
+}
+
+function trackWinStreak(result){
+  if(result==='win'){
+    rpsCurrentStreak++;
+    if(rpsCurrentStreak>=2)showStreakPopup(rpsCurrentStreak);
+  }else{
+    rpsCurrentStreak=0;
+  }
+}
+
+function showStreakPopup(n){
+  const arena=document.querySelector('.arena');
+  if(!arena)return;
+  const el=document.createElement('div');
+  el.className='streak-popup';
+  el.textContent=n+' IN A ROW!';
+  arena.appendChild(el);
+  setTimeout(()=>el.remove(),1200);
 }
 
 function renderRoundHistory(){
@@ -1438,6 +1462,7 @@ async function runMpReveal(myC,oppC,data){
     rightEl.classList.add('draw-result');
     sfxDraw();
   }
+  trackWinStreak(result);
 
   const banner=document.getElementById('roundBanner');
   if(result==='win'){
