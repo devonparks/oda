@@ -158,6 +158,28 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .ach-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:150;animation:achSlide .5s ease,achFade .5s ease 3s forwards;box-shadow:0 0 30px rgba(255,209,102,.2)}
 @keyframes achSlide{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
 @keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+
+/* ===== DAILY TRIO ===== */
+.trio-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:16px 20px 8px;max-width:700px;width:90%;margin:0 auto}
+.trio-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.trio-title{font-family:'Fredoka',sans-serif;font-size:16px;font-weight:600}
+.trio-count{font-size:12px;font-weight:800;color:var(--accent);background:rgba(6,214,160,.1);border:1px solid rgba(6,214,160,.25);border-radius:12px;padding:3px 10px}
+.trio-count.all{color:var(--gold);background:rgba(255,209,102,.12);border-color:rgba(255,209,102,.35)}
+.trio-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--border)}
+.trio-row .tr-icon{font-size:20px;flex-shrink:0;width:26px;text-align:center}
+.trio-row .tr-text{flex:1;font-size:13px;font-weight:600;line-height:1.3;text-align:left}
+.trio-row .tr-prog{font-size:13px;font-weight:800;color:var(--text2);font-family:'Fredoka',sans-serif;flex-shrink:0}
+.trio-row.done .tr-text{color:var(--text2);opacity:.75}
+.trio-row.done .tr-prog{color:var(--gold);font-size:16px}
+.trio-toast{border-color:var(--accent);box-shadow:0 0 30px rgba(6,214,160,.2)}
+.trio-toast.gold{border-color:var(--gold);box-shadow:0 0 30px rgba(255,209,102,.25)}
+.trio-toast .tt-head{color:var(--accent);font-weight:700;font-size:13px;font-family:'Fredoka',sans-serif}
+.trio-toast .tt-head.gold{color:var(--gold)}
+.trio-toast .tt-body{color:var(--text);font-size:14px;font-weight:600;font-family:'Outfit',sans-serif}
+
+/* ===== FRENZY (combo 10) ===== */
+.frenzy-flash{animation:frenzyFlash .4s ease}
+@keyframes frenzyFlash{0%{filter:brightness(1) saturate(1)}30%{filter:brightness(2.1) saturate(1.6)}100%{filter:brightness(1) saturate(1)}}
 </style>
 </head>
 <body>
@@ -187,6 +209,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
       <h3>Shop</h3>
       <p>Skins, themes &amp; effects</p>
     </div>
+  </div>
+  <!-- DAILY TRIO -->
+  <div class="trio-card" id="trioCard">
+    <div class="trio-head"><span class="trio-title">&#11088; Today's Trio</span><span class="trio-count" id="trioCount">0/3</span></div>
+    <div id="trioRows"></div>
   </div>
   <div class="quick-stats" id="quickStats"></div>
 </div>
@@ -267,7 +294,7 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
   document.getElementById(id).classList.add('active');
   document.body.classList.toggle('in-game',id==='gameScreen');
-  if(id==='homeScreen')loadLocalStats();
+  if(id==='homeScreen'){loadLocalStats();renderTrioCard()}
 }
 
 /* ===================== */
@@ -451,13 +478,131 @@ function loadLocalStats(){
 loadLocalStats();
 
 /* ===================== */
+/* DAILY TRIO            */
+/* ===================== */
+/* Canonical Daily Trio implementation — docs/AMG_DAILY_TRIO_SPEC.md.
+   Seed = YYYY-MM-DD + gameId -> mulberry32 -> 3 DIFFERENT templates + params.
+   Reward calibration: a decent whack-a-mole round (~12 whacks with a modest combo,
+   score ~120) pays floor(120/10)=12 coins, so each mission pays 12; all-3 bonus
+   = +50% of 3x12 = 18. Coins route through the existing awardCoins (anon players:
+   awardCoins already no-ops). */
+var TRIO_GAME_ID='whackamole';
+var TRIO_KEY='odaTrio_'+TRIO_GAME_ID;
+var TRIO_REWARD=12,TRIO_BONUS=18;
+
+/* update(progress, sessionStats, runsBeforeThisRun) -> new progress.
+   sessionStats = {score, whacks, golden, combo, difficulty} from the run that just ended. */
+var TRIO_TEMPLATES=[
+  {id:'whacks_run',icon:'\u{1F528}',target:function(r){return 12+r(10)},text:function(t){return 'Whack '+t+' moles in one round'},update:function(p,s){return Math.max(p,s.whacks)}},
+  {id:'whacks_day',icon:'\u{1F439}',target:function(r){return 35+r(25)},text:function(t){return 'Whack '+t+' moles today (any rounds count!)'},update:function(p,s){return p+s.whacks}},
+  {id:'score_run',icon:'\u{1F3AF}',target:function(r){return 60+r(60)},text:function(t){return 'Score '+t+' points in one round'},update:function(p,s){return Math.max(p,s.score)}},
+  {id:'golden_day',icon:'⭐',target:function(r){return 2+r(2)},text:function(t){return 'Whack '+t+' golden moles today'},update:function(p,s){return p+s.golden}},
+  {id:'combo_run',icon:'\u{1F525}',target:function(r){return 6+r(6)},text:function(t){return 'Hit a '+t+' combo streak in one round'},update:function(p,s){return Math.max(p,s.combo)}},
+  {id:'runs_day',icon:'\u{1F3AE}',target:function(r){return 3+r(3)},text:function(t){return 'Play '+t+' rounds today'},update:function(p,s){return p+1}},
+  {id:'hard_run',icon:'⚡',target:function(r){return 40+r(40)},text:function(t){return 'Score '+t+' on Medium or Hard'},update:function(p,s){return s.difficulty!=='easy'?Math.max(p,s.score):p}},
+  {id:'hard_runs',icon:'\u{1F4A5}',target:function(r){return 2+r(2)},text:function(t){return 'Finish '+t+' rounds on Hard today'},update:function(p,s){return s.difficulty==='hard'?p+1:p}}
+];
+function trioTemplateById(id){for(var i=0;i<TRIO_TEMPLATES.length;i++)if(TRIO_TEMPLATES[i].id===id)return TRIO_TEMPLATES[i];return null}
+
+function trioToday(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function trioHash(str){var h=1779033703^str.length;for(var i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}return h>>>0}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+function genTrio(dateStr){
+  var rng=mulberry32(trioHash(dateStr+TRIO_GAME_ID));
+  var r=function(n){return Math.floor(rng()*(n+1))}; /* r(n) = 0..n inclusive */
+  var idx=TRIO_TEMPLATES.map(function(_,i){return i});
+  for(var i=idx.length-1;i>0;i--){var j=Math.floor(rng()*(i+1));var tmp=idx[i];idx[i]=idx[j];idx[j]=tmp}
+  var ids=[],targets=[];
+  idx.slice(0,3).forEach(function(ti){var tpl=TRIO_TEMPLATES[ti];ids.push(tpl.id);targets.push(tpl.target(r,localBest))});
+  return {date:dateStr,ids:ids,targets:targets,progress:[0,0,0],done:[false,false,false],paid:[false,false,false],trioBonusPaid:false,runsToday:0};
+}
+
+function loadTrioState(){
+  var st=null;
+  try{st=JSON.parse(localStorage.getItem(TRIO_KEY)||'null')}catch(e){}
+  if(!st||st.date!==trioToday()||!st.ids||st.ids.length!==3){st=genTrio(trioToday());saveTrioState(st)}
+  return st;
+}
+function saveTrioState(st){try{localStorage.setItem(TRIO_KEY,JSON.stringify(st))}catch(e){}}
+
+/* Called ONCE per run from the endGame() coinsAwarded guard with that run's stats. */
+function recordTrioProgress(sessionStats){
+  var st=loadTrioState();
+  var runsBefore=st.runsToday||0;
+  var completedNow=[];
+  for(var i=0;i<3;i++){
+    var tpl=trioTemplateById(st.ids[i]);
+    if(!tpl||st.done[i])continue;
+    st.progress[i]=tpl.update(st.progress[i]||0,sessionStats,runsBefore);
+    if(st.progress[i]>=st.targets[i]){st.done[i]=true;if(!st.paid[i]){st.paid[i]=true;completedNow.push(i)}}
+  }
+  st.runsToday=runsBefore+1;
+  var allDone=st.done[0]&&st.done[1]&&st.done[2];
+  var bonusNow=allDone&&!st.trioBonusPaid;
+  if(bonusNow)st.trioBonusPaid=true;
+  saveTrioState(st); /* paid flags persist BEFORE coins fire -> idempotent */
+  completedNow.forEach(function(mi,k){
+    var t=trioTemplateById(st.ids[mi]);
+    awardCoins(TRIO_REWARD);
+    showTrioToast(t.icon,'Mission Complete!',esc(t.text(st.targets[mi]))+' • +'+TRIO_REWARD+' coins',false,800+k*700);
+  });
+  if(bonusNow){
+    awardCoins(TRIO_BONUS);
+    showTrioToast('⭐','Daily Trio ⭐','All 3 done! +'+TRIO_BONUS+' bonus coins',true,800+completedNow.length*700);
+    setTimeout(function(){if(window.odaCelebrate)try{odaCelebrate('stars')}catch(e){}},800+completedNow.length*700);
+    trioSaveCompletion();
+  }
+  renderTrioCard();
+}
+
+/* Optional additive counter on the game's records doc (existing write pattern). */
+async function trioSaveCompletion(){
+  if(!studentId||studentId.startsWith('anon_'))return;
+  try{
+    var fb=await window.getFirebaseDB();
+    await fb.fsMod.updateDoc(fb.fsMod.doc(fb.db,'whackamoleRecords',studentId),{trioCompletions:fb.fsMod.increment(1)});
+  }catch(e){}
+}
+
+/* Small toast, house .ach-popup pattern — fires on the game-over screen, never mid-play. */
+function showTrioToast(icon,head,body,gold,delay){
+  setTimeout(function(){
+    var el=document.createElement('div');
+    el.className='ach-popup trio-toast'+(gold?' gold':'');
+    el.innerHTML='<span style="font-size:32px">'+icon+'</span><div><div class="tt-head'+(gold?' gold':'')+'">'+head+'</div><div class="tt-body">'+body+'</div></div>';
+    document.body.appendChild(el);
+    setTimeout(function(){el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(function(){el.remove()},400)},3500);
+  },delay||0);
+}
+
+function renderTrioCard(){
+  var card=document.getElementById('trioCard');
+  if(!card)return;
+  var st=loadTrioState();
+  var rows='',doneCount=0;
+  for(var i=0;i<3;i++){
+    var tpl=trioTemplateById(st.ids[i]);
+    if(!tpl)continue;
+    var done=st.done[i];if(done)doneCount++;
+    var prog=Math.min(st.progress[i]||0,st.targets[i]);
+    rows+='<div class="trio-row'+(done?' done':'')+'"><span class="tr-icon">'+tpl.icon+'</span><span class="tr-text">'+esc(tpl.text(st.targets[i]))+'</span><span class="tr-prog">'+(done?'✓':prog+'/'+st.targets[i])+'</span></div>';
+  }
+  document.getElementById('trioRows').innerHTML=rows;
+  var cnt=document.getElementById('trioCount');
+  cnt.textContent=doneCount+'/3';
+  cnt.classList.toggle('all',doneCount===3);
+}
+renderTrioCard();
+
+/* ===================== */
 /* DIFFICULTY            */
 /* ===================== */
 var difficulty='easy';
 var DIFFICULTIES={
   easy:{moleTime:1500,maxMoles:2,bombChance:0,goldenChance:0.10,goldenTime:700,spawnRate:1200},
   medium:{moleTime:1200,maxMoles:3,bombChance:0.08,goldenChance:0.10,goldenTime:700,spawnRate:1000},
-  hard:{moleTime:800,maxMoles:3,bombChance:0.12,goldenChance:0.10,goldenTime:500,spawnRate:800}
+  hard:{moleTime:800,maxMoles:3,bombChance:0.12,goldenChance:0.10,goldenTime:675,spawnRate:800}
 };
 
 window.setDifficulty=function(diff,btn){
@@ -503,6 +648,7 @@ var score=0,combo=0,timeLeft=30,gameRunning=false;
 var timerInterval=null,spawnInterval=null,moleTimers=[];
 var coinsAwarded=false,roundWhacks=0,roundGolden=0,maxComboThisGame=0;
 var holes=[];
+var frenzyUntil=0; /* FRENZY: combo 10 -> 5s of halved spawnRate + double points */
 
 function buildGrid(){
   var grid=document.getElementById('moleGrid');
@@ -542,7 +688,7 @@ function startGame(){
   showScreen('gameScreen');
   applyCosmeticStyles();
   buildGrid();
-  score=0;combo=0;timeLeft=30;gameRunning=true;coinsAwarded=false;roundWhacks=0;roundGolden=0;maxComboThisGame=0;
+  score=0;combo=0;timeLeft=30;gameRunning=true;coinsAwarded=false;roundWhacks=0;roundGolden=0;maxComboThisGame=0;frenzyUntil=0;
   document.getElementById('hudScore').textContent='0';
   document.getElementById('hudTimer').textContent='30';
   document.getElementById('hudCombo').textContent='0';
@@ -563,10 +709,13 @@ function startGame(){
 function scheduleNextMole(){
   if(!gameRunning)return;
   var diff=DIFFICULTIES[difficulty];
-  // Speed up over time: reduce interval as timer decreases
+  // Speed up over time: reduce interval as timer decreases.
+  // Ramp across the FULL 30s (cap hits right at round-end) so rounds end on a
+  // spawn-storm instead of plateauing with 10s left.
   var elapsed=30-timeLeft;
-  var rateReduction=Math.min(elapsed*15,300);
+  var rateReduction=Math.min(elapsed*10,300);
   var rate=Math.max(400,diff.spawnRate-rateReduction);
+  if(Date.now()<frenzyUntil)rate=rate/2;
   spawnInterval=setTimeout(function(){
     if(!gameRunning)return;
     spawnMole();
@@ -627,11 +776,20 @@ function hideMole(idx){
   holes[idx].timer=null;
 }
 
+function triggerFrenzy(){
+  var fa=document.getElementById('fieldArea');
+  if(!fa)return;
+  fa.classList.add('frenzy-flash');
+  setTimeout(function(){fa.classList.remove('frenzy-flash')},400);
+  sfxCombo();
+}
+
 function handleClick(idx){
   if(!gameRunning)return;
 
   if(holes[idx].occupied){
     var type=holes[idx].type;
+    var frenzyActive=Date.now()<frenzyUntil;
     clearTimeout(holes[idx].timer);
 
     if(type==='bomb'){
@@ -647,6 +805,7 @@ function handleClick(idx){
       var pts=50;
       combo++;
       if(combo>1)pts+=combo*2;
+      if(frenzyActive)pts*=2;
       score+=pts;
       roundWhacks++;
       roundGolden++;
@@ -659,6 +818,7 @@ function handleClick(idx){
       var pts=10;
       combo++;
       if(combo>1)pts+=combo*2;
+      if(frenzyActive)pts*=2;
       score+=pts;
       roundWhacks++;
       sfxWhack();
@@ -669,6 +829,9 @@ function handleClick(idx){
 
     // Track max combo
     if(combo>maxComboThisGame)maxComboThisGame=combo;
+
+    // FRENZY: hitting a 10-combo streak buys 5s of halved spawnRate + double points
+    if(combo===10){frenzyUntil=Date.now()+5000;triggerFrenzy()}
 
     flashMalletAt(idx);
 
@@ -687,9 +850,9 @@ function handleClick(idx){
     document.getElementById('hudScore').textContent=score;
     document.getElementById('hudCombo').textContent=combo;
   }else{
-    // Missed click on empty hole
-    combo=0;
-    document.getElementById('hudCombo').textContent='0';
+    // Missed click on empty hole — soften: halve combo instead of zeroing it
+    combo=Math.floor(combo/2);
+    document.getElementById('hudCombo').textContent=combo;
     sfxMiss();
   }
 }
@@ -754,7 +917,7 @@ function endGame(){
   document.getElementById('goCoins').textContent='+'+coins+' coins';
   setTimeout(function(){document.getElementById('gameOverOverlay').classList.add('active')},400);
 
-  if(!coinsAwarded){coinsAwarded=true;awardCoins(coins);saveRecord(isNew);checkAchievements({highScore:score,gamesPlayed:localGames,totalWhacks:localTotal,bestCombo:localBestCombo,goldenWhacks:localGoldenWhacks})}
+  if(!coinsAwarded){coinsAwarded=true;awardCoins(coins);saveRecord(isNew);checkAchievements({highScore:score,gamesPlayed:localGames,totalWhacks:localTotal,bestCombo:localBestCombo,goldenWhacks:localGoldenWhacks});recordTrioProgress({score:score,whacks:roundWhacks,golden:roundGolden,combo:maxComboThisGame,difficulty:difficulty})}
   /* Render the win effect the player bought in the AMG shop. */
   if(isNew&&window.odaWinEffect)odaWinEffect();
 }
