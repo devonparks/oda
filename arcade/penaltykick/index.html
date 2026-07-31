@@ -585,6 +585,8 @@ var GS={
   consecutiveGoals:0,
   sessionHatTrick:false,
   coinsAwarded:false,
+  suddenDeath:false,     // true once regulation ends in a tie (solo/AI mode only)
+  suddenDeathRound:0,    // increments each sudden-death round, drives the pressure tint
   // Kick data
   kickAimNorm:{x:0.5,y:0.4}, // normalized 0-1 within goal
   kickAccuracy:0,             // 0-1 accuracy score from ring
@@ -731,12 +733,15 @@ function startGame(){
 
   GS.round=0;
   GS.phase='idle';
+  GS.maxRounds=5;
   GS.p1Goals=0;
   GS.p2Goals=0;
   GS.p1Saves=0;
   GS.consecutiveGoals=0;
   GS.sessionHatTrick=false;
   GS.coinsAwarded=false;
+  GS.suddenDeath=false;
+  GS.suddenDeathRound=0;
 
   document.getElementById('gameOverOverlay').classList.remove('active');
   document.getElementById('saveZones').classList.remove('active');
@@ -762,7 +767,7 @@ function updateHUD(){
   }else{
     document.getElementById('hudScore').textContent='You '+GS.p1Goals+' - '+GS.p2Goals+' AI';
   }
-  document.getElementById('hudRound').textContent='Round: '+Math.min(GS.round+1,GS.maxRounds)+' / '+GS.maxRounds;
+  document.getElementById('hudRound').textContent=GS.suddenDeath?('Sudden Death ⚡ Rd '+GS.suddenDeathRound):('Round: '+Math.min(GS.round+1,GS.maxRounds)+' / '+GS.maxRounds);
   var phaseLabel='\u26BD Your Kick';
   var sp=GS.phase;
   if(qmGameMode){
@@ -988,7 +993,7 @@ function resolveKick(){
     resultText='MISS!';resultColor='#ef4444';
     sfxMiss();
     GS.consecutiveGoals=0;
-    addTimer(function(){beginSavePhase()},2000);
+    addTimer(function(){beginSavePhase()},1200);
     return;
   }
 
@@ -998,7 +1003,7 @@ function resolveKick(){
     resultText='MISS!';resultColor='#ef4444';
     sfxMiss();
     GS.consecutiveGoals=0;
-    addTimer(function(){beginSavePhase()},2000);
+    addTimer(function(){beginSavePhase()},1200);
     return;
   }
 
@@ -1030,7 +1035,7 @@ function resolveKick(){
     updateHUD();
   }
 
-  addTimer(function(){beginSavePhase()},2000);
+  addTimer(function(){beginSavePhase()},1200);
 }
 
 /* ==============================================
@@ -1075,7 +1080,7 @@ function beginSavePhase(){
   addTimer(function(){
     heatZone.active=false;
     beginSaveChoose();
-  },diff.heatTime*16.67+200); // convert frames to ms approx
+  },diff.heatTime*16.67); // convert frames to ms approx
 }
 
 /* ==============================================
@@ -1233,7 +1238,7 @@ function resolveSave(){
     }else{
       beginKickPhase();
     }
-  },2000);
+  },1200);
 }
 
 /* ==============================================
@@ -1274,6 +1279,13 @@ function spawnCelebration(cx,cy){
    END GAME
    ============================================== */
 function endGame(){
+  // 5-round tie in solo/AI mode goes to sudden death instead of ending the game.
+  // (Quick Match/Tournament never reach endGame() — they resolve via qmAdvanceRound.)
+  if(GS.p1Goals===GS.p2Goals&&!qmGameMode){
+    beginSuddenDeath();
+    return;
+  }
+
   GS.phase='done';
   var scoreVal=GS.p1Goals-GS.p2Goals;
   var scoreStr=GS.p1Goals+'-'+GS.p2Goals;
@@ -1324,6 +1336,19 @@ function endGame(){
       hardWin:(difficulty==='hard'&&GS.p1Goals>GS.p2Goals)||localHardWin
     });
   }
+}
+
+/* ==============================================
+   SUDDEN DEATH (5-round tie, solo/AI mode only)
+   Alternating single kicks — reuses the normal
+   kick/save round via beginKickPhase() — until
+   someone leads. Same win payout, no new coin values.
+   ============================================== */
+function beginSuddenDeath(){
+  GS.suddenDeath=true;
+  GS.suddenDeathRound=(GS.suddenDeathRound||0)+1;
+  GS.maxRounds++;
+  beginKickPhase();
 }
 
 /* ==============================================
@@ -1620,6 +1645,12 @@ function draw(){
     ctx.textAlign='center';
     ctx.fillStyle='rgba(255,255,255,0.7)';
     ctx.fillText('Watch for the heat zone hint!',W*0.5,H*0.7);
+  }
+
+  /* --- Sudden Death pressure tint (rises each round) --- */
+  if(GS.suddenDeath){
+    ctx.fillStyle='rgba(239,68,68,'+Math.min(0.35,0.08*GS.suddenDeathRound)+')';
+    ctx.fillRect(0,0,W,H);
   }
 }
 
