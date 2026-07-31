@@ -196,6 +196,7 @@ var carrierLane=3; // 0-6, middle=3
 // Team colors
 var myJersey='#06d6a0',myHelmet='#06d6a0';
 var cpuJersey='#3366aa',cpuHelmet='#224488';
+var myAccent='#fff'; // helmet stripe accent, wired to hub identity nameColor if equipped
 // Restore persisted jersey/helmet color pick
 try{
   var savedColors=JSON.parse(localStorage.getItem('gridiron_colors')||'null');
@@ -338,7 +339,7 @@ function drawField(){
 }
 
 // ─── DRAWING: PLAYERS (big, side-facing, NES style) ──────────────────────────
-function drawPlayer(x,y,jersey,helmet,facingRight,size,hasBall){
+function drawPlayer(x,y,jersey,helmet,facingRight,size,hasBall,accent){
   var s=size||32;
   ctx.save();
   if(!facingRight){ctx.translate(x*2,0);ctx.scale(-1,1);}
@@ -376,7 +377,7 @@ function drawPlayer(x,y,jersey,helmet,facingRight,size,hasBall){
   ctx.beginPath();ctx.moveTo(x+s*0.22,y-s*0.36);ctx.lineTo(x+s*0.30,y-s*0.28);ctx.stroke();
   ctx.beginPath();ctx.moveTo(x+s*0.22,y-s*0.26);ctx.lineTo(x+s*0.30,y-s*0.18);ctx.stroke();
   // Helmet stripe
-  ctx.strokeStyle='#fff';ctx.lineWidth=Math.max(1,s*0.04);
+  ctx.strokeStyle=accent||'#fff';ctx.lineWidth=Math.max(1,s*0.04);
   ctx.beginPath();ctx.moveTo(x-s*0.12,y-s*0.50);ctx.lineTo(x+s*0.16,y-s*0.50);ctx.stroke();
 
   // Ball
@@ -447,7 +448,7 @@ function drawEntities(){
     var isBall=(p===carrier||p===aiCarrier);
     var sz=p.isOL?26:32;
     if(p.team==='off'){
-      drawPlayer(sx,sy,p.isOL?'#1a7a5a':myJersey,myHelmet,true,sz,isBall);
+      drawPlayer(sx,sy,p.isOL?'#1a7a5a':myJersey,myHelmet,true,sz,isBall,myAccent);
     } else if(p.team==='def'){
       drawPlayer(sx,sy,cpuJersey,cpuHelmet,false,sz,false);
     } else if(p.team==='aioff'){
@@ -863,6 +864,8 @@ var myIdentity=null;
     var fb=await window.getFirebaseDB();
     var snap=await fb.fsMod.getDoc(fb.fsMod.doc(fb.db,'students',studentId));
     if(snap.exists()&&window.amgIdentityCosmetics)myIdentity=window.amgIdentityCosmetics(snap.data(),null);
+    var nc=myIdentity&&myIdentity.nameColor;
+    if(nc&&nc.value&&nc.type!=='gradient'&&nc.type!=='animated-gradient')myAccent=nc.value;
   }catch(e){}
 })();
 
