@@ -21,7 +21,7 @@ browser before commit, one commit per game, push in small batches (deploys amghu
   `odaSoundEnabled`. Add toggle button + persist. Also add home quick-stats pills.
 - [x] **trivia** (3/4/4/4) — SHIPPED 5f9e2c1: sound toggle exists but not persisted/read from
   `odaSoundEnabled` — resets every load. Two-line fix.
-- [ ] **solitaire** (2/3/4/4): no class leaderboard at all; achievements localStorage-only
+- [x] **solitaire** (2/3/4/4) — SHIPPED (Wave C + hint system in AAA phase): no class leaderboard at all; achievements localStorage-only
   (never sync to Firestore); `odaHelp.init` unguarded. KEEP direct-to-table entry (kids'
   muscle memory) — add leaderboard + sync without forcing a home menu.
 - [x] **minesweeper** — SHIPPED: board shake on mine hit + every-win celebration. The
