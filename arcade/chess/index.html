@@ -797,6 +797,7 @@ let promoResolve = null;
 let coinsAwarded = 0;
 let positionHistory = [];
 let lostQueen = false;
+let castledThisGame = false, promotedThisGame = false, capturedQueenThisGame = false;
 let gameStartedAt = 0;
 let resultTimeout = null;
 let selectedFormat = 1;
@@ -911,7 +912,13 @@ const CHESS_ACHIEVEMENTS = [
   { id:'ch_ach_ai_slayer', name:'AI Slayer', desc:'Beat the hard AI', icon:'\u{1F916}', check: function(s){ return s.beatHardAI; } },
   { id:'ch_ach_speed_demon', name:'Speed Demon', desc:'Win in under 2 minutes', icon:'\u{1F3CE}\uFE0F', check: function(s){ return s.speedWin; } },
   { id:'ch_ach_endurance', name:'Endurance', desc:'Play 50 games', icon:'\u{1F3CB}\uFE0F', check: function(s){ return s.gamesPlayed >= 50; } },
-  { id:'ch_ach_legend', name:'Chess Legend', desc:'Win 200 games', icon:'\u{1F3C6}', check: function(s){ return s.wins >= 200; } }
+  { id:'ch_ach_legend', name:'Chess Legend', desc:'Win 200 games', icon:'\u{1F3C6}', check: function(s){ return s.wins >= 200; } },
+  { id:'ch_ach_first_win', name:'First Win', desc:'Win your first game', icon:'\u{1F947}', check: function(s){ return s.wins >= 1; } },
+  { id:'ch_ach_first_mate', name:'Checkmate Artist', desc:'Win a game by checkmate', icon:'\u265A', check: function(s){ return s.wonByCheckmate; } },
+  { id:'ch_ach_castler', name:'Castled Up', desc:'Castle in a game', icon:'\u265C', check: function(s){ return s.hasCastled; } },
+  { id:'ch_ach_promoter', name:'Promotion', desc:'Promote a pawn', icon:'\u2655', check: function(s){ return s.hasPromoted; } },
+  { id:'ch_ach_queen_hunter', name:'Queen Hunter', desc:"Capture your opponent's queen", icon:'\u2694\uFE0F', check: function(s){ return s.capturedQueen; } },
+  { id:'ch_ach_hot_streak', name:'Hot Streak', desc:'Win 3 games in a row', icon:'\u{1F525}', check: function(s){ return (s.winStreak||0) >= 3; } }
 ];
 
 let chessAchievements = [];
@@ -931,8 +938,8 @@ function saveChessAchievements(){
 function getChessStats(){
   try{
     const saved = localStorage.getItem('odaChessStats');
-    return saved ? JSON.parse(saved) : { wins:0, losses:0, draws:0, gamesPlayed:0, quickCheckmate:false, comebackWin:false, beatHardAI:false, speedWin:false };
-  }catch(e){ return { wins:0, losses:0, draws:0, gamesPlayed:0, quickCheckmate:false, comebackWin:false, beatHardAI:false, speedWin:false }; }
+    return saved ? JSON.parse(saved) : { wins:0, losses:0, draws:0, gamesPlayed:0, quickCheckmate:false, comebackWin:false, beatHardAI:false, speedWin:false, winStreak:0, wonByCheckmate:false, hasCastled:false, hasPromoted:false, capturedQueen:false };
+  }catch(e){ return { wins:0, losses:0, draws:0, gamesPlayed:0, quickCheckmate:false, comebackWin:false, beatHardAI:false, speedWin:false, winStreak:0, wonByCheckmate:false, hasCastled:false, hasPromoted:false, capturedQueen:false }; }
 }
 
 function saveChessStats(s){
@@ -1081,6 +1088,9 @@ function initBoard(){
   capturedByBlack = [];
   positionHistory = [];
   lostQueen = false;
+  castledThisGame = false;
+  promotedThisGame = false;
+  capturedQueenThisGame = false;
   gameStartedAt = Date.now();
   positionHistory.push(boardHash());
 }
@@ -1328,7 +1338,12 @@ function execMove(move){
     else capturedByWhite.push(captured);
     // Track if player lost their queen (for comeback achievement)
     if((captured===WQ && playerColor===WHITE)||(captured===BQ && playerColor===BLACK)) lostQueen = true;
+    // Track if player captured opponent's queen (for queen hunter achievement)
+    if(turn===playerColor && ((captured===BQ && playerColor===WHITE)||(captured===WQ && playerColor===BLACK))) capturedQueenThisGame = true;
   }
+  // Track castle/promotion for achievements
+  if(move.castle && turn===playerColor) castledThisGame = true;
+  if(move.promo && turn===playerColor) promotedThisGame = true;
 
   // Update castling rights
   if(piece===WK){ castling.wk=false; castling.wq=false; }
@@ -2134,6 +2149,8 @@ async function endGame(status){
   if(resultType==='win') achStats.wins = (achStats.wins||0) + 1;
   else if(resultType==='loss') achStats.losses = (achStats.losses||0) + 1;
   else achStats.draws = (achStats.draws||0) + 1;
+  // Win streak (for hot streak achievement)
+  achStats.winStreak = resultType==='win' ? (achStats.winStreak||0) + 1 : 0;
 
   const extraFlags = {};
   if(resultType==='win'){
@@ -2146,7 +2163,13 @@ async function endGame(status){
     if(gameMode==='ai' && aiDifficulty==='hard') extraFlags.beatHardAI = true;
     // Comeback: win after losing queen (tracked by lostQueen flag)
     if(lostQueen) extraFlags.comebackWin = true;
+    // Checkmate artist: win specifically by checkmate (not resignation)
+    if(status.reason==='checkmate') extraFlags.wonByCheckmate = true;
   }
+  // Castle/promotion/queen capture: tracked regardless of win/loss/draw
+  if(castledThisGame) extraFlags.hasCastled = true;
+  if(promotedThisGame) extraFlags.hasPromoted = true;
+  if(capturedQueenThisGame) extraFlags.capturedQueen = true;
   Object.assign(achStats, extraFlags);
   saveChessStats(achStats);
   checkChessAchievements(extraFlags);
