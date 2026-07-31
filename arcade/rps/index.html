@@ -446,6 +446,14 @@ h1,h2,h3{font-family:'Fredoka',sans-serif}
   <div class="countdown-num" id="countdownNum">3</div>
 </div>
 
+<!-- ===== TOURNAMENT PASS-DEVICE OVERLAY ===== -->
+<div class="countdown-overlay" id="passDeviceOverlay" style="display:none;pointer-events:auto;flex-direction:column;gap:14px">
+  <div style="font-size:16px;color:var(--text2)">Hand the device to</div>
+  <div style="font-family:'Fredoka',sans-serif;font-size:34px;font-weight:700;color:var(--gold)" id="passDeviceName">Player</div>
+  <div style="font-size:13px;color:var(--text2)">No peeking, everyone else!</div>
+  <button class="btn btn-accent" onclick="tourneyPassReady()">I'm Ready!</button>
+</div>
+
 <script src="../../js/oda-core.js"></script>
 <script type="module">
 import{initializeApp,getApp}from"https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
@@ -796,6 +804,8 @@ window.makeChoice=function(choice){
     processAiRound(choice);
   }else if(gameMode==='mp'){
     submitMpChoice(choice);
+  }else if(gameMode==='tourney'){
+    processTourneyPick(choice);
   }
 };
 
@@ -826,18 +836,20 @@ async function runCountdown(){
   const numEl=document.getElementById('countdownNum');
   overlay.style.display='flex';
 
-  for(let i=3;i>=1;i--){
-    numEl.textContent=i;
-    numEl.className='countdown-num';
-    sfxCountdown(i);
-    void numEl.offsetWidth; // force reflow
-    numEl.className='countdown-num';
-    await sleep(600);
+  if(currentRound<=1){
+    for(let i=3;i>=1;i--){
+      numEl.textContent=i;
+      numEl.className='countdown-num';
+      sfxCountdown(i);
+      void numEl.offsetWidth; // force reflow
+      numEl.className='countdown-num';
+      await sleep(300);
+    }
   }
   numEl.textContent='GO!';
   numEl.className='countdown-num go';
   sfxCountdown(0);
-  await sleep(400);
+  await sleep(300);
   overlay.style.display='none';
 }
 
@@ -903,7 +915,7 @@ function revealChoices(myC,oppC){
         myChoice=null;
         enableChoices(true);
         resetArena();
-      },1800);
+      },1000);
     }
   },500);
 }
@@ -1298,6 +1310,14 @@ window.cancelRoom=async function(){
 };
 
 window.leaveGame=function(){
+  if(gameMode==='tourney'){
+    // Bail out of a pass-and-play bracket match back to the bracket - the
+    // match stays unresolved in Firestore so "Play Match" can be tried again.
+    gameMode=null;
+    tourneyMatchKey=null;tourneyP1=null;tourneyP2=null;
+    showScreen('tournamentBracketScreen');
+    return;
+  }
   if(unsub){unsub();unsub=null}
   if(roomCode&&!matchOver){
     try{deleteDoc(doc(db,'rpsGames',roomCode))}catch(e){}
@@ -1477,7 +1497,7 @@ async function runMpReveal(myC,oppC,data){
   }
 
   // Wait then advance round (only player 1 writes)
-  await sleep(1800);
+  await sleep(1000);
   mpRevealRunning=false;
 
   if(myPlayer===1&&roomCode){
@@ -1612,8 +1632,12 @@ function listenToTournament(){
     }
 
     if(data.status==='active'){
-      showScreen('tournamentBracketScreen');
-      renderBracket(data);
+      // Don't yank the screen away from an in-progress pass-and-play match
+      // (e.g. another bracket match finishing elsewhere shouldn't interrupt us).
+      if(gameMode!=='tourney'){
+        showScreen('tournamentBracketScreen');
+        renderBracket(data);
+      }
     }
 
     if(data.status==='finished'){
@@ -1786,12 +1810,179 @@ function awardTourneyCoins(data,champion){
   awardCoins(coins);
 }
 
-window.playTourneyMatch=function(matchKey){
-  // For tournament matches, we use a simplified version -
-  // create a temporary rpsGames room and resolve the bracket when done
-  // Store the match key for later resolution
-  alert('Tournament match: '+matchKey+'\nFor now, use Quick Match to play, then update the bracket manually.\n\nFull tournament auto-play coming soon!');
+// ===== TOURNAMENT PASS-AND-PLAY MATCH =====
+// Two named kids share this device for their bracket match. We reuse the
+// same gameScreen/arena/choice-buttons and runCountdown() as AI/Quick Match,
+// but pick sequentially (with a "hand the device" interstitial between
+// players so the second player can't see the first player's pick) and then
+// reveal with the existing animation. The Firestore multiplayer (rpsGames)
+// state machine is never touched - only the rpsTournaments bracket doc.
+let tourneyMatchKey=null,tourneyP1=null,tourneyP2=null,tourneyBestOf=3;
+let tourneyPickStep=1,tourneyChoiceP1=null,tourneyChoiceP2=null;
+
+window.playTourneyMatch=async function(matchKey){
+  if(!tourneyCode)return;
+  try{
+    const ref=doc(db,'rpsTournaments',tourneyCode);
+    const snap=await getDoc(ref);
+    if(!snap.exists()){odaToast('Tournament not found','error');return}
+    const data=snap.data();
+    const match=data.bracket&&data.bracket.matches[matchKey];
+    if(!match||match.winner||!match.p1||!match.p2||match.p1.id==='bye'||match.p2.id==='bye'){
+      odaToast('Match not ready to play','error');
+      return;
+    }
+
+    tourneyMatchKey=matchKey;
+    tourneyP1=match.p1;
+    tourneyP2=match.p2;
+    tourneyBestOf=data.bestOf||3;
+
+    gameMode='tourney';
+    bestOf=tourneyBestOf;
+    initGameState();
+    const p1NameEl=document.getElementById('p1Name');
+    // Clear any nameColor cosmetic styling from a prior AI/Quick Match this
+    // session - p1Name here is a bracket player's name, not the device owner.
+    p1NameEl.style.color='';p1NameEl.style.background='';p1NameEl.style.webkitBackgroundClip='';p1NameEl.style.webkitTextFillColor='';
+    p1NameEl.textContent=tourneyP1.name;
+    document.getElementById('p2Name').textContent=tourneyP2.name;
+    document.getElementById('p1Score').textContent='0';
+    document.getElementById('p2Score').textContent='0';
+    document.getElementById('gameBestOfLabel').textContent='Best of '+bestOf;
+    document.getElementById('arenaLeftLabel').textContent=tourneyP1.name;
+    document.getElementById('arenaRightLabel').textContent=tourneyP2.name;
+    renderRoundHistory();
+    showScreen('gameScreen');
+    startTourneyRoundPickP1();
+  }catch(e){
+    odaToast('Error starting match','error');
+  }
 };
+
+function startTourneyRoundPickP1(){
+  tourneyPickStep=1;
+  tourneyChoiceP1=null;tourneyChoiceP2=null;
+  myChoice=null;
+  resetArena();
+  document.getElementById('statusText').textContent='';
+  showPassDeviceOverlay(tourneyP1.name);
+}
+
+function showPassDeviceOverlay(name){
+  enableChoices(false);
+  document.getElementById('passDeviceName').textContent=name;
+  document.getElementById('passDeviceOverlay').style.display='flex';
+}
+
+window.tourneyPassReady=function(){
+  document.getElementById('passDeviceOverlay').style.display='none';
+  const picker=tourneyPickStep===1?tourneyP1:tourneyP2;
+  document.getElementById('statusText').textContent=picker.name+', choose your move!';
+  enableChoices(true);
+};
+
+function processTourneyPick(choice){
+  enableChoices(false);
+  highlightChoice(choice);
+  if(tourneyPickStep===1){
+    tourneyChoiceP1=choice;
+    document.getElementById('statusText').textContent='Locked in!';
+    setTimeout(()=>{
+      tourneyPickStep=2;
+      myChoice=null;
+      document.querySelectorAll('.choice-btn').forEach(b=>b.classList.remove('selected'));
+      showPassDeviceOverlay(tourneyP2.name);
+    },700);
+  }else{
+    tourneyChoiceP2=choice;
+    document.getElementById('statusText').textContent='';
+    setTimeout(()=>{
+      revealTourneyChoices(tourneyChoiceP1,tourneyChoiceP2);
+    },400);
+  }
+}
+
+async function revealTourneyChoices(p1c,p2c){
+  sfxReveal();
+  document.getElementById('arenaLeft').innerHTML='✊';
+  document.getElementById('arenaLeft').className='arena-emoji shake';
+  document.getElementById('arenaRight').innerHTML='✊';
+  document.getElementById('arenaRight').className='arena-emoji shake';
+  document.getElementById('roundBanner').innerHTML='';
+  document.getElementById('roundBanner').className='round-banner';
+
+  await runCountdown();
+
+  const leftEl=document.getElementById('arenaLeft');
+  const rightEl=document.getElementById('arenaRight');
+  leftEl.innerHTML=EMOJI[p1c];
+  leftEl.className='arena-emoji reveal-left';
+  rightEl.innerHTML=EMOJI[p2c];
+  rightEl.className='arena-emoji reveal-right';
+
+  const result=determineWinner(p1c,p2c);
+  await sleep(500);
+
+  const banner=document.getElementById('roundBanner');
+  if(result==='win'){
+    leftEl.classList.add('winner');rightEl.classList.add('loser');
+    myScore++;sfxWin();
+    banner.textContent=CHOICE_NAMES[p1c]+' beats '+CHOICE_NAMES[p2c]+' - '+tourneyP1.name+' WINS THE ROUND!';
+    banner.className='round-banner win';
+  }else if(result==='lose'){
+    leftEl.classList.add('loser');rightEl.classList.add('winner');
+    oppScore++;sfxLose();
+    banner.textContent=CHOICE_NAMES[p2c]+' beats '+CHOICE_NAMES[p1c]+' - '+tourneyP2.name+' WINS THE ROUND!';
+    banner.className='round-banner lose';
+  }else{
+    leftEl.classList.add('draw-result');rightEl.classList.add('draw-result');
+    sfxDraw();
+    banner.textContent='Both chose '+CHOICE_NAMES[p1c]+' - DRAW!';
+    banner.className='round-banner draw';
+  }
+  trackWinStreak(result);
+
+  document.getElementById('p1Score').textContent=myScore;
+  document.getElementById('p2Score').textContent=oppScore;
+
+  history.push({round:currentRound,myChoice:p1c,oppChoice:p2c,result});
+  currentRound++;
+  renderRoundHistory();
+
+  const winsNeeded=Math.ceil(bestOf/2);
+  if(myScore>=winsNeeded||oppScore>=winsNeeded){
+    matchOver=true;
+    setTimeout(()=>finishTourneyMatch(myScore>oppScore?tourneyP1:tourneyP2),1000);
+  }else{
+    document.getElementById('statusText').textContent='Next round!';
+    setTimeout(()=>startTourneyRoundPickP1(),1000);
+  }
+}
+
+async function finishTourneyMatch(winnerPlayer){
+  gameMode=null;
+  try{
+    const ref=doc(db,'rpsTournaments',tourneyCode);
+    const snap=await getDoc(ref);
+    if(snap.exists()){
+      const data=snap.data();
+      const bracket=data.bracket;
+      const match=bracket&&bracket.matches[tourneyMatchKey];
+      if(match&&!match.winner){
+        match.winner=winnerPlayer;
+        match.status='complete';
+        await updateDoc(ref,{bracket});
+        // Propagate the winner into later rounds via the existing bracket-advance code.
+        await advanceByes(ref,bracket,bracket.rounds);
+      }
+    }
+  }catch(e){
+    odaToast('Failed to save match result','error');
+  }
+  tourneyMatchKey=null;tourneyP1=null;tourneyP2=null;
+  showScreen('tournamentBracketScreen');
+}
 
 window.leaveTournament=function(){
   if(tourneyUnsub){tourneyUnsub();tourneyUnsub=null}
