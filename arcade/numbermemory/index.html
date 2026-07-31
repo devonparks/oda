@@ -154,6 +154,11 @@ h1,h2,h3,h4{font-family:'Fredoka',sans-serif}
 .level-dot.current{border-color:rgba(255,255,255,.6);animation:dotPulse 1s ease-in-out infinite}
 @keyframes dotPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
 
+/* Level-up celebration popup */
+.level-popup{position:absolute;top:20%;left:50%;transform:translate(-50%,-50%) scale(0);font-family:'Fredoka',sans-serif;font-size:32px;font-weight:700;color:var(--accent);z-index:9;pointer-events:none;text-shadow:0 4px 16px rgba(0,0,0,.5);animation:levelPop 1.1s ease forwards;white-space:nowrap}
+.level-popup.big{font-size:40px;color:var(--gold);text-shadow:0 0 20px rgba(255,209,102,.6)}
+@keyframes levelPop{0%{transform:translate(-50%,-50%) scale(0);opacity:0}20%{transform:translate(-50%,-50%) scale(1.2);opacity:1}40%{transform:translate(-50%,-50%) scale(1)}100%{transform:translate(-50%,-50%) scale(1) translateY(-30px);opacity:0}}
+
 /* RECORDS */
 #recordsScreen{padding-top:70px;justify-content:flex-start}
 .records-container{width:100%;max-width:420px}
@@ -481,6 +486,17 @@ function startGame(){
   nextLevel();
 }
 
+/* One-shot "LEVEL N!" celebration popup. Bigger beat + newBest tone every 5 levels. */
+function showLevelPopup(level){
+  var big=(level%5===0);
+  var el=document.createElement('div');
+  el.className='level-popup'+(big?' big':'');
+  el.textContent='LEVEL '+level+'!';
+  document.getElementById('gameZone').appendChild(el);
+  setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},1100);
+  if(big)sfxNewBest();
+}
+
 function nextLevel(){
   currentLevel++;
   var digits=currentLevel+2; // Level 1 = 3 digits, Level 2 = 4, etc.
@@ -498,6 +514,9 @@ function nextLevel(){
 
   // Update HUD
   document.getElementById('hudLevel').textContent='Level '+currentLevel+' ('+digits+' digits)';
+
+  // Level-up celebration (skip on level 1 — that's game start, not an advance)
+  if(currentLevel>1)showLevelPopup(currentLevel);
 
   // Show number with fade-in
   display.textContent=currentNumber;
