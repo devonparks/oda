@@ -42,44 +42,57 @@ browser before commit, one commit per game, push in small batches (deploys amghu
   swaps the rendered character (not a hardcoded charId). Fix only if broken.
 - [x] **hangman** (5/5/5/5) — SKIPPED by design (risk > value): already at bar. Optional hygiene only (dup win paths) — SKIP
   unless trivial; risk isn't worth it. Tournament payout paths fragile.
-- [ ] **uno** (5/4/4/4): achievements are thin (~2) and toast may be a stub — verify toast
-  fires, add a few milestone badges. Ladder deferred to Wave D pattern.
+- [x] **uno** — VERIFIED already complete: 10 real badges + working animated toast fired
+  from both win paths + Firestore-backed streak unlocks. Audit grep undercounted. No edit.
 
 ## Wave B — flat games get their moment (celebration/juice/cosmetic wiring, all S)
 
-- [ ] **sudoku** (5/5/3/3): celebrate EVERY solve (not just PB), entry feedback, verify
-  learn-game coin premium vs arcade.
-- [ ] **slidingpuzzle** (5/5/3/4): confetti/odaCelebrate burst on solve (currently just a
-  coins pill).
-- [ ] **floodfill** (5/5/3/4): cell-fill pulse + solve celebration + low-moves popup.
-- [ ] **war** (5/4/3/4): light impact feedback only — Karpathy rule, keep war simple.
-- [ ] **lightsout** (5/5/4/3): wire equipped tile theme into actual grid render.
-- [ ] **mathsprint** (5/5/4/3): render a visible equipped cosmetic during sprint; sound on
-  wrong answer.
-- [ ] **2048** (5/5/4/3): merge glow + chain-combo popups; verify tile skins actually
-  reskin the grid.
-- [ ] **blockblast** (5/5/5/3): verify block skins visibly apply; combo popups for streaks.
-- [ ] **bowling** (5/5/4/3): verify ball/lane cosmetic renders visually; pin-strike shake.
-- [ ] **retrobowl** (5/5/5/3): add one visible cosmetic slot (jersey/field theme) — only
-  the win effect renders today.
-- [ ] **simonsays** (5/4/3/4): round-streak popup + board glow on correct input. CAREFUL:
-  timing loop desync risk — test full sequence.
+- [x] **sudoku** — SHIPPED 7e4d3c7: every solve celebrates; entry pulse already existed
+  (verify-first caught it). Coin premium untouched (Devon's balance call).
+- [x] **slidingpuzzle** — SHIPPED 2b8edd1: real find — local confetti never routed through
+  odaCelebrate, so purchased win effects never rendered here. Fixed + snap pulse.
+- [x] **floodfill** — SHIPPED c2f78fc: fill pulse + every-win celebration.
+- [x] **war** — SHIPPED ac6d826: WAR table shake + winner card flash. Kept minimal.
+- [x] **lightsout** — VERIFIED already working (cosmetics render via theme-*/color-*
+  classes; toast exists). Audit premise wrong, zero edits.
+- [x] **mathsprint** — VERIFIED already working (theme + number style render in-game;
+  wrong-answer tone exists). Audit premise wrong, zero edits.
+- [x] **2048** — SHIPPED e435ef4: merge flash 128+, combo popup. Tile themes verified
+  wired (accent ring/glow by design, not full recolor — design question, left alone).
+- [x] **blockblast** — SHIPPED daec8cb: real find — piece tray/drag previews ignored the
+  equipped color theme (grid cells honored it). CSS fix + clear-streak popups.
+- [x] **bowling** — SHIPPED c78f06e: strike shake. Ball/lane/pin cosmetics verified fully
+  wired (audit premise wrong).
+- [x] **retrobowl** — SHIPPED c170d28: hub identity nameColor = helmet stripe accent (no
+  retrobowl catalogue exists; didn't invent shop items). Gradient tiers fall back white.
+- [x] **simonsays** — SHIPPED b239ebe: round milestone popups + sequence-complete glow,
+  timing chain byte-identical.
 
 ## Wave C — bigger/riskier M items (only with fresh verification each)
 
-- [ ] **checkers** (5/5/4/4): additive odaAchievements (has none). Don't touch
-  tournament/spectate state machines.
-- [ ] **chess** (5/5/4/5): additive odaAchievements (exemplar lacks badges). Same care.
-- [ ] **brickbreaker** (5/5/5/4): audit says no achievements — VERIFY first, then add via
-  odaAchievements additively.
-- [ ] **battleship** (5/5/4/3): sunk-ship shake + splash + one visible cosmetic slot.
-  Multiplayer/tournament state machine = minefield, additive only.
-- [ ] **lemonade** (5/4/3/3): render equipped stand/cup cosmetics in-game; confirm day-end
-  coin award reliability; "day complete" polish beat.
-- [ ] **dominoes** (5/5/4/4): chain-play flourish. Canvas hit-testing fiddly — light touch.
-- [ ] **wordle/wordscramble/trivia/dodgeball/doodlejump/colormatch/numbermemory/reaction/
-  stacktower/suika/coinminer**: minor polish per audit (combo pops, streak celebration,
-  small verifies). Batch as time allows.
+- [x] **checkers** — SHIPPED (Wave C): real find — its hand-rolled achievements existed
+  but could NEVER unlock (hardcoded wins:1 overwrote real counts; most hooks never
+  called). Fixed + 6 new badges = 14. ck_tourney stays unwired (tournament code
+  off-limits). Multiplayer piece-loss tracking is a snapshot-diff heuristic.
+- [x] **chess** — SHIPPED (Wave C): audit premise wrong (had 10 badges already); added 6
+  additive ones (castle/promote/queen-capture/checkmate-win/streak/first-win) = 16.
+- [x] **brickbreaker** — VERIFIED had a full 6-badge system (audit wrong). Wave D shipped
+  the real bug instead: Records screen showed badges locked until a game-over that
+  session (achState never loaded on open). Fixed.
+- [x] **battleship** — SHIPPED (Wave C): sunk-ship red flash + shake, both directions,
+  Set-deduped, render-layer only. Ocean/Ship/Hit cosmetics verified already fully wired
+  (audit wrong). Noted: --bs-grid CSS var is set but consumed nowhere (inert, pre-existing).
+- [x] **lemonade** — SHIPPED (Wave C): real find — coins only awarded on the Next Day
+  click, so leaving via the back link forfeited them. Award moved to day-end. Profit pop
+  + record celebration added. Stand/cup/music cosmetics verified already rendering.
+- [x] **dominoes** — SHIPPED (Wave C): last-played glow ring + round-end score popup.
+  Multiplayer glow not wired (snapshot replaces board wholesale — out of light-touch scope).
+- [x] **Wave D batch** — wordle (streak popup; toasts verified working — audit's thin
+  signal was the standard anon-gate), wordscramble (solved-pill flash; toasts verified),
+  dodgeball (hit shake; 6 badges verified exist), doodlejump (VERIFIED squash-stretch
+  already implemented), colormatch (streak popups + tiered glow), numbermemory (level-up
+  popups), suika (chain popups + top-tier shake), stacktower (VERIFIED combo popups
+  already exist), trivia/reaction/coinminer (no further work needed).
 
 ## Wave D — solo ladder (the big Drop4 port, pattern-first)
 

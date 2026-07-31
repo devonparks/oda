@@ -1,5 +1,33 @@
 # Sprint Log
 
+## 2026-07-30 (arcade) — Overnight quality train, Waves B-D: 22 more games
+
+Wave B (12 flat games): every solve/win now celebrates with the player's
+EQUIPPED effect (sliding puzzle's local confetti had never routed through
+odaCelebrate — purchased win effects never showed there), block blast's piece
+tray finally honors the equipped color theme, retrobowl renders the hub
+identity color as the helmet stripe (no catalogue exists for it — didn't
+invent shop items), plus merge/combo/streak popups and shakes across 2048,
+war, bowling, simon, floodfill, sudoku. Verify-first caught THREE audit false
+alarms (lightsout, mathsprint, uno all already worked — zero edits).
+
+Wave C (M-effort): solitaire got its missing class leaderboard + Firestore
+achievement sync (collection is per-win addDoc docs, so setDoc-merge on a
+per-player doc, not updateDoc); lemonade's coins now award at day-end instead
+of the Next Day click (back-link exits were forfeiting earned coins);
+checkers' achievements had NEVER been able to unlock (hardcoded wins:1) —
+fixed + extended to 14 badges; chess +6 badges; battleship sunk-ship
+flash+shake; dominoes last-tile glow + score popup.
+
+Wave D (polish): brickbreaker Records screen now loads unlocked badges on
+open; wordle streak popup; wordscramble solve flash; dodgeball hit shake;
+colormatch tiered streak glow; numbermemory level-up popups; suika chain
+combos + shake. Two more false alarms caught (doodlejump squash-stretch and
+stacktower combo popups already existed).
+
+Running total: 29 per-game commits pushed, all browser-verified. Still in
+flight: Connect 4 Ladder Climb (the Drop4 progression port) + minesweeper.
+
 ## 2026-07-30 (arcade) — Overnight quality train, Wave A: hero games + hard bugs
 
 Devon asked for every hub game at its best possible quality. First a fresh
