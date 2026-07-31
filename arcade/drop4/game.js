@@ -66,6 +66,7 @@ export function createMatch(canvas, opts) {
   const fx = [];      // power-piece bursts {type,col,row,start}
   const flashes = []; // land flashes {col,row,start}
   let banner = null;  // {text,start,dur}
+  let shake = null;   // {start,dur} — tiny locked-input nudge
 
   // ── setup: stamp preset board + obstacles ──
   if (o.presetBoard) {
@@ -165,8 +166,17 @@ export function createMatch(canvas, opts) {
     const now = performance.now();
     return drops.some((d) => now < d.start + d.fallDur);
   }
+  // tiny shake + sound so a tap during AI-think/drop-fall isn't silent
+  function nudgeLocked() {
+    sfxPlay('click');
+    shake = { start: performance.now(), dur: 180 };
+  }
 
   function tryPlayerMove(col) {
+    if (isAiThinking || anyDropAnimating()) {
+      if (status === 'playing' && introDone) nudgeLocked();
+      return;
+    }
     if (inputLocked()) return;
     if (currentPlayer !== 1) return;
     if (col < 0 || col >= cols) return;
@@ -253,6 +263,9 @@ export function createMatch(canvas, opts) {
   }
   function stopTimer() { if (timerId) { clearInterval(timerId); timerId = null; } }
 
+  // ── public: change AI think-speed mid-match (settings toggle) ──
+  function setGameSpeed(speed) { o.gameSpeed = speed; }
+
   // ── public: arm a power piece ──
   function armPower(kind) {
     if (!o.powerPieces[kind] || ammo[kind] <= 0) return;
@@ -311,6 +324,16 @@ export function createMatch(canvas, opts) {
   function render(now) {
     if (destroyed) return;
     ctx.clearRect(0, 0, sceneW, sceneH);
+
+    let shakeDX = 0;
+    if (shake) {
+      const el = now - shake.start;
+      if (el > shake.dur) shake = null;
+      else { const p = el / shake.dur; shakeDX = Math.sin(p * Math.PI * 4) * 4 * (1 - p); }
+    }
+    ctx.save();
+    ctx.translate(shakeDX, 0);
+
     drawScene(ctx, sceneW, sceneH, scene, boardTier, now);
 
     ctx.save();
@@ -402,6 +425,8 @@ export function createMatch(canvas, opts) {
       }
     }
 
+    ctx.restore(); // close shakeDX translate
+
     // intro card
     if (!introDone && o.intro) {
       ctx.fillStyle = 'rgba(6,10,26,0.72)'; ctx.fillRect(0, 0, sceneW, sceneH);
@@ -436,5 +461,5 @@ export function createMatch(canvas, opts) {
     canvas.removeEventListener('pointerdown', onClick);
   }
 
-  return { start, destroy, armPower, dismissIntro, getState: () => ({ status, winner, moveCount }) };
+  return { start, destroy, armPower, dismissIntro, setGameSpeed, getState: () => ({ status, winner, moveCount }) };
 }

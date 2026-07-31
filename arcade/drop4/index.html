@@ -73,6 +73,13 @@ img{max-width:100%}
 .diff-card p{font-size:12px;color:var(--text2)}
 .diff-e h3{color:var(--accent)} .diff-m h3{color:var(--accent2)} .diff-h h3{color:var(--gold)} .diff-l h3{color:var(--accent3)}
 
+/* Legendary soft-gate */
+.d4-gate-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;animation:fadeUp .2s ease}
+.d4-gate-card{background:var(--surface);border:2px solid var(--accent3);border-radius:20px;padding:26px;max-width:340px;width:90%;text-align:center}
+.d4-gate-card h3{font-size:19px;margin-bottom:10px;color:var(--accent3)}
+.d4-gate-card p{font-size:14px;color:var(--text2);line-height:1.5;margin-bottom:20px}
+.d4-gate-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
 /* GAME */
 #gameScreen{padding:0;position:relative;justify-content:center}
 #d4Canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
@@ -82,8 +89,11 @@ img{max-width:100%}
 .matchup img{width:34px;height:34px;border-radius:50%;object-fit:cover;background:var(--surface2);border:1px solid var(--border)}
 .matchup .vs{font-size:12px;color:var(--text3);font-weight:700}
 .matchup .who{font-size:13px;font-weight:700}
+.hud-right{display:flex;align-items:center;gap:8px}
 .hud-timer{background:rgba(17,16,43,.7);border:1px solid var(--border);border-radius:16px;padding:6px 14px;font-weight:800;font-size:16px;backdrop-filter:blur(8px);min-width:44px;text-align:center}
 .hud-timer.warn{color:var(--accent3);border-color:var(--accent3)}
+.hud-speed{pointer-events:auto;background:rgba(17,16,43,.7);border:1px solid var(--border);border-radius:16px;padding:6px 12px;font-family:'Outfit';font-weight:700;font-size:12px;color:var(--text2);backdrop-filter:blur(8px);cursor:pointer;transition:all .15s}
+.hud-speed:hover{border-color:var(--accent);color:var(--text)}
 .power-bar{position:absolute;bottom:16px;left:0;right:0;display:flex;gap:10px;justify-content:center;z-index:5}
 .power-btn{background:rgba(17,16,43,.8);border:2px solid var(--border);border-radius:16px;padding:8px 14px;color:var(--text);font-weight:700;font-size:13px;cursor:pointer;backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;gap:2px;min-width:64px}
 .power-btn .pi{font-size:20px}
@@ -184,9 +194,21 @@ img{max-width:100%}
       <div class="card diff-card diff-e" onclick="D4.startCasual('easy')"><h3>Easy</h3><p>Relaxed — great to warm up</p></div>
       <div class="card diff-card diff-m" onclick="D4.startCasual('medium')"><h3>Medium</h3><p>Thinks a few moves ahead</p></div>
       <div class="card diff-card diff-h" onclick="D4.startCasual('hard')"><h3>Hard</h3><p>Deep search — tough to beat</p></div>
-      <div class="card diff-card diff-l" onclick="D4.startCasual('legendary')"><h3>Legendary</h3><p>Near-perfect play. Good luck.</p></div>
+      <div class="card diff-card diff-l" onclick="D4.tapLegendary()"><h3>Legendary</h3><p>Near-perfect play. Good luck.</p></div>
     </div>
     <div style="text-align:center;margin-top:20px"><button class="btn btn-outline btn-small" onclick="D4.goHome()">&larr; Back</button></div>
+  </div>
+</div>
+
+<!-- LEGENDARY SOFT GATE -->
+<div class="d4-gate-bg" id="legendaryGate" style="display:none">
+  <div class="d4-gate-card">
+    <h3>⚠️ Legendary Difficulty</h3>
+    <p>Legendary plays a nearly perfect game. Beat Hard first — or dive in anyway!</p>
+    <div class="d4-gate-btns">
+      <button class="btn btn-outline btn-small" onclick="D4.declineLegendary()">Not Yet</button>
+      <button class="btn btn-red btn-small" onclick="D4.diveInLegendary()">Dive In</button>
+    </div>
   </div>
 </div>
 
@@ -196,7 +218,10 @@ img{max-width:100%}
   <div class="hud-top">
     <button class="btn btn-outline btn-small" onclick="D4.leaveMatch()">&larr; Leave</button>
     <div class="matchup"><img id="hudP1" alt=""><span class="who" id="hudP1n">You</span><span class="vs">vs</span><span class="who" id="hudOpp">Computer</span></div>
-    <div class="hud-timer" id="hudTimer" style="display:none">–</div>
+    <div class="hud-right">
+      <button class="hud-speed" id="hudSpeed" onclick="D4.cycleSpeed()" title="AI speed">Normal</button>
+      <div class="hud-timer" id="hudTimer" style="display:none">–</div>
+    </div>
   </div>
   <div class="power-bar" id="powerBar" style="display:none"></div>
 </div>
@@ -372,6 +397,18 @@ async function loadRecords() {
   } catch (e) { $('leaderboardWrap').innerHTML = '<p style="color:var(--text2);text-align:center;padding:20px">Could not load leaderboard.</p>'; }
 }
 
+// ── AI speed toggle (persisted; live-applies to a running match) ──
+const SPEED_ORDER = ['normal', 'fast', 'instant'];
+const SPEED_LABEL = { normal: 'AI: Normal', fast: 'AI: Fast', instant: 'AI: Instant' };
+function getSpeed() { return localStorage.getItem('d4GameSpeed') || 'normal'; }
+function renderSpeedBtn() { $('hudSpeed').textContent = SPEED_LABEL[getSpeed()]; }
+function cycleSpeed() {
+  const next = SPEED_ORDER[(SPEED_ORDER.indexOf(getSpeed()) + 1) % SPEED_ORDER.length];
+  try { localStorage.setItem('d4GameSpeed', next); } catch (e) {}
+  renderSpeedBtn();
+  if (match && match.setGameSpeed) match.setGameSpeed(next);
+}
+
 // ── match lifecycle ──
 function startMatch(opts, careerLevel) {
   currentCareer = careerLevel || null;
@@ -381,9 +418,11 @@ function startMatch(opts, careerLevel) {
   $('hudP1').src = thumbFor(getEquippedCharacterId());
   $('hudP1n').textContent = studentName;
   $('hudOpp').textContent = opts.opponentName || 'Computer';
+  renderSpeedBtn();
   showScreen('gameScreen');
   const full = Object.assign({
     theme: getEquippedTheme(GAME_ID), pieceSkinId: getEquippedPieceSkin(GAME_ID), opponentSkinId: 'classic',
+    gameSpeed: getSpeed(),
     sfx: window.odaSfx, onResult: handleResult, onState: updateHud,
   }, opts);
   // fit canvas to element after layout
@@ -466,6 +505,16 @@ function startCasual(difficulty) {
   startMatch(lastCasual);
 }
 
+// ── Legendary soft gate (shown once) ──
+const LEGENDARY_GATE_KEY = 'd4LegendaryGateSeen';
+function tapLegendary() {
+  if (localStorage.getItem(LEGENDARY_GATE_KEY)) { startCasual('legendary'); return; }
+  $('legendaryGate').style.display = 'flex';
+}
+function dismissLegendaryGate() { try { localStorage.setItem(LEGENDARY_GATE_KEY, '1'); } catch (e) {} $('legendaryGate').style.display = 'none'; }
+function diveInLegendary() { dismissLegendaryGate(); startCasual('legendary'); }
+function declineLegendary() { dismissLegendaryGate(); }
+
 function leaveMatch() { if (match) { match.destroy(); match = null; } goHome(); }
 function goHome() { if (match) { match.destroy(); match = null; } if (expressCtl) { expressCtl.destroy(); expressCtl = null; } destroyCeleb(); currentCareer = null; showScreen('homeScreen'); loadQuickStats(); refreshCoinChip(); }
 
@@ -501,7 +550,7 @@ async function showCareer() {
 }
 
 // expose public API for inline onclick + career.js callbacks
-window.D4 = { showScreen, goHome, startCasual, leaveMatch, toggleSound, showCharacters, showShop, showRecords, showCareer, showExpress };
+window.D4 = { showScreen, goHome, startCasual, leaveMatch, toggleSound, showCharacters, showShop, showRecords, showCareer, showExpress, cycleSpeed, tapLegendary, diveInLegendary, declineLegendary };
 
 // ── achievements ──
 const ACHIEVEMENTS = [
@@ -536,6 +585,7 @@ window.odaHelp.init({
 mountHero();
 loadQuickStats();
 refreshCoinChip();
+renderSpeedBtn();
 </script>
 </body>
 </html>
