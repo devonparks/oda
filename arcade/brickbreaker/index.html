@@ -1064,6 +1064,18 @@ async function showRecords(){
   document.getElementById('statLevel').textContent=localBestLevel;
   document.getElementById('statCoins').textContent=localCoinsEarned;
 
+  /* Load achievement state (achState is only populated by checkAchievements on game-over otherwise) */
+  var sid=localStorage.getItem('studentId');
+  if(sid&&!sid.startsWith('anon_')){
+    try{
+      var fb=await window.getFirebaseDB();
+      var ref=fb.fsMod.doc(fb.db,'brickbreakerRecords',sid);
+      var snap=await fb.fsMod.getDoc(ref);
+      var data=snap.exists()?snap.data():{};
+      achState=data.achievements||{};
+    }catch(e){}
+  }
+
   /* Achievements grid */
   var ag=document.getElementById('achievementsGrid');ag.innerHTML='';
   BB_ACHIEVEMENTS.forEach(function(a){
