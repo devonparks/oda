@@ -26,47 +26,63 @@ green today. Run them before and after everything.
 
 ---
 
-## Job 1 — strip every rideable vehicle out of the park
+## Job 1 — take every rideable thing off the map and make it a CATALOGUE
 
-I do not want vehicles in the playground. Remove them from the map:
-bicycles, trike, scooters, pogo stick, skateboards, the jeep, the soapbox.
+Read this framing before you touch anything, because it changes what
+"remove" means. **None of this is being deleted.** Every one of these is
+something I intend to sell in a shop later: kids earn coins by doing
+schoolwork, buy a bike or a jeep, and ride it round the park where other
+kids can see it. The park should ship EMPTY of them so that owning one
+means something.
 
-**Exactly what to remove** — `SM_Veh_*` plus `SM_Prop_Skateboard_*`, and
-their sibling part placements (wheels, handlebars, pedals, pegs, baskets,
-training wheels, steering wheels):
+So: **remove the PLACEMENTS from the map, keep everything that makes them
+work.** The `prop_db.json` entries stay exactly as they are — seat, clip,
+IK pins, motion — because when the shop spawns a bought item, all that
+mount data must still be correct. Keep the `drive` motion type, keep
+`probe_drive.mjs`, keep the drive rules in the seeder. Nothing is dead
+code; it is inventory waiting for a shop.
 
-```
-SM_Veh_4x4              SM_Veh_Bike_01      SM_Veh_Scooter_01
-SM_Veh_Soapbox_Racer_03 SM_Veh_Bike_02      SM_Veh_Scooter_02
-SM_Veh_Trike_01         SM_Veh_Pogo_Stick_01
-SM_Prop_Skateboard_01   SM_Prop_Skateboard_02
-```
+**Remove these 98 placements** — 18 mountable + 80 attached parts (wheels,
+handlebars, pedals, pegs, baskets, training wheels, steering wheels, axles).
+The park goes from 1103 placements to **1005**. Use those numbers as the
+acceptance check.
 
-Measured: **88 placements** (14 main + 74 parts). The park goes from 1103
-placements to **1015**. Use those numbers as the acceptance check.
+The catalogue this creates — **14 distinct buyable items**:
 
-**KEEP these — they are attractions or scenery, not vehicles:**
+| item | kind | moves | clip |
+|---|---|---|---|
+| `SM_Veh_4x4` (jeep) | kart | drive | `sit_kart` |
+| `SM_Veh_Soapbox_Racer_03` | kart | drive | `sit_kart` |
+| `SM_Veh_Bike_01`, `SM_Veh_Bike_02` | bike | drive | `bike_pedal` |
+| `SM_Veh_Trike_01` | bike | drive | `sit_trike` |
+| `SM_Veh_Scooter_01`, `SM_Veh_Scooter_02` | scooter | drive | `scoot_stand` |
+| `SM_Prop_Skateboard_01`, `SM_Prop_Skateboard_02` | board | drive | `board_stand` |
+| `SM_Veh_Pogo_Stick_01` | pogo | static | `pogo` |
+| `SM_Prop_Sled_01` | sit_on | static | `sit_sled` |
+| `SM_Prop_Red_Wagon_01` | sit_on | static | `sit_wagon` |
+| `SM_Prop_Pool_Float_01`, `SM_Prop_Pool_Float_02` | sit_on | static | `sit_float` |
+
+**Emit that catalogue as a committed file** (name and shape are yours —
+something like `engine/assets/catalogue.json`) listing each buyable item
+with its prototype key, a display name, and its attached part prototypes.
+The shop does not exist yet and you are NOT building it this session, but
+the list of what is for sale should fall out of this job rather than being
+reconstructed by hand later.
+
+**KEEP on the map — these are attractions or scenery, not merchandise:**
 - the three coin rides (`SM_Prop_Coin_Ride_Car` / `_Dragon` / `_Rocket`) —
-  they are spring-mounted playground attractions and I want them working
+  spring-mounted playground attractions, and I want them working
 - the small scenery toys: pram, RC car + controller, toy truck, toy loader
-- **ASK ME** about the sled, the red wagon and the two pool floats before
-  removing them. They are ride-on toys rather than vehicles and I have not
-  decided.
 
-**How to remove it properly:** removals currently only live in
-`localStorage` via the object layer (`objects.applyRemoved()` reads
-localStorage; `objects.exportEdits()` prints JSON). That is not a permanent
-map edit. Build a committed mechanism — a small file the engine loads at
-boot and applies before collision and the prop database are built, so the
-props genuinely do not exist rather than being hidden. Removed props must
-not appear in the prop library, must not be mountable, and must leave no
-collider behind.
-
-Then delete what becomes dead: the `drive` motion type is only used by
-these props, so `probe_drive.mjs`, the drive code in `props.js`, and the
-drive rules in `tools/engine/seed_prop_db.mjs` all go with them. Do not
-leave a half-removed system behind. (If you would rather keep the drive code
-for a future shop-bought vehicle, say so and keep it — but say so.)
+**How to remove properly:** removals currently only live in `localStorage`
+via the object layer (`objects.applyRemoved()` reads localStorage;
+`objects.exportEdits()` prints JSON). That is not a permanent map edit.
+Build a committed mechanism — a file the engine loads at boot and applies
+BEFORE collision and the prop database are built, so the props genuinely do
+not exist rather than being hidden. They must not appear in the prop
+library, must not be mountable, and must leave no collider behind. The
+mechanism should be reversible per item, because the shop will need to put
+them back one at a time.
 
 ---
 
@@ -132,6 +148,14 @@ baking one through Unity is in `engine/README.md` and it is four steps.
 
 One addition at a time, and I will pick the next one. Do not start new
 systems without asking.
+
+For context on where this is going, so you make choices that do not have to
+be undone: the park is the shop window for an education economy. Kids earn
+coins fastest by doing schoolwork, spend them on the catalogue above, and
+ride what they bought where other kids can see it — the NBA 2K park model,
+pointed at learning instead of at a wallet. Items are meant to be
+expensive. That is why the vehicles come off the map now, and it is why
+their mount data must survive intact.
 
 ---
 
