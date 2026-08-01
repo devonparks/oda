@@ -210,14 +210,25 @@ for (const s of spots) {
   const name = s.proto.replace(/^SM_(Prop|Env|Veh)_/, '').toLowerCase();
   let shot = null;
   if (r.ok && !r.dismounted) {
-    // camera: three-quarter view framed on the prop, scaled to its size
+    // camera: three-quarter view framed on the prop, scaled to its size.
+    // Hang-mode props live under playground roofs — the standard elevated
+    // camera ends up INSIDE the roof and shoots a brown wall (the monkey
+    // bars shipped unjudgeable for two sessions), so hangs get a low camera.
     const d = Math.max(2.6, Math.max(...s.dims) * 1.35);
+    const lift = s.mode === 'hang' ? 0.1 : d * 0.55;
     shot = path.join('props', name + '.png');
-    await peek(page, (sp, dd) => {
+    await peek(page, (id, dd, up, hang) => {
       const e = window.__engine;
       const p = e.player.model.position;
-      e.look([p.x + dd * 0.72, p.y + dd * 0.55, p.z + dd * 0.72], [p.x, p.y + 0.55, p.z]);
-    }, s.pos, d);
+      if (hang) {
+        // side-on, perpendicular to the bar the kid traverses — the diagonal
+        // camera shoots through the playground structure around it
+        const ax = (e.props.spots[id].entry.motion || {}).axis === 'x' ? [0, 1] : [1, 0];
+        e.look([p.x + ax[0] * dd, p.y + up, p.z + ax[1] * dd], [p.x, p.y + 0.3, p.z]);
+      } else {
+        e.look([p.x + dd * 0.72, p.y + up, p.z + dd * 0.72], [p.x, p.y + 0.55, p.z]);
+      }
+    }, s.id, d, lift, s.mode === 'hang');
     await settle(page, 350);
     await page.screenshot({ path: path.join(SHOT_DIR, shot) });
   }

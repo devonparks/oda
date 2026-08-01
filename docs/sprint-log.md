@@ -1,5 +1,42 @@
 # Sprint Log
 
+## 2026-08-01 (engine) — M7b: every playground mount looked at, four authored
+
+Rode all 32 mounts and JUDGED THE PICTURES (probe_props numbers were green
+the whole time — three of these four were invisible to them):
+
+- **Coin car** — the seeded seat (0, 0.763, 0.093) was ON the steering wheel
+  (SteeringW centroid z0.101 y0.864 — the main prototype is just the
+  pedestal, the cockpit lives in the `_Top` part), so the kid perched on the
+  dash with the bucket seat empty behind. Authored to the measured cushion
+  (y0.60-0.62, z-0.3..-0.1): seat (0, 0.61, -0.22). The wheel-grip hands
+  were already correct; at z-0.28 they measured 0.13 m past the fingertips,
+  so the butt scoots 6 cm forward. Hands now 0.075 m, elbows 19°.
+- **Coin dragon** — saddle 9 cm off-centre (x0.093 on a body symmetric about
+  x=0) with the hand pair skewed the same way — the LEFT hand target was ON
+  the spine at x-0.007. Centred, hands straddle the neck at ±0.10.
+- **Coin rocket** — hands held air 10 cm above the front cowl (authored
+  y1.215 vs the measured ridge 1.10-1.15 at z-0.3). Lowered onto it.
+- **Tyre swing** — the real find: the placement is uniformly scaled 0.70563,
+  so the world tyre is ~0.55 m across and a kid CANNOT sit inside it — the
+  seeded seat at the ring's outer bottom put the entire tyre inside the body
+  mesh (verified via the live instance matrix; the mounted kid photographed
+  as "standing on grass beside a rope"). Butt now on the ring TOP; hand pins
+  REMOVED after measurement showed the low rim grips unreachable (CCD elbow
+  guard rejects the fold-through path; hands froze 0.3 m out) — and pinless,
+  the bespoke clip turns out to hold the rope overhead exactly where the
+  rope is. The picture reads: kid sitting on a tyre swing.
+
+Verified fixed-not-redone: seesaw sinks under a lone rider and remembers its
+tilt, picnic table seats on the bench, roundabout rider faces the hub,
+spring riders rock on the real spring. Left alone on purpose: wagon (reads
+well up close — plush passengers, minor shoe clip), monkey bars + zip
+(hangs are correct), pogo/bike hand nits (previously-authored, shop items).
+
+Probe camera fix: hang-mode props now shoot side-on and low — the elevated
+diagonal camera ended INSIDE the playground roof, and the monkey bars
+shipped as an unjudgeable brown wall on two contact sheets.
+
 ## 2026-08-01 (engine) — M7a: the park ships empty of rideables; they become a CATALOGUE
 
 Devon's call: every rideable thing is shop inventory — kids will earn coins
