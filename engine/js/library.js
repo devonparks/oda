@@ -49,8 +49,11 @@ export class Library {
     const counts = new Map();
     for (const it of this.park.items) counts.set(it.proto, (counts.get(it.proto) || 0) + 1);
 
+    // Only prototypes that actually stand in the park. The shop inventory
+    // (map_edits.json drops it at load) must not browse as if it were here —
+    // a card that flies the camera to nothing is a broken promise.
     const rows = Object.entries(this.db)
-      .filter(([k, v]) => k !== '_meta' && v && v.dims)
+      .filter(([k, v]) => k !== '_meta' && v && v.dims && counts.get(k))
       .sort(([a], [b]) => a.localeCompare(b));
 
     const card = ([proto, e]) => {

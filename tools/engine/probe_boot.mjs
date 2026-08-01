@@ -35,7 +35,11 @@ const state = await peek(page, () => {
     gravity: e.scene.getPhysicsEngine()?.gravity?.asArray?.() ?? null,
     prototypes: e.park.stats.prototypes,
     placements: e.park.stats.placements,
+    removed: e.park.stats.removed,
     skipped: e.park.stats.skipped,
+    // the shop inventory must be GONE, not hidden: no spot, no collider, no card
+    jeepPlacements: e.find('^SM_Veh_4x4$').length,
+    jeepSpots: e.props ? e.props.find('^SM_Veh_4x4$').length : 0,
     triangles: Math.round(e.park.stats.triangles),
     meshes: e.scene.meshes.length,
     fps: e.engine.getFps(),
@@ -57,8 +61,19 @@ console.log('\n' + JSON.stringify(state, null, 2) + '\n');
 check('Havok physics engine is up', state.physics && /havok/i.test(state.physicsName || ''), state.physicsName);
 check('gravity is -9.81 on Y', Math.abs((state.gravity?.[1] ?? 0) + 9.81) < 0.01, JSON.stringify(state.gravity));
 check('scene is RIGHT-handed (matches the Unity export)', state.rightHanded === true);
-check('all 275 prototypes present', state.prototypes === 275, `${state.prototypes}`);
-check('all 1103 placements built', state.placements === 1103, `${state.placements}`);
+/**
+ * 2026-08-01: the map ships EMPTY of the 14 rideable shop items — 98
+ * placements (18 vehicles + 80 attached parts) drop at load via
+ * engine/assets/map_edits.json, so 1103 becomes 1005 and 67 part/vehicle
+ * prototypes have nothing left to draw (275 − 67 = 208). probe_props and
+ * probe_drive boot `?edits=0` to keep the inventory's mount data verified.
+ */
+check('208 prototypes still placed (275 − 67 shop-only)', state.prototypes === 208, `${state.prototypes}`);
+check('1005 of 1103 placements built', state.placements === 1005, `${state.placements}`);
+check('98 shop placements dropped by map edits', state.removed === 98, `${state.removed}`);
+check('the jeep is really gone: no placement, no mountable spot',
+  state.jeepPlacements === 0 && state.jeepSpots === 0,
+  `${state.jeepPlacements} placements, ${state.jeepSpots} spots`);
 check('no placement skipped for a missing prototype', state.skipped === 0, `${state.skipped} skipped`);
 check('thin instances total the placement count', state.thinTotal === state.placements, `${state.thinTotal}`);
 check('draw calls stay at one per prototype', state.prototypes <= 300, `${state.prototypes} protos`);

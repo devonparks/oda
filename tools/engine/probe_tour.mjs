@@ -85,11 +85,24 @@ await scene('Other kids', 'Four kids in different costumes walk the paths and si
 await scene('On the swings', 'Riding a swing: the seat and the rider are carried by one world delta, so the kid pumps in time with the arc instead of near it. Hands are pinned to the chains by IK.',
   () => ride('Swings_01_Swing_1', 2200, ['KeyW']));
 
-await scene('Driving the jeep', 'Nine props are driveable. Throttle and steering write the same delta that rocks a spring rider, and the rider is carried by the prop\'s own frame — measured to within 1 cm.',
-  () => ride('SM_Veh_4x4', 2000, ['KeyW']));
+// The vehicles are gone from these scenes on purpose: 2026-08-01 made every
+// rideable a SHOP item (engine/assets/catalogue.json) and the park ships
+// empty of them. probe_drive still rides all nine through ?edits=0.
+await scene('On the seesaw', 'A lone rider sinks their own end and the plank remembers its tilt after they hop off — the lever sim renders with a sign measured off the real geometry, not assumed.',
+  () => ride('Seesaw_01_Top', 1800));
 
-await scene('Skateboard in the bowl', 'The sideways skate stance, riding the bowl. Feet are IK-pinned to the deck.',
-  () => ride('SM_Prop_Skateboard_01', 1800, ['KeyW']));
+await scene('The roundabout', 'The tyre carousel: hold W and it spins up, the rider faces the hub, and the seat carries them round in the prop\'s own frame.',
+  async () => {
+    await ride('Rocker_Top_01', 2600, ['KeyW']);
+    // frame the whole carousel, not the rider — ride()'s close-up puts the
+    // camera inside the structure from most spin phases
+    await peek(page, () => {
+      const s = window.__engine.props.find('Rocker_Top_01')[0];
+      window.__engine.look(
+        [s.pos[0] + 4.4, s.pos[1] + 3.4, s.pos[2] + 4.4],
+        [s.pos[0], s.pos[1] + 1.2, s.pos[2]]);
+    });
+  });
 
 await scene('The coin-ride dragon', 'Its own bespoke clip — sit_dragon, baked in Unity for this prop — with both hands measured onto the dragon\'s neck to 2 mm.',
   () => ride('Coin_Ride_Dragon', 1400));

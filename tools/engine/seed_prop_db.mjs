@@ -130,7 +130,9 @@ const partOf = (proto) => {
 
 // ─── boot and measure ────────────────────────────────────────────────────────
 console.log('booting the engine to measure prototypes…');
-const { browser, page } = await boot({ headless: true, log: false });
+// edits:false — a reseed must measure EVERY prototype, including the shop
+// inventory that map_edits.json drops from the shipping park
+const { browser, page } = await boot({ headless: true, log: false, edits: false });
 
 /**
  * All measuring happens IN the page: vertex data never crosses the puppeteer

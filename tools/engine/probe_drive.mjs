@@ -18,7 +18,9 @@ const check = (label, pass, detail = '') => {
   console.log(`[${pass ? '  OK  ' : ' FAIL '}] ${label}${detail ? '  — ' + detail : ''}`);
 };
 
-const { browser, page } = await boot({ headless: true, log: false });
+// edits:false — the wheeled props are shop inventory now; they only exist on
+// the full map, and this probe is what keeps their drive data honest
+const { browser, page } = await boot({ headless: true, log: false, edits: false });
 
 const drivers = await peek(page, () => {
   const seen = new Set(), out = [];

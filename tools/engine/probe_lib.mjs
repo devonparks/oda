@@ -34,7 +34,7 @@ export const SHOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)
  * Boot the engine and wait until `window.__engine.ready`.
  * @param {{headless?:boolean, dev?:boolean, width?:number, height?:number, log?:boolean}} opts
  */
-export async function boot({ headless = true, dev = false, npc = false, width = 1280, height = 800, log = true } = {}) {
+export async function boot({ headless = true, dev = false, npc = false, edits = true, width = 1280, height = 800, log = true } = {}) {
   const browser = await puppeteer.launch({
     channel: 'chrome',
     headless,
@@ -59,6 +59,10 @@ export async function boot({ headless = true, dev = false, npc = false, width = 
   const qs = [];
   if (dev) qs.push('dev');
   if (!npc) qs.push('npc=0');
+  // `edits: false` boots the FULL map, ignoring engine/assets/map_edits.json —
+  // how probe_props / probe_drive / the seeder keep verifying the shop
+  // inventory (vehicles etc.) that the shipping park no longer places.
+  if (!edits) qs.push('edits=0');
   await page.goto(URL_ENGINE + (qs.length ? '?' + qs.join('&') : ''), { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.__engine && window.__engine.ready, { timeout: 120000 })
     .catch(async () => {

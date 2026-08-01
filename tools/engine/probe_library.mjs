@@ -30,9 +30,15 @@ const state = await peek(page, async () => {
   // wait for the lazy images in the first screenful to arrive
   await new Promise((r) => setTimeout(r, 1200));
   const imgs = cards.slice(0, 24).map((c) => c.querySelector('img'));
+  // what the WORLD says a card count should be: db prototypes that still
+  // have a placement (the shop inventory drops at load and must not browse)
+  const placed = new Set(window.__engine.park.items.map((i) => i.proto));
+  const expected = Object.entries(window.__engine.props.db)
+    .filter(([k, v]) => k !== '_meta' && v && v.dims && placed.has(k)).length;
   return {
     open: !el.classList.contains('hidden'),
     cards: cards.length,
+    expected,
     mounts: el.querySelectorAll('.lib-clip').length,
     placeholders: el.querySelectorAll('.lib-clip.placeholder').length,
     // what the DATABASE says, so the UI is checked against truth rather
@@ -45,8 +51,11 @@ const state = await peek(page, async () => {
 });
 console.log('\nlibrary:', JSON.stringify(state));
 check('library opens on toggle', state.open);
-check('every db prototype has a card', state.cards === 275, `${state.cards}`);
-check('mountable props show their clip badge', state.mounts >= 30, `${state.mounts}`);
+// checked against the live park, not a constant — the 2026-08-01 map edits
+// drop the shop inventory, so "every prototype" means "every PLACED one"
+check('every placed db prototype has a card', state.cards === state.expected && state.cards > 0,
+  `${state.cards} cards, ${state.expected} placed db prototypes`);
+check('mountable props show their clip badge', state.mounts >= 14, `${state.mounts}`);
 /**
  * The badge count must MATCH the database, not clear some fixed bar. This
  * check originally demanded ≥8 placeholders and started failing the moment

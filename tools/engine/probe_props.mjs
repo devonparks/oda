@@ -32,7 +32,9 @@ const check = (label, pass, detail = '') => {
   console.log(`[${pass ? '  OK  ' : ' FAIL '}] ${label}${detail ? '  — ' + detail : ''}`);
 };
 
-const { browser, page } = await boot({ headless: true, log: false });
+// edits:false — the full map, so the shop inventory (vehicles the shipping
+// park no longer places) keeps its mount data verified for the day it spawns
+const { browser, page } = await boot({ headless: true, log: false, edits: false });
 
 // one spot per PROTOTYPE (the db is per-prototype; photographing ten
 // identical benches would just pad the sheet) — plus every distinct kind
