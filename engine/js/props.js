@@ -253,7 +253,9 @@ export class Props {
     const M = this._spotMatrix(spot, out);
     Vector3.TransformCoordinatesFromFloatsToRef(seat.pos[0], seat.pos[1], seat.pos[2], M, _v);
     Quaternion.FromRotationMatrixToRef(M.getRotationMatrix(), _q);
-    Quaternion.FromEulerAnglesToRef(0, seat.yaw, 0, model.rotationQuaternion);
+    // roll is the lean a curved slide writes into the seat patch — zero for
+    // every static seat, so this is FromEulerAngles(0, yaw, 0) everywhere else
+    Quaternion.RotationYawPitchRollToRef(seat.yaw, 0, seat.roll || 0, model.rotationQuaternion);
     _q.multiplyToRef(model.rotationQuaternion, model.rotationQuaternion);
     rig.update(dt, { speed: 0, grounded: true, vy: 0 });
     seatRider(model, rig, _v, mode);
@@ -567,13 +569,53 @@ export class Props {
         // ride the chute top→exit once, then hop off at the bottom
         sim.s = Math.min(1, sim.s + dt / (mo.time || 1.15));
         const k = sim.s * sim.s * (3 - 2 * sim.s);        // smoothstep: gains speed
-        this._retarget(spot, {
-          pos: [
-            e.seat.pos[0] + (mo.to[0] - e.seat.pos[0]) * k,
-            e.seat.pos[1] + (mo.to[1] - e.seat.pos[1]) * k,
-            e.seat.pos[2] + (mo.to[2] - e.seat.pos[2]) * k,
-          ],
-        });
+        if (mo.waypoints && mo.waypoints.length > 1) {
+          /**
+           * A CURVED CHUTE IS A PATH, NOT A LINE. The straight lerp below
+           * cut the spiral slide's rider through the outside of the tube —
+           * the db entry admitted it (`pathStatus: "approx"`). Waypoints are
+           * the tube's own cross-section rings, measured off the vertex
+           * data (tools/engine/measure_props.mjs --slide), sampled by ARC
+           * LENGTH so speed does not surge on long segments. The rider's
+           * yaw follows the tangent — on a 640° chute the kid genuinely
+           * corkscrews — and the lean into the turn comes from the local
+           * yaw rate, signed, so a straight run-out stands the kid back up.
+           */
+          if (!spot.pathLen) {
+            spot.pathLen = [0];
+            for (let i = 1; i < mo.waypoints.length; i++) {
+              const a = mo.waypoints[i - 1], b = mo.waypoints[i];
+              spot.pathLen[i] = spot.pathLen[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+            }
+          }
+          const L = spot.pathLen;
+          const target = k * L[L.length - 1];
+          let i = 1;
+          while (i < L.length - 1 && L[i] < target) i++;
+          const a = mo.waypoints[i - 1], b = mo.waypoints[i];
+          const f = (target - L[i - 1]) / Math.max(1e-6, L[i] - L[i - 1]);
+          const segYaw = (j) => {
+            const p = mo.waypoints[Math.max(0, j - 1)], q2 = mo.waypoints[Math.min(mo.waypoints.length - 1, j)];
+            return Math.atan2(q2[0] - p[0], q2[2] - p[2]);
+          };
+          const wrap = (x2) => { while (x2 > Math.PI) x2 -= 2 * Math.PI; while (x2 < -Math.PI) x2 += 2 * Math.PI; return x2; };
+          const y0 = segYaw(i), y1 = segYaw(Math.min(L.length - 1, i + 1));
+          const yaw = y0 + wrap(y1 - y0) * f;
+          // lean into the turn: full lean at ~0.6 rad of bend per segment
+          const roll = Math.max(-1, Math.min(1, wrap(y1 - y0) / 0.6)) * (mo.lean || 0) * Math.min(1, sim.s * 6);
+          this._retarget(spot, {
+            pos: [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f],
+            yaw, roll,
+          });
+        } else {
+          this._retarget(spot, {
+            pos: [
+              e.seat.pos[0] + (mo.to[0] - e.seat.pos[0]) * k,
+              e.seat.pos[1] + (mo.to[1] - e.seat.pos[1]) * k,
+              e.seat.pos[2] + (mo.to[2] - e.seat.pos[2]) * k,
+            ],
+          });
+        }
         if (sim.s >= 1) { this.dismount(); return; }
         break;
       }

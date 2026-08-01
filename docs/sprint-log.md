@@ -1,5 +1,35 @@
 # Sprint Log
 
+## 2026-08-01 (engine) — M7c: the spiral slide rides its own helix
+
+Slide_05's db entry admitted the problem (`path: "straight", pathStatus:
+"approx"`): the rider lerped from top mouth to bottom mouth and cut through
+the tube wall — photographed mid-ride INSIDE the playhouse rocks.
+
+**Measured, not modelled.** The chute is a low-poly tube built from ~33°
+segments; each segment joint is a 12-vertex cross-section ring whose
+centroid IS the tube centre there. Dumping the prototype's 1419 baked
+vertices and clustering per height band (measure_props.mjs --slide +
+slide05_verts.json) traced 19 rings spiralling θ −93° → +468° — ~560° of
+measured turn, plus the mouth drop and run-out ≈ Devon's 640°. Those rings,
+pulled 12% toward the tower axis and dropped 0.31 to the butt-on-floor
+line, ARE the path — waypoints in the db (`authored: true`), not code.
+
+**The runtime is generic.** `motion.waypoints` on any slide: arc-length
+sampled so speed doesn't surge on long segments, rider yaw follows the
+tangent (the kid genuinely corkscrews — 690° of continuous yaw measured
+over the 2.6 s descent), and lean comes from the local yaw rate signed —
+`motion.lean` caps it (0.5 rad here), and the straight run-out stands the
+kid back up (roll 0.5 → 0 measured at the exit). `placeRider` grew a
+`seat.roll` term that is zero everywhere else. Straight slides keep the
+old lerp untouched.
+
+**Iterated on camera evidence, three passes:** at ring-centre −0.12 the
+torso broke through the tube roof; at −0.23 the feet clipped the outer
+wall; at −0.31 with the 12% pull, mid-loop shows only the head and hands
+cresting the tube — which is what an enclosed spiral looks like ridden.
+The tour gained a 13th scene of exactly that moment.
+
 ## 2026-08-01 (engine) — M7b: every playground mount looked at, four authored
 
 Rode all 32 mounts and JUDGED THE PICTURES (probe_props numbers were green

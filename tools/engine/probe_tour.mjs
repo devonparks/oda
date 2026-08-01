@@ -94,13 +94,16 @@ await scene('On the seesaw', 'A lone rider sinks their own end and the plank rem
 await scene('The roundabout', 'The tyre carousel: hold W and it spins up, the rider faces the hub, and the seat carries them round in the prop\'s own frame.',
   async () => {
     await ride('Rocker_Top_01', 2600, ['KeyW']);
-    // frame the whole carousel, not the rider — ride()'s close-up puts the
-    // camera inside the structure from most spin phases
+    // frame the RIDER from the park side — the carousel stands at the fence
+    // (and its placement origin is up the pole, so s.pos aims at sky)
     await peek(page, () => {
-      const s = window.__engine.props.find('Rocker_Top_01')[0];
-      window.__engine.look(
-        [s.pos[0] + 4.4, s.pos[1] + 3.4, s.pos[2] + 4.4],
-        [s.pos[0], s.pos[1] + 1.2, s.pos[2]]);
+      const e = window.__engine;
+      const s = e.props.find('Rocker_Top_01')[0];
+      const c = e.backdrop.centre;
+      const p = e.player.model.position;
+      let dx = c[0] - s.pos[0], dz = c[1] - s.pos[2];
+      const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
+      e.look([p.x + dx * 4.6, p.y + 2.6, p.z + dz * 4.6], [p.x, p.y + 0.6, p.z]);
     });
   });
 
@@ -112,6 +115,21 @@ await scene('At the picnic table', 'sit_table: forearms on the tabletop, legs tu
 
 await scene('Monkey bars', 'A hang, not a sit: the model origin goes on the bar line and the hands are pinned overhead.',
   () => ride('Monkey_Bars', 1400));
+
+await scene('The spiral slide', 'Slide_05 is a 640° corkscrew, and the rider now follows its measured centreline — tube ring centres traced from the vertex data — leaning ~28° into the turn and standing back up for the run-out. Shot dropping through the mouth; once inside the tube only glimpses of head and hands crest it, which is what an enclosed spiral looks like ridden.',
+  async () => {
+    await ride('Slide_05', 350);
+    // the mouth drop is the one reliably visible beat of an enclosed tube —
+    // camera radially OUT from the tower, looking down at the rider
+    await peek(page, () => {
+      const e = window.__engine;
+      const s = e.props.find('Slide_05')[0];
+      const p = e.player.model.position;
+      let dx = p.x - s.pos[0], dz = p.z - s.pos[2];
+      const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
+      e.look([p.x + dx * 2.8, p.y + 1.6, p.z + dz * 2.8], [p.x, p.y, p.z]);
+    });
+  });
 
 await scene('Up the stairs', 'The playground stairs, climbed. Staircases collide as their convex hull — the ramp under them — because the exact tread mesh wedges the capsule about half the time.',
   async () => {
